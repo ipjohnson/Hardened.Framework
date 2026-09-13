@@ -2,10 +2,11 @@ using Xunit;
 
 namespace Hardened.CloudEvents.Tests;
 
-public class CloudEventRoutesTests {
-
+public class CloudEventRoutesTests
+{
     [Fact]
-    public void AnEventRoutesOnSourceAndType() {
+    public void AnEventRoutesOnSourceAndType()
+    {
         var cloudEvent = new CloudEvent("1.0", "1", "com.acme.orders", "OrderPlaced");
 
         Assert.Equal("/com.acme.orders/OrderPlaced", CloudEventRoutes.Event(cloudEvent));
@@ -18,7 +19,8 @@ public class CloudEventRoutesTests {
     [InlineData("orders", "orders")]
     [InlineData("", "")]
     [InlineData(null, "")]
-    public void TheLastSegmentIsTheResourcesOwnName(string? value, string expected) {
+    public void TheLastSegmentIsTheResourcesOwnName(string? value, string expected)
+    {
         Assert.Equal(expected, CloudEventRoutes.LastSegment(value));
     }
 }

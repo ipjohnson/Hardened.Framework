@@ -12,6 +12,7 @@ namespace Hardened.Requests.Runtime.Tests.Diagnostics;
 /// way. Anything added for the rest of the telemetry work belongs in this collection too.
 /// </remarks>
 [CollectionDefinition(Name, DisableParallelization = true)]
-public sealed class DiagnosticsListenerCollection {
+public sealed class DiagnosticsListenerCollection
+{
     public const string Name = "diagnostics-listeners";
 }

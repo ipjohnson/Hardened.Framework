@@ -15,27 +15,41 @@ namespace Hardened.Requests.Runtime.Tests.Diagnostics;
 /// than pass one.
 /// </remarks>
 [Collection(DiagnosticsListenerCollection.Name)]
-public class MeterMetricLoggerProviderTests {
-
-    private sealed record Measurement(string Instrument, string? Unit, double Value, KeyValuePair<string, object?>[] Tags);
+public class MeterMetricLoggerProviderTests
+{
+    private sealed record Measurement(
+        string Instrument,
+        string? Unit,
+        double Value,
+        KeyValuePair<string, object?>[] Tags
+    );
 
     /// <summary>
     /// Collects measurements published by the Hardened meter while it is alive.
     /// </summary>
-    private sealed class Listening : IDisposable {
+    private sealed class Listening : IDisposable
+    {
         private readonly MeterListener _listener;
 
-        public Listening() {
-            _listener = new MeterListener {
-                InstrumentPublished = (instrument, listener) => {
-                    if (instrument.Meter.Name == "Hardened.Requests") {
+        public Listening()
+        {
+            _listener = new MeterListener
+            {
+                InstrumentPublished = (instrument, listener) =>
+                {
+                    if (instrument.Meter.Name == "Hardened.Requests")
+                    {
                         listener.EnableMeasurementEvents(instrument);
                     }
-                }
+                },
             };
 
-            _listener.SetMeasurementEventCallback<double>((instrument, value, tags, _) =>
-                Measurements.Add(new Measurement(instrument.Name, instrument.Unit, value, tags.ToArray())));
+            _listener.SetMeasurementEventCallback<double>(
+                (instrument, value, tags, _) =>
+                    Measurements.Add(
+                        new Measurement(instrument.Name, instrument.Unit, value, tags.ToArray())
+                    )
+            );
 
             _listener.Start();
         }
@@ -48,7 +62,8 @@ public class MeterMetricLoggerProviderTests {
         public void Dispose() => _listener.Dispose();
     }
 
-    private static IMetricLogger Logger() => new MeterMetricLoggerProvider().CreateLogger("ignored");
+    private static IMetricLogger Logger() =>
+        new MeterMetricLoggerProvider().CreateLogger("ignored");
 
     /// <summary>
     /// The conventions name this one and define it in seconds; <c>RequestMetrics</c> records
@@ -56,7 +71,8 @@ public class MeterMetricLoggerProviderTests {
     /// dashboard pointing at the same numbers it always did.
     /// </summary>
     [Fact]
-    public void TheRequestDurationTakesItsConventionalNameAndUnit() {
+    public void TheRequestDurationTakesItsConventionalNameAndUnit()
+    {
         using var listening = new Listening();
 
         var logger = Logger();
@@ -74,7 +90,8 @@ public class MeterMetricLoggerProviderTests {
     /// own name — as does anything an application defines for itself.
     /// </summary>
     [Fact]
-    public void AMetricWithNoConventionPassesThroughUnchanged() {
+    public void AMetricWithNoConventionPassesThroughUnchanged()
+    {
         using var listening = new Listening();
 
         var logger = Logger();
@@ -88,7 +105,8 @@ public class MeterMetricLoggerProviderTests {
     }
 
     [Fact]
-    public void UnitsAreTranslatedToUcum() {
+    public void UnitsAreTranslatedToUcum()
+    {
         using var listening = new Listening();
 
         var logger = Logger();
@@ -106,7 +124,8 @@ public class MeterMetricLoggerProviderTests {
     /// of a request would otherwise arrive after the measurement it describes and be lost.
     /// </summary>
     [Fact]
-    public void AMeasurementCarriesTagsSetAfterItWasRecorded() {
+    public void AMeasurementCarriesTagsSetAfterItWasRecorded()
+    {
         using var listening = new Listening();
 
         var logger = Logger();
@@ -121,7 +140,8 @@ public class MeterMetricLoggerProviderTests {
     }
 
     [Fact]
-    public void NothingIsRecordedUntilTheRequestEnds() {
+    public void NothingIsRecordedUntilTheRequestEnds()
+    {
         using var listening = new Listening();
 
         var logger = Logger();
@@ -138,7 +158,8 @@ public class MeterMetricLoggerProviderTests {
     /// A host that flushes and then disposes — or disposes twice — records the request once.
     /// </summary>
     [Fact]
-    public async Task FlushingAndThenDisposingRecordsOnce() {
+    public async Task FlushingAndThenDisposingRecordsOnce()
+    {
         using var listening = new Listening();
 
         var logger = Logger();
@@ -157,15 +178,19 @@ public class MeterMetricLoggerProviderTests {
     /// the process-lifetime meter instead.
     /// </summary>
     [Fact]
-    public void TwoRequestsShareOneInstrument() {
+    public void TwoRequestsShareOneInstrument()
+    {
         var published = new List<Instrument>();
 
-        using var listener = new MeterListener {
-            InstrumentPublished = (instrument, _) => {
-                if (instrument.Name == "sharing.probe") {
+        using var listener = new MeterListener
+        {
+            InstrumentPublished = (instrument, _) =>
+            {
+                if (instrument.Name == "sharing.probe")
+                {
                     published.Add(instrument);
                 }
-            }
+            },
         };
 
         listener.Start();

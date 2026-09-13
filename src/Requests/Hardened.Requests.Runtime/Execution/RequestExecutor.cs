@@ -12,25 +12,32 @@ namespace Hardened.Requests.Runtime.Execution;
 /// it names a transport and putting it anywhere else is what produced five copies of it.
 /// </remarks>
 [SingletonService]
-public class RequestExecutor : IRequestExecutor {
+public class RequestExecutor : IRequestExecutor
+{
     private readonly IMiddlewareService _middlewareService;
     private readonly IRequestLogger _requestLogger;
 
-    public RequestExecutor(IMiddlewareService middlewareService, IRequestLogger requestLogger) {
+    public RequestExecutor(IMiddlewareService middlewareService, IRequestLogger requestLogger)
+    {
         _middlewareService = middlewareService;
         _requestLogger = requestLogger;
     }
 
-    public void Begin(IExecutionContext context) {
+    public void Begin(IExecutionContext context)
+    {
         _requestLogger.RequestBegin(context);
     }
 
-    public async Task RunChain(IExecutionContext context, HostFailurePolicy onFailure) {
-        try {
+    public async Task RunChain(IExecutionContext context, HostFailurePolicy onFailure)
+    {
+        try
+        {
             await _middlewareService.GetExecutionChain(context).Next();
         }
-        catch (Exception exception) {
-            if (onFailure == HostFailurePolicy.Answer500 && !context.Response.ResponseStarted) {
+        catch (Exception exception)
+        {
+            if (onFailure == HostFailurePolicy.Answer500 && !context.Response.ResponseStarted)
+            {
                 // Once the response has started the status line is already on the wire and there is
                 // nothing left to say; on ASP.NET Core setting it would throw in its own right.
                 // Decided before the logger is told, because the logger reads the status to pick
@@ -40,15 +47,19 @@ public class RequestExecutor : IRequestExecutor {
 
             _requestLogger.RequestFailed(context, exception);
 
-            if (onFailure == HostFailurePolicy.Rethrow) {
+            if (onFailure == HostFailurePolicy.Rethrow)
+            {
                 throw;
             }
         }
     }
 
-    public void End(IExecutionContext context) {
+    public void End(IExecutionContext context)
+    {
         context.RequestMetrics.Record(
-            RequestMetrics.TotalRequestDuration, context.StartTime.GetElapsedMilliseconds());
+            RequestMetrics.TotalRequestDuration,
+            context.StartTime.GetElapsedMilliseconds()
+        );
 
         _requestLogger.RequestEnd(context);
 
@@ -62,13 +73,16 @@ public class RequestExecutor : IRequestExecutor {
         context.RequestMetrics.Dispose();
     }
 
-    public async Task Run(IExecutionContext context, HostFailurePolicy onFailure) {
+    public async Task Run(IExecutionContext context, HostFailurePolicy onFailure)
+    {
         Begin(context);
 
-        try {
+        try
+        {
             await RunChain(context, onFailure);
         }
-        finally {
+        finally
+        {
             End(context);
         }
     }

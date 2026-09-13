@@ -2,7 +2,8 @@
 
 namespace Hardened.Requests.Abstract.Headers;
 
-public static class KnownEncoding {
+public static class KnownEncoding
+{
     public const string GZip = "gzip";
     public static readonly StringValues GZipStringValues = new StringValues(GZip);
 

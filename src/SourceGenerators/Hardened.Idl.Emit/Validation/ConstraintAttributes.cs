@@ -2,9 +2,9 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using CSharpAuthor;
+using Hardened.Generation;
 using Hardened.Generation.Models;
 using Hardened.Idl;
-using Hardened.Generation;
 
 namespace Hardened.Idl.Validation;
 
@@ -25,8 +25,8 @@ namespace Hardened.Idl.Validation;
 /// 33 KB - and is what VM0017 rejects in an AOT-facing project.
 /// </para>
 /// </remarks>
-internal static class ConstraintAttributes {
-
+internal static class ConstraintAttributes
+{
     private const string Constraints = "ValidationModules.Constraints";
 
     /// <param name="Type">The attribute type.</param>
@@ -50,9 +50,18 @@ internal static class ConstraintAttributes {
     /// struct that has no such member.
     /// </param>
     public static IReadOnlyList<Model> ForParameter(
-        ParameterModel parameter, bool required, string csType, PatternRegistry patterns) =>
-        Build(parameter, required, patterns, csType,
-            patternIsARouteConstraint: !string.IsNullOrEmpty(parameter.RouteConstraint));
+        ParameterModel parameter,
+        bool required,
+        string csType,
+        PatternRegistry patterns
+    ) =>
+        Build(
+            parameter,
+            required,
+            patterns,
+            csType,
+            patternIsARouteConstraint: !string.IsNullOrEmpty(parameter.RouteConstraint)
+        );
 
     /// <param name="required">
     /// From the caller rather than the model: it also knows whether the C# type makes
@@ -63,8 +72,11 @@ internal static class ConstraintAttributes {
     /// <see cref="ForParameter"/>.
     /// </param>
     public static IReadOnlyList<Model> ForProperty(
-        PropertyModel property, bool required, PatternRegistry patterns, string csType) =>
-        Build(property, required, patterns, csType, patternIsARouteConstraint: false);
+        PropertyModel property,
+        bool required,
+        PatternRegistry patterns,
+        string csType
+    ) => Build(property, required, patterns, csType, patternIsARouteConstraint: false);
 
     /// <param name="csType">
     /// The type the member will have. Every constraint below is a comparison the validation
@@ -80,8 +92,13 @@ internal static class ConstraintAttributes {
     /// it made the document declare a 400 for an operation whose only constraint was that pattern.
     /// </param>
     private static IReadOnlyList<Model> Build(
-        IConstraintFacets facets, bool required, PatternRegistry patterns, string csType,
-        bool patternIsARouteConstraint) {
+        IConstraintFacets facets,
+        bool required,
+        PatternRegistry patterns,
+        string csType,
+        bool patternIsARouteConstraint
+    )
+    {
         var numeric = TypeMapper.IsNumeric(csType);
         var stringLike = TypeMapper.IsStringLike(csType);
         var counted = TypeMapper.HasItemCount(csType);
@@ -98,17 +115,22 @@ internal static class ConstraintAttributes {
 
         var attributes = new List<Model>();
 
-        if (required) {
+        if (required)
+        {
             attributes.Add(new Model(Attribute("RequiredAttribute"), System.Array.Empty<string>()));
         }
 
         // Named arguments, because a spec may set one bound and not the other while the positional
         // constructors take both. Min and Max default to unbounded.
-        if (stringLike && (minLength.HasValue || maxLength.HasValue)) {
-            attributes.Add(new Model(Attribute("StringLengthAttribute"), Bounds(minLength, maxLength)));
+        if (stringLike && (minLength.HasValue || maxLength.HasValue))
+        {
+            attributes.Add(
+                new Model(Attribute("StringLengthAttribute"), Bounds(minLength, maxLength))
+            );
         }
 
-        if (numeric && (minimum.HasValue || maximum.HasValue)) {
+        if (numeric && (minimum.HasValue || maximum.HasValue))
+        {
             // Named arguments, like every other bounded constraint here. This used to claim Range
             // had no partially-bounded form and fill the absent bound with a decimal extreme - so
             // `minimum: 1` validated as "must be between 1 and 7.92281625142643E+28", and
@@ -116,42 +138,51 @@ internal static class ConstraintAttributes {
             // their reason to exist, never engaged. An absent bound emits no comparison at all.
             var arguments = new List<string>();
 
-            if (minimum.HasValue) {
+            if (minimum.HasValue)
+            {
                 arguments.Add("Min = " + Literal(minimum.Value, csType));
             }
 
-            if (maximum.HasValue) {
+            if (maximum.HasValue)
+            {
                 arguments.Add("Max = " + Literal(maximum.Value, csType));
             }
 
-            if (exclusiveMinimum) {
+            if (exclusiveMinimum)
+            {
                 arguments.Add("ExclusiveMin = true");
             }
 
-            if (exclusiveMaximum) {
+            if (exclusiveMaximum)
+            {
                 arguments.Add("ExclusiveMax = true");
             }
 
             attributes.Add(new Model(Attribute("RangeAttribute"), arguments));
         }
 
-        if (stringLike && !string.IsNullOrEmpty(pattern) && !patternIsARouteConstraint) {
+        if (stringLike && !string.IsNullOrEmpty(pattern) && !patternIsARouteConstraint)
+        {
             var arguments = patterns.AttributeArguments(pattern!);
 
             // Null when the runtime's regex engine will not take it; the pattern is reported once
             // against the spec rather than emitted into a member that cannot be generated.
-            if (arguments != null) {
+            if (arguments != null)
+            {
                 attributes.Add(new Model(Attribute("PatternAttribute"), arguments));
             }
         }
 
-        if (counted && (minItems.HasValue || maxItems.HasValue)) {
+        if (counted && (minItems.HasValue || maxItems.HasValue))
+        {
             attributes.Add(new Model(Attribute("ItemCountAttribute"), Bounds(minItems, maxItems)));
         }
 
-        if (stringLike && enumValues is { Count: > 0 }) {
-            attributes.Add(new Model(
-                Attribute("AllowedValuesAttribute"), enumValues.Select(Quote).ToList()));
+        if (stringLike && enumValues is { Count: > 0 })
+        {
+            attributes.Add(
+                new Model(Attribute("AllowedValuesAttribute"), enumValues.Select(Quote).ToList())
+            );
         }
 
         return attributes;
@@ -162,14 +193,17 @@ internal static class ConstraintAttributes {
     private static ITypeDefinition Attribute(string name) => TypeDefinition.Get(Constraints, name);
 
     /// <summary>Named Min/Max arguments, omitting whichever the spec left unbounded.</summary>
-    private static IReadOnlyList<string> Bounds(int? min, int? max) {
+    private static IReadOnlyList<string> Bounds(int? min, int? max)
+    {
         var parts = new List<string>();
 
-        if (min.HasValue) {
+        if (min.HasValue)
+        {
             parts.Add($"Min = {min.Value.ToString(CultureInfo.InvariantCulture)}");
         }
 
-        if (max.HasValue) {
+        if (max.HasValue)
+        {
             parts.Add($"Max = {max.Value.ToString(CultureInfo.InvariantCulture)}");
         }
 

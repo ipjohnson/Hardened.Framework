@@ -17,11 +17,9 @@ namespace Hardened.IntegrationTests.OpenApi.SUT;
 /// </para>
 /// </summary>
 [Handler]
-public class PetServiceImpl : IPetService {
-    private static readonly List<Pet> Pets = [
-        new Pet("1", "Buddy"),
-        new Pet("2", "Luna", "dog")
-    ];
+public class PetServiceImpl : IPetService
+{
+    private static readonly List<Pet> Pets = [new Pet("1", "Buddy"), new Pet("2", "Luna", "dog")];
 
     /// <summary>
     /// <paramref name="tags"/> is the described array parameter, which the generator types as a
@@ -29,24 +27,28 @@ public class PetServiceImpl : IPetService {
     /// scalar <c>Parse</c> call, so a repeated key was overwritten before binding and a comma-joined
     /// value failed to convert.
     /// </summary>
-    public Task<List<Pet>> ListPets(int? limit, List<string>? tags) {
+    public Task<List<Pet>> ListPets(int? limit, List<string>? tags)
+    {
         // The shared 429 the description declares with a Retry-After, thrown from an operation that
         // returns a plain list. The header used to widen this signature and ListPetNames into
         // response sets, because an error's declared headers counted towards "this operation needs
         // a set" - so a header on one components.responses entry changed the return type of every
         // operation that referenced it. Throws mode reaches the error by throwing, and the
         // generated exception carries the header itself.
-        if (tags is not null && tags.Contains("throttled")) {
+        if (tags is not null && tags.Contains("throttled"))
+        {
             throw new Problem { Title = "Slow down." }.AsException("30");
         }
 
         var pets = Pets.AsEnumerable();
 
-        if (tags is { Count: > 0 }) {
+        if (tags is { Count: > 0 })
+        {
             pets = pets.Where(pet => pet.Tag != null && tags.Contains(pet.Tag));
         }
 
-        if (limit.HasValue) {
+        if (limit.HasValue)
+        {
             pets = pets.Take(limit.Value);
         }
 
@@ -63,7 +65,6 @@ public class PetServiceImpl : IPetService {
     public Task<List<string>> ListPetNames() =>
         Task.FromResult(Pets.Select(pet => pet.Name).ToList());
 
-
     /// <summary>
     /// The 201 the description declares, and the <c>Location</c> it declares beside it.
     /// </summary>
@@ -74,11 +75,13 @@ public class PetServiceImpl : IPetService {
     /// The description says which header; this says what is in it, which is the half a document
     /// cannot carry.
     /// </remarks>
-    public Task<CreatePetResponse> CreatePet(CreatePetRequest body) {
+    public Task<CreatePetResponse> CreatePet(CreatePetRequest body)
+    {
         var created = new Pet("3", body.Name, body.Tag);
 
         return Task.FromResult<CreatePetResponse>(
-            new CreatePetCreated(created, "/pets/" + created.Id));
+            new CreatePetCreated(created, "/pets/" + created.Id)
+        );
     }
 
     /// <summary>
@@ -89,10 +92,9 @@ public class PetServiceImpl : IPetService {
     /// integer enum - the two shapes that could not reach a handler at all before the binder read
     /// the description's vocabulary rather than the member name.
     /// </remarks>
-    public Task<List<Pet>> SearchPets(
-        string q, string? status, PetSpecies? species, PetSize? size) {
-        var matches = Pets
-            .Where(pet => pet.Name.Contains(q, StringComparison.OrdinalIgnoreCase))
+    public Task<List<Pet>> SearchPets(string q, string? status, PetSpecies? species, PetSize? size)
+    {
+        var matches = Pets.Where(pet => pet.Name.Contains(q, StringComparison.OrdinalIgnoreCase))
             .Select(pet => status == null ? pet : pet with { Status = status })
             .Select(pet => species == null ? pet : pet with { Species = species })
             .Select(pet => size == null ? pet : pet with { Size = size })
@@ -110,29 +112,35 @@ public class PetServiceImpl : IPetService {
     /// <c>Problem</c> the document declared, with the status and its reason phrase and nothing about
     /// why this handler found nothing.
     /// </remarks>
-    public Task<Pet?> GetPet(string petId) {
+    public Task<Pet?> GetPet(string petId)
+    {
         // The declared 429, raised. Nothing is generated for it: the description declares a 429
         // with a Problem, and RateLimited<T> is the record the framework already ships for that -
         // so this is the same throw a code-first handler writes, and it carries the Retry-After a
         // generated exception had nowhere to put.
-        if (petId == "throttled") {
+        if (petId == "throttled")
+        {
             throw new RateLimited<Problem>(
-                TimeSpan.FromSeconds(30), new Problem { Title = "Slow down." }).AsException();
+                TimeSpan.FromSeconds(30),
+                new Problem { Title = "Slow down." }
+            ).AsException();
         }
 
-        return Task.FromResult<Pet?>(
-            petId == "missing" ? null : new Pet(petId, "TestPet"));
+        return Task.FromResult<Pet?>(petId == "missing" ? null : new Pet(petId, "TestPet"));
     }
 
-    public Task<Pet> ReplacePet(string petId, CreatePetRequest body) {
+    public Task<Pet> ReplacePet(string petId, CreatePetRequest body)
+    {
         return Task.FromResult(new Pet(petId, body.Name, body.Tag));
     }
 
-    public Task<Pet> UpdatePet(string petId, UpdatePetRequest body) {
+    public Task<Pet> UpdatePet(string petId, UpdatePetRequest body)
+    {
         return Task.FromResult(new Pet(petId, body.Name ?? "TestPet", body.Rating?.ToString()));
     }
 
-    public Task DeletePet(string petId) {
+    public Task DeletePet(string petId)
+    {
         return Task.CompletedTask;
     }
 
@@ -140,7 +148,8 @@ public class PetServiceImpl : IPetService {
     /// Declared as <c>text/plain</c> in the spec, which is what makes the generated handler write
     /// this string straight to the body instead of handing it to the JSON serializer.
     /// </summary>
-    public Task<string> PetsAsPlainText() {
+    public Task<string> PetsAsPlainText()
+    {
         return Task.FromResult(string.Join("\n", Pets.Select(pet => $"{pet.Id}: {pet.Name}")));
     }
 
@@ -150,10 +159,13 @@ public class PetServiceImpl : IPetService {
     /// alone. The 404 is thrown rather than returned: a scalar success stays non-nullable, so a
     /// throw is the one route to this operation's declared error.
     /// </summary>
-    public Task<string> GetPetLabel(string petId, int? copies) {
-        if (petId == "missing") {
+    public Task<string> GetPetLabel(string petId, int? copies)
+    {
+        if (petId == "missing")
+        {
             throw new NotFound<Problem>(
-                new Problem { Status = 404, Title = "Not Found" }).AsException();
+                new Problem { Status = 404, Title = "Not Found" }
+            ).AsException();
         }
 
         var line = $"Pet {petId}";

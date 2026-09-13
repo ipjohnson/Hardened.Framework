@@ -7,10 +7,10 @@ using Hardened.Requests.Runtime.Caching;
 using Hardened.Shared.Runtime.Application;
 using Hardened.Web.Runtime.Compression;
 using Hardened.Web.Runtime.Conditional;
+using Hardened.Web.Runtime.Responses;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Xunit;
-using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.Kestrel.Runtime.Tests;
 
@@ -32,15 +32,16 @@ namespace Hardened.Web.Kestrel.Runtime.Tests;
 /// the wire.
 /// </para>
 /// </remarks>
-public class ConditionalGetOverASocketTests {
-
+public class ConditionalGetOverASocketTests
+{
     private const string Answer = """{"base":"USD","rates":{"EUR":0.92,"GBP":0.79}}""";
 
     /// <summary>
     /// The miss tags the entry with a strong validator, and a plain client is handed it as such.
     /// </summary>
     [Fact]
-    public async Task AMissCarriesAStrongTagAndAHitTheSameOne() {
+    public async Task AMissCarriesAStrongTagAndAHitTheSameOne()
+    {
         await using var harness = await Harness.Start(TestContext.Current.CancellationToken);
 
         var miss = await harness.Get(cancellationToken: TestContext.Current.CancellationToken);
@@ -53,17 +54,23 @@ public class ConditionalGetOverASocketTests {
     }
 
     [Fact]
-    public async Task AClientHoldingTheTagIsAnswered304WithNoBody() {
+    public async Task AClientHoldingTheTagIsAnswered304WithNoBody()
+    {
         await using var harness = await Harness.Start(TestContext.Current.CancellationToken);
 
         var miss = await harness.Get(cancellationToken: TestContext.Current.CancellationToken);
         var tag = miss.Headers.ETag!.ToString();
 
-        using var revalidated = await harness.Revalidate(tag, cancellationToken: TestContext.Current.CancellationToken);
+        using var revalidated = await harness.Revalidate(
+            tag,
+            cancellationToken: TestContext.Current.CancellationToken
+        );
 
         Assert.Equal(HttpStatusCode.NotModified, revalidated.StatusCode);
         AssertNoContentHeaders(revalidated);
-        Assert.Empty(await revalidated.Content.ReadAsByteArrayAsync(TestContext.Current.CancellationToken));
+        Assert.Empty(
+            await revalidated.Content.ReadAsByteArrayAsync(TestContext.Current.CancellationToken)
+        );
         Assert.Equal(tag, revalidated.Headers.ETag!.ToString());
         Assert.Equal(1, harness.Answered);
     }
@@ -74,20 +81,30 @@ public class ConditionalGetOverASocketTests {
     /// client that gets the whole answer afterwards saw a 304 the host framed itself.
     /// </summary>
     [Fact]
-    public async Task TheConnectionIsReusableAfterA304() {
+    public async Task TheConnectionIsReusableAfterA304()
+    {
         await using var harness = await Harness.Start(TestContext.Current.CancellationToken);
 
         var miss = await harness.Get(cancellationToken: TestContext.Current.CancellationToken);
         var tag = miss.Headers.ETag!.ToString();
 
-        using (var revalidated = await harness.Revalidate(tag, cancellationToken: TestContext.Current.CancellationToken)) {
+        using (
+            var revalidated = await harness.Revalidate(
+                tag,
+                cancellationToken: TestContext.Current.CancellationToken
+            )
+        )
+        {
             Assert.Equal(HttpStatusCode.NotModified, revalidated.StatusCode);
         }
 
         var hit = await harness.Get(cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, hit.StatusCode);
-        Assert.Equal(Answer, await hit.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+        Assert.Equal(
+            Answer,
+            await hit.Content.ReadAsStringAsync(TestContext.Current.CancellationToken)
+        );
     }
 
     /// <summary>
@@ -96,33 +113,47 @@ public class ConditionalGetOverASocketTests {
     /// content for it to describe; the weak tag stays, because it is what the 200 carried.
     /// </summary>
     [Fact]
-    public async Task A304ToAGzipClientCarriesNoCodingAndTheWeakTag() {
+    public async Task A304ToAGzipClientCarriesNoCodingAndTheWeakTag()
+    {
         await using var harness = await Harness.Start(TestContext.Current.CancellationToken);
 
-        var miss = await harness.Get(acceptEncoding: "gzip", cancellationToken: TestContext.Current.CancellationToken);
+        var miss = await harness.Get(
+            acceptEncoding: "gzip",
+            cancellationToken: TestContext.Current.CancellationToken
+        );
         var tag = miss.Headers.ETag!;
 
         Assert.True(tag.IsWeak);
         Assert.Equal("gzip", Assert.Single(miss.Content.Headers.ContentEncoding));
 
         using var revalidated = await harness.Revalidate(
-            tag.ToString(), acceptEncoding: "gzip", cancellationToken: TestContext.Current.CancellationToken);
+            tag.ToString(),
+            acceptEncoding: "gzip",
+            cancellationToken: TestContext.Current.CancellationToken
+        );
 
         Assert.Equal(HttpStatusCode.NotModified, revalidated.StatusCode);
         AssertNoContentHeaders(revalidated);
-        Assert.Empty(await revalidated.Content.ReadAsByteArrayAsync(TestContext.Current.CancellationToken));
+        Assert.Empty(
+            await revalidated.Content.ReadAsByteArrayAsync(TestContext.Current.CancellationToken)
+        );
         Assert.Equal(tag, revalidated.Headers.ETag);
         Assert.Contains("Accept-Encoding", revalidated.Headers.Vary);
     }
 
     [Fact]
-    public async Task AHeadHoldingTheTagIs304WithoutALength() {
+    public async Task AHeadHoldingTheTagIs304WithoutALength()
+    {
         await using var harness = await Harness.Start(TestContext.Current.CancellationToken);
 
         var miss = await harness.Get(cancellationToken: TestContext.Current.CancellationToken);
         var tag = miss.Headers.ETag!.ToString();
 
-        using var head = await harness.Revalidate(tag, HttpMethod.Head, cancellationToken: TestContext.Current.CancellationToken);
+        using var head = await harness.Revalidate(
+            tag,
+            HttpMethod.Head,
+            cancellationToken: TestContext.Current.CancellationToken
+        );
 
         Assert.Equal(HttpStatusCode.NotModified, head.StatusCode);
         AssertNoContentHeaders(head);
@@ -134,32 +165,44 @@ public class ConditionalGetOverASocketTests {
     /// content, and <c>HttpClient</c> then records the buffer's length in this collection as
     /// though a <c>Content-Length</c> had been on the wire.
     /// </summary>
-    private static void AssertNoContentHeaders(HttpResponseMessage response) {
+    private static void AssertNoContentHeaders(HttpResponseMessage response)
+    {
         Assert.False(response.Content.Headers.Contains("Content-Length"));
         Assert.False(response.Content.Headers.Contains("Content-Type"));
         Assert.False(response.Content.Headers.Contains("Content-Encoding"));
     }
 
-    private sealed class Harness : IAsyncDisposable {
+    private sealed class Harness : IAsyncDisposable
+    {
         private readonly HttpClient _client;
 
         private HardenedKestrelApplication _app = null!;
 
-        private Harness(HttpClient client) {
+        private Harness(HttpClient client)
+        {
             _client = client;
         }
 
         /// <summary>How many times the terminal filter answered, so a hit is provable.</summary>
         public int Answered { get; private set; }
 
-        public static async Task<Harness> Start(CancellationToken cancellationToken) {
+        public static async Task<Harness> Start(CancellationToken cancellationToken)
+        {
             // No automatic decompression, so the coding header and the bytes arrive as sent; one
             // connection, so every request is framed by the one before it; and a short timeout,
             // because the failure this exists for is a hang.
-            var harness = new Harness(new HttpClient(new SocketsHttpHandler {
-                AutomaticDecompression = DecompressionMethods.None,
-                MaxConnectionsPerServer = 1
-            }) { Timeout = TimeSpan.FromSeconds(10) });
+            var harness = new Harness(
+                new HttpClient(
+                    new SocketsHttpHandler
+                    {
+                        AutomaticDecompression = DecompressionMethods.None,
+                        MaxConnectionsPerServer = 1,
+                    }
+                )
+                {
+                    Timeout = TimeSpan.FromSeconds(10),
+                }
+            );
 
             harness._app = Build();
 
@@ -174,8 +217,16 @@ public class ConditionalGetOverASocketTests {
 
         /// <summary>A full answer, read to the end so the connection is free for the next.</summary>
         public Task<HttpResponseMessage> Get(
-            string? acceptEncoding = null, CancellationToken cancellationToken = default) =>
-            Send(HttpMethod.Get, acceptEncoding, null, HttpCompletionOption.ResponseContentRead, cancellationToken);
+            string? acceptEncoding = null,
+            CancellationToken cancellationToken = default
+        ) =>
+            Send(
+                HttpMethod.Get,
+                acceptEncoding,
+                null,
+                HttpCompletionOption.ResponseContentRead,
+                cancellationToken
+            );
 
         /// <summary>
         /// A request holding <paramref name="ifNoneMatch"/>, returned as soon as the headers are
@@ -185,36 +236,48 @@ public class ConditionalGetOverASocketTests {
             string ifNoneMatch,
             HttpMethod? method = null,
             string? acceptEncoding = null,
-            CancellationToken cancellationToken = default) =>
-            Send(method ?? HttpMethod.Get, acceptEncoding, ifNoneMatch,
-                HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            CancellationToken cancellationToken = default
+        ) =>
+            Send(
+                method ?? HttpMethod.Get,
+                acceptEncoding,
+                ifNoneMatch,
+                HttpCompletionOption.ResponseHeadersRead,
+                cancellationToken
+            );
 
         private async Task<HttpResponseMessage> Send(
             HttpMethod method,
             string? acceptEncoding,
             string? ifNoneMatch,
             HttpCompletionOption completion,
-            CancellationToken cancellationToken) {
+            CancellationToken cancellationToken
+        )
+        {
             using var request = new HttpRequestMessage(method, "/rates");
 
-            if (acceptEncoding != null) {
+            if (acceptEncoding != null)
+            {
                 request.Headers.TryAddWithoutValidation("Accept-Encoding", acceptEncoding);
             }
 
-            if (ifNoneMatch != null) {
+            if (ifNoneMatch != null)
+            {
                 request.Headers.TryAddWithoutValidation("If-None-Match", ifNoneMatch);
             }
 
             return await _client.SendAsync(request, completion, cancellationToken);
         }
 
-        public async ValueTask DisposeAsync() {
+        public async ValueTask DisposeAsync()
+        {
             _client.Dispose();
 
             await _app.DisposeAsync();
         }
 
-        private static HardenedKestrelApplication Build() {
+        private static HardenedKestrelApplication Build()
+        {
             var services = new ServiceCollection();
 
             services.AddLogging(builder => builder.SetMinimumLevel(LogLevel.Warning));
@@ -227,23 +290,32 @@ public class ConditionalGetOverASocketTests {
 
             // Port 0, so the OS picks one and concurrent test classes cannot collide.
             return HardenedKestrelApplication.Create(
-                services, kestrel => kestrel.Listen(IPAddress.Loopback, 0));
+                services,
+                kestrel => kestrel.Listen(IPAddress.Loopback, 0)
+            );
         }
 
         /// <summary>
         /// The three filters in pipeline order, then the filter that answers.
         /// </summary>
-        private void Compose() {
+        private void Compose()
+        {
             var middleware = _app.Services.GetRequiredService<IMiddlewareService>();
 
             middleware.Use(_ => new ConditionalGetFilter());
-            middleware.Use(_ => new ResponseCompressionFilter(configuration: new CompressionConfiguration()));
+            middleware.Use(_ => new ResponseCompressionFilter(
+                configuration: new CompressionConfiguration()
+            ));
             middleware.Use(_ => new ResponseCacheFilter(
-                [new EveryRequest()], "GET /rates", ResponseCacheFilter.DefaultDuration));
+                [new EveryRequest()],
+                "GET /rates",
+                ResponseCacheFilter.DefaultDuration
+            ));
             middleware.Use(_ => new Answering(this));
         }
 
-        private sealed class EveryRequest : ICacheKeyProvider {
+        private sealed class EveryRequest : ICacheKeyProvider
+        {
             public static ICacheKeyProvider Create(string[] values) => new EveryRequest();
 
             public ValueTask<string?> Key(IExecutionContext context) => new("only");
@@ -253,14 +325,17 @@ public class ConditionalGetOverASocketTests {
         /// Writes the answer and stops. Nothing sets a validator, so the one on the wire is the
         /// cache's.
         /// </summary>
-        private sealed class Answering : IExecutionFilter {
+        private sealed class Answering : IExecutionFilter
+        {
             private readonly Harness _harness;
 
-            public Answering(Harness harness) {
+            public Answering(Harness harness)
+            {
                 _harness = harness;
             }
 
-            public async Task Execute(IExecutionChain chain) {
+            public async Task Execute(IExecutionChain chain)
+            {
                 var response = chain.Context.Response;
 
                 _harness.Answered++;
@@ -270,18 +345,30 @@ public class ConditionalGetOverASocketTests {
                 response.ShouldSerialize = false;
 
                 await response.Body.WriteAsync(
-                    Encoding.UTF8.GetBytes(Answer), chain.Context.CancellationToken);
+                    Encoding.UTF8.GetBytes(Answer),
+                    chain.Context.CancellationToken
+                );
             }
         }
 
-        private sealed class Store : IResponseCacheStore {
-            private readonly Dictionary<string, CachedResponse> _entries = new(StringComparer.Ordinal);
+        private sealed class Store : IResponseCacheStore
+        {
+            private readonly Dictionary<string, CachedResponse> _entries = new(
+                StringComparer.Ordinal
+            );
 
-            public ValueTask<CachedResponse?> Get(string key, CancellationToken cancellationToken) =>
-                new(_entries.GetValueOrDefault(key));
+            public ValueTask<CachedResponse?> Get(
+                string key,
+                CancellationToken cancellationToken
+            ) => new(_entries.GetValueOrDefault(key));
 
             public ValueTask Set(
-                string key, CachedResponse response, TimeSpan duration, CancellationToken cancellationToken) {
+                string key,
+                CachedResponse response,
+                TimeSpan duration,
+                CancellationToken cancellationToken
+            )
+            {
                 _entries[key] = response;
 
                 return default;

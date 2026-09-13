@@ -1,7 +1,7 @@
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Web.Kestrel.Runtime.Impl;
-using Xunit;
 using Hardened.Web.Runtime.Responses;
+using Xunit;
 
 namespace Hardened.Web.Kestrel.Runtime.Tests.Impl;
 
@@ -14,18 +14,20 @@ namespace Hardened.Web.Kestrel.Runtime.Tests.Impl;
 /// unmatched route return an empty 200. That is exactly what this adapter did before the
 /// integration SUT caught it.
 /// </summary>
-public class FeatureExecutionResponseTests {
-
+public class FeatureExecutionResponseTests
+{
     private static FeatureExecutionResponse Response(ServerFeatures features) =>
         new(features.Response, features.ResponseBody);
 
     [Fact]
-    public void Status_IsNullBeforeAnythingSetsIt() {
+    public void Status_IsNullBeforeAnythingSetsIt()
+    {
         Assert.Null(Response(new ServerFeatures()).Status);
     }
 
     [Fact]
-    public void Status_WritesThroughToTheServer() {
+    public void Status_WritesThroughToTheServer()
+    {
         var features = new ServerFeatures();
 
         Response(features).Status = 404;
@@ -34,7 +36,8 @@ public class FeatureExecutionResponseTests {
     }
 
     [Fact]
-    public void Status_NullResetsTheServerToTwoHundred() {
+    public void Status_NullResetsTheServerToTwoHundred()
+    {
         var features = new ServerFeatures();
         var response = Response(features);
 
@@ -51,7 +54,8 @@ public class FeatureExecutionResponseTests {
     /// request logs a blank status at <c>RequestEnd</c>.
     /// </summary>
     [Fact]
-    public void Status_ReportsTheServerStatusOnceTheResponseHasStarted() {
+    public void Status_ReportsTheServerStatusOnceTheResponseHasStarted()
+    {
         var features = new ServerFeatures();
         var response = Response(features);
 
@@ -64,7 +68,8 @@ public class FeatureExecutionResponseTests {
     }
 
     [Fact]
-    public void ResponseStarted_TracksTheServerFeature() {
+    public void ResponseStarted_TracksTheServerFeature()
+    {
         var features = new ServerFeatures();
         var response = Response(features);
 
@@ -76,7 +81,8 @@ public class FeatureExecutionResponseTests {
     }
 
     [Fact]
-    public void Body_DefaultsToTheStreamTheServerSupplied() {
+    public void Body_DefaultsToTheStreamTheServerSupplied()
+    {
         var features = new ServerFeatures();
 
         Assert.Same(features.Body, Response(features).Body);
@@ -87,7 +93,8 @@ public class FeatureExecutionResponseTests {
     /// what it set, rather than the write going one way and the read the other.
     /// </summary>
     [Fact]
-    public void Body_CanBeReplacedByAFilter() {
+    public void Body_CanBeReplacedByAFilter()
+    {
         var replacement = new MemoryStream();
         var response = Response(new ServerFeatures());
 
@@ -97,7 +104,8 @@ public class FeatureExecutionResponseTests {
     }
 
     [Fact]
-    public void ContentType_WritesThroughToTheResponseHeaders() {
+    public void ContentType_WritesThroughToTheResponseHeaders()
+    {
         var features = new ServerFeatures();
 
         Response(features).ContentType = "application/json";
@@ -106,7 +114,8 @@ public class FeatureExecutionResponseTests {
     }
 
     [Fact]
-    public void Clone_CarriesTheStatusAndTheBodyOverride() {
+    public void Clone_CarriesTheStatusAndTheBodyOverride()
+    {
         var replacement = new MemoryStream();
         var response = Response(new ServerFeatures());
 
@@ -120,7 +129,8 @@ public class FeatureExecutionResponseTests {
     }
 
     [Fact]
-    public void Clone_LeavesAnUnsetStatusUnset() {
+    public void Clone_LeavesAnUnsetStatusUnset()
+    {
         Assert.Null(Response(new ServerFeatures()).Clone().Status);
     }
 
@@ -129,7 +139,8 @@ public class FeatureExecutionResponseTests {
     /// the connection is left waiting on a request the application considers finished.
     /// </summary>
     [Fact]
-    public async Task CompleteAsync_CompletesTheServerBody() {
+    public async Task CompleteAsync_CompletesTheServerBody()
+    {
         var features = new ServerFeatures();
 
         await Response(features).CompleteAsync();
@@ -148,7 +159,8 @@ public class FeatureExecutionResponseTests {
     /// silently accepting the cookie.
     /// </remarks>
     [Fact]
-    public void AppendingACookieWritesASetCookieHeader() {
+    public void AppendingACookieWritesASetCookieHeader()
+    {
         var features = new ServerFeatures();
         var response = new FeatureExecutionResponse(features.Response, features.ResponseBody);
 
@@ -158,7 +170,8 @@ public class FeatureExecutionResponseTests {
     }
 
     [Fact]
-    public void AppendingSeveralCookiesWritesAHeaderForEach() {
+    public void AppendingSeveralCookiesWritesAHeaderForEach()
+    {
         var features = new ServerFeatures();
         var response = new FeatureExecutionResponse(features.Response, features.ResponseBody);
 
@@ -174,7 +187,8 @@ public class FeatureExecutionResponseTests {
 
     /// <summary>Last write for a name wins, which is the semantic Hardened.Amz documents.</summary>
     [Fact]
-    public void AppendingTheSameCookieTwiceKeepsOnlyTheLastValue() {
+    public void AppendingTheSameCookieTwiceKeepsOnlyTheLastValue()
+    {
         var features = new ServerFeatures();
         var response = new FeatureExecutionResponse(features.Response, features.ResponseBody);
 
@@ -188,12 +202,16 @@ public class FeatureExecutionResponseTests {
     }
 
     [Fact]
-    public void CookieOptionsAreSerialisedOntoTheHeader() {
+    public void CookieOptionsAreSerialisedOntoTheHeader()
+    {
         var features = new ServerFeatures();
         var response = new FeatureExecutionResponse(features.Response, features.ResponseBody);
 
-        response.Cookies.Append("session", "abc",
-            new CookieSetOptions(Path: "/api", SameSite: SameSite.Strict));
+        response.Cookies.Append(
+            "session",
+            "abc",
+            new CookieSetOptions(Path: "/api", SameSite: SameSite.Strict)
+        );
 
         var written = features.Response.Headers["Set-Cookie"].ToString();
 

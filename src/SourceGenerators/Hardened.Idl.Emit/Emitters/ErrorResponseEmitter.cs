@@ -1,9 +1,9 @@
 ﻿using System.Collections.Generic;
 using System.Text;
 using CSharpAuthor;
+using Hardened.Generation;
 using Hardened.Generation.Models;
 using Hardened.Idl;
-using Hardened.Generation;
 
 namespace Hardened.Idl.Emitters;
 
@@ -35,8 +35,8 @@ namespace Hardened.Idl.Emitters;
 /// signature, for a case most specifications do not have.
 /// </para>
 /// </remarks>
-internal static class ErrorResponseEmitter {
-
+internal static class ErrorResponseEmitter
+{
     /// <param name="errors">
     /// The distinct errors that need a generated exception, one entry each. Computed by
     /// <see cref="SpecFileEmitter"/> across the whole document rather than walked per operation
@@ -45,11 +45,15 @@ internal static class ErrorResponseEmitter {
     /// twice into one namespace.
     /// </param>
     public static IReadOnlyList<ClassDefinition> Emit(
-        IConstructContainer container, IReadOnlyList<ErrorResponseModel> errors,
-        string modelsNamespace) {
+        IConstructContainer container,
+        IReadOnlyList<ErrorResponseModel> errors,
+        string modelsNamespace
+    )
+    {
         var emitted = new List<ClassDefinition>();
 
-        foreach (var error in errors) {
+        foreach (var error in errors)
+        {
             emitted.Add(EmitException(container, error, modelsNamespace));
         }
 
@@ -57,7 +61,11 @@ internal static class ErrorResponseEmitter {
     }
 
     private static ClassDefinition EmitException(
-        IConstructContainer container, ErrorResponseModel error, string modelsNamespace) {
+        IConstructContainer container,
+        ErrorResponseModel error,
+        string modelsNamespace
+    )
+    {
         // Allocated by NameAllocator against the same scope the schemas take their names from,
         // because a Smithy error shape wants the name its own payload record already holds. Set for
         // exactly the errors ShippedResponses.For declined, which is what this list holds.
@@ -65,26 +73,34 @@ internal static class ErrorResponseEmitter {
 
         definition.Modifiers |= ComponentModifier.Public | ComponentModifier.Partial;
         definition.AddBaseType(
-            TypeDefinition.Get("Hardened.Requests.Abstract.Errors", "StatusCodeException"));
+            TypeDefinition.Get("Hardened.Requests.Abstract.Errors", "StatusCodeException")
+        );
 
         // No operation in the fallback any more, and there cannot be one: this type is shared by
         // every operation that declares the error. The description's own prose is still preferred,
         // and for a Smithy error that is the shape's @documentation.
-        definition.Comment = DocComment.Format(error.Description)
-            ?? $"The {error.StatusCode} response the description declares" +
-               (error.Name == null ? "." : $" as '{error.Name}'.");
+        definition.Comment =
+            DocComment.Format(error.Description)
+            ?? $"The {error.StatusCode} response the description declares"
+                + (error.Name == null ? "." : $" as '{error.Name}'.");
 
         var constructor = definition.AddConstructor(
             new CodeOutputComponent(
-                error.Ref == null
-                    ? $"base({error.StatusCode})"
-                    : $"base({error.StatusCode}, value)") { Indented = false });
+                error.Ref == null ? $"base({error.StatusCode})" : $"base({error.StatusCode}, value)"
+            )
+            {
+                Indented = false,
+            }
+        );
 
         constructor.Modifiers |= ComponentModifier.Public;
 
-        if (error.Ref != null) {
+        if (error.Ref != null)
+        {
             var payload = TypeDefinition.Get(
-                modelsNamespace, NamingHelper.ToPascalCase(TypeMapper.GetRefName(error.Ref)));
+                modelsNamespace,
+                NamingHelper.ToPascalCase(TypeMapper.GetRefName(error.Ref))
+            );
 
             constructor.AddParameter(payload, "value");
 
@@ -131,27 +147,38 @@ internal static class ErrorResponseEmitter {
     /// </para>
     /// </remarks>
     private static void EmitHeaders(
-        ClassDefinition definition, ConstructorDefinition constructor, ErrorResponseModel error) {
-        if (error.Headers.Count == 0) {
+        ClassDefinition definition,
+        ConstructorDefinition constructor,
+        ErrorResponseModel error
+    )
+    {
+        if (error.Headers.Count == 0)
+        {
             return;
         }
 
-        foreach (var header in error.Headers) {
+        foreach (var header in error.Headers)
+        {
             // ParameterName is already the property's spelling, so the constructor's has to be
             // written down from it - taking it verbatim emits `RetryAfter = RetryAfter`, which
             // assigns the parameter to itself and leaves the property null.
             var parameter = constructor.AddParameter(
-                TypeDefinition.Get(typeof(string)), NamingHelper.ToParameterName(header.ParameterName));
+                TypeDefinition.Get(typeof(string)),
+                NamingHelper.ToParameterName(header.ParameterName)
+            );
 
             var property = definition.AddProperty(
-                TypeDefinition.Get(typeof(string)), header.ParameterName);
+                TypeDefinition.Get(typeof(string)),
+                header.ParameterName
+            );
 
             property.Modifiers |= ComponentModifier.Public;
             property.Set = null;
 
             constructor.Assign(parameter).To("this." + property.Name);
 
-            property.Comment = DocComment.Format(header.Description)
+            property.Comment =
+                DocComment.Format(header.Description)
                 ?? $"The value of the {header.Name} header this response declares.";
         }
 
@@ -162,15 +189,20 @@ internal static class ErrorResponseEmitter {
         method.AddParameter(
             new GenericTypeDefinition(
                 typeof(IDictionary<,>),
-                new ITypeDefinition[] {
+                new ITypeDefinition[]
+                {
                     TypeDefinition.Get(typeof(string)),
-                    TypeDefinition.Get("Microsoft.Extensions.Primitives", "StringValues")
-                }),
-            "headers");
+                    TypeDefinition.Get("Microsoft.Extensions.Primitives", "StringValues"),
+                }
+            ),
+            "headers"
+        );
 
-        foreach (var header in error.Headers) {
+        foreach (var header in error.Headers)
+        {
             method.AddIndentedStatement(
-                "headers[\"" + header.Name + "\"] = " + header.ParameterName);
+                "headers[\"" + header.Name + "\"] = " + header.ParameterName
+            );
         }
     }
 }

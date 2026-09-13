@@ -25,8 +25,10 @@ namespace Hardened.Web.Runtime.Responses;
 /// </remarks>
 [HttpStatus(408)]
 public sealed record RequestTimeout<T>(T Body)
-    : IHttpStatusResponse, ICarriesResponseBody, IResponseExpectation<RequestTimeout<T>> {
-
+    : IHttpStatusResponse,
+        ICarriesResponseBody,
+        IResponseExpectation<RequestTimeout<T>>
+{
     public string Type => ProblemTypes.RequestTimeout;
 
     public string Title => "Request Timeout";
@@ -38,6 +40,7 @@ public sealed record RequestTimeout<T>(T Body)
     object? ICarriesResponseBody.Body => Body;
 
     public static RequestTimeout<T> FromResponse(
-        object? body, IReadOnlyDictionary<string, string> headers) =>
-        new(ResponseExpectation.Body<T>(body));
+        object? body,
+        IReadOnlyDictionary<string, string> headers
+    ) => new(ResponseExpectation.Body<T>(body));
 }

@@ -24,8 +24,8 @@ namespace Hardened.Requests.Runtime.Tests.Serializer;
 /// enough to be sure the serializer it brings is the one that answers.
 /// </para>
 /// </remarks>
-public class SerializerRegistrationOrderTests {
-
+public class SerializerRegistrationOrderTests
+{
     private static IOptions<IJsonSerializerConfiguration> JsonConfiguration() =>
         Options.Create<IJsonSerializerConfiguration>(new JsonSerializerConfiguration());
 
@@ -33,7 +33,10 @@ public class SerializerRegistrationOrderTests {
         new AotResponseSerializer(JsonConfiguration(), Array.Empty<IJsonTypeInfoResolver>());
 
     private static IResponseSerializer SystemTextJson() =>
-        new SystemTextJsonResponseSerializer(JsonConfiguration(), Array.Empty<IJsonTypeInfoResolver>());
+        new SystemTextJsonResponseSerializer(
+            JsonConfiguration(),
+            Array.Empty<IJsonTypeInfoResolver>()
+        );
 
     private static SerializationLocatorService Locator(params IResponseSerializer[] serializers) =>
         new(Array.Empty<IRequestDeserializer>(), serializers);
@@ -43,7 +46,8 @@ public class SerializerRegistrationOrderTests {
     /// contest at all.
     /// </summary>
     [Fact]
-    public void BothJsonSerializersDeclareTheSameMediaType() {
+    public void BothJsonSerializersDeclareTheSameMediaType()
+    {
         Assert.Equal("application/json", Aot().ContentType);
         Assert.Equal(Aot().ContentType, SystemTextJson().ContentType);
     }
@@ -53,9 +57,11 @@ public class SerializerRegistrationOrderTests {
     /// <c>[AotSerializerModule]</c> produces.
     /// </summary>
     [Fact]
-    public void TheLastRegistrationUnderAMediaTypeAnswers() {
+    public void TheLastRegistrationUnderAMediaTypeAnswers()
+    {
         Assert.IsType<AotResponseSerializer>(
-            Locator(SystemTextJson(), Aot()).ProducerOf("application/json"));
+            Locator(SystemTextJson(), Aot()).ProducerOf("application/json")
+        );
     }
 
     /// <summary>
@@ -63,9 +69,11 @@ public class SerializerRegistrationOrderTests {
     /// than anything either class declares about itself.
     /// </summary>
     [Fact]
-    public void TheOtherOrderResolvesTheOtherWay() {
+    public void TheOtherOrderResolvesTheOtherWay()
+    {
         Assert.IsType<SystemTextJsonResponseSerializer>(
-            Locator(Aot(), SystemTextJson()).ProducerOf("application/json"));
+            Locator(Aot(), SystemTextJson()).ProducerOf("application/json")
+        );
     }
 
     /// <summary>
@@ -73,13 +81,15 @@ public class SerializerRegistrationOrderTests {
     /// <c>ContentTypeNotProducibleException</c> are both about.
     /// </summary>
     [Fact]
-    public void AMediaTypeNothingDeclaresHasNoProducer() {
+    public void AMediaTypeNothingDeclaresHasNoProducer()
+    {
         Assert.Null(Locator(SystemTextJson()).ProducerOf("application/vnd.msgpack"));
     }
 
     /// <summary>Matched without regard to case, as media types are compared everywhere else.</summary>
     [Fact]
-    public void TheLookupIsCaseInsensitive() {
+    public void TheLookupIsCaseInsensitive()
+    {
         Assert.NotNull(Locator(SystemTextJson()).ProducerOf("APPLICATION/JSON"));
     }
 
@@ -88,7 +98,8 @@ public class SerializerRegistrationOrderTests {
     /// same way - last registration first.
     /// </summary>
     [Fact]
-    public void TheDefaultSerializerIsTheLastRegisteredDefault() {
+    public void TheDefaultSerializerIsTheLastRegisteredDefault()
+    {
         Assert.IsType<AotResponseSerializer>(Locator(SystemTextJson(), Aot()).DefaultSerializer);
     }
 
@@ -97,14 +108,17 @@ public class SerializerRegistrationOrderTests {
     /// that is not already bytes is not its business.
     /// </summary>
     [Fact]
-    public void TheRawWriterIsNeverTheDefault() {
+    public void TheRawWriterIsNeverTheDefault()
+    {
         Assert.IsType<SystemTextJsonResponseSerializer>(
-            Locator(SystemTextJson(), new RawResponseSerializer()).DefaultSerializer);
+            Locator(SystemTextJson(), new RawResponseSerializer()).DefaultSerializer
+        );
     }
 
     /// <summary>A container with no serializers in it has no default, rather than throwing.</summary>
     [Fact]
-    public void AnEmptyContainerHasNoDefault() {
+    public void AnEmptyContainerHasNoDefault()
+    {
         Assert.Null(Locator().DefaultSerializer);
     }
 }

@@ -25,8 +25,10 @@ namespace Hardened.Web.Runtime.Responses;
 /// </remarks>
 [HttpStatus(403)]
 public sealed record Forbidden<T>(T Body)
-    : IHttpStatusResponse, ICarriesResponseBody, IResponseExpectation<Forbidden<T>> {
-
+    : IHttpStatusResponse,
+        ICarriesResponseBody,
+        IResponseExpectation<Forbidden<T>>
+{
     public string Type => ProblemTypes.Forbidden;
 
     public string Title => "Forbidden";
@@ -38,6 +40,7 @@ public sealed record Forbidden<T>(T Body)
     object? ICarriesResponseBody.Body => Body;
 
     public static Forbidden<T> FromResponse(
-        object? body, IReadOnlyDictionary<string, string> headers) =>
-        new(ResponseExpectation.Body<T>(body));
+        object? body,
+        IReadOnlyDictionary<string, string> headers
+    ) => new(ResponseExpectation.Body<T>(body));
 }

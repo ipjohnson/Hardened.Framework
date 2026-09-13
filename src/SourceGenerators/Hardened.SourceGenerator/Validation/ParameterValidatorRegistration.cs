@@ -24,31 +24,44 @@ namespace Hardened.SourceGenerator.Validation;
 /// each nested type, silently ignoring one a consumer had registered.
 /// </para>
 /// </remarks>
-internal static class ParameterValidatorRegistration {
-
+internal static class ParameterValidatorRegistration
+{
     public static void Write(
-        MethodDefinition diMethod, InstanceDefinition serviceCollection,
-        IReadOnlyList<RequestHandlerModel> handlers, CancellationToken cancellationToken) {
-        foreach (var model in handlers) {
+        MethodDefinition diMethod,
+        InstanceDefinition serviceCollection,
+        IReadOnlyList<RequestHandlerModel> handlers,
+        CancellationToken cancellationToken
+    )
+    {
+        foreach (var model in handlers)
+        {
             cancellationToken.ThrowIfCancellationRequested();
 
-            if (model.ParametersValidator is not { } validator) {
+            if (model.ParametersValidator is not { } validator)
+            {
                 continue;
             }
 
             // Parameters is nested inside the generated invoke class, so it is only nameable through
             // it - the validator's own file spells the type the same way.
             var parameters = TypeDefinition.Get(
-                model.InvokeHandlerType.Namespace, model.InvokeHandlerType.Name + ".Parameters");
+                model.InvokeHandlerType.Namespace,
+                model.InvokeHandlerType.Name + ".Parameters"
+            );
 
             var validatorFor = new GenericTypeDefinition(
                 TypeDefinitionEnum.InterfaceDefinition,
                 "ValidationModules",
                 "IValidatorFor",
-                new[] { parameters });
+                new[] { parameters }
+            );
 
-            diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric(
-                "AddSingleton", new ITypeDefinition[] { validatorFor, validator }));
+            diMethod.AddIndentedStatement(
+                serviceCollection.InvokeGeneric(
+                    "AddSingleton",
+                    new ITypeDefinition[] { validatorFor, validator }
+                )
+            );
         }
     }
 }

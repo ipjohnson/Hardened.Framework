@@ -11,25 +11,29 @@ namespace Hardened.Gcp.CloudRun.Runtime.Tests.Dispatch;
 /// <summary>
 /// The composition over a hand-built collection, and the routing of the composite itself.
 /// </summary>
-public class CloudRunDispatchTests {
-
+public class CloudRunDispatchTests
+{
     /// <summary>
     /// What a collection looks like after <c>[KestrelRuntime]</c> and the function generator have
     /// both registered: the routing table under its interface and as a dispatch, and the
     /// function dispatch by type.
     /// </summary>
-    private static ServiceCollection BothFamilies() {
+    private static ServiceCollection BothFamilies()
+    {
         var services = new ServiceCollection();
 
         services.AddSingleton<IWebExecutionHandlerService, StubRouting>();
-        services.AddSingleton<IHandlerDispatch>(provider => provider.GetRequiredService<IWebExecutionHandlerService>());
+        services.AddSingleton<IHandlerDispatch>(provider =>
+            provider.GetRequiredService<IWebExecutionHandlerService>()
+        );
         services.AddSingleton<IHandlerDispatch, FunctionDispatchFilter>();
 
         return services;
     }
 
     [Fact]
-    public void TwoDispatchesBecomeOneComposite() {
+    public void TwoDispatchesBecomeOneComposite()
+    {
         var services = BothFamilies();
 
         CloudRunDispatch.Compose(services);
@@ -45,7 +49,8 @@ public class CloudRunDispatchTests {
 
     /// <summary>Kestrel resolves the routing table by its own interface, so the composite answers there too.</summary>
     [Fact]
-    public void TheCompositeIsTheRoutingTableKestrelResolves() {
+    public void TheCompositeIsTheRoutingTableKestrelResolves()
+    {
         var services = BothFamilies();
 
         CloudRunDispatch.Compose(services);
@@ -54,15 +59,19 @@ public class CloudRunDispatchTests {
 
         Assert.Same(
             provider.GetRequiredService<IWebExecutionHandlerService>(),
-            provider.GetRequiredService<IHandlerDispatch>());
+            provider.GetRequiredService<IHandlerDispatch>()
+        );
     }
 
     [Fact]
-    public void AWebOnlyCollectionIsLeftAlone() {
+    public void AWebOnlyCollectionIsLeftAlone()
+    {
         var services = new ServiceCollection();
 
         services.AddSingleton<IWebExecutionHandlerService, StubRouting>();
-        services.AddSingleton<IHandlerDispatch>(provider => provider.GetRequiredService<IWebExecutionHandlerService>());
+        services.AddSingleton<IHandlerDispatch>(provider =>
+            provider.GetRequiredService<IWebExecutionHandlerService>()
+        );
 
         CloudRunDispatch.Compose(services);
 
@@ -72,7 +81,8 @@ public class CloudRunDispatchTests {
     }
 
     [Fact]
-    public void ComposingTwiceComposesOnce() {
+    public void ComposingTwiceComposesOnce()
+    {
         var services = BothFamilies();
 
         CloudRunDispatch.Compose(services);
@@ -80,7 +90,9 @@ public class CloudRunDispatchTests {
 
         var provider = services.BuildServiceProvider();
 
-        var composed = Assert.IsType<CloudRunDispatch>(Assert.Single(provider.GetServices<IHandlerDispatch>()));
+        var composed = Assert.IsType<CloudRunDispatch>(
+            Assert.Single(provider.GetServices<IHandlerDispatch>())
+        );
 
         Assert.IsType<StubRouting>(composed.Web);
     }
@@ -94,7 +106,8 @@ public class CloudRunDispatchTests {
     [InlineData("STREAM")]
     [InlineData("BLOB")]
     [InlineData("INVOKE")]
-    public async Task ATriggerSchemeRoutesThroughTheFunctionTable(string scheme) {
+    public async Task ATriggerSchemeRoutesThroughTheFunctionTable(string scheme)
+    {
         var (web, function, chain) = Composed(scheme);
 
         await new CloudRunDispatch(web, function).Execute(chain);
@@ -108,7 +121,8 @@ public class CloudRunDispatchTests {
     [InlineData("POST")]
     [InlineData("HEAD")]
     [InlineData("queue")]
-    public async Task AnythingElseRoutesThroughTheWebTable(string method) {
+    public async Task AnythingElseRoutesThroughTheWebTable(string method)
+    {
         var (web, function, chain) = Composed(method);
 
         await new CloudRunDispatch(web, function).Execute(chain);
@@ -119,7 +133,8 @@ public class CloudRunDispatchTests {
 
     /// <summary>An application that compiled no trigger handlers has no function table, and a trigger scheme is the web table's 404.</summary>
     [Fact]
-    public async Task WithoutAFunctionTableATriggerSchemeRoutesThroughTheWebTable() {
+    public async Task WithoutAFunctionTableATriggerSchemeRoutesThroughTheWebTable()
+    {
         var (web, _, chain) = Composed("QUEUE");
 
         await new CloudRunDispatch(web, null).Execute(chain);
@@ -127,7 +142,12 @@ public class CloudRunDispatchTests {
         await web.Received(1).Execute(chain);
     }
 
-    private static (IHandlerDispatch Web, IHandlerDispatch Function, IExecutionChain Chain) Composed(string method) {
+    private static (
+        IHandlerDispatch Web,
+        IHandlerDispatch Function,
+        IExecutionChain Chain
+    ) Composed(string method)
+    {
         var request = Substitute.For<IExecutionRequest>();
         request.Method.Returns(method);
 
@@ -140,7 +160,8 @@ public class CloudRunDispatchTests {
         return (Substitute.For<IHandlerDispatch>(), Substitute.For<IHandlerDispatch>(), chain);
     }
 
-    private sealed class StubRouting : IWebExecutionHandlerService {
+    private sealed class StubRouting : IWebExecutionHandlerService
+    {
         public Task Execute(IExecutionChain chain) => Task.CompletedTask;
     }
 }

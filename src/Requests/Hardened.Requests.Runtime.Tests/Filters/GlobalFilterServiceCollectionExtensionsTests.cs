@@ -19,18 +19,25 @@ namespace Hardened.Requests.Runtime.Tests.Filters;
 /// empty in every application. The path worked by construction and had no test behind it. This is
 /// that test.
 /// </remarks>
-public class GlobalFilterServiceCollectionExtensionsTests {
-
+public class GlobalFilterServiceCollectionExtensionsTests
+{
     private static IExecutionRequestHandlerInfo Handler(
-        string path = "/orders", string method = "GET") =>
+        string path = "/orders",
+        string method = "GET"
+    ) =>
         new ExecutionRequestHandlerInfo(
-            path, method, typeof(GlobalFilterServiceCollectionExtensionsTests), "Invoke");
+            path,
+            method,
+            typeof(GlobalFilterServiceCollectionExtensionsTests),
+            "Invoke"
+        );
 
     private static GlobalFilterRegistry RegistryFrom(IServiceCollection services) =>
         new(services.BuildServiceProvider().GetServices<IRequestFilterProvider>());
 
     [Fact]
-    public void AProviderRegisteredAsAServiceReachesTheRegistry() {
+    public void AProviderRegisteredAsAServiceReachesTheRegistry()
+    {
         var services = new ServiceCollection();
 
         services.AddGlobalFilter(new StubProvider());
@@ -39,7 +46,8 @@ public class GlobalFilterServiceCollectionExtensionsTests {
     }
 
     [Fact]
-    public void APredicateThatDeclinesInstallsNothing() {
+    public void APredicateThatDeclinesInstallsNothing()
+    {
         var services = new ServiceCollection();
 
         services.AddGlobalFilter(new StubProvider(), when: info => info.Method == "GET");
@@ -48,7 +56,8 @@ public class GlobalFilterServiceCollectionExtensionsTests {
     }
 
     [Fact]
-    public void APredicateThatAdmitsInstallsTheProvidersFilters() {
+    public void APredicateThatAdmitsInstallsTheProvidersFilters()
+    {
         var services = new ServiceCollection();
 
         services.AddGlobalFilter(new StubProvider(), when: info => info.Method == "GET");
@@ -62,7 +71,8 @@ public class GlobalFilterServiceCollectionExtensionsTests {
     /// filter and would drop everything past the first.
     /// </summary>
     [Fact]
-    public void AProviderYieldingTwoFiltersKeepsBoth() {
+    public void AProviderYieldingTwoFiltersKeepsBoth()
+    {
         var services = new ServiceCollection();
 
         services.AddGlobalFilter(new StubProvider(count: 2), when: _ => true);
@@ -74,7 +84,8 @@ public class GlobalFilterServiceCollectionExtensionsTests {
     /// Two registrations are two providers, so a second does not replace the first.
     /// </summary>
     [Fact]
-    public void TwoRegistrationsBothApply() {
+    public void TwoRegistrationsBothApply()
+    {
         var services = new ServiceCollection();
 
         services.AddGlobalFilter(new StubProvider());
@@ -83,15 +94,19 @@ public class GlobalFilterServiceCollectionExtensionsTests {
         Assert.Equal(2, RegistryFrom(services).GetFilters(Handler()).Count);
     }
 
-    private sealed class StubProvider : IRequestFilterProvider {
+    private sealed class StubProvider : IRequestFilterProvider
+    {
         private readonly int _count;
 
-        public StubProvider(int count = 1) {
+        public StubProvider(int count = 1)
+        {
             _count = count;
         }
 
-        public IEnumerable<RequestFilterInfo> GetFilters(IExecutionRequestHandlerInfo handlerInfo) {
-            for (var i = 0; i < _count; i++) {
+        public IEnumerable<RequestFilterInfo> GetFilters(IExecutionRequestHandlerInfo handlerInfo)
+        {
+            for (var i = 0; i < _count; i++)
+            {
                 yield return new RequestFilterInfo(_ => Substitute.For<IExecutionFilter>());
             }
         }

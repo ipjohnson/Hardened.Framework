@@ -27,8 +27,8 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Controllers;
 /// </remarks>
 [BasePath("/declared-header")]
 [ConditionalGet]
-public class DeclaredHeaderController {
-
+public class DeclaredHeaderController
+{
     /// <summary>Where <see cref="Create"/> says it put the note.</summary>
     public const string CreatedAt = "/declared-header/notes/1";
 
@@ -37,7 +37,8 @@ public class DeclaredHeaderController {
 
     [Post("/notes", SuccessStatus = 201)]
     [AnswersHeader(201, KnownHeaders.Location, Description = "Where the note was created.")]
-    public string Create(IExecutionContext context) {
+    public string Create(IExecutionContext context)
+    {
         context.Response.Headers[KnownHeaders.Location] = CreatedAt;
 
         return "created";

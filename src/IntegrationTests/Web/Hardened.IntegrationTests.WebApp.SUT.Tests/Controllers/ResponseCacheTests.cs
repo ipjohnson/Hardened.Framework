@@ -2,8 +2,8 @@ using DependencyModules.Testing.Attributes;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Runtime.Caching;
 using Hardened.Requests.Testing;
-using Microsoft.Extensions.Primitives;
 using Hardened.Web.Runtime.Responses;
+using Microsoft.Extensions.Primitives;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 
@@ -14,10 +14,11 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 /// Each handler answers with a counter that only advances when it runs, so the same body twice is
 /// the assertion. Every test gets its own service provider, and therefore its own store.
 /// </remarks>
-public class ResponseCacheTests {
-
+public class ResponseCacheTests
+{
     [HardenedTest]
-    public async Task ASecondRequestIsAnsweredWithoutRunningTheHandler(ITestWebApp testWebApp) {
+    public async Task ASecondRequestIsAnsweredWithoutRunningTheHandler(ITestWebApp testWebApp)
+    {
         var first = await testWebApp.Get("/response-cache/catalog?culture=en-GB");
         var second = await testWebApp.Get("/response-cache/catalog?culture=en-GB");
 
@@ -32,7 +33,8 @@ public class ResponseCacheTests {
     /// The value the strategy was named on is in the key, so a different one is a different entry.
     /// </summary>
     [HardenedTest]
-    public async Task ADifferentQueryValueIsADifferentEntry([Shared] ITestWebApp testWebApp) {
+    public async Task ADifferentQueryValueIsADifferentEntry([Shared] ITestWebApp testWebApp)
+    {
         await testWebApp.Get("/response-cache/catalog?culture=en-GB");
 
         var other = await testWebApp.Get("/response-cache/catalog?culture=fr-FR");
@@ -45,7 +47,8 @@ public class ResponseCacheTests {
     /// asked for.
     /// </summary>
     [HardenedTest]
-    public async Task AHandlerThatDeclaresNothingIsNotCached([Shared] ITestWebApp testWebApp) {
+    public async Task AHandlerThatDeclaresNothingIsNotCached([Shared] ITestWebApp testWebApp)
+    {
         await testWebApp.Get("/response-cache/uncached");
 
         var second = await testWebApp.Get("/response-cache/uncached");
@@ -57,15 +60,22 @@ public class ResponseCacheTests {
     /// Two strategies compose into one key. Changing either half misses; changing neither hits.
     /// </summary>
     [HardenedTest]
-    public async Task ComposedStrategiesBothCount([Shared] ITestWebApp testWebApp) {
+    public async Task ComposedStrategiesBothCount([Shared] ITestWebApp testWebApp)
+    {
         var first = await testWebApp.Get(
-            "/response-cache/composed?culture=en-GB", Language("en-GB"));
+            "/response-cache/composed?culture=en-GB",
+            Language("en-GB")
+        );
 
         var repeat = await testWebApp.Get(
-            "/response-cache/composed?culture=en-GB", Language("en-GB"));
+            "/response-cache/composed?culture=en-GB",
+            Language("en-GB")
+        );
 
         var otherHeader = await testWebApp.Get(
-            "/response-cache/composed?culture=en-GB", Language("fr-FR"));
+            "/response-cache/composed?culture=en-GB",
+            Language("fr-FR")
+        );
 
         Assert.Equal("en-GB-1", first.Deserialize<string>());
         Assert.Equal("en-GB-1", repeat.Deserialize<string>());
@@ -77,9 +87,12 @@ public class ResponseCacheTests {
     /// service does not serve one caller's answer to another.
     /// </summary>
     [HardenedTest]
-    public async Task AVariedResponseSaysWhatItVariedOn(ITestWebApp testWebApp) {
+    public async Task AVariedResponseSaysWhatItVariedOn(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get(
-            "/response-cache/composed?culture=en-GB", Language("en-GB"));
+            "/response-cache/composed?culture=en-GB",
+            Language("en-GB")
+        );
 
         // Merged with the Accept-Encoding the compression filter adds, rather than assigned.
         Assert.Contains("Accept-Language", response.Headers[KnownHeaders.Vary].ToString());
@@ -91,7 +104,8 @@ public class ResponseCacheTests {
     /// silent.
     /// </summary>
     [HardenedTest]
-    public async Task AResourceScopedHandlerIsNotCached([Shared] ITestWebApp testWebApp) {
+    public async Task AResourceScopedHandlerIsNotCached([Shared] ITestWebApp testWebApp)
+    {
         await testWebApp.Get("/response-cache/owned/7");
 
         var second = await testWebApp.Get("/response-cache/owned/7");
@@ -104,7 +118,8 @@ public class ResponseCacheTests {
     /// resource-scoped rule has to refuse the case above without also refusing this one.
     /// </summary>
     [HardenedTest]
-    public async Task AGrantGuardedHandlerIsStillCached(ITestWebApp testWebApp) {
+    public async Task AGrantGuardedHandlerIsStillCached(ITestWebApp testWebApp)
+    {
         await testWebApp.Get("/response-cache/granted", Grants("pets:read"));
 
         var second = await testWebApp.Get("/response-cache/granted", Grants("pets:read"));
@@ -123,15 +138,18 @@ public class ResponseCacheTests {
     /// reading as a permitted caller was all that was ever exercised.
     /// </remarks>
     [HardenedTest]
-    public async Task AWarmCacheStillRefusesTheGrantlessCaller(ITestWebApp testWebApp) {
+    public async Task AWarmCacheStillRefusesTheGrantlessCaller(ITestWebApp testWebApp)
+    {
         var warm = await testWebApp.Get("/response-cache/granted", Grants("pets:read"));
 
         warm.Assert.Ok();
 
         var grantless = await testWebApp.Get("/response-cache/granted");
 
-        Assert.True(grantless.StatusCode is 401 or 403,
-            $"a grantless caller was answered {grantless.StatusCode} from the warm cache");
+        Assert.True(
+            grantless.StatusCode is 401 or 403,
+            $"a grantless caller was answered {grantless.StatusCode} from the warm cache"
+        );
     }
 
     /// <summary>
@@ -139,7 +157,8 @@ public class ResponseCacheTests {
     /// it and continuing buys over short-circuiting here.
     /// </summary>
     [HardenedTest]
-    public async Task TheRefusedCallerIsNotGivenTheStoredBody(ITestWebApp testWebApp) {
+    public async Task TheRefusedCallerIsNotGivenTheStoredBody(ITestWebApp testWebApp)
+    {
         var warm = await testWebApp.Get("/response-cache/granted", Grants("pets:read"));
         var grantless = await testWebApp.Get("/response-cache/granted");
 
@@ -158,12 +177,17 @@ public class ResponseCacheTests {
     /// says so, and it keys the entry on the caller.
     /// </remarks>
     [HardenedTest]
-    public async Task AnOwnerScopedHandlerAnswersEachCallerTheirOwn([Shared] ITestWebApp testWebApp) {
+    public async Task AnOwnerScopedHandlerAnswersEachCallerTheirOwn([Shared] ITestWebApp testWebApp)
+    {
         var first = await testWebApp.Get(
-            "/response-cache/owned-by-subject", Caller("pets:read", "subscriber-one"));
+            "/response-cache/owned-by-subject",
+            Caller("pets:read", "subscriber-one")
+        );
 
         var second = await testWebApp.Get(
-            "/response-cache/owned-by-subject", Caller("pets:read", "subscriber-two"));
+            "/response-cache/owned-by-subject",
+            Caller("pets:read", "subscriber-two")
+        );
 
         Assert.Equal("subscriber-one-1", first.Deserialize<string>());
         Assert.Equal("subscriber-two-2", second.Deserialize<string>());
@@ -173,12 +197,17 @@ public class ResponseCacheTests {
     /// And each caller's own entry is still an entry, so the feature survives being made safe.
     /// </summary>
     [HardenedTest]
-    public async Task AnOwnerScopedHandlerStillAnswersOneCallerFromTheStore(ITestWebApp testWebApp) {
+    public async Task AnOwnerScopedHandlerStillAnswersOneCallerFromTheStore(ITestWebApp testWebApp)
+    {
         await testWebApp.Get(
-            "/response-cache/owned-by-subject", Caller("pets:read", "subscriber-one"));
+            "/response-cache/owned-by-subject",
+            Caller("pets:read", "subscriber-one")
+        );
 
         var repeat = await testWebApp.Get(
-            "/response-cache/owned-by-subject", Caller("pets:read", "subscriber-one"));
+            "/response-cache/owned-by-subject",
+            Caller("pets:read", "subscriber-one")
+        );
 
         Assert.Equal("subscriber-one-1", repeat.Deserialize<string>());
     }
@@ -195,9 +224,12 @@ public class ResponseCacheTests {
     /// request.
     /// </remarks>
     [HardenedTest]
-    public async Task AGuardedHandlerThatStatesNoScopeFails(ITestWebApp testWebApp) {
+    public async Task AGuardedHandlerThatStatesNoScopeFails(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get(
-            "/response-cache/unstated-scope", Caller("pets:read", "subscriber-one"));
+            "/response-cache/unstated-scope",
+            Caller("pets:read", "subscriber-one")
+        );
 
         Assert.Equal(500, response.StatusCode);
 
@@ -212,7 +244,8 @@ public class ResponseCacheTests {
     /// application could not reach its own entries at all, so an hour-long entry meant an hour.
     /// </summary>
     [HardenedTest]
-    public async Task APublishReachesACachedRead([Shared] ITestWebApp testWebApp) {
+    public async Task APublishReachesACachedRead([Shared] ITestWebApp testWebApp)
+    {
         var first = await testWebApp.Get("/response-cache/tagged");
         var cached = await testWebApp.Get("/response-cache/tagged");
 
@@ -229,11 +262,13 @@ public class ResponseCacheTests {
         request => request.Headers["Accept-Language"] = new StringValues(value);
 
     private static Action<TestWebRequest> Grants(string value) =>
-        request => request.Headers[TestGrantsPrincipalSource.GrantsHeader] = new StringValues(value);
+        request =>
+            request.Headers[TestGrantsPrincipalSource.GrantsHeader] = new StringValues(value);
 
     /// <summary>Which caller, for the tests where one caller's data reaching another is the point.</summary>
     private static Action<TestWebRequest> Caller(string grants, string subject) =>
-        request => {
+        request =>
+        {
             request.Headers[TestGrantsPrincipalSource.GrantsHeader] = new StringValues(grants);
             request.Headers[TestGrantsPrincipalSource.SubjectHeader] = new StringValues(subject);
         };

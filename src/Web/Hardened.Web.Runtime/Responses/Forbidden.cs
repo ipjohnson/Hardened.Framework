@@ -13,8 +13,8 @@ namespace Hardened.Web.Runtime.Responses;
 /// made.
 /// </remarks>
 [HttpStatus(403)]
-public sealed record Forbidden(string? Detail = null) : IHttpStatusResponse, IDeclaresStatus {
-
+public sealed record Forbidden(string? Detail = null) : IHttpStatusResponse, IDeclaresStatus
+{
     /// <summary>
     /// The Forbidden with a generic message, for a handler with nothing more to say than the status.
     /// Shared, so returning it allocates nothing.

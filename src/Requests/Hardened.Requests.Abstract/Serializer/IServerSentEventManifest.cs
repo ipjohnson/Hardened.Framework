@@ -24,7 +24,8 @@ namespace Hardened.Requests.Abstract.Serializer;
 /// routes it. Which handlers are framed as events is a pipeline fact, not a routing one.
 /// </para>
 /// </remarks>
-public interface IServerSentEventManifest {
+public interface IServerSentEventManifest
+{
     /// <summary>
     /// One entry per handler, as the verb and path an operator would recognise from a log line -
     /// <c>GET /orders/live</c>.

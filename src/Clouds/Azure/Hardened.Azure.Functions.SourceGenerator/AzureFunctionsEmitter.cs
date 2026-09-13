@@ -21,46 +21,70 @@ namespace Hardened.Azure.Functions.SourceGenerator;
 /// from type definitions would say less.
 /// </para>
 /// </remarks>
-internal static class AzureFunctionsEmitter {
-
+internal static class AzureFunctionsEmitter
+{
     private const string Worker = "Microsoft.Azure.Functions.Worker";
 
-    private static readonly ITypeDefinition FunctionAttribute =
-        TypeDefinition.Get(Worker, "FunctionAttribute");
+    private static readonly ITypeDefinition FunctionAttribute = TypeDefinition.Get(
+        Worker,
+        "FunctionAttribute"
+    );
 
-    private static readonly ITypeDefinition FixedDelayRetryAttribute =
-        TypeDefinition.Get(Worker, "FixedDelayRetryAttribute");
+    private static readonly ITypeDefinition FixedDelayRetryAttribute = TypeDefinition.Get(
+        Worker,
+        "FixedDelayRetryAttribute"
+    );
 
-    private static readonly ITypeDefinition FunctionContext =
-        TypeDefinition.Get(Worker, "FunctionContext");
+    private static readonly ITypeDefinition FunctionContext = TypeDefinition.Get(
+        Worker,
+        "FunctionContext"
+    );
 
-    private static readonly ITypeDefinition FunctionMetadata =
-        TypeDefinition.Get(Worker + ".Core.FunctionMetadata", "IFunctionMetadata");
+    private static readonly ITypeDefinition FunctionMetadata = TypeDefinition.Get(
+        Worker + ".Core.FunctionMetadata",
+        "IFunctionMetadata"
+    );
 
-    private static readonly ITypeDefinition FunctionMetadataProvider =
-        TypeDefinition.Get(Worker + ".Core.FunctionMetadata", "IFunctionMetadataProvider");
+    private static readonly ITypeDefinition FunctionMetadataProvider = TypeDefinition.Get(
+        Worker + ".Core.FunctionMetadata",
+        "IFunctionMetadataProvider"
+    );
 
-    private static readonly ITypeDefinition FunctionExecutor =
-        TypeDefinition.Get(Worker + ".Invocation", "IFunctionExecutor");
+    private static readonly ITypeDefinition FunctionExecutor = TypeDefinition.Get(
+        Worker + ".Invocation",
+        "IFunctionExecutor"
+    );
 
-    private static readonly ITypeDefinition Task =
-        TypeDefinition.Get("System.Threading.Tasks", "Task");
+    private static readonly ITypeDefinition Task = TypeDefinition.Get(
+        "System.Threading.Tasks",
+        "Task"
+    );
 
-    private static readonly ITypeDefinition ValueTask =
-        TypeDefinition.Get("System.Threading.Tasks", "ValueTask");
+    private static readonly ITypeDefinition ValueTask = TypeDefinition.Get(
+        "System.Threading.Tasks",
+        "ValueTask"
+    );
 
-    private static readonly ITypeDefinition ServiceCollection =
-        TypeDefinition.Get("Microsoft.Extensions.DependencyInjection", "IServiceCollection");
+    private static readonly ITypeDefinition ServiceCollection = TypeDefinition.Get(
+        "Microsoft.Extensions.DependencyInjection",
+        "IServiceCollection"
+    );
 
-    private static readonly ITypeDefinition HardenedFunctionsApplication =
-        TypeDefinition.Get("Hardened.Azure.Functions.Runtime.Hosting", "IHardenedFunctionsApplication");
+    private static readonly ITypeDefinition HardenedFunctionsApplication = TypeDefinition.Get(
+        "Hardened.Azure.Functions.Runtime.Hosting",
+        "IHardenedFunctionsApplication"
+    );
 
-    private const string InvocationHandler = "global::Hardened.Azure.Functions.Runtime.Hosting.FunctionsInvocationHandler";
+    private const string InvocationHandler =
+        "global::Hardened.Azure.Functions.Runtime.Hosting.FunctionsInvocationHandler";
 
-    private const string DispatchEnum = "global::Hardened.Azure.Functions.Runtime.Execution.FunctionsDispatch";
+    private const string DispatchEnum =
+        "global::Hardened.Azure.Functions.Runtime.Execution.FunctionsDispatch";
 
-    public sealed class Emitted {
-        public Emitted(string functions, string worker) {
+    public sealed class Emitted
+    {
+        public Emitted(string functions, string worker)
+        {
             Functions = functions;
             Worker = worker;
         }
@@ -75,7 +99,9 @@ internal static class AzureFunctionsEmitter {
     public static Emitted Emit(
         EntryPointSelector.Model entryPoint,
         IReadOnlyList<AzureFunctionsGenerator.Function> functions,
-        string assemblyName) {
+        string assemblyName
+    )
+    {
         var ns = entryPoint.EntryPointType.Namespace;
         var app = entryPoint.EntryPointType.Name;
 
@@ -111,10 +137,14 @@ internal static class AzureFunctionsEmitter {
     /// it directly, so the reflection never runs an invocation.
     /// </remarks>
     private static void WriteShims(
-        ClassDefinition shims, IReadOnlyList<AzureFunctionsGenerator.Function> functions) {
+        ClassDefinition shims,
+        IReadOnlyList<AzureFunctionsGenerator.Function> functions
+    )
+    {
         shims.Modifiers = ComponentModifier.Public | ComponentModifier.Static;
 
-        foreach (var function in functions) {
+        foreach (var function in functions)
+        {
             var binding = function.Binding;
             var arguments = binding.Arguments(function.Source, function.Settings);
 
@@ -125,42 +155,76 @@ internal static class AzureFunctionsEmitter {
 
             // The policy the Worker SDK's build task reads into functions.metadata, beside the
             // one the provider below declares; the fixtures assert the two agree.
-            if (binding.Retry(function.Settings) is { } retry) {
+            if (binding.Retry(function.Settings) is { } retry)
+            {
                 method.AddAttribute(FixedDelayRetryAttribute, retry.CountText, retry.DelayText);
             }
 
-            foreach (var parameter in binding.Parameters) {
+            foreach (var parameter in binding.Parameters)
+            {
                 var declared = method.AddParameter(parameter.Type, parameter.Name);
 
-                if (!parameter.IsTrigger) {
+                if (!parameter.IsTrigger)
+                {
                     continue;
                 }
 
-                var attribute = declared.AddAttribute(binding.Attribute, arguments.Positional.Cast<object>().ToArray());
+                var attribute = declared.AddAttribute(
+                    binding.Attribute,
+                    arguments.Positional.Cast<object>().ToArray()
+                );
 
-                foreach (var named in arguments.Named) {
-                    attribute.AddNamedArgument(named.Key, new CodeOutputComponent(named.Value) { Indented = false });
+                foreach (var named in arguments.Named)
+                {
+                    attribute.AddNamedArgument(
+                        named.Key,
+                        new CodeOutputComponent(named.Value) { Indented = false }
+                    );
                 }
             }
 
             method.AddParameter(FunctionContext, "context");
 
-            var invoke = InvocationHandler + ".Invoke(context, " + QuoteString(function.Scheme) + ", " +
-                         QuoteString(function.Path) + ", " + binding.DataExpression + ", " +
-                         DispatchEnum + "." + binding.Dispatch + ")";
+            var invoke =
+                InvocationHandler
+                + ".Invoke(context, "
+                + QuoteString(function.Scheme)
+                + ", "
+                + QuoteString(function.Path)
+                + ", "
+                + binding.DataExpression
+                + ", "
+                + DispatchEnum
+                + "."
+                + binding.Dispatch
+                + ")";
 
-            if (binding.ReturnType == null) {
+            if (binding.ReturnType == null)
+            {
                 method.SetReturnType(Task);
                 method.Return(new CodeOutputComponent(invoke) { Indented = false });
             }
-            else {
+            else
+            {
                 // The one family whose function answers the host. The invocation handler returns
                 // what the adapter built as an object, and the shim, which knows the family, casts.
                 method.Modifiers |= ComponentModifier.Async;
-                method.SetReturnType(new GenericTypeDefinition(
-                    TypeDefinitionEnum.ClassDefinition, "System.Threading.Tasks", "Task", new[] { binding.ReturnType }));
-                method.Return(new CodeOutputComponent(
-                    "(" + Name(binding.ReturnType) + ")(await " + invoke + ")!") { Indented = false });
+                method.SetReturnType(
+                    new GenericTypeDefinition(
+                        TypeDefinitionEnum.ClassDefinition,
+                        "System.Threading.Tasks",
+                        "Task",
+                        new[] { binding.ReturnType }
+                    )
+                );
+                method.Return(
+                    new CodeOutputComponent(
+                        "(" + Name(binding.ReturnType) + ")(await " + invoke + ")!"
+                    )
+                    {
+                        Indented = false,
+                    }
+                );
             }
         }
     }
@@ -173,57 +237,105 @@ internal static class AzureFunctionsEmitter {
         ClassDefinition provider,
         ITypeDefinition shims,
         IReadOnlyList<AzureFunctionsGenerator.Function> functions,
-        string assemblyName) {
+        string assemblyName
+    )
+    {
         provider.Modifiers = ComponentModifier.Public | ComponentModifier.Sealed;
         provider.AddBaseType(FunctionMetadataProvider);
 
         var method = provider.AddMethod("GetFunctionMetadataAsync");
 
-        method.SetReturnType(new GenericTypeDefinition(
-            TypeDefinitionEnum.ClassDefinition, "System.Threading.Tasks", "Task",
-            new ITypeDefinition[] {
-                new GenericTypeDefinition(
-                    TypeDefinitionEnum.ClassDefinition, "System.Collections.Immutable", "ImmutableArray",
-                    new[] { FunctionMetadata })
-            }));
+        method.SetReturnType(
+            new GenericTypeDefinition(
+                TypeDefinitionEnum.ClassDefinition,
+                "System.Threading.Tasks",
+                "Task",
+                new ITypeDefinition[]
+                {
+                    new GenericTypeDefinition(
+                        TypeDefinitionEnum.ClassDefinition,
+                        "System.Collections.Immutable",
+                        "ImmutableArray",
+                        new[] { FunctionMetadata }
+                    ),
+                }
+            )
+        );
 
         method.AddParameter(typeof(string), "directory");
 
-        method.AddIndentedStatement(new CodeOutputComponent(
-            "var functions = global::System.Collections.Immutable.ImmutableArray.CreateBuilder<global::" +
-            FunctionMetadata.Namespace + "." + FunctionMetadata.Name + ">(" + functions.Count + ")") {
-            Indented = false
-        });
+        method.AddIndentedStatement(
+            new CodeOutputComponent(
+                "var functions = global::System.Collections.Immutable.ImmutableArray.CreateBuilder<global::"
+                    + FunctionMetadata.Namespace
+                    + "."
+                    + FunctionMetadata.Name
+                    + ">("
+                    + functions.Count
+                    + ")"
+            )
+            {
+                Indented = false,
+            }
+        );
 
-        foreach (var function in functions) {
+        foreach (var function in functions)
+        {
             var bindings = string.Join(
                 ", ",
-                function.Binding.RawBindings(function.Source, function.Settings).Select(QuoteString));
+                function.Binding.RawBindings(function.Source, function.Settings).Select(QuoteString)
+            );
 
             // The host reads the policy from what the worker answers, so it is declared here as
             // well as on the shim: the worker's own options type, which the host turns into the
             // metadata's retry block.
             var retry = function.Binding.Retry(function.Settings) is { } policy
-                ? ", Retry = new global::" + Worker + ".Core.FunctionMetadata.DefaultRetryOptions { " +
-                  "MaxRetryCount = " + policy.Count + ", " +
-                  "DelayInterval = global::System.TimeSpan.Parse(" + QuoteString(policy.Delay) +
-                  ", global::System.Globalization.CultureInfo.InvariantCulture) }"
+                ? ", Retry = new global::"
+                    + Worker
+                    + ".Core.FunctionMetadata.DefaultRetryOptions { "
+                    + "MaxRetryCount = "
+                    + policy.Count
+                    + ", "
+                    + "DelayInterval = global::System.TimeSpan.Parse("
+                    + QuoteString(policy.Delay)
+                    + ", global::System.Globalization.CultureInfo.InvariantCulture) }"
                 : "";
 
-            method.AddIndentedStatement(new CodeOutputComponent(
-                "functions.Add(new global::" + Worker + ".Core.FunctionMetadata.DefaultFunctionMetadata { " +
-                "Language = \"dotnet-isolated\", " +
-                "Name = " + QuoteString(function.Name) + ", " +
-                "EntryPoint = " + QuoteString(shims.Namespace + "." + shims.Name + "." + function.Name) + ", " +
-                "ScriptFile = " + QuoteString(assemblyName + ".dll") + ", " +
-                "RawBindings = new global::System.Collections.Generic.List<string> { " + bindings + " }" +
-                retry + " })") {
-                Indented = false
-            });
+            method.AddIndentedStatement(
+                new CodeOutputComponent(
+                    "functions.Add(new global::"
+                        + Worker
+                        + ".Core.FunctionMetadata.DefaultFunctionMetadata { "
+                        + "Language = \"dotnet-isolated\", "
+                        + "Name = "
+                        + QuoteString(function.Name)
+                        + ", "
+                        + "EntryPoint = "
+                        + QuoteString(shims.Namespace + "." + shims.Name + "." + function.Name)
+                        + ", "
+                        + "ScriptFile = "
+                        + QuoteString(assemblyName + ".dll")
+                        + ", "
+                        + "RawBindings = new global::System.Collections.Generic.List<string> { "
+                        + bindings
+                        + " }"
+                        + retry
+                        + " })"
+                )
+                {
+                    Indented = false,
+                }
+            );
         }
 
-        method.Return(new CodeOutputComponent(
-            "global::System.Threading.Tasks.Task.FromResult(functions.ToImmutable())") { Indented = false });
+        method.Return(
+            new CodeOutputComponent(
+                "global::System.Threading.Tasks.Task.FromResult(functions.ToImmutable())"
+            )
+            {
+                Indented = false,
+            }
+        );
     }
 
     /// <summary>
@@ -240,7 +352,9 @@ internal static class AzureFunctionsEmitter {
     private static void WriteExecutor(
         ClassDefinition executor,
         ITypeDefinition shims,
-        IReadOnlyList<AzureFunctionsGenerator.Function> functions) {
+        IReadOnlyList<AzureFunctionsGenerator.Function> functions
+    )
+    {
         executor.Modifiers = ComponentModifier.Public | ComponentModifier.Sealed;
         executor.AddBaseType(FunctionExecutor);
 
@@ -252,60 +366,113 @@ internal static class AzureFunctionsEmitter {
 
         // No switch at all for no functions: an empty switch block is CS1522, a warning that is an
         // error wherever warnings are.
-        if (functions.Count > 0) {
+        if (functions.Count > 0)
+        {
             var switchBlock = method.Switch(
-                new CodeOutputComponent("context.FunctionDefinition.Name") { Indented = false });
+                new CodeOutputComponent("context.FunctionDefinition.Name") { Indented = false }
+            );
 
-            foreach (var function in functions) {
+            foreach (var function in functions)
+            {
                 var binding = function.Binding;
                 var caseBlock = switchBlock.AddCase(QuoteString(function.Name));
 
                 // Named after the function, because every section of a switch shares one scope.
                 var inputs = function.Name + "_inputs";
 
-                caseBlock.AddIndentedStatement(new CodeOutputComponent(
-                    "var " + inputs + " = (await context.Features.Get<global::" + Worker +
-                    ".Context.Features.IFunctionInputBindingFeature>()!.BindFunctionInputAsync(context)).Values") {
-                    Indented = false
-                });
+                caseBlock.AddIndentedStatement(
+                    new CodeOutputComponent(
+                        "var "
+                            + inputs
+                            + " = (await context.Features.Get<global::"
+                            + Worker
+                            + ".Context.Features.IFunctionInputBindingFeature>()!.BindFunctionInputAsync(context)).Values"
+                    )
+                    {
+                        Indented = false,
+                    }
+                );
 
                 var arguments = new List<string>();
 
-                for (var index = 0; index < binding.Parameters.Count; index++) {
-                    arguments.Add("(" + Name(binding.Parameters[index].Type) + ")" + inputs + "[" + index + "]!");
+                for (var index = 0; index < binding.Parameters.Count; index++)
+                {
+                    arguments.Add(
+                        "("
+                            + Name(binding.Parameters[index].Type)
+                            + ")"
+                            + inputs
+                            + "["
+                            + index
+                            + "]!"
+                    );
                 }
 
-                arguments.Add("(" + Name(FunctionContext) + ")" + inputs + "[" + binding.Parameters.Count + "]!");
+                arguments.Add(
+                    "("
+                        + Name(FunctionContext)
+                        + ")"
+                        + inputs
+                        + "["
+                        + binding.Parameters.Count
+                        + "]!"
+                );
 
-                var call = "global::" + shims.Namespace + "." + shims.Name + "." + function.Name + "(" +
-                           string.Join(", ", arguments) + ")";
+                var call =
+                    "global::"
+                    + shims.Namespace
+                    + "."
+                    + shims.Name
+                    + "."
+                    + function.Name
+                    + "("
+                    + string.Join(", ", arguments)
+                    + ")";
 
-                caseBlock.AddIndentedStatement(new CodeOutputComponent(
-                    binding.ReturnType == null
-                        ? "await " + call
-                        : "global::" + Worker + ".FunctionContextBindingFeatureExtensions.GetInvocationResult(context).Value = await " + call) {
-                    Indented = false
-                });
+                caseBlock.AddIndentedStatement(
+                    new CodeOutputComponent(
+                        binding.ReturnType == null
+                            ? "await " + call
+                            : "global::"
+                                + Worker
+                                + ".FunctionContextBindingFeatureExtensions.GetInvocationResult(context).Value = await "
+                                + call
+                    )
+                    {
+                        Indented = false,
+                    }
+                );
 
                 caseBlock.Return();
             }
         }
 
-        method.AddIndentedStatement(new CodeOutputComponent(
-            "throw new global::System.InvalidOperationException(" +
-            QuoteString("No Hardened function is compiled for '") +
-            " + context.FunctionDefinition.Name + " +
-            QuoteString("'. The host invoked a function the generated metadata provider did not list, " +
-                        "so the two were built from different code.") + ")") {
-            Indented = false
-        });
+        method.AddIndentedStatement(
+            new CodeOutputComponent(
+                "throw new global::System.InvalidOperationException("
+                    + QuoteString("No Hardened function is compiled for '")
+                    + " + context.FunctionDefinition.Name + "
+                    + QuoteString(
+                        "'. The host invoked a function the generated metadata provider did not list, "
+                            + "so the two were built from different code."
+                    )
+                    + ")"
+            )
+            {
+                Indented = false,
+            }
+        );
     }
 
     /// <summary>
     /// The registration <c>UseHardened</c> calls, on a partial of the entry point.
     /// </summary>
     private static void WriteRegistration(
-        ClassDefinition app, ITypeDefinition provider, ITypeDefinition executor) {
+        ClassDefinition app,
+        ITypeDefinition provider,
+        ITypeDefinition executor
+    )
+    {
         app.Modifiers = ComponentModifier.Public | ComponentModifier.Partial;
         app.AddBaseType(HardenedFunctionsApplication);
 
@@ -314,19 +481,27 @@ internal static class AzureFunctionsEmitter {
         var services = method.AddParameter(ServiceCollection, "services");
 
         method.AddIndentedStatement(
-            services.InvokeGeneric("AddSingleton", new[] { FunctionMetadataProvider, provider }));
+            services.InvokeGeneric("AddSingleton", new[] { FunctionMetadataProvider, provider })
+        );
 
         method.AddIndentedStatement(
-            services.InvokeGeneric("AddSingleton", new[] { FunctionExecutor, executor }));
+            services.InvokeGeneric("AddSingleton", new[] { FunctionExecutor, executor })
+        );
     }
 
     /// <summary>A type as generated text: fully qualified, with its array rank.</summary>
     private static string Name(ITypeDefinition type) =>
-        (string.IsNullOrEmpty(type.Namespace) ? type.Name : "global::" + type.Namespace + "." + type.Name) +
-        (type.IsArray ? "[]" : "");
+        (
+            string.IsNullOrEmpty(type.Namespace)
+                ? type.Name
+                : "global::" + type.Namespace + "." + type.Name
+        ) + (type.IsArray ? "[]" : "");
 
-    private static string Output(CSharpFileDefinition file) {
-        var output = new OutputContext(new OutputContextOptions { TypeOutputMode = TypeOutputMode.Global });
+    private static string Output(CSharpFileDefinition file)
+    {
+        var output = new OutputContext(
+            new OutputContextOptions { TypeOutputMode = TypeOutputMode.Global }
+        );
 
         file.WriteOutput(output);
 

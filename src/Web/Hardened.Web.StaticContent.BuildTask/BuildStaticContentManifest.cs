@@ -19,8 +19,8 @@ namespace Hardened.Web.StaticContent.BuildTask;
 /// items, writing a file, and turning diagnostics into log entries.
 /// </para>
 /// </remarks>
-public class BuildStaticContentManifest : Microsoft.Build.Utilities.Task {
-
+public class BuildStaticContentManifest : Microsoft.Build.Utilities.Task
+{
     /// <summary>The directory to scan.</summary>
     [Required]
     public string ContentDirectory { get; set; } = string.Empty;
@@ -55,14 +55,21 @@ public class BuildStaticContentManifest : Microsoft.Build.Utilities.Task {
     [Output]
     public string? GeneratedSource { get; set; }
 
-    public override bool Execute() {
+    public override bool Execute()
+    {
         ScanResult scan;
 
-        try {
+        try
+        {
             scan = StaticContentScan.Scan(
-                ContentDirectory, RoutePrefix, FallBackFile, EmbedThresholdBytes);
+                ContentDirectory,
+                RoutePrefix,
+                FallBackFile,
+                EmbedThresholdBytes
+            );
         }
-        catch (Exception exception) {
+        catch (Exception exception)
+        {
             // A failure reading the tree is the build's problem, not something to half-answer with
             // an empty manifest that would silently serve nothing.
             // Named arguments, because the first parameter of this overload is the subcategory
@@ -70,36 +77,62 @@ public class BuildStaticContentManifest : Microsoft.Build.Utilities.Task {
             // where MSBuild does not read it - so the diagnostic prints without an identifier and
             // <NoWarn> has nothing to match on.
             Log.LogError(
-                subcategory: null, errorCode: "HSTATIC000", helpKeyword: null, file: null,
-                lineNumber: 0, columnNumber: 0, endLineNumber: 0, endColumnNumber: 0,
+                subcategory: null,
+                errorCode: "HSTATIC000",
+                helpKeyword: null,
+                file: null,
+                lineNumber: 0,
+                columnNumber: 0,
+                endLineNumber: 0,
+                endColumnNumber: 0,
                 message: "Could not read the static content directory '{0}': {1}",
-                ContentDirectory, exception.Message);
+                ContentDirectory,
+                exception.Message
+            );
 
             return false;
         }
 
         var failed = false;
 
-        foreach (var diagnostic in scan.Diagnostics) {
-            if (diagnostic.IsError) {
+        foreach (var diagnostic in scan.Diagnostics)
+        {
+            if (diagnostic.IsError)
+            {
                 Log.LogError(
-                    subcategory: null, errorCode: diagnostic.Code, helpKeyword: null,
-                    file: ContentDirectory, lineNumber: 0, columnNumber: 0,
-                    endLineNumber: 0, endColumnNumber: 0,
-                    message: "{0}", diagnostic.Message);
+                    subcategory: null,
+                    errorCode: diagnostic.Code,
+                    helpKeyword: null,
+                    file: ContentDirectory,
+                    lineNumber: 0,
+                    columnNumber: 0,
+                    endLineNumber: 0,
+                    endColumnNumber: 0,
+                    message: "{0}",
+                    diagnostic.Message
+                );
 
                 failed = true;
             }
-            else {
+            else
+            {
                 Log.LogWarning(
-                    subcategory: null, warningCode: diagnostic.Code, helpKeyword: null,
-                    file: ContentDirectory, lineNumber: 0, columnNumber: 0,
-                    endLineNumber: 0, endColumnNumber: 0,
-                    message: "{0}", diagnostic.Message);
+                    subcategory: null,
+                    warningCode: diagnostic.Code,
+                    helpKeyword: null,
+                    file: ContentDirectory,
+                    lineNumber: 0,
+                    columnNumber: 0,
+                    endLineNumber: 0,
+                    endColumnNumber: 0,
+                    message: "{0}",
+                    diagnostic.Message
+                );
             }
         }
 
-        if (failed) {
+        if (failed)
+        {
             return false;
         }
 
@@ -107,13 +140,15 @@ public class BuildStaticContentManifest : Microsoft.Build.Utilities.Task {
 
         var directory = Path.GetDirectoryName(OutputFile);
 
-        if (!string.IsNullOrEmpty(directory)) {
+        if (!string.IsNullOrEmpty(directory))
+        {
             Directory.CreateDirectory(directory!);
         }
 
         // Only when it differs. The file is an input to the compilation, and rewriting it with
         // identical bytes moves its timestamp and makes every build a full rebuild.
-        if (!File.Exists(OutputFile) || File.ReadAllText(OutputFile) != source) {
+        if (!File.Exists(OutputFile) || File.ReadAllText(OutputFile) != source)
+        {
             File.WriteAllText(OutputFile, source);
         }
 
@@ -121,7 +156,10 @@ public class BuildStaticContentManifest : Microsoft.Build.Utilities.Task {
 
         Log.LogMessage(
             MessageImportance.Normal,
-            "Static content manifest: {0} file(s) from '{1}'.", scan.Files.Count, ContentDirectory);
+            "Static content manifest: {0} file(s) from '{1}'.",
+            scan.Files.Count,
+            ContentDirectory
+        );
 
         return true;
     }

@@ -1,5 +1,5 @@
-using Microsoft.Extensions.Primitives;
 using Hardened.Web.Runtime.Responses;
+using Microsoft.Extensions.Primitives;
 
 namespace Hardened.IntegrationTests.OpenApi.SUT.Tests;
 
@@ -19,12 +19,15 @@ namespace Hardened.IntegrationTests.OpenApi.SUT.Tests;
 /// in quotes with its newlines escaped, which is a valid JSON document and the wrong response.
 /// </para>
 /// </remarks>
-public class PlainTextResponseTests {
-
+public class PlainTextResponseTests
+{
     [HardenedTest]
-    public async Task PlainTextOperation_SetsTheDeclaredContentType(ITestWebApp testWebApp) {
-        var response = await testWebApp.Get("/pets/plain",
-            request => request.Headers["Accept"] = new StringValues("text/plain"));
+    public async Task PlainTextOperation_SetsTheDeclaredContentType(ITestWebApp testWebApp)
+    {
+        var response = await testWebApp.Get(
+            "/pets/plain",
+            request => request.Headers["Accept"] = new StringValues("text/plain")
+        );
 
         response.Assert.Ok();
 
@@ -32,9 +35,14 @@ public class PlainTextResponseTests {
     }
 
     [HardenedTest]
-    public async Task PlainTextOperation_WritesTheStringRatherThanJsonEncodingIt(ITestWebApp testWebApp) {
-        var response = await testWebApp.Get("/pets/plain",
-            request => request.Headers["Accept"] = new StringValues("text/plain"));
+    public async Task PlainTextOperation_WritesTheStringRatherThanJsonEncodingIt(
+        ITestWebApp testWebApp
+    )
+    {
+        var response = await testWebApp.Get(
+            "/pets/plain",
+            request => request.Headers["Accept"] = new StringValues("text/plain")
+        );
 
         response.Assert.Ok();
 
@@ -45,7 +53,8 @@ public class PlainTextResponseTests {
         Assert.False(body.StartsWith('"'), "The body was JSON-encoded rather than written raw.");
     }
 
-    private static async Task<string> ReadBody(TestWebResponse response) {
+    private static async Task<string> ReadBody(TestWebResponse response)
+    {
         response.Body.Position = 0;
 
         using var reader = new StreamReader(response.Body, leaveOpen: true);

@@ -20,24 +20,32 @@ namespace Hardened.Requests.Runtime.Tests.Middleware;
 /// happens.
 /// </para>
 /// </summary>
-public class ResponseFinalizerFilterTests {
-
+public class ResponseFinalizerFilterTests
+{
     private static IExecutionContext Context(
-        IContextSerializationService? serialization = null, string method = "GET") =>
+        IContextSerializationService? serialization = null,
+        string method = "GET"
+    ) =>
         Pipeline.Context(
             method: method,
-            configureServices: services => {
-                if (serialization != null) {
+            configureServices: services =>
+            {
+                if (serialization != null)
+                {
                     services.AddSingleton(serialization);
                 }
-            });
+            }
+        );
 
     /// <summary>Records what it was asked to write.</summary>
-    private static IContextSerializationService Recording(List<object?> written) {
+    private static IContextSerializationService Recording(List<object?> written)
+    {
         var serialization = Substitute.For<IContextSerializationService>();
 
-        serialization.SerializeResponse(Arg.Any<IExecutionContext>())
-            .Returns(callInfo => {
+        serialization
+            .SerializeResponse(Arg.Any<IExecutionContext>())
+            .Returns(callInfo =>
+            {
                 var context = callInfo.Arg<IExecutionContext>();
 
                 written.Add(context.Response.ResponseValue);
@@ -54,19 +62,24 @@ public class ResponseFinalizerFilterTests {
     /// the filter.
     /// </summary>
     [Fact]
-    public async Task Execute_SerializesAValueSetByAShortCircuitingMiddleware() {
+    public async Task Execute_SerializesAValueSetByAShortCircuitingMiddleware()
+    {
         var written = new List<object?>();
         var context = Context(Recording(written));
 
-        await Pipeline.Chain(
-            context,
-            new ResponseFinalizerFilter(),
-            new Pipeline.Inline(chain => {
-                chain.Context.Response.Status = 429;
-                chain.Context.Response.ResponseValue = "too-many-requests";
+        await Pipeline
+            .Chain(
+                context,
+                new ResponseFinalizerFilter(),
+                new Pipeline.Inline(chain =>
+                {
+                    chain.Context.Response.Status = 429;
+                    chain.Context.Response.ResponseValue = "too-many-requests";
 
-                return Task.CompletedTask;
-            })).Next();
+                    return Task.CompletedTask;
+                })
+            )
+            .Next();
 
         Assert.Equal(new object?[] { "too-many-requests" }, written);
         Assert.Equal(429, context.Response.Status);
@@ -74,19 +87,24 @@ public class ResponseFinalizerFilterTests {
 
     /// <summary>A recorded exception is written on the same terms.</summary>
     [Fact]
-    public async Task Execute_SerializesAnExceptionSetByAShortCircuitingMiddleware() {
+    public async Task Execute_SerializesAnExceptionSetByAShortCircuitingMiddleware()
+    {
         var written = new List<object?>();
         var serialization = Recording(written);
         var context = Context(serialization);
 
-        await Pipeline.Chain(
-            context,
-            new ResponseFinalizerFilter(),
-            new Pipeline.Inline(chain => {
-                chain.Context.Response.ExceptionValue = new InvalidOperationException("nope");
+        await Pipeline
+            .Chain(
+                context,
+                new ResponseFinalizerFilter(),
+                new Pipeline.Inline(chain =>
+                {
+                    chain.Context.Response.ExceptionValue = new InvalidOperationException("nope");
 
-                return Task.CompletedTask;
-            })).Next();
+                    return Task.CompletedTask;
+                })
+            )
+            .Next();
 
         await serialization.Received(1).SerializeResponse(Arg.Any<IExecutionContext>());
     }
@@ -96,20 +114,25 @@ public class ResponseFinalizerFilterTests {
     /// <c>ShouldSerialize</c> on its way out, and that is what this reads.
     /// </summary>
     [Fact]
-    public async Task Execute_DoesNotSerializeAResponseSomethingElseAlreadyWrote() {
+    public async Task Execute_DoesNotSerializeAResponseSomethingElseAlreadyWrote()
+    {
         var written = new List<object?>();
         var serialization = Recording(written);
         var context = Context(serialization);
 
-        await Pipeline.Chain(
-            context,
-            new ResponseFinalizerFilter(),
-            new Pipeline.Inline(chain => {
-                chain.Context.Response.ResponseValue = "already written";
-                chain.Context.Response.ShouldSerialize = false;
+        await Pipeline
+            .Chain(
+                context,
+                new ResponseFinalizerFilter(),
+                new Pipeline.Inline(chain =>
+                {
+                    chain.Context.Response.ResponseValue = "already written";
+                    chain.Context.Response.ShouldSerialize = false;
 
-                return Task.CompletedTask;
-            })).Next();
+                    return Task.CompletedTask;
+                })
+            )
+            .Next();
 
         Assert.Empty(written);
     }
@@ -123,14 +146,18 @@ public class ResponseFinalizerFilterTests {
     [InlineData("GET")]
     [InlineData("POST")]
     [InlineData("DELETE")]
-    public async Task Execute_LeavesARequestNothingAnsweredAlone(string method) {
+    public async Task Execute_LeavesARequestNothingAnsweredAlone(string method)
+    {
         var written = new List<object?>();
         var context = Context(Recording(written), method);
 
-        await Pipeline.Chain(
-            context,
-            new ResponseFinalizerFilter(),
-            new Pipeline.Inline(_ => Task.CompletedTask)).Next();
+        await Pipeline
+            .Chain(
+                context,
+                new ResponseFinalizerFilter(),
+                new Pipeline.Inline(_ => Task.CompletedTask)
+            )
+            .Next();
 
         Assert.Empty(written);
         Assert.Null(context.Response.Status);
@@ -141,18 +168,23 @@ public class ResponseFinalizerFilterTests {
     /// status and their headers, and there is nothing to negotiate a representation for.
     /// </summary>
     [Fact]
-    public async Task Execute_LeavesAStatusOnlyResponseAlone() {
+    public async Task Execute_LeavesAStatusOnlyResponseAlone()
+    {
         var written = new List<object?>();
         var context = Context(Recording(written));
 
-        await Pipeline.Chain(
-            context,
-            new ResponseFinalizerFilter(),
-            new Pipeline.Inline(chain => {
-                chain.Context.Response.Status = 204;
+        await Pipeline
+            .Chain(
+                context,
+                new ResponseFinalizerFilter(),
+                new Pipeline.Inline(chain =>
+                {
+                    chain.Context.Response.Status = 204;
 
-                return Task.CompletedTask;
-            })).Next();
+                    return Task.CompletedTask;
+                })
+            )
+            .Next();
 
         Assert.Empty(written);
         Assert.Equal(204, context.Response.Status);
@@ -164,17 +196,22 @@ public class ResponseFinalizerFilterTests {
     /// throwing there would break them for a response they were never going to write.
     /// </summary>
     [Fact]
-    public async Task Execute_DoesNotThrowWhenNoSerializationServiceIsRegistered() {
+    public async Task Execute_DoesNotThrowWhenNoSerializationServiceIsRegistered()
+    {
         var context = Context(serialization: null);
 
-        await Pipeline.Chain(
-            context,
-            new ResponseFinalizerFilter(),
-            new Pipeline.Inline(chain => {
-                chain.Context.Response.ResponseValue = "value";
+        await Pipeline
+            .Chain(
+                context,
+                new ResponseFinalizerFilter(),
+                new Pipeline.Inline(chain =>
+                {
+                    chain.Context.Response.ResponseValue = "value";
 
-                return Task.CompletedTask;
-            })).Next();
+                    return Task.CompletedTask;
+                })
+            )
+            .Next();
 
         Assert.Equal("value", context.Response.ResponseValue);
     }
@@ -184,15 +221,19 @@ public class ResponseFinalizerFilterTests {
     /// it still gets to answer.
     /// </summary>
     [Fact]
-    public async Task Execute_RunsTheRestOfTheChainFirst() {
+    public async Task Execute_RunsTheRestOfTheChainFirst()
+    {
         var log = new List<string>();
         var context = Context(Recording(new List<object?>()));
 
-        await Pipeline.Chain(
-            context,
-            new ResponseFinalizerFilter(),
-            new Pipeline.Recording(log, "first"),
-            new Pipeline.Recording(log, "second")).Next();
+        await Pipeline
+            .Chain(
+                context,
+                new ResponseFinalizerFilter(),
+                new Pipeline.Recording(log, "first"),
+                new Pipeline.Recording(log, "second")
+            )
+            .Next();
 
         Assert.Equal(new[] { "first", "second" }, log);
     }
@@ -202,7 +243,8 @@ public class ResponseFinalizerFilterTests {
     /// there are five hosts and one that forgot would answer refusals with an empty body.
     /// </summary>
     [Fact]
-    public async Task GetExecutionChain_IncludesTheFinalizerWithoutAnyHostRegisteringIt() {
+    public async Task GetExecutionChain_IncludesTheFinalizerWithoutAnyHostRegisteringIt()
+    {
         var log = new List<string>();
         var service = new MiddlewareService();
 
@@ -224,11 +266,14 @@ public class ResponseFinalizerFilterTests {
     /// where before it produced a status and nothing else.
     /// </summary>
     [Fact]
-    public async Task GetExecutionChain_AShortCircuitingMiddlewareNowProducesABody() {
+    public async Task GetExecutionChain_AShortCircuitingMiddlewareNowProducesABody()
+    {
         var serialization = Substitute.For<IContextSerializationService>();
 
-        serialization.SerializeResponse(Arg.Any<IExecutionContext>())
-            .Returns(async callInfo => {
+        serialization
+            .SerializeResponse(Arg.Any<IExecutionContext>())
+            .Returns(async callInfo =>
+            {
                 var context = callInfo.Arg<IExecutionContext>();
                 var bytes = Encoding.UTF8.GetBytes(context.Response.ResponseValue!.ToString()!);
 
@@ -240,7 +285,8 @@ public class ResponseFinalizerFilterTests {
         var context = Context(serialization);
         var service = new MiddlewareService();
 
-        service.Use(_ => new Pipeline.Inline(chain => {
+        service.Use(_ => new Pipeline.Inline(chain =>
+        {
             chain.Context.Response.Status = 429;
             chain.Context.Response.ResponseValue = "rate limited";
 
@@ -252,6 +298,7 @@ public class ResponseFinalizerFilterTests {
         Assert.Equal(429, context.Response.Status);
         Assert.Equal(
             "rate limited",
-            Encoding.UTF8.GetString(((MemoryStream)context.Response.Body).ToArray()));
+            Encoding.UTF8.GetString(((MemoryStream)context.Response.Body).ToArray())
+        );
     }
 }

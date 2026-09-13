@@ -15,11 +15,13 @@ namespace Hardened.Benchmarks.Micro;
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory(BenchmarkCategories.Micro)]
-public class StringConversionBenchmarks {
+public class StringConversionBenchmarks
+{
     private StringConverterService _converter = null!;
 
     [GlobalSetup]
-    public void Setup() {
+    public void Setup()
+    {
         // No custom converters registered: the default configuration, and the path that always
         // falls through the dictionary to the built-in conversions.
         _converter = new StringConverterService(Array.Empty<IStringConverter>());

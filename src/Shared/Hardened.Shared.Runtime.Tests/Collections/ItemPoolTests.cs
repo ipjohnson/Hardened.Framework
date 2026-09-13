@@ -3,9 +3,11 @@ using Xunit;
 
 namespace Hardened.Shared.Runtime.Tests.Collections;
 
-public class ItemPoolTests {
+public class ItemPoolTests
+{
     [Fact]
-    public void Get_ReturnsNewItem_WhenPoolIsEmpty() {
+    public void Get_ReturnsNewItem_WhenPoolIsEmpty()
+    {
         var created = 0;
         using var pool = new ItemPool<int>(() => ++created, _ => { });
 
@@ -16,12 +18,14 @@ public class ItemPoolTests {
     }
 
     [Fact]
-    public void Get_ReturnsPooledItem_AfterDisposal() {
+    public void Get_ReturnsPooledItem_AfterDisposal()
+    {
         var created = 0;
         using var pool = new ItemPool<string>(() => $"item-{++created}", _ => { });
 
         string firstItem;
-        using (var reservation = pool.Get()) {
+        using (var reservation = pool.Get())
+        {
             firstItem = reservation.Item;
         }
 
@@ -31,7 +35,8 @@ public class ItemPoolTests {
     }
 
     [Fact]
-    public void Get_CreatesNewItem_WhenAllPooledItemsInUse() {
+    public void Get_CreatesNewItem_WhenAllPooledItemsInUse()
+    {
         var created = 0;
         using var pool = new ItemPool<int>(() => ++created, _ => { });
 
@@ -44,16 +49,23 @@ public class ItemPoolTests {
     }
 
     [Fact]
-    public async Task ConcurrentGetDispose_IsSafe() {
+    public async Task ConcurrentGetDispose_IsSafe()
+    {
         var created = 0;
         using var pool = new ItemPool<int>(() => Interlocked.Increment(ref created), _ => { });
 
-        var tasks = Enumerable.Range(0, 100).Select(_ => Task.Run(() => {
-            for (var i = 0; i < 100; i++) {
-                using var reservation = pool.Get();
-                var _ = reservation.Item;
-            }
-        }));
+        var tasks = Enumerable
+            .Range(0, 100)
+            .Select(_ =>
+                Task.Run(() =>
+                {
+                    for (var i = 0; i < 100; i++)
+                    {
+                        using var reservation = pool.Get();
+                        var _ = reservation.Item;
+                    }
+                })
+            );
 
         await Task.WhenAll(tasks.ToArray());
 
@@ -62,7 +74,8 @@ public class ItemPoolTests {
     }
 
     [Fact]
-    public void Dispose_DisposesAllPooledItems_ViaDisposeAction() {
+    public void Dispose_DisposesAllPooledItems_ViaDisposeAction()
+    {
         var disposed = new List<int>();
         var pool = new ItemPool<int>(() => disposed.Count + 1, _ => { }, i => disposed.Add(i));
 
@@ -75,7 +88,8 @@ public class ItemPoolTests {
     }
 
     [Fact]
-    public void CleanupAction_IsCalledWhenItemReturnedToPool() {
+    public void CleanupAction_IsCalledWhenItemReturnedToPool()
+    {
         var cleanupCount = 0;
         using var pool = new ItemPool<int>(() => 42, _ => cleanupCount++);
 
@@ -89,7 +103,8 @@ public class ItemPoolTests {
     /// absent action as something to call. This is the shape <see cref="StringBuilderPool"/> uses.
     /// </summary>
     [Fact]
-    public void APoolWithNoDisposeActionDisposesQuietly() {
+    public void APoolWithNoDisposeActionDisposesQuietly()
+    {
         var pool = new ItemPool<int>(() => 1, _ => { });
 
         using (pool.Get()) { }
@@ -103,7 +118,8 @@ public class ItemPoolTests {
     /// <c>MemoryStream</c> twice would be harmless, but disposing a second pool's worth would not.
     /// </summary>
     [Fact]
-    public void DisposingTwiceDisposesThePooledItemsOnce() {
+    public void DisposingTwiceDisposesThePooledItemsOnce()
+    {
         var disposed = new List<int>();
         var created = 0;
         var pool = new ItemPool<int>(() => ++created, _ => { }, item => disposed.Add(item));
@@ -120,7 +136,8 @@ public class ItemPoolTests {
     /// Every item held by the pool is disposed, not only the one at the head of the list.
     /// </summary>
     [Fact]
-    public void DisposingThePoolDisposesEveryPooledItem() {
+    public void DisposingThePoolDisposesEveryPooledItem()
+    {
         var disposed = new List<int>();
         var created = 0;
         var pool = new ItemPool<int>(() => ++created, _ => { }, item => disposed.Add(item));
@@ -143,7 +160,8 @@ public class ItemPoolTests {
     /// nothing will ever dispose again. A reservation outliving its pool is normal at shutdown.
     /// </summary>
     [Fact]
-    public void AnItemReturnedAfterDisposalIsNotPooled() {
+    public void AnItemReturnedAfterDisposalIsNotPooled()
+    {
         var disposed = new List<int>();
         var created = 0;
         var pool = new ItemPool<int>(() => ++created, _ => { }, item => disposed.Add(item));
@@ -162,7 +180,8 @@ public class ItemPoolTests {
     /// item — resetting a stream's length — and the item may already have been disposed.
     /// </summary>
     [Fact]
-    public void AnItemReturnedAfterDisposalIsNotCleanedUp() {
+    public void AnItemReturnedAfterDisposalIsNotCleanedUp()
+    {
         var cleaned = 0;
         var pool = new ItemPool<int>(() => 1, _ => cleaned++, _ => { });
 
@@ -181,16 +200,26 @@ public class ItemPoolTests {
     /// push may lose its race and allocate.
     /// </summary>
     [Fact]
-    public async Task ConcurrentBorrowersReuseItemsRatherThanAllocatingPerIteration() {
+    public async Task ConcurrentBorrowersReuseItemsRatherThanAllocatingPerIteration()
+    {
         var created = 0;
         using var pool = new ItemPool<int>(() => Interlocked.Increment(ref created), _ => { });
 
-        await Task.WhenAll(Enumerable.Range(0, 8).Select(_ => Task.Run(() => {
-            for (var i = 0; i < 500; i++) {
-                using var reservation = pool.Get();
-                Assert.True(reservation.Item > 0);
-            }
-        })).ToArray());
+        await Task.WhenAll(
+            Enumerable
+                .Range(0, 8)
+                .Select(_ =>
+                    Task.Run(() =>
+                    {
+                        for (var i = 0; i < 500; i++)
+                        {
+                            using var reservation = pool.Get();
+                            Assert.True(reservation.Item > 0);
+                        }
+                    })
+                )
+                .ToArray()
+        );
 
         Assert.InRange(created, 1, 4000);
     }
@@ -200,27 +229,40 @@ public class ItemPoolTests {
     /// <c>MemoryStream</c> is the failure this pool exists to prevent.
     /// </summary>
     [Fact]
-    public async Task NoTwoConcurrentReservationsShareAnItem() {
+    public async Task NoTwoConcurrentReservationsShareAnItem()
+    {
         var created = 0;
         using var pool = new ItemPool<int>(() => Interlocked.Increment(ref created), _ => { });
         var inUse = new HashSet<int>();
         var collision = false;
 
-        await Task.WhenAll(Enumerable.Range(0, 8).Select(_ => Task.Run(() => {
-            for (var i = 0; i < 250; i++) {
-                using var reservation = pool.Get();
+        await Task.WhenAll(
+            Enumerable
+                .Range(0, 8)
+                .Select(_ =>
+                    Task.Run(() =>
+                    {
+                        for (var i = 0; i < 250; i++)
+                        {
+                            using var reservation = pool.Get();
 
-                lock (inUse) {
-                    if (!inUse.Add(reservation.Item)) {
-                        collision = true;
-                    }
-                }
+                            lock (inUse)
+                            {
+                                if (!inUse.Add(reservation.Item))
+                                {
+                                    collision = true;
+                                }
+                            }
 
-                lock (inUse) {
-                    inUse.Remove(reservation.Item);
-                }
-            }
-        })).ToArray());
+                            lock (inUse)
+                            {
+                                inUse.Remove(reservation.Item);
+                            }
+                        }
+                    })
+                )
+                .ToArray()
+        );
 
         Assert.False(collision, "Two reservations held the same item at the same time.");
     }
@@ -230,15 +272,23 @@ public class ItemPoolTests {
     /// leaves a returned item pooled.
     /// </summary>
     [Fact]
-    public async Task DisposingWhileItemsAreInFlightIsSafe() {
+    public async Task DisposingWhileItemsAreInFlightIsSafe()
+    {
         var pool = new ItemPool<int>(() => 1, _ => { }, _ => { });
 
-        var borrowers = Enumerable.Range(0, 4).Select(_ => Task.Run(() => {
-            for (var i = 0; i < 500; i++) {
-                using var reservation = pool.Get();
-                Assert.Equal(1, reservation.Item);
-            }
-        })).ToArray();
+        var borrowers = Enumerable
+            .Range(0, 4)
+            .Select(_ =>
+                Task.Run(() =>
+                {
+                    for (var i = 0; i < 500; i++)
+                    {
+                        using var reservation = pool.Get();
+                        Assert.Equal(1, reservation.Item);
+                    }
+                })
+            )
+            .ToArray();
 
         pool.Dispose();
 

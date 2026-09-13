@@ -22,8 +22,8 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Controllers;
 /// each because the difference is invisible from the handler.
 /// </remarks>
 [BasePath("/authorization")]
-public class AuthorizationController {
-
+public class AuthorizationController
+{
     /// <summary>No attribute at all, which is public while nothing has opted in.</summary>
     [Get("/unguarded")]
     public string Unguarded() => "unguarded";
@@ -80,8 +80,10 @@ public class AuthorizationController {
 /// <summary>
 /// A grant named once and spelled as a type everywhere it is required.
 /// </summary>
-public sealed class RequiresPetWriteAttribute : AuthorizeGrantsAttribute {
-    public RequiresPetWriteAttribute() : base("pets:read", "pets:write") { }
+public sealed class RequiresPetWriteAttribute : AuthorizeGrantsAttribute
+{
+    public RequiresPetWriteAttribute()
+        : base("pets:read", "pets:write") { }
 }
 
 /// <summary>
@@ -104,5 +106,6 @@ public sealed class RequiresPetWriteAttribute : AuthorizeGrantsAttribute {
 [OAuth2AuthenticationScheme(
     OAuth2Flow.ClientCredentials,
     TokenUrl = "https://example.invalid/token",
-    Description = "The scheme the integration fixture's guarded operations name.")]
+    Description = "The scheme the integration fixture's guarded operations name."
+)]
 public sealed class PetsOAuth : IAuthenticationScheme;

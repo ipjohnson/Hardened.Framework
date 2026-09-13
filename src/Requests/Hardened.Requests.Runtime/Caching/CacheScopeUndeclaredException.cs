@@ -19,14 +19,17 @@ namespace Hardened.Requests.Runtime.Caching;
 /// can express, so it names the handler and is asked once rather than per request.
 /// </para>
 /// </remarks>
-public class CacheScopeUndeclaredException : InvalidOperationException {
-
+public class CacheScopeUndeclaredException : InvalidOperationException
+{
     public CacheScopeUndeclaredException(string handler, Requirement requirement)
-        : base($"{handler} requires {requirement} of its caller and declares [CacheResponse] " +
-               "without saying who a stored response may be served to. Set " +
-               "Scope = CacheScope.PerCaller if the answer depends on who asked - an owner-scoped " +
-               "read, anything filtered by the caller's tenant - or Scope = CacheScope.AllCallers " +
-               "if every caller the guard admits gets the same bytes.") {
+        : base(
+            $"{handler} requires {requirement} of its caller and declares [CacheResponse] "
+                + "without saying who a stored response may be served to. Set "
+                + "Scope = CacheScope.PerCaller if the answer depends on who asked - an owner-scoped "
+                + "read, anything filtered by the caller's tenant - or Scope = CacheScope.AllCallers "
+                + "if every caller the guard admits gets the same bytes."
+        )
+    {
         Handler = handler;
     }
 

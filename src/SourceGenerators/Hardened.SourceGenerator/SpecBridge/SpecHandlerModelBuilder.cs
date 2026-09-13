@@ -1,9 +1,9 @@
 ﻿using System.Globalization;
 using CSharpAuthor;
+using Hardened.Generation;
 using Hardened.Generation.Models;
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Shared;
-using Hardened.Generation;
 
 namespace Hardened.SourceGenerator.Requests;
 
@@ -23,34 +23,53 @@ namespace Hardened.SourceGenerator.Requests;
 /// what makes one model serve both.
 /// </para>
 /// </remarks>
-internal static class SpecHandlerModelBuilder {
+internal static class SpecHandlerModelBuilder
+{
     public static List<RequestHandlerModel> BuildModels(
         ServiceSpecModel spec,
         string modelsNamespace,
         string servicesNamespace,
         string generatedNamespace,
         string validationNamespace,
-        IReadOnlyDictionary<string, OperationSymbols>? symbols = null) {
+        IReadOnlyDictionary<string, OperationSymbols>? symbols = null
+    )
+    {
         var models = new List<RequestHandlerModel>();
 
         // Build lookup for x-filter-types by short name
-        var filterTypeLookup = new Dictionary<string, FilterTypeModel>(StringComparer.OrdinalIgnoreCase);
-        foreach (var ft in spec.FilterTypes) {
+        var filterTypeLookup = new Dictionary<string, FilterTypeModel>(
+            StringComparer.OrdinalIgnoreCase
+        );
+        foreach (var ft in spec.FilterTypes)
+        {
             filterTypeLookup[ft.Name] = ft;
         }
 
-        foreach (var service in spec.Services) {
+        foreach (var service in spec.Services)
+        {
             var interfaceName = NamingHelper.ToInterfaceName(service.TypeBaseName);
             var serviceType = TypeDefinition.Get(servicesNamespace, interfaceName);
             var handlerClassPrefix = NamingHelper.ToControllerName(service.TypeBaseName);
 
-            foreach (var operation in service.Operations) {
-                var model = BuildHandlerModel(operation, serviceType, handlerClassPrefix,
-                    modelsNamespace, generatedNamespace, validationNamespace,
+            foreach (var operation in service.Operations)
+            {
+                var model = BuildHandlerModel(
+                    operation,
+                    serviceType,
+                    handlerClassPrefix,
+                    modelsNamespace,
+                    generatedNamespace,
+                    validationNamespace,
                     spec.ResponseModel,
-                    spec.ValidatedOperations, filterTypeLookup, spec.Schemas,
-                    service.DispatchHeader, Symbols(symbols, operation),
-                    service.TagDescription, spec.BindCancellationToken, spec.FileName);
+                    spec.ValidatedOperations,
+                    filterTypeLookup,
+                    spec.Schemas,
+                    service.DispatchHeader,
+                    Symbols(symbols, operation),
+                    service.TagDescription,
+                    spec.BindCancellationToken,
+                    spec.FileName
+                );
                 models.Add(model);
             }
         }
@@ -58,23 +77,23 @@ internal static class SpecHandlerModelBuilder {
         return models;
     }
 
-
-
-
     /// <summary>
     /// Derives the controller name from an interface name.
     /// e.g. "IPetService" → strip "I" prefix and "Service" suffix → "Pet" → "PetController"
     /// </summary>
-    internal static string DeriveControllerName(string interfaceName) {
+    internal static string DeriveControllerName(string interfaceName)
+    {
         var name = interfaceName;
 
         // Strip leading "I" if followed by uppercase
-        if (name.Length > 1 && name[0] == 'I' && char.IsUpper(name[1])) {
+        if (name.Length > 1 && name[0] == 'I' && char.IsUpper(name[1]))
+        {
             name = name.Substring(1);
         }
 
         // Strip trailing "Service"
-        if (name.EndsWith("Service")) {
+        if (name.EndsWith("Service"))
+        {
             name = name.Substring(0, name.Length - "Service".Length);
         }
 
@@ -96,15 +115,18 @@ internal static class SpecHandlerModelBuilder {
         OperationSymbols? symbols = null,
         string? tagDescription = null,
         bool bindCancellationToken = false,
-        string specFileName = "") {
+        string specFileName = ""
+    )
+    {
         var methodName = operation.MethodName;
 
         // Derived by convention from the service's name for a described application, because a
         // description names no C# types. An application that declared its own says so through
         // OperationSymbols, and its names are not guessable from anything in the model - the
         // handler class is named for a controller nobody wrote down here.
-        var invokeHandlerType = symbols?.InvokeHandlerType
-                                ?? TypeDefinition.Get(generatedNamespace, $"{handlerClassPrefix}_{methodName}");
+        var invokeHandlerType =
+            symbols?.InvokeHandlerType
+            ?? TypeDefinition.Get(generatedNamespace, $"{handlerClassPrefix}_{methodName}");
 
         var declaringType = symbols?.ControllerType ?? serviceType;
 
@@ -112,37 +134,53 @@ internal static class SpecHandlerModelBuilder {
         // each is declared - a protocol names the header once and every operation carries its own
         // target. Both null is ordinary path routing.
         var nameModel = new RequestHandlerNameModel(
-            ConstrainedPath(operation), operation.HttpMethod, dispatchHeader, operation.DispatchKey);
+            ConstrainedPath(operation),
+            operation.HttpMethod,
+            dispatchHeader,
+            operation.DispatchKey
+        );
 
         var parameters = BuildParameters(
-            operation, modelsNamespace, schemas, symbols, bindCancellationToken);
-        var responseInfo = symbols?.ResponseInformation
-                           ?? BuildResponseInfo(
-                               operation, schemas, modelsNamespace, responseModel, specFileName);
+            operation,
+            modelsNamespace,
+            schemas,
+            symbols,
+            bindCancellationToken
+        );
+        var responseInfo =
+            symbols?.ResponseInformation
+            ?? BuildResponseInfo(operation, schemas, modelsNamespace, responseModel, specFileName);
 
         var filters = new List<AttributeModel>();
 
         // The validation the build task emitted for this operation, if any. The names come from the
         // model rather than being derived here: the task named them, and deriving them a second time
         // is how the two drift.
-        var validated = validatedOperations.FirstOrDefault(v => v.OperationId == operation.OperationId);
+        var validated = validatedOperations.FirstOrDefault(v =>
+            v.OperationId == operation.OperationId
+        );
         ITypeDefinition? parametersInterface = null;
 
-        if (validated != null) {
+        if (validated != null)
+        {
             parametersInterface = TypeDefinition.Get(validationNamespace, validated.InterfaceName);
 
             // No validator argument: the attribute resolves every IValidatorFor<T> registered for
             // the interface, which is what lets a hand-written one run alongside the generated one.
             // Registration is emitted by Hardened.Validation.SourceGenerator into this application's
             // entry point, so nothing has to be wired by hand.
-            filters.Add(new AttributeModel(
-                new GenericTypeDefinition(
-                    TypeDefinitionEnum.ClassDefinition,
-                    "Hardened.Requests.Runtime.Validation",
-                    "ValidateAttribute",
-                    new[] { parametersInterface }),
-                "",
-                ""));
+            filters.Add(
+                new AttributeModel(
+                    new GenericTypeDefinition(
+                        TypeDefinitionEnum.ClassDefinition,
+                        "Hardened.Requests.Runtime.Validation",
+                        "ValidateAttribute",
+                        new[] { parametersInterface }
+                    ),
+                    "",
+                    ""
+                )
+            );
         }
 
         // What the description said this operation requires of its caller.
@@ -151,12 +189,18 @@ internal static class SpecHandlerModelBuilder {
         // ExecutionRequestHandlerInfo directly, because that reads
         // `requirement ?? RequirementFrom(Metadata)` - passing it there would silence an
         // [AuthorizeGrants] written on the implementation instead of composing with it.
-        if (AuthorizationExpression(operation) is { } authorization) {
-            filters.Add(new AttributeModel(
-                TypeDefinition.Get(
-                    "Hardened.Requests.Runtime.Authorization", "DescribedAuthorization"),
-                authorization,
-                ""));
+        if (AuthorizationExpression(operation) is { } authorization)
+        {
+            filters.Add(
+                new AttributeModel(
+                    TypeDefinition.Get(
+                        "Hardened.Requests.Runtime.Authorization",
+                        "DescribedAuthorization"
+                    ),
+                    authorization,
+                    ""
+                )
+            );
         }
 
         // The deadline the description declared, as the same attribute a code-first handler would
@@ -164,32 +208,43 @@ internal static class SpecHandlerModelBuilder {
         // because that reads `timeout ?? TimeoutFrom(Metadata)` - so a budget in the model and a
         // [Timeout] on the implementation resolve against each other by the runtime's own
         // nearest-wins rule instead of the model silently winning.
-        if (operation.Timeout is { } timeout) {
+        if (operation.Timeout is { } timeout)
+        {
             var written = $"Milliseconds = {timeout.Milliseconds}";
 
-            if (timeout.Status != 504) {
+            if (timeout.Status != 504)
+            {
                 written += $", Status = {timeout.Status}";
             }
 
-            if (timeout.RetryAfterSeconds > 0) {
+            if (timeout.RetryAfterSeconds > 0)
+            {
                 written += $", RetryAfterSeconds = {timeout.RetryAfterSeconds}";
             }
 
-            filters.Add(new AttributeModel(
-                TypeDefinition.Get("Hardened.Requests.Runtime.Filters", "TimeoutAttribute"),
-                "",
-                written));
+            filters.Add(
+                new AttributeModel(
+                    TypeDefinition.Get("Hardened.Requests.Runtime.Filters", "TimeoutAttribute"),
+                    "",
+                    written
+                )
+            );
         }
 
         // Wire in x-filters as typed attribute instances
-        foreach (var filterInstance in operation.FilterInstances) {
-            if (filterTypeLookup.TryGetValue(filterInstance.FilterTypeName, out var filterType)) {
+        foreach (var filterInstance in operation.FilterInstances)
+        {
+            if (filterTypeLookup.TryGetValue(filterInstance.FilterTypeName, out var filterType))
+            {
                 var attrType = TypeDefinition.Get(filterType.Namespace, filterType.ClassName);
 
                 // Build property assignment string: "MaxRequests = 100, WindowSeconds = 60"
-                var propAssignment = string.Join(", ",
+                var propAssignment = string.Join(
+                    ", ",
                     filterInstance.PropertyValues.Select(kvp =>
-                        $"{kvp.Key} = {FormatPropertyValue(kvp.Key, kvp.Value, filterType)}"));
+                        $"{kvp.Key} = {FormatPropertyValue(kvp.Key, kvp.Value, filterType)}"
+                    )
+                );
 
                 filters.Add(new AttributeModel(attrType, "", propAssignment));
             }
@@ -202,7 +257,9 @@ internal static class SpecHandlerModelBuilder {
             invokeHandlerType,
             parameters,
             responseInfo,
-            filters) {
+            filters
+        )
+        {
             ParametersInterface = parametersInterface,
 
             // Republished, so a description that declared a deadline still declares one after a
@@ -221,14 +278,18 @@ internal static class SpecHandlerModelBuilder {
             // be written inline, the way a scalar response already is. Without the second arm a
             // blob payload published no requestBody at all, so a generated client sent a bodyless
             // request to an operation whose whole point is the body.
-            RequestSchema = SpecSchemaWriter.ForRef(operation.RequestBodyRef, schemas)
-                            ?? SpecSchemaWriter.ForScalar(
-                                operation.RequestBodyType, operation.RequestBodyFormat),
+            RequestSchema =
+                SpecSchemaWriter.ForRef(operation.RequestBodyRef, schemas)
+                ?? SpecSchemaWriter.ForScalar(
+                    operation.RequestBodyType,
+                    operation.RequestBodyFormat
+                ),
 
             // Only where the contract named something other than JSON, so the writer's default
             // stays the default rather than being restated on every operation.
             RequestContentType =
-                operation.RequestBodyContentType is { } contentType && contentType != "application/json"
+                operation.RequestBodyContentType is { } contentType
+                && contentType != "application/json"
                     ? contentType
                     : null,
             ResponseSchemas = BuildResponseSchemas(operation, schemas),
@@ -253,8 +314,8 @@ internal static class SpecHandlerModelBuilder {
             // validator, while a code-first operation's bridge model carries required-ness and no
             // body facts, so the same test would promise a 400 nothing generates. Symbols are how
             // code-first announces itself.
-            HasGeneratedValidation = validated != null ||
-                                     (symbols == null && operation.HasValidationConstraints),
+            HasGeneratedValidation =
+                validated != null || (symbols == null && operation.HasValidationConstraints),
         };
     }
 
@@ -262,41 +323,60 @@ internal static class SpecHandlerModelBuilder {
     /// Formats a property value as a C# literal based on the property's type
     /// from the filter type definition.
     /// </summary>
-    private static string FormatPropertyValue(string propertyName, string value, FilterTypeModel filterType) {
+    private static string FormatPropertyValue(
+        string propertyName,
+        string value,
+        FilterTypeModel filterType
+    )
+    {
         var prop = filterType.Properties.FirstOrDefault(p =>
-            string.Equals(p.Name, propertyName, StringComparison.OrdinalIgnoreCase));
+            string.Equals(p.Name, propertyName, StringComparison.OrdinalIgnoreCase)
+        );
 
-        if (prop?.EnumType != null) {
+        if (prop?.EnumType != null)
+        {
             return $"{prop.EnumType}.{value}";
         }
 
         var csType = prop?.CSharpType ?? "string";
 
-        return csType switch {
+        return csType switch
+        {
             "int" or "long" or "float" or "double" => value,
             "bool" => value.ToLowerInvariant(),
-            _ => $"\"{value.Replace("\\", "\\\\").Replace("\"", "\\\"")}\""
+            _ => $"\"{value.Replace("\\", "\\\\").Replace("\"", "\\\"")}\"",
         };
     }
 
     private static IReadOnlyList<RequestParameterInformation> BuildParameters(
-        OperationModel operation, string modelsNamespace, IReadOnlyList<SchemaModel> schemas,
-        OperationSymbols? symbols = null, bool bindCancellationToken = false) {
+        OperationModel operation,
+        string modelsNamespace,
+        IReadOnlyList<SchemaModel> schemas,
+        OperationSymbols? symbols = null,
+        bool bindCancellationToken = false
+    )
+    {
         var parameters = new List<RequestParameterInformation>();
         var index = 0;
 
-        foreach (var param in operation.Parameters) {
+        foreach (var param in operation.Parameters)
+        {
             // A described enum can arrive as a bare reference: Smithy's Describe() returns the
             // shape's Ref and nothing else, so the document writer fell back to the C# type and
             // published {"type":"string"} with no vocabulary. Resolved against the schema list the
             // way response schemas already are, onto the parameter the writer reads. OpenAPI
             // parameters are unaffected, because that parser inlines enum values at parse time.
-            if (param.Ref != null && param.EnumValues is not { Count: > 0 }) {
+            if (param.Ref != null && param.EnumValues is not { Count: > 0 })
+            {
                 var referenced = NamingHelper.ToPascalCase(TypeMapper.GetRefName(param.Ref));
 
-                foreach (var schema in schemas) {
-                    if (schema.Kind == SchemaKind.Enum &&
-                        NamingHelper.ToPascalCase(schema.Name) == referenced) {
+                foreach (var schema in schemas)
+                {
+                    if (
+                        schema.Kind == SchemaKind.Enum
+                        && NamingHelper.ToPascalCase(schema.Name) == referenced
+                    )
+                    {
                         param.EnumValues = new List<string>(schema.EnumValues);
                         param.Type ??= "string";
 
@@ -310,90 +390,115 @@ internal static class SpecHandlerModelBuilder {
 
             // A model built from a compilation already holds the type; only a described one has to
             // spell it and map it back. See OperationSymbols.
-            var typeDefinition = symbols?.Parameter(param.Name)
-                                 ?? TypeMapper.GetTypeDefinition(modelsNamespace, csType, param.IsCSharpNullable);
+            var typeDefinition =
+                symbols?.Parameter(param.Name)
+                ?? TypeMapper.GetTypeDefinition(modelsNamespace, csType, param.IsCSharpNullable);
 
             // Every location the specification allows is bound. The interface emitter and the
             // validation parameters interface take the same set - widen one without the others and
             // the generated Parameters class stops implementing its own interface.
-            var bindType = symbols?.ParameterBindings != null &&
-                           symbols.ParameterBindings.TryGetValue(param.Name, out var recorded)
-                ? recorded
-                : param.In switch {
-                "path" => ParameterBindType.Path,
-                "query" => ParameterBindType.QueryString,
-                "header" => ParameterBindType.Header,
-                "cookie" => ParameterBindType.Cookie,
-                _ => ParameterBindType.QueryString
-            };
+            var bindType =
+                symbols?.ParameterBindings != null
+                && symbols.ParameterBindings.TryGetValue(param.Name, out var recorded)
+                    ? recorded
+                    : param.In switch
+                    {
+                        "path" => ParameterBindType.Path,
+                        "query" => ParameterBindType.QueryString,
+                        "header" => ParameterBindType.Header,
+                        "cookie" => ParameterBindType.Cookie,
+                        _ => ParameterBindType.QueryString,
+                    };
 
-            parameters.Add(new RequestParameterInformation(
-                typeDefinition,
-                param.MemberName,
-                param.IsRequired,
-                // Drives ParseWithDefault in the binder, so an absent value arrives as the
-                // specification's default rather than as null.
-                Default(symbols, param.Name) ?? DefaultLiteral.Format(param.Default, csType),
-                bindType,
-                param.Name,
-                index++,
-                Attribute(symbols, param.Name)) {
-                // The prose the contract gives this parameter, for the published document. The
-                // binder does not read it.
-                Description = param.Description,
-                // The declaration itself rides along for the same reader. The eight constructor
-                // arguments above are what routing and binding need; the wire type, the constraint
-                // bounds and the enum vocabulary are facts only the document wants, and carrying
-                // the model beats re-deriving them from the C# type, which can only guess.
-                SpecParameter = param,
-                // And what a hand-written handler's parameter constrains, which its description
-                // carried through here from the compilation because it has no typed slot on the
-                // way in: the writer splices it beside the schema it derives from the C# type.
-                SchemaFacets = param.SchemaFacets,
-                RequiredByConstraint = param.RequiredByConstraint
-            });
+            parameters.Add(
+                new RequestParameterInformation(
+                    typeDefinition,
+                    param.MemberName,
+                    param.IsRequired,
+                    // Drives ParseWithDefault in the binder, so an absent value arrives as the
+                    // specification's default rather than as null.
+                    Default(symbols, param.Name) ?? DefaultLiteral.Format(param.Default, csType),
+                    bindType,
+                    param.Name,
+                    index++,
+                    Attribute(symbols, param.Name)
+                )
+                {
+                    // The prose the contract gives this parameter, for the published document. The
+                    // binder does not read it.
+                    Description = param.Description,
+                    // The declaration itself rides along for the same reader. The eight constructor
+                    // arguments above are what routing and binding need; the wire type, the constraint
+                    // bounds and the enum vocabulary are facts only the document wants, and carrying
+                    // the model beats re-deriving them from the C# type, which can only guess.
+                    SpecParameter = param,
+                    // And what a hand-written handler's parameter constrains, which its description
+                    // carried through here from the compilation because it has no typed slot on the
+                    // way in: the writer splices it beside the schema it derives from the C# type.
+                    SchemaFacets = param.SchemaFacets,
+                    RequiredByConstraint = param.RequiredByConstraint,
+                }
+            );
         }
 
-        if (symbols?.RequestBodyType is { } knownBodyType) {
-            parameters.Add(new RequestParameterInformation(
-                knownBodyType,
-                symbols?.RequestBodyName ?? "body",
-                true,
-                null,
-                ParameterBindType.Body,
-                "",
-                index++,
-                constructorRequiresServices: symbols?.RequestBodyRequiresServices ?? false,
-                registeredAsService: symbols?.RequestBodyRegisteredAsService ?? false));
-        } else if (operation.RequestBodyRef != null) {
-            var bodyTypeName = NamingHelper.ToPascalCase(TypeMapper.GetRefName(operation.RequestBodyRef));
+        if (symbols?.RequestBodyType is { } knownBodyType)
+        {
+            parameters.Add(
+                new RequestParameterInformation(
+                    knownBodyType,
+                    symbols?.RequestBodyName ?? "body",
+                    true,
+                    null,
+                    ParameterBindType.Body,
+                    "",
+                    index++,
+                    constructorRequiresServices: symbols?.RequestBodyRequiresServices ?? false,
+                    registeredAsService: symbols?.RequestBodyRegisteredAsService ?? false
+                )
+            );
+        }
+        else if (operation.RequestBodyRef != null)
+        {
+            var bodyTypeName = NamingHelper.ToPascalCase(
+                TypeMapper.GetRefName(operation.RequestBodyRef)
+            );
             var bodyType = TypeDefinition.Get(modelsNamespace, bodyTypeName);
 
-            parameters.Add(new RequestParameterInformation(
-                bodyType,
-                "body",
-                true,
-                null,
-                ParameterBindType.Body,
-                "",
-                index++));
-        } else if (operation.RequestBodyType != null) {
+            parameters.Add(
+                new RequestParameterInformation(
+                    bodyType,
+                    "body",
+                    true,
+                    null,
+                    ParameterBindType.Body,
+                    "",
+                    index++
+                )
+            );
+        }
+        else if (operation.RequestBodyType != null)
+        {
             // The format too, so the bound parameter is the type the generated interface declares.
             // ServiceInterfaceEmitter reads the same pair; the two disagreeing is a signature the
             // dispatch cannot call.
             var csType = TypeMapper.MapToCSharpType(
-                operation.RequestBodyType, operation.RequestBodyFormat);
+                operation.RequestBodyType,
+                operation.RequestBodyFormat
+            );
 
             var bodyType = TypeMapper.GetTypeDefinition(modelsNamespace, csType, false);
 
-            parameters.Add(new RequestParameterInformation(
-                bodyType,
-                "body",
-                true,
-                null,
-                ParameterBindType.Body,
-                "",
-                index++));
+            parameters.Add(
+                new RequestParameterInformation(
+                    bodyType,
+                    "body",
+                    true,
+                    null,
+                    ParameterBindType.Body,
+                    "",
+                    index++
+                )
+            );
         }
 
         // Last, matching the parameter ServiceInterfaceEmitter puts at the end of the same
@@ -404,15 +509,19 @@ internal static class SpecHandlerModelBuilder {
         // Only where the signature came from a description. A hand-written handler declares its own
         // parameters and the front end has already read them, so adding one here would be a second
         // token the method never asked for.
-        if (bindCancellationToken && symbols == null) {
-            parameters.Add(new RequestParameterInformation(
-                TypeDefinition.Get("System.Threading", "CancellationToken"),
-                "cancellationToken",
-                true,
-                null,
-                ParameterBindType.CancellationToken,
-                "",
-                index++));
+        if (bindCancellationToken && symbols == null)
+        {
+            parameters.Add(
+                new RequestParameterInformation(
+                    TypeDefinition.Get("System.Threading", "CancellationToken"),
+                    "cancellationToken",
+                    true,
+                    null,
+                    ParameterBindType.CancellationToken,
+                    "",
+                    index++
+                )
+            );
         }
 
         return Ordered(parameters, symbols);
@@ -423,8 +532,13 @@ internal static class SpecHandlerModelBuilder {
         contentTypes.Count > 0 ? string.Join(",", contentTypes) : null;
 
     private static ResponseInformationModel BuildResponseInfo(
-        OperationModel operation, IReadOnlyList<SchemaModel> schemas, string modelsNamespace,
-        SpecResponseModel responseModel, string specFileName) {
+        OperationModel operation,
+        IReadOnlyList<SchemaModel> schemas,
+        string modelsNamespace,
+        SpecResponseModel responseModel,
+        string specFileName
+    )
+    {
         ITypeDefinition? returnType = null;
         var returnsText = false;
 
@@ -435,11 +549,15 @@ internal static class SpecHandlerModelBuilder {
         // the enumerable is handed to the pipeline rather than awaited - the invoke method awaited
         // it before, which is CS9353 in generated code - and there is no response set, because a
         // stream's refusals are thrown before the first item, as they are code-first.
-        if (operation.ItemSchemaRef != null) {
+        if (operation.ItemSchemaRef != null)
+        {
             var itemType = TypeDefinition.Get(
-                modelsNamespace, NamingHelper.ToPascalCase(TypeMapper.GetRefName(operation.ItemSchemaRef)));
+                modelsNamespace,
+                NamingHelper.ToPascalCase(TypeMapper.GetRefName(operation.ItemSchemaRef))
+            );
 
-            return new ResponseInformationModel {
+            return new ResponseInformationModel
+            {
                 IsAsync = false,
                 IsAsyncEnumerable = true,
                 AsyncEnumerableItemType = itemType,
@@ -447,18 +565,24 @@ internal static class SpecHandlerModelBuilder {
                     TypeDefinitionEnum.InterfaceDefinition,
                     "System.Collections.Generic",
                     "IAsyncEnumerable",
-                    new[] { itemType }),
+                    new[] { itemType }
+                ),
                 StreamFraming = StreamFramingFor(operation.ResponseContentType),
                 DeclaredContentType = operation.ResponseContentType,
                 RendersAModel = true,
-                ProducedContentTypes = operation.ProducedContentTypes.Count > 0
-                    ? string.Join(",", operation.ProducedContentTypes)
-                    : null,
+                ProducedContentTypes =
+                    operation.ProducedContentTypes.Count > 0
+                        ? string.Join(",", operation.ProducedContentTypes)
+                        : null,
                 SuccessContentTypes = Joined(operation.SuccessContentTypes),
                 ErrorContentTypes = Joined(operation.ErrorContentTypes),
                 ValidationErrorStatus = DeclaredValidationStatus(operation),
-                DeclaredErrorBodiesExpression =
-                    DeclaredErrorBodies(operation, schemas, modelsNamespace, specFileName)
+                DeclaredErrorBodiesExpression = DeclaredErrorBodies(
+                    operation,
+                    schemas,
+                    modelsNamespace,
+                    specFileName
+                ),
             };
         }
 
@@ -466,17 +590,27 @@ internal static class SpecHandlerModelBuilder {
         // decides it - because that emitter writes the signature this dispatch has to fill.
         var unionCases = BuildUnionCases(operation, responseModel, modelsNamespace);
 
-        if (unionCases != null) {
-            return new ResponseInformationModel {
+        if (unionCases != null)
+        {
+            return new ResponseInformationModel
+            {
                 IsAsync = true,
                 ReturnType = new GenericTypeDefinition(
                     typeof(Task<>),
-                    new[] { TypeDefinition.Get(modelsNamespace, ResponseSetPlan.ContainerName(operation)) }),
+                    new[]
+                    {
+                        TypeDefinition.Get(
+                            modelsNamespace,
+                            ResponseSetPlan.ContainerName(operation)
+                        ),
+                    }
+                ),
                 DeclaredContentType = operation.ResponseContentType,
                 RendersAModel = true,
-                ProducedContentTypes = operation.ProducedContentTypes.Count > 0
-                    ? string.Join(",", operation.ProducedContentTypes)
-                    : null,
+                ProducedContentTypes =
+                    operation.ProducedContentTypes.Count > 0
+                        ? string.Join(",", operation.ProducedContentTypes)
+                        : null,
                 SuccessContentTypes = Joined(operation.SuccessContentTypes),
                 ErrorContentTypes = Joined(operation.ErrorContentTypes),
                 ValidationErrorStatus = DeclaredValidationStatus(operation),
@@ -486,31 +620,55 @@ internal static class SpecHandlerModelBuilder {
                 // here rather than a throw, but the refusals the pipeline raises are neither - an
                 // unauthenticated caller is refused before the handler runs whatever shape its
                 // success takes, so what that refusal writes cannot depend on the response model.
-                DeclaredErrorBodiesExpression =
-                    DeclaredErrorBodies(operation, schemas, modelsNamespace, specFileName)
+                DeclaredErrorBodiesExpression = DeclaredErrorBodies(
+                    operation,
+                    schemas,
+                    modelsNamespace,
+                    specFileName
+                ),
             };
         }
 
-        if (operation.ResponseRef != null) {
+        if (operation.ResponseRef != null)
+        {
             var typeName = NamingHelper.ToPascalCase(TypeMapper.GetRefName(operation.ResponseRef));
             returnType = TypeDefinition.Get(modelsNamespace, typeName);
-        } else if (operation.ResponseIsArray && operation.ResponseArrayItemsRef != null) {
-            var itemTypeName = NamingHelper.ToPascalCase(TypeMapper.GetRefName(operation.ResponseArrayItemsRef));
+        }
+        else if (operation.ResponseIsArray && operation.ResponseArrayItemsRef != null)
+        {
+            var itemTypeName = NamingHelper.ToPascalCase(
+                TypeMapper.GetRefName(operation.ResponseArrayItemsRef)
+            );
             var itemType = TypeDefinition.Get(modelsNamespace, itemTypeName);
             returnType = new GenericTypeDefinition(typeof(List<>), new[] { itemType });
-        } else if (operation.ResponseIsArray && operation.ResponseArrayItemsType != null &&
-                   TypeMapper.MapToCSharpType(
-                       operation.ResponseArrayItemsType, operation.ResponseArrayItemsFormat) is var primitive &&
-                   primitive != "object") {
+        }
+        else if (
+            operation.ResponseIsArray
+            && operation.ResponseArrayItemsType != null
+            && TypeMapper.MapToCSharpType(
+                operation.ResponseArrayItemsType,
+                operation.ResponseArrayItemsFormat
+            )
+                is var primitive
+            && primitive != "object"
+        )
+        {
             // Kept in step with ServiceInterfaceEmitter.GetReturnType: the interface declares the
             // signature and this types the handler that implements it, so a divergence here is a
             // generated class that does not implement its own interface.
             returnType = new GenericTypeDefinition(
                 typeof(List<>),
-                new[] { TypeMapper.GetTypeDefinition(modelsNamespace, primitive, false) });
-        } else if (operation.ResponseType != null) {
-            var csType = TypeMapper.MapToCSharpType(operation.ResponseType, operation.ResponseFormat);
-            if (csType != "object") {
+                new[] { TypeMapper.GetTypeDefinition(modelsNamespace, primitive, false) }
+            );
+        }
+        else if (operation.ResponseType != null)
+        {
+            var csType = TypeMapper.MapToCSharpType(
+                operation.ResponseType,
+                operation.ResponseFormat
+            );
+            if (csType != "object")
+            {
                 returnType = TypeMapper.GetTypeDefinition(modelsNamespace, csType, false);
                 returnsText = csType == "string";
             }
@@ -518,15 +676,18 @@ internal static class SpecHandlerModelBuilder {
 
         // byte[] in place of the string the schema asked for, when the operation opted in. Written
         // before the Task<> wrap so the signature comes out Task<byte[]>.
-        if (operation.RawBytesResponse) {
+        if (operation.RawBytesResponse)
+        {
             returnType = TypeDefinition.Get(typeof(byte[]));
         }
 
-        if (returnType != null) {
+        if (returnType != null)
+        {
             returnType = new GenericTypeDefinition(typeof(Task<>), new[] { returnType });
         }
 
-        return new ResponseInformationModel {
+        return new ResponseInformationModel
+        {
             IsAsync = true,
             ReturnType = returnType,
             DeclaredContentType = operation.ResponseContentType,
@@ -558,21 +719,30 @@ internal static class SpecHandlerModelBuilder {
             DefaultStatusCode =
                 operation.SuccessStatusCode == 200 ? null : operation.SuccessStatusCode,
 
-            NullResponseBodyExpression =
-                NullResponseBody(operation, schemas, modelsNamespace, specFileName),
+            NullResponseBodyExpression = NullResponseBody(
+                operation,
+                schemas,
+                modelsNamespace,
+                specFileName
+            ),
 
-            DeclaredErrorBodiesExpression =
-                DeclaredErrorBodies(operation, schemas, modelsNamespace, specFileName),
+            DeclaredErrorBodiesExpression = DeclaredErrorBodies(
+                operation,
+                schemas,
+                modelsNamespace,
+                specFileName
+            ),
 
             // The set the response is negotiated against. Empty means the description said nothing,
             // which leaves negotiation exactly as it was rather than declaring an empty set.
-            ProducedContentTypes = operation.ProducedContentTypes.Count > 0
-                ? string.Join(",", operation.ProducedContentTypes)
-                : null,
+            ProducedContentTypes =
+                operation.ProducedContentTypes.Count > 0
+                    ? string.Join(",", operation.ProducedContentTypes)
+                    : null,
             SuccessContentTypes = Joined(operation.SuccessContentTypes),
             ErrorContentTypes = Joined(operation.ErrorContentTypes),
 
-            ValidationErrorStatus = DeclaredValidationStatus(operation)
+            ValidationErrorStatus = DeclaredValidationStatus(operation),
         };
     }
 
@@ -581,9 +751,12 @@ internal static class SpecHandlerModelBuilder {
     /// status that names validation refusal. Arm C declared exactly this, the build published it,
     /// and the service answered the stock 400 - the declared status was wired to nothing.
     /// </summary>
-    private static int? DeclaredValidationStatus(OperationModel operation) {
-        foreach (var error in operation.ErrorResponses) {
-            if (error.StatusCode == 422) {
+    private static int? DeclaredValidationStatus(OperationModel operation)
+    {
+        foreach (var error in operation.ErrorResponses)
+        {
+            if (error.StatusCode == 422)
+            {
                 return 422;
             }
         }
@@ -601,21 +774,34 @@ internal static class SpecHandlerModelBuilder {
     /// compile - the shared decision is what stops the two drifting.
     /// </remarks>
     private static string? NullResponseBody(
-        OperationModel operation, IReadOnlyList<SchemaModel> schemas, string modelsNamespace,
-        string specFileName) {
+        OperationModel operation,
+        IReadOnlyList<SchemaModel> schemas,
+        string modelsNamespace,
+        string specFileName
+    )
+    {
         var schemaName = DefaultErrorBody.SchemaFor(operation);
 
-        if (schemaName == null) {
+        if (schemaName == null)
+        {
             return null;
         }
 
         // Emitted only when every required member can be filled without inventing a value.
-        if (DefaultErrorBody.Arguments(
-                schemas, schemaName, DefaultErrorBody.NullResponseStatus) == null) {
+        if (
+            DefaultErrorBody.Arguments(schemas, schemaName, DefaultErrorBody.NullResponseStatus)
+            == null
+        )
+        {
             return null;
         }
 
-        return Field(modelsNamespace, specFileName, schemaName, DefaultErrorBody.NullResponseStatus);
+        return Field(
+            modelsNamespace,
+            specFileName,
+            schemaName,
+            DefaultErrorBody.NullResponseStatus
+        );
     }
 
     /// <summary>
@@ -628,38 +814,54 @@ internal static class SpecHandlerModelBuilder {
     /// so it is left out here and the refusal answers the generic model exactly as it did.
     /// </remarks>
     private static string? DeclaredErrorBodies(
-        OperationModel operation, IReadOnlyList<SchemaModel> schemas, string modelsNamespace,
-        string specFileName) {
+        OperationModel operation,
+        IReadOnlyList<SchemaModel> schemas,
+        string modelsNamespace,
+        string specFileName
+    )
+    {
         var entries = new List<string>();
 
-        foreach (var declared in DefaultErrorBody.DeclaredBodies(operation)) {
-            if (DefaultErrorBody.Arguments(schemas, declared.SchemaName, declared.StatusCode) == null) {
+        foreach (var declared in DefaultErrorBody.DeclaredBodies(operation))
+        {
+            if (
+                DefaultErrorBody.Arguments(schemas, declared.SchemaName, declared.StatusCode)
+                == null
+            )
+            {
                 continue;
             }
 
             entries.Add(
-                "{ " + declared.StatusCode.ToString(CultureInfo.InvariantCulture) + ", " +
-                Field(modelsNamespace, specFileName, declared.SchemaName, declared.StatusCode) +
-                " }");
+                "{ "
+                    + declared.StatusCode.ToString(CultureInfo.InvariantCulture)
+                    + ", "
+                    + Field(modelsNamespace, specFileName, declared.SchemaName, declared.StatusCode)
+                    + " }"
+            );
         }
 
-        if (entries.Count == 0) {
+        if (entries.Count == 0)
+        {
             return null;
         }
 
         entries.Sort(System.StringComparer.Ordinal);
 
-        return "new global::System.Collections.Generic.Dictionary<int, object> { " +
-               string.Join(", ", entries) + " }";
+        return "new global::System.Collections.Generic.Dictionary<int, object> { "
+            + string.Join(", ", entries)
+            + " }";
     }
 
     /// <summary>The generated field holding one (schema, status) body, qualified.</summary>
     private static string Field(
-        string modelsNamespace, string specFileName, string schemaName, int statusCode) =>
-        $"global::{modelsNamespace}.{DefaultErrorBody.HolderTypeName(specFileName)}." +
-        DefaultErrorBody.FieldName(schemaName, statusCode);
-
-
+        string modelsNamespace,
+        string specFileName,
+        string schemaName,
+        int statusCode
+    ) =>
+        $"global::{modelsNamespace}.{DefaultErrorBody.HolderTypeName(specFileName)}."
+        + DefaultErrorBody.FieldName(schemaName, statusCode);
 
     /// <summary>
     /// The described authorization as a <c>Requirement</c> expression, or null where the description
@@ -672,34 +874,48 @@ internal static class SpecHandlerModelBuilder {
     /// <c>Grant("x")</c> and not <c>AnyOf(AllOf(Grant("x")))</c> - because this lands in a generated
     /// file somebody will read.
     /// </remarks>
-    private static string? AuthorizationExpression(OperationModel operation) {
-        if (operation.AuthorizationBranches.Count == 0) {
+    private static string? AuthorizationExpression(OperationModel operation)
+    {
+        if (operation.AuthorizationBranches.Count == 0)
+        {
             return null;
         }
 
         var branches = new List<string>();
 
-        foreach (var branch in operation.AuthorizationBranches) {
+        foreach (var branch in operation.AuthorizationBranches)
+        {
             var terms = new List<string>();
 
-            foreach (var grant in branch.Grants) {
-                terms.Add(RequirementType + ".Grant(\"" + grant.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\")");
+            foreach (var grant in branch.Grants)
+            {
+                terms.Add(
+                    RequirementType
+                        + ".Grant(\""
+                        + grant.Replace("\\", "\\\\").Replace("\"", "\\\"")
+                        + "\")"
+                );
             }
 
-            if (branch.RequiresAuthentication) {
+            if (branch.RequiresAuthentication)
+            {
                 terms.Add(RequirementType + ".Authenticated()");
             }
 
-            if (terms.Count == 0) {
+            if (terms.Count == 0)
+            {
                 continue;
             }
 
-            branches.Add(terms.Count == 1
-                ? terms[0]
-                : RequirementType + ".AllOf(" + string.Join(", ", terms) + ")");
+            branches.Add(
+                terms.Count == 1
+                    ? terms[0]
+                    : RequirementType + ".AllOf(" + string.Join(", ", terms) + ")"
+            );
         }
 
-        if (branches.Count == 0) {
+        if (branches.Count == 0)
+        {
             return null;
         }
 
@@ -737,8 +953,13 @@ internal static class SpecHandlerModelBuilder {
     /// </para>
     /// </remarks>
     private static string? BuildUnionCases(
-        OperationModel operation, SpecResponseModel responseModel, string modelsNamespace) {
-        if (!ResponseSetPlan.RequiresResponseSet(operation, responseModel)) {
+        OperationModel operation,
+        SpecResponseModel responseModel,
+        string modelsNamespace
+    )
+    {
+        if (!ResponseSetPlan.RequiresResponseSet(operation, responseModel))
+        {
             return null;
         }
 
@@ -748,18 +969,24 @@ internal static class SpecHandlerModelBuilder {
         // are declared beside the body rather than on it is emitted as a wrapper instead, and the
         // loop below picks it up - adding it here as well would put two branches in the union for
         // one status.
-        if (ResponseSetPlan.PrimarySuccessIsBarePayload(operation)) {
-            cases.Add(new UnionCaseModel(
-                Qualified(modelsNamespace, PrimarySuccessTypeName(operation, modelsNamespace)),
-                operation.SuccessStatusCode,
-                // A bare payload applies headers when the headers are its own members, which is what
-                // Smithy's @httpHeader on an output produces.
-                appliesHeaders: ResponseSetPlan.PrimarySuccessCarriesHeaders(operation),
-                hasBody: true));
+        if (ResponseSetPlan.PrimarySuccessIsBarePayload(operation))
+        {
+            cases.Add(
+                new UnionCaseModel(
+                    Qualified(modelsNamespace, PrimarySuccessTypeName(operation, modelsNamespace)),
+                    operation.SuccessStatusCode,
+                    // A bare payload applies headers when the headers are its own members, which is what
+                    // Smithy's @httpHeader on an output produces.
+                    appliesHeaders: ResponseSetPlan.PrimarySuccessCarriesHeaders(operation),
+                    hasBody: true
+                )
+            );
         }
 
-        foreach (var success in operation.SuccessResponses) {
-            if (!ResponseSetPlan.NeedsSuccessCaseType(operation, success)) {
+        foreach (var success in operation.SuccessResponses)
+        {
+            if (!ResponseSetPlan.NeedsSuccessCaseType(operation, success))
+            {
                 continue;
             }
 
@@ -774,16 +1001,23 @@ internal static class SpecHandlerModelBuilder {
             var bodyTypeName = SuccessBodyTypeName(success, modelsNamespace);
             var hasBody = bodyTypeName != null;
 
-            cases.Add(new UnionCaseModel(
-                Qualified(modelsNamespace, ResponseSetPlan.CaseName(operation, success.StatusCode)),
-                success.StatusCode,
-                appliesHeaders: success.Headers.Count > 0,
-                hasBody: hasBody,
-                carriesBody: hasBody,
-                bodyTypeName: bodyTypeName));
+            cases.Add(
+                new UnionCaseModel(
+                    Qualified(
+                        modelsNamespace,
+                        ResponseSetPlan.CaseName(operation, success.StatusCode)
+                    ),
+                    success.StatusCode,
+                    appliesHeaders: success.Headers.Count > 0,
+                    hasBody: hasBody,
+                    carriesBody: hasBody,
+                    bodyTypeName: bodyTypeName
+                )
+            );
         }
 
-        foreach (var error in operation.ErrorResponses) {
+        foreach (var error in operation.ErrorResponses)
+        {
             cases.Add(ErrorCase(error, modelsNamespace));
         }
 
@@ -808,14 +1042,20 @@ internal static class SpecHandlerModelBuilder {
     /// <c>RateLimited&lt;T&gt;</c> writes its own <c>Retry-After</c>.
     /// </para>
     /// </remarks>
-    private static UnionCaseModel ErrorCase(ErrorResponseModel error, string modelsNamespace) {
-        var payload = error.Ref == null
-            ? null
-            : Qualified(modelsNamespace, NamingHelper.ToPascalCase(TypeMapper.GetRefName(error.Ref)));
+    private static UnionCaseModel ErrorCase(ErrorResponseModel error, string modelsNamespace)
+    {
+        var payload =
+            error.Ref == null
+                ? null
+                : Qualified(
+                    modelsNamespace,
+                    NamingHelper.ToPascalCase(TypeMapper.GetRefName(error.Ref))
+                );
 
         var binding = ShippedResponses.For(error);
 
-        if (binding == null) {
+        if (binding == null)
+        {
             // carriesBody, because a generated error case is a wrapper whose Body is the payload the
             // document declared. Sending the wrapper ships that payload nested under a Body member.
             return new UnionCaseModel(
@@ -824,7 +1064,8 @@ internal static class SpecHandlerModelBuilder {
                 appliesHeaders: error.Headers.Count > 0,
                 hasBody: true,
                 carriesBody: true,
-                bodyTypeName: payload);
+                bodyTypeName: payload
+            );
         }
 
         var shipped = binding.Value;
@@ -836,21 +1077,29 @@ internal static class SpecHandlerModelBuilder {
             appliesHeaders: shipped.AppliesHeaders,
             hasBody: shipped.HasBody,
             carriesBody: carriesBody,
-            bodyTypeName: carriesBody ? payload : null);
+            bodyTypeName: carriesBody ? payload : null
+        );
     }
 
     /// <summary>A bound shipped response as the fully qualified name the switch arm names it by.</summary>
-    private static string ShippedTypeName(ShippedResponses.Binding shipped, string? payload) {
+    private static string ShippedTypeName(ShippedResponses.Binding shipped, string? payload)
+    {
         var type = "global::" + ShippedResponses.Namespace + "." + shipped.TypeName;
 
-        if (shipped.Marker == null) {
+        if (shipped.Marker == null)
+        {
             return shipped.TakesBody && payload != null ? type + "<" + payload + ">" : type;
         }
 
         // Status<Http.Locked, Problem> - the escape hatch, for a registered status the framework
         // ships no record for.
-        var marker = "global::" + ShippedResponses.Namespace + "." +
-                     ShippedResponses.MarkerHolderName + "." + shipped.Marker;
+        var marker =
+            "global::"
+            + ShippedResponses.Namespace
+            + "."
+            + ShippedResponses.MarkerHolderName
+            + "."
+            + shipped.Marker;
 
         return shipped.TakesBody && payload != null
             ? type + "<" + marker + ", " + payload + ">"
@@ -866,19 +1115,25 @@ internal static class SpecHandlerModelBuilder {
     /// meet only in the generated code. A shape neither can type is a bodyless case in both, which
     /// is at least visible at the handler.
     /// </remarks>
-    private static string? SuccessBodyTypeName(
-        SuccessResponseModel success, string modelsNamespace) {
-        if (success.Ref != null) {
+    private static string? SuccessBodyTypeName(SuccessResponseModel success, string modelsNamespace)
+    {
+        if (success.Ref != null)
+        {
             return Qualified(
-                modelsNamespace, NamingHelper.ToPascalCase(TypeMapper.GetRefName(success.Ref)));
+                modelsNamespace,
+                NamingHelper.ToPascalCase(TypeMapper.GetRefName(success.Ref))
+            );
         }
 
-        if (success.IsArray) {
-            var item = success.ArrayItemsRef != null
-                ? Qualified(
-                    modelsNamespace,
-                    NamingHelper.ToPascalCase(TypeMapper.GetRefName(success.ArrayItemsRef)))
-                : ScalarBodyTypeName(success.ArrayItemsType, null);
+        if (success.IsArray)
+        {
+            var item =
+                success.ArrayItemsRef != null
+                    ? Qualified(
+                        modelsNamespace,
+                        NamingHelper.ToPascalCase(TypeMapper.GetRefName(success.ArrayItemsRef))
+                    )
+                    : ScalarBodyTypeName(success.ArrayItemsType, null);
 
             return item == null ? null : "global::System.Collections.Generic.List<" + item + ">";
         }
@@ -886,8 +1141,10 @@ internal static class SpecHandlerModelBuilder {
         return ScalarBodyTypeName(success.Type, success.Format);
     }
 
-    private static string? ScalarBodyTypeName(string? type, string? format) {
-        if (string.IsNullOrEmpty(type) || type == "object") {
+    private static string? ScalarBodyTypeName(string? type, string? format)
+    {
+        if (string.IsNullOrEmpty(type) || type == "object")
+        {
             return null;
         }
 
@@ -900,11 +1157,17 @@ internal static class SpecHandlerModelBuilder {
     /// and stops at the outer type - which emitted <c>case List&lt;Pet&gt;</c> with a bare
     /// <c>Pet</c> into a file with no using for it, CS0246 in generated code.
     /// </remarks>
-    private static string PrimarySuccessTypeName(OperationModel operation, string modelsNamespace) =>
+    private static string PrimarySuccessTypeName(
+        OperationModel operation,
+        string modelsNamespace
+    ) =>
         operation.ResponseRef != null
             ? NamingHelper.ToPascalCase(TypeMapper.GetRefName(operation.ResponseRef))
-            : "System.Collections.Generic.List<global::" + modelsNamespace + "." +
-              NamingHelper.ToPascalCase(TypeMapper.GetRefName(operation.ResponseArrayItemsRef!)) + ">";
+            : "System.Collections.Generic.List<global::"
+                + modelsNamespace
+                + "."
+                + NamingHelper.ToPascalCase(TypeMapper.GetRefName(operation.ResponseArrayItemsRef!))
+                + ">";
 
     /// <summary>
     /// global:: qualified, which is the form UnionCaseModel.TypeName is emitted as.
@@ -935,17 +1198,21 @@ internal static class SpecHandlerModelBuilder {
     /// resource and stays on the validation path, where 400 is the right answer.
     /// </para>
     /// </remarks>
-    private static string ConstrainedPath(OperationModel operation) {
+    private static string ConstrainedPath(OperationModel operation)
+    {
         var path = operation.Path;
 
-        foreach (var parameter in operation.Parameters) {
-            if (parameter.RouteConstraint == null) {
+        foreach (var parameter in operation.Parameters)
+        {
+            if (parameter.RouteConstraint == null)
+            {
                 continue;
             }
 
             path = path.Replace(
                 "{" + parameter.Name + "}",
-                "{" + parameter.Name + ":" + parameter.RouteConstraint + "}");
+                "{" + parameter.Name + ":" + parameter.RouteConstraint + "}"
+            );
         }
 
         return path;
@@ -953,16 +1220,22 @@ internal static class SpecHandlerModelBuilder {
 
     /// <summary>The symbols recorded for one operation, if any.</summary>
     private static OperationSymbols? Symbols(
-        IReadOnlyDictionary<string, OperationSymbols>? symbols, OperationModel operation) =>
+        IReadOnlyDictionary<string, OperationSymbols>? symbols,
+        OperationModel operation
+    ) =>
         symbols != null && symbols.TryGetValue(operation.OperationId, out var found) ? found : null;
 
     private static string? Default(OperationSymbols? symbols, string name) =>
-        symbols?.ParameterDefaults != null &&
-        symbols.ParameterDefaults.TryGetValue(name, out var value) ? value : null;
+        symbols?.ParameterDefaults != null
+        && symbols.ParameterDefaults.TryGetValue(name, out var value)
+            ? value
+            : null;
 
     private static AttributeModel? Attribute(OperationSymbols? symbols, string name) =>
-        symbols?.ParameterAttributes != null &&
-        symbols.ParameterAttributes.TryGetValue(name, out var attribute) ? attribute : null;
+        symbols?.ParameterAttributes != null
+        && symbols.ParameterAttributes.TryGetValue(name, out var attribute)
+            ? attribute
+            : null;
 
     /// <summary>
     /// Declaration order, when the builder recorded it.
@@ -973,15 +1246,20 @@ internal static class SpecHandlerModelBuilder {
     /// binder reads positionally.
     /// </remarks>
     private static IReadOnlyList<RequestParameterInformation> Ordered(
-        List<RequestParameterInformation> parameters, OperationSymbols? symbols) {
-        if (symbols?.ParameterOrder == null) {
+        List<RequestParameterInformation> parameters,
+        OperationSymbols? symbols
+    )
+    {
+        if (symbols?.ParameterOrder == null)
+        {
             return parameters;
         }
 
         var order = symbols.ParameterOrder;
 
         return parameters
-            .OrderBy(parameter => {
+            .OrderBy(parameter =>
+            {
                 var at = order.IndexOf(parameter.BindingName);
 
                 return at < 0 ? order.IndexOf(parameter.Name) : at;
@@ -989,6 +1267,7 @@ internal static class SpecHandlerModelBuilder {
             .Select((parameter, index) => parameter.WithIndex(index))
             .ToList();
     }
+
     /// <summary>
     /// Every status the operation declares, with the payload declared for it.
     /// </summary>
@@ -1013,34 +1292,46 @@ internal static class SpecHandlerModelBuilder {
             : null;
 
     private static IReadOnlyList<ResponseSchemaModel> BuildResponseSchemas(
-        OperationModel operation, IReadOnlyList<SchemaModel> schemas) {
+        OperationModel operation,
+        IReadOnlyList<SchemaModel> schemas
+    )
+    {
         var result = new List<ResponseSchemaModel>();
 
-        foreach (var success in operation.SuccessResponses) {
-            result.Add(new ResponseSchemaModel(
-                success.StatusCode,
-                SpecSchemaWriter.DescriptionFor(success.Description, success.StatusCode),
-                success.IsArray
-                    ? SpecSchemaWriter.ForArrayOf(success.ArrayItemsRef, schemas)
-                    // A success the contract types without naming - text/plain's string - still
-                    // has a schema; publishing the status with no content told a client to read
-                    // nothing from a response that carries the body.
-                    : SpecSchemaWriter.ForRef(success.Ref, schemas)
-                      ?? SpecSchemaWriter.ForScalar(success.Type, success.Format)) {
-                Headers = success.Headers
-            });
+        foreach (var success in operation.SuccessResponses)
+        {
+            result.Add(
+                new ResponseSchemaModel(
+                    success.StatusCode,
+                    SpecSchemaWriter.DescriptionFor(success.Description, success.StatusCode),
+                    success.IsArray
+                        ? SpecSchemaWriter.ForArrayOf(success.ArrayItemsRef, schemas)
+                        // A success the contract types without naming - text/plain's string - still
+                        // has a schema; publishing the status with no content told a client to read
+                        // nothing from a response that carries the body.
+                        : SpecSchemaWriter.ForRef(success.Ref, schemas)
+                            ?? SpecSchemaWriter.ForScalar(success.Type, success.Format)
+                )
+                {
+                    Headers = success.Headers,
+                }
+            );
         }
 
-        foreach (var error in operation.ErrorResponses) {
-            result.Add(new ResponseSchemaModel(
-                error.StatusCode,
-                SpecSchemaWriter.DescriptionFor(error.Description, error.StatusCode),
-                SpecSchemaWriter.ForRef(error.Ref, schemas)) {
-                Headers = error.Headers
-            });
+        foreach (var error in operation.ErrorResponses)
+        {
+            result.Add(
+                new ResponseSchemaModel(
+                    error.StatusCode,
+                    SpecSchemaWriter.DescriptionFor(error.Description, error.StatusCode),
+                    SpecSchemaWriter.ForRef(error.Ref, schemas)
+                )
+                {
+                    Headers = error.Headers,
+                }
+            );
         }
 
         return result;
     }
-
 }

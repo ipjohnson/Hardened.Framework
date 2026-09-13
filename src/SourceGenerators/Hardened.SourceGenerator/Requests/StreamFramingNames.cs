@@ -9,7 +9,8 @@ namespace Hardened.SourceGenerator.Requests;
 /// together so the media type a framing commits to and the type that writes it cannot drift - the
 /// document says one and the pipeline sends the other, and nothing would catch that.
 /// </remarks>
-public static class StreamFramingNames {
+public static class StreamFramingNames
+{
     /// <summary><c>[ServerSentEvents]</c>.</summary>
     public const string ServerSentEvents = "sse";
 

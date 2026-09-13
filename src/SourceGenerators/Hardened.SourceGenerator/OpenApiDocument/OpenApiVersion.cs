@@ -18,7 +18,8 @@ namespace Hardened.SourceGenerator.OpenApiDocument;
 /// string and lies about the rest.
 /// </para>
 /// </remarks>
-public enum OpenApiVersion {
+public enum OpenApiVersion
+{
     /// <summary>
     /// What the document declared before the property existed.
     /// </summary>
@@ -37,14 +38,14 @@ public enum OpenApiVersion {
     /// Adds <c>itemSchema</c>, the only spelling in any version that says a response's items arrive
     /// one after another. The default.
     /// </summary>
-    V3_2
+    V3_2,
 }
 
 /// <summary>
 /// Reading <c>&lt;HardenedOpenApiVersion&gt;</c>, and what each version changes.
 /// </summary>
-public static class OpenApiVersionFacts {
-
+public static class OpenApiVersionFacts
+{
     /// <summary>The MSBuild property that selects it.</summary>
     public const string PropertyName = "HardenedOpenApiVersion";
 
@@ -62,12 +63,15 @@ public static class OpenApiVersionFacts {
     /// point of the property is that somebody's toolchain depends on the answer.
     /// </para>
     /// </remarks>
-    public static OpenApiVersion? Parse(string? value) {
-        if (string.IsNullOrWhiteSpace(value)) {
+    public static OpenApiVersion? Parse(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
             return Default;
         }
 
-        switch (value!.Trim()) {
+        switch (value!.Trim())
+        {
             case "3.0.0":
             case "3.0":
                 return OpenApiVersion.V3_0;
@@ -87,10 +91,11 @@ public static class OpenApiVersionFacts {
 
     /// <summary>The string the document's <c>openapi</c> field carries.</summary>
     public static string VersionString(OpenApiVersion version) =>
-        version switch {
+        version switch
+        {
             OpenApiVersion.V3_0 => "3.0.0",
             OpenApiVersion.V3_1 => "3.1.0",
-            _ => "3.2.0"
+            _ => "3.2.0",
         };
 
     /// <summary>
@@ -116,6 +121,5 @@ public static class OpenApiVersionFacts {
     /// alone under <c>schema</c> claims the response is one of them, which is what the document said
     /// before any of this and is a lie rather than an omission.
     /// </remarks>
-    public static bool SupportsItemSchema(OpenApiVersion version) =>
-        version == OpenApiVersion.V3_2;
+    public static bool SupportsItemSchema(OpenApiVersion version) => version == OpenApiVersion.V3_2;
 }

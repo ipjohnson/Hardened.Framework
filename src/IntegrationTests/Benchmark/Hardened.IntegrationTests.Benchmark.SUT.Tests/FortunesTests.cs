@@ -19,10 +19,11 @@ namespace Hardened.IntegrationTests.Benchmark.SUT.Tests;
 /// equivalent rather than merely present.
 /// </para>
 /// </remarks>
-public class FortunesTests {
-
+public class FortunesTests
+{
     [HardenedTest]
-    public async Task Fortunes_RendersHtmlRatherThanSerializingTheModel(ITestWebApp testWebApp) {
+    public async Task Fortunes_RendersHtmlRatherThanSerializingTheModel(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/fortunes");
 
         response.Assert.Ok();
@@ -39,7 +40,8 @@ public class FortunesTests {
     /// base class - rather than from the spec's media type or the file's extension.
     /// </summary>
     [HardenedTest]
-    public async Task Fortunes_SetsTheHtmlContentType(ITestWebApp testWebApp) {
+    public async Task Fortunes_SetsTheHtmlContentType(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/fortunes");
 
         Assert.Equal("text/html; charset=utf-8", response.Headers["Content-Type"]);
@@ -50,14 +52,16 @@ public class FortunesTests {
     /// arrive as text - if it renders as markup the benchmark entry is an XSS hole.
     /// </summary>
     [HardenedTest]
-    public async Task Fortunes_EscapesTheScriptRow(ITestWebApp testWebApp) {
+    public async Task Fortunes_EscapesTheScriptRow(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/fortunes");
 
         var body = await Body.Read(response);
 
         Assert.Contains(
             "&lt;script&gt;alert(&quot;This should not be displayed in a browser alert box.&quot;);&lt;/script&gt;",
-            body);
+            body
+        );
         Assert.DoesNotContain("<script>", body);
     }
 
@@ -66,24 +70,35 @@ public class FortunesTests {
     /// between other fortunes rather than at either end.
     /// </summary>
     [HardenedTest]
-    public async Task Fortunes_AddsTheRequestTimeRowAndSortsByMessage(ITestWebApp testWebApp) {
+    public async Task Fortunes_AddsTheRequestTimeRowAndSortsByMessage(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/fortunes");
 
         var body = await Body.Read(response);
 
         Assert.Contains("Additional fortune added at request time.", body);
 
-        var added = body.IndexOf("Additional fortune added at request time.", StringComparison.Ordinal);
+        var added = body.IndexOf(
+            "Additional fortune added at request time.",
+            StringComparison.Ordinal
+        );
         var afterEnough = body.IndexOf("After enough decimal places", StringComparison.Ordinal);
         var aBadRandom = body.IndexOf("A bad random number generator", StringComparison.Ordinal);
 
-        Assert.True(aBadRandom < added, "Sorted by message, 'A bad random...' precedes the added row.");
-        Assert.True(added < afterEnough, "Sorted by message, the added row precedes 'After enough...'.");
+        Assert.True(
+            aBadRandom < added,
+            "Sorted by message, 'A bad random...' precedes the added row."
+        );
+        Assert.True(
+            added < afterEnough,
+            "Sorted by message, the added row precedes 'After enough...'."
+        );
     }
 
     /// <summary>All thirteen rows are present: the twelve seeded plus the one added.</summary>
     [HardenedTest]
-    public async Task Fortunes_RendersEveryRow(ITestWebApp testWebApp) {
+    public async Task Fortunes_RendersEveryRow(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/fortunes");
 
         var body = await Body.Read(response);
@@ -93,7 +108,8 @@ public class FortunesTests {
 
     /// <summary>Non-ASCII content survives the render and the UTF-8 write.</summary>
     [HardenedTest]
-    public async Task Fortunes_PreservesNonAsciiContent(ITestWebApp testWebApp) {
+    public async Task Fortunes_PreservesNonAsciiContent(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/fortunes");
 
         Assert.Contains("フレームワークのベンチマーク", await Body.Read(response));
@@ -104,7 +120,8 @@ public class FortunesTests {
     /// UTF8 encoding produces, and it is invisible in any assertion made on a decoded string.
     /// </summary>
     [HardenedTest]
-    public async Task Fortunes_WritesNoByteOrderMark(ITestWebApp testWebApp) {
+    public async Task Fortunes_WritesNoByteOrderMark(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/fortunes");
 
         response.Body.Position = 0;
@@ -112,12 +129,16 @@ public class FortunesTests {
         Assert.Equal((byte)'<', response.Body.ReadByte());
     }
 
-    private static int CountOccurrences(string haystack, string needle) {
+    private static int CountOccurrences(string haystack, string needle)
+    {
         var count = 0;
 
-        for (var i = haystack.IndexOf(needle, StringComparison.Ordinal);
-             i >= 0;
-             i = haystack.IndexOf(needle, i + needle.Length, StringComparison.Ordinal)) {
+        for (
+            var i = haystack.IndexOf(needle, StringComparison.Ordinal);
+            i >= 0;
+            i = haystack.IndexOf(needle, i + needle.Length, StringComparison.Ordinal)
+        )
+        {
             count++;
         }
 

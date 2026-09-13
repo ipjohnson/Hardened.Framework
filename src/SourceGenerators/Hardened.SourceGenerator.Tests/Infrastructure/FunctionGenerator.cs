@@ -17,15 +17,21 @@ namespace Hardened.SourceGenerator.Tests.Infrastructure;
 /// test, and builds its entry-point provider identically.
 /// </para>
 /// </summary>
-public class FunctionGenerator : IIncrementalGenerator {
+public class FunctionGenerator : IIncrementalGenerator
+{
+    public void Initialize(IncrementalGeneratorInitializationContext context)
+    {
+        var applicationModel = context
+            .SyntaxProvider.CreateSyntaxProvider(
+                EntryPointSelector.UsingAttribute(),
+                EntryPointSelector.TransformModel(false)
+            )
+            .WithComparer(new EntryPointSelector.Comparer());
 
-    public void Initialize(IncrementalGeneratorInitializationContext context) {
-        var applicationModel = context.SyntaxProvider.CreateSyntaxProvider(
-            EntryPointSelector.UsingAttribute(),
-            EntryPointSelector.TransformModel(false)
-        ).WithComparer(new EntryPointSelector.Comparer());
-
-        global::Hardened.SourceGenerator.Function.FunctionIncrementalGenerator.Setup(context, applicationModel);
+        global::Hardened.SourceGenerator.Function.FunctionIncrementalGenerator.Setup(
+            context,
+            applicationModel
+        );
     }
 }
 
@@ -39,15 +45,21 @@ public class FunctionGenerator : IIncrementalGenerator {
 /// way one routing with the function generator does. Running it as a second generator here is what
 /// keeps the test arrangement honest about that.
 /// </remarks>
-public class TriggerGenerator : IIncrementalGenerator {
+public class TriggerGenerator : IIncrementalGenerator
+{
+    public void Initialize(IncrementalGeneratorInitializationContext context)
+    {
+        var applicationModel = context
+            .SyntaxProvider.CreateSyntaxProvider(
+                EntryPointSelector.UsingAttribute(),
+                EntryPointSelector.TransformModel(false)
+            )
+            .WithComparer(new EntryPointSelector.Comparer());
 
-    public void Initialize(IncrementalGeneratorInitializationContext context) {
-        var applicationModel = context.SyntaxProvider.CreateSyntaxProvider(
-            EntryPointSelector.UsingAttribute(),
-            EntryPointSelector.TransformModel(false)
-        ).WithComparer(new EntryPointSelector.Comparer());
-
-        global::Hardened.SourceGenerator.Shared.TriggerModuleGenerator.Setup(context, applicationModel);
+        global::Hardened.SourceGenerator.Shared.TriggerModuleGenerator.Setup(
+            context,
+            applicationModel
+        );
     }
 }
 
@@ -55,8 +67,8 @@ public class TriggerGenerator : IIncrementalGenerator {
 /// The reference set generated function handlers bind against, and the source shapes every test in
 /// this suite goes through.
 /// </summary>
-public static class FunctionGeneratorHarness {
-
+public static class FunctionGeneratorHarness
+{
     /// <summary>
     /// One type per assembly the generated code touches. <c>typeof</c> rather than an assembly name
     /// because it forces the assembly to load, which is what makes it resolvable.
@@ -68,13 +80,13 @@ public static class FunctionGeneratorHarness {
     /// through Hardened.Shared.Runtime.
     /// </para>
     /// </summary>
-    public static readonly Type[] Anchors = [
-        typeof(HardenedFunctionAttribute),   // Hardened.Requests.Abstract
-
+    public static readonly Type[] Anchors =
+    [
+        typeof(HardenedFunctionAttribute), // Hardened.Requests.Abstract
         // Fully qualified: this assembly's own namespace is Hardened.SourceGenerator.*, so an
         // unqualified Requests. or Shared. binds there instead of to the runtime packages.
         typeof(global::Hardened.Requests.Runtime.Execution.BaseExecutionHandler<>),
-        typeof(global::Hardened.Shared.Runtime.Attributes.HardenedModuleAttribute)
+        typeof(global::Hardened.Shared.Runtime.Attributes.HardenedModuleAttribute),
     ];
 
     /// <summary>
@@ -98,32 +110,34 @@ public static class FunctionGeneratorHarness {
     /// beside a plain handler class.
     /// </para>
     /// </summary>
-    public static string Application(string body, string extraTypes = "") => $$"""
-        {{Preamble}}
+    public static string Application(string body, string extraTypes = "") =>
+        $$"""
+            {{Preamble}}
 
-        {{extraTypes}}
+            {{extraTypes}}
 
-        [HardenedModule]
-        public partial class TestApplication { }
+            [HardenedModule]
+            public partial class TestApplication { }
 
-        public class TestFunctions {
-        {{body}}
-        }
-        """;
+            public class TestFunctions {
+            {{body}}
+            }
+            """;
 
     /// <summary>
     /// A handler class with no application entry point, for the cases that are about the invoker
     /// alone.
     /// </summary>
-    public static string Handlers(string body, string extraTypes = "") => $$"""
-        {{Preamble}}
+    public static string Handlers(string body, string extraTypes = "") =>
+        $$"""
+            {{Preamble}}
 
-        {{extraTypes}}
+            {{extraTypes}}
 
-        public class TestFunctions {
-        {{body}}
-        }
-        """;
+            public class TestFunctions {
+            {{body}}
+            }
+            """;
 
     /// <summary>A payload model and a service interface, for the binding cases.</summary>
     public const string SupportTypes = """

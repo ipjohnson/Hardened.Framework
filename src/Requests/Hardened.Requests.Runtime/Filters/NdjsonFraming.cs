@@ -13,7 +13,8 @@ namespace Hardened.Requests.Runtime.Filters;
 /// OpenAPI 3.2 treats the two as equivalent; only this spelling is emitted, because it is the one
 /// the pipeline has always committed to.
 /// </remarks>
-public class NdjsonFraming : IStreamFraming {
+public class NdjsonFraming : IStreamFraming
+{
     /// <summary>The one instance, because it holds nothing.</summary>
     public static readonly NdjsonFraming Instance = new();
 
@@ -26,10 +27,18 @@ public class NdjsonFraming : IStreamFraming {
     public string ContentType => KnownContentType.NdJson;
 
     public async ValueTask WriteItem(
-        IExecutionContext context, Func<IExecutionContext, Task> serialize) {
+        IExecutionContext context,
+        Func<IExecutionContext, Task> serialize
+    )
+    {
         await serialize(context);
 
-        await context.Response.Body.WriteAsync(Newline, 0, Newline.Length, context.CancellationToken);
+        await context.Response.Body.WriteAsync(
+            Newline,
+            0,
+            Newline.Length,
+            context.CancellationToken
+        );
     }
 
     /// <summary>
@@ -40,8 +49,14 @@ public class NdjsonFraming : IStreamFraming {
     /// downstream reader waiting on one hangs. It costs a byte on a stream that produced nothing
     /// and it is what stops an empty result being indistinguishable from a hung one.
     /// </remarks>
-    public async ValueTask WriteCompletion(IExecutionContext context) {
-        await context.Response.Body.WriteAsync(Newline, 0, Newline.Length, context.CancellationToken);
+    public async ValueTask WriteCompletion(IExecutionContext context)
+    {
+        await context.Response.Body.WriteAsync(
+            Newline,
+            0,
+            Newline.Length,
+            context.CancellationToken
+        );
     }
 
     /// <summary>

@@ -3,13 +3,17 @@ using Hardened.Generation.Models;
 
 namespace Hardened.Generation;
 
-internal static class TypeMapper {
-    public static string MapToCSharpType(string? type, string? format, string? refName = null) {
-        if (refName != null) {
+internal static class TypeMapper
+{
+    public static string MapToCSharpType(string? type, string? format, string? refName = null)
+    {
+        if (refName != null)
+        {
             return NamingHelper.ToPascalCase(GetRefName(refName));
         }
 
-        return (type?.ToLowerInvariant(), format?.ToLowerInvariant()) switch {
+        return (type?.ToLowerInvariant(), format?.ToLowerInvariant()) switch
+        {
             // DateTimeOffset, not DateTime, because RFC 3339 date-time carries an offset and
             // DateTime cannot hold one. Reading "2020-06-05T22:47:53+00:00" into a DateTime
             // converts it to the host's local time and writes the host's offset back, so the same
@@ -43,36 +47,46 @@ internal static class TypeMapper {
             ("number", "decimal") => "decimal",
             ("number", _) => "double",
             ("boolean", _) => "bool",
-            _ => "JsonElement"
+            _ => "JsonElement",
         };
     }
 
-    public static string MapPropertyToCSharpType(PropertyModel property) {
-        if (property.Ref != null) {
+    public static string MapPropertyToCSharpType(PropertyModel property)
+    {
+        if (property.Ref != null)
+        {
             return NamingHelper.ToPascalCase(GetRefName(property.Ref));
         }
 
-        if (property.IsArray) {
+        if (property.IsArray)
+        {
             var itemType = MapToCSharpType(
                 property.ArrayItemsType,
                 property.ArrayItemsFormat,
-                property.ArrayItemsRef);
+                property.ArrayItemsRef
+            );
             return $"List<{itemType}>";
         }
 
-        if (property.IsDictionary) {
-            var valueType = property.DictionaryValueRef != null
-                ? NamingHelper.ToPascalCase(GetRefName(property.DictionaryValueRef))
-                : MapToCSharpType(property.DictionaryValueType, property.DictionaryValueFormat);
+        if (property.IsDictionary)
+        {
+            var valueType =
+                property.DictionaryValueRef != null
+                    ? NamingHelper.ToPascalCase(GetRefName(property.DictionaryValueRef))
+                    : MapToCSharpType(property.DictionaryValueType, property.DictionaryValueFormat);
             return $"Dictionary<string, {valueType}>";
         }
 
-        if (property.EnumValues is { Count: > 0 }) {
+        if (property.EnumValues is { Count: > 0 })
+        {
             return "string";
         }
 
         return WidenForBounds(
-            MapToCSharpType(property.Type, property.Format), property.Minimum, property.Maximum);
+            MapToCSharpType(property.Type, property.Format),
+            property.Minimum,
+            property.Maximum
+        );
     }
 
     /// <summary>
@@ -84,8 +98,10 @@ internal static class TypeMapper {
     /// maximum of 4294967295 - a value an <c>int</c> cannot hold, so the generated model would
     /// overflow on a payload the specification calls valid. The bound is part of the type.
     /// </remarks>
-    private static string WidenForBounds(string csType, decimal? minimum, decimal? maximum) {
-        if (csType != "int" && csType != "long") {
+    private static string WidenForBounds(string csType, decimal? minimum, decimal? maximum)
+    {
+        if (csType != "int" && csType != "long")
+        {
             return csType;
         }
 
@@ -95,53 +111,72 @@ internal static class TypeMapper {
         // int to long only. A bound beyond long would need decimal, and decimal is not a type the
         // JSON type-info emitter carries nullability for - so a document declaring one keeps the
         // type its format implies, and the bound stays on the attribute rather than in the type.
-        if (csType == "int" && (low < int.MinValue || high > int.MaxValue) &&
-            low >= long.MinValue && high <= long.MaxValue) {
+        if (
+            csType == "int"
+            && (low < int.MinValue || high > int.MaxValue)
+            && low >= long.MinValue
+            && high <= long.MaxValue
+        )
+        {
             return "long";
         }
 
         return csType;
     }
 
-    public static string MapParameterToCSharpType(ParameterModel parameter) {
-        if (parameter.Ref != null) {
+    public static string MapParameterToCSharpType(ParameterModel parameter)
+    {
+        if (parameter.Ref != null)
+        {
             return NamingHelper.ToPascalCase(GetRefName(parameter.Ref));
         }
 
-        if (parameter.IsArray) {
+        if (parameter.IsArray)
+        {
             var itemType = MapToCSharpType(
                 parameter.ArrayItemsType,
                 parameter.ArrayItemsFormat,
-                parameter.ArrayItemsRef);
+                parameter.ArrayItemsRef
+            );
             return $"List<{itemType}>";
         }
 
         return WidenForBounds(
-            MapToCSharpType(parameter.Type, parameter.Format), parameter.Minimum, parameter.Maximum);
+            MapToCSharpType(parameter.Type, parameter.Format),
+            parameter.Minimum,
+            parameter.Maximum
+        );
     }
 
-    public static ITypeDefinition GetTypeDefinition(string ns, string csType, bool nullable) {
+    public static ITypeDefinition GetTypeDefinition(string ns, string csType, bool nullable)
+    {
         var typeDef = GetPrimitiveTypeDefinition(csType);
-        if (typeDef != null) {
+        if (typeDef != null)
+        {
             return nullable ? typeDef.MakeNullable() : typeDef;
         }
 
-        if (csType.StartsWith("List<")) {
+        if (csType.StartsWith("List<"))
+        {
             var inner = csType.Substring(5, csType.Length - 6);
             var innerType = GetTypeDefinition(ns, inner, false);
             var listType = new GenericTypeDefinition(typeof(List<>), new[] { innerType });
             return nullable ? listType.MakeNullable() : listType;
         }
 
-        if (csType.StartsWith("Dictionary<string, ")) {
+        if (csType.StartsWith("Dictionary<string, "))
+        {
             var inner = csType.Substring(19, csType.Length - 20);
             var innerType = GetTypeDefinition(ns, inner, false);
-            var dictType = new GenericTypeDefinition(typeof(Dictionary<,>),
-                new[] { TypeDefinition.Get(typeof(string)), innerType });
+            var dictType = new GenericTypeDefinition(
+                typeof(Dictionary<,>),
+                new[] { TypeDefinition.Get(typeof(string)), innerType }
+            );
             return nullable ? dictType.MakeNullable() : dictType;
         }
 
-        if (csType == "byte[]") {
+        if (csType == "byte[]")
+        {
             var arrayType = TypeDefinition.Get("System", "Byte[]");
             return nullable ? arrayType.MakeNullable() : arrayType;
         }
@@ -150,8 +185,10 @@ internal static class TypeMapper {
         return nullable ? def.MakeNullable() : def;
     }
 
-    private static ITypeDefinition? GetPrimitiveTypeDefinition(string csType) {
-        return csType switch {
+    private static ITypeDefinition? GetPrimitiveTypeDefinition(string csType)
+    {
+        return csType switch
+        {
             "string" => TypeDefinition.Get(typeof(string)),
             "int" => TypeDefinition.Get(typeof(int)),
             "uint" => TypeDefinition.Get(typeof(uint)),
@@ -169,7 +206,7 @@ internal static class TypeMapper {
             "DateTimeOffset" => TypeDefinition.Get(typeof(DateTimeOffset)),
             "DateOnly" => TypeDefinition.Get("System", "DateOnly"),
             "JsonElement" => TypeDefinition.Get("System.Text.Json", "JsonElement"),
-            _ => null
+            _ => null,
         };
     }
 
@@ -191,12 +228,29 @@ internal static class TypeMapper {
     /// separately.
     /// </remarks>
     public static bool IsNonNullableValueType(string csType) =>
-        csType switch {
-            "int" or "uint" or "long" or "ulong" or "short" or "ushort" or "byte" or "sbyte" or
-            "float" or "double" or "decimal" or "bool" or "char" or
-            "DateTime" or "DateOnly" or "TimeOnly" or "DateTimeOffset" or "TimeSpan" or
-            "Guid" or "JsonElement" => true,
-            _ => false
+        csType switch
+        {
+            "int"
+            or "uint"
+            or "long"
+            or "ulong"
+            or "short"
+            or "ushort"
+            or "byte"
+            or "sbyte"
+            or "float"
+            or "double"
+            or "decimal"
+            or "bool"
+            or "char"
+            or "DateTime"
+            or "DateOnly"
+            or "TimeOnly"
+            or "DateTimeOffset"
+            or "TimeSpan"
+            or "Guid"
+            or "JsonElement" => true,
+            _ => false,
         };
 
     /// <summary>
@@ -208,11 +262,10 @@ internal static class TypeMapper {
     /// a <c>[Required]</c>, and the validator answers it with <c>is null</c> against a value type -
     /// the same CS0037 the numerics used to produce, and what OpenAI's document hits 150 times.
     /// </remarks>
-    public static bool IsNonNullableValueType(
-        string csType, IEnumerable<SchemaModel>? schemas) =>
-        IsNonNullableValueType(csType) ||
-        IsGeneratedEnum(csType, schemas) ||
-        IsGeneratedChoice(csType, schemas);
+    public static bool IsNonNullableValueType(string csType, IEnumerable<SchemaModel>? schemas) =>
+        IsNonNullableValueType(csType)
+        || IsGeneratedEnum(csType, schemas)
+        || IsGeneratedChoice(csType, schemas);
 
     /// <summary>
     /// Whether the type names a <c>oneOf</c> wrapper this specification generates.
@@ -223,13 +276,17 @@ internal static class TypeMapper {
     /// that had to know an enum was a value type has to know this too, and there is exactly one
     /// place that answers the question.
     /// </remarks>
-    public static bool IsGeneratedChoice(string csType, IEnumerable<SchemaModel>? schemas) {
-        if (schemas == null) {
+    public static bool IsGeneratedChoice(string csType, IEnumerable<SchemaModel>? schemas)
+    {
+        if (schemas == null)
+        {
             return false;
         }
 
-        foreach (var schema in schemas) {
-            if (schema.Kind == SchemaKind.OneOf && NamingHelper.ToPascalCase(schema.Name) == csType) {
+        foreach (var schema in schemas)
+        {
+            if (schema.Kind == SchemaKind.OneOf && NamingHelper.ToPascalCase(schema.Name) == csType)
+            {
                 return true;
             }
         }
@@ -245,13 +302,17 @@ internal static class TypeMapper {
     /// adds nothing - and, because it renders its arguments as string literals, it compares the
     /// enum against strings and does not compile.
     /// </remarks>
-    public static bool IsGeneratedEnum(string csType, IEnumerable<SchemaModel>? schemas) {
-        if (schemas == null) {
+    public static bool IsGeneratedEnum(string csType, IEnumerable<SchemaModel>? schemas)
+    {
+        if (schemas == null)
+        {
             return false;
         }
 
-        foreach (var schema in schemas) {
-            if (schema.Kind == SchemaKind.Enum && NamingHelper.ToPascalCase(schema.Name) == csType) {
+        foreach (var schema in schemas)
+        {
+            if (schema.Kind == SchemaKind.Enum && NamingHelper.ToPascalCase(schema.Name) == csType)
+            {
                 return true;
             }
         }
@@ -270,21 +331,30 @@ internal static class TypeMapper {
     /// such member.
     /// </remarks>
     public static bool HasItemCount(string csType) =>
-        csType.StartsWith("List<", System.StringComparison.Ordinal) ||
-        csType.StartsWith("Dictionary<", System.StringComparison.Ordinal) ||
-        csType.EndsWith("[]", System.StringComparison.Ordinal);
+        csType.StartsWith("List<", System.StringComparison.Ordinal)
+        || csType.StartsWith("Dictionary<", System.StringComparison.Ordinal)
+        || csType.EndsWith("[]", System.StringComparison.Ordinal);
 
     /// <summary>Whether numeric bounds can be compared against this type.</summary>
     public static bool IsNumeric(string csType) =>
-        csType switch {
-            "int" or "uint" or "long" or "ulong" or "short" or "ushort" or "byte" or "sbyte" or
-            "float" or "double" or "decimal" => true,
-            _ => false
+        csType switch
+        {
+            "int"
+            or "uint"
+            or "long"
+            or "ulong"
+            or "short"
+            or "ushort"
+            or "byte"
+            or "sbyte"
+            or "float"
+            or "double"
+            or "decimal" => true,
+            _ => false,
         };
 
     /// <summary>Whether a length can be read off this type.</summary>
-    public static bool IsStringLike(string csType) =>
-        csType == "string";
+    public static bool IsStringLike(string csType) => csType == "string";
 
     /// <summary>
     /// A C# type name, fully qualified.
@@ -297,7 +367,8 @@ internal static class TypeMapper {
     /// <c>typeof</c> accepts (CS8639). Generated code should not depend on what happens to be in
     /// scope.
     /// </remarks>
-    public static string QualifiedName(string ns, string csType, bool nullable) {
+    public static string QualifiedName(string ns, string csType, bool nullable)
+    {
         var builder = new System.Text.StringBuilder();
 
         GetTypeDefinition(ns, csType, nullable).WriteTypeName(builder, TypeOutputMode.Global);
@@ -314,7 +385,8 @@ internal static class TypeMapper {
     /// answer <c>Pet</c>. Paired with <see cref="MakeRef"/>: read with this, write with that, and no
     /// caller has to know the form.
     /// </remarks>
-    public static string GetRefName(string refPath) {
+    public static string GetRefName(string refPath)
+    {
         var lastSlash = refPath.LastIndexOf('/');
         return lastSlash >= 0 ? refPath.Substring(lastSlash + 1) : refPath;
     }

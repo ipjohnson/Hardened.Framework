@@ -1,5 +1,5 @@
-using Xunit;
 using Hardened.Web.Runtime.Responses;
+using Xunit;
 
 namespace Hardened.Web.Testing.Tests;
 
@@ -8,8 +8,8 @@ namespace Hardened.Web.Testing.Tests;
 /// their own tests pass, so each one is checked in both directions: it must accept the
 /// status codes it documents and reject the ones it does not.
 /// </summary>
-public class WebAssertThatTests {
-
+public class WebAssertThatTests
+{
     private static IWebAssertThat AssertFor(int status) =>
         new TestWebResponse(new FakeExecutionResponse(status)).Assert;
 
@@ -18,7 +18,8 @@ public class WebAssertThatTests {
     [InlineData(201)]
     [InlineData(204)]
     [InlineData(299)]
-    public void OkAcceptsSuccessRange(int status) {
+    public void OkAcceptsSuccessRange(int status)
+    {
         AssertFor(status).Ok();
     }
 
@@ -28,12 +29,14 @@ public class WebAssertThatTests {
     [InlineData(400)]
     [InlineData(404)]
     [InlineData(500)]
-    public void OkRejectsOutsideSuccessRange(int status) {
+    public void OkRejectsOutsideSuccessRange(int status)
+    {
         Assert.Throws<WebAssertionException>(() => AssertFor(status).Ok());
     }
 
     [Fact]
-    public void NotFoundAccepts404() {
+    public void NotFoundAccepts404()
+    {
         AssertFor(404).NotFound();
     }
 
@@ -42,12 +45,14 @@ public class WebAssertThatTests {
     [InlineData(400)]
     [InlineData(403)]
     [InlineData(500)]
-    public void NotFoundRejectsOtherStatuses(int status) {
+    public void NotFoundRejectsOtherStatuses(int status)
+    {
         Assert.Throws<WebAssertionException>(() => AssertFor(status).NotFound());
     }
 
     [Fact]
-    public void BadRequestAccepts400() {
+    public void BadRequestAccepts400()
+    {
         AssertFor(400).BadRequest();
     }
 
@@ -55,12 +60,14 @@ public class WebAssertThatTests {
     [InlineData(200)]
     [InlineData(401)]
     [InlineData(404)]
-    public void BadRequestRejectsOtherStatuses(int status) {
+    public void BadRequestRejectsOtherStatuses(int status)
+    {
         Assert.Throws<WebAssertionException>(() => AssertFor(status).BadRequest());
     }
 
     [Fact]
-    public void UnauthorizedAccepts401() {
+    public void UnauthorizedAccepts401()
+    {
         AssertFor(401).Unauthorized();
     }
 
@@ -68,12 +75,14 @@ public class WebAssertThatTests {
     [InlineData(200)]
     [InlineData(400)]
     [InlineData(403)]
-    public void UnauthorizedRejectsOtherStatuses(int status) {
+    public void UnauthorizedRejectsOtherStatuses(int status)
+    {
         Assert.Throws<WebAssertionException>(() => AssertFor(status).Unauthorized());
     }
 
     [Fact]
-    public void ForbiddenAccepts403() {
+    public void ForbiddenAccepts403()
+    {
         AssertFor(403).Forbidden();
     }
 
@@ -81,7 +90,8 @@ public class WebAssertThatTests {
     [InlineData(200)]
     [InlineData(401)]
     [InlineData(404)]
-    public void ForbiddenRejectsOtherStatuses(int status) {
+    public void ForbiddenRejectsOtherStatuses(int status)
+    {
         Assert.Throws<WebAssertionException>(() => AssertFor(status).Forbidden());
     }
 
@@ -90,7 +100,8 @@ public class WebAssertThatTests {
     /// the individual assertions above would still pass, so pin the pairing explicitly.
     /// </summary>
     [Fact]
-    public void UnauthorizedAndForbiddenAreNotInterchangeable() {
+    public void UnauthorizedAndForbiddenAreNotInterchangeable()
+    {
         Assert.Throws<WebAssertionException>(() => AssertFor(401).Forbidden());
         Assert.Throws<WebAssertionException>(() => AssertFor(403).Unauthorized());
     }

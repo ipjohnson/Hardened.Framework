@@ -9,6 +9,7 @@ namespace Hardened.Aws.Lambda.Sns;
 // cannot serve both, and case-insensitive matching serves both without one.
 [JsonSourceGenerationOptions(
     PropertyNameCaseInsensitive = true,
-    GenerationMode = JsonSourceGenerationMode.Metadata)]
+    GenerationMode = JsonSourceGenerationMode.Metadata
+)]
 [JsonSerializable(typeof(SNSEvent))]
 internal partial class SnsSerializerContext : JsonSerializerContext;

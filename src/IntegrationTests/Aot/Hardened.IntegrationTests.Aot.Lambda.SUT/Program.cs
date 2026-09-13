@@ -17,14 +17,16 @@ using Microsoft.Extensions.Logging;
 // the real bootstrap talking real HTTP. AWS_LAMBDA_DOTNET_DEBUG_RUN_ONCE makes it serve one
 // invocation and return, so the binary exits on its own and CI can read what it printed.
 
-var stub = new RuntimeApiStub("""
+var stub = new RuntimeApiStub(
+    """
     {"Records":[{
       "messageId":"aot-1","receiptHandle":"receipt-1",
       "body":"{\"id\":\"a-1\",\"quantity\":7}",
       "eventSource":"aws:sqs",
       "eventSourceARN":"arn:aws:sqs:us-east-1:123456789012:orders-new",
       "awsRegion":"us-east-1"}]}
-    """);
+    """
+);
 
 Environment.SetEnvironmentVariable("AWS_LAMBDA_RUNTIME_API", stub.Address);
 Environment.SetEnvironmentVariable("AWS_LAMBDA_DOTNET_DEBUG_RUN_ONCE", "true");
@@ -52,9 +54,9 @@ await HardenedLambdaBootstrap.Run(services.BuildServiceProvider());
 
 // Printed rather than logged so the CI probe can read it without depending on log configuration.
 // The handler's own view, not the stub's: it says the payload reached a bound Order.
-Console.WriteLine(sink.Last is { } order
-    ? $"HANDLED {order.Id} x{order.Quantity}"
-    : "HANDLED nothing");
+Console.WriteLine(
+    sink.Last is { } order ? $"HANDLED {order.Id} x{order.Quantity}" : "HANDLED nothing"
+);
 
 /// <summary>
 /// The three routes of the Lambda Runtime API, over <see cref="HttpListener"/>.
@@ -64,11 +66,13 @@ Console.WriteLine(sink.Last is { } order
 /// executable and that one lives in a test project, so linking them would put xunit in an AOT
 /// binary. The protocol is small enough that a second copy is cheaper than the coupling.
 /// </remarks>
-internal sealed class RuntimeApiStub {
+internal sealed class RuntimeApiStub
+{
     private readonly HttpListener _listener = new();
     private readonly string _payload;
 
-    public RuntimeApiStub(string payload) {
+    public RuntimeApiStub(string payload)
+    {
         _payload = payload;
         Address = "127.0.0.1:" + FreePort();
 
@@ -81,26 +85,33 @@ internal sealed class RuntimeApiStub {
     /// <summary>What <c>AWS_LAMBDA_RUNTIME_API</c> is set to: host and port, no scheme.</summary>
     public string Address { get; }
 
-    private async Task Serve() {
-        while (true) {
+    private async Task Serve()
+    {
+        while (true)
+        {
             HttpListenerContext context;
 
-            try {
+            try
+            {
                 context = await _listener.GetContextAsync();
             }
-            catch (HttpListenerException) {
+            catch (HttpListenerException)
+            {
                 return;
             }
-            catch (ObjectDisposedException) {
+            catch (ObjectDisposedException)
+            {
                 return;
             }
 
             var path = context.Request.Url?.AbsolutePath ?? "";
 
-            if (path.EndsWith("/next", StringComparison.Ordinal)) {
+            if (path.EndsWith("/next", StringComparison.Ordinal))
+            {
                 Next(context.Response);
             }
-            else {
+            else
+            {
                 Accepted(context.Response);
             }
         }
@@ -110,14 +121,20 @@ internal sealed class RuntimeApiStub {
     /// The headers are the invocation. <c>Lambda-Runtime-Deadline-Ms</c> is what the host turns
     /// into a cancellation token, so serving it wrong makes every invocation look out of time.
     /// </remarks>
-    private void Next(HttpListenerResponse response) {
-        response.Headers.Add("Lambda-Runtime-Aws-Request-Id", "8476a536-e9f4-11e8-9739-2dfe598c3fcd");
+    private void Next(HttpListenerResponse response)
+    {
+        response.Headers.Add(
+            "Lambda-Runtime-Aws-Request-Id",
+            "8476a536-e9f4-11e8-9739-2dfe598c3fcd"
+        );
         response.Headers.Add(
             "Lambda-Runtime-Deadline-Ms",
-            DateTimeOffset.UtcNow.AddSeconds(30).ToUnixTimeMilliseconds().ToString());
+            DateTimeOffset.UtcNow.AddSeconds(30).ToUnixTimeMilliseconds().ToString()
+        );
         response.Headers.Add(
             "Lambda-Runtime-Invoked-Function-Arn",
-            "arn:aws:lambda:us-east-1:123456789012:function:orders-function");
+            "arn:aws:lambda:us-east-1:123456789012:function:orders-function"
+        );
 
         Write(response, _payload);
     }
@@ -126,14 +143,16 @@ internal sealed class RuntimeApiStub {
     /// The body matters. The runtime client deserializes the acknowledgement, so an empty 202 fails
     /// with "could not deserialize the response body".
     /// </remarks>
-    private static void Accepted(HttpListenerResponse response) {
+    private static void Accepted(HttpListenerResponse response)
+    {
         response.StatusCode = 202;
         response.ContentType = "application/json";
 
         Write(response, """{"status":"OK"}""");
     }
 
-    private static void Write(HttpListenerResponse response, string body) {
+    private static void Write(HttpListenerResponse response, string body)
+    {
         var bytes = Encoding.UTF8.GetBytes(body);
 
         response.ContentLength64 = bytes.Length;
@@ -141,7 +160,8 @@ internal sealed class RuntimeApiStub {
         response.OutputStream.Close();
     }
 
-    private static int FreePort() {
+    private static int FreePort()
+    {
         var socket = new TcpListener(IPAddress.Loopback, 0);
 
         socket.Start();

@@ -25,8 +25,10 @@ namespace Hardened.Web.Runtime.Responses;
 /// </remarks>
 [HttpStatus(404)]
 public sealed record NotFound<T>(T Body)
-    : IHttpStatusResponse, ICarriesResponseBody, IResponseExpectation<NotFound<T>> {
-
+    : IHttpStatusResponse,
+        ICarriesResponseBody,
+        IResponseExpectation<NotFound<T>>
+{
     public string Type => ProblemTypes.NotFound;
 
     public string Title => "Not Found";
@@ -38,6 +40,7 @@ public sealed record NotFound<T>(T Body)
     object? ICarriesResponseBody.Body => Body;
 
     public static NotFound<T> FromResponse(
-        object? body, IReadOnlyDictionary<string, string> headers) =>
-        new(ResponseExpectation.Body<T>(body));
+        object? body,
+        IReadOnlyDictionary<string, string> headers
+    ) => new(ResponseExpectation.Body<T>(body));
 }

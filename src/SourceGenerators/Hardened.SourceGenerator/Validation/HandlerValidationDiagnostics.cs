@@ -2,8 +2,8 @@
 
 namespace Hardened.SourceGenerator.Validation;
 
-public static class HandlerValidationDiagnostics {
-
+public static class HandlerValidationDiagnostics
+{
     /// <summary>
     /// A <c>When</c> or <c>Unless</c> on a constraint written on a handler's parameter.
     /// </summary>
@@ -43,24 +43,27 @@ public static class HandlerValidationDiagnostics {
     /// the field, and the neighbour predates the rule being enforced here.
     /// </para>
     /// </remarks>
-    public static DiagnosticDescriptor NoValidationGenerator() => new(
-        "HRDV006",
-        "Constraints are declared and nothing compiles them",
-        "'{0}' declares constraints and nothing in this project compiles them into a validator, " +
-        "so none of them is enforced. Reference Hardened.Validation.SourceGenerator as an " +
-        "analyzer, or remove the constraint attributes if this assembly is not meant to enforce " +
-        "them.",
-        "Hardened.Validation",
-        DiagnosticSeverity.Warning,
-        isEnabledByDefault: true);
+    public static DiagnosticDescriptor NoValidationGenerator() =>
+        new(
+            "HRDV006",
+            "Constraints are declared and nothing compiles them",
+            "'{0}' declares constraints and nothing in this project compiles them into a validator, "
+                + "so none of them is enforced. Reference Hardened.Validation.SourceGenerator as an "
+                + "analyzer, or remove the constraint attributes if this assembly is not meant to enforce "
+                + "them.",
+            "Hardened.Validation",
+            DiagnosticSeverity.Warning,
+            isEnabledByDefault: true
+        );
 
     public static readonly DiagnosticDescriptor ConditionOnParameterConstraint = new(
         "HRDV005",
         "A condition on a parameter constraint names a model member",
-        "'{0}' on [{1}] for parameter '{2}' names a member of the model the constraint sits on, and " +
-        "a handler parameter sits on no model. Remove the condition, or move the constraint onto a " +
-        "property of a model type where the member it names is declared.",
+        "'{0}' on [{1}] for parameter '{2}' names a member of the model the constraint sits on, and "
+            + "a handler parameter sits on no model. Remove the condition, or move the constraint onto a "
+            + "property of a model type where the member it names is declared.",
         "Hardened.Validation",
         DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+        isEnabledByDefault: true
+    );
 }

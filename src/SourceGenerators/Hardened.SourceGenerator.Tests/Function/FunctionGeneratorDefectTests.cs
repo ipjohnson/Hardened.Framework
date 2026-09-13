@@ -22,8 +22,8 @@ namespace Hardened.SourceGenerator.Tests.Function;
 /// skipped the single bad handler instead of throwing.
 /// </para>
 /// </summary>
-public class FunctionGeneratorDefectTests {
-
+public class FunctionGeneratorDefectTests
+{
     /// <summary>
     /// Two handlers that resolve to the same function name collide on the generated file name, and
     /// the collision takes down the entire generator.
@@ -43,8 +43,10 @@ public class FunctionGeneratorDefectTests {
     /// </para>
     /// </summary>
     [Fact]
-    public void TwoHandlersWithTheSameFunctionNameCostTheWholeCompilationItsGeneratedCode() {
-        var result = FunctionGeneratorHarness.Generate("""
+    public void TwoHandlersWithTheSameFunctionNameCostTheWholeCompilationItsGeneratedCode()
+    {
+        var result = FunctionGeneratorHarness.Generate(
+            """
             using Hardened.Requests.Abstract.Attributes;
             using Hardened.Shared.Runtime.Attributes;
 
@@ -60,7 +62,8 @@ public class FunctionGeneratorDefectTests {
             public class InvoiceFunctions {
                 [HardenedFunction] public void Process() { }
             }
-            """);
+            """
+        );
 
         // Observed 2026-08-12. The right answer is two invokers and a provider; what happens is
         // nothing at all, including for the handler that had no name clash of its own.
@@ -77,12 +80,17 @@ public class FunctionGeneratorDefectTests {
     /// notice — and the form a rename can introduce without touching either handler's body.
     /// </summary>
     [Fact]
-    public void TwoHandlersSharingAnExplicitFunctionNameCollideTheSameWay() {
-        var result = FunctionGeneratorHarness.Generate(FunctionGeneratorHarness.Application("""
-                [HardenedFunction("duplicate")] public void One() { }
+    public void TwoHandlersSharingAnExplicitFunctionNameCollideTheSameWay()
+    {
+        var result = FunctionGeneratorHarness.Generate(
+            FunctionGeneratorHarness.Application(
+                """
+                    [HardenedFunction("duplicate")] public void One() { }
 
-                [HardenedFunction("duplicate")] public void Two() { }
-            """));
+                    [HardenedFunction("duplicate")] public void Two() { }
+                """
+            )
+        );
 
         // Observed 2026-08-12.
         Assert.Empty(result.GeneratedSources);
@@ -110,14 +118,17 @@ public class FunctionGeneratorDefectTests {
     /// </para>
     /// </summary>
     [Fact]
-    public void AHandlerInTheGlobalNamespaceCrashesTheGenerator() {
-        var result = FunctionGeneratorHarness.Generate("""
+    public void AHandlerInTheGlobalNamespaceCrashesTheGenerator()
+    {
+        var result = FunctionGeneratorHarness.Generate(
+            """
             using Hardened.Requests.Abstract.Attributes;
 
             public class GlobalFunctions {
                 [HardenedFunction] public void Process() { }
             }
-            """);
+            """
+        );
 
         // Observed 2026-08-12. The right answer is either a generated handler or a diagnostic
         // naming the unsupported layout; what happens is an unhandled exception and no output.
@@ -150,11 +161,17 @@ public class FunctionGeneratorDefectTests {
     /// </para>
     /// </summary>
     [Fact]
-    public void AFromContextParameterWithAnUnresolvableTypeCrashesTheGenerator() {
-        var result = FunctionGeneratorHarness.Generate(FunctionGeneratorHarness.Application("""
-                [HardenedFunction]
-                public void Process([FromContext("id")] NotDeclaredAnywhere id) { }
-            """, FunctionGeneratorHarness.FromContextAttributeDeclaration));
+    public void AFromContextParameterWithAnUnresolvableTypeCrashesTheGenerator()
+    {
+        var result = FunctionGeneratorHarness.Generate(
+            FunctionGeneratorHarness.Application(
+                """
+                    [HardenedFunction]
+                    public void Process([FromContext("id")] NotDeclaredAnywhere id) { }
+                """,
+                FunctionGeneratorHarness.FromContextAttributeDeclaration
+            )
+        );
 
         // Observed 2026-08-12. The right answer is the ParameterBindType.Unresolved path: record
         // the parameter, skip this handler, report HOAG010.
@@ -177,27 +194,37 @@ public class FunctionGeneratorDefectTests {
     /// </para>
     /// </summary>
     [Fact]
-    public void AnUnresolvableParameterLeavesTheProviderReferencingAHandlerThatWasNeverGenerated() {
-        var result = FunctionGeneratorHarness.Generate(FunctionGeneratorHarness.Application("""
-                [HardenedFunction]
-                public void Process(NotDeclaredAnywhere model) { }
-            """));
+    public void AnUnresolvableParameterLeavesTheProviderReferencingAHandlerThatWasNeverGenerated()
+    {
+        var result = FunctionGeneratorHarness.Generate(
+            FunctionGeneratorHarness.Application(
+                """
+                    [HardenedFunction]
+                    public void Process(NotDeclaredAnywhere model) { }
+                """
+            )
+        );
 
         // The invoker is skipped — the binding generator has no case for Unresolved and throws,
         // which SourceGeneratorWrapper turns into an Error-severity diagnostic.
         Assert.DoesNotContain("INVOKE.Process.FunctionHandler.cs", result.GeneratedSources.Keys);
 
-        Assert.Contains(result.GeneratorDiagnostics,
-            diagnostic => diagnostic.Id == "HardenedException" &&
-                          diagnostic.GetMessage().Contains("Binding not supported yet: Unresolved"));
+        Assert.Contains(
+            result.GeneratorDiagnostics,
+            diagnostic =>
+                diagnostic.Id == "HardenedException"
+                && diagnostic.GetMessage().Contains("Binding not supported yet: Unresolved")
+        );
 
         // Observed 2026-08-12: the provider is emitted anyway and still names the missing type.
         var provider = result.SourceContaining("FunctionHandlers.cs");
 
         Assert.Contains("global::TestApp.Generated.TestFunctions_Process", provider);
 
-        Assert.Contains(result.Errors,
-            error => error.Id == "CS0234" && error.GetMessage().Contains("Generated"));
+        Assert.Contains(
+            result.Errors,
+            error => error.Id == "CS0234" && error.GetMessage().Contains("Generated")
+        );
     }
 
     /// <summary>
@@ -217,12 +244,19 @@ public class FunctionGeneratorDefectTests {
     /// </para>
     /// </summary>
     [Fact]
-    public void OnlyTheFirstUnnamedHandlerIsReachableFromTheProvider() {
-        var result = FunctionGeneratorHarness.Generate(FunctionGeneratorHarness.Application("""
-                [HardenedFunction] public void First() { }
+    public void OnlyTheFirstUnnamedHandlerIsReachableFromTheProvider()
+    {
+        var result = FunctionGeneratorHarness
+            .Generate(
+                FunctionGeneratorHarness.Application(
+                    """
+                        [HardenedFunction] public void First() { }
 
-                [HardenedFunction] public void Second() { }
-            """)).AssertNoErrors();
+                        [HardenedFunction] public void Second() { }
+                    """
+                )
+            )
+            .AssertNoErrors();
 
         // Both invokers are generated and both compile.
         Assert.Contains("INVOKE.First.FunctionHandler.cs", result.GeneratedSources.Keys);
@@ -248,15 +282,25 @@ public class FunctionGeneratorDefectTests {
     /// </para>
     /// </summary>
     [Fact]
-    public void AnExplicitNameMatchingTheMethodNameIsTreatedAsUnnamed() {
-        var provider = FunctionGeneratorHarness.Generate(FunctionGeneratorHarness.Application("""
-                [HardenedFunction("Process")]
-                public void Process() { }
-            """)).AssertNoErrors().SourceContaining("FunctionHandlers.cs");
+    public void AnExplicitNameMatchingTheMethodNameIsTreatedAsUnnamed()
+    {
+        var provider = FunctionGeneratorHarness
+            .Generate(
+                FunctionGeneratorHarness.Application(
+                    """
+                        [HardenedFunction("Process")]
+                        public void Process() { }
+                    """
+                )
+            )
+            .AssertNoErrors()
+            .SourceContaining("FunctionHandlers.cs");
 
         // Observed 2026-08-12: a catch-all return, not a switch on "Process".
         Assert.DoesNotContain("switch (scheme + \" \" + path)", provider);
-        Assert.Contains("return new global::TestApp.Generated.TestFunctions_Process(serviceProvider);", provider);
+        Assert.Contains(
+            "return new global::TestApp.Generated.TestFunctions_Process(serviceProvider);",
+            provider
+        );
     }
-
 }

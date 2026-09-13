@@ -13,9 +13,10 @@ namespace Hardened.Requests.Runtime.Tests.Authorization;
 /// The shipped half of authentication: sources establish the caller, the middleware puts the
 /// answer on the context ahead of everything that judges it.
 /// </summary>
-public class AuthenticationMiddlewareTests {
-
-    private static IExecutionChain Chain(IExecutionContext context) {
+public class AuthenticationMiddlewareTests
+{
+    private static IExecutionChain Chain(IExecutionContext context)
+    {
         var chain = Substitute.For<IExecutionChain>();
 
         chain.Context.Returns(context);
@@ -24,17 +25,20 @@ public class AuthenticationMiddlewareTests {
         return chain;
     }
 
-    private static IPrincipalSource Source(ICallerPrincipal? answer) {
+    private static IPrincipalSource Source(ICallerPrincipal? answer)
+    {
         var source = Substitute.For<IPrincipalSource>();
 
-        source.Authenticate(Arg.Any<IExecutionContext>())
+        source
+            .Authenticate(Arg.Any<IExecutionContext>())
             .Returns(new ValueTask<ICallerPrincipal?>(answer));
 
         return source;
     }
 
     [Fact]
-    public async Task TheFirstAnswerWins() {
+    public async Task TheFirstAnswerWins()
+    {
         var context = Pipeline.Context();
         var first = Source(new CallerPrincipal("test", subject: "one"));
         var second = Source(new CallerPrincipal("test", subject: "two"));
@@ -49,7 +53,8 @@ public class AuthenticationMiddlewareTests {
     /// Null means "this request carries nothing of mine", so the next source is asked.
     /// </summary>
     [Fact]
-    public async Task ANullAnswerFallsThroughToTheNextSource() {
+    public async Task ANullAnswerFallsThroughToTheNextSource()
+    {
         var context = Pipeline.Context();
         var declines = Source(null);
         var answers = Source(new CallerPrincipal("test", subject: "two"));
@@ -64,7 +69,8 @@ public class AuthenticationMiddlewareTests {
     /// handler chain - refusing it is authorization's decision, not this middleware's.
     /// </summary>
     [Fact]
-    public async Task NoAnswerLeavesTheAnonymousDefaultAndContinues() {
+    public async Task NoAnswerLeavesTheAnonymousDefaultAndContinues()
+    {
         var context = Pipeline.Context();
         var before = context.CallerPrincipal;
         var chain = Chain(context);
@@ -81,19 +87,24 @@ public class AuthenticationMiddlewareTests {
     /// middleware - both authorization positions included - judges the same caller.
     /// </summary>
     [Fact]
-    public async Task ThePrincipalIsOnTheContextBeforeTheChainContinues() {
+    public async Task ThePrincipalIsOnTheContextBeforeTheChainContinues()
+    {
         var context = Pipeline.Context();
         var chain = Chain(context);
         ICallerPrincipal? seen = null;
 
-        chain.Next().Returns(_ => {
-            seen = context.CallerPrincipal;
+        chain
+            .Next()
+            .Returns(_ =>
+            {
+                seen = context.CallerPrincipal;
 
-            return Task.CompletedTask;
-        });
+                return Task.CompletedTask;
+            });
 
-        await new AuthenticationMiddleware([Source(new CallerPrincipal("test", subject: "one"))])
-            .Execute(chain);
+        await new AuthenticationMiddleware([
+            Source(new CallerPrincipal("test", subject: "one")),
+        ]).Execute(chain);
 
         Assert.Equal("one", seen?.Subject);
     }
@@ -105,8 +116,9 @@ public class AuthenticationMiddlewareTests {
     /// which is what puts the holder there.
     /// </summary>
     private static IExecutionContext ApplicationContext() =>
-        Pipeline.Context(
-            configureServices: services => new HardenedRequestModule().ConfigureServices(services));
+        Pipeline.Context(configureServices: services =>
+            new HardenedRequestModule().ConfigureServices(services)
+        );
 
     private static ICallerPrincipal Resolved(IExecutionContext context) =>
         context.RequestServices.GetRequiredService<ICurrentCaller>().Principal;
@@ -118,11 +130,13 @@ public class AuthenticationMiddlewareTests {
     /// makes <see cref="ICurrentCaller"/> resolvable in one.
     /// </summary>
     [Fact]
-    public async Task TheEstablishedCallerIsPutOnTheRequestScope() {
+    public async Task TheEstablishedCallerIsPutOnTheRequestScope()
+    {
         var context = ApplicationContext();
 
-        await new AuthenticationMiddleware([Source(new CallerPrincipal("test", subject: "ada"))])
-            .Execute(Chain(context));
+        await new AuthenticationMiddleware([
+            Source(new CallerPrincipal("test", subject: "ada")),
+        ]).Execute(Chain(context));
 
         Assert.Equal("ada", Resolved(context).Subject);
     }
@@ -133,7 +147,8 @@ public class AuthenticationMiddlewareTests {
     /// null.
     /// </summary>
     [Fact]
-    public async Task ARequestNoSourceAnsweredForReadsTheAnonymousPrincipal() {
+    public async Task ARequestNoSourceAnsweredForReadsTheAnonymousPrincipal()
+    {
         var context = ApplicationContext();
 
         await new AuthenticationMiddleware([Source(null)]).Execute(Chain(context));
@@ -146,12 +161,14 @@ public class AuthenticationMiddlewareTests {
     /// One request's caller is not another's, which is the whole reason the holder is scoped.
     /// </summary>
     [Fact]
-    public async Task OneRequestsCallerDoesNotReachAnother() {
+    public async Task OneRequestsCallerDoesNotReachAnother()
+    {
         var authenticated = ApplicationContext();
         var untouched = ApplicationContext();
 
-        await new AuthenticationMiddleware([Source(new CallerPrincipal("test", subject: "ada"))])
-            .Execute(Chain(authenticated));
+        await new AuthenticationMiddleware([
+            Source(new CallerPrincipal("test", subject: "ada")),
+        ]).Execute(Chain(authenticated));
 
         Assert.Equal("ada", Resolved(authenticated).Subject);
         Assert.Same(AnonymousCallerPrincipal.Instance, Resolved(untouched));
@@ -162,11 +179,13 @@ public class AuthenticationMiddlewareTests {
     /// module's registrations still has a caller to establish.
     /// </summary>
     [Fact]
-    public async Task AContextWithoutTheHolderStillAuthenticates() {
+    public async Task AContextWithoutTheHolderStillAuthenticates()
+    {
         var context = Pipeline.Context();
 
-        await new AuthenticationMiddleware([Source(new CallerPrincipal("test", subject: "ada"))])
-            .Execute(Chain(context));
+        await new AuthenticationMiddleware([
+            Source(new CallerPrincipal("test", subject: "ada")),
+        ]).Execute(Chain(context));
 
         Assert.Equal("ada", context.CallerPrincipal.Subject);
     }

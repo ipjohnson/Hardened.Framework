@@ -1,9 +1,9 @@
 using Hardened.Requests.Abstract.Middleware;
 using Hardened.Web.Kestrel.Runtime.Impl;
 using Hardened.Web.Runtime.Handlers;
+using Hardened.Web.Runtime.Responses;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.Extensions.DependencyInjection;
-using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Benchmarks.Infrastructure;
 
@@ -27,13 +27,15 @@ namespace Hardened.Benchmarks.Infrastructure;
 /// genuine behavioural difference between the two hosts rather than harness overhead, so it is
 /// left in.
 /// </summary>
-public sealed class HardenedFeatureHarness : IPipelineHarness {
+public sealed class HardenedFeatureHarness : IPipelineHarness
+{
     private readonly ServiceProvider _provider;
     private readonly IHttpApplication<HardenedHttpApplication.RequestContext> _application;
 
     public string Name => "hardened-features";
 
-    public HardenedFeatureHarness() {
+    public HardenedFeatureHarness()
+    {
         _provider = HardenedAppFactory.BuildProvider(terminalHost: true);
         HardenedAppFactory.RunStartup(_provider);
 
@@ -41,20 +43,24 @@ public sealed class HardenedFeatureHarness : IPipelineHarness {
         var handler = _provider.GetRequiredService<IWebExecutionHandlerService>();
         _provider.GetRequiredService<IMiddlewareService>().Use(_ => handler);
 
-        _application =
-            _provider.GetRequiredService<IHttpApplication<HardenedHttpApplication.RequestContext>>();
+        _application = _provider.GetRequiredService<
+            IHttpApplication<HardenedHttpApplication.RequestContext>
+        >();
     }
 
-    public async Task<int> Execute(RequestScenario scenario, MemoryStream responseBody) {
+    public async Task<int> Execute(RequestScenario scenario, MemoryStream responseBody)
+    {
         var features = HttpContextFactory.CreateFeatures(scenario, responseBody);
         var context = _application.CreateContext(features);
 
-        try {
+        try
+        {
             await _application.ProcessRequestAsync(context);
 
             return context.Execution.Response.Status ?? 200;
         }
-        finally {
+        finally
+        {
             _application.DisposeContext(context, null);
         }
     }

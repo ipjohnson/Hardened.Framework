@@ -15,10 +15,12 @@ namespace Hardened.Requests.Runtime.Tests.Serializer;
 /// Turning a thrown exception into a response. The converter decides the status and the model;
 /// this serializer is what actually puts them on the response and sends them.
 /// </summary>
-public class ExceptionResponseSerializerTests {
-
-    private class Fixture {
-        public ISerializationLocatorService Locator { get; } = Substitute.For<ISerializationLocatorService>();
+public class ExceptionResponseSerializerTests
+{
+    private class Fixture
+    {
+        public ISerializationLocatorService Locator { get; } =
+            Substitute.For<ISerializationLocatorService>();
 
         public IExceptionToModelConverter Converter { get; } =
             Substitute.For<IExceptionToModelConverter>();
@@ -27,7 +29,8 @@ public class ExceptionResponseSerializerTests {
 
         public IRequestLogger Logger { get; } = Substitute.For<IRequestLogger>();
 
-        public Fixture() {
+        public Fixture()
+        {
             Locator.FindResponseSerializer(Arg.Any<IExecutionContext>()).Returns(Serializer);
             Serializer.SerializeResponse(Arg.Any<IExecutionContext>()).Returns(Task.CompletedTask);
         }
@@ -43,11 +46,13 @@ public class ExceptionResponseSerializerTests {
     [InlineData(404)]
     [InlineData(409)]
     [InlineData(500)]
-    public async Task TheConvertersStatusIsPutOnTheResponse(int status) {
+    public async Task TheConvertersStatusIsPutOnTheResponse(int status)
+    {
         var fixture = new Fixture();
         var context = Pipeline.Context();
 
-        fixture.Converter.ConvertExceptionToModel(context, Arg.Any<Exception>())
+        fixture
+            .Converter.ConvertExceptionToModel(context, Arg.Any<Exception>())
             .Returns((status, new ErrorModel()));
 
         await fixture.Subject.Handle(context, new Exception("failed"));
@@ -60,14 +65,17 @@ public class ExceptionResponseSerializerTests {
     /// serialized alongside the error that interrupted it.
     /// </summary>
     [Fact]
-    public async Task TheErrorModelReplacesThePartialResponseValue() {
+    public async Task TheErrorModelReplacesThePartialResponseValue()
+    {
         var fixture = new Fixture();
         var context = Pipeline.Context();
         var model = new ErrorModel { Type = "InvalidOperationException", Message = "failed" };
 
         context.Response.ResponseValue = "half an answer";
 
-        fixture.Converter.ConvertExceptionToModel(context, Arg.Any<Exception>()).Returns((500, model));
+        fixture
+            .Converter.ConvertExceptionToModel(context, Arg.Any<Exception>())
+            .Returns((500, model));
 
         await fixture.Subject.Handle(context, new InvalidOperationException("failed"));
 
@@ -80,11 +88,13 @@ public class ExceptionResponseSerializerTests {
     /// too.
     /// </summary>
     [Fact]
-    public async Task TheErrorGoesOutThroughTheNegotiatedResponseSerializer() {
+    public async Task TheErrorGoesOutThroughTheNegotiatedResponseSerializer()
+    {
         var fixture = new Fixture();
         var context = Pipeline.Context();
 
-        fixture.Converter.ConvertExceptionToModel(context, Arg.Any<Exception>())
+        fixture
+            .Converter.ConvertExceptionToModel(context, Arg.Any<Exception>())
             .Returns((500, new ErrorModel()));
 
         await fixture.Subject.Handle(context, new Exception("failed"));
@@ -98,12 +108,14 @@ public class ExceptionResponseSerializerTests {
     /// wrapped exception would be classified as the wrapper.
     /// </summary>
     [Fact]
-    public async Task TheExceptionReachesTheConverterUnwrapped() {
+    public async Task TheExceptionReachesTheConverterUnwrapped()
+    {
         var fixture = new Fixture();
         var context = Pipeline.Context();
         var failure = new BadRequestException("malformed");
 
-        fixture.Converter.ConvertExceptionToModel(Arg.Any<IExecutionContext>(), Arg.Any<Exception>())
+        fixture
+            .Converter.ConvertExceptionToModel(Arg.Any<IExecutionContext>(), Arg.Any<Exception>())
             .Returns((400, new ErrorModel()));
 
         await fixture.Subject.Handle(context, failure);
@@ -119,21 +131,27 @@ public class ExceptionResponseSerializerTests {
     /// thrown exception, which used to reach the caller as an empty 500.
     /// </summary>
     [Fact]
-    public async Task ACommittedTypeThatCannotCarryTheErrorIsRecommittedToJson() {
+    public async Task ACommittedTypeThatCannotCarryTheErrorIsRecommittedToJson()
+    {
         var fixture = new Fixture();
         var context = Pipeline.Context();
 
         context.Response.ContentType = "image/png";
 
-        fixture.Converter.ConvertExceptionToModel(context, Arg.Any<Exception>())
+        fixture
+            .Converter.ConvertExceptionToModel(context, Arg.Any<Exception>())
             .Returns((500, new ErrorModel()));
 
-        fixture.Locator.FindResponseSerializer(Arg.Any<IExecutionContext>())
-            .Returns(_ => {
-                if (context.Response.ContentType != KnownContentType.Json) {
+        fixture
+            .Locator.FindResponseSerializer(Arg.Any<IExecutionContext>())
+            .Returns(_ =>
+            {
+                if (context.Response.ContentType != KnownContentType.Json)
+                {
                     throw new ContentTypeNotProducibleException(
-                        "Response committed to content type 'image/png' but no registered " +
-                        "serializer can produce it.");
+                        "Response committed to content type 'image/png' but no registered "
+                            + "serializer can produce it."
+                    );
                 }
 
                 return fixture.Serializer;
@@ -150,13 +168,15 @@ public class ExceptionResponseSerializerTests {
     /// default: a caller of an XML operation still gets its errors in XML.
     /// </summary>
     [Fact]
-    public async Task AProducibleCommittedTypeKeepsTheError() {
+    public async Task AProducibleCommittedTypeKeepsTheError()
+    {
         var fixture = new Fixture();
         var context = Pipeline.Context();
 
         context.Response.ContentType = "application/xml";
 
-        fixture.Converter.ConvertExceptionToModel(context, Arg.Any<Exception>())
+        fixture
+            .Converter.ConvertExceptionToModel(context, Arg.Any<Exception>())
             .Returns((500, new ErrorModel()));
 
         await fixture.Subject.Handle(context, new InvalidOperationException("failed"));
@@ -170,18 +190,22 @@ public class ExceptionResponseSerializerTests {
     /// it keeps travelling to the 406 path rather than being flattened into a JSON error here.
     /// </summary>
     [Fact]
-    public async Task ANotAcceptableRefusalIsNotFlattenedToJson() {
+    public async Task ANotAcceptableRefusalIsNotFlattenedToJson()
+    {
         var fixture = new Fixture();
         var context = Pipeline.Context();
 
-        fixture.Converter.ConvertExceptionToModel(context, Arg.Any<Exception>())
+        fixture
+            .Converter.ConvertExceptionToModel(context, Arg.Any<Exception>())
             .Returns((400, new ErrorModel()));
 
-        fixture.Locator.FindResponseSerializer(Arg.Any<IExecutionContext>())
+        fixture
+            .Locator.FindResponseSerializer(Arg.Any<IExecutionContext>())
             .Returns(_ => throw new NotAcceptableException(new[] { "text/plain" }));
 
-        await Assert.ThrowsAsync<NotAcceptableException>(
-            () => fixture.Subject.Handle(context, new Exception("failed")));
+        await Assert.ThrowsAsync<NotAcceptableException>(() =>
+            fixture.Subject.Handle(context, new Exception("failed"))
+        );
     }
 
     // ------------------------------------------------------------------------------ logging
@@ -203,12 +227,14 @@ public class ExceptionResponseSerializerTests {
     /// </para>
     /// </remarks>
     [Fact]
-    public async Task TheFailureIsReportedToTheRequestLogger() {
+    public async Task TheFailureIsReportedToTheRequestLogger()
+    {
         var fixture = new Fixture();
         var context = Pipeline.Context();
         var failure = new InvalidOperationException("thrown by a filter");
 
-        fixture.Converter.ConvertExceptionToModel(context, Arg.Any<Exception>())
+        fixture
+            .Converter.ConvertExceptionToModel(context, Arg.Any<Exception>())
             .Returns((500, new ErrorModel()));
 
         await fixture.Subject.Handle(context, failure);
@@ -225,16 +251,20 @@ public class ExceptionResponseSerializerTests {
     /// would see whatever the response happened to carry before the converter decided.
     /// </remarks>
     [Fact]
-    public async Task TheStatusIsOnTheResponseBeforeTheFailureIsReported() {
+    public async Task TheStatusIsOnTheResponseBeforeTheFailureIsReported()
+    {
         var fixture = new Fixture();
         var context = Pipeline.Context();
         int? statusWhenLogged = null;
 
-        fixture.Converter.ConvertExceptionToModel(context, Arg.Any<Exception>())
+        fixture
+            .Converter.ConvertExceptionToModel(context, Arg.Any<Exception>())
             .Returns((404, new ErrorModel()));
 
-        fixture.Logger
-            .When(logger => logger.RequestFailed(Arg.Any<IExecutionContext>(), Arg.Any<Exception>()))
+        fixture
+            .Logger.When(logger =>
+                logger.RequestFailed(Arg.Any<IExecutionContext>(), Arg.Any<Exception>())
+            )
             .Do(_ => statusWhenLogged = context.Response.Status);
 
         await fixture.Subject.Handle(context, new Exception("missing"));
@@ -247,17 +277,21 @@ public class ExceptionResponseSerializerTests {
     /// one line rather than two.
     /// </summary>
     [Fact]
-    public async Task TheFailureIsReportedOnlyOnce() {
+    public async Task TheFailureIsReportedOnlyOnce()
+    {
         var fixture = new Fixture();
         var context = Pipeline.Context();
         var failure = new InvalidOperationException("handler failed");
 
-        fixture.Converter.ConvertExceptionToModel(context, Arg.Any<Exception>())
+        fixture
+            .Converter.ConvertExceptionToModel(context, Arg.Any<Exception>())
             .Returns((500, new ErrorModel()));
 
         await ControllerErrorHelper.HandleException(context, failure);
         await fixture.Subject.Handle(context, context.Response.ExceptionValue!);
 
-        fixture.Logger.Received(1).RequestFailed(Arg.Any<IExecutionContext>(), Arg.Any<Exception>());
+        fixture
+            .Logger.Received(1)
+            .RequestFailed(Arg.Any<IExecutionContext>(), Arg.Any<Exception>());
     }
 }

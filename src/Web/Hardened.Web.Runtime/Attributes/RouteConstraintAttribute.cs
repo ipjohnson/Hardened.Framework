@@ -27,8 +27,10 @@ namespace Hardened.Web.Runtime.Attributes;
 /// </para>
 /// </summary>
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = true, Inherited = false)]
-public class RouteConstraintAttribute : Attribute {
-    public RouteConstraintAttribute(string name) {
+public class RouteConstraintAttribute : Attribute
+{
+    public RouteConstraintAttribute(string name)
+    {
         Name = name;
     }
 

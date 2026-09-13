@@ -34,15 +34,16 @@ namespace Hardened.Web.Testing;
 /// when it fires.
 /// </para>
 /// </remarks>
-public abstract class SocketHost : ITestHost {
-
+public abstract class SocketHost : ITestHost
+{
     /// <summary>
     /// How long a server is given to stop gracefully before what is left is aborted. Settable,
     /// for a test of the bound itself; a suite has no reason to change it.
     /// </summary>
     public static TimeSpan StopBound { get; set; } = TimeSpan.FromSeconds(10);
 
-    private readonly SocketsHttpHandler _transport = new() {
+    private readonly SocketsHttpHandler _transport = new()
+    {
         AutomaticDecompression = DecompressionMethods.None,
         AllowAutoRedirect = false,
         UseCookies = false,
@@ -55,16 +56,21 @@ public abstract class SocketHost : ITestHost {
 
     /// <summary>The address the server bound, with the port the kernel picked. Available once started.</summary>
     public Uri BaseAddress =>
-        _address ?? throw new InvalidOperationException("The host has not started, so it has no address yet.");
+        _address
+        ?? throw new InvalidOperationException(
+            "The host has not started, so it has no address yet."
+        );
 
-    public async Task StartAsync(IServiceProvider provider, CancellationToken cancellationToken) {
+    public async Task StartAsync(IServiceProvider provider, CancellationToken cancellationToken)
+    {
         var bound = await Listen(provider, cancellationToken);
 
         // Kestrel reports what it bound as http://127.0.0.1:port; a base address needs the slash
         // for a relative path to resolve under it.
         _address = new Uri(bound.ToString().TrimEnd('/') + "/");
 
-        _client = new HttpClient(CreateHandler(credential: null)) {
+        _client = new HttpClient(CreateHandler(credential: null))
+        {
             BaseAddress = _address,
             Timeout = Timeout.InfiniteTimeSpan,
         };
@@ -75,7 +81,10 @@ public abstract class SocketHost : ITestHost {
     /// port the kernel picks, and returns the address it bound. Read back from the server after it
     /// started, never computed.
     /// </summary>
-    protected abstract Task<Uri> Listen(IServiceProvider provider, CancellationToken cancellationToken);
+    protected abstract Task<Uri> Listen(
+        IServiceProvider provider,
+        CancellationToken cancellationToken
+    );
 
     /// <summary>
     /// Stops the server: gracefully while <paramref name="bounded"/> holds, and by aborting what is
@@ -88,29 +97,45 @@ public abstract class SocketHost : ITestHost {
     /// what comes back for <see cref="LastResponse"/>, and sends through the host's one transport.
     /// </summary>
     public HttpMessageHandler CreateHandler(TestCredential? credential) =>
-        new CredentialHandler(credential) {
-            InnerHandler = new SocketRecordingHandler {
-                InnerHandler = new SharedTransportHandler(_transport)
-            }
+        new CredentialHandler(credential)
+        {
+            InnerHandler = new SocketRecordingHandler
+            {
+                InnerHandler = new SharedTransportHandler(_transport),
+            },
         };
 
-    public async Task<TestWebResponse> SendAsync(TestHostRequest request, CancellationToken cancellationToken) {
-        var client = _client ?? throw new InvalidOperationException("The host has not started, so there is nothing to send to.");
+    public async Task<TestWebResponse> SendAsync(
+        TestHostRequest request,
+        CancellationToken cancellationToken
+    )
+    {
+        var client =
+            _client
+            ?? throw new InvalidOperationException(
+                "The host has not started, so there is nothing to send to."
+            );
 
         request.Credential?.ApplyTo(request.Headers);
 
-        using var message = new HttpRequestMessage(new HttpMethod(request.Method), new Uri(BaseAddress, request.PathAndQuery));
+        using var message = new HttpRequestMessage(
+            new HttpMethod(request.Method),
+            new Uri(BaseAddress, request.PathAndQuery)
+        );
 
-        var hasBody = request.Body != Stream.Null && (!request.Body.CanSeek || request.Body.Length > 0);
+        var hasBody =
+            request.Body != Stream.Null && (!request.Body.CanSeek || request.Body.Length > 0);
         HttpContent? content = hasBody ? new StreamContent(request.Body) : null;
 
-        foreach (var header in request.Headers) {
+        foreach (var header in request.Headers)
+        {
             var values = header.Value.ToArray();
 
             // A content header is refused on the message and belongs on the content, which the
             // message's collection says by refusing it - the same call ToResponse makes the other
             // way. A content header on a request with no body gets an empty one to sit on.
-            if (message.Headers.TryAddWithoutValidation(header.Key, values)) {
+            if (message.Headers.TryAddWithoutValidation(header.Key, values))
+            {
                 continue;
             }
 
@@ -120,18 +145,29 @@ public abstract class SocketHost : ITestHost {
 
         message.Content = content;
 
-        using var response = await client.SendAsync(message, HttpCompletionOption.ResponseContentRead, cancellationToken);
+        using var response = await client.SendAsync(
+            message,
+            HttpCompletionOption.ResponseContentRead,
+            cancellationToken
+        );
 
         var bytes = await response.Content.ReadAsByteArrayAsync(cancellationToken);
 
-        return new TestWebResponse((int)response.StatusCode, Headers(response), new MemoryStream(bytes), failure: null);
+        return new TestWebResponse(
+            (int)response.StatusCode,
+            Headers(response),
+            new MemoryStream(bytes),
+            failure: null
+        );
     }
 
-    public async ValueTask DisposeAsync() {
+    public async ValueTask DisposeAsync()
+    {
         _client?.Dispose();
         _transport.Dispose();
 
-        if (_address != null) {
+        if (_address != null)
+        {
             using var bound = new CancellationTokenSource(StopBound);
 
             await StopAsync(bound.Token);
@@ -144,14 +180,17 @@ public abstract class SocketHost : ITestHost {
     /// Response headers and content headers together, matched without regard to case, because
     /// both are headers on the response and only the transport draws the line between them.
     /// </summary>
-    internal static Dictionary<string, StringValues> Headers(HttpResponseMessage response) {
+    internal static Dictionary<string, StringValues> Headers(HttpResponseMessage response)
+    {
         var headers = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var header in response.Headers) {
+        foreach (var header in response.Headers)
+        {
             headers[header.Key] = new StringValues(header.Value.ToArray());
         }
 
-        foreach (var header in response.Content.Headers) {
+        foreach (var header in response.Content.Headers)
+        {
             headers[header.Key] = new StringValues(header.Value.ToArray());
         }
 
@@ -159,25 +198,33 @@ public abstract class SocketHost : ITestHost {
     }
 
     /// <summary>The host's transport, in a client's chain without being owned by it.</summary>
-    private sealed class SharedTransportHandler : DelegatingHandler {
-        public SharedTransportHandler(HttpMessageHandler transport) : base(transport) {
-        }
+    private sealed class SharedTransportHandler : DelegatingHandler
+    {
+        public SharedTransportHandler(HttpMessageHandler transport)
+            : base(transport) { }
 
-        protected override void Dispose(bool disposing) {
+        protected override void Dispose(bool disposing)
+        {
             // Deliberately not the base, which would dispose the transport this host shares
             // between every client it built.
         }
     }
 
     /// <summary>The two test headers on a request that carries neither, the way the pipeline host applies them.</summary>
-    private sealed class CredentialHandler : DelegatingHandler {
+    private sealed class CredentialHandler : DelegatingHandler
+    {
         private readonly TestCredential? _credential;
 
-        public CredentialHandler(TestCredential? credential) {
+        public CredentialHandler(TestCredential? credential)
+        {
             _credential = credential;
         }
 
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) {
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken
+        )
+        {
             _credential?.ApplyTo(request);
 
             return base.SendAsync(request, cancellationToken);
@@ -189,12 +236,24 @@ public abstract class SocketHost : ITestHost {
     /// header, and the body - read to the end here and handed on as the same bytes, except for an
     /// event stream, which never ends and is left to stream with its body recorded as empty.
     /// </summary>
-    private sealed class SocketRecordingHandler : DelegatingHandler {
-        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) {
+    private sealed class SocketRecordingHandler : DelegatingHandler
+    {
+        protected override async Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken
+        )
+        {
             var response = await base.SendAsync(request, cancellationToken);
             var contentType = response.Content.Headers.ContentType?.ToString();
 
-            if (contentType != null && contentType.StartsWith(KnownContentType.EventStream, StringComparison.OrdinalIgnoreCase)) {
+            if (
+                contentType != null
+                && contentType.StartsWith(
+                    KnownContentType.EventStream,
+                    StringComparison.OrdinalIgnoreCase
+                )
+            )
+            {
                 LastResponse.Record((int)response.StatusCode, Headers(response), contentType, []);
 
                 return response;
@@ -203,7 +262,8 @@ public abstract class SocketHost : ITestHost {
             var bytes = await response.Content.ReadAsByteArrayAsync(cancellationToken);
             var buffered = new ByteArrayContent(bytes);
 
-            foreach (var header in response.Content.Headers) {
+            foreach (var header in response.Content.Headers)
+            {
                 buffered.Headers.TryAddWithoutValidation(header.Key, header.Value);
             }
 

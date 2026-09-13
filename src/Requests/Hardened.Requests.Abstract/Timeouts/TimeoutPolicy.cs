@@ -40,8 +40,9 @@ public sealed record TimeoutPolicy(
     int Milliseconds,
     int Status = TimeoutPolicy.DefaultStatus,
     int RetryAfterSeconds = 0,
-    bool Deadline = true) {
-
+    bool Deadline = true
+)
+{
     /// <summary>
     /// The budget an application-wide default takes when nothing states one. A bound rather than a
     /// target: the number worth writing is the one an operation's callers will actually wait.
@@ -65,12 +66,15 @@ public sealed record TimeoutPolicy(
     /// <see cref="Status"/> and <see cref="RetryAfterSeconds"/>: a convention that shortens a budget
     /// states all four, and a flag picked from the loser would be a pairing nothing declared.
     /// </remarks>
-    public static TimeoutPolicy? Tighter(TimeoutPolicy? left, TimeoutPolicy? right) {
-        if (left == null) {
+    public static TimeoutPolicy? Tighter(TimeoutPolicy? left, TimeoutPolicy? right)
+    {
+        if (left == null)
+        {
             return right;
         }
 
-        if (right == null) {
+        if (right == null)
+        {
             return left;
         }
 

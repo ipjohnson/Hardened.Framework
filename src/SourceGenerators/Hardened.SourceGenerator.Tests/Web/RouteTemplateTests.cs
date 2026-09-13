@@ -7,8 +7,8 @@ namespace Hardened.SourceGenerator.Tests.Web;
 /// A route read by something that is not the router: the document's path template, the constraint
 /// guarding one token, and whether there is any constraint at all.
 /// </summary>
-public class RouteTemplateTests {
-
+public class RouteTemplateTests
+{
     [Theory]
     [InlineData("/todos", "/todos")]
     [InlineData("/todos/{id}", "/todos/{id}")]
@@ -19,7 +19,8 @@ public class RouteTemplateTests {
     [InlineData("/a/{x:int}/b/{y:guid}/c", "/a/{x}/b/{y}/c")]
     // Malformed templates are the route token diagnostics' to report, not this one's to repair.
     [InlineData("/todos/{id", "/todos/{id")]
-    public void NamesOnlyKeepsTheNameAndNothingElse(string path, string template) {
+    public void NamesOnlyKeepsTheNameAndNothingElse(string path, string template)
+    {
         Assert.Equal(template, RouteTemplate.NamesOnly(path));
     }
 
@@ -35,7 +36,8 @@ public class RouteTemplateTests {
     // delete a 400 the shorter token can still answer.
     [InlineData("/todos/{identifier:int}", "id", "")]
     [InlineData("/todos/{id}/{identifier:int}", "id", "")]
-    public void ConstraintOnAnswersForOneToken(string path, string token, string chain) {
+    public void ConstraintOnAnswersForOneToken(string path, string token, string chain)
+    {
         Assert.Equal(chain, RouteTemplate.ConstraintOn(path, token));
     }
 
@@ -45,7 +47,8 @@ public class RouteTemplateTests {
     [InlineData("/todos/{id:int}", true)]
     [InlineData("/a/{x}/b/{y:guid}", true)]
     [InlineData("/todos/{id", false)]
-    public void HasConstraintAsksTheWholeRoute(string path, bool constrained) {
+    public void HasConstraintAsksTheWholeRoute(string path, bool constrained)
+    {
         Assert.Equal(constrained, RouteTemplate.HasConstraint(path));
     }
 }

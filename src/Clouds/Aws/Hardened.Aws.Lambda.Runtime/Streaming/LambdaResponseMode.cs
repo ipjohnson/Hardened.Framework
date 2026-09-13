@@ -15,7 +15,8 @@ namespace Hardened.Aws.Lambda.Runtime.Streaming;
 /// the function URL was created with.
 /// </para>
 /// </remarks>
-public enum LambdaResponseMode {
+public enum LambdaResponseMode
+{
     /// <summary>
     /// The body collects and the whole response goes back when the handler returns. The default,
     /// and the only mode an HTTP API or a <c>BUFFERED</c> function URL can serve.
@@ -26,5 +27,5 @@ public enum LambdaResponseMode {
     /// Every response travels as a stream: a buffered operation is one write and a close, a
     /// streaming one is a write per item. Requires a function URL in <c>RESPONSE_STREAM</c> mode.
     /// </summary>
-    Stream
+    Stream,
 }

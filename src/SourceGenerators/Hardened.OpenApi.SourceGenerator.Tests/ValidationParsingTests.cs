@@ -3,8 +3,10 @@ using Xunit;
 
 namespace Hardened.OpenApi.SourceGenerator.Tests;
 
-public class ValidationParsingTests {
-    private const string SpecWithValidation = @"
+public class ValidationParsingTests
+{
+    private const string SpecWithValidation =
+        @"
 openapi: '3.0.0'
 info:
   title: Test API
@@ -69,7 +71,8 @@ components:
 ";
 
     [Fact]
-    public void ParsesParameterValidationConstraints() {
+    public void ParsesParameterValidationConstraints()
+    {
         var model = OpenApiSpecParser.Parse(SpecWithValidation, "test", CancellationToken.None);
 
         Assert.NotNull(model);
@@ -89,7 +92,8 @@ components:
     }
 
     [Fact]
-    public void ParsesBodyPropertyValidationConstraints() {
+    public void ParsesBodyPropertyValidationConstraints()
+    {
         var model = OpenApiSpecParser.Parse(SpecWithValidation, "test", CancellationToken.None);
 
         Assert.NotNull(model);
@@ -114,7 +118,8 @@ components:
     }
 
     [Fact]
-    public void ParsesEnumValuesOnProperties() {
+    public void ParsesEnumValuesOnProperties()
+    {
         var model = OpenApiSpecParser.Parse(SpecWithValidation, "test", CancellationToken.None);
 
         Assert.NotNull(model);
@@ -127,7 +132,8 @@ components:
     }
 
     [Fact]
-    public void HasValidationConstraints_TrueForOperationsWithConstraints() {
+    public void HasValidationConstraints_TrueForOperationsWithConstraints()
+    {
         var model = OpenApiSpecParser.Parse(SpecWithValidation, "test", CancellationToken.None);
 
         Assert.NotNull(model);
@@ -136,8 +142,10 @@ components:
     }
 
     [Fact]
-    public void NoConstraints_HasValidationConstraints_False() {
-        const string simpleSpec = @"
+    public void NoConstraints_HasValidationConstraints_False()
+    {
+        const string simpleSpec =
+            @"
 openapi: '3.0.0'
 info:
   title: Simple API

@@ -15,10 +15,11 @@ namespace Hardened.Requests.Runtime.Tests.Configuration;
 /// order they were declared in. Order matters for the common security headers, where a later
 /// entry under the same name is meant to win.
 /// </remarks>
-public class ResponseHeaderConfigurationTests {
-
+public class ResponseHeaderConfigurationTests
+{
     [Fact]
-    public void AFreshConfigurationHasNothing() {
+    public void AFreshConfigurationHasNothing()
+    {
         var configuration = new ResponseHeaderConfiguration();
 
         Assert.Empty(configuration.CommonHeaders);
@@ -26,7 +27,8 @@ public class ResponseHeaderConfigurationTests {
     }
 
     [Fact]
-    public void AStringHeaderIsRecorded() {
+    public void AStringHeaderIsRecorded()
+    {
         var configuration = new ResponseHeaderConfiguration();
 
         configuration.Add("X-Frame-Options", "DENY");
@@ -38,7 +40,8 @@ public class ResponseHeaderConfigurationTests {
     }
 
     [Fact]
-    public void AMultiValueHeaderKeepsEveryValue() {
+    public void AMultiValueHeaderKeepsEveryValue()
+    {
         var configuration = new ResponseHeaderConfiguration();
 
         configuration.Add("Vary", new StringValues(["Accept", "Accept-Encoding"]));
@@ -54,7 +57,8 @@ public class ResponseHeaderConfigurationTests {
     /// Recorded rather than merged — the writer assigns in order, so the later entry wins.
     /// </summary>
     [Fact]
-    public void TheSameHeaderAddedTwiceIsRecordedTwiceInOrder() {
+    public void TheSameHeaderAddedTwiceIsRecordedTwiceInOrder()
+    {
         var configuration = new ResponseHeaderConfiguration();
 
         configuration.Add("X-Frame-Options", "SAMEORIGIN");
@@ -65,7 +69,8 @@ public class ResponseHeaderConfigurationTests {
     }
 
     [Fact]
-    public void AnActionIsRecorded() {
+    public void AnActionIsRecorded()
+    {
         var configuration = new ResponseHeaderConfiguration();
 
         configuration.Add(_ => { });
@@ -74,14 +79,16 @@ public class ResponseHeaderConfigurationTests {
     }
 
     [Fact]
-    public void ActionsKeepTheOrderTheyWereAddedIn() {
+    public void ActionsKeepTheOrderTheyWereAddedIn()
+    {
         var configuration = new ResponseHeaderConfiguration();
         var log = new List<string>();
 
         configuration.Add(_ => log.Add("first"));
         configuration.Add(_ => log.Add("second"));
 
-        foreach (var action in configuration.HeaderActions) {
+        foreach (var action in configuration.HeaderActions)
+        {
             action.Invoke(null!);
         }
 
@@ -89,7 +96,8 @@ public class ResponseHeaderConfigurationTests {
     }
 
     [Fact]
-    public void ActionsAndCommonHeadersAccumulateIndependently() {
+    public void ActionsAndCommonHeadersAccumulateIndependently()
+    {
         var configuration = new ResponseHeaderConfiguration();
 
         configuration.Add("X-Frame-Options", "DENY");
@@ -104,7 +112,8 @@ public class ResponseHeaderConfigurationTests {
     /// a copy taken when the configuration was built.
     /// </summary>
     [Fact]
-    public void TheInterfaceSeesLaterAdditions() {
+    public void TheInterfaceSeesLaterAdditions()
+    {
         var configuration = new ResponseHeaderConfiguration();
         IResponseHeaderConfiguration asInterface = configuration;
 

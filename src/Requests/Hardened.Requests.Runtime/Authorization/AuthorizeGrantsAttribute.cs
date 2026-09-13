@@ -46,15 +46,19 @@ namespace Hardened.Requests.Runtime.Authorization;
 /// </para>
 /// </remarks>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true)]
-public class AuthorizeGrantsAttribute : Attribute, IAuthorizeAttribute {
-    public AuthorizeGrantsAttribute(params string[] grants) {
-        if (grants is null || grants.Length == 0) {
+public class AuthorizeGrantsAttribute : Attribute, IAuthorizeAttribute
+{
+    public AuthorizeGrantsAttribute(params string[] grants)
+    {
+        if (grants is null || grants.Length == 0)
+        {
             throw new ArgumentException(
-                "[AuthorizeGrants] must name at least one grant. An empty one would require nothing " +
-                "while looking like it requires something, which is the one failure mode an " +
-                "authorization attribute must not have. Use [AllowAnonymous] to make an operation " +
-                "public on purpose.",
-                nameof(grants));
+                "[AuthorizeGrants] must name at least one grant. An empty one would require nothing "
+                    + "while looking like it requires something, which is the one failure mode an "
+                    + "authorization attribute must not have. Use [AllowAnonymous] to make an operation "
+                    + "public on purpose.",
+                nameof(grants)
+            );
         }
 
         Grants = grants;
@@ -91,7 +95,8 @@ public class AuthorizeGrantsAttribute : Attribute, IAuthorizeAttribute {
 /// belongs behind <see cref="IActivityAuthorizationHandler"/>, which exists for exactly that.
 /// </para>
 /// </remarks>
-public interface IGrantProvider {
+public interface IGrantProvider
+{
     /// <summary>Every grant in the set. All of them are required.</summary>
     string[] Grants { get; }
 }
@@ -141,8 +146,11 @@ public interface IGrantProvider {
 /// The set of grants required. Constructed once, when this attribute is.
 /// </typeparam>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true)]
-public class AuthorizeGrantsAttribute<T> : Attribute, IAuthorizeAttribute where T : IGrantProvider, new() {
-    public AuthorizeGrantsAttribute() {
+public class AuthorizeGrantsAttribute<T> : Attribute, IAuthorizeAttribute
+    where T : IGrantProvider, new()
+{
+    public AuthorizeGrantsAttribute()
+    {
         var grants = new T().Grants;
 
         // Checked rather than left to AllOf, which would throw about "a requirement" naming no
@@ -150,12 +158,14 @@ public class AuthorizeGrantsAttribute<T> : Attribute, IAuthorizeAttribute where 
         // runs in a generated handler's static initializer, so the exception a developer actually
         // sees is a TypeInitializationException wrapping whatever is thrown here; the inner message
         // is the only part naming the cause.
-        if (grants is null || grants.Length == 0) {
+        if (grants is null || grants.Length == 0)
+        {
             throw new ArgumentException(
-                $"[AuthorizeGrants<{typeof(T).Name}>] requires at least one grant, and " +
-                $"{typeof(T).Name}.Grants returned none. An empty set would require nothing while " +
-                "looking like it requires something, which is the one failure mode an authorization " +
-                "attribute must not have. Use [AllowAnonymous] to make an operation public on purpose.");
+                $"[AuthorizeGrants<{typeof(T).Name}>] requires at least one grant, and "
+                    + $"{typeof(T).Name}.Grants returned none. An empty set would require nothing while "
+                    + "looking like it requires something, which is the one failure mode an authorization "
+                    + "attribute must not have. Use [AllowAnonymous] to make an operation public on purpose."
+            );
         }
 
         Grants = grants;

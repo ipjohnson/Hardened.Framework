@@ -13,8 +13,8 @@ namespace Hardened.SourceGenerator.Models.Request;
 /// writer and broke the wrappers that take Models/ and OpenApiDocument/ without Web/ - a compile
 /// error only those wrappers could see.
 /// </remarks>
-public static class EnumVocabularies {
-
+public static class EnumVocabularies
+{
     /// <summary>
     /// Every enum reachable from a handler's request, response or declared response set,
     /// deduplicated by qualified name.
@@ -23,21 +23,25 @@ public static class EnumVocabularies {
     /// One enum reached from two handlers resolves to the same vocabulary - it is a property of
     /// the type, not of the route.
     /// </remarks>
-    public static IReadOnlyList<EnumVocabulary> Collect(IReadOnlyList<RequestHandlerModel> handlers) {
+    public static IReadOnlyList<EnumVocabulary> Collect(IReadOnlyList<RequestHandlerModel> handlers)
+    {
         var found = new SortedDictionary<string, EnumVocabulary>(System.StringComparer.Ordinal);
 
-        foreach (var handler in handlers) {
+        foreach (var handler in handlers)
+        {
             Add(found, handler.RequestSchema);
             Add(found, handler.ResponseSchema);
 
-            foreach (var response in handler.ResponseSchemas) {
+            foreach (var response in handler.ResponseSchemas)
+            {
                 Add(found, response.Schema);
             }
 
             // The parameter-bound enums, captured separately: a body walk cannot see them, and an
             // enum that appears only as a query, header or path value had no vocabulary at all -
             // no enum array in the document, no wire converter for the binder.
-            foreach (var vocabulary in handler.ParameterEnums) {
+            foreach (var vocabulary in handler.ParameterEnums)
+            {
                 found[vocabulary.QualifiedName] = vocabulary;
             }
         }
@@ -45,12 +49,15 @@ public static class EnumVocabularies {
         return found.Values.ToList();
     }
 
-    private static void Add(IDictionary<string, EnumVocabulary> found, HandlerSchema? schema) {
-        if (schema == null) {
+    private static void Add(IDictionary<string, EnumVocabulary> found, HandlerSchema? schema)
+    {
+        if (schema == null)
+        {
             return;
         }
 
-        foreach (var vocabulary in schema.Enums) {
+        foreach (var vocabulary in schema.Enums)
+        {
             found[vocabulary.QualifiedName] = vocabulary;
         }
     }

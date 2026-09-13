@@ -1,10 +1,10 @@
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Shared.Runtime.Metrics;
 using Hardened.Web.Kestrel.Runtime.Impl;
+using Hardened.Web.Runtime.Responses;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using Xunit;
-using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.Kestrel.Runtime.Tests.Impl;
 
@@ -15,19 +15,28 @@ namespace Hardened.Web.Kestrel.Runtime.Tests.Impl;
 /// a redirected response — and running the rest of the chain against the copy. Everything not
 /// replaced has to carry over, or the fork silently loses whatever was dropped.
 /// </summary>
-public class FeatureExecutionContextTests {
-
-    private static FeatureExecutionContext Context(ServerFeatures features, out IServiceProvider provider) {
+public class FeatureExecutionContextTests
+{
+    private static FeatureExecutionContext Context(
+        ServerFeatures features,
+        out IServiceProvider provider
+    )
+    {
         var services = new ServiceCollection();
         services.AddSingleton(Substitute.For<IKnownServices>());
         provider = services.BuildServiceProvider();
 
         return new FeatureExecutionContext(
-            provider, provider, features.Collection, Substitute.For<IMetricLogger>());
+            provider,
+            provider,
+            features.Collection,
+            Substitute.For<IMetricLogger>()
+        );
     }
 
     [Fact]
-    public void Constructor_ReadsTheRequestAndResponseFromTheFeatures() {
+    public void Constructor_ReadsTheRequestAndResponseFromTheFeatures()
+    {
         var features = new ServerFeatures("PUT", "/things/7");
 
         var context = Context(features, out var provider);
@@ -40,7 +49,8 @@ public class FeatureExecutionContextTests {
 
     /// <summary>A null argument keeps the current value — that is what makes a partial fork work.</summary>
     [Fact]
-    public void Clone_KeepsEverythingWhenNothingIsReplaced() {
+    public void Clone_KeepsEverythingWhenNothingIsReplaced()
+    {
         var context = Context(new ServerFeatures(), out _);
         context.HandlerInstance = "handler";
         context.HandlerInfo = Substitute.For<IExecutionRequestHandlerInfo>();
@@ -58,7 +68,8 @@ public class FeatureExecutionContextTests {
     }
 
     [Fact]
-    public void Clone_ReplacesOnlyWhatItIsGiven() {
+    public void Clone_ReplacesOnlyWhatItIsGiven()
+    {
         var context = Context(new ServerFeatures(), out _);
         var request = Substitute.For<IExecutionRequest>();
         var metrics = Substitute.For<IMetricLogger>();
@@ -76,12 +87,13 @@ public class FeatureExecutionContextTests {
     /// the connection waiting.
     /// </summary>
     [Fact]
-    public async Task Clone_StillCompletesTheServerResponse() {
+    public async Task Clone_StillCompletesTheServerResponse()
+    {
         var features = new ServerFeatures();
         var context = Context(features, out _);
 
-        var clone = (FeatureExecutionContext)context.Clone(
-            null, Substitute.For<IExecutionResponse>(), null, null);
+        var clone = (FeatureExecutionContext)
+            context.Clone(null, Substitute.For<IExecutionResponse>(), null, null);
 
         await clone.CompleteAsync();
 
@@ -89,7 +101,8 @@ public class FeatureExecutionContextTests {
     }
 
     [Fact]
-    public void Constructor_ThrowsWhenTheServerOmitsARequiredFeature() {
+    public void Constructor_ThrowsWhenTheServerOmitsARequiredFeature()
+    {
         var features = new ServerFeatures();
         features.Collection.Set<Microsoft.AspNetCore.Http.Features.IHttpResponseFeature>(null!);
 
@@ -97,8 +110,14 @@ public class FeatureExecutionContextTests {
         services.AddSingleton(Substitute.For<IKnownServices>());
         var provider = services.BuildServiceProvider();
 
-        Assert.Throws<InvalidOperationException>(() => new FeatureExecutionContext(
-            provider, provider, features.Collection, Substitute.For<IMetricLogger>()));
+        Assert.Throws<InvalidOperationException>(() =>
+            new FeatureExecutionContext(
+                provider,
+                provider,
+                features.Collection,
+                Substitute.For<IMetricLogger>()
+            )
+        );
     }
 
     /// <summary>
@@ -112,22 +131,33 @@ public class FeatureExecutionContextTests {
     [Theory]
     [InlineData("request")]
     [InlineData("responseBody")]
-    public void Constructor_NamesWhicheverRequiredFeatureIsMissing(string missing) {
+    public void Constructor_NamesWhicheverRequiredFeatureIsMissing(string missing)
+    {
         var features = new ServerFeatures();
 
-        if (missing == "request") {
+        if (missing == "request")
+        {
             features.Collection.Set<Microsoft.AspNetCore.Http.Features.IHttpRequestFeature>(null!);
         }
-        else {
-            features.Collection.Set<Microsoft.AspNetCore.Http.Features.IHttpResponseBodyFeature>(null!);
+        else
+        {
+            features.Collection.Set<Microsoft.AspNetCore.Http.Features.IHttpResponseBodyFeature>(
+                null!
+            );
         }
 
         var services = new ServiceCollection();
         services.AddSingleton(Substitute.For<IKnownServices>());
         var provider = services.BuildServiceProvider();
 
-        var failure = Assert.Throws<InvalidOperationException>(() => new FeatureExecutionContext(
-            provider, provider, features.Collection, Substitute.For<IMetricLogger>()));
+        var failure = Assert.Throws<InvalidOperationException>(() =>
+            new FeatureExecutionContext(
+                provider,
+                provider,
+                features.Collection,
+                Substitute.For<IMetricLogger>()
+            )
+        );
 
         Assert.Contains("did not supply", failure.Message);
     }
@@ -141,9 +171,12 @@ public class FeatureExecutionContextTests {
     /// cancelled, rather than one that is already cancelled and would abort every request.
     /// </remarks>
     [Fact]
-    public void NoLifetimeFeatureLeavesATokenThatCannotCancel() {
+    public void NoLifetimeFeatureLeavesATokenThatCannotCancel()
+    {
         var features = new ServerFeatures();
-        features.Collection.Set<Microsoft.AspNetCore.Http.Features.IHttpRequestLifetimeFeature>(null!);
+        features.Collection.Set<Microsoft.AspNetCore.Http.Features.IHttpRequestLifetimeFeature>(
+            null!
+        );
 
         var context = Context(features, out _);
 
@@ -153,7 +186,8 @@ public class FeatureExecutionContextTests {
 
     /// <summary>And with the feature, the token is the one the server will cancel.</summary>
     [Fact]
-    public void TheLifetimeFeatureSuppliesTheToken() {
+    public void TheLifetimeFeatureSuppliesTheToken()
+    {
         var features = new ServerFeatures();
 
         var context = Context(features, out _);

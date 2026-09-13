@@ -38,7 +38,8 @@ namespace Hardened.Requests.Abstract.Authorization;
 /// only the handler can make - whether this caller owns this row.
 /// </para>
 /// </remarks>
-public interface ICurrentCaller {
+public interface ICurrentCaller
+{
     /// <summary>
     /// The caller this request established, or <see cref="AnonymousCallerPrincipal.Instance"/>.
     /// </summary>

@@ -31,8 +31,10 @@ namespace Hardened.Requests.Abstract.Attributes;
 /// </code>
 /// </example>
 [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
-public class WritesContentTypeAttribute : Attribute {
-    public WritesContentTypeAttribute(params string[] contentTypes) {
+public class WritesContentTypeAttribute : Attribute
+{
+    public WritesContentTypeAttribute(params string[] contentTypes)
+    {
         ContentTypes = contentTypes;
     }
 

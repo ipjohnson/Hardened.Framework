@@ -20,10 +20,12 @@ namespace Hardened.Web.StaticContent;
 /// <c>ExecutionHelper</c>, not held here.
 /// </para>
 /// </remarks>
-public class StaticContentController {
+public class StaticContentController
+{
     private readonly IMemoryStreamPool _memoryStreamPool;
 
-    public StaticContentController(IMemoryStreamPool memoryStreamPool) {
+    public StaticContentController(IMemoryStreamPool memoryStreamPool)
+    {
         _memoryStreamPool = memoryStreamPool;
     }
 
@@ -49,12 +51,15 @@ public class StaticContentController {
         IExecutionContext context,
         IStaticContentSource source,
         IStaticContentConfiguration configuration,
-        string? cacheControl) {
+        string? cacheControl
+    )
+    {
         var location = source.Locate(context.Request.Path);
 
         var entry = location == null ? null : await source.Load(location.Value);
 
-        if (entry == null) {
+        if (entry == null)
+        {
             context.Response.Status = 404;
             context.Response.ShouldSerialize = false;
 
@@ -62,6 +67,11 @@ public class StaticContentController {
         }
 
         await StaticContentWriter.Write(
-            context, entry, configuration, _memoryStreamPool, cacheControl);
+            context,
+            entry,
+            configuration,
+            _memoryStreamPool,
+            cacheControl
+        );
     }
 }

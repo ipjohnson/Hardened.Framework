@@ -40,17 +40,20 @@ public partial class AotContext : JsonSerializerContext;
 /// binary that runs this has proved routing, binding and serialization, not only that ILC produced
 /// a file.
 /// </remarks>
-public class OrderHandlers {
+public class OrderHandlers
+{
     [Queue("orders-new")]
     public void OnOrder(Order order, IOrderSink sink) => sink.Seen(order);
 }
 
 /// <summary>Where the handler's result goes, so the entry point can print it.</summary>
-public interface IOrderSink {
+public interface IOrderSink
+{
     void Seen(Order order);
 }
 
-public class OrderSink : IOrderSink {
+public class OrderSink : IOrderSink
+{
     public Order? Last { get; private set; }
 
     public void Seen(Order order) => Last = order;

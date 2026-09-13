@@ -9,10 +9,11 @@ namespace Hardened.CloudEvents;
 /// that is merely not a CloudEvent is answered by <see cref="CloudEventReader.IsStructured"/> and
 /// <see cref="CloudEventReader.IsBinary"/> returning false, which costs no exception.
 /// </remarks>
-public sealed class CloudEventFormatException : Exception {
-    public CloudEventFormatException(string message) : base(message) {
-    }
+public sealed class CloudEventFormatException : Exception
+{
+    public CloudEventFormatException(string message)
+        : base(message) { }
 
-    public CloudEventFormatException(string message, Exception inner) : base(message, inner) {
-    }
+    public CloudEventFormatException(string message, Exception inner)
+        : base(message, inner) { }
 }

@@ -34,8 +34,8 @@ namespace Hardened.Requests.Abstract.Diagnostics;
 /// the requests that can also be found in the trace store.
 /// </para>
 /// </remarks>
-public static class CorrelationIdentifier {
-
+public static class CorrelationIdentifier
+{
     /// <summary>
     /// The current trace's id, or a new one when nothing is tracing.
     /// </summary>
@@ -44,12 +44,11 @@ public static class CorrelationIdentifier {
     /// before <c>IRequestLogger.RequestBegin</c> starts the span - so anything eager would mint an
     /// id and then be contradicted a moment later by a span carrying a different one.
     /// </remarks>
-    public static string ForCurrentTrace() {
+    public static string ForCurrentTrace()
+    {
         var current = Activity.Current;
 
-        return current is null
-            ? Fallback.NextId()
-            : current.TraceId.ToHexString();
+        return current is null ? Fallback.NextId() : current.TraceId.ToHexString();
     }
 
     /// <summary>
@@ -116,7 +115,8 @@ public static class CorrelationIdentifier {
     /// roughly when, and the log line still says exactly when.
     /// </para>
     /// </remarks>
-    private static class Fallback {
+    private static class Fallback
+    {
         /// <summary>Ids a thread reserves at a time.</summary>
         private const int BlockSize = 128;
 
@@ -141,21 +141,27 @@ public static class CorrelationIdentifier {
         private static long _next = BitConverter.ToInt64(RandomNumberGenerator.GetBytes(8));
 
         /// <summary>This thread's cursor into the block it holds.</summary>
-        [ThreadStatic] private static ulong _threadNext;
+        [ThreadStatic]
+        private static ulong _threadNext;
 
         /// <summary>
         /// Where this thread's block ends. Both start at zero, so a thread that has never asked for
         /// a block takes one on its first call without needing a flag of its own.
         /// </summary>
-        [ThreadStatic] private static ulong _threadCap;
+        [ThreadStatic]
+        private static ulong _threadCap;
 
-        public static string NextId() {
-            var millisecond = (ulong)(OriginMillisecond + Stopwatch.GetTimestamp() / TicksPerMillisecond);
+        public static string NextId()
+        {
+            var millisecond = (ulong)(
+                OriginMillisecond + Stopwatch.GetTimestamp() / TicksPerMillisecond
+            );
 
             // Equality rather than >=, because the cursor and the cap wrap together. Once per
             // counter cycle a block straddles ulong.MaxValue, and >= would take a fresh block on
             // every call for the length of that one.
-            if (_threadNext == _threadCap) {
+            if (_threadNext == _threadCap)
+            {
                 _threadNext = unchecked((ulong)(Interlocked.Add(ref _next, BlockSize) - BlockSize));
                 _threadCap = unchecked(_threadNext + BlockSize);
             }
@@ -164,26 +170,31 @@ public static class CorrelationIdentifier {
         }
 
         private static string Encode(ulong millisecond, ulong counter) =>
-            string.Create(13, (millisecond, counter), static (buffer, id) => {
-                var digits = Digits;
-                var count = id.counter;
+            string.Create(
+                13,
+                (millisecond, counter),
+                static (buffer, id) =>
+                {
+                    var digits = Digits;
+                    var count = id.counter;
 
-                buffer[12] = digits[(int)(count & 63)];
-                buffer[11] = digits[(int)((count >> 6) & 63)];
-                buffer[10] = digits[(int)((count >> 12) & 63)];
-                buffer[9] = digits[(int)((count >> 18) & 63)];
-                buffer[8] = digits[(int)((count >> 24) & 63)];
-                buffer[7] = digits[(int)((count >> 30) & 63)];
+                    buffer[12] = digits[(int)(count & 63)];
+                    buffer[11] = digits[(int)((count >> 6) & 63)];
+                    buffer[10] = digits[(int)((count >> 12) & 63)];
+                    buffer[9] = digits[(int)((count >> 18) & 63)];
+                    buffer[8] = digits[(int)((count >> 24) & 63)];
+                    buffer[7] = digits[(int)((count >> 30) & 63)];
 
-                var moment = id.millisecond;
+                    var moment = id.millisecond;
 
-                buffer[6] = digits[(int)(moment & 63)];
-                buffer[5] = digits[(int)((moment >> 6) & 63)];
-                buffer[4] = digits[(int)((moment >> 12) & 63)];
-                buffer[3] = digits[(int)((moment >> 18) & 63)];
-                buffer[2] = digits[(int)((moment >> 24) & 63)];
-                buffer[1] = digits[(int)((moment >> 30) & 63)];
-                buffer[0] = digits[(int)((moment >> 36) & 63)];
-            });
+                    buffer[6] = digits[(int)(moment & 63)];
+                    buffer[5] = digits[(int)((moment >> 6) & 63)];
+                    buffer[4] = digits[(int)((moment >> 12) & 63)];
+                    buffer[3] = digits[(int)((moment >> 18) & 63)];
+                    buffer[2] = digits[(int)((moment >> 24) & 63)];
+                    buffer[1] = digits[(int)((moment >> 30) & 63)];
+                    buffer[0] = digits[(int)((moment >> 36) & 63)];
+                }
+            );
     }
 }

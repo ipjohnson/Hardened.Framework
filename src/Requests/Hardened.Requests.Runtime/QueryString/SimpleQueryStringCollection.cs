@@ -12,29 +12,36 @@ namespace Hardened.Requests.Runtime.QueryString;
 /// The <see cref="IDictionary{TKey,TValue}"/> of strings constructor is the single-valued case,
 /// which is most of them and every test fixture.
 /// </remarks>
-public class SimpleQueryStringCollection : IQueryStringCollection {
+public class SimpleQueryStringCollection : IQueryStringCollection
+{
     private readonly IDictionary<string, StringValues> _queryParameters;
 
-    public SimpleQueryStringCollection(IDictionary<string, string>? queryParameters) {
+    public SimpleQueryStringCollection(IDictionary<string, string>? queryParameters)
+    {
         _queryParameters = new Dictionary<string, StringValues>();
 
-        if (queryParameters == null) {
+        if (queryParameters == null)
+        {
             return;
         }
 
-        foreach (var pair in queryParameters) {
+        foreach (var pair in queryParameters)
+        {
             _queryParameters[pair.Key] = pair.Value;
         }
     }
 
-    public SimpleQueryStringCollection(Dictionary<string, StringValues>? queryParameters) {
+    public SimpleQueryStringCollection(Dictionary<string, StringValues>? queryParameters)
+    {
         _queryParameters = queryParameters ?? new Dictionary<string, StringValues>();
     }
 
     public int Count => _queryParameters.Count;
 
-    public StringValues Get(string key) {
-        if (_queryParameters.TryGetValue(key, out var value)) {
+    public StringValues Get(string key)
+    {
+        if (_queryParameters.TryGetValue(key, out var value))
+        {
             return value;
         }
 

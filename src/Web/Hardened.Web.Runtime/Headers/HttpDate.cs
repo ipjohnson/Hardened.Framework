@@ -1,7 +1,6 @@
 using System.Globalization;
-using Microsoft.Extensions.Primitives;
-
 using Hardened.Requests.Abstract.Headers;
+using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Web.Runtime.Headers;
 
@@ -24,21 +23,23 @@ namespace Hardened.Web.Runtime.Headers;
 /// comparison applies to its own side first.
 /// </para>
 /// </remarks>
-public static class HttpDate {
-
+public static class HttpDate
+{
     private const string Fixed = "R";
 
     /// <summary>
     /// The three forms of §5.6.7, fixed-length first. asctime pads a single-digit day with a
     /// space, which is the inner whitespace the styles allow.
     /// </summary>
-    private static readonly string[] Forms = [
+    private static readonly string[] Forms =
+    [
         Fixed,
         "dddd, dd-MMM-yy HH:mm:ss 'GMT'",
-        "ddd MMM d HH:mm:ss yyyy"
+        "ddd MMM d HH:mm:ss yyyy",
     ];
 
-    private const DateTimeStyles Utc = DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal;
+    private const DateTimeStyles Utc =
+        DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal;
 
     private const DateTimeStyles Exact = Utc | DateTimeStyles.AllowWhiteSpaces;
 
@@ -56,7 +57,8 @@ public static class HttpDate {
     /// <paramref name="when"/> in UTC with anything below a second removed, which is all the
     /// header can carry.
     /// </summary>
-    public static DateTimeOffset Truncate(DateTimeOffset when) {
+    public static DateTimeOffset Truncate(DateTimeOffset when)
+    {
         var utc = when.ToUniversalTime();
 
         return utc.AddTicks(-(utc.Ticks % TimeSpan.TicksPerSecond));
@@ -70,20 +72,28 @@ public static class HttpDate {
     /// more than one, rather than pick between them; and a malformed date is ignored rather than
     /// refused, because a value nobody can parse says nothing about what the client holds.
     /// </remarks>
-    public static bool TryParse(StringValues value, out DateTimeOffset parsed) {
+    public static bool TryParse(StringValues value, out DateTimeOffset parsed)
+    {
         parsed = default;
 
-        if (value.Count != 1) {
+        if (value.Count != 1)
+        {
             return false;
         }
 
         var text = value[0];
 
-        if (string.IsNullOrWhiteSpace(text)) {
+        if (string.IsNullOrWhiteSpace(text))
+        {
             return false;
         }
 
-        return DateTimeOffset.TryParseExact(text, Forms, CultureInfo.InvariantCulture, Exact, out parsed) ||
-               DateTimeOffset.TryParse(text, CultureInfo.InvariantCulture, Utc, out parsed);
+        return DateTimeOffset.TryParseExact(
+                text,
+                Forms,
+                CultureInfo.InvariantCulture,
+                Exact,
+                out parsed
+            ) || DateTimeOffset.TryParse(text, CultureInfo.InvariantCulture, Utc, out parsed);
     }
 }

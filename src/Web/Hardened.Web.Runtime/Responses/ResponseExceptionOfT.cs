@@ -36,10 +36,12 @@ namespace Hardened.Web.Runtime.Responses;
 /// </para>
 /// </remarks>
 /// <typeparam name="T">The case type being thrown.</typeparam>
-public class ResponseException<T> : ResponseException where T : IHttpStatusResponse {
-
+public class ResponseException<T> : ResponseException
+    where T : IHttpStatusResponse
+{
     public ResponseException(T response, string? message = null)
-        : base(response, message) {
+        : base(response, message)
+    {
         Response = response;
     }
 
@@ -55,8 +57,8 @@ public class ResponseException<T> : ResponseException where T : IHttpStatusRespo
 /// <summary>
 /// Turns a response into the exception that carries it.
 /// </summary>
-public static class ResponseExceptionExtensions {
-
+public static class ResponseExceptionExtensions
+{
     /// <summary>
     /// <paramref name="response"/> as a thrown exception, keeping its type.
     /// </summary>
@@ -66,6 +68,5 @@ public static class ResponseExceptionExtensions {
     /// followed by a repetition of it, which is exactly the noise the built-in types exist to remove.
     /// </remarks>
     public static ResponseException<T> AsException<T>(this T response, string? message = null)
-        where T : IHttpStatusResponse =>
-        new(response, message);
+        where T : IHttpStatusResponse => new(response, message);
 }

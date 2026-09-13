@@ -18,25 +18,36 @@ namespace Hardened.SourceGenerator.Tests.Infrastructure;
 /// through a derived writer of the same shape as the shipped ones.
 /// </para>
 /// </summary>
-public class ApplicationRootGenerator(ApplicationEntryPointFileWriter writer) : IIncrementalGenerator {
-
-    public void Initialize(IncrementalGeneratorInitializationContext context) {
+public class ApplicationRootGenerator(ApplicationEntryPointFileWriter writer)
+    : IIncrementalGenerator
+{
+    public void Initialize(IncrementalGeneratorInitializationContext context)
+    {
         var provider = context.SyntaxProvider.CreateSyntaxProvider(
             EntryPointSelector.UsingAttribute(),
-            EntryPointSelector.TransformModel(true));
+            EntryPointSelector.TransformModel(true)
+        );
 
-        context.RegisterSourceOutput(provider, (production, model) => {
-            var file = new CSharpFileDefinition(model.EntryPointType.Namespace);
+        context.RegisterSourceOutput(
+            provider,
+            (production, model) =>
+            {
+                var file = new CSharpFileDefinition(model.EntryPointType.Namespace);
 
-            writer.CreateApplicationClass(model, file);
+                writer.CreateApplicationClass(model, file);
 
-            var output = new OutputContext(
-                new OutputContextOptions { TypeOutputMode = TypeOutputMode.Global });
+                var output = new OutputContext(
+                    new OutputContextOptions { TypeOutputMode = TypeOutputMode.Global }
+                );
 
-            file.WriteOutput(output);
+                file.WriteOutput(output);
 
-            production.AddSource(model.EntryPointType.Name + ".ApplicationRoot.cs", output.Output());
-        });
+                production.AddSource(
+                    model.EntryPointType.Name + ".ApplicationRoot.cs",
+                    output.Output()
+                );
+            }
+        );
     }
 }
 
@@ -44,14 +55,14 @@ public class ApplicationRootGenerator(ApplicationEntryPointFileWriter writer) : 
 /// The plainest writer a runtime can supply: everything default except the logger helper, which is
 /// abstract.
 /// </summary>
-public class TestApplicationFileWriter : ApplicationEntryPointFileWriter {
-
+public class TestApplicationFileWriter : ApplicationEntryPointFileWriter
+{
     protected override ITypeDefinition LoggerHelper { get; } =
         TypeDefinition.Get("TestApp.Logging", "LoggerHelper");
 }
 
-public static class ApplicationRootHarness {
-
+public static class ApplicationRootHarness
+{
     /// <summary>
     /// The half of the application a Hardened runtime supplies by hand or through its own
     /// generators, so the emitted half has something to bind against.
@@ -63,35 +74,36 @@ public static class ApplicationRootHarness {
     /// for parameter, because the emitted constructor calls it positionally.
     /// </para>
     /// </summary>
-    public static string Application(string members = "", string attributes = "") => $$"""
-        using System;
-        using System.Threading.Tasks;
-        using Hardened.Shared.Runtime.Application;
-        using Hardened.Shared.Runtime.Attributes;
-        using Microsoft.Extensions.DependencyInjection;
-        using Microsoft.Extensions.Logging;
+    public static string Application(string members = "", string attributes = "") =>
+        $$"""
+            using System;
+            using System.Threading.Tasks;
+            using Hardened.Shared.Runtime.Application;
+            using Hardened.Shared.Runtime.Attributes;
+            using Microsoft.Extensions.DependencyInjection;
+            using Microsoft.Extensions.Logging;
 
-        namespace TestApp;
+            namespace TestApp;
 
-        [HardenedModule]
-        {{attributes}}
-        public partial class Application {
-        {{members}}
+            [HardenedModule]
+            {{attributes}}
+            public partial class Application {
+            {{members}}
 
-            public ServiceProvider CreateServiceProvider(
-                IHardenedEnvironment environment,
-                Action<IHardenedEnvironment, IServiceCollection>? overrideDependencies,
-                Action<ILoggingBuilder>? loggingBuilderAction,
-                Action<IHardenedEnvironment, IServiceCollection>? initDependencies = null) {
-                var services = new ServiceCollection();
+                public ServiceProvider CreateServiceProvider(
+                    IHardenedEnvironment environment,
+                    Action<IHardenedEnvironment, IServiceCollection>? overrideDependencies,
+                    Action<ILoggingBuilder>? loggingBuilderAction,
+                    Action<IHardenedEnvironment, IServiceCollection>? initDependencies = null) {
+                    var services = new ServiceCollection();
 
-                overrideDependencies?.Invoke(environment, services);
-                initDependencies?.Invoke(environment, services);
+                    overrideDependencies?.Invoke(environment, services);
+                    initDependencies?.Invoke(environment, services);
 
-                return services.BuildServiceProvider();
+                    return services.BuildServiceProvider();
+                }
             }
-        }
-        """;
+            """;
 
     /// <summary>
     /// A stand-in for the logger helper each runtime ships — <c>LambdaLoggerHelper</c> and
@@ -128,12 +140,18 @@ public static class ApplicationRootHarness {
     /// compilation. See <c>GeneratorCrashHandlingTests</c>.
     /// </remarks>
     public static string Generate(
-        string source, ApplicationEntryPointFileWriter? writer = null, string? loggerHelper = null) {
+        string source,
+        ApplicationEntryPointFileWriter? writer = null,
+        string? loggerHelper = null
+    )
+    {
         var result = GenerateWithDiagnostics(source, writer, loggerHelper);
 
         result.AssertNoErrors();
 
-        Assert.Empty(result.GeneratorDiagnostics.Where(diagnostic => diagnostic.Id == "HardenedException"));
+        Assert.Empty(
+            result.GeneratorDiagnostics.Where(diagnostic => diagnostic.Id == "HardenedException")
+        );
 
         return result.SourceContaining("ApplicationRoot");
     }
@@ -143,16 +161,22 @@ public static class ApplicationRootHarness {
     /// assert on warnings as well as errors — the CS8625 below shipped for months as a warning.
     /// </summary>
     public static GeneratorResult GenerateWithDiagnostics(
-        string source, ApplicationEntryPointFileWriter? writer = null, string? loggerHelper = null) {
+        string source,
+        ApplicationEntryPointFileWriter? writer = null,
+        string? loggerHelper = null
+    )
+    {
         var sources = new Dictionary<string, string> { ["Test.cs"] = source };
 
-        if (loggerHelper != null) {
+        if (loggerHelper != null)
+        {
             sources["LoggerHelper.cs"] = loggerHelper;
         }
 
         return GeneratorTestHarness.Run(
             sources,
             [new ApplicationRootGenerator(writer ?? new TestApplicationFileWriter())],
-            RequestGeneratorHarness.Anchors);
+            RequestGeneratorHarness.Anchors
+        );
     }
 }

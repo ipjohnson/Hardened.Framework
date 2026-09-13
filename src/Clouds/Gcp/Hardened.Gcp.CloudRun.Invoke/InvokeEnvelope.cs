@@ -21,14 +21,16 @@ namespace Hardened.Gcp.CloudRun.Invoke;
 /// and reads a failure as the status; that is the one family on Cloud Run whose caller is waiting.
 /// </para>
 /// </remarks>
-public sealed class InvokeEnvelope : ITriggerEnvelope {
+public sealed class InvokeEnvelope : ITriggerEnvelope
+{
     /// <summary>The scheme a direct invocation routes under.</summary>
     public const string InvokeScheme = "INVOKE";
 
     /// <summary>Where an invocation names its operation by default.</summary>
     public const string DefaultPrefix = "/_triggers/invoke/";
 
-    public InvokeEnvelope(string prefix) {
+    public InvokeEnvelope(string prefix)
+    {
         Prefix = TriggerHeaders.Prefix(prefix);
     }
 
@@ -36,17 +38,24 @@ public sealed class InvokeEnvelope : ITriggerEnvelope {
     public string Prefix { get; }
 
     public bool Recognises(IExecutionRequest request) =>
-        string.Equals(request.Method, "POST", StringComparison.OrdinalIgnoreCase) &&
-        !string.IsNullOrEmpty(TriggerHeaders.Under(request.Path, Prefix));
+        string.Equals(request.Method, "POST", StringComparison.OrdinalIgnoreCase)
+        && !string.IsNullOrEmpty(TriggerHeaders.Under(request.Path, Prefix));
 
-    public CloudRunTriggerRequest? Unwrap(IExecutionRequest request, TriggerPayload payload) {
+    public CloudRunTriggerRequest? Unwrap(IExecutionRequest request, TriggerPayload payload)
+    {
         var operation = TriggerHeaders.Under(request.Path, Prefix);
 
-        if (string.IsNullOrEmpty(operation)) {
+        if (string.IsNullOrEmpty(operation))
+        {
             return null;
         }
 
         return new CloudRunTriggerRequest(
-            InvokeScheme, "/" + operation, payload.AsStream(), TriggerHeaders.Copy(request.Headers), request);
+            InvokeScheme,
+            "/" + operation,
+            payload.AsStream(),
+            TriggerHeaders.Copy(request.Headers),
+            request
+        );
     }
 }

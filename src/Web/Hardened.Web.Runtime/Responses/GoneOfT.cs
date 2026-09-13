@@ -25,8 +25,10 @@ namespace Hardened.Web.Runtime.Responses;
 /// </remarks>
 [HttpStatus(410)]
 public sealed record Gone<T>(T Body)
-    : IHttpStatusResponse, ICarriesResponseBody, IResponseExpectation<Gone<T>> {
-
+    : IHttpStatusResponse,
+        ICarriesResponseBody,
+        IResponseExpectation<Gone<T>>
+{
     public string Type => ProblemTypes.Gone;
 
     public string Title => "Gone";
@@ -37,7 +39,6 @@ public sealed record Gone<T>(T Body)
 
     object? ICarriesResponseBody.Body => Body;
 
-    public static Gone<T> FromResponse(
-        object? body, IReadOnlyDictionary<string, string> headers) =>
+    public static Gone<T> FromResponse(object? body, IReadOnlyDictionary<string, string> headers) =>
         new(ResponseExpectation.Body<T>(body));
 }

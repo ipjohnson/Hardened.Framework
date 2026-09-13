@@ -6,20 +6,25 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Hardened.Requests.Runtime.Filters;
 
-public class IoFilter : IExecutionFilter {
+public class IoFilter : IExecutionFilter
+{
     private readonly Func<IExecutionContext, Task<IExecutionRequestParameters>> _deserializeRequest;
     private readonly Func<IExecutionContext, Task> _serializeResponse;
     private readonly Action<IExecutionContext>? _headerActions;
 
-    public IoFilter(Func<IExecutionContext, Task<IExecutionRequestParameters>> deserializeRequest,
+    public IoFilter(
+        Func<IExecutionContext, Task<IExecutionRequestParameters>> deserializeRequest,
         Func<IExecutionContext, Task> serializeResponse,
-        Action<IExecutionContext>? headerActions) {
+        Action<IExecutionContext>? headerActions
+    )
+    {
         _deserializeRequest = deserializeRequest;
         _serializeResponse = serializeResponse;
         _headerActions = headerActions;
     }
 
-    public async Task Execute(IExecutionChain chain) {
+    public async Task Execute(IExecutionChain chain)
+    {
         var context = chain.Context;
 
         // A request that is already decided does not have its body read.
@@ -33,41 +38,54 @@ public class IoFilter : IExecutionFilter {
         //
         // No bind duration is recorded either, because no bind was attempted - a zero would read as
         // a very fast deserialization rather than none.
-        if (context.Response.ExceptionValue == null) {
+        if (context.Response.ExceptionValue == null)
+        {
             var bindParameterStartTimestamp = MachineTimestamp.Now;
 
-            try {
-                if (context.Request.Parameters == null) {
+            try
+            {
+                if (context.Request.Parameters == null)
+                {
                     context.Request.Parameters = await _deserializeRequest(chain.Context);
                 }
             }
-            catch (Exception exp) {
-                chain.Context.RequestServices.GetRequiredService<IRequestLogger>()
+            catch (Exception exp)
+            {
+                chain
+                    .Context.RequestServices.GetRequiredService<IRequestLogger>()
                     .RequestParameterBindFailed(chain.Context, exp);
 
                 chain.Context.Response.ExceptionValue = exp;
             }
-            finally {
-                context.RequestMetrics.Record(RequestMetrics.ParameterBindDuration,
-                    bindParameterStartTimestamp.GetElapsedMilliseconds());
+            finally
+            {
+                context.RequestMetrics.Record(
+                    RequestMetrics.ParameterBindDuration,
+                    bindParameterStartTimestamp.GetElapsedMilliseconds()
+                );
             }
         }
 
-        if (chain.Context.Response.ExceptionValue == null) {
-            try {
+        if (chain.Context.Response.ExceptionValue == null)
+        {
+            try
+            {
                 await chain.Next();
             }
-            catch (Exception exp) {
+            catch (Exception exp)
+            {
                 chain.Context.Response.ExceptionValue = exp;
             }
         }
 
         var responseTimestamp = MachineTimestamp.Now;
 
-        try {
+        try
+        {
             _headerActions?.Invoke(chain.Context);
 
-            if (chain.Context.Response.ShouldSerialize) {
+            if (chain.Context.Response.ShouldSerialize)
+            {
                 await _serializeResponse(chain.Context);
 
                 // Answered. The flag reads as "this response still needs writing", which is what
@@ -76,8 +94,12 @@ public class IoFilter : IExecutionFilter {
                 chain.Context.Response.ShouldSerialize = false;
             }
         }
-        finally {
-            context.RequestMetrics.Record(RequestMetrics.ResponseDuration, responseTimestamp.GetElapsedMilliseconds());
+        finally
+        {
+            context.RequestMetrics.Record(
+                RequestMetrics.ResponseDuration,
+                responseTimestamp.GetElapsedMilliseconds()
+            );
         }
     }
 }

@@ -16,10 +16,11 @@ namespace Hardened.Shared.Runtime.Tests.Application;
 /// <c>Production</c> - while everything else in the application answers against
 /// <c>HARDENED_ENVIRONMENT</c>, defaulting to <c>development</c>.
 /// </remarks>
-public class HardenedEnvironmentServiceCollectionExtensionsTests {
-
+public class HardenedEnvironmentServiceCollectionExtensionsTests
+{
     [Fact]
-    public void TheEnvironmentIsRegisteredUnderBothServiceTypes() {
+    public void TheEnvironmentIsRegisteredUnderBothServiceTypes()
+    {
         var environment = new EnvironmentImpl("staging");
 
         var provider = new ServiceCollection()
@@ -34,14 +35,16 @@ public class HardenedEnvironmentServiceCollectionExtensionsTests {
     /// Both service types must resolve the same object, not two that happen to agree today.
     /// </summary>
     [Fact]
-    public void BothServiceTypesResolveTheOneInstance() {
+    public void BothServiceTypesResolveTheOneInstance()
+    {
         var provider = new ServiceCollection()
             .AddHardenedEnvironment(new EnvironmentImpl("qa"))
             .BuildServiceProvider();
 
         Assert.Same(
             provider.GetRequiredService<IHardenedEnvironment>(),
-            provider.GetRequiredService<IModuleEnvironment>());
+            provider.GetRequiredService<IModuleEnvironment>()
+        );
     }
 
     /// <summary>
@@ -50,10 +53,14 @@ public class HardenedEnvironmentServiceCollectionExtensionsTests {
     /// invisible to it.
     /// </summary>
     [Fact]
-    public void TheRegistrationCarriesAnInstanceRatherThanAFactory() {
+    public void TheRegistrationCarriesAnInstanceRatherThanAFactory()
+    {
         var services = new ServiceCollection().AddHardenedEnvironment(new EnvironmentImpl("test"));
 
-        foreach (var serviceType in new[] { typeof(IHardenedEnvironment), typeof(IModuleEnvironment) }) {
+        foreach (
+            var serviceType in new[] { typeof(IHardenedEnvironment), typeof(IModuleEnvironment) }
+        )
+        {
             var descriptor = Assert.Single(services, service => service.ServiceType == serviceType);
 
             Assert.NotNull(descriptor.ImplementationInstance);
@@ -65,7 +72,8 @@ public class HardenedEnvironmentServiceCollectionExtensionsTests {
     /// The name the module system sees is the Hardened one, which is the point of the pairing.
     /// </summary>
     [Fact]
-    public void TheModuleSystemSeesTheHardenedEnvironmentName() {
+    public void TheModuleSystemSeesTheHardenedEnvironmentName()
+    {
         var provider = new ServiceCollection()
             .AddHardenedEnvironment(new EnvironmentImpl("staging"))
             .BuildServiceProvider();
@@ -74,11 +82,15 @@ public class HardenedEnvironmentServiceCollectionExtensionsTests {
     }
 
     [Fact]
-    public void TheArgumentsOverloadCarriesThemThrough() {
+    public void TheArgumentsOverloadCarriesThemThrough()
+    {
         var provider = new ServiceCollection()
             .AddHardenedEnvironment(new[] { "--verbose" })
             .BuildServiceProvider();
 
-        Assert.Equal(new[] { "--verbose" }, provider.GetRequiredService<IHardenedEnvironment>().Arguments);
+        Assert.Equal(
+            new[] { "--verbose" },
+            provider.GetRequiredService<IHardenedEnvironment>().Arguments
+        );
     }
 }

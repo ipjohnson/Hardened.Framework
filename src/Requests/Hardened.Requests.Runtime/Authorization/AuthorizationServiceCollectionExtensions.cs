@@ -7,7 +7,8 @@ namespace Hardened.Requests.Runtime.Authorization;
 /// <summary>
 /// Turning on the default-deny posture from a service collection.
 /// </summary>
-public static class AuthorizationServiceCollectionExtensions {
+public static class AuthorizationServiceCollectionExtensions
+{
     /// <summary>
     /// Denies any handler that carries neither an authorization attribute nor
     /// <c>[AllowAnonymous]</c>.
@@ -27,11 +28,14 @@ public static class AuthorizationServiceCollectionExtensions {
     /// appsettings or elsewhere, still applied.
     /// </para>
     /// </remarks>
-    public static IServiceCollection RequireAuthorization(this IServiceCollection services) {
+    public static IServiceCollection RequireAuthorization(this IServiceCollection services)
+    {
         services.AddSingleton<IConfigurationPackage>(
             new SimpleConfigurationPackage(
                 Array.Empty<IConfigurationValueProvider>(),
-                new IConfigurationValueAmender[] { new RequireAuthorizationAmender() }));
+                new IConfigurationValueAmender[] { new RequireAuthorizationAmender() }
+            )
+        );
 
         return services;
     }
@@ -43,9 +47,15 @@ public static class AuthorizationServiceCollectionExtensions {
     /// An amender is handed every configuration value the application builds, so it has to check
     /// what it was given. Anything else is returned untouched.
     /// </remarks>
-    private class RequireAuthorizationAmender : IConfigurationValueAmender {
-        public object ApplyConfiguration(IHardenedEnvironment environment, object configurationValue) {
-            if (configurationValue is AuthorizationConfiguration configuration) {
+    private class RequireAuthorizationAmender : IConfigurationValueAmender
+    {
+        public object ApplyConfiguration(
+            IHardenedEnvironment environment,
+            object configurationValue
+        )
+        {
+            if (configurationValue is AuthorizationConfiguration configuration)
+            {
                 configuration.RequireAuthorization = true;
             }
 

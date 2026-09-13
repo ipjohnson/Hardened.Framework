@@ -28,8 +28,8 @@ namespace Hardened.SourceGenerator.Requests;
 /// requirement must reference a declared scheme.
 /// </para>
 /// </remarks>
-internal static class SecurityDeclarationSelector {
-
+internal static class SecurityDeclarationSelector
+{
     private const string AuthorizeAttributeName =
         "Hardened.Requests.Runtime.Authorization.AuthorizeAttribute";
 
@@ -47,33 +47,50 @@ internal static class SecurityDeclarationSelector {
         GeneratorSyntaxContext context,
         MethodDeclarationSyntax method,
         RequestHandlerModel model,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken
+    )
+    {
         var schemes = new List<SecuritySchemeDeclaration>();
         var grants = new List<string>();
         var misplaced = new List<string>();
 
-        Read(context, method.AttributeLists,
+        Read(
+            context,
+            method.AttributeLists,
             model.ControllerType.Name + "." + model.HandlerMethod,
-            schemes, grants, misplaced, cancellationToken);
+            schemes,
+            grants,
+            misplaced,
+            cancellationToken
+        );
 
-        if (method.Ancestors().OfType<ClassDeclarationSyntax>().FirstOrDefault()
-            is { } controller) {
-            Read(context, controller.AttributeLists,
+        if (method.Ancestors().OfType<ClassDeclarationSyntax>().FirstOrDefault() is { } controller)
+        {
+            Read(
+                context,
+                controller.AttributeLists,
                 model.ControllerType.Name,
-                schemes, grants, misplaced, cancellationToken);
+                schemes,
+                grants,
+                misplaced,
+                cancellationToken
+            );
         }
 
-        if (misplaced.Count > 0) {
+        if (misplaced.Count > 0)
+        {
             model.MisplacedSchemeAttributes = misplaced;
         }
 
-        if (schemes.Count == 0) {
+        if (schemes.Count == 0)
+        {
             return;
         }
 
         var requirements = new List<string>();
 
-        foreach (var scheme in schemes) {
+        foreach (var scheme in schemes)
+        {
             requirements.Add(RequirementJson(scheme, grants));
         }
 
@@ -88,41 +105,65 @@ internal static class SecurityDeclarationSelector {
         List<SecuritySchemeDeclaration> schemes,
         List<string> grants,
         List<string> misplaced,
-        CancellationToken cancellationToken) {
-        foreach (var attributeList in attributeLists) {
-            foreach (var attribute in attributeList.Attributes) {
+        CancellationToken cancellationToken
+    )
+    {
+        foreach (var attributeList in attributeLists)
+        {
+            foreach (var attribute in attributeList.Attributes)
+            {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                if (context.SemanticModel.GetTypeInfo(attribute, cancellationToken).Type
-                    is not INamedTypeSymbol type) {
+                if (
+                    context.SemanticModel.GetTypeInfo(attribute, cancellationToken).Type
+                    is not INamedTypeSymbol type
+                )
+                {
                     continue;
                 }
 
                 var definition = type.OriginalDefinition.ToDisplayString();
 
-                if (definition.StartsWith(AuthorizeAttributeName + "<", System.StringComparison.Ordinal) &&
-                    type.TypeArguments.Length >= 1 &&
-                    type.TypeArguments[0] is INamedTypeSymbol schemeType &&
-                    ImplementsScheme(schemeType)) {
+                if (
+                    definition.StartsWith(
+                        AuthorizeAttributeName + "<",
+                        System.StringComparison.Ordinal
+                    )
+                    && type.TypeArguments.Length >= 1
+                    && type.TypeArguments[0] is INamedTypeSymbol schemeType
+                    && ImplementsScheme(schemeType)
+                )
+                {
                     var declaration = Declare(schemeType);
 
-                    if (declaration != null &&
-                        !schemes.Exists(existing => existing.Name == declaration.Name)) {
+                    if (
+                        declaration != null
+                        && !schemes.Exists(existing => existing.Name == declaration.Name)
+                    )
+                    {
                         schemes.Add(declaration);
                     }
-                } else if (definition == GrantsAttributeName) {
+                }
+                else if (definition == GrantsAttributeName)
+                {
                     // The literal form only. The generic form computes its grants in a provider
                     // the generator cannot run.
                     LiteralGrants(attribute, context, grants, cancellationToken);
-                } else if (type.Name is "HttpAuthenticationSchemeAttribute"
-                           or "ApiKeyAuthenticationSchemeAttribute"
-                           or "OAuth2AuthenticationSchemeAttribute") {
+                }
+                else if (
+                    type.Name
+                    is "HttpAuthenticationSchemeAttribute"
+                        or "ApiKeyAuthenticationSchemeAttribute"
+                        or "OAuth2AuthenticationSchemeAttribute"
+                )
+                {
                     // A scheme-shape attribute in a position nothing reads. It belongs on a scheme
                     // type named by [Authorize<TScheme>]; here it publishes nothing and enforces
                     // nothing, which is the silent no-op the second trial walked into.
                     var entry = owner + "|" + type.Name;
 
-                    if (!misplaced.Contains(entry)) {
+                    if (!misplaced.Contains(entry))
+                    {
                         misplaced.Add(entry);
                     }
                 }
@@ -130,9 +171,12 @@ internal static class SecurityDeclarationSelector {
         }
     }
 
-    private static bool ImplementsScheme(INamedTypeSymbol type) {
-        foreach (var contract in type.AllInterfaces) {
-            if (contract.ToDisplayString() == SchemeInterface) {
+    private static bool ImplementsScheme(INamedTypeSymbol type)
+    {
+        foreach (var contract in type.AllInterfaces)
+        {
+            if (contract.ToDisplayString() == SchemeInterface)
+            {
                 return true;
             }
         }
@@ -142,17 +186,30 @@ internal static class SecurityDeclarationSelector {
 
     /// <summary>The literal arguments of <c>[AuthorizeGrants("a", "b")]</c>, from the syntax.</summary>
     private static void LiteralGrants(
-        AttributeSyntax attribute, GeneratorSyntaxContext context, List<string> grants,
-        CancellationToken cancellationToken) {
-        if (attribute.ArgumentList == null) {
+        AttributeSyntax attribute,
+        GeneratorSyntaxContext context,
+        List<string> grants,
+        CancellationToken cancellationToken
+    )
+    {
+        if (attribute.ArgumentList == null)
+        {
             return;
         }
 
-        foreach (var argument in attribute.ArgumentList.Arguments) {
-            var value = context.SemanticModel.GetConstantValue(argument.Expression, cancellationToken);
+        foreach (var argument in attribute.ArgumentList.Arguments)
+        {
+            var value = context.SemanticModel.GetConstantValue(
+                argument.Expression,
+                cancellationToken
+            );
 
-            if (value is { HasValue: true, Value: string grant } &&
-                grant.Length > 0 && !grants.Contains(grant)) {
+            if (
+                value is { HasValue: true, Value: string grant }
+                && grant.Length > 0
+                && !grants.Contains(grant)
+            )
+            {
                 grants.Add(grant);
             }
         }
@@ -163,69 +220,101 @@ internal static class SecurityDeclarationSelector {
     /// type carries no shape attribute - a scheme with no declarable shape is enforced and not
     /// published.
     /// </summary>
-    private static SecuritySchemeDeclaration? Declare(INamedTypeSymbol schemeType) {
-        foreach (var attribute in schemeType.GetAttributes()) {
-            switch (attribute.AttributeClass?.Name) {
-                case "HttpAuthenticationSchemeAttribute": {
+    private static SecuritySchemeDeclaration? Declare(INamedTypeSymbol schemeType)
+    {
+        foreach (var attribute in schemeType.GetAttributes())
+        {
+            switch (attribute.AttributeClass?.Name)
+            {
+                case "HttpAuthenticationSchemeAttribute":
+                {
                     var scheme = Argument(attribute, 0) ?? "bearer";
                     var json = "{\"type\":\"http\",\"scheme\":\"" + Escape(scheme) + "\"";
 
-                    if (Named(attribute, "BearerFormat") is { } format) {
+                    if (Named(attribute, "BearerFormat") is { } format)
+                    {
                         json += ",\"bearerFormat\":\"" + Escape(format) + "\"";
                     }
 
                     json += Description(attribute) + "}";
 
-                    return new SecuritySchemeDeclaration(schemeType.Name, json, carriesScopes: false);
+                    return new SecuritySchemeDeclaration(
+                        schemeType.Name,
+                        json,
+                        carriesScopes: false
+                    );
                 }
 
-                case "ApiKeyAuthenticationSchemeAttribute": {
+                case "ApiKeyAuthenticationSchemeAttribute":
+                {
                     var name = Argument(attribute, 0) ?? "";
-                    var location = attribute.ConstructorArguments.Length > 1
-                        ? attribute.ConstructorArguments[1].Value switch {
-                            1 => "query",
-                            2 => "cookie",
-                            _ => "header"
-                        }
-                        : "header";
+                    var location =
+                        attribute.ConstructorArguments.Length > 1
+                            ? attribute.ConstructorArguments[1].Value switch
+                            {
+                                1 => "query",
+                                2 => "cookie",
+                                _ => "header",
+                            }
+                            : "header";
 
-                    var json = "{\"type\":\"apiKey\",\"name\":\"" + Escape(name) +
-                               "\",\"in\":\"" + location + "\"" + Description(attribute) + "}";
+                    var json =
+                        "{\"type\":\"apiKey\",\"name\":\""
+                        + Escape(name)
+                        + "\",\"in\":\""
+                        + location
+                        + "\""
+                        + Description(attribute)
+                        + "}";
 
-                    return new SecuritySchemeDeclaration(schemeType.Name, json, carriesScopes: false);
+                    return new SecuritySchemeDeclaration(
+                        schemeType.Name,
+                        json,
+                        carriesScopes: false
+                    );
                 }
 
-                case "OAuth2AuthenticationSchemeAttribute": {
-                    var flow = attribute.ConstructorArguments.Length > 0
-                        ? attribute.ConstructorArguments[0].Value switch {
-                            1 => "clientCredentials",
-                            2 => "implicit",
-                            3 => "password",
-                            _ => "authorizationCode"
-                        }
-                        : "authorizationCode";
+                case "OAuth2AuthenticationSchemeAttribute":
+                {
+                    var flow =
+                        attribute.ConstructorArguments.Length > 0
+                            ? attribute.ConstructorArguments[0].Value switch
+                            {
+                                1 => "clientCredentials",
+                                2 => "implicit",
+                                3 => "password",
+                                _ => "authorizationCode",
+                            }
+                            : "authorizationCode";
 
                     var json = "{\"type\":\"oauth2\",\"flows\":{\"" + flow + "\":{";
                     var first = true;
 
-                    if (Named(attribute, "AuthorizationUrl") is { } authorization) {
+                    if (Named(attribute, "AuthorizationUrl") is { } authorization)
+                    {
                         json += "\"authorizationUrl\":\"" + Escape(authorization) + "\"";
                         first = false;
                     }
 
-                    if (Named(attribute, "TokenUrl") is { } token) {
+                    if (Named(attribute, "TokenUrl") is { } token)
+                    {
                         json += (first ? "" : ",") + "\"tokenUrl\":\"" + Escape(token) + "\"";
                         first = false;
                     }
 
-                    if (Named(attribute, "RefreshUrl") is { } refresh) {
+                    if (Named(attribute, "RefreshUrl") is { } refresh)
+                    {
                         json += (first ? "" : ",") + "\"refreshUrl\":\"" + Escape(refresh) + "\"";
                         first = false;
                     }
 
                     json += (first ? "" : ",") + "\"scopes\":{}}}" + Description(attribute) + "}";
 
-                    return new SecuritySchemeDeclaration(schemeType.Name, json, carriesScopes: true);
+                    return new SecuritySchemeDeclaration(
+                        schemeType.Name,
+                        json,
+                        carriesScopes: true
+                    );
                 }
             }
         }
@@ -234,16 +323,23 @@ internal static class SecurityDeclarationSelector {
     }
 
     private static string RequirementJson(
-        SecuritySchemeDeclaration scheme, IReadOnlyList<string> grants) {
-        if (!scheme.CarriesScopes || grants.Count == 0) {
+        SecuritySchemeDeclaration scheme,
+        IReadOnlyList<string> grants
+    )
+    {
+        if (!scheme.CarriesScopes || grants.Count == 0)
+        {
             return "{\"" + Escape(scheme.Name) + "\":[]}";
         }
 
         var builder = new System.Text.StringBuilder("{\"")
-            .Append(Escape(scheme.Name)).Append("\":[");
+            .Append(Escape(scheme.Name))
+            .Append("\":[");
 
-        for (var i = 0; i < grants.Count; i++) {
-            if (i > 0) {
+        for (var i = 0; i < grants.Count; i++)
+        {
+            if (i > 0)
+            {
                 builder.Append(',');
             }
 
@@ -258,9 +354,12 @@ internal static class SecurityDeclarationSelector {
             ? attribute.ConstructorArguments[index].Value as string
             : null;
 
-    private static string? Named(AttributeData attribute, string name) {
-        foreach (var argument in attribute.NamedArguments) {
-            if (argument.Key == name && argument.Value.Value is string value && value.Length > 0) {
+    private static string? Named(AttributeData attribute, string name)
+    {
+        foreach (var argument in attribute.NamedArguments)
+        {
+            if (argument.Key == name && argument.Value.Value is string value && value.Length > 0)
+            {
                 return value;
             }
         }
@@ -273,6 +372,5 @@ internal static class SecurityDeclarationSelector {
             ? ",\"description\":\"" + Escape(description) + "\""
             : "";
 
-    private static string Escape(string value) =>
-        OpenApiDocument.JsonSchemaWriter.Escape(value);
+    private static string Escape(string value) => OpenApiDocument.JsonSchemaWriter.Escape(value);
 }

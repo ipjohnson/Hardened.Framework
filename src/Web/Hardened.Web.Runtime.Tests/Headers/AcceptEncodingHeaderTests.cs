@@ -1,6 +1,6 @@
 using Hardened.Requests.Abstract.Headers;
-using Microsoft.Extensions.Primitives;
 using Hardened.Web.Runtime.Headers;
+using Microsoft.Extensions.Primitives;
 using Xunit;
 
 namespace Hardened.Web.Runtime.Tests.Headers;
@@ -16,8 +16,8 @@ namespace Hardened.Web.Runtime.Tests.Headers;
 /// coding.
 /// </para>
 /// </summary>
-public class AcceptEncodingHeaderTests {
-
+public class AcceptEncodingHeaderTests
+{
     #region what real clients send
 
     /// <summary>
@@ -31,7 +31,8 @@ public class AcceptEncodingHeaderTests {
     [InlineData("gzip, deflate")]
     [InlineData("gzip")]
     [InlineData("deflate, gzip")]
-    public void AListContainingGZipAcceptsGZip(string header) {
+    public void AListContainingGZipAcceptsGZip(string header)
+    {
         Assert.True(AcceptEncodingHeader.Accepts(new StringValues(header), KnownEncoding.GZip));
     }
 
@@ -39,13 +40,15 @@ public class AcceptEncodingHeaderTests {
     [InlineData("gzip, deflate, br, zstd")]
     [InlineData("br")]
     [InlineData("deflate, br")]
-    public void AListContainingBrotliAcceptsBrotli(string header) {
+    public void AListContainingBrotliAcceptsBrotli(string header)
+    {
         Assert.True(AcceptEncodingHeader.Accepts(new StringValues(header), KnownEncoding.Br));
     }
 
     /// <summary>Two header lines rather than one, which is equally legal.</summary>
     [Fact]
-    public void ACodingInEitherOfTwoValuesIsFound() {
+    public void ACodingInEitherOfTwoValuesIsFound()
+    {
         var header = new StringValues(new[] { "deflate", "gzip, br" });
 
         Assert.True(AcceptEncodingHeader.Accepts(header, KnownEncoding.GZip));
@@ -60,12 +63,14 @@ public class AcceptEncodingHeaderTests {
     [InlineData("deflate, br, zstd")]
     [InlineData("identity")]
     [InlineData("")]
-    public void AListWithoutGZipDoesNotAcceptIt(string header) {
+    public void AListWithoutGZipDoesNotAcceptIt(string header)
+    {
         Assert.False(AcceptEncodingHeader.Accepts(new StringValues(header), KnownEncoding.GZip));
     }
 
     [Fact]
-    public void NoHeaderAtAllDoesNotAccept() {
+    public void NoHeaderAtAllDoesNotAccept()
+    {
         Assert.False(AcceptEncodingHeader.Accepts(StringValues.Empty, KnownEncoding.GZip));
     }
 
@@ -78,7 +83,8 @@ public class AcceptEncodingHeaderTests {
     [InlineData("gzip2")]
     [InlineData("notgzip")]
     [InlineData("x-gzip, deflate")]
-    public void ANeighbouringCodingIsNotAMatch(string header) {
+    public void ANeighbouringCodingIsNotAMatch(string header)
+    {
         Assert.False(AcceptEncodingHeader.Accepts(new StringValues(header), KnownEncoding.GZip));
     }
 
@@ -89,7 +95,8 @@ public class AcceptEncodingHeaderTests {
     [Theory]
     [InlineData("brotli")]
     [InlineData("x-br")]
-    public void ATwoCharacterCodingIsStillBounded(string header) {
+    public void ATwoCharacterCodingIsStillBounded(string header)
+    {
         Assert.False(AcceptEncodingHeader.Accepts(new StringValues(header), KnownEncoding.Br));
     }
 
@@ -101,7 +108,8 @@ public class AcceptEncodingHeaderTests {
     [Theory]
     [InlineData("GZIP")]
     [InlineData("GZip, Deflate")]
-    public void MatchingIsCaseInsensitive(string header) {
+    public void MatchingIsCaseInsensitive(string header)
+    {
         Assert.True(AcceptEncodingHeader.Accepts(new StringValues(header), KnownEncoding.GZip));
     }
 
@@ -112,12 +120,14 @@ public class AcceptEncodingHeaderTests {
     /// than the problem.
     /// </summary>
     [Fact]
-    public void AQualityValueIsIgnored() {
+    public void AQualityValueIsIgnored()
+    {
         Assert.True(AcceptEncodingHeader.Accepts(new StringValues("gzip;q=0"), KnownEncoding.GZip));
     }
 
     [Fact]
-    public void AnEmptyCodingNeverMatches() {
+    public void AnEmptyCodingNeverMatches()
+    {
         Assert.False(AcceptEncodingHeader.Accepts(new StringValues("gzip, deflate"), ""));
     }
 

@@ -26,13 +26,14 @@ namespace Hardened.Web.SourceGenerator.Tests;
 /// line that decides it.
 /// </para>
 /// </remarks>
-public class HandlerMetadataOrderTests {
-
-    private static readonly Type[] Anchors = [
-        typeof(GetAttribute),        // Hardened.Web.Runtime
-        typeof(FromBodyAttribute),   // Hardened.Requests.Abstract
-        typeof(TimeoutAttribute),    // Hardened.Requests.Runtime
-        typeof(EnableAttribute<>)    // Hardened.Shared.Runtime
+public class HandlerMetadataOrderTests
+{
+    private static readonly Type[] Anchors =
+    [
+        typeof(GetAttribute), // Hardened.Web.Runtime
+        typeof(FromBodyAttribute), // Hardened.Requests.Abstract
+        typeof(TimeoutAttribute), // Hardened.Requests.Runtime
+        typeof(EnableAttribute<>), // Hardened.Shared.Runtime
     ];
 
     private const string Source = """
@@ -57,17 +58,22 @@ public class HandlerMetadataOrderTests {
     /// <summary>
     /// The emitted metadata array, as written.
     /// </summary>
-    private static string MetadataArray() {
-        var result = GeneratorTestHarness.Run(
-            new Dictionary<string, string> { ["Test.cs"] = Source },
-            new IIncrementalGenerator[] { new WebLibrarySourceGenerator() },
-            Anchors).AssertNoErrors();
+    private static string MetadataArray()
+    {
+        var result = GeneratorTestHarness
+            .Run(
+                new Dictionary<string, string> { ["Test.cs"] = Source },
+                new IIncrementalGenerator[] { new WebLibrarySourceGenerator() },
+                Anchors
+            )
+            .AssertNoErrors();
 
         // By hint name, which is how the harness addresses a generated file.
         var match = Regex.Match(
             result.SourceContaining("RateController_Read"),
             @"_metadata\s*=\s*new object\[\]\s*\{(.*?)\};",
-            RegexOptions.Singleline);
+            RegexOptions.Singleline
+        );
 
         Assert.True(match.Success, "No metadata array in the generated handler.");
 
@@ -75,7 +81,8 @@ public class HandlerMetadataOrderTests {
     }
 
     [Fact]
-    public void AMethodsOwnAttributesComeBeforeItsClasses() {
+    public void AMethodsOwnAttributesComeBeforeItsClasses()
+    {
         var metadata = MetadataArray();
 
         var method = metadata.IndexOf("60000", StringComparison.Ordinal);
@@ -85,7 +92,8 @@ public class HandlerMetadataOrderTests {
         Assert.True(declaringClass >= 0, "The class's declaration is missing from the metadata.");
         Assert.True(
             method < declaringClass,
-            "A method's attributes must precede its class's, or nearest-wins resolution inverts.");
+            "A method's attributes must precede its class's, or nearest-wins resolution inverts."
+        );
     }
 
     /// <summary>
@@ -93,7 +101,8 @@ public class HandlerMetadataOrderTests {
     /// controller bounds every method that says nothing.
     /// </summary>
     [Fact]
-    public void AClassLevelDeclarationReachesTheHandler() {
+    public void AClassLevelDeclarationReachesTheHandler()
+    {
         Assert.Contains("TimeoutAttribute", MetadataArray());
     }
 }

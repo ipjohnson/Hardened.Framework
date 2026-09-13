@@ -8,7 +8,8 @@ using Xunit;
 namespace Hardened.Shared.Runtime.Tests.Configuration;
 
 [SubFixtureInitialize]
-public class ConfigurationManagerTests {
+public class ConfigurationManagerTests
+{
     public interface ITestConfig;
 
     public class TestConfig : ITestConfig;
@@ -18,7 +19,8 @@ public class ConfigurationManagerTests {
     public class OtherConfig : IOtherConfig;
 
     [Fact]
-    public void GetConfiguration_ReturnsValueFromProvider() {
+    public void GetConfiguration_ReturnsValueFromProvider()
+    {
         var env = Substitute.For<IHardenedEnvironment>();
         var config = new TestConfig();
 
@@ -38,7 +40,8 @@ public class ConfigurationManagerTests {
     }
 
     [Fact]
-    public void GetConfiguration_CachesResultOnSecondCall() {
+    public void GetConfiguration_CachesResultOnSecondCall()
+    {
         var env = Substitute.For<IHardenedEnvironment>();
         var config = new TestConfig();
 
@@ -60,11 +63,14 @@ public class ConfigurationManagerTests {
     }
 
     [Fact]
-    public void GetConfiguration_ThrowsForUnregisteredType() {
+    public void GetConfiguration_ThrowsForUnregisteredType()
+    {
         var env = Substitute.For<IHardenedEnvironment>();
 
         var package = Substitute.For<IConfigurationPackage>();
-        package.ConfigurationValueProviders(env).Returns(Array.Empty<IConfigurationValueProvider>());
+        package
+            .ConfigurationValueProviders(env)
+            .Returns(Array.Empty<IConfigurationValueProvider>());
         package.ConfigurationValueAmenders(env).Returns(Array.Empty<IConfigurationValueAmender>());
 
         var manager = new ConfigurationManager(env, new[] { package });
@@ -74,14 +80,17 @@ public class ConfigurationManagerTests {
     }
 
     [Fact]
-    public void Amenders_AreAppliedToConfigurationValues() {
+    public void Amenders_AreAppliedToConfigurationValues()
+    {
         var env = Substitute.For<IHardenedEnvironment>();
         var config = new TestConfig();
 
         var provider = Substitute.For<IConfigurationValueProvider>();
         provider.InterfaceType.Returns(typeof(ITestConfig));
-        provider.ProvideValue(env, Arg.Any<Action<IHardenedEnvironment, object>>())
-            .Returns(ci => {
+        provider
+            .ProvideValue(env, Arg.Any<Action<IHardenedEnvironment, object>>())
+            .Returns(ci =>
+            {
                 var amender = ci.Arg<Action<IHardenedEnvironment, object>>();
                 amender(env, config);
                 return config;
@@ -102,18 +111,23 @@ public class ConfigurationManagerTests {
     }
 
     [Fact]
-    public void MultiplePackages_RegisterProvidersCorrectly() {
+    public void MultiplePackages_RegisterProvidersCorrectly()
+    {
         var env = Substitute.For<IHardenedEnvironment>();
         var testConfig = new TestConfig();
         var otherConfig = new OtherConfig();
 
         var provider1 = Substitute.For<IConfigurationValueProvider>();
         provider1.InterfaceType.Returns(typeof(ITestConfig));
-        provider1.ProvideValue(env, Arg.Any<Action<IHardenedEnvironment, object>>()).Returns(testConfig);
+        provider1
+            .ProvideValue(env, Arg.Any<Action<IHardenedEnvironment, object>>())
+            .Returns(testConfig);
 
         var provider2 = Substitute.For<IConfigurationValueProvider>();
         provider2.InterfaceType.Returns(typeof(IOtherConfig));
-        provider2.ProvideValue(env, Arg.Any<Action<IHardenedEnvironment, object>>()).Returns(otherConfig);
+        provider2
+            .ProvideValue(env, Arg.Any<Action<IHardenedEnvironment, object>>())
+            .Returns(otherConfig);
 
         var package1 = Substitute.For<IConfigurationPackage>();
         package1.ConfigurationValueProviders(env).Returns(new[] { provider1 });
@@ -135,9 +149,12 @@ public class ConfigurationManagerTests {
     /// message that only says a configuration was missing.
     /// </summary>
     [Fact]
-    public void TheUnregisteredTypeMessageNamesTheTypeAndWhatIsWrong() {
+    public void TheUnregisteredTypeMessageNamesTheTypeAndWhatIsWrong()
+    {
         var manager = new ConfigurationManager(
-            Substitute.For<IHardenedEnvironment>(), Array.Empty<IConfigurationPackage>());
+            Substitute.For<IHardenedEnvironment>(),
+            Array.Empty<IConfigurationPackage>()
+        );
 
         var exception = Assert.Throws<Exception>(() => manager.GetConfiguration<ITestConfig>());
 
@@ -151,10 +168,14 @@ public class ConfigurationManagerTests {
     /// because registration is keyed on <c>InterfaceType</c>.
     /// </summary>
     [Fact]
-    public void RegisteringAnInterfaceDoesNotAlsoRegisterTheImplementation() {
+    public void RegisteringAnInterfaceDoesNotAlsoRegisterTheImplementation()
+    {
         var env = Substitute.For<IHardenedEnvironment>();
         var provider = new NewConfigurationValueProvider<ITestConfig, TestConfig>(null);
-        var manager = new ConfigurationManager(env, new[] { new SimpleConfigurationPackage(new[] { provider }) });
+        var manager = new ConfigurationManager(
+            env,
+            new[] { new SimpleConfigurationPackage(new[] { provider }) }
+        );
 
         Assert.NotNull(manager.GetConfiguration<ITestConfig>());
         Assert.Throws<Exception>(() => manager.GetConfiguration<TestConfig>());
@@ -165,17 +186,23 @@ public class ConfigurationManagerTests {
     /// before an application's override of it.
     /// </summary>
     [Fact]
-    public void AmendersFromEveryPackageRunInPackageOrder() {
+    public void AmendersFromEveryPackageRunInPackageOrder()
+    {
         var env = Substitute.For<IHardenedEnvironment>();
         var applied = new List<string>();
 
         var package1 = new SimpleConfigurationPackage(
-            new IConfigurationValueProvider[] { new NewConfigurationValueProvider<ITestConfig, TestConfig>(null) },
-            new IConfigurationValueAmender[] { new RecordingAmender(applied, "first") });
+            new IConfigurationValueProvider[]
+            {
+                new NewConfigurationValueProvider<ITestConfig, TestConfig>(null),
+            },
+            new IConfigurationValueAmender[] { new RecordingAmender(applied, "first") }
+        );
 
         var package2 = new SimpleConfigurationPackage(
             Array.Empty<IConfigurationValueProvider>(),
-            new IConfigurationValueAmender[] { new RecordingAmender(applied, "second") });
+            new IConfigurationValueAmender[] { new RecordingAmender(applied, "second") }
+        );
 
         new ConfigurationManager(env, new[] { package1, package2 }).GetConfiguration<ITestConfig>();
 
@@ -187,13 +214,18 @@ public class ConfigurationManagerTests {
     /// would double every list an amender appends to.
     /// </summary>
     [Fact]
-    public void AmendersRunOnceEvenWhenTheConfigurationIsResolvedRepeatedly() {
+    public void AmendersRunOnceEvenWhenTheConfigurationIsResolvedRepeatedly()
+    {
         var env = Substitute.For<IHardenedEnvironment>();
         var applied = new List<string>();
 
         var package = new SimpleConfigurationPackage(
-            new IConfigurationValueProvider[] { new NewConfigurationValueProvider<ITestConfig, TestConfig>(null) },
-            new IConfigurationValueAmender[] { new RecordingAmender(applied, "amender") });
+            new IConfigurationValueProvider[]
+            {
+                new NewConfigurationValueProvider<ITestConfig, TestConfig>(null),
+            },
+            new IConfigurationValueAmender[] { new RecordingAmender(applied, "amender") }
+        );
 
         var manager = new ConfigurationManager(env, new[] { package });
 
@@ -209,16 +241,19 @@ public class ConfigurationManagerTests {
     /// amender's job, not the manager's.
     /// </summary>
     [Fact]
-    public void EveryAmenderIsOfferedEveryConfigurationValue() {
+    public void EveryAmenderIsOfferedEveryConfigurationValue()
+    {
         var env = Substitute.For<IHardenedEnvironment>();
         var applied = new List<string>();
 
         var package = new SimpleConfigurationPackage(
-            new IConfigurationValueProvider[] {
+            new IConfigurationValueProvider[]
+            {
                 new NewConfigurationValueProvider<ITestConfig, TestConfig>(null),
-                new NewConfigurationValueProvider<IOtherConfig, OtherConfig>(null)
+                new NewConfigurationValueProvider<IOtherConfig, OtherConfig>(null),
             },
-            new IConfigurationValueAmender[] { new RecordingAmender(applied, "amender") });
+            new IConfigurationValueAmender[] { new RecordingAmender(applied, "amender") }
+        );
 
         var manager = new ConfigurationManager(env, new[] { package });
 
@@ -233,9 +268,12 @@ public class ConfigurationManagerTests {
     /// being constructed.
     /// </summary>
     [Fact]
-    public void AManagerWithNoPackagesConstructsAndResolvesNothing() {
+    public void AManagerWithNoPackagesConstructsAndResolvesNothing()
+    {
         var manager = new ConfigurationManager(
-            Substitute.For<IHardenedEnvironment>(), Array.Empty<IConfigurationPackage>());
+            Substitute.For<IHardenedEnvironment>(),
+            Array.Empty<IConfigurationPackage>()
+        );
 
         Assert.Throws<Exception>(() => manager.GetConfiguration<ITestConfig>());
     }
@@ -245,25 +283,43 @@ public class ConfigurationManagerTests {
     /// from every request path, so this is the access pattern that matters at run time.
     /// </summary>
     [Fact]
-    public async Task ACachedConfigurationIsTheSameInstanceForEveryConcurrentReader() {
+    public async Task ACachedConfigurationIsTheSameInstanceForEveryConcurrentReader()
+    {
         var env = Substitute.For<IHardenedEnvironment>();
 
-        var manager = new ConfigurationManager(env, new[] {
-            new SimpleConfigurationPackage(
-                new IConfigurationValueProvider[] { new NewConfigurationValueProvider<ITestConfig, TestConfig>(null) })
-        });
+        var manager = new ConfigurationManager(
+            env,
+            new[]
+            {
+                new SimpleConfigurationPackage(
+                    new IConfigurationValueProvider[]
+                    {
+                        new NewConfigurationValueProvider<ITestConfig, TestConfig>(null),
+                    }
+                ),
+            }
+        );
 
         var expected = manager.GetConfiguration<ITestConfig>();
 
         var resolved = await Task.WhenAll(
-            Enumerable.Range(0, 32).Select(_ => Task.Run(() => manager.GetConfiguration<ITestConfig>())));
+            Enumerable
+                .Range(0, 32)
+                .Select(_ => Task.Run(() => manager.GetConfiguration<ITestConfig>()))
+        );
 
         Assert.All(resolved, value => Assert.Same(expected, value));
     }
 
-    private class RecordingAmender(List<string> applied, string name) : IConfigurationValueAmender {
-        public object ApplyConfiguration(IHardenedEnvironment environment, object configurationValue) {
-            lock (applied) {
+    private class RecordingAmender(List<string> applied, string name) : IConfigurationValueAmender
+    {
+        public object ApplyConfiguration(
+            IHardenedEnvironment environment,
+            object configurationValue
+        )
+        {
+            lock (applied)
+            {
                 applied.Add(name);
             }
 

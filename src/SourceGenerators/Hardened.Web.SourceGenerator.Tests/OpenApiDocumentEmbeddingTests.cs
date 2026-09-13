@@ -1,7 +1,7 @@
 using System.Text.Json;
-using Xunit;
 using Hardened.SourceGeneration.Testing;
 using Hardened.Web.SourceGenerator.Tests.Routing;
+using Xunit;
 
 namespace Hardened.Web.SourceGenerator.Tests;
 
@@ -14,30 +14,32 @@ namespace Hardened.Web.SourceGenerator.Tests;
 /// bytes per ASCII character. Measured on a 279,276 byte document: 562,688 bytes of assembly as a
 /// string, 92,672 gzipped and base64'd, 37,376 as a span over a metadata blob.
 /// </remarks>
-public class OpenApiDocumentEmbeddingTests {
-
+public class OpenApiDocumentEmbeddingTests
+{
     private static string App(string extra) =>
         $$"""
-        using Hardened.Shared.Runtime.Attributes;
-        using Hardened.Web.Runtime.Attributes;
+            using Hardened.Shared.Runtime.Attributes;
+            using Hardened.Web.Runtime.Attributes;
 
-        namespace TestApp;
+            namespace TestApp;
 
-        [HardenedModule]
-        {{extra}}
-        public partial class TestApplication { }
+            [HardenedModule]
+            {{extra}}
+            public partial class TestApplication { }
 
-        public class OrderController {
-            [Get("/orders")]
-            public string All() => "";
-        }
-        """;
+            public class OrderController {
+                [Get("/orders")]
+                public string All() => "";
+            }
+            """;
 
-    private static GeneratorResult Run(string extra) {
+    private static GeneratorResult Run(string extra)
+    {
         var result = GeneratorTestHarness.Run(
             new Dictionary<string, string> { ["Test.cs"] = App(extra) },
             new[] { new WebLibrarySourceGenerator() },
-            GeneratedRoutingTable.Anchors);
+            GeneratedRoutingTable.Anchors
+        );
 
         result.AssertNoErrors();
 
@@ -49,15 +51,16 @@ public class OpenApiDocumentEmbeddingTests {
     /// the point of making it opt-in rather than only making the route opt-in.
     /// </summary>
     [Fact]
-    public void NoDocumentIsEmittedWithoutTheMarker() {
+    public void NoDocumentIsEmittedWithoutTheMarker()
+    {
         var result = Run("");
 
-        Assert.DoesNotContain(
-            result.GeneratedSources.Keys, key => key.Contains("OpenApiDocument"));
+        Assert.DoesNotContain(result.GeneratedSources.Keys, key => key.Contains("OpenApiDocument"));
     }
 
     [Fact]
-    public void TheDocumentIsEmittedWithTheMarker() {
+    public void TheDocumentIsEmittedWithTheMarker()
+    {
         var result = Run(GeneratedOpenApiDocument.EnableAttribute);
 
         Assert.Contains(result.GeneratedSources.Keys, key => key.Contains("OpenApiDocument"));
@@ -67,7 +70,8 @@ public class OpenApiDocumentEmbeddingTests {
     /// Compressed bytes rather than a string literal, and they inflate back to the document.
     /// </summary>
     [Fact]
-    public void TheDocumentIsCarriedAsGZippedBytes() {
+    public void TheDocumentIsCarriedAsGZippedBytes()
+    {
         var source = Run(GeneratedOpenApiDocument.EnableAttribute)
             .SourceContaining("OpenApiDocument");
 
@@ -90,7 +94,8 @@ public class OpenApiDocumentEmbeddingTests {
     /// what makes this hold; this is here so that remains true rather than remaining assumed.
     /// </remarks>
     [Fact]
-    public void TheEmittedBytesAreTheSameOnEveryRun() {
+    public void TheEmittedBytesAreTheSameOnEveryRun()
+    {
         var first = Run(GeneratedOpenApiDocument.EnableAttribute)
             .SourceContaining("OpenApiDocument");
 
@@ -110,7 +115,8 @@ public class OpenApiDocumentEmbeddingTests {
     /// attribute argument.
     /// </remarks>
     [Fact]
-    public void TheProviderIsRegisteredWithTheDocument() {
+    public void TheProviderIsRegisteredWithTheDocument()
+    {
         var routing = Run(GeneratedOpenApiDocument.EnableAttribute).SourceContaining("Routing");
 
         Assert.Contains("OpenApiDocumentProvider", routing);
@@ -119,7 +125,8 @@ public class OpenApiDocumentEmbeddingTests {
     }
 
     [Fact]
-    public void NoProviderIsRegisteredWithoutTheMarker() {
+    public void NoProviderIsRegisteredWithoutTheMarker()
+    {
         Assert.DoesNotContain("OpenApiDocumentProvider", Run("").SourceContaining("Routing"));
     }
 
@@ -128,9 +135,9 @@ public class OpenApiDocumentEmbeddingTests {
     /// the facet rather than the marker's name, so this needs no change to it.
     /// </summary>
     [Fact]
-    public void AnApplicationsOwnMarkerChoosesThePath() {
-        const string source =
-            """
+    public void AnApplicationsOwnMarkerChoosesThePath()
+    {
+        const string source = """
             using Hardened.Shared.Runtime.Attributes;
             using Hardened.Web.Runtime.Attributes;
             using Hardened.Web.Runtime.OpenApi;
@@ -153,7 +160,8 @@ public class OpenApiDocumentEmbeddingTests {
         var result = GeneratorTestHarness.Run(
             new Dictionary<string, string> { ["Test.cs"] = source },
             new[] { new WebLibrarySourceGenerator() },
-            GeneratedRoutingTable.Anchors);
+            GeneratedRoutingTable.Anchors
+        );
 
         result.AssertNoErrors();
 

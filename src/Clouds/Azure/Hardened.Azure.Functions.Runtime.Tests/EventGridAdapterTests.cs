@@ -7,7 +7,8 @@ using Xunit;
 
 namespace Hardened.Azure.Functions.Runtime.Tests;
 
-public class EventGridAdapterTests {
+public class EventGridAdapterTests
+{
     private static readonly EventGridAdapter Adapter = new();
 
     private const string Event = """
@@ -17,10 +18,15 @@ public class EventGridAdapterTests {
         """;
 
     private static TestFunctionContext Context() =>
-        new("Event", new Dictionary<string, object?>(), new ServiceCollection().BuildServiceProvider());
+        new(
+            "Event",
+            new Dictionary<string, object?>(),
+            new ServiceCollection().BuildServiceProvider()
+        );
 
     [Fact]
-    public void HandlesAStringOnlyUnderTheEventScheme() {
+    public void HandlesAStringOnlyUnderTheEventScheme()
+    {
         Assert.True(Adapter.Handles(new FunctionsTrigger(CloudEventRoutes.EventScheme, "", Event)));
         Assert.False(Adapter.Handles(new FunctionsTrigger("TIMER", "/nightly", "{}")));
     }
@@ -30,9 +36,12 @@ public class EventGridAdapterTests {
     /// EventBridge adapter routes, and the data is the body.
     /// </summary>
     [Fact]
-    public void TheRouteComesFromTheEventAndTheBodyIsItsData() {
+    public void TheRouteComesFromTheEventAndTheBodyIsItsData()
+    {
         var request = Adapter.CreateRequest(
-            new FunctionsTrigger(CloudEventRoutes.EventScheme, "", Event), Context());
+            new FunctionsTrigger(CloudEventRoutes.EventScheme, "", Event),
+            Context()
+        );
 
         Assert.Equal("EVENT", request.Method);
         Assert.Equal("/com.acme.orders/OrderPlaced", request.Path);
@@ -45,9 +54,12 @@ public class EventGridAdapterTests {
     /// behind Event Grid and behind Eventarc.
     /// </summary>
     [Fact]
-    public void TheEventsAttributesAreHeaders() {
+    public void TheEventsAttributesAreHeaders()
+    {
         var request = Adapter.CreateRequest(
-            new FunctionsTrigger(CloudEventRoutes.EventScheme, "", Event), Context());
+            new FunctionsTrigger(CloudEventRoutes.EventScheme, "", Event),
+            Context()
+        );
 
         Assert.Equal("1.0", request.Headers[CloudEventHeaders.SpecVersion].ToString());
         Assert.Equal("7bf73129", request.Headers[CloudEventHeaders.Id].ToString());
@@ -58,12 +70,16 @@ public class EventGridAdapterTests {
     }
 
     [Fact]
-    public void AnEventWithoutDataHasNoBody() {
+    public void AnEventWithoutDataHasNoBody()
+    {
         var request = Adapter.CreateRequest(
             new FunctionsTrigger(
-                CloudEventRoutes.EventScheme, "",
-                """{"specversion":"1.0","id":"1","source":"com.acme.orders","type":"OrderCancelled"}"""),
-            Context());
+                CloudEventRoutes.EventScheme,
+                "",
+                """{"specversion":"1.0","id":"1","source":"com.acme.orders","type":"OrderCancelled"}"""
+            ),
+            Context()
+        );
 
         Assert.Same(Stream.Null, request.Body);
         Assert.Equal("/com.acme.orders/OrderCancelled", request.Path);

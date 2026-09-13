@@ -16,19 +16,34 @@ namespace Hardened.IntegrationTests.DynamoDb.SUT.Tests;
 /// Without that this suite would assert that a round trip through nothing preserves a value.
 /// </para>
 /// </summary>
-public class ChangeTests {
-
+public class ChangeTests
+{
     /// <summary>
     /// The claim the adapter rests on: a handler that names a table and binds a plain type is
     /// reached with the row, and never sees an AttributeValue.
     /// </summary>
     [HardenedTest]
     public async Task AChangeReachesTheHandlerAsThePlainRow(
-        ChangeTestApp.Changes changes, [Mock] IOrderProjection projection) {
-        await changes.Orders(new Order { Id = "a-1", Quantity = 2, Total = 42.5m });
+        ChangeTestApp.Changes changes,
+        [Mock] IOrderProjection projection
+    )
+    {
+        await changes.Orders(
+            new Order
+            {
+                Id = "a-1",
+                Quantity = 2,
+                Total = 42.5m,
+            }
+        );
 
-        projection.Received().Apply(Arg.Is<Order>(
-            order => order.Id == "a-1" && order.Quantity == 2 && order.Total == 42.5m));
+        projection
+            .Received()
+            .Apply(
+                Arg.Is<Order>(order =>
+                    order.Id == "a-1" && order.Quantity == 2 && order.Total == 42.5m
+                )
+            );
     }
 
     /// <summary>
@@ -37,9 +52,15 @@ public class ChangeTests {
     /// </summary>
     [HardenedTest]
     public async Task EveryChangeInABatchIsHandledSeparately(
-        ChangeTestApp.Changes changes, [Mock] IOrderProjection projection) {
+        ChangeTestApp.Changes changes,
+        [Mock] IOrderProjection projection
+    )
+    {
         await changes.Orders(
-            new Order { Id = "a-1" }, new Order { Id = "a-2" }, new Order { Id = "a-3" });
+            new Order { Id = "a-1" },
+            new Order { Id = "a-2" },
+            new Order { Id = "a-3" }
+        );
 
         projection.Received(3).Apply(Arg.Any<Order>());
         projection.Received().Apply(Arg.Is<Order>(order => order.Id == "a-2"));
@@ -51,9 +72,14 @@ public class ChangeTests {
     /// </summary>
     [HardenedTest]
     public async Task EachChangeBindsItsOwnImage(
-        ChangeTestApp.Changes changes, [Mock] IOrderProjection projection) {
+        ChangeTestApp.Changes changes,
+        [Mock] IOrderProjection projection
+    )
+    {
         await changes.Orders(
-            new Order { Id = "a-1", Quantity = 10 }, new Order { Id = "a-2", Quantity = 20 });
+            new Order { Id = "a-1", Quantity = 10 },
+            new Order { Id = "a-2", Quantity = 20 }
+        );
 
         projection.Received().Apply(Arg.Is<Order>(o => o.Id == "a-1" && o.Quantity == 10));
         projection.Received().Apply(Arg.Is<Order>(o => o.Id == "a-2" && o.Quantity == 20));
@@ -68,11 +94,19 @@ public class ChangeTests {
     /// </remarks>
     [HardenedTest]
     public async Task TheRawImageIsReachableThroughNewImage(
-        ChangeTestApp.Changes changes, [Mock] IOrderProjection projection) {
+        ChangeTestApp.Changes changes,
+        [Mock] IOrderProjection projection
+    )
+    {
         await changes.Audit(new Order { Id = "a-9", Total = 7 });
 
-        projection.Received().Raw(Arg.Is<IDictionary<string, Amazon.Lambda.DynamoDBEvents.DynamoDBEvent.AttributeValue>>(
-            image => image["id"].S == "a-9" && image["total"].N == "7"));
+        projection
+            .Received()
+            .Raw(
+                Arg.Is<
+                    IDictionary<string, Amazon.Lambda.DynamoDBEvents.DynamoDBEvent.AttributeValue>
+                >(image => image["id"].S == "a-9" && image["total"].N == "7")
+            );
     }
 
     /// <summary>
@@ -82,11 +116,16 @@ public class ChangeTests {
     /// </summary>
     [HardenedTest]
     public async Task AFailedChangeFailsTheInvocation(
-        ChangeTestApp.Changes changes, [Mock] IOrderProjection projection) {
-        projection.When(one => one.Apply(Arg.Is<Order>(order => order.Id == "a-2")))
+        ChangeTestApp.Changes changes,
+        [Mock] IOrderProjection projection
+    )
+    {
+        projection
+            .When(one => one.Apply(Arg.Is<Order>(order => order.Id == "a-2")))
             .Do(_ => throw new InvalidOperationException("refused"));
 
-        await Assert.ThrowsAsync<InvalidOperationException>(
-            () => changes.Orders(new Order { Id = "a-1" }, new Order { Id = "a-2" }));
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            changes.Orders(new Order { Id = "a-1" }, new Order { Id = "a-2" })
+        );
     }
 }

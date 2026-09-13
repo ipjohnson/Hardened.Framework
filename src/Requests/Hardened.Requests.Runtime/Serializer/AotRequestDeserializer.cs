@@ -10,39 +10,52 @@ using Microsoft.Extensions.Options;
 
 namespace Hardened.Requests.Runtime.Serializer;
 
-public class AotRequestDeserializer : IRequestDeserializer {
+public class AotRequestDeserializer : IRequestDeserializer
+{
     private readonly JsonSerializerOptions _serializerOptions;
     private readonly ILogger<AotRequestDeserializer> _logger;
 
-    public AotRequestDeserializer(IOptions<IJsonSerializerConfiguration> configuration,
+    public AotRequestDeserializer(
+        IOptions<IJsonSerializerConfiguration> configuration,
         ILogger<AotRequestDeserializer> logger,
-        IEnumerable<IJsonTypeInfoResolver> resolvers) {
+        IEnumerable<IJsonTypeInfoResolver> resolvers
+    )
+    {
         _logger = logger;
 
         // Build options without a default reflection-based resolver so that
         // tests fail the same way AOT production does when source-gen type
         // registrations are missing.
         var sourceOptions = configuration.Value.DeSerializerOptions;
-        _serializerOptions = new JsonSerializerOptions {
+        _serializerOptions = new JsonSerializerOptions
+        {
             PropertyNameCaseInsensitive = sourceOptions?.PropertyNameCaseInsensitive ?? true,
-            PropertyNamingPolicy = sourceOptions?.PropertyNamingPolicy ?? JsonNamingPolicy.CamelCase,
-            NumberHandling = sourceOptions?.NumberHandling ?? JsonNumberHandling.AllowReadingFromString,
+            PropertyNamingPolicy =
+                sourceOptions?.PropertyNamingPolicy ?? JsonNamingPolicy.CamelCase,
+            NumberHandling =
+                sourceOptions?.NumberHandling ?? JsonNumberHandling.AllowReadingFromString,
         };
 
         // Copy converters from configured options
-        if (sourceOptions != null) {
-            foreach (var converter in sourceOptions.Converters) {
+        if (sourceOptions != null)
+        {
+            foreach (var converter in sourceOptions.Converters)
+            {
                 _serializerOptions.Converters.Add(converter);
             }
         }
 
-        foreach (var resolver in resolvers) {
+        foreach (var resolver in resolvers)
+        {
             _serializerOptions.TypeInfoResolverChain.Add(resolver);
 
             // Pull converters from source-generated contexts (e.g. UnixEpochDateTimeConverter)
-            if (resolver is JsonSerializerContext ctx) {
-                foreach (var converter in ctx.Options.Converters) {
-                    if (!_serializerOptions.Converters.Contains(converter)) {
+            if (resolver is JsonSerializerContext ctx)
+            {
+                foreach (var converter in ctx.Options.Converters)
+                {
+                    if (!_serializerOptions.Converters.Contains(converter))
+                    {
                         _serializerOptions.Converters.Add(converter);
                     }
                 }
@@ -61,7 +74,8 @@ public class AotRequestDeserializer : IRequestDeserializer {
 
         // After that call, because it is guarded on the chain being empty and this would fill it.
         _serializerOptions.TypeInfoResolverChain.Add(
-            Hardened.Shared.Runtime.Json.PrimitiveJsonTypeInfoResolver.Instance);
+            Hardened.Shared.Runtime.Json.PrimitiveJsonTypeInfoResolver.Instance
+        );
     }
 
     public bool IsDefaultSerializer => true;
@@ -78,7 +92,8 @@ public class AotRequestDeserializer : IRequestDeserializer {
     /// </remarks>
     public int Order => (int)RequestDeserializerOrder.Specialized;
 
-    public bool CanProcessContext(IExecutionContext context) {
+    public bool CanProcessContext(IExecutionContext context)
+    {
         return context.Request.ContentType?.Contains("application/json") ?? false;
     }
 
@@ -86,8 +101,11 @@ public class AotRequestDeserializer : IRequestDeserializer {
     /// Reads the body as it is. A compressed body was decoded by <c>RequestDecompressionFilter</c>
     /// before the bind, which is why this no longer looks at <c>Content-Encoding</c>.
     /// </summary>
-    public async ValueTask<T?> DeserializeRequestBody<T>(IExecutionContext context) {
+    public async ValueTask<T?> DeserializeRequestBody<T>(IExecutionContext context)
+    {
         return await System.Text.Json.JsonSerializer.DeserializeAsync(
-            context.Request.Body, Hardened.Shared.Runtime.Json.JsonTypeInfoLookup.For<T>(_serializerOptions));
+            context.Request.Body,
+            Hardened.Shared.Runtime.Json.JsonTypeInfoLookup.For<T>(_serializerOptions)
+        );
     }
 }

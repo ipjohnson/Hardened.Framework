@@ -1,8 +1,8 @@
 using Hardened.Requests.Abstract.Authorization;
 using Hardened.Requests.Abstract.Errors;
 using Hardened.Requests.Abstract.Responses;
-using Microsoft.Extensions.Primitives;
 using Hardened.Web.Runtime.Responses;
+using Microsoft.Extensions.Primitives;
 using Xunit;
 
 namespace Hardened.Web.Runtime.Tests.Responses;
@@ -16,23 +16,27 @@ namespace Hardened.Web.Runtime.Tests.Responses;
 /// cannot make and a rename does not reach.
 /// </para>
 /// </summary>
-public class TypedResponseExceptionTests {
-
+public class TypedResponseExceptionTests
+{
     /// <summary>
     /// The point of it. A catch for one case does not catch another, which is what makes the type
     /// parameter worth having rather than decorative.
     /// </summary>
     [Fact]
-    public void ACatchForOneCaseDoesNotCatchAnother() {
+    public void ACatchForOneCaseDoesNotCatchAnother()
+    {
         var caught = false;
 
-        try {
+        try
+        {
             throw new ResponseException<NotFound>(new NotFound("todo"));
         }
-        catch (ResponseException<Conflict>) {
+        catch (ResponseException<Conflict>)
+        {
             Assert.Fail("A Conflict catch must not catch a NotFound.");
         }
-        catch (ResponseException<NotFound> e) {
+        catch (ResponseException<NotFound> e)
+        {
             caught = true;
             Assert.Equal("todo", e.Response.Resource);
         }
@@ -45,11 +49,14 @@ public class TypedResponseExceptionTests {
     /// that catches ResponseException does not stop seeing these.
     /// </summary>
     [Fact]
-    public void TheBaseCatchStillCatchesIt() {
-        try {
+    public void TheBaseCatchStillCatchesIt()
+    {
+        try
+        {
             throw new ResponseException<Gone>(new Gone());
         }
-        catch (ResponseException e) {
+        catch (ResponseException e)
+        {
             Assert.IsType<Gone>(e.Response);
         }
     }
@@ -59,7 +66,8 @@ public class TypedResponseExceptionTests {
     /// body off StatusCodeException.Value, both inherited.
     /// </summary>
     [Fact]
-    public void ItIsStillAStatusCodeExceptionCarryingItsBody() {
+    public void ItIsStillAStatusCodeExceptionCarryingItsBody()
+    {
         var response = new NotFound("todo", "No todo with id 7.");
         var exception = new ResponseException<NotFound>(response);
 
@@ -74,7 +82,8 @@ public class TypedResponseExceptionTests {
     /// what was thrown.
     /// </summary>
     [Fact]
-    public void TheTypedAndUntypedResponseAreTheSameInstance() {
+    public void TheTypedAndUntypedResponseAreTheSameInstance()
+    {
         var response = new Conflict("clash");
         var exception = new ResponseException<Conflict>(response);
 
@@ -87,7 +96,8 @@ public class TypedResponseExceptionTests {
     /// bytes.
     /// </summary>
     [Fact]
-    public void HeadersStillComeFromTheResponse() {
+    public void HeadersStillComeFromTheResponse()
+    {
         var response = new Unauthorized(Challenge: AuthorizationChallenge.InvalidToken());
 
         var returned = new Dictionary<string, StringValues>();
@@ -103,7 +113,8 @@ public class TypedResponseExceptionTests {
     /// A bodyless case still carries no body, so a typed throw of a 204 does not start sending one.
     /// </summary>
     [Fact]
-    public void ABodylessCaseStillCarriesNoBody() {
+    public void ABodylessCaseStillCarriesNoBody()
+    {
         Assert.Null(new ResponseException<NoContent>(new NoContent()).Value);
     }
 
@@ -113,7 +124,8 @@ public class TypedResponseExceptionTests {
     /// The type argument is inferred, so the case type is named once rather than twice.
     /// </summary>
     [Fact]
-    public void AsExceptionInfersTheCaseType() {
+    public void AsExceptionInfersTheCaseType()
+    {
         var exception = new NotFound("todo").AsException();
 
         Assert.IsType<ResponseException<NotFound>>(exception);
@@ -121,14 +133,16 @@ public class TypedResponseExceptionTests {
     }
 
     [Fact]
-    public void AsExceptionCarriesAMessageWhenGivenOne() {
+    public void AsExceptionCarriesAMessageWhenGivenOne()
+    {
         var exception = new Gone().AsException("The board was deleted in March.");
 
         Assert.Equal("The board was deleted in March.", exception.Message);
     }
 
     [Fact]
-    public void AsExceptionNamesTheStatusWhenGivenNoMessage() {
+    public void AsExceptionNamesTheStatusWhenGivenNoMessage()
+    {
         Assert.Contains("410", new Gone().AsException().Message, StringComparison.Ordinal);
     }
 

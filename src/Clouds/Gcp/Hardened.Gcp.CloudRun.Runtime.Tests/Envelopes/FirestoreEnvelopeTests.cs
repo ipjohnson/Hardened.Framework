@@ -14,44 +14,81 @@ namespace Hardened.Gcp.CloudRun.Runtime.Tests.Envelopes;
 /// <summary>
 /// A document event delivered by Eventarc as protobuf, read into the plain JSON a handler binds.
 /// </summary>
-public class FirestoreEnvelopeTests {
+public class FirestoreEnvelopeTests
+{
     private static readonly FirestoreEnvelope Envelope = new();
 
     private const string Database = "//firestore.googleapis.com/projects/p/databases/(default)";
 
     private static Document Order(string id, long quantity) =>
-        new() {
+        new()
+        {
             Name = "projects/p/databases/(default)/documents/orders/" + id,
-            Fields = {
+            Fields =
+            {
                 ["id"] = new Value { StringValue = id },
                 ["quantity"] = new Value { IntegerValue = quantity },
                 ["total"] = new Value { DoubleValue = 42.5 },
                 ["paid"] = new Value { BooleanValue = true },
-                ["placed"] = new Value { TimestampValue = Timestamp.FromDateTimeOffset(new DateTimeOffset(2026, 9, 7, 10, 0, 0, TimeSpan.Zero)) },
-                ["tags"] = new Value { ArrayValue = new ArrayValue { Values = { new Value { StringValue = "a" }, new Value { IntegerValue = 2 } } } },
-                ["address"] = new Value { MapValue = new MapValue { Fields = { ["city"] = new Value { StringValue = "Leeds" } } } },
-                ["note"] = new Value { NullValue = NullValue.NullValue }
-            }
+                ["placed"] = new Value
+                {
+                    TimestampValue = Timestamp.FromDateTimeOffset(
+                        new DateTimeOffset(2026, 9, 7, 10, 0, 0, TimeSpan.Zero)
+                    ),
+                },
+                ["tags"] = new Value
+                {
+                    ArrayValue = new ArrayValue
+                    {
+                        Values =
+                        {
+                            new Value { StringValue = "a" },
+                            new Value { IntegerValue = 2 },
+                        },
+                    },
+                },
+                ["address"] = new Value
+                {
+                    MapValue = new MapValue
+                    {
+                        Fields = { ["city"] = new Value { StringValue = "Leeds" } },
+                    },
+                },
+                ["note"] = new Value { NullValue = NullValue.NullValue },
+            },
         };
 
     private static byte[] Event(Document? value, Document? oldValue) =>
         new DocumentEventData { Value = value, OldValue = oldValue }.ToByteArray();
 
-    private static JsonElement Body(Stream body) {
+    private static JsonElement Body(Stream body)
+    {
         using var document = JsonDocument.Parse(Deliveries.Text(body));
 
         return document.RootElement.Clone();
     }
 
     private static FirestoreChange Unwrap(string type, string subject, byte[] data) =>
-        (FirestoreChange)Deliveries.Unwrap(
-            Envelope,
-            Deliveries.CloudEvent(FirestoreEnvelope.DocumentTypePrefix + type, Database, subject, "application/protobuf"),
-            data)!;
+        (FirestoreChange)
+            Deliveries.Unwrap(
+                Envelope,
+                Deliveries.CloudEvent(
+                    FirestoreEnvelope.DocumentTypePrefix + type,
+                    Database,
+                    subject,
+                    "application/protobuf"
+                ),
+                data
+            )!;
 
     [Fact]
-    public void TheCollectionOffTheSubjectIsTheRoute() {
-        var request = Unwrap("updated", "documents/orders/o-1", Event(Order("o-1", 2), Order("o-1", 1)));
+    public void TheCollectionOffTheSubjectIsTheRoute()
+    {
+        var request = Unwrap(
+            "updated",
+            "documents/orders/o-1",
+            Event(Order("o-1", 2), Order("o-1", 1))
+        );
 
         Assert.Equal("CHANGE", request.Method);
         Assert.Equal("/orders", request.Path);
@@ -59,7 +96,8 @@ public class FirestoreEnvelopeTests {
 
     /// <summary>The typed values become the plain JSON a handler's own type is shaped like.</summary>
     [Fact]
-    public void TheDocumentsFieldsAreTheBodyAsPlainJson() {
+    public void TheDocumentsFieldsAreTheBodyAsPlainJson()
+    {
         var request = Unwrap("updated", "documents/orders/o-1", Event(Order("o-1", 2), null));
 
         var body = Body(request.Body);
@@ -76,7 +114,8 @@ public class FirestoreEnvelopeTests {
 
     /// <summary>A delete binds the old value, because there is no new one.</summary>
     [Fact]
-    public void ADeleteBindsTheDocumentThatWasDeleted() {
+    public void ADeleteBindsTheDocumentThatWasDeleted()
+    {
         var request = Unwrap("deleted", "documents/orders/o-9", Event(null, Order("o-9", 5)));
 
         Assert.Equal("o-9", Body(request.Body).GetProperty("id").GetString());
@@ -85,25 +124,45 @@ public class FirestoreEnvelopeTests {
     }
 
     [Fact]
-    public void ASubcollectionDocumentRoutesOnItsOwnCollection() {
-        var request = Unwrap("created", "documents/users/u-1/orders/o-1", Event(Order("o-1", 1), null));
+    public void ASubcollectionDocumentRoutesOnItsOwnCollection()
+    {
+        var request = Unwrap(
+            "created",
+            "documents/users/u-1/orders/o-1",
+            Event(Order("o-1", 1), null)
+        );
 
         Assert.Equal("/orders", request.Path);
-        Assert.Equal("users/u-1/orders/o-1", request.Headers[FirestoreEnvelope.DocumentHeader].ToString());
+        Assert.Equal(
+            "users/u-1/orders/o-1",
+            request.Headers[FirestoreEnvelope.DocumentHeader].ToString()
+        );
     }
 
     [Fact]
-    public void TheEventAndTheDocumentNameAreHeaders() {
+    public void TheEventAndTheDocumentNameAreHeaders()
+    {
         var request = Unwrap("created", "documents/orders/o-1", Event(Order("o-1", 1), null));
 
-        Assert.Equal(FirestoreEnvelope.DocumentTypePrefix + "created", request.Headers["ce-type"].ToString());
-        Assert.Equal("projects/p/databases/(default)/documents/orders/o-1", request.Headers[FirestoreEnvelope.DocumentNameHeader].ToString());
+        Assert.Equal(
+            FirestoreEnvelope.DocumentTypePrefix + "created",
+            request.Headers["ce-type"].ToString()
+        );
+        Assert.Equal(
+            "projects/p/databases/(default)/documents/orders/o-1",
+            request.Headers[FirestoreEnvelope.DocumentNameHeader].ToString()
+        );
     }
 
     /// <summary>A fork keeps the event, so a filter that re-runs the handler still serves [OldValue].</summary>
     [Fact]
-    public void ACloneKeepsTheEvent() {
-        var request = Unwrap("updated", "documents/orders/o-1", Event(Order("o-1", 2), Order("o-1", 1)));
+    public void ACloneKeepsTheEvent()
+    {
+        var request = Unwrap(
+            "updated",
+            "documents/orders/o-1",
+            Event(Order("o-1", 2), Order("o-1", 1))
+        );
 
         var clone = Assert.IsType<FirestoreChange>(request.Clone(method: "CHANGE"));
 
@@ -111,13 +170,21 @@ public class FirestoreEnvelopeTests {
     }
 
     [Fact]
-    public void DataThatIsNotADocumentEventIsRefused() {
-        Assert.Throws<InvalidOperationException>(() => Unwrap("updated", "documents/orders/o-1", new byte[] { 0xff, 0xff, 0xff }));
+    public void DataThatIsNotADocumentEventIsRefused()
+    {
+        Assert.Throws<InvalidOperationException>(() =>
+            Unwrap("updated", "documents/orders/o-1", new byte[] { 0xff, 0xff, 0xff })
+        );
     }
 
     [Fact]
-    public void ACloudEventOfAnotherTypeIsNotRecognised() {
-        Assert.False(Envelope.Recognises(Deliveries.CloudEvent("google.cloud.storage.object.v1.finalized", "/s")));
+    public void ACloudEventOfAnotherTypeIsNotRecognised()
+    {
+        Assert.False(
+            Envelope.Recognises(
+                Deliveries.CloudEvent("google.cloud.storage.object.v1.finalized", "/s")
+            )
+        );
     }
 
     [Theory]
@@ -125,13 +192,19 @@ public class FirestoreEnvelopeTests {
     [InlineData("users/u-1/orders/o-1", "orders")]
     [InlineData("orders", "orders")]
     [InlineData("", "")]
-    public void TheCollectionIsTheSegmentBeforeTheDocument(string path, string collection) {
+    public void TheCollectionIsTheSegmentBeforeTheDocument(string path, string collection)
+    {
         Assert.Equal(collection, FirestoreEnvelope.Collection(path));
     }
 
     [Fact]
-    public async Task OldValueBindsThePreviousDocumentInFirestoresOwnForm() {
-        var request = Unwrap("updated", "documents/orders/o-1", Event(Order("o-1", 2), Order("o-1", 1)));
+    public async Task OldValueBindsThePreviousDocumentInFirestoresOwnForm()
+    {
+        var request = Unwrap(
+            "updated",
+            "documents/orders/o-1",
+            Event(Order("o-1", 2), Order("o-1", 1))
+        );
         var context = Context(request);
 
         var previous = await new OldValueAttribute().BindValue<Document>(context, Parameter());
@@ -140,31 +213,46 @@ public class FirestoreEnvelopeTests {
     }
 
     [Fact]
-    public async Task OldValueIsNullOnACreateForAParameterThatCanHoldNull() {
+    public async Task OldValueIsNullOnACreateForAParameterThatCanHoldNull()
+    {
         var request = Unwrap("created", "documents/orders/o-1", Event(Order("o-1", 2), null));
 
-        Assert.Null(await new OldValueAttribute().BindValue<Document?>(Context(request), Parameter()));
+        Assert.Null(
+            await new OldValueAttribute().BindValue<Document?>(Context(request), Parameter())
+        );
     }
 
     [Fact]
-    public async Task OldValueRefusesAParameterThatCannotHoldNullOnACreate() {
+    public async Task OldValueRefusesAParameterThatCannotHoldNullOnACreate()
+    {
         var request = Unwrap("created", "documents/orders/o-1", Event(Order("o-1", 2), null));
 
-        await Assert.ThrowsAsync<InvalidCastException>(
-            () => new OldValueAttribute().BindValue<int>(Context(request), Parameter()).AsTask());
+        await Assert.ThrowsAsync<InvalidCastException>(() =>
+            new OldValueAttribute().BindValue<int>(Context(request), Parameter()).AsTask()
+        );
     }
 
     [Fact]
-    public async Task OldValueRefusesARequestThatIsNotAFirestoreChange() {
+    public async Task OldValueRefusesARequestThatIsNotAFirestoreChange()
+    {
         var context = Substitute.For<IExecutionContext>();
 
-        context.Request.Returns(new TestExecutionRequest("CHANGE", "/orders", null, Hardened.Requests.Runtime.QueryString.EmptyQueryStringCollection.Instance));
+        context.Request.Returns(
+            new TestExecutionRequest(
+                "CHANGE",
+                "/orders",
+                null,
+                Hardened.Requests.Runtime.QueryString.EmptyQueryStringCollection.Instance
+            )
+        );
 
-        await Assert.ThrowsAsync<InvalidOperationException>(
-            () => new OldValueAttribute().BindValue<Document>(context, Parameter()).AsTask());
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            new OldValueAttribute().BindValue<Document>(context, Parameter()).AsTask()
+        );
     }
 
-    private static IExecutionContext Context(FirestoreChange request) {
+    private static IExecutionContext Context(FirestoreChange request)
+    {
         var context = Substitute.For<IExecutionContext>();
 
         context.Request.Returns(request);
@@ -172,7 +260,8 @@ public class FirestoreEnvelopeTests {
         return context;
     }
 
-    private static IExecutionRequestParameter Parameter() {
+    private static IExecutionRequestParameter Parameter()
+    {
         var parameter = Substitute.For<IExecutionRequestParameter>();
 
         parameter.Name.Returns("previous");

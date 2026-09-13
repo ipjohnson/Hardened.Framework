@@ -21,7 +21,8 @@ namespace Hardened.Requests.Abstract.Authorization;
 /// API ends up with two spellings of the same challenge.
 /// </para>
 /// </remarks>
-public sealed class AuthorizationChallenge {
+public sealed class AuthorizationChallenge
+{
     public const string HeaderName = "WWW-Authenticate";
 
     public const string BearerScheme = "Bearer";
@@ -32,7 +33,9 @@ public sealed class AuthorizationChallenge {
         string? error,
         string? realm,
         IReadOnlyList<string> scope,
-        string? description) {
+        string? description
+    )
+    {
         StatusCode = statusCode;
         Scheme = scheme;
         Error = error;
@@ -57,8 +60,10 @@ public sealed class AuthorizationChallenge {
     /// <summary>
     /// A credential was presented and is not valid - 401, <c>error="invalid_token"</c>.
     /// </summary>
-    public static AuthorizationChallenge InvalidToken(string? realm = null, string? description = null) =>
-        new(401, BearerScheme, "invalid_token", realm, [], description);
+    public static AuthorizationChallenge InvalidToken(
+        string? realm = null,
+        string? description = null
+    ) => new(401, BearerScheme, "invalid_token", realm, [], description);
 
     /// <summary>
     /// The credential is valid but too weak for this operation - 401,
@@ -69,8 +74,9 @@ public sealed class AuthorizationChallenge {
     /// remedy is a stronger credential rather than more grants.
     /// </remarks>
     public static AuthorizationChallenge InsufficientAuthentication(
-        string? realm = null, string? description = null) =>
-        new(401, BearerScheme, "insufficient_user_authentication", realm, [], description);
+        string? realm = null,
+        string? description = null
+    ) => new(401, BearerScheme, "insufficient_user_authentication", realm, [], description);
 
     /// <summary>
     /// The caller is authenticated and lacks the grants - 403, <c>error="insufficient_scope"</c>.
@@ -80,8 +86,10 @@ public sealed class AuthorizationChallenge {
     /// naming them costs nothing and turns "no" into "no, and here is what you would need".
     /// </remarks>
     public static AuthorizationChallenge InsufficientScope(
-        IEnumerable<string> requiredGrants, string? realm = null) =>
-        new(403, BearerScheme, "insufficient_scope", realm, [..requiredGrants], description: null);
+        IEnumerable<string> requiredGrants,
+        string? realm = null
+    ) =>
+        new(403, BearerScheme, "insufficient_scope", realm, [.. requiredGrants], description: null);
 
     public int StatusCode { get; }
 
@@ -107,7 +115,8 @@ public sealed class AuthorizationChallenge {
     /// Assigns rather than appends, so a forked or retried chain that refuses the same request twice
     /// sends one challenge rather than two.
     /// </remarks>
-    public void Apply(IDictionary<string, StringValues> headers) {
+    public void Apply(IDictionary<string, StringValues> headers)
+    {
         ArgumentNullException.ThrowIfNull(headers);
 
         headers[HeaderName] = HeaderValue;
@@ -128,17 +137,23 @@ public sealed class AuthorizationChallenge {
     /// The status the challenge was sent with. Not recoverable from the header, and 401 for every
     /// challenge but <see cref="InsufficientScope"/>.
     /// </param>
-    public static AuthorizationChallenge Parse(string headerValue, int statusCode = 401) {
+    public static AuthorizationChallenge Parse(string headerValue, int statusCode = 401)
+    {
         ArgumentException.ThrowIfNullOrWhiteSpace(headerValue);
 
         var text = headerValue.Trim();
         var space = text.IndexOf(' ');
-        string? error = null, realm = null, description = null;
+        string? error = null,
+            realm = null,
+            description = null;
         IReadOnlyList<string> scope = [];
 
-        if (space >= 0) {
-            foreach (var (name, value) in Parameters(text[(space + 1)..])) {
-                switch (name.ToLowerInvariant()) {
+        if (space >= 0)
+        {
+            foreach (var (name, value) in Parameters(text[(space + 1)..]))
+            {
+                switch (name.ToLowerInvariant())
+                {
                     case "realm":
                         realm = value;
                         break;
@@ -160,21 +175,26 @@ public sealed class AuthorizationChallenge {
 
     // A quoted value can hold the comma that separates parameters and the quote that ends one, so
     // this walks the header rather than splitting it.
-    private static IEnumerable<(string Name, string Value)> Parameters(string text) {
+    private static IEnumerable<(string Name, string Value)> Parameters(string text)
+    {
         var index = 0;
 
-        while (index < text.Length) {
-            while (index < text.Length && (text[index] == ',' || char.IsWhiteSpace(text[index]))) {
+        while (index < text.Length)
+        {
+            while (index < text.Length && (text[index] == ',' || char.IsWhiteSpace(text[index])))
+            {
                 index++;
             }
 
             var nameStart = index;
 
-            while (index < text.Length && text[index] != '=' && text[index] != ',') {
+            while (index < text.Length && text[index] != '=' && text[index] != ',')
+            {
                 index++;
             }
 
-            if (index == text.Length || text[index] != '=') {
+            if (index == text.Length || text[index] != '=')
+            {
                 yield break;
             }
 
@@ -182,12 +202,15 @@ public sealed class AuthorizationChallenge {
             string value;
             index++;
 
-            if (index < text.Length && text[index] == '"') {
+            if (index < text.Length && text[index] == '"')
+            {
                 var builder = new StringBuilder();
                 index++;
 
-                while (index < text.Length && text[index] != '"') {
-                    if (text[index] == '\\' && index + 1 < text.Length) {
+                while (index < text.Length && text[index] != '"')
+                {
+                    if (text[index] == '\\' && index + 1 < text.Length)
+                    {
                         index++;
                     }
 
@@ -196,10 +219,13 @@ public sealed class AuthorizationChallenge {
 
                 index++;
                 value = builder.ToString();
-            } else {
+            }
+            else
+            {
                 var valueStart = index;
 
-                while (index < text.Length && text[index] != ',') {
+                while (index < text.Length && text[index] != ',')
+                {
                     index++;
                 }
 
@@ -211,30 +237,41 @@ public sealed class AuthorizationChallenge {
     }
 
     private static string Format(
-        string scheme, string? error, string? realm, IReadOnlyList<string> scope, string? description) {
+        string scheme,
+        string? error,
+        string? realm,
+        IReadOnlyList<string> scope,
+        string? description
+    )
+    {
         var builder = new StringBuilder(scheme);
         var first = true;
 
-        void Parameter(string name, string value) {
+        void Parameter(string name, string value)
+        {
             builder.Append(first ? " " : ", ");
             first = false;
             builder.Append(name).Append("=\"").Append(Quote(value)).Append('"');
         }
 
         // realm first, which is the order RFC 6750's own examples use.
-        if (!string.IsNullOrEmpty(realm)) {
+        if (!string.IsNullOrEmpty(realm))
+        {
             Parameter("realm", realm);
         }
 
-        if (!string.IsNullOrEmpty(error)) {
+        if (!string.IsNullOrEmpty(error))
+        {
             Parameter("error", error);
         }
 
-        if (!string.IsNullOrEmpty(description)) {
+        if (!string.IsNullOrEmpty(description))
+        {
             Parameter("error_description", description);
         }
 
-        if (scope.Count > 0) {
+        if (scope.Count > 0)
+        {
             // Space-delimited, which is how OAuth writes a scope list on the wire.
             Parameter("scope", string.Join(' ', scope));
         }

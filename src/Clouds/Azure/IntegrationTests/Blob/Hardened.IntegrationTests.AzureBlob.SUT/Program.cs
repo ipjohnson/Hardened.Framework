@@ -14,13 +14,24 @@ var host = new HostBuilder()
 
 host.Run();
 
-internal sealed class ObservedUploadSink : IUploadSink {
+internal sealed class ObservedUploadSink : IUploadSink
+{
     private const string Marker = "HARDENED-OBSERVED ";
 
-    public void Arrived(Upload upload) {
+    public void Arrived(Upload upload)
+    {
         Console.Out.WriteLine(
-            Marker + JsonSerializer.Serialize(
-                new { kind = "blob", container = upload.Container, name = upload.Name, size = upload.Size }));
+            Marker
+                + JsonSerializer.Serialize(
+                    new
+                    {
+                        kind = "blob",
+                        container = upload.Container,
+                        name = upload.Name,
+                        size = upload.Size,
+                    }
+                )
+        );
         Console.Out.Flush();
     }
 }

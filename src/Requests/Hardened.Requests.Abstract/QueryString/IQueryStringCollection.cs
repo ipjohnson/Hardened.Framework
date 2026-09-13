@@ -2,7 +2,8 @@
 
 namespace Hardened.Requests.Abstract.QueryString;
 
-public interface IQueryStringCollection {
+public interface IQueryStringCollection
+{
     int Count { get; }
 
     StringValues Get(string key);

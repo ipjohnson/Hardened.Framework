@@ -41,8 +41,11 @@ namespace Hardened.Web.Testing;
 /// </remarks>
 [AttributeUsage(AttributeTargets.Assembly)]
 public class WebTestingAttribute
-    : Attribute, ITestServiceSetupAttribute, ITestStartupAttribute, ISharedTestRegistration {
-
+    : Attribute,
+        ITestServiceSetupAttribute,
+        ITestStartupAttribute,
+        ISharedTestRegistration
+{
     /// <summary>
     /// The clients this test takes, which are the parameters that must not be pinned.
     /// </summary>
@@ -65,18 +68,27 @@ public class WebTestingAttribute
     /// <see cref="IsShared"/> and threaded to the host.
     /// </para>
     /// </remarks>
-    public IReadOnlyList<Type> IsolatedServices(System.Reflection.MethodInfo testMethod) {
+    public IReadOnlyList<Type> IsolatedServices(System.Reflection.MethodInfo testMethod)
+    {
         var testAssembly = testMethod.DeclaringType!.Assembly;
 
-        return testMethod.GetParameters()
+        return testMethod
+            .GetParameters()
             .Select(parameter => parameter.ParameterType)
-            .Where(type => type == typeof(ITestWebApp) ||
-                           type == typeof(HttpClient) ||
-                           TestClientBuilder.HasRoute(type, testAssembly))
+            .Where(type =>
+                type == typeof(ITestWebApp)
+                || type == typeof(HttpClient)
+                || TestClientBuilder.HasRoute(type, testAssembly)
+            )
             .Distinct()
             .ToArray();
     }
-    public void SetupServiceCollection(ITestMethodContext testMethod, IServiceCollection serviceCollection) {
+
+    public void SetupServiceCollection(
+        ITestMethodContext testMethod,
+        IServiceCollection serviceCollection
+    )
+    {
         var host = ResolveHost(testMethod, serviceCollection);
 
         // Through a factory and never as an instance: the container disposes only what it
@@ -84,7 +96,8 @@ public class WebTestingAttribute
         // nothing tracks. Disposing the container is what stops a socket host's server.
         serviceCollection.AddSingleton<ITestHost>(_ => host);
 
-        if (host.IsTerminal) {
+        if (host.IsTerminal)
+        {
             // A terminal host has nothing behind it to hand an unmatched request to, so a path
             // with no route is a 404 here, exactly as it is on Kestrel and on Lambda.
             //
@@ -106,7 +119,8 @@ public class WebTestingAttribute
         // middleware asks the sources in registration order, so a request carrying no test header
         // is declined here and answered by the application's source as it always was.
         serviceCollection.TryAddEnumerable(
-            ServiceDescriptor.Singleton<IPrincipalSource, TestGrantsPrincipalSource>());
+            ServiceDescriptor.Singleton<IPrincipalSource, TestGrantsPrincipalSource>()
+        );
 
         var declaringType = testMethod.Method.DeclaringType!;
         var testAssembly = declaringType.Assembly;
@@ -117,7 +131,8 @@ public class WebTestingAttribute
         // would change nothing about which container its requests reach.
         var sharedWebApp = SharedParameter(testMethod, typeof(ITestWebApp));
 
-        serviceCollection.AddTransient<ITestWebApp>(sp => {
+        serviceCollection.AddTransient<ITestWebApp>(sp =>
+        {
             var loggerType = typeof(ILogger<>).MakeGenericType(declaringType);
             var logger = (ILogger)sp.GetRequiredService(loggerType);
             var appRoot = sp.GetRequiredService<IApplicationRoot>();
@@ -146,40 +161,69 @@ public class WebTestingAttribute
         ITestMethodContext testMethod,
         IServiceCollection serviceCollection,
         TestCredential credential,
-        System.Reflection.Assembly testAssembly) {
-        foreach (var parameter in testMethod.Method.GetParameters()) {
+        System.Reflection.Assembly testAssembly
+    )
+    {
+        foreach (var parameter in testMethod.Method.GetParameters())
+        {
             var type = parameter.ParameterType;
 
-            if (type == typeof(IServiceProvider) ||
-                parameter.GetCustomAttributes(inherit: true).OfType<ITestParameterValueProvider>().Any() ||
-                serviceCollection.Any(descriptor => descriptor.ServiceType == type)) {
+            if (
+                type == typeof(IServiceProvider)
+                || parameter
+                    .GetCustomAttributes(inherit: true)
+                    .OfType<ITestParameterValueProvider>()
+                    .Any()
+                || serviceCollection.Any(descriptor => descriptor.ServiceType == type)
+            )
+            {
                 continue;
             }
 
             var reuse = IsShared(parameter);
 
-            if (type == typeof(HttpClient)) {
-                serviceCollection.AddScoped(type, sp =>
-                    TestClientBuilder.CreateHttpClient(
-                        sp.GetRequiredService<IApplicationRoot>().Provider, credential, reuse));
-
-                continue;
-            }
-
-            if (TestClientBuilder.HasRoute(type, testAssembly)) {
-                serviceCollection.AddScoped(type, sp => TestClientBuilder.Build(
+            if (type == typeof(HttpClient))
+            {
+                serviceCollection.AddScoped(
                     type,
-                    TestClientBuilder.CreateContext(
-                        sp.GetRequiredService<IApplicationRoot>().Provider, credential, reuse),
-                    testAssembly));
+                    sp =>
+                        TestClientBuilder.CreateHttpClient(
+                            sp.GetRequiredService<IApplicationRoot>().Provider,
+                            credential,
+                            reuse
+                        )
+                );
 
                 continue;
             }
 
-            if (!TestClientBuilder.IsConstructibleByTheContainer(type, serviceCollection)) {
+            if (TestClientBuilder.HasRoute(type, testAssembly))
+            {
+                serviceCollection.AddScoped(
+                    type,
+                    sp =>
+                        TestClientBuilder.Build(
+                            type,
+                            TestClientBuilder.CreateContext(
+                                sp.GetRequiredService<IApplicationRoot>().Provider,
+                                credential,
+                                reuse
+                            ),
+                            testAssembly
+                        )
+                );
+
+                continue;
+            }
+
+            if (!TestClientBuilder.IsConstructibleByTheContainer(type, serviceCollection))
+            {
                 var message = TestClientBuilder.NoRouteMessage(type, testAssembly);
 
-                serviceCollection.AddScoped(type, _ => throw new InvalidOperationException(message));
+                serviceCollection.AddScoped(
+                    type,
+                    _ => throw new InvalidOperationException(message)
+                );
             }
         }
     }
@@ -194,13 +238,15 @@ public class WebTestingAttribute
     /// container of its own on a host that rebuilds.
     /// </remarks>
     private static bool IsShared(System.Reflection.ParameterInfo parameter) =>
-        parameter.GetCustomAttributes(inherit: true)
+        parameter
+            .GetCustomAttributes(inherit: true)
             .OfType<ISharedTestRegistration>()
             .Any(registration => registration.Shared);
 
     /// <summary>The same, for a parameter named by type rather than held.</summary>
     private static bool SharedParameter(ITestMethodContext testMethod, Type type) =>
-        testMethod.Method.GetParameters()
+        testMethod
+            .Method.GetParameters()
             .Any(parameter => parameter.ParameterType == type && IsShared(parameter));
 
     /// <summary>
@@ -210,18 +256,26 @@ public class WebTestingAttribute
     /// attribute no provider answers for is not a host; its module is loaded, as the runner
     /// always did, and the pipeline serves.
     /// </summary>
-    internal static ITestHost ResolveHost(ITestMethodContext testMethod, IServiceCollection services) {
+    internal static ITestHost ResolveHost(
+        ITestMethodContext testMethod,
+        IServiceCollection services
+    )
+    {
         var providers = testMethod.Attributes.OfType<TestHostProviderAttribute>().ToArray();
 
-        for (var index = testMethod.Attributes.Count - 1; index >= 0; index--) {
+        for (var index = testMethod.Attributes.Count - 1; index >= 0; index--)
+        {
             var attribute = testMethod.Attributes[index];
 
-            if (attribute is TestHostAttribute explicitHost) {
+            if (attribute is TestHostAttribute explicitHost)
+            {
                 return explicitHost.CreateHost(testMethod, services);
             }
 
-            foreach (var provider in providers) {
-                if (provider.RuntimeAttribute.IsInstanceOfType(attribute)) {
+            foreach (var provider in providers)
+            {
+                if (provider.RuntimeAttribute.IsInstanceOfType(attribute))
+                {
                     return provider.CreateHost(testMethod, services);
                 }
             }
@@ -235,8 +289,10 @@ public class WebTestingAttribute
     /// <c>ApplicationLogic.Start</c>, so they run once whichever attribute the runner reaches
     /// first, appends the routing and handler filter, and on a socket host begins listening.
     /// </summary>
-    public Task StartupAsync(ITestMethodContext testMethod, IServiceProvider serviceProvider) {
-        var token = serviceProvider.GetService<TestCancellationToken>()?.Token ?? CancellationToken.None;
+    public Task StartupAsync(ITestMethodContext testMethod, IServiceProvider serviceProvider)
+    {
+        var token =
+            serviceProvider.GetService<TestCancellationToken>()?.Token ?? CancellationToken.None;
 
         return serviceProvider.GetRequiredService<ITestHost>().StartAsync(serviceProvider, token);
     }

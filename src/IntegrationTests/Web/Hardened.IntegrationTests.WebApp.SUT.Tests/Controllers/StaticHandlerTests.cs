@@ -12,10 +12,11 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 /// static handler's declaring type is registered by nobody, so the filter at HandlerCreation has to
 /// stand down rather than refuse the request.
 /// </remarks>
-public class StaticHandlerTests {
-
+public class StaticHandlerTests
+{
     [HardenedTest]
-    public async Task AStaticHandlerAnswers(ITestWebApp app) {
+    public async Task AStaticHandlerAnswers(ITestWebApp app)
+    {
         var response = await app.Get("/static/echo/hello");
 
         response.Assert.Ok();
@@ -24,8 +25,12 @@ public class StaticHandlerTests {
     }
 
     [HardenedTest]
-    public async Task AStaticHandlerResolvesItsServiceParameters(ITestWebApp app) {
-        var model = new MathAddModel { Values = new List<int> { 1, 2, 3 } };
+    public async Task AStaticHandlerResolvesItsServiceParameters(ITestWebApp app)
+    {
+        var model = new MathAddModel
+        {
+            Values = new List<int> { 1, 2, 3 },
+        };
 
         var response = await app.Post(model, "/static/add");
 
@@ -40,10 +45,16 @@ public class StaticHandlerTests {
     /// </summary>
     [HardenedTest]
     public async Task AStaticHandlersServiceParameterIsTheRegisteredOne(
-        ITestWebApp app, [Mock] IMathService<int> mockService) {
+        ITestWebApp app,
+        [Mock] IMathService<int> mockService
+    )
+    {
         mockService.Add(Arg.Any<int[]>()).Returns(100);
 
-        var model = new MathAddModel { Values = new List<int> { 1, 2, 3 } };
+        var model = new MathAddModel
+        {
+            Values = new List<int> { 1, 2, 3 },
+        };
 
         var response = await app.Post(model, "/static/add");
 
@@ -53,7 +64,8 @@ public class StaticHandlerTests {
     }
 
     [HardenedTest]
-    public async Task AnAsyncStaticHandlerAnswers(ITestWebApp app) {
+    public async Task AnAsyncStaticHandlerAnswers(ITestWebApp app)
+    {
         var response = await app.Get("/static/async/waited");
 
         response.Assert.Ok();
@@ -62,7 +74,8 @@ public class StaticHandlerTests {
     }
 
     [HardenedTest]
-    public async Task AControllerHoldingBothKindsServesBoth(ITestWebApp app) {
+    public async Task AControllerHoldingBothKindsServesBoth(ITestWebApp app)
+    {
         var stat = await app.Get("/mixed/static/value");
 
         stat.Assert.Ok();
@@ -70,7 +83,12 @@ public class StaticHandlerTests {
         Assert.Equal("value", stat.Deserialize<string>());
 
         var instance = await app.Post(
-            new MathAddModel { Values = new List<int> { 4, 5 } }, "/mixed/instance");
+            new MathAddModel
+            {
+                Values = new List<int> { 4, 5 },
+            },
+            "/mixed/instance"
+        );
 
         instance.Assert.Ok();
 

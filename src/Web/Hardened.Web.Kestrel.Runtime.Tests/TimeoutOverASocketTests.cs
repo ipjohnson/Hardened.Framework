@@ -4,10 +4,10 @@ using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Middleware;
 using Hardened.Requests.Runtime.Filters;
 using Hardened.Shared.Runtime.Application;
+using Hardened.Web.Runtime.Responses;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Xunit;
-using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.Kestrel.Runtime.Tests;
 
@@ -35,8 +35,8 @@ namespace Hardened.Web.Kestrel.Runtime.Tests;
 /// the wire.
 /// </para>
 /// </remarks>
-public class TimeoutOverASocketTests {
-
+public class TimeoutOverASocketTests
+{
     private const string Answer = """{"served":true}""";
 
     /// <summary>
@@ -45,7 +45,8 @@ public class TimeoutOverASocketTests {
     private const int ShortBudget = 100;
 
     [Fact]
-    public async Task TheHandlerIsCancelledWhenTheBudgetRunsOut() {
+    public async Task TheHandlerIsCancelledWhenTheBudgetRunsOut()
+    {
         await using var harness = await Harness.Start(TestContext.Current.CancellationToken);
 
         using var response = await harness.Get(TestContext.Current.CancellationToken);
@@ -59,13 +60,17 @@ public class TimeoutOverASocketTests {
     /// this is what the client would see of it.
     /// </summary>
     [Fact]
-    public async Task TheOutwardFlushRunsOnALiveTokenAndReachesTheClient() {
+    public async Task TheOutwardFlushRunsOnALiveTokenAndReachesTheClient()
+    {
         await using var harness = await Harness.Start(TestContext.Current.CancellationToken);
 
         using var response = await harness.Get(TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Equal(Answer, await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+        Assert.Equal(
+            Answer,
+            await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken)
+        );
         Assert.Null(harness.FlushFailure);
     }
 
@@ -74,28 +79,35 @@ public class TimeoutOverASocketTests {
     /// deadline fired reads whatever that one left behind.
     /// </summary>
     [Fact]
-    public async Task TheConnectionIsReusableAfterADeadlineFired() {
+    public async Task TheConnectionIsReusableAfterADeadlineFired()
+    {
         await using var harness = await Harness.Start(TestContext.Current.CancellationToken);
 
-        using (var first = await harness.Get(TestContext.Current.CancellationToken)) {
+        using (var first = await harness.Get(TestContext.Current.CancellationToken))
+        {
             Assert.Equal(HttpStatusCode.OK, first.StatusCode);
         }
 
         using var second = await harness.Get(TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, second.StatusCode);
-        Assert.Equal(Answer, await second.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+        Assert.Equal(
+            Answer,
+            await second.Content.ReadAsStringAsync(TestContext.Current.CancellationToken)
+        );
     }
 
     /// <summary>
     /// A real Kestrel listening on a port the OS picked, with the deadline filter composed as
     /// middleware.
     /// </summary>
-    private sealed class Harness : IAsyncDisposable {
+    private sealed class Harness : IAsyncDisposable
+    {
         private HardenedKestrelApplication _app = null!;
         private readonly HttpClient _client;
 
-        private Harness(HttpClient client) {
+        private Harness(HttpClient client)
+        {
             _client = client;
         }
 
@@ -105,10 +117,14 @@ public class TimeoutOverASocketTests {
         /// <summary>What the outward write failed with, or null. A restore that did not happen.</summary>
         public Exception? FlushFailure { get; private set; }
 
-        public static async Task<Harness> Start(CancellationToken cancellationToken) {
-            var harness = new Harness(new HttpClient(new SocketsHttpHandler {
-                MaxConnectionsPerServer = 1
-            }) { Timeout = TimeSpan.FromSeconds(10) });
+        public static async Task<Harness> Start(CancellationToken cancellationToken)
+        {
+            var harness = new Harness(
+                new HttpClient(new SocketsHttpHandler { MaxConnectionsPerServer = 1 })
+                {
+                    Timeout = TimeSpan.FromSeconds(10),
+                }
+            );
 
             harness._app = Build();
 
@@ -121,20 +137,26 @@ public class TimeoutOverASocketTests {
             return harness;
         }
 
-        public async Task<HttpResponseMessage> Get(CancellationToken cancellationToken) {
+        public async Task<HttpResponseMessage> Get(CancellationToken cancellationToken)
+        {
             using var request = new HttpRequestMessage(HttpMethod.Get, "/rates");
 
             return await _client.SendAsync(
-                request, HttpCompletionOption.ResponseContentRead, cancellationToken);
+                request,
+                HttpCompletionOption.ResponseContentRead,
+                cancellationToken
+            );
         }
 
-        public async ValueTask DisposeAsync() {
+        public async ValueTask DisposeAsync()
+        {
             _client.Dispose();
 
             await _app.DisposeAsync();
         }
 
-        private static HardenedKestrelApplication Build() {
+        private static HardenedKestrelApplication Build()
+        {
             var services = new ServiceCollection();
 
             services.AddLogging(builder => builder.SetMinimumLevel(LogLevel.Warning));
@@ -144,10 +166,13 @@ public class TimeoutOverASocketTests {
 
             // Port 0, so the OS picks one and concurrent test classes cannot collide.
             return HardenedKestrelApplication.Create(
-                services, kestrel => kestrel.Listen(System.Net.IPAddress.Loopback, 0));
+                services,
+                kestrel => kestrel.Listen(System.Net.IPAddress.Loopback, 0)
+            );
         }
 
-        private void Compose() {
+        private void Compose()
+        {
             var middleware = _app.Services.GetRequiredService<IMiddlewareService>();
 
             middleware.Use(_ => new Flushing(this));
@@ -159,20 +184,25 @@ public class TimeoutOverASocketTests {
         /// Writes its answer after the inner chain has returned, on the context's token - the shape
         /// <c>ConditionalGetFilter</c> and <c>ResponseCacheFilter</c> both have.
         /// </summary>
-        private sealed class Flushing : IExecutionFilter {
+        private sealed class Flushing : IExecutionFilter
+        {
             private readonly Harness _harness;
 
-            public Flushing(Harness harness) {
+            public Flushing(Harness harness)
+            {
                 _harness = harness;
             }
 
-            public async Task Execute(IExecutionChain chain) {
+            public async Task Execute(IExecutionChain chain)
+            {
                 var context = chain.Context;
 
-                try {
+                try
+                {
                     await chain.Next();
                 }
-                catch (OperationCanceledException) {
+                catch (OperationCanceledException)
+                {
                     // The deadline, which the serialization filter would have caught in a routed
                     // application. Held here so the flush below is what the test observes.
                 }
@@ -181,29 +211,38 @@ public class TimeoutOverASocketTests {
                 context.Response.ContentType = "application/json";
                 context.Response.ShouldSerialize = false;
 
-                try {
+                try
+                {
                     await context.Response.Body.WriteAsync(
-                        Encoding.UTF8.GetBytes(Answer), context.CancellationToken);
+                        Encoding.UTF8.GetBytes(Answer),
+                        context.CancellationToken
+                    );
                 }
-                catch (Exception exception) {
+                catch (Exception exception)
+                {
                     _harness.FlushFailure = exception;
                 }
             }
         }
 
         /// <summary>Waits for something that never comes, on whatever token it was handed.</summary>
-        private sealed class Overrunning : IExecutionFilter {
+        private sealed class Overrunning : IExecutionFilter
+        {
             private readonly Harness _harness;
 
-            public Overrunning(Harness harness) {
+            public Overrunning(Harness harness)
+            {
                 _harness = harness;
             }
 
-            public async Task Execute(IExecutionChain chain) {
-                try {
+            public async Task Execute(IExecutionChain chain)
+            {
+                try
+                {
                     await Task.Delay(Timeout.Infinite, chain.Context.CancellationToken);
                 }
-                catch (OperationCanceledException) {
+                catch (OperationCanceledException)
+                {
                     _harness.HandlerWasCancelled = true;
 
                     throw;

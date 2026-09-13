@@ -22,16 +22,18 @@ namespace Hardened.Requests.Abstract.Errors;
 /// its <c>WWW-Authenticate</c> challenge being the case that prompted it.
 /// </para>
 /// </remarks>
-public class StatusCodeException : Exception, IStatusCodeException {
-
+public class StatusCodeException : Exception, IStatusCodeException
+{
     public StatusCodeException(int statusCode, object? value = null, string? message = null)
-        : base(message ?? "The request produced status " + statusCode + ".") {
+        : base(message ?? "The request produced status " + statusCode + ".")
+    {
         StatusCode = statusCode;
         Value = value;
     }
 
     public StatusCodeException(int statusCode, object? value, string message, Exception inner)
-        : base(message, inner) {
+        : base(message, inner)
+    {
         StatusCode = statusCode;
         Value = value;
     }

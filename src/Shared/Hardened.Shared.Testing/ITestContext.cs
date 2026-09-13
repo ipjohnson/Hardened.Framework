@@ -2,7 +2,8 @@
 
 namespace Hardened.Shared.Testing;
 
-public interface ITestContext {
+public interface ITestContext
+{
     IRetryEngine Retry { get; }
 
     CancellationToken CancellationRequest { get; }

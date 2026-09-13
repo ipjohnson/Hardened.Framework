@@ -7,12 +7,16 @@ namespace Hardened.OpenApiDocument.BuildTask.Tests;
 /// Runs <see cref="WriteOpenApiDocument"/> against a real assembly and a temporary output
 /// directory, and collects what it logged.
 /// </summary>
-internal sealed class TaskHarness : IDisposable {
-
+internal sealed class TaskHarness : IDisposable
+{
     private readonly string _root = Path.Combine(
-        Path.GetTempPath(), "hardened-openapi-document-tests", Guid.NewGuid().ToString("n"));
+        Path.GetTempPath(),
+        "hardened-openapi-document-tests",
+        Guid.NewGuid().ToString("n")
+    );
 
-    public TaskHarness() {
+    public TaskHarness()
+    {
         Directory.CreateDirectory(_root);
     }
 
@@ -37,28 +41,39 @@ internal sealed class TaskHarness : IDisposable {
     /// </summary>
     public const string LabelsApp = "Hardened.IntegrationTests.OpenApi.ResponseModel.SUT";
 
-    public Result Run(string assembly, string output, string version = "", string prefix = "HRDOA") {
+    public Result Run(string assembly, string output, string version = "", string prefix = "HRDOA")
+    {
         var engine = new RecordingBuildEngine();
 
-        var task = new WriteOpenApiDocument {
+        var task = new WriteOpenApiDocument
+        {
             BuildEngine = engine,
             Assembly = assembly,
             Output = output,
             ProjectDirectory = _root,
             Version = version,
-            DiagnosticPrefix = prefix
+            DiagnosticPrefix = prefix,
         };
 
         var succeeded = task.Execute();
 
-        return new Result(succeeded, engine.Errors, engine.Warnings, task.WrittenPath, task.Changed);
+        return new Result(
+            succeeded,
+            engine.Errors,
+            engine.Warnings,
+            task.WrittenPath,
+            task.Changed
+        );
     }
 
-    public void Dispose() {
-        try {
+    public void Dispose()
+    {
+        try
+        {
             Directory.Delete(_root, recursive: true);
         }
-        catch (IOException) {
+        catch (IOException)
+        {
             // A leftover temp directory is not worth failing a test over.
         }
     }
@@ -68,16 +83,20 @@ internal sealed class TaskHarness : IDisposable {
         IReadOnlyList<BuildErrorEventArgs> Errors,
         IReadOnlyList<BuildWarningEventArgs> Warnings,
         string WrittenPath,
-        bool Changed) {
-
+        bool Changed
+    )
+    {
         public bool HasError(string code) => Errors.Any(error => error.Code == code);
 
-        public string ErrorText => string.Join("\n", Errors.Select(error => $"{error.Code}: {error.Message}"));
+        public string ErrorText =>
+            string.Join("\n", Errors.Select(error => $"{error.Code}: {error.Message}"));
 
-        public string WarningText => string.Join("\n", Warnings.Select(warning => $"{warning.Code}: {warning.Message}"));
+        public string WarningText =>
+            string.Join("\n", Warnings.Select(warning => $"{warning.Code}: {warning.Message}"));
     }
 
-    private sealed class RecordingBuildEngine : IBuildEngine {
+    private sealed class RecordingBuildEngine : IBuildEngine
+    {
         public List<BuildErrorEventArgs> Errors { get; } = new();
 
         public List<BuildWarningEventArgs> Warnings { get; } = new();
@@ -90,7 +109,12 @@ internal sealed class TaskHarness : IDisposable {
 
         public void LogCustomEvent(CustomBuildEventArgs e) { }
 
-        public bool BuildProjectFile(string projectFileName, string[] targetNames, IDictionary globalProperties, IDictionary targetOutputs) => true;
+        public bool BuildProjectFile(
+            string projectFileName,
+            string[] targetNames,
+            IDictionary globalProperties,
+            IDictionary targetOutputs
+        ) => true;
 
         public bool ContinueOnError => false;
 

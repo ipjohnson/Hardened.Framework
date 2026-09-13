@@ -22,10 +22,11 @@ namespace Hardened.Web.SourceGenerator.Tests.Routing;
 /// so it matched <c>/constrained/abc</c> and bound nothing to <c>id</c>.
 /// </para>
 /// </remarks>
-public class RouteConstraintTests {
-
+public class RouteConstraintTests
+{
     private static GeneratedRoutingTable Routing(string route) =>
-        GeneratedRoutingTable.For($$"""
+        GeneratedRoutingTable.For(
+            $$"""
             using Hardened.Shared.Runtime.Attributes;
             using Hardened.Web.Runtime.Attributes;
 
@@ -38,7 +39,8 @@ public class RouteConstraintTests {
                 [Get("{{route}}")]
                 public string Item(string id) => id;
             }
-            """);
+            """
+        );
 
     [Theory]
     [InlineData("int", "42", "abc")]
@@ -52,7 +54,12 @@ public class RouteConstraintTests {
     [InlineData("alpha", "beta", "beta2")]
     [InlineData("hex", "0f9AC3", "0g9")]
     [InlineData("slug", "my-first-post", "My-First-Post")]
-    public void AConstrainedTokenMatchesOnlyWhatPasses(string constraint, string passes, string fails) {
+    public void AConstrainedTokenMatchesOnlyWhatPasses(
+        string constraint,
+        string passes,
+        string fails
+    )
+    {
         var routing = Routing("/items/{id:" + constraint + "}");
 
         Assert.Equal("Item", routing.Handler("GET", "/items/" + passes).InvokeMethod);
@@ -72,7 +79,8 @@ public class RouteConstraintTests {
     [InlineData("double--hyphen", false)]
     [InlineData("Upper", false)]
     [InlineData("under_score", false)]
-    public void SlugIsACanonicalForm(string segment, bool matches) {
+    public void SlugIsACanonicalForm(string segment, bool matches)
+    {
         var routing = Routing("/posts/{id:slug}");
 
         Assert.Equal(matches, routing.Route("GET", "/posts/" + segment) != null);
@@ -88,7 +96,8 @@ public class RouteConstraintTests {
     [InlineData("12/06/2026", false)]
     [InlineData("17 August 2026", false)]
     [InlineData("2026-13-01", false)]
-    public void ADateIsIso8601AndNothingElse(string segment, bool matches) {
+    public void ADateIsIso8601AndNothingElse(string segment, bool matches)
+    {
         var routing = Routing("/on/{id:date}");
 
         Assert.Equal(matches, routing.Route("GET", "/on/" + segment) != null);
@@ -106,7 +115,11 @@ public class RouteConstraintTests {
     [InlineData("max(10)", "10", "11")]
     [InlineData("range(1,500)", "250", "501")]
     public void AParameterisedConstraintMatchesOnlyWhatPasses(
-        string constraint, string passes, string fails) {
+        string constraint,
+        string passes,
+        string fails
+    )
+    {
         var routing = Routing("/items/{id:" + constraint + "}");
 
         Assert.Equal("Item", routing.Handler("GET", "/items/" + passes).InvokeMethod);
@@ -118,9 +131,10 @@ public class RouteConstraintTests {
     /// </summary>
     [Theory]
     [InlineData("/items/42", true)]
-    [InlineData("/items/0", false)]      // an int, but below the bound
-    [InlineData("/items/abc", false)]    // not an int at all
-    public void AChainRequiresEveryTerm(string path, bool matches) {
+    [InlineData("/items/0", false)] // an int, but below the bound
+    [InlineData("/items/abc", false)] // not an int at all
+    public void AChainRequiresEveryTerm(string path, bool matches)
+    {
         var routing = Routing("/items/{id:int:min(1)}");
 
         Assert.Equal(matches, routing.Route("GET", path) != null);
@@ -128,7 +142,8 @@ public class RouteConstraintTests {
 
     /// <summary>The token still binds under its own name, whatever the chain carries.</summary>
     [Fact]
-    public void AChainedTokenStillBinds() {
+    public void AChainedTokenStillBinds()
+    {
         var tokens = Routing("/items/{id:int:min(1)}").PathTokens("GET", "/items/42");
 
         Assert.Equal("42", Assert.Contains("id", tokens));
@@ -139,7 +154,8 @@ public class RouteConstraintTests {
     /// answers would be describing a resource that does not exist.
     /// </summary>
     [Fact]
-    public void AValueThatFailsTheConstraintIsNoMatchAtAll() {
+    public void AValueThatFailsTheConstraintIsNoMatchAtAll()
+    {
         Assert.Null(Routing("/items/{id:int}").Route("GET", "/items/abc"));
     }
 
@@ -148,7 +164,8 @@ public class RouteConstraintTests {
     /// on is what <c>{id:int}</c> used to do - a token called <c>id:int</c> that bound to nothing.
     /// </summary>
     [Fact]
-    public void TheTokenStillBindsUnderItsOwnName() {
+    public void TheTokenStillBindsUnderItsOwnName()
+    {
         var tokens = Routing("/items/{id:int}").PathTokens("GET", "/items/42");
 
         Assert.Equal("42", Assert.Contains("id", tokens));
@@ -159,8 +176,10 @@ public class RouteConstraintTests {
     /// a value that fails leaves the scan free to try the next boundary.
     /// </summary>
     [Fact]
-    public void AConstraintOnATokenFollowedByMoreRouteAlsoApplies() {
-        var routing = GeneratedRoutingTable.For("""
+    public void AConstraintOnATokenFollowedByMoreRouteAlsoApplies()
+    {
+        var routing = GeneratedRoutingTable.For(
+            """
             using Hardened.Shared.Runtime.Attributes;
             using Hardened.Web.Runtime.Attributes;
 
@@ -173,7 +192,8 @@ public class RouteConstraintTests {
                 [Get("/orders/{id:int}/lines")]
                 public string Lines(string id) => id;
             }
-            """);
+            """
+        );
 
         Assert.Equal("Lines", routing.Handler("GET", "/orders/42/lines").InvokeMethod);
         Assert.Equal("42", Assert.Contains("id", routing.PathTokens("GET", "/orders/42/lines")));
@@ -186,7 +206,8 @@ public class RouteConstraintTests {
     /// another.
     /// </summary>
     [Fact]
-    public void AConstraintDoesNotDependOnTheAmbientCulture() {
+    public void AConstraintDoesNotDependOnTheAmbientCulture()
+    {
         var routing = Routing("/items/{id:int}");
 
         // Group separators and a comma decimal point are what a culture-sensitive parse would let
@@ -197,40 +218,40 @@ public class RouteConstraintTests {
 
     private const string DiagnosticId = "HRDR002";
 
-    private static readonly Type[] Anchors = [
-        typeof(GetAttribute),
-        typeof(FromBodyAttribute)
-    ];
+    private static readonly Type[] Anchors = [typeof(GetAttribute), typeof(FromBodyAttribute)];
 
     private static GeneratorResult Generate(string route) =>
         GeneratorTestHarness.Run(
-            new Dictionary<string, string> {
+            new Dictionary<string, string>
+            {
                 ["Test.cs"] = $$"""
-                    using Hardened.Shared.Runtime.Attributes;
-                    using Hardened.Web.Runtime.Attributes;
+                using Hardened.Shared.Runtime.Attributes;
+                using Hardened.Web.Runtime.Attributes;
 
-                    namespace TestApp;
+                namespace TestApp;
 
-                    [HardenedModule]
-                    public partial class TestApplication { }
+                [HardenedModule]
+                public partial class TestApplication { }
 
-                    public class ItemController {
-                        [Get("{{route}}")]
-                        public string Item(string id) => id;
-                    }
-                    """
+                public class ItemController {
+                    [Get("{{route}}")]
+                    public string Item(string id) => id;
+                }
+                """,
             },
             new IIncrementalGenerator[] { new WebLibrarySourceGenerator() },
-            Anchors);
+            Anchors
+        );
 
     /// <summary>
     /// A constraint nothing declares is a build error. Ignoring it would put the route back where
     /// <c>{id:int}</c> started: written, compiled, and constraining nothing.
     /// </summary>
     [Fact]
-    public void AnUnknownConstraintIsAnError() {
-        var reported = Generate("/items/{id:isbn}").GeneratorDiagnostics
-            .SingleOrDefault(diagnostic => diagnostic.Id == DiagnosticId);
+    public void AnUnknownConstraintIsAnError()
+    {
+        var reported = Generate("/items/{id:isbn}")
+            .GeneratorDiagnostics.SingleOrDefault(diagnostic => diagnostic.Id == DiagnosticId);
 
         Assert.NotNull(reported);
         Assert.Equal(DiagnosticSeverity.Error, reported!.Severity);
@@ -239,9 +260,11 @@ public class RouteConstraintTests {
 
     /// <summary>And the message lists what is built in, so the fix does not need the docs.</summary>
     [Fact]
-    public void TheMessageListsTheBuiltInConstraints() {
-        var message = Generate("/items/{id:isbn}").GeneratorDiagnostics
-            .Single(diagnostic => diagnostic.Id == DiagnosticId).GetMessage();
+    public void TheMessageListsTheBuiltInConstraints()
+    {
+        var message = Generate("/items/{id:isbn}")
+            .GeneratorDiagnostics.Single(diagnostic => diagnostic.Id == DiagnosticId)
+            .GetMessage();
 
         Assert.Contains("int", message);
         Assert.Contains("guid", message);
@@ -254,13 +277,16 @@ public class RouteConstraintTests {
     /// every built-in - which is a routing decision made by omission.
     /// </summary>
     [Fact]
-    public void EveryBuiltInNameIsRanked() {
-        foreach (var name in RouteConstraintFacts.Names) {
+    public void EveryBuiltInNameIsRanked()
+    {
+        foreach (var name in RouteConstraintFacts.Names)
+        {
             Assert.NotNull(RouteConstraintFacts.Test(name));
 
             Assert.True(
                 RouteConstraintFacts.Rank(name) < RouteConstraintFacts.CustomPrecedence,
-                $"'{name}' is built in but ranks as a custom constraint.");
+                $"'{name}' is built in but ranks as a custom constraint."
+            );
         }
     }
 
@@ -286,7 +312,8 @@ public class RouteConstraintTests {
     [InlineData("length", 80)]
     [InlineData("minlength", 80)]
     [InlineData("maxlength", 80)]
-    public void TheRankTableIsWhatItSays(string constraint, int rank) {
+    public void TheRankTableIsWhatItSays(string constraint, int rank)
+    {
         Assert.Equal(rank, RouteConstraintFacts.Rank(constraint));
     }
 
@@ -302,15 +329,18 @@ public class RouteConstraintTests {
     [InlineData("alpha", "slug")]
     [InlineData("slug", "length")]
     [InlineData("length", "isbn")]
-    public void TheNarrowerConstraintRanksFirst(string narrower, string wider) {
+    public void TheNarrowerConstraintRanksFirst(string narrower, string wider)
+    {
         Assert.True(
             RouteConstraintFacts.Rank(narrower) < RouteConstraintFacts.Rank(wider),
-            $"'{narrower}' should sort before '{wider}'.");
+            $"'{narrower}' should sort before '{wider}'."
+        );
     }
 
     /// <summary>An undeclared name gets the custom precedence rather than throwing.</summary>
     [Fact]
-    public void AnUnknownNameRanksAsCustom() {
+    public void AnUnknownNameRanksAsCustom()
+    {
         Assert.Equal(RouteConstraintFacts.CustomPrecedence, RouteConstraintFacts.Rank("isbn"));
     }
 
@@ -320,10 +350,12 @@ public class RouteConstraintTests {
     [InlineData("/items/{id:slug}")]
     [InlineData("/items/{id:datetime}")]
     [InlineData("/items/{id}")]
-    public void ASupportedTokenIsNotReported(string route) {
+    public void ASupportedTokenIsNotReported(string route)
+    {
         Assert.DoesNotContain(
             Generate(route).GeneratorDiagnostics,
-            diagnostic => diagnostic.Id == DiagnosticId);
+            diagnostic => diagnostic.Id == DiagnosticId
+        );
     }
 
     /// <summary>
@@ -332,10 +364,12 @@ public class RouteConstraintTests {
     [Theory]
     [InlineData("/items/{id?}")]
     [InlineData("/items/{id=5}")]
-    public void OptionalAndDefaultAreStillErrors(string route) {
+    public void OptionalAndDefaultAreStillErrors(string route)
+    {
         Assert.Contains(
             Generate(route).GeneratorDiagnostics,
-            diagnostic => diagnostic.Id == DiagnosticId);
+            diagnostic => diagnostic.Id == DiagnosticId
+        );
     }
 
     #region one path, several verbs
@@ -352,7 +386,8 @@ public class RouteConstraintTests {
     /// an unrelated route elsewhere in the document silently turned a 404 into a 400.
     /// </remarks>
     private static GeneratedRoutingTable TwoVerbs(string first, string second) =>
-        GeneratedRoutingTable.For($$"""
+        GeneratedRoutingTable.For(
+            $$"""
             using Hardened.Shared.Runtime.Attributes;
             using Hardened.Web.Runtime.Attributes;
 
@@ -368,10 +403,12 @@ public class RouteConstraintTests {
                 [Delete("/items/{{second}}")]
                 public string Remove(string id) => id;
             }
-            """);
+            """
+        );
 
     [Fact]
-    public void AConstraintDeclaredOnTheFirstVerbConstrainsTheSegment() {
+    public void AConstraintDeclaredOnTheFirstVerbConstrainsTheSegment()
+    {
         var routing = TwoVerbs("{id:int}", "{id}");
 
         Assert.Equal("Read", routing.Handler("GET", "/items/42").InvokeMethod);
@@ -383,7 +420,8 @@ public class RouteConstraintTests {
     /// And on the second, which is the half that was order-dependent.
     /// </summary>
     [Fact]
-    public void AConstraintDeclaredOnTheSecondVerbConstrainsTheSegmentToo() {
+    public void AConstraintDeclaredOnTheSecondVerbConstrainsTheSegmentToo()
+    {
         var routing = TwoVerbs("{id}", "{id:int}");
 
         Assert.Equal("Read", routing.Handler("GET", "/items/42").InvokeMethod);
@@ -395,7 +433,8 @@ public class RouteConstraintTests {
     /// Neither declaring one leaves the segment unconstrained, which is where the binder answers.
     /// </summary>
     [Fact]
-    public void NoVerbDeclaringOneLeavesTheSegmentUnconstrained() {
+    public void NoVerbDeclaringOneLeavesTheSegmentUnconstrained()
+    {
         var routing = TwoVerbs("{id}", "{id}");
 
         Assert.Equal("Read", routing.Handler("GET", "/items/abc").InvokeMethod);
@@ -407,8 +446,10 @@ public class RouteConstraintTests {
     /// second.
     /// </summary>
     [Fact]
-    public void AConstraintDoesNotLeakToADifferentContinuation() {
-        var routing = GeneratedRoutingTable.For("""
+    public void AConstraintDoesNotLeakToADifferentContinuation()
+    {
+        var routing = GeneratedRoutingTable.For(
+            """
             using Hardened.Shared.Runtime.Attributes;
             using Hardened.Web.Runtime.Attributes;
 
@@ -424,7 +465,8 @@ public class RouteConstraintTests {
                 [Get("/items/{id}/parts")]
                 public string Parts(string id) => id;
             }
-            """);
+            """
+        );
 
         Assert.Null(routing.Route("GET", "/items/abc"));
         Assert.Equal("Parts", routing.Handler("GET", "/items/abc/parts").InvokeMethod);

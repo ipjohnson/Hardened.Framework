@@ -72,11 +72,14 @@ namespace Hardened.Requests.Runtime.Caching;
 /// </para>
 /// </remarks>
 [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class, AllowMultiple = true)]
-public sealed class CacheResponseAttribute<TProvider> :
-    Attribute, IRequestFilterProvider, ICacheResponseDeclaration
-    where TProvider : ICacheKeyProvider {
-
-    public CacheResponseAttribute(params string[] values) {
+public sealed class CacheResponseAttribute<TProvider>
+    : Attribute,
+        IRequestFilterProvider,
+        ICacheResponseDeclaration
+    where TProvider : ICacheKeyProvider
+{
+    public CacheResponseAttribute(params string[] values)
+    {
         Values = values;
     }
 
@@ -132,20 +135,27 @@ public sealed class CacheResponseAttribute<TProvider> :
 
     public ICacheKeyProvider CreateKeyProvider() => TProvider.Create(Values);
 
-    public IEnumerable<RequestFilterInfo> GetFilters(IExecutionRequestHandlerInfo handlerInfo) {
-        if (!Composes(handlerInfo, out var declarations)) {
+    public IEnumerable<RequestFilterInfo> GetFilters(IExecutionRequestHandlerInfo handlerInfo)
+    {
+        if (!Composes(handlerInfo, out var declarations))
+        {
             yield break;
         }
 
         // A requirement that reads the request does not run on a hit, and no scope makes it run.
         // Decided here rather than warned about. See the class remarks.
-        if (handlerInfo.Requirement?.RequiresContext == true) {
+        if (handlerInfo.Requirement?.RequiresContext == true)
+        {
             yield break;
         }
 
         var filter = ResponseCacheFilter.Compose(handlerInfo, declarations);
 
-        yield return new RequestFilterInfo(_ => filter, FilterOrder.ResponseCache, nameof(ResponseCacheFilter));
+        yield return new RequestFilterInfo(
+            _ => filter,
+            FilterOrder.ResponseCache,
+            nameof(ResponseCacheFilter)
+        );
     }
 
     /// <summary>
@@ -168,16 +178,22 @@ public sealed class CacheResponseAttribute<TProvider> :
     /// </para>
     /// </remarks>
     private bool Composes(
-        IExecutionRequestHandlerInfo handlerInfo, out IReadOnlyList<ICacheResponseDeclaration> declarations) {
+        IExecutionRequestHandlerInfo handlerInfo,
+        out IReadOnlyList<ICacheResponseDeclaration> declarations
+    )
+    {
         List<ICacheResponseDeclaration>? declared = null;
 
-        foreach (var item in handlerInfo.Metadata) {
-            if (item is ICacheResponseDeclaration declaration) {
+        foreach (var item in handlerInfo.Metadata)
+        {
+            if (item is ICacheResponseDeclaration declaration)
+            {
                 (declared ??= []).Add(declaration);
             }
         }
 
-        if (declared == null) {
+        if (declared == null)
+        {
             declarations = [this];
 
             return true;

@@ -43,21 +43,30 @@ namespace Hardened.Requests.Caching.Memory;
 /// author who wrote the attribute with no arguments, and a size limit of zero stores nothing.
 /// </remarks>
 [DependencyModule]
-public partial class HardenedMemoryResponseCache : IServiceCollectionConfiguration {
-
-    public void ConfigureServices(IServiceCollection services) {
+public partial class HardenedMemoryResponseCache : IServiceCollectionConfiguration
+{
+    public void ConfigureServices(IServiceCollection services)
+    {
         services.AddSingleton<IConfigurationPackage>(
             new SimpleConfigurationPackage(
-                new IConfigurationValueProvider[] {
-                    new NewConfigurationValueProvider<IMemoryResponseCacheConfiguration,
-                        MemoryResponseCacheConfiguration>(null)
+                new IConfigurationValueProvider[]
+                {
+                    new NewConfigurationValueProvider<
+                        IMemoryResponseCacheConfiguration,
+                        MemoryResponseCacheConfiguration
+                    >(null),
                 },
-                Array.Empty<IConfigurationValueAmender>()));
+                Array.Empty<IConfigurationValueAmender>()
+            )
+        );
 
-        services.TryAddSingleton(
-            serviceProvider => Microsoft.Extensions.Options.Options.Create(
-                serviceProvider.GetRequiredService<IConfigurationManager>()
-                    .GetConfiguration<IMemoryResponseCacheConfiguration>()));
+        services.TryAddSingleton(serviceProvider =>
+            Microsoft.Extensions.Options.Options.Create(
+                serviceProvider
+                    .GetRequiredService<IConfigurationManager>()
+                    .GetConfiguration<IMemoryResponseCacheConfiguration>()
+            )
+        );
 
         // Try, so an application or a test that has substituted a clock keeps it. The store reads
         // this to decide whether an entry is still valid, which is what makes a duration something

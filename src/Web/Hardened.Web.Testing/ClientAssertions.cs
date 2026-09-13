@@ -39,8 +39,8 @@ namespace Hardened.Web.Testing;
 /// client reported it.
 /// </para>
 /// </remarks>
-public static class ClientAssertions {
-
+public static class ClientAssertions
+{
     /// <summary>
     /// The response type the call was expected to answer with, built from what it answered.
     /// </summary>
@@ -55,16 +55,19 @@ public static class ClientAssertions {
     /// carries was absent, or no route the assembly named could read the call.
     /// </exception>
     public static async Task<TExpected> Returns<TExpected>(this Task call)
-        where TExpected : IResponseExpectation<TExpected> {
-
+        where TExpected : IResponseExpectation<TExpected>
+    {
         ArgumentNullException.ThrowIfNull(call);
 
         var expectation = "Returns<" + ResponseExpectation.Name(typeof(TExpected)) + ">()";
         var answer = await Answer(call, expectation, BodyTypeOf(typeof(TExpected)));
 
-        try {
+        try
+        {
             return ResponseExpectation.Match<TExpected>(answer.Status, answer.Body, answer.Headers);
-        } catch (InvalidOperationException failure) when (answer.Caveat != null) {
+        }
+        catch (InvalidOperationException failure) when (answer.Caveat != null)
+        {
             throw new InvalidOperationException(failure.Message + " " + answer.Caveat, failure);
         }
     }
@@ -79,7 +82,9 @@ public static class ClientAssertions {
     /// <exception cref="InvalidOperationException">
     /// Another status was answered, or no route the assembly named could read the call.
     /// </exception>
-    public static async Task ReturnsStatus<TStatus>(this Task call) where TStatus : IDeclaresStatus {
+    public static async Task ReturnsStatus<TStatus>(this Task call)
+        where TStatus : IDeclaresStatus
+    {
         ArgumentNullException.ThrowIfNull(call);
 
         var expectation = "ReturnsStatus<" + ResponseExpectation.Name(typeof(TStatus)) + ">()";
@@ -95,54 +100,72 @@ public static class ClientAssertions {
     /// A failure no route recognises is not a refusal - a timeout, a serializer that could not read
     /// a success - and reaches the test as it was thrown rather than wrapped as an answer.
     /// </remarks>
-    private static async Task<ClientAnswer> Answer(Task call, string expectation, Type? bodyType) {
+    private static async Task<ClientAnswer> Answer(Task call, string expectation, Type? bodyType)
+    {
         var readers = Readers(expectation);
 
         Exception? thrown = null;
 
-        try {
+        try
+        {
             await call;
-        } catch (Exception failure) {
+        }
+        catch (Exception failure)
+        {
             thrown = failure;
         }
 
         var result = thrown == null ? TaskResult.Of(call) : null;
 
-        foreach (var reader in readers) {
-            if (await reader.Read(result, thrown, bodyType) is { } answer) {
+        foreach (var reader in readers)
+        {
+            if (await reader.Read(result, thrown, bodyType) is { } answer)
+            {
                 return answer;
             }
         }
 
-        if (thrown != null) {
+        if (thrown != null)
+        {
             ExceptionDispatchInfo.Capture(thrown).Throw();
         }
 
         throw new InvalidOperationException(
-            $"{expectation} has no route that read this call, which returned " +
-            (result == null ? "no value" : "a " + ResponseExpectation.Name(result.GetType())) + ". " +
-            string.Join(" ", readers.Select(reader => reader.Unreadable)));
+            $"{expectation} has no route that read this call, which returned "
+                + (result == null ? "no value" : "a " + ResponseExpectation.Name(result.GetType()))
+                + ". "
+                + string.Join(" ", readers.Select(reader => reader.Unreadable))
+        );
     }
 
     /// <summary>The readers the running test's assembly named, in the order it named them.</summary>
-    private static IReadOnlyList<ITestClientReader> Readers(string expectation) {
-        if (CurrentTest.Assembly is not { } testAssembly) {
+    private static IReadOnlyList<ITestClientReader> Readers(string expectation)
+    {
+        if (CurrentTest.Assembly is not { } testAssembly)
+        {
             throw new InvalidOperationException(
-                $"{expectation} reads the call through the routes the test assembly named, which " +
-                "needs a running test, and there is none.");
+                $"{expectation} reads the call through the routes the test assembly named, which "
+                    + "needs a running test, and there is none."
+            );
         }
 
         return ReadersOf(testAssembly, expectation);
     }
 
-    internal static IReadOnlyList<ITestClientReader> ReadersOf(Assembly testAssembly, string expectation) {
+    internal static IReadOnlyList<ITestClientReader> ReadersOf(
+        Assembly testAssembly,
+        string expectation
+    )
+    {
         var readers = TestClientBuilder.ReadersFor(testAssembly);
 
-        if (readers.Count == 0) {
+        if (readers.Count == 0)
+        {
             throw new InvalidOperationException(
-                $"{expectation} reads the call through a route that can read answers, and " +
-                $"{testAssembly.GetName().Name} names none. Declare the client testing package's " +
-                "assembly attribute - the one that builds the client for a test parameter.");
+                $"{expectation} reads the call through a route that can read answers, and "
+                    + $"{testAssembly.GetName().Name} names none. Declare the client testing package's "
+                    + "assembly attribute - the one that builds the client for a test parameter."
+            );
         }
 
         return readers;
@@ -157,22 +180,27 @@ public static class ClientAssertions {
     /// A convention, and the one the shipped response types all follow. An application's own
     /// expectation type that carries a body declares one type argument for it.
     /// </remarks>
-    internal static Type? BodyTypeOf(Type expected) {
-        if (!expected.IsGenericType) {
+    internal static Type? BodyTypeOf(Type expected)
+    {
+        if (!expected.IsGenericType)
+        {
             return null;
         }
 
-        var bodies = expected.GetGenericArguments()
+        var bodies = expected
+            .GetGenericArguments()
             .Where(argument => !typeof(IStatusCode).IsAssignableFrom(argument))
             .ToArray();
 
-        return bodies.Length switch {
+        return bodies.Length switch
+        {
             0 => null,
             1 => bodies[0],
             _ => throw new InvalidOperationException(
-                $"{ResponseExpectation.Name(expected)} has {bodies.Length} type arguments, so " +
-                "Returns cannot tell which one a body is read as. An expectation that carries a " +
-                "body declares one type argument for it."),
+                $"{ResponseExpectation.Name(expected)} has {bodies.Length} type arguments, so "
+                    + "Returns cannot tell which one a body is read as. An expectation that carries a "
+                    + "body declares one type argument for it."
+            ),
         };
     }
 }

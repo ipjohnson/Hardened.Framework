@@ -19,7 +19,8 @@ namespace Hardened.SourceGenerator.Web;
 /// not be bounded declares no timeout, and there is no reading of zero that means anything else.
 /// </para>
 /// </remarks>
-public static class TimeoutDeclarationDiagnostics {
+public static class TimeoutDeclarationDiagnostics
+{
     public const string DiagnosticId = "HRDW006";
 
     /// <summary>
@@ -27,20 +28,23 @@ public static class TimeoutDeclarationDiagnostics {
     /// <c>AmbiguousRouteDiagnostics.Descriptor</c> is: RS2008 looks for the field, and these
     /// projects set <c>EnforceExtendedAnalyzerRules</c>.
     /// </summary>
-    private static DiagnosticDescriptor Descriptor() => new(
-        id: DiagnosticId,
-        title: "[Timeout] declares no budget",
-        messageFormat:
-        "'{0}' is bounded by a [Timeout] declaring {1} milliseconds, on the operation, its class " +
-        "or its assembly. A budget has to be greater than zero; a handler that should not be " +
-        "bounded declares no timeout instead. The runtime refuses this on the first request, and " +
-        "the document would publish x-hardened-timeout: {1}.",
-        category: "Hardened.Web",
-        defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+    private static DiagnosticDescriptor Descriptor() =>
+        new(
+            id: DiagnosticId,
+            title: "[Timeout] declares no budget",
+            messageFormat: "'{0}' is bounded by a [Timeout] declaring {1} milliseconds, on the operation, its class "
+                + "or its assembly. A budget has to be greater than zero; a handler that should not be "
+                + "bounded declares no timeout instead. The runtime refuses this on the first request, and "
+                + "the document would publish x-hardened-timeout: {1}.",
+            category: "Hardened.Web",
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true
+        );
 
-    public static void Report(SourceProductionContext context, RequestHandlerModel model) {
-        if (model.DeclaredTimeout is not { Milliseconds: <= 0 } declared) {
+    public static void Report(SourceProductionContext context, RequestHandlerModel model)
+    {
+        if (model.DeclaredTimeout is not { Milliseconds: <= 0 } declared)
+        {
             return;
         }
 
@@ -49,6 +53,8 @@ public static class TimeoutDeclarationDiagnostics {
                 Descriptor(),
                 Location.None,
                 model.ControllerType.Name + "." + model.HandlerMethod,
-                declared.Milliseconds));
+                declared.Milliseconds
+            )
+        );
     }
 }

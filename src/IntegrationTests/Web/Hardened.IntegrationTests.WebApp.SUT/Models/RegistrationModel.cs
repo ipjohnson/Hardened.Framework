@@ -14,8 +14,8 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Models;
 /// two declare colliding type names, hence the alias - that collision is the only thing about
 /// mixing them that a consumer has to deal with.
 /// </remarks>
-public class RegistrationModel {
-
+public class RegistrationModel
+{
     /// <summary>The name the registration is filed under.</summary>
     [DataAnnotations.Required]
     [DataAnnotations.StringLength(20, MinimumLength = 3)]
@@ -44,8 +44,8 @@ public record MemberRequest(string MemberId);
 /// <summary>A second level, so a failure has a path to report rather than a field.</summary>
 /// <remarks>Sealed because VM0031 (new in ValidationModules rc1012) otherwise asks what should
 /// happen when a more derived value reaches [ValidateNested] - nothing derives from this.</remarks>
-public sealed class AddressModel {
-
+public sealed class AddressModel
+{
     [Required]
     public string? City { get; set; }
 

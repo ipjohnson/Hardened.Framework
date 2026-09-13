@@ -29,13 +29,14 @@ namespace Hardened.Requests.Testing.Conformance;
 /// }
 /// </code>
 /// </summary>
-public abstract class ExecutionResponseConformanceTests {
-
+public abstract class ExecutionResponseConformanceTests
+{
     protected abstract IExecutionResponseConformanceAdapter Adapter { get; }
 
     private string Because(string what) => $"[{Adapter.TransportName}] {what}";
 
-    private async Task<ObservedResponse> Write(Action<IExecutionResponse> configure) {
+    private async Task<ObservedResponse> Write(Action<IExecutionResponse> configure)
+    {
         var response = Adapter.CreateResponse();
 
         configure(response);
@@ -56,16 +57,21 @@ public abstract class ExecutionResponseConformanceTests {
     [InlineData(404)]
     [InlineData(405)]
     [InlineData(500)]
-    public async Task StatusSurvivesCompletionWithNoBody(int status) {
+    public async Task StatusSurvivesCompletionWithNoBody(int status)
+    {
         var observed = await Write(response => response.Status = status);
 
-        Assert.True(status == observed.StatusCode,
-            Because($"expected status {status} to reach the client but got {observed.StatusCode}"));
+        Assert.True(
+            status == observed.StatusCode,
+            Because($"expected status {status} to reach the client but got {observed.StatusCode}")
+        );
     }
 
     [Fact]
-    public async Task StatusSurvivesCompletionWithABody() {
-        var observed = await Write(response => {
+    public async Task StatusSurvivesCompletionWithABody()
+    {
+        var observed = await Write(response =>
+        {
             response.Status = 201;
             response.Body.Write("created"u8);
         });
@@ -80,25 +86,31 @@ public abstract class ExecutionResponseConformanceTests {
     /// than passing the null along.
     /// </summary>
     [Fact]
-    public async Task AnUnsetStatusBecomesTwoHundred() {
+    public async Task AnUnsetStatusBecomesTwoHundred()
+    {
         var observed = await Write(_ => { });
 
-        Assert.True(observed.StatusCode == 200,
-            Because($"an unset status must send 200 but sent {observed.StatusCode}"));
+        Assert.True(
+            observed.StatusCode == 200,
+            Because($"an unset status must send 200 but sent {observed.StatusCode}")
+        );
     }
 
     // ---------------------------------------------------------------- headers and body
 
     [Fact]
-    public async Task HeadersSurviveCompletion() {
+    public async Task HeadersSurviveCompletion()
+    {
         var observed = await Write(response =>
-            response.Headers["X-Correlation-Id"] = new StringValues("abc-123"));
+            response.Headers["X-Correlation-Id"] = new StringValues("abc-123")
+        );
 
         Assert.Equal("abc-123", observed.Header("X-Correlation-Id"));
     }
 
     [Fact]
-    public async Task ContentTypeSurvivesCompletion() {
+    public async Task ContentTypeSurvivesCompletion()
+    {
         var observed = await Write(response => response.ContentType = "application/json");
 
         Assert.NotNull(observed.Header("Content-Type"));
@@ -106,14 +118,16 @@ public abstract class ExecutionResponseConformanceTests {
     }
 
     [Fact]
-    public async Task BodySurvivesCompletion() {
+    public async Task BodySurvivesCompletion()
+    {
         var observed = await Write(response => response.Body.Write("conformance-body"u8));
 
         Assert.Equal("conformance-body", observed.BodyAsText());
     }
 
     [Fact]
-    public async Task AnEmptyBodyIsEmptyRatherThanAbsent() {
+    public async Task AnEmptyBodyIsEmptyRatherThanAbsent()
+    {
         var observed = await Write(response => response.Status = 204);
 
         Assert.NotNull(observed.Body);
@@ -128,17 +142,24 @@ public abstract class ExecutionResponseConformanceTests {
     /// nothing read, so a cookie that worked in production could not be tested at all.
     /// </summary>
     [Fact]
-    public async Task AnAppendedCookieReachesTheClient() {
+    public async Task AnAppendedCookieReachesTheClient()
+    {
         var observed = await Write(response => response.Cookies.Append("session", "abc123"));
 
-        Assert.True(observed.SetCookies.Count > 0,
-            Because("Cookies.Append must produce something the client receives, and produced nothing"));
+        Assert.True(
+            observed.SetCookies.Count > 0,
+            Because(
+                "Cookies.Append must produce something the client receives, and produced nothing"
+            )
+        );
         Assert.Contains(observed.SetCookies, cookie => cookie.StartsWith("session=abc123"));
     }
 
     [Fact]
-    public async Task EveryAppendedCookieReachesTheClient() {
-        var observed = await Write(response => {
+    public async Task EveryAppendedCookieReachesTheClient()
+    {
+        var observed = await Write(response =>
+        {
             response.Cookies.Append("first", "1");
             response.Cookies.Append("second", "2");
         });
@@ -153,10 +174,15 @@ public abstract class ExecutionResponseConformanceTests {
     /// name and value and drops <c>HttpOnly</c> has produced a different cookie.
     /// </summary>
     [Fact]
-    public async Task CookieAttributesReachTheClient() {
-        var observed = await Write(response => response.Cookies.Append(
-            "session", "abc123",
-            new CookieSetOptions(Path: "/app", HttpOnly: true, Secure: true)));
+    public async Task CookieAttributesReachTheClient()
+    {
+        var observed = await Write(response =>
+            response.Cookies.Append(
+                "session",
+                "abc123",
+                new CookieSetOptions(Path: "/app", HttpOnly: true, Secure: true)
+            )
+        );
 
         var cookie = Assert.Single(observed.SetCookies);
 
@@ -166,7 +192,8 @@ public abstract class ExecutionResponseConformanceTests {
     }
 
     [Fact]
-    public async Task NoCookiesMeansNothingIsSent() {
+    public async Task NoCookiesMeansNothingIsSent()
+    {
         var observed = await Write(_ => { });
 
         Assert.Empty(observed.SetCookies);
@@ -175,15 +202,18 @@ public abstract class ExecutionResponseConformanceTests {
     // ---------------------------------------------------------------- clone contract
 
     [Fact]
-    public async Task CloneCarriesTheStatus() {
+    public async Task CloneCarriesTheStatus()
+    {
         var response = Adapter.CreateResponse();
 
         response.Status = 418;
 
         var observed = await Adapter.Complete(response.Clone());
 
-        Assert.True(observed.StatusCode == 418,
-            Because($"Clone must carry the status but the clone sent {observed.StatusCode}"));
+        Assert.True(
+            observed.StatusCode == 418,
+            Because($"Clone must carry the status but the clone sent {observed.StatusCode}")
+        );
     }
 
     /// <summary>
@@ -192,7 +222,8 @@ public abstract class ExecutionResponseConformanceTests {
     /// on a transport that records into a dictionary it has to be carried deliberately.
     /// </summary>
     [Fact]
-    public async Task ACookieAppendedToACloneReachesTheClient() {
+    public async Task ACookieAppendedToACloneReachesTheClient()
+    {
         var response = Adapter.CreateResponse();
         var clone = response.Clone();
 
@@ -206,11 +237,14 @@ public abstract class ExecutionResponseConformanceTests {
     // ---------------------------------------------------------------- response started
 
     [Fact]
-    public async Task ResponseHasNotStartedBeforeAnythingIsWritten() {
+    public async Task ResponseHasNotStartedBeforeAnythingIsWritten()
+    {
         var response = Adapter.CreateResponse();
 
-        Assert.False(response.ResponseStarted,
-            Because("a response nothing has written to must not report itself as started"));
+        Assert.False(
+            response.ResponseStarted,
+            Because("a response nothing has written to must not report itself as started")
+        );
 
         await Adapter.Complete(response);
     }

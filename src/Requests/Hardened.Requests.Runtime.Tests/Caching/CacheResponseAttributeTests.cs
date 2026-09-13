@@ -13,15 +13,16 @@ namespace Hardened.Requests.Runtime.Tests.Caching;
 /// What the attribute installs, what it declines to install, and how several of them on one handler
 /// become one filter.
 /// </summary>
-public class CacheResponseAttributeTests {
-
+public class CacheResponseAttributeTests
+{
     /// <summary>
     /// The cache has a stage of its own rather than sharing the pre-serialization slot, because its
     /// position is a correctness requirement: ahead of serialization so a hit skips the bind and the
     /// handler, and behind grant authorization so it never answers for a caller who was refused.
     /// </summary>
     [Fact]
-    public void TheFilterIsInstalledAtTheResponseCacheStage() {
+    public void TheFilterIsInstalledAtTheResponseCacheStage()
+    {
         var attribute = new CacheResponseAttribute<CacheTestSupport.FixedKey>();
         var handler = CacheTestSupport.Handler([attribute]);
 
@@ -38,7 +39,8 @@ public class CacheResponseAttributeTests {
     /// three filters would each look the request up and each store the answer.
     /// </summary>
     [Fact]
-    public void ThreeDeclarationsOnOneHandlerProduceOneFilter() {
+    public void ThreeDeclarationsOnOneHandlerProduceOneFilter()
+    {
         var first = new CacheResponseAttribute<CacheTestSupport.FixedKey>();
         var second = new CacheResponseAttribute<CacheTestSupport.SecondKey>();
         var third = new CacheResponseAttribute<CacheTestSupport.FixedKey>();
@@ -55,7 +57,8 @@ public class CacheResponseAttributeTests {
     /// that declares nothing.
     /// </summary>
     [Fact]
-    public void AGlobalDeclarationAppliesToAHandlerThatDeclaresNone() {
+    public void AGlobalDeclarationAppliesToAHandlerThatDeclaresNone()
+    {
         var global = new CacheResponseAttribute<CacheTestSupport.FixedKey>();
 
         Assert.Single(global.GetFilters(CacheTestSupport.Handler([])));
@@ -66,7 +69,8 @@ public class CacheResponseAttributeTests {
     /// one stands down, without the registration site having to say so.
     /// </summary>
     [Fact]
-    public void AGlobalDeclarationStandsDownWhereAHandlerDeclaresItsOwn() {
+    public void AGlobalDeclarationStandsDownWhereAHandlerDeclaresItsOwn()
+    {
         var global = new CacheResponseAttribute<CacheTestSupport.FixedKey>();
         var declared = new CacheResponseAttribute<CacheTestSupport.SecondKey>();
 
@@ -79,11 +83,14 @@ public class CacheResponseAttributeTests {
     /// silent.
     /// </summary>
     [Fact]
-    public void AResourceScopedHandlerIsNotCached() {
+    public void AResourceScopedHandlerIsNotCached()
+    {
         var attribute = new CacheResponseAttribute<CacheTestSupport.FixedKey>();
 
         var handler = CacheTestSupport.Handler(
-            [attribute], requirement: Requirement.Predicate((_, _) => true));
+            [attribute],
+            requirement: Requirement.Predicate((_, _) => true)
+        );
 
         Assert.Empty(attribute.GetFilters(handler));
     }
@@ -93,13 +100,17 @@ public class CacheResponseAttributeTests {
     /// it is safe to cache behind one - once the declaration has said who the answer is for.
     /// </summary>
     [Fact]
-    public void AGrantOnlyHandlerIsStillCached() {
-        var attribute = new CacheResponseAttribute<CacheTestSupport.FixedKey> {
-            Scope = CacheScope.AllCallers
+    public void AGrantOnlyHandlerIsStillCached()
+    {
+        var attribute = new CacheResponseAttribute<CacheTestSupport.FixedKey>
+        {
+            Scope = CacheScope.AllCallers,
         };
 
         var handler = CacheTestSupport.Handler(
-            [attribute], requirement: Requirement.Grant("catalog:read"));
+            [attribute],
+            requirement: Requirement.Grant("catalog:read")
+        );
 
         Assert.Single(attribute.GetFilters(handler));
     }
@@ -117,17 +128,20 @@ public class CacheResponseAttributeTests {
     [Theory]
     [InlineData("grant")]
     [InlineData("authenticated")]
-    public void AGuardedHandlerThatStatesNoScopeNamesTheHandler(string kind) {
+    public void AGuardedHandlerThatStatesNoScopeNamesTheHandler(string kind)
+    {
         var attribute = new CacheResponseAttribute<CacheTestSupport.FixedKey>();
 
         var handler = CacheTestSupport.Handler(
             [attribute],
             requirement: kind == "grant"
                 ? Requirement.Grant("catalog:read")
-                : Requirement.Authenticated());
+                : Requirement.Authenticated()
+        );
 
-        var exception = Assert.Throws<CacheScopeUndeclaredException>(
-            () => attribute.GetFilters(handler).ToList());
+        var exception = Assert.Throws<CacheScopeUndeclaredException>(() =>
+            attribute.GetFilters(handler).ToList()
+        );
 
         Assert.Equal("GET /catalog", exception.Handler);
         Assert.Contains("CacheScope.PerCaller", exception.Message);
@@ -139,7 +153,8 @@ public class CacheResponseAttributeTests {
     /// is nothing to decide and the ordinary public read stays free of ceremony.
     /// </summary>
     [Fact]
-    public void AnUnguardedHandlerNeedsNoScope() {
+    public void AnUnguardedHandlerNeedsNoScope()
+    {
         var attribute = new CacheResponseAttribute<CacheTestSupport.FixedKey>();
 
         Assert.Single(attribute.GetFilters(CacheTestSupport.Handler([attribute])));
@@ -150,19 +165,23 @@ public class CacheResponseAttributeTests {
     /// rather than a precedence question.
     /// </summary>
     [Fact]
-    public void TwoScopesThatDisagreeNameTheHandler() {
-        var first = new CacheResponseAttribute<CacheTestSupport.FixedKey> {
-            Scope = CacheScope.AllCallers
+    public void TwoScopesThatDisagreeNameTheHandler()
+    {
+        var first = new CacheResponseAttribute<CacheTestSupport.FixedKey>
+        {
+            Scope = CacheScope.AllCallers,
         };
 
-        var second = new CacheResponseAttribute<CacheTestSupport.SecondKey> {
-            Scope = CacheScope.PerCaller
+        var second = new CacheResponseAttribute<CacheTestSupport.SecondKey>
+        {
+            Scope = CacheScope.PerCaller,
         };
 
         var handler = CacheTestSupport.Handler([first, second]);
 
-        var exception = Assert.Throws<InvalidOperationException>(
-            () => first.GetFilters(handler).ToList());
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            first.GetFilters(handler).ToList()
+        );
 
         Assert.Contains("GET /catalog", exception.Message);
         Assert.Contains(nameof(CacheScope.AllCallers), exception.Message);
@@ -174,19 +193,22 @@ public class CacheResponseAttributeTests {
     /// strategy cannot use compiles clean. The failure names the handler instead of being ignored.
     /// </summary>
     [Fact]
-    public void AStrategyHandedValuesItCannotUseNamesTheHandler() {
+    public void AStrategyHandedValuesItCannotUseNamesTheHandler()
+    {
         var attribute = new CacheResponseAttribute<CacheTestSupport.Unbuildable>("culture");
         var handler = CacheTestSupport.Handler([attribute], path: "/catalog", method: "GET");
 
-        var exception = Assert.Throws<InvalidOperationException>(
-            () => attribute.GetFilters(handler).ToList());
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            attribute.GetFilters(handler).ToList()
+        );
 
         Assert.Contains("GET /catalog", exception.Message);
         Assert.IsType<ArgumentException>(exception.InnerException);
     }
 
     [Fact]
-    public async Task TheFirstDeclaredDurationWins() {
+    public async Task TheFirstDeclaredDurationWins()
+    {
         var first = new CacheResponseAttribute<CacheTestSupport.FixedKey> { Duration = 300 };
         var second = new CacheResponseAttribute<CacheTestSupport.SecondKey>();
 
@@ -198,14 +220,16 @@ public class CacheResponseAttributeTests {
     /// precedence question. It fails as the chain is built, naming the handler.
     /// </summary>
     [Fact]
-    public void TwoDurationsThatDisagreeNameTheHandler() {
+    public void TwoDurationsThatDisagreeNameTheHandler()
+    {
         var first = new CacheResponseAttribute<CacheTestSupport.FixedKey> { Duration = 300 };
         var second = new CacheResponseAttribute<CacheTestSupport.SecondKey> { Duration = 60 };
 
         var handler = CacheTestSupport.Handler([first, second]);
 
-        var exception = Assert.Throws<InvalidOperationException>(
-            () => first.GetFilters(handler).ToList());
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            first.GetFilters(handler).ToList()
+        );
 
         Assert.Contains("GET /catalog", exception.Message);
         Assert.Contains("300", exception.Message);
@@ -216,7 +240,8 @@ public class CacheResponseAttributeTests {
     /// Two of the same duration are not a disagreement.
     /// </summary>
     [Fact]
-    public async Task TwoDurationsThatAgreeAreAccepted() {
+    public async Task TwoDurationsThatAgreeAreAccepted()
+    {
         var first = new CacheResponseAttribute<CacheTestSupport.FixedKey> { Duration = 300 };
         var second = new CacheResponseAttribute<CacheTestSupport.SecondKey> { Duration = 300 };
 
@@ -228,13 +253,16 @@ public class CacheResponseAttributeTests {
     /// tag two of them named is one tag.
     /// </summary>
     [Fact]
-    public async Task ComposedTagsBecomeOneSet() {
-        var first = new CacheResponseAttribute<CacheTestSupport.FixedKey> {
-            Tags = ["rates", "symbols"]
+    public async Task ComposedTagsBecomeOneSet()
+    {
+        var first = new CacheResponseAttribute<CacheTestSupport.FixedKey>
+        {
+            Tags = ["rates", "symbols"],
         };
 
-        var second = new CacheResponseAttribute<CacheTestSupport.SecondKey> {
-            Tags = ["symbols", "alerts"]
+        var second = new CacheResponseAttribute<CacheTestSupport.SecondKey>
+        {
+            Tags = ["symbols", "alerts"],
         };
 
         var handler = CacheTestSupport.Handler([first, second]);
@@ -248,7 +276,8 @@ public class CacheResponseAttributeTests {
     /// declaration written before tags existed is.
     /// </summary>
     [Fact]
-    public async Task ADeclarationWithNoTagsStoresNone() {
+    public async Task ADeclarationWithNoTagsStoresNone()
+    {
         var attribute = new CacheResponseAttribute<CacheTestSupport.FixedKey>();
         var handler = CacheTestSupport.Handler([attribute]);
 
@@ -259,7 +288,8 @@ public class CacheResponseAttributeTests {
     /// The attribute's own values reach the strategy that was named.
     /// </summary>
     [Fact]
-    public void ThePositionalArgumentsReachTheStrategy() {
+    public void ThePositionalArgumentsReachTheStrategy()
+    {
         var attribute = new CacheResponseAttribute<RecordingProvider>("culture", "region");
 
         var provider = Assert.IsType<RecordingProvider>(attribute.CreateKeyProvider());
@@ -271,13 +301,15 @@ public class CacheResponseAttributeTests {
     /// How long the filter these declarations compose asks the store to keep an entry, observed by
     /// serving one request through it rather than read off a field.
     /// </summary>
-    private static async Task<TimeSpan> StoredDuration(params ICacheResponseDeclaration[] declared) {
-        var handler = CacheTestSupport.Handler([..declared]);
+    private static async Task<TimeSpan> StoredDuration(params ICacheResponseDeclaration[] declared)
+    {
+        var handler = CacheTestSupport.Handler([.. declared]);
         var filter = ResponseCacheFilter.Compose(handler, declared);
         var store = new CacheTestSupport.RecordingStore();
 
-        var context = Pipeline.Context(
-            configureServices: services => services.AddSingleton<IResponseCacheStore>(store));
+        var context = Pipeline.Context(configureServices: services =>
+            services.AddSingleton<IResponseCacheStore>(store)
+        );
 
         await Pipeline.Chain(context, filter).Next();
 
@@ -287,22 +319,27 @@ public class CacheResponseAttributeTests {
     /// <summary>
     /// The entry this filter hands the store, observed by serving one request through it.
     /// </summary>
-    private static async Task<CachedResponse> Stored(ResponseCacheFilter filter) {
+    private static async Task<CachedResponse> Stored(ResponseCacheFilter filter)
+    {
         var store = new CacheTestSupport.RecordingStore();
 
-        var context = Pipeline.Context(
-            configureServices: services => services.AddSingleton<IResponseCacheStore>(store));
+        var context = Pipeline.Context(configureServices: services =>
+            services.AddSingleton<IResponseCacheStore>(store)
+        );
 
         await Pipeline.Chain(context, filter).Next();
 
         var key = Assert.Single(store.Writes).Key;
 
         return Assert.IsType<CachedResponse>(
-            await store.Get(key, TestContext.Current.CancellationToken));
+            await store.Get(key, TestContext.Current.CancellationToken)
+        );
     }
 
-    private sealed class RecordingProvider : ICacheKeyProvider {
-        private RecordingProvider(string[] values) {
+    private sealed class RecordingProvider : ICacheKeyProvider
+    {
+        private RecordingProvider(string[] values)
+        {
             Values = values;
         }
 

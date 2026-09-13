@@ -1,7 +1,7 @@
 using Hardened.Generation;
+using Hardened.Idl;
 using Hardened.OpenApi.SourceGenerator;
 using Xunit;
-using Hardened.Idl;
 
 namespace Hardened.OpenApi.BuildTask.Tests;
 
@@ -18,10 +18,11 @@ namespace Hardened.OpenApi.BuildTask.Tests;
 /// specification - and an error.
 /// </para>
 /// </remarks>
-public class ExtractOpenApiSpecTests {
-
+public class ExtractOpenApiSpecTests
+{
     [Fact]
-    public void Execute_WritesAModelBesideEachSpec() {
+    public void Execute_WritesAModelBesideEachSpec()
+    {
         using var harness = new TaskHarness();
         var spec = harness.WriteSpec("petstore.yaml", Specs.Minimal);
 
@@ -33,24 +34,29 @@ public class ExtractOpenApiSpecTests {
     }
 
     [Fact]
-    public void Execute_WritesAModelTheGeneratorCanRead() {
+    public void Execute_WritesAModelTheGeneratorCanRead()
+    {
         using var harness = new TaskHarness();
 
         harness.Run(harness.WriteSpec("petstore.yaml", Specs.Minimal));
 
-        var model = SpecModelSerializer.Read(File.ReadAllText(harness.ModelPathFor("petstore.yaml")));
+        var model = SpecModelSerializer.Read(
+            File.ReadAllText(harness.ModelPathFor("petstore.yaml"))
+        );
 
         Assert.Equal("petstore", model.FileName);
         Assert.Contains(model.Schemas, schema => schema.Name == "Pet");
     }
 
     [Fact]
-    public void Execute_HandlesSeveralSpecsInOneCall() {
+    public void Execute_HandlesSeveralSpecsInOneCall()
+    {
         using var harness = new TaskHarness();
 
         var result = harness.Run(
             harness.WriteSpec("pets.yaml", Specs.Minimal),
-            harness.WriteSpec("stores.yaml", Specs.Minimal));
+            harness.WriteSpec("stores.yaml", Specs.Minimal)
+        );
 
         Assert.True(result.Succeeded, result.ErrorText);
         Assert.Equal(2, result.ModelFiles.Count);
@@ -63,7 +69,8 @@ public class ExtractOpenApiSpecTests {
     [InlineData("[1, 2, 3]")]
     [InlineData(Specs.NotOpenApiYaml)]
     [InlineData(Specs.NotOpenApiJson)]
-    public void Execute_FailsOnASpecItCannotParse(string content) {
+    public void Execute_FailsOnASpecItCannotParse(string content)
+    {
         using var harness = new TaskHarness();
 
         var result = harness.Run(harness.WriteSpec("broken.yaml", content));
@@ -77,7 +84,8 @@ public class ExtractOpenApiSpecTests {
     /// build error pointing at an MSBuild file instead is noise.
     /// </summary>
     [Fact]
-    public void Execute_ReportsTheSpecPathRatherThanTheTask() {
+    public void Execute_ReportsTheSpecPathRatherThanTheTask()
+    {
         using var harness = new TaskHarness();
         var spec = harness.WriteSpec("broken.yaml", "not a document");
 
@@ -87,7 +95,8 @@ public class ExtractOpenApiSpecTests {
     }
 
     [Fact]
-    public void Execute_FailsWhenASpecIsMissing() {
+    public void Execute_FailsWhenASpecIsMissing()
+    {
         using var harness = new TaskHarness();
 
         var result = harness.Run(Path.Combine(harness.SpecDirectory, "absent.yaml"));
@@ -101,12 +110,14 @@ public class ExtractOpenApiSpecTests {
     /// run reports all of them rather than one per build.
     /// </summary>
     [Fact]
-    public void Execute_ReportsEveryBadSpecInOneRun() {
+    public void Execute_ReportsEveryBadSpecInOneRun()
+    {
         using var harness = new TaskHarness();
 
         var result = harness.Run(
             harness.WriteSpec("broken-one.yaml", "not a document"),
-            harness.WriteSpec("broken-two.yaml", "also not a document"));
+            harness.WriteSpec("broken-two.yaml", "also not a document")
+        );
 
         Assert.False(result.Succeeded);
         Assert.Equal(2, result.Errors.Count);
@@ -118,7 +129,8 @@ public class ExtractOpenApiSpecTests {
     /// generator on every build.
     /// </summary>
     [Fact]
-    public void Execute_LeavesAnUnchangedModelUntouched() {
+    public void Execute_LeavesAnUnchangedModelUntouched()
+    {
         using var harness = new TaskHarness();
         var spec = harness.WriteSpec("petstore.yaml", Specs.Minimal);
         var modelPath = harness.ModelPathFor("petstore.yaml");
@@ -135,7 +147,8 @@ public class ExtractOpenApiSpecTests {
     }
 
     [Fact]
-    public void Execute_RewritesAModelWhenTheSpecChanges() {
+    public void Execute_RewritesAModelWhenTheSpecChanges()
+    {
         using var harness = new TaskHarness();
         var spec = harness.WriteSpec("petstore.yaml", Specs.Minimal);
         var modelPath = harness.ModelPathFor("petstore.yaml");
@@ -143,14 +156,18 @@ public class ExtractOpenApiSpecTests {
         harness.Run(spec);
         var first = File.ReadAllText(modelPath);
 
-        harness.WriteSpec("petstore.yaml", Specs.Minimal.Replace("Pet:", "Animal:").Replace("/Pet'", "/Animal'"));
+        harness.WriteSpec(
+            "petstore.yaml",
+            Specs.Minimal.Replace("Pet:", "Animal:").Replace("/Pet'", "/Animal'")
+        );
         harness.Run(spec);
 
         Assert.NotEqual(first, File.ReadAllText(modelPath));
     }
 
     [Fact]
-    public void Execute_CreatesTheOutputDirectoryIfItIsAbsent() {
+    public void Execute_CreatesTheOutputDirectoryIfItIsAbsent()
+    {
         using var harness = new TaskHarness();
         Directory.Delete(harness.OutputDirectory);
 

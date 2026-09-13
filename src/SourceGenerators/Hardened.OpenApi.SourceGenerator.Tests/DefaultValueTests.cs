@@ -1,7 +1,7 @@
+using Hardened.Generation;
+using Hardened.Idl;
 using Hardened.SourceGeneration.Testing;
 using Xunit;
-using Hardened.Idl;
-using Hardened.Generation;
 
 namespace Hardened.OpenApi.SourceGenerator.Tests;
 
@@ -12,8 +12,8 @@ namespace Hardened.OpenApi.SourceGenerator.Tests;
 /// It was never read. Every optional parameter and property got <c>= default</c> whatever the
 /// document said, so a spec declaring <c>default: 25</c> produced a handler that saw null.
 /// </remarks>
-public class DefaultValueTests {
-
+public class DefaultValueTests
+{
     [Theory]
     [InlineData("25", "int", "25")]
     [InlineData("asc", "string", "\"asc\"")]
@@ -22,13 +22,18 @@ public class DefaultValueTests {
     [InlineData("0.5", "double", "0.5")]
     [InlineData("0.5", "float", "0.5f")]
     [InlineData("1.25", "decimal", "1.25m")]
-    public void ValuesWithAConstantFormAreRendered(string value, string csType, string expected) {
+    public void ValuesWithAConstantFormAreRendered(string value, string csType, string expected)
+    {
         Assert.Equal(expected, DefaultLiteral.Format(value, csType));
     }
 
     [Fact]
-    public void StringsAreEscaped() {
-        Assert.Equal("\"a \\\"quoted\\\" value\"", DefaultLiteral.Format("a \"quoted\" value", "string"));
+    public void StringsAreEscaped()
+    {
+        Assert.Equal(
+            "\"a \\\"quoted\\\" value\"",
+            DefaultLiteral.Format("a \"quoted\" value", "string")
+        );
     }
 
     /// <summary>
@@ -39,25 +44,31 @@ public class DefaultValueTests {
     [InlineData("DateTime")]
     [InlineData("DateOnly")]
     [InlineData("byte[]")]
-    public void TypesWithNoConstantFormAreDeclined(string csType) {
+    public void TypesWithNoConstantFormAreDeclined(string csType)
+    {
         Assert.Null(DefaultLiteral.Format("2020-01-01T00:00:00Z", csType));
     }
 
     /// <summary>A value that does not parse as its declared type is declined rather than emitted.</summary>
     [Fact]
-    public void AValueThatDoesNotFitItsTypeIsDeclined() {
+    public void AValueThatDoesNotFitItsTypeIsDeclined()
+    {
         Assert.Null(DefaultLiteral.Format("not-a-number", "int"));
         Assert.Null(DefaultLiteral.Format("maybe", "bool"));
     }
 
     [Fact]
-    public void NoDeclaredDefaultRendersNothing() {
+    public void NoDeclaredDefaultRendersNothing()
+    {
         Assert.Null(DefaultLiteral.Format(null, "int"));
     }
 
     [Fact]
-    public void RecordPropertiesCarryTheirDeclaredDefaults() {
-        var generated = OpenApiGenerator.Run(Specs.DeclaredDefaults).AssertNoErrors()
+    public void RecordPropertiesCarryTheirDeclaredDefaults()
+    {
+        var generated = OpenApiGenerator
+            .Run(Specs.DeclaredDefaults)
+            .AssertNoErrors()
             .SourceContaining("petstore.g.cs");
 
         Assert.Contains("""string? Label = "unnamed" """.TrimEnd(), generated);
@@ -71,8 +82,11 @@ public class DefaultValueTests {
     /// does not compile.
     /// </summary>
     [Fact]
-    public void ADefaultWithNoConstantFormFallsBack() {
-        var generated = OpenApiGenerator.Run(Specs.DeclaredDefaults).AssertNoErrors()
+    public void ADefaultWithNoConstantFormFallsBack()
+    {
+        var generated = OpenApiGenerator
+            .Run(Specs.DeclaredDefaults)
+            .AssertNoErrors()
             .SourceContaining("petstore.g.cs");
 
         Assert.Contains("DateTimeOffset? Since = default", generated);
@@ -83,7 +97,8 @@ public class DefaultValueTests {
     /// arrives as the specification's default rather than as null.
     /// </summary>
     [Fact]
-    public void TheBinderParsesQueryParametersWithTheirDeclaredDefaults() {
+    public void TheBinderParsesQueryParametersWithTheirDeclaredDefaults()
+    {
         var result = OpenApiGenerator.Run(Specs.DeclaredDefaults).AssertNoErrors();
 
         var handler = result.SourceContaining("ThingController_ListThings");

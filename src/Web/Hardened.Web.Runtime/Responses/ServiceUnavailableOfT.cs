@@ -1,8 +1,7 @@
 using Hardened.Requests.Abstract.Headers;
-using Microsoft.Extensions.Primitives;
-
 using Hardened.Requests.Abstract.Responses;
 using Hardened.Requests.Runtime.RateLimiting;
+using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Web.Runtime.Responses;
 
@@ -29,9 +28,11 @@ namespace Hardened.Web.Runtime.Responses;
 /// </remarks>
 [HttpStatus(503)]
 public sealed record ServiceUnavailable<T>(T Body, TimeSpan? After = null)
-    : IHttpStatusResponse, ICarriesResponseBody, IProvidesResponseHeaders,
-        IResponseExpectation<ServiceUnavailable<T>> {
-
+    : IHttpStatusResponse,
+        ICarriesResponseBody,
+        IProvidesResponseHeaders,
+        IResponseExpectation<ServiceUnavailable<T>>
+{
     public string Type => ProblemTypes.ServiceUnavailable;
 
     public string Title => "Service Unavailable";
@@ -41,13 +42,17 @@ public sealed record ServiceUnavailable<T>(T Body, TimeSpan? After = null)
     public int Status => StatusCode;
 
     object? ICarriesResponseBody.Body => Body;
-    public void ApplyHeaders(IDictionary<string, StringValues> headers) {
-        if (After is { } after) {
+
+    public void ApplyHeaders(IDictionary<string, StringValues> headers)
+    {
+        if (After is { } after)
+        {
             headers[KnownHeaders.RetryAfter] = RetryAfter.HeaderValue(after);
         }
     }
 
     public static ServiceUnavailable<T> FromResponse(
-        object? body, IReadOnlyDictionary<string, string> headers) =>
-        new(ResponseExpectation.Body<T>(body), ResponseExpectation.OptionalRetryAfter(headers));
+        object? body,
+        IReadOnlyDictionary<string, string> headers
+    ) => new(ResponseExpectation.Body<T>(body), ResponseExpectation.OptionalRetryAfter(headers));
 }

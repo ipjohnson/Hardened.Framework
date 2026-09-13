@@ -11,6 +11,7 @@ namespace Hardened.Aws.Lambda.Sqs;
 // empty and routed to "/".
 [JsonSourceGenerationOptions(
     PropertyNameCaseInsensitive = true,
-    GenerationMode = JsonSourceGenerationMode.Metadata)]
+    GenerationMode = JsonSourceGenerationMode.Metadata
+)]
 [JsonSerializable(typeof(SQSEvent))]
 internal partial class SqsSerializerContext : JsonSerializerContext;

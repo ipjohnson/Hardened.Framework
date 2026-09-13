@@ -1,7 +1,7 @@
 using Hardened.Generation.Models;
 using Hardened.SourceGeneration.Testing;
-using Xunit;
 using Hardened.Web.Runtime.Responses;
+using Xunit;
 
 namespace Hardened.OpenApi.SourceGenerator.Tests;
 
@@ -23,9 +23,10 @@ namespace Hardened.OpenApi.SourceGenerator.Tests;
 /// it actually runs in.
 /// </para>
 /// </summary>
-public class SpecModelEqualityTests {
-
-    private static ServiceSpecModel Parse(string yaml, string fileName = "spec") {
+public class SpecModelEqualityTests
+{
+    private static ServiceSpecModel Parse(string yaml, string fileName = "spec")
+    {
         var model = OpenApiSpecParser.Parse(yaml, fileName, CancellationToken.None);
 
         Assert.NotNull(model);
@@ -47,7 +48,8 @@ public class SpecModelEqualityTests {
     [InlineData(nameof(Specs.EveryVerb))]
     [InlineData(nameof(Specs.FilterTypes))]
     [InlineData(nameof(Specs.CodegenExcludedParameter))]
-    public void TheSameDocumentParsedTwiceComparesEqual(string specName) {
+    public void TheSameDocumentParsedTwiceComparesEqual(string specName)
+    {
         var yaml = SpecByName(specName);
 
         Assert.Equal(Parse(yaml), Parse(yaml));
@@ -62,7 +64,8 @@ public class SpecModelEqualityTests {
     [InlineData(nameof(Specs.EverySchemaShape))]
     [InlineData(nameof(Specs.EveryValidationConstraint))]
     [InlineData(nameof(Specs.FilterTypes))]
-    public void EqualDocumentsHashEqual(string specName) {
+    public void EqualDocumentsHashEqual(string specName)
+    {
         var yaml = SpecByName(specName);
 
         Assert.Equal(Parse(yaml).GetHashCode(), Parse(yaml).GetHashCode());
@@ -74,23 +77,27 @@ public class SpecModelEqualityTests {
     /// collapse into one cache entry.
     /// </summary>
     [Fact]
-    public void TheSameContentUnderTwoFileNamesIsTwoModels() {
+    public void TheSameContentUnderTwoFileNamesIsTwoModels()
+    {
         Assert.NotEqual(Parse(Specs.Minimal, "pets"), Parse(Specs.Minimal, "stores"));
     }
 
     [Fact]
-    public void ASpecModelIsNotEqualToNull() {
+    public void ASpecModelIsNotEqualToNull()
+    {
         Assert.False(Parse(Specs.Minimal).Equals(null));
         Assert.False(Parse(Specs.Minimal).Equals((object?)null));
     }
 
     [Fact]
-    public void ASpecModelIsNotEqualToSomethingElseEntirely() {
+    public void ASpecModelIsNotEqualToSomethingElseEntirely()
+    {
         Assert.False(Parse(Specs.Minimal).Equals("petstore.yaml"));
     }
 
     [Fact]
-    public void ASpecModelEqualsItself() {
+    public void ASpecModelEqualsItself()
+    {
         var model = Parse(Specs.Minimal);
 
         Assert.True(model.Equals(model));
@@ -104,7 +111,8 @@ public class SpecModelEqualityTests {
     /// it being caught.
     /// </summary>
     [Fact]
-    public void AddingASchemaMakesTheModelUnequal() {
+    public void AddingASchemaMakesTheModelUnequal()
+    {
         var before = Parse(
             """
             openapi: "3.0.0"
@@ -116,7 +124,8 @@ public class SpecModelEqualityTests {
                   type: object
                   properties:
                     id: { type: string }
-            """);
+            """
+        );
 
         var after = Parse(
             """
@@ -133,7 +142,8 @@ public class SpecModelEqualityTests {
                   type: object
                   properties:
                     id: { type: string }
-            """);
+            """
+        );
 
         Assert.NotEqual(before, after);
     }
@@ -143,10 +153,12 @@ public class SpecModelEqualityTests {
     /// every type stay the same. The generated record's parameter name comes from it.
     /// </summary>
     [Fact]
-    public void RenamingAPropertyMakesTheModelUnequal() {
+    public void RenamingAPropertyMakesTheModelUnequal()
+    {
         Assert.NotEqual(
             Parse(SchemaWithOneProperty("id", "string")),
-            Parse(SchemaWithOneProperty("identifier", "string")));
+            Parse(SchemaWithOneProperty("identifier", "string"))
+        );
     }
 
     /// <summary>
@@ -154,10 +166,12 @@ public class SpecModelEqualityTests {
     /// record with the old C# type against the new JSON shape.
     /// </summary>
     [Fact]
-    public void ChangingAPropertyTypeMakesTheModelUnequal() {
+    public void ChangingAPropertyTypeMakesTheModelUnequal()
+    {
         Assert.NotEqual(
             Parse(SchemaWithOneProperty("id", "string")),
-            Parse(SchemaWithOneProperty("id", "integer")));
+            Parse(SchemaWithOneProperty("id", "integer"))
+        );
     }
 
     /// <summary>
@@ -165,7 +179,8 @@ public class SpecModelEqualityTests {
     /// stops being nullable and a <c>RequiredRule</c> appears in the validation filter.
     /// </summary>
     [Fact]
-    public void MakingAPropertyRequiredMakesTheModelUnequal() {
+    public void MakingAPropertyRequiredMakesTheModelUnequal()
+    {
         var optional = Parse(
             """
             openapi: "3.0.0"
@@ -177,7 +192,8 @@ public class SpecModelEqualityTests {
                   type: object
                   properties:
                     id: { type: string }
-            """);
+            """
+        );
 
         var required = Parse(
             """
@@ -191,7 +207,8 @@ public class SpecModelEqualityTests {
                   required: [id]
                   properties:
                     id: { type: string }
-            """);
+            """
+        );
 
         Assert.NotEqual(optional, required);
     }
@@ -201,7 +218,8 @@ public class SpecModelEqualityTests {
     /// writes a record or an enum for it.
     /// </summary>
     [Fact]
-    public void ChangingASchemasKindMakesTheModelUnequal() {
+    public void ChangingASchemasKindMakesTheModelUnequal()
+    {
         var asObject = Parse(
             """
             openapi: "3.0.0"
@@ -213,7 +231,8 @@ public class SpecModelEqualityTests {
                   type: object
                   properties:
                     value: { type: string }
-            """);
+            """
+        );
 
         var asEnum = Parse(
             """
@@ -225,20 +244,23 @@ public class SpecModelEqualityTests {
                 Status:
                   type: string
                   enum: [on, off]
-            """);
+            """
+        );
 
         Assert.NotEqual(asObject, asEnum);
     }
 
     /// <summary>Reordering an enum's values changes it — the generated members keep the document's order.</summary>
     [Fact]
-    public void ReorderingEnumValuesMakesTheModelUnequal() {
+    public void ReorderingEnumValuesMakesTheModelUnequal()
+    {
         Assert.NotEqual(Parse(EnumSchema("[on, off]")), Parse(EnumSchema("[off, on]")));
     }
 
     /// <summary>Adding an operation to an existing tag changes that tag's service.</summary>
     [Fact]
-    public void AddingAnOperationMakesTheModelUnequal() {
+    public void AddingAnOperationMakesTheModelUnequal()
+    {
         var before = Parse(OneGetOperation("/pets", "listPets", "Pet"));
 
         var after = Parse(
@@ -257,38 +279,46 @@ public class SpecModelEqualityTests {
                   operationId: createPet
                   responses:
                     '201': { description: created }
-            """);
+            """
+        );
 
         Assert.NotEqual(before, after);
     }
 
     /// <summary>Retagging an operation moves it to a different service interface.</summary>
     [Fact]
-    public void RetaggingAnOperationMakesTheModelUnequal() {
+    public void RetaggingAnOperationMakesTheModelUnequal()
+    {
         Assert.NotEqual(
             Parse(OneGetOperation("/pets", "listPets", "Pet")),
-            Parse(OneGetOperation("/pets", "listPets", "Store")));
+            Parse(OneGetOperation("/pets", "listPets", "Store"))
+        );
     }
 
     /// <summary>Renaming an operation renames the generated method and its handler class.</summary>
     [Fact]
-    public void RenamingAnOperationMakesTheModelUnequal() {
+    public void RenamingAnOperationMakesTheModelUnequal()
+    {
         Assert.NotEqual(
             Parse(OneGetOperation("/pets", "listPets", "Pet")),
-            Parse(OneGetOperation("/pets", "getAllPets", "Pet")));
+            Parse(OneGetOperation("/pets", "getAllPets", "Pet"))
+        );
     }
 
     /// <summary>Moving an operation to another path changes the route it is registered under.</summary>
     [Fact]
-    public void ChangingAnOperationsPathMakesTheModelUnequal() {
+    public void ChangingAnOperationsPathMakesTheModelUnequal()
+    {
         Assert.NotEqual(
             Parse(OneGetOperation("/pets", "listPets", "Pet")),
-            Parse(OneGetOperation("/animals", "listPets", "Pet")));
+            Parse(OneGetOperation("/animals", "listPets", "Pet"))
+        );
     }
 
     /// <summary>The verb decides which route-table branch the handler is reached from.</summary>
     [Fact]
-    public void ChangingAnOperationsVerbMakesTheModelUnequal() {
+    public void ChangingAnOperationsVerbMakesTheModelUnequal()
+    {
         var asGet = Parse(OneGetOperation("/pets", "listPets", "Pet"));
 
         var asPost = Parse(
@@ -302,7 +332,8 @@ public class SpecModelEqualityTests {
                   operationId: listPets
                   responses:
                     '200': { description: ok }
-            """);
+            """
+        );
 
         Assert.NotEqual(asGet, asPost);
     }
@@ -311,10 +342,12 @@ public class SpecModelEqualityTests {
 
     /// <summary>Renaming a parameter renames the bound C# parameter and its query-string key.</summary>
     [Fact]
-    public void RenamingAParameterMakesTheModelUnequal() {
+    public void RenamingAParameterMakesTheModelUnequal()
+    {
         Assert.NotEqual(
             Parse(OneQueryParameter("page", "integer", "")),
-            Parse(OneQueryParameter("offset", "integer", "")));
+            Parse(OneQueryParameter("offset", "integer", ""))
+        );
     }
 
     /// <summary>
@@ -322,7 +355,8 @@ public class SpecModelEqualityTests {
     /// <c>ParameterBindType</c>, read from a different part of the request.
     /// </summary>
     [Fact]
-    public void MovingAParameterToADifferentLocationMakesTheModelUnequal() {
+    public void MovingAParameterToADifferentLocationMakesTheModelUnequal()
+    {
         var inQuery = Parse(OneQueryParameter("page", "integer", ""));
 
         var inHeader = Parse(
@@ -340,14 +374,16 @@ public class SpecModelEqualityTests {
                       schema: { type: integer }
                   responses:
                     '200': { description: ok }
-            """);
+            """
+        );
 
         Assert.NotEqual(inQuery, inHeader);
     }
 
     /// <summary>Making a parameter required stops the generated parameter being nullable.</summary>
     [Fact]
-    public void MakingAParameterRequiredMakesTheModelUnequal() {
+    public void MakingAParameterRequiredMakesTheModelUnequal()
+    {
         var optional = Parse(OneQueryParameter("page", "integer", ""));
 
         var required = Parse(
@@ -366,7 +402,8 @@ public class SpecModelEqualityTests {
                       schema: { type: integer }
                   responses:
                     '200': { description: ok }
-            """);
+            """
+        );
 
         Assert.NotEqual(optional, required);
     }
@@ -384,10 +421,12 @@ public class SpecModelEqualityTests {
     [InlineData("minimum: 1\n            exclusiveMinimum: true")]
     [InlineData("maximum: 1\n            exclusiveMaximum: true")]
     [InlineData("pattern: \"^[a-z]+$\"")]
-    public void AddingAConstraintToAParameterMakesTheModelUnequal(string constraint) {
+    public void AddingAConstraintToAParameterMakesTheModelUnequal(string constraint)
+    {
         Assert.NotEqual(
             Parse(OneQueryParameter("code", "string", "")),
-            Parse(OneQueryParameter("code", "string", constraint)));
+            Parse(OneQueryParameter("code", "string", constraint))
+        );
     }
 
     /// <summary>
@@ -397,7 +436,8 @@ public class SpecModelEqualityTests {
     [Theory]
     [InlineData("minItems: 1")]
     [InlineData("maxItems: 10")]
-    public void AddingArrayBoundsToAParameterMakesTheModelUnequal(string constraint) {
+    public void AddingArrayBoundsToAParameterMakesTheModelUnequal(string constraint)
+    {
         var plain = Parse(ArrayQueryParameter(""));
         var bounded = Parse(ArrayQueryParameter(constraint));
 
@@ -416,7 +456,8 @@ public class SpecModelEqualityTests {
     [InlineData("pattern: \"^[A-Z]+$\"")]
     [InlineData("minimum: 1")]
     [InlineData("maximum: 9")]
-    public void AddingAConstraintToABodyPropertyMakesTheModelUnequal(string constraint) {
+    public void AddingAConstraintToABodyPropertyMakesTheModelUnequal(string constraint)
+    {
         Assert.NotEqual(Parse(BodyWithProperty("")), Parse(BodyWithProperty(constraint)));
     }
 
@@ -425,7 +466,8 @@ public class SpecModelEqualityTests {
     /// non-nullable record parameter, so it is carried on the operation as well as on the schema.
     /// </summary>
     [Fact]
-    public void ChangingTheBodysRequiredListMakesTheModelUnequal() {
+    public void ChangingTheBodysRequiredListMakesTheModelUnequal()
+    {
         var noneRequired = Parse(BodyWithProperty(""));
 
         var skuRequired = Parse(
@@ -452,7 +494,8 @@ public class SpecModelEqualityTests {
                   properties:
                     sku:
                       type: string
-            """);
+            """
+        );
 
         Assert.NotEqual(noneRequired, skuRequired);
     }
@@ -464,13 +507,15 @@ public class SpecModelEqualityTests {
     /// emitted on the attribute — the whole point of the extension.
     /// </summary>
     [Fact]
-    public void ChangingAFilterInstancesPropertyValueMakesTheModelUnequal() {
+    public void ChangingAFilterInstancesPropertyValueMakesTheModelUnequal()
+    {
         Assert.NotEqual(Parse(FilterInstanceWith("10")), Parse(FilterInstanceWith("20")));
     }
 
     /// <summary>Applying a second filter to an operation changes it.</summary>
     [Fact]
-    public void AddingASecondFilterInstanceMakesTheModelUnequal() {
+    public void AddingASecondFilterInstanceMakesTheModelUnequal()
+    {
         var one = Parse(FilterInstanceWith("10"));
 
         var two = Parse(
@@ -498,7 +543,8 @@ public class SpecModelEqualityTests {
                       Level: debug
                   responses:
                     '200': { description: ok }
-            """);
+            """
+        );
 
         Assert.NotEqual(one, two);
     }
@@ -508,15 +554,18 @@ public class SpecModelEqualityTests {
     /// qualifies it, so it is part of the type's identity.
     /// </summary>
     [Fact]
-    public void ChangingAFilterTypesNamespaceMakesTheModelUnequal() {
+    public void ChangingAFilterTypesNamespaceMakesTheModelUnequal()
+    {
         Assert.NotEqual(
             Parse(FilterTypeIn("TestNamespace.Filters")),
-            Parse(FilterTypeIn("OtherNamespace.Filters")));
+            Parse(FilterTypeIn("OtherNamespace.Filters"))
+        );
     }
 
     /// <summary>Adding a property to a filter type adds a property to the emitted attribute.</summary>
     [Fact]
-    public void AddingAPropertyToAFilterTypeMakesTheModelUnequal() {
+    public void AddingAPropertyToAFilterTypeMakesTheModelUnequal()
+    {
         var oneProperty = Parse(FilterTypeIn("TestNamespace.Filters"));
 
         var twoProperties = Parse(
@@ -530,7 +579,8 @@ public class SpecModelEqualityTests {
                   MaxRequests: { type: integer, default: 100 }
                   Window: { type: string, default: "minute" }
             paths: {}
-            """);
+            """
+        );
 
         Assert.NotEqual(oneProperty, twoProperties);
     }
@@ -540,7 +590,8 @@ public class SpecModelEqualityTests {
     /// changes generated code.
     /// </summary>
     [Fact]
-    public void ChangingAFilterPropertysDefaultMakesTheModelUnequal() {
+    public void ChangingAFilterPropertysDefaultMakesTheModelUnequal()
+    {
         var hundred = Parse(FilterTypeIn("TestNamespace.Filters"));
 
         var fifty = Parse(
@@ -553,7 +604,8 @@ public class SpecModelEqualityTests {
                 properties:
                   MaxRequests: { type: integer, default: 50 }
             paths: {}
-            """);
+            """
+        );
 
         Assert.NotEqual(hundred, fifty);
     }
@@ -563,7 +615,8 @@ public class SpecModelEqualityTests {
     /// attribute's file is named after.
     /// </summary>
     [Fact]
-    public void AFilterTypesFullNameCombinesItsNamespaceAndPascalCasedName() {
+    public void AFilterTypesFullNameCombinesItsNamespaceAndPascalCasedName()
+    {
         var filterType = Assert.Single(Parse(FilterTypeIn("TestNamespace.Filters")).FilterTypes);
 
         Assert.Equal("RateLimitAttribute", filterType.ClassName);
@@ -579,170 +632,177 @@ public class SpecModelEqualityTests {
     /// regenerate the whole project on every keystroke.
     /// </summary>
     [Fact]
-    public void AnEditThatCannotAffectTheSpecRegeneratesIdenticalOutput() {
+    public void AnEditThatCannotAffectTheSpecRegeneratesIdenticalOutput()
+    {
         var result = GeneratorTestHarness.RunIncremental(
             new Dictionary<string, string> { ["Test.cs"] = OpenApiGenerator.MinimalEntryPoint },
-            new Dictionary<string, string> {
-                ["Test.cs"] = OpenApiGenerator.MinimalEntryPoint + Environment.NewLine + "// a comment"
+            new Dictionary<string, string>
+            {
+                ["Test.cs"] =
+                    OpenApiGenerator.MinimalEntryPoint + Environment.NewLine + "// a comment",
             },
             [new SpecSourceGenerator()],
             null,
-            new Dictionary<string, string> { ["petstore.yaml"] = Specs.EverySchemaShape });
+            new Dictionary<string, string> { ["petstore.yaml"] = Specs.EverySchemaShape }
+        );
 
         Assert.NotEmpty(result.FirstRun);
         Assert.Equal(
             result.FirstRun.OrderBy(pair => pair.Key, StringComparer.Ordinal),
-            result.SecondRun.OrderBy(pair => pair.Key, StringComparer.Ordinal));
+            result.SecondRun.OrderBy(pair => pair.Key, StringComparer.Ordinal)
+        );
     }
 
     // ── documents ─────────────────────────────────────────────────────────────────────────────
 
-    private static string SpecByName(string name) => name switch {
-        nameof(Specs.Minimal) => Specs.Minimal,
-        nameof(Specs.EverySchemaShape) => Specs.EverySchemaShape,
-        nameof(Specs.EveryValidationConstraint) => Specs.EveryValidationConstraint,
-        nameof(Specs.AllOfComposition) => Specs.AllOfComposition,
-        nameof(Specs.EveryVerb) => Specs.EveryVerb,
-        nameof(Specs.FilterTypes) => Specs.FilterTypes,
-        nameof(Specs.CodegenExcludedParameter) => Specs.CodegenExcludedParameter,
-        _ => throw new ArgumentOutOfRangeException(nameof(name), name, "No such document")
-    };
+    private static string SpecByName(string name) =>
+        name switch
+        {
+            nameof(Specs.Minimal) => Specs.Minimal,
+            nameof(Specs.EverySchemaShape) => Specs.EverySchemaShape,
+            nameof(Specs.EveryValidationConstraint) => Specs.EveryValidationConstraint,
+            nameof(Specs.AllOfComposition) => Specs.AllOfComposition,
+            nameof(Specs.EveryVerb) => Specs.EveryVerb,
+            nameof(Specs.FilterTypes) => Specs.FilterTypes,
+            nameof(Specs.CodegenExcludedParameter) => Specs.CodegenExcludedParameter,
+            _ => throw new ArgumentOutOfRangeException(nameof(name), name, "No such document"),
+        };
 
     private static string SchemaWithOneProperty(string propertyName, string type) =>
         $$"""
-        openapi: "3.0.0"
-        info: { title: T, version: "1.0" }
-        paths: {}
-        components:
-          schemas:
-            Pet:
-              type: object
-              properties:
-                {{propertyName}}: { type: {{type}} }
-        """;
+            openapi: "3.0.0"
+            info: { title: T, version: "1.0" }
+            paths: {}
+            components:
+              schemas:
+                Pet:
+                  type: object
+                  properties:
+                    {{propertyName}}: { type: {{type}} }
+            """;
 
     private static string EnumSchema(string values) =>
         $$"""
-        openapi: "3.0.0"
-        info: { title: T, version: "1.0" }
-        paths: {}
-        components:
-          schemas:
-            Status:
-              type: string
-              enum: {{values}}
-        """;
+            openapi: "3.0.0"
+            info: { title: T, version: "1.0" }
+            paths: {}
+            components:
+              schemas:
+                Status:
+                  type: string
+                  enum: {{values}}
+            """;
 
     private static string OneGetOperation(string path, string operationId, string tag) =>
         $$"""
-        openapi: "3.0.0"
-        info: { title: T, version: "1.0" }
-        paths:
-          {{path}}:
-            get:
-              tags: [{{tag}}]
-              operationId: {{operationId}}
-              responses:
-                '200': { description: ok }
-        """;
+            openapi: "3.0.0"
+            info: { title: T, version: "1.0" }
+            paths:
+              {{path}}:
+                get:
+                  tags: [{{tag}}]
+                  operationId: {{operationId}}
+                  responses:
+                    '200': { description: ok }
+            """;
 
     private static string OneQueryParameter(string name, string type, string constraint) =>
         $$"""
-        openapi: "3.0.0"
-        info: { title: T, version: "1.0" }
-        paths:
-          /things:
-            get:
-              tags: [Thing]
-              operationId: listThings
-              parameters:
-                - name: {{name}}
-                  in: query
-                  schema:
-                    type: {{type}}
-                    {{constraint}}
-              responses:
-                '200': { description: ok }
-        """;
+            openapi: "3.0.0"
+            info: { title: T, version: "1.0" }
+            paths:
+              /things:
+                get:
+                  tags: [Thing]
+                  operationId: listThings
+                  parameters:
+                    - name: {{name}}
+                      in: query
+                      schema:
+                        type: {{type}}
+                        {{constraint}}
+                  responses:
+                    '200': { description: ok }
+            """;
 
     private static string ArrayQueryParameter(string constraint) =>
         $$"""
-        openapi: "3.0.0"
-        info: { title: T, version: "1.0" }
-        paths:
-          /things:
-            get:
-              tags: [Thing]
-              operationId: listThings
-              parameters:
-                - name: skus
-                  in: query
-                  schema:
-                    type: array
-                    items: { type: string }
-                    {{constraint}}
-              responses:
-                '200': { description: ok }
-        """;
+            openapi: "3.0.0"
+            info: { title: T, version: "1.0" }
+            paths:
+              /things:
+                get:
+                  tags: [Thing]
+                  operationId: listThings
+                  parameters:
+                    - name: skus
+                      in: query
+                      schema:
+                        type: array
+                        items: { type: string }
+                        {{constraint}}
+                  responses:
+                    '200': { description: ok }
+            """;
 
     private static string BodyWithProperty(string constraint) =>
         $$"""
-        openapi: "3.0.0"
-        info: { title: T, version: "1.0" }
-        paths:
-          /orders:
-            post:
-              tags: [Order]
-              operationId: createOrder
-              requestBody:
-                content:
-                  application/json:
-                    schema:
-                      $ref: '#/components/schemas/CreateOrderRequest'
-              responses:
-                '201': { description: created }
-        components:
-          schemas:
-            CreateOrderRequest:
-              type: object
-              properties:
-                sku:
-                  type: string
-                  {{constraint}}
-        """;
+            openapi: "3.0.0"
+            info: { title: T, version: "1.0" }
+            paths:
+              /orders:
+                post:
+                  tags: [Order]
+                  operationId: createOrder
+                  requestBody:
+                    content:
+                      application/json:
+                        schema:
+                          $ref: '#/components/schemas/CreateOrderRequest'
+                  responses:
+                    '201': { description: created }
+            components:
+              schemas:
+                CreateOrderRequest:
+                  type: object
+                  properties:
+                    sku:
+                      type: string
+                      {{constraint}}
+            """;
 
     private static string FilterInstanceWith(string maxRequests) =>
         $$"""
-        openapi: "3.0.0"
-        info: { title: T, version: "1.0" }
-        x-filter-types:
-          RateLimit:
-            namespace: TestNamespace.Filters
-            properties:
-              MaxRequests: { type: integer, default: 100 }
-        paths:
-          /things:
-            get:
-              tags: [Thing]
-              operationId: listThings
-              x-filters:
-                RateLimit:
-                  MaxRequests: {{maxRequests}}
-              responses:
-                '200': { description: ok }
-        """;
+            openapi: "3.0.0"
+            info: { title: T, version: "1.0" }
+            x-filter-types:
+              RateLimit:
+                namespace: TestNamespace.Filters
+                properties:
+                  MaxRequests: { type: integer, default: 100 }
+            paths:
+              /things:
+                get:
+                  tags: [Thing]
+                  operationId: listThings
+                  x-filters:
+                    RateLimit:
+                      MaxRequests: {{maxRequests}}
+                  responses:
+                    '200': { description: ok }
+            """;
 
     private static string FilterTypeIn(string ns) =>
         $$"""
-        openapi: "3.0.0"
-        info: { title: T, version: "1.0" }
-        x-filter-types:
-          RateLimit:
-            namespace: {{ns}}
-            properties:
-              MaxRequests: { type: integer, default: 100 }
-        paths: {}
-        """;
+            openapi: "3.0.0"
+            info: { title: T, version: "1.0" }
+            x-filter-types:
+              RateLimit:
+                namespace: {{ns}}
+                properties:
+                  MaxRequests: { type: integer, default: 100 }
+            paths: {}
+            """;
 
     // ── responses ──────────────────────────────────────────────────────
     //
@@ -756,18 +816,22 @@ public class SpecModelEqualityTests {
     /// it is what decides between the JSON serializer and the raw writer.
     /// </summary>
     [Fact]
-    public void ChangingAResponsesMediaTypeMakesTheModelUnequal() {
+    public void ChangingAResponsesMediaTypeMakesTheModelUnequal()
+    {
         Assert.NotEqual(
             Parse(ResponseOf("application/json", "{ type: string }")),
-            Parse(ResponseOf("text/plain", "{ type: string }")));
+            Parse(ResponseOf("text/plain", "{ type: string }"))
+        );
     }
 
     /// <summary>Changing the response schema's type changes the generated return type.</summary>
     [Fact]
-    public void ChangingAResponseSchemaTypeMakesTheModelUnequal() {
+    public void ChangingAResponseSchemaTypeMakesTheModelUnequal()
+    {
         Assert.NotEqual(
             Parse(ResponseOf("application/json", "{ type: string }")),
-            Parse(ResponseOf("application/json", "{ type: integer }")));
+            Parse(ResponseOf("application/json", "{ type: integer }"))
+        );
     }
 
     /// <summary>
@@ -775,25 +839,30 @@ public class SpecModelEqualityTests {
     /// where integer alone is int.
     /// </summary>
     [Fact]
-    public void ChangingAResponseSchemaFormatMakesTheModelUnequal() {
+    public void ChangingAResponseSchemaFormatMakesTheModelUnequal()
+    {
         Assert.NotEqual(
             Parse(ResponseOf("application/json", "{ type: integer }")),
-            Parse(ResponseOf("application/json", "{ type: integer, format: int64 }")));
+            Parse(ResponseOf("application/json", "{ type: integer, format: int64 }"))
+        );
     }
 
     /// <summary>
     /// Turning a response into an array of the same thing changes the return type to a List.
     /// </summary>
     [Fact]
-    public void MakingAResponseAnArrayMakesTheModelUnequal() {
+    public void MakingAResponseAnArrayMakesTheModelUnequal()
+    {
         Assert.NotEqual(
             Parse(ResponseOf("application/json", "{ type: string }")),
-            Parse(ResponseOf("application/json", "{ type: array, items: { type: string } }")));
+            Parse(ResponseOf("application/json", "{ type: array, items: { type: string } }"))
+        );
     }
 
     /// <summary>The success status code is emitted onto the handler.</summary>
     [Fact]
-    public void ChangingTheSuccessStatusCodeMakesTheModelUnequal() {
+    public void ChangingTheSuccessStatusCodeMakesTheModelUnequal()
+    {
         Assert.NotEqual(Parse(SuccessStatus("200")), Parse(SuccessStatus("201")));
     }
 
@@ -801,8 +870,12 @@ public class SpecModelEqualityTests {
     /// A request body's media type moves with the same reasoning as a response's.
     /// </summary>
     [Fact]
-    public void ChangingARequestBodysMediaTypeMakesTheModelUnequal() {
-        Assert.NotEqual(Parse(RequestBodyOf("application/json")), Parse(RequestBodyOf("text/plain")));
+    public void ChangingARequestBodysMediaTypeMakesTheModelUnequal()
+    {
+        Assert.NotEqual(
+            Parse(RequestBodyOf("application/json")),
+            Parse(RequestBodyOf("text/plain"))
+        );
     }
 
     /// <summary>
@@ -816,72 +889,73 @@ public class SpecModelEqualityTests {
     /// regression worth catching: nothing should start reading it again.
     /// </remarks>
     [Fact]
-    public void AnExtensionHardenedDoesNotReadLeavesTheModelUnchanged() {
+    public void AnExtensionHardenedDoesNotReadLeavesTheModelUnchanged()
+    {
         Assert.Equal(Parse(TemplatedWith("Fortunes")), Parse(TemplatedWith("FortunesCompact")));
     }
 
     private static string TemplatedWith(string template) =>
         $$"""
-        openapi: "3.0.0"
-        info: { title: T, version: "1.0" }
-        paths:
-          /fortunes:
-            get:
-              tags: [Fortune]
-              operationId: fortunes
-              x-hardened-template: {{template}}
-              responses:
-                '200':
-                  description: ok
-                  content:
-                    text/html:
-                      schema: { type: string }
-        """;
+            openapi: "3.0.0"
+            info: { title: T, version: "1.0" }
+            paths:
+              /fortunes:
+                get:
+                  tags: [Fortune]
+                  operationId: fortunes
+                  x-hardened-template: {{template}}
+                  responses:
+                    '200':
+                      description: ok
+                      content:
+                        text/html:
+                          schema: { type: string }
+            """;
 
     private static string ResponseOf(string mediaType, string schema) =>
         $$"""
-        openapi: "3.0.0"
-        info: { title: T, version: "1.0" }
-        paths:
-          /things:
-            get:
-              tags: [Thing]
-              operationId: listThings
-              responses:
-                '200':
-                  description: ok
-                  content:
-                    {{mediaType}}:
-                      schema: {{schema}}
-        """;
+            openapi: "3.0.0"
+            info: { title: T, version: "1.0" }
+            paths:
+              /things:
+                get:
+                  tags: [Thing]
+                  operationId: listThings
+                  responses:
+                    '200':
+                      description: ok
+                      content:
+                        {{mediaType}}:
+                          schema: {{schema}}
+            """;
 
     private static string SuccessStatus(string status) =>
         $$"""
-        openapi: "3.0.0"
-        info: { title: T, version: "1.0" }
-        paths:
-          /things:
-            post:
-              tags: [Thing]
-              operationId: createThing
-              responses:
-                '{{status}}': { description: ok }
-        """;
+            openapi: "3.0.0"
+            info: { title: T, version: "1.0" }
+            paths:
+              /things:
+                post:
+                  tags: [Thing]
+                  operationId: createThing
+                  responses:
+                    '{{status}}': { description: ok }
+            """;
 
     private static string RequestBodyOf(string mediaType) =>
         $$"""
-        openapi: "3.0.0"
-        info: { title: T, version: "1.0" }
-        paths:
-          /things:
-            post:
-              tags: [Thing]
-              operationId: createThing
-              requestBody:
-                content:
-                  {{mediaType}}:
-                    schema: { type: string }
-              responses:
-                '200': { description: ok }
-        """;
+            openapi: "3.0.0"
+            info: { title: T, version: "1.0" }
+            paths:
+              /things:
+                post:
+                  tags: [Thing]
+                  operationId: createThing
+                  requestBody:
+                    content:
+                      {{mediaType}}:
+                        schema: { type: string }
+                  responses:
+                    '200': { description: ok }
+            """;
 }

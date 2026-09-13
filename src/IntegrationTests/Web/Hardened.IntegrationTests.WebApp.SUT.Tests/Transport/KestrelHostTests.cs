@@ -3,10 +3,10 @@ using Hardened.IntegrationTests.WebApp.SUT.Client;
 using Hardened.IntegrationTests.WebApp.SUT.Services;
 using Hardened.Requests.Abstract.Responses;
 using Hardened.Web.Kestrel.Runtime;
+using Hardened.Web.Runtime.Responses;
 using Microsoft.Kiota.Abstractions;
 using NSubstitute;
 using ClientModels = Hardened.IntegrationTests.WebApp.SUT.Client.Models;
-using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Transport;
 
@@ -24,20 +24,23 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Transport;
 /// reports only in-process; the two tests at the end hold both halves.
 /// </remarks>
 [KestrelRuntime]
-public class KestrelHostTests {
-
+public class KestrelHostTests
+{
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
     [HardenedTest]
-    public async Task ARequestAnswersWithWhatKestrelWrote(ITestWebApp app) {
+    public async Task ARequestAnswersWithWhatKestrelWrote(ITestWebApp app)
+    {
         var response = await app.Get("/verbs/item/42");
 
         response.Assert.Ok();
         Assert.Equal("got:42", response.Deserialize<string>());
         Assert.True(response.Headers.ContainsKey("Date"), "a header only a server writes");
         Assert.True(
-            response.Headers.ContainsKey("Content-Length") || response.Headers.ContainsKey("Transfer-Encoding"),
-            "the framing Kestrel chose");
+            response.Headers.ContainsKey("Content-Length")
+                || response.Headers.ContainsKey("Transfer-Encoding"),
+            "the framing Kestrel chose"
+        );
         Assert.Null(response.Failure);
     }
 
@@ -46,7 +49,8 @@ public class KestrelHostTests {
     /// with the coding named, and <c>Deserialize</c> undoes it the way it does in-process.
     /// </summary>
     [HardenedTest]
-    public async Task ACompressedBodyArrivesEncodedAndReadsDecoded(ITestWebApp app) {
+    public async Task ACompressedBodyArrivesEncodedAndReadsDecoded(ITestWebApp app)
+    {
         var response = await app.Get("/compression/readings");
 
         response.Assert.Ok();
@@ -55,7 +59,11 @@ public class KestrelHostTests {
     }
 
     [HardenedTest]
-    public async Task AMockBehindARouteIsTheOneTheHandlerSees(ITestWebApp app, [Mock] IMathService<int> math) {
+    public async Task AMockBehindARouteIsTheOneTheHandlerSees(
+        ITestWebApp app,
+        [Mock] IMathService<int> math
+    )
+    {
         math.Add(Arg.Any<int[]>()).Returns(100);
 
         var response = await app.Post(new MathAddModel { Values = [1, 2, 3] }, "/int/add");
@@ -65,9 +73,13 @@ public class KestrelHostTests {
     }
 
     [HardenedTest]
-    public async Task AGeneratedClientSendsToTheSocketAndReturnsReadsIt(WebAppClient client) {
-        var created = await client.Verbs.Located
-            .PostAsync(new ClientModels.MathAddModel { Values = [1, 2, 3] }, cancellationToken: Token)
+    public async Task AGeneratedClientSendsToTheSocketAndReturnsReadsIt(WebAppClient client)
+    {
+        var created = await client
+            .Verbs.Located.PostAsync(
+                new ClientModels.MathAddModel { Values = [1, 2, 3] },
+                cancellationToken: Token
+            )
             .Returns<Created<ClientModels.MathAddModel>>();
 
         Assert.Equal(3, created.Value.Values!.Count);
@@ -75,7 +87,8 @@ public class KestrelHostTests {
     }
 
     [HardenedTest]
-    public async Task ARefitInterfaceSendsToTheSocketAndReturnsReadsIt(IWebAppApi api) {
+    public async Task ARefitInterfaceSendsToTheSocketAndReturnsReadsIt(IWebAppApi api)
+    {
         var created = await api.CreateLocated(new MathAddModel { Values = [1, 2, 3] })
             .Returns<Created<MathAddModel>>();
 
@@ -83,7 +96,8 @@ public class KestrelHostTests {
     }
 
     [HardenedTest]
-    public async Task LastResponseIsWhatCameBackOverTheWire(WebAppClient client) {
+    public async Task LastResponseIsWhatCameBackOverTheWire(WebAppClient client)
+    {
         await client.Verbs.Emptied.DeleteAsync(cancellationToken: Token);
 
         Assert.Equal(204, LastResponse.Status);
@@ -92,10 +106,18 @@ public class KestrelHostTests {
 
     [HardenedTest]
     public async Task ThreeParametersCarryThreeCredentialsOverTheWire(
-        [Grants("pets:read")] WebAppClient reader, [Anonymous] WebAppClient nobody, [Grants("pets:write")] WebAppClient writer) {
+        [Grants("pets:read")] WebAppClient reader,
+        [Anonymous] WebAppClient nobody,
+        [Grants("pets:write")] WebAppClient writer
+    )
+    {
         var pets = await reader.Authorization.Pets.GetAsync(cancellationToken: Token);
-        var refused = await Assert.ThrowsAsync<ClientModels.ErrorModel>(() => nobody.Authorization.Pets.GetAsync(cancellationToken: Token));
-        var forbidden = await Assert.ThrowsAsync<ClientModels.ErrorModel>(() => writer.Authorization.Pets.GetAsync(cancellationToken: Token));
+        var refused = await Assert.ThrowsAsync<ClientModels.ErrorModel>(() =>
+            nobody.Authorization.Pets.GetAsync(cancellationToken: Token)
+        );
+        var forbidden = await Assert.ThrowsAsync<ClientModels.ErrorModel>(() =>
+            writer.Authorization.Pets.GetAsync(cancellationToken: Token)
+        );
 
         Assert.NotNull(pets);
         Assert.Equal(401, refused.ResponseStatusCode);
@@ -103,7 +125,8 @@ public class KestrelHostTests {
     }
 
     [HardenedTest]
-    public async Task AnUnmatchedPathIs404(ITestWebApp app) {
+    public async Task AnUnmatchedPathIs404(ITestWebApp app)
+    {
         var response = await app.Get("/no/such/route");
 
         response.Assert.NotFound();
@@ -114,7 +137,8 @@ public class KestrelHostTests {
     /// envelope is all there is.
     /// </summary>
     [HardenedTest]
-    public async Task OverTheSocketAHandlersExceptionDoesNotCross(ITestWebApp app) {
+    public async Task OverTheSocketAHandlersExceptionDoesNotCross(ITestWebApp app)
+    {
         var response = await app.Get("/errors/server");
 
         Assert.Equal(500, response.StatusCode);
@@ -127,7 +151,8 @@ public class KestrelHostTests {
     /// </summary>
     [HardenedTest]
     [PipelineHost]
-    public async Task InProcessTheExceptionIsReported(ITestWebApp app) {
+    public async Task InProcessTheExceptionIsReported(ITestWebApp app)
+    {
         var response = await app.Get("/errors/server");
 
         Assert.Equal(500, response.StatusCode);

@@ -7,7 +7,8 @@ namespace Hardened.Benchmarks.Contracts;
 /// plus one string, which is representative of a real API response without letting serialization
 /// cost dominate the dispatch cost the pipeline benchmarks are trying to isolate.
 /// </summary>
-public class ItemResponse {
+public class ItemResponse
+{
     public int Id { get; set; }
 
     public string Name { get; set; } = "";
@@ -21,7 +22,8 @@ public class ItemResponse {
 /// Request body for the POST scenarios. The list is what makes deserialization non-trivial —
 /// a body of only scalars would understate the cost of the read path.
 /// </summary>
-public class SumRequest {
+public class SumRequest
+{
     public int Id { get; set; }
 
     public string? Label { get; set; }
@@ -29,7 +31,8 @@ public class SumRequest {
     public List<int>? Values { get; set; }
 }
 
-public class SumResponse {
+public class SumResponse
+{
     public int Id { get; set; }
 
     public string? Label { get; set; }
@@ -43,7 +46,8 @@ public class SumResponse {
 /// Response for the multi-source binding scenario, where the point is to observe binding cost
 /// rather than serialization cost.
 /// </summary>
-public class BindingResponse {
+public class BindingResponse
+{
     public string Id { get; set; } = "";
 
     public string Filter { get; set; } = "";

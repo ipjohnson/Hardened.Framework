@@ -29,11 +29,13 @@ namespace Hardened.Web.Kestrel.Runtime;
 /// configuration, logging and shutdown come from the host, use
 /// <c>services.AddHardenedKestrel(...)</c>.
 /// </summary>
-public sealed class HardenedKestrelApplication : IAsyncDisposable {
+public sealed class HardenedKestrelApplication : IAsyncDisposable
+{
     private readonly ServiceProvider _provider;
     private readonly KestrelServerRunner _runner;
 
-    private HardenedKestrelApplication(ServiceProvider provider, KestrelServerRunner runner) {
+    private HardenedKestrelApplication(ServiceProvider provider, KestrelServerRunner runner)
+    {
         _provider = provider;
         _runner = runner;
     }
@@ -46,11 +48,15 @@ public sealed class HardenedKestrelApplication : IAsyncDisposable {
     public static HardenedKestrelApplication Create(
         IServiceCollection services,
         Action<KestrelServerOptions>? configureKestrel = null,
-        Action<SocketTransportOptions>? configureTransport = null) {
+        Action<SocketTransportOptions>? configureTransport = null
+    )
+    {
         var provider = services.BuildServiceProvider();
 
         return new HardenedKestrelApplication(
-            provider, new KestrelServerRunner(provider, configureKestrel, configureTransport));
+            provider,
+            new KestrelServerRunner(provider, configureKestrel, configureTransport)
+        );
     }
 
     public Task StartAsync(CancellationToken cancellationToken = default) =>
@@ -69,8 +75,10 @@ public sealed class HardenedKestrelApplication : IAsyncDisposable {
     /// <see cref="Addresses"/> after binding, most often — can call <see cref="StartAsync"/>
     /// first and then hand over to this.
     /// </summary>
-    public async Task RunAsync(CancellationToken cancellationToken = default) {
-        if (!IsStarted) {
+    public async Task RunAsync(CancellationToken cancellationToken = default)
+    {
+        if (!IsStarted)
+        {
             await StartAsync(cancellationToken);
         }
 
@@ -78,7 +86,8 @@ public sealed class HardenedKestrelApplication : IAsyncDisposable {
 
         await using var registration = cancellationToken.Register(() => shutdown.TrySetResult());
 
-        void OnCancelKeyPress(object? sender, ConsoleCancelEventArgs eventArgs) {
+        void OnCancelKeyPress(object? sender, ConsoleCancelEventArgs eventArgs)
+        {
             // Take over the signal so the process drains rather than terminating immediately.
             eventArgs.Cancel = true;
             shutdown.TrySetResult();
@@ -89,10 +98,12 @@ public sealed class HardenedKestrelApplication : IAsyncDisposable {
         Console.CancelKeyPress += OnCancelKeyPress;
         AppDomain.CurrentDomain.ProcessExit += OnProcessExit;
 
-        try {
+        try
+        {
             await shutdown.Task;
         }
-        finally {
+        finally
+        {
             Console.CancelKeyPress -= OnCancelKeyPress;
             AppDomain.CurrentDomain.ProcessExit -= OnProcessExit;
 
@@ -121,28 +132,43 @@ public sealed class HardenedKestrelApplication : IAsyncDisposable {
     /// </para>
     /// </remarks>
     public async Task RunAsync(
-        IReadOnlyList<PosixSignal> signals, TimeSpan grace, CancellationToken cancellationToken = default) {
-        if (!IsStarted) {
+        IReadOnlyList<PosixSignal> signals,
+        TimeSpan grace,
+        CancellationToken cancellationToken = default
+    )
+    {
+        if (!IsStarted)
+        {
             await StartAsync(cancellationToken);
         }
 
         var shutdown = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var registrations = new List<PosixSignalRegistration>(signals.Count);
 
-        foreach (var signal in signals) {
-            registrations.Add(PosixSignalRegistration.Create(signal, context => {
-                context.Cancel = true;
-                shutdown.TrySetResult();
-            }));
+        foreach (var signal in signals)
+        {
+            registrations.Add(
+                PosixSignalRegistration.Create(
+                    signal,
+                    context =>
+                    {
+                        context.Cancel = true;
+                        shutdown.TrySetResult();
+                    }
+                )
+            );
         }
 
         await using var registration = cancellationToken.Register(() => shutdown.TrySetResult());
 
-        try {
+        try
+        {
             await shutdown.Task;
         }
-        finally {
-            foreach (var one in registrations) {
+        finally
+        {
+            foreach (var one in registrations)
+            {
                 one.Dispose();
             }
 
@@ -152,7 +178,8 @@ public sealed class HardenedKestrelApplication : IAsyncDisposable {
         }
     }
 
-    public async ValueTask DisposeAsync() {
+    public async ValueTask DisposeAsync()
+    {
         await _runner.DisposeAsync();
         await _provider.DisposeAsync();
     }

@@ -39,15 +39,17 @@ namespace Hardened.Requests.Runtime.Validation;
 /// </para>
 /// </remarks>
 public sealed class ValidationFilterProvider<TValidated> : IRequestFilterProvider
-    where TValidated : class {
-
-    public IEnumerable<RequestFilterInfo> GetFilters(IExecutionRequestHandlerInfo handlerInfo) {
+    where TValidated : class
+{
+    public IEnumerable<RequestFilterInfo> GetFilters(IExecutionRequestHandlerInfo handlerInfo)
+    {
         ValidationFilter<TValidated>? filter = null;
 
         yield return new RequestFilterInfo(
             context => filter ??= new ValidationFilter<TValidated>(Resolve(context)),
             FilterOrder.Validation,
-            nameof(ValidationFilter<TValidated>));
+            nameof(ValidationFilter<TValidated>)
+        );
     }
 
     /// <summary>
@@ -58,19 +60,20 @@ public sealed class ValidationFilterProvider<TValidated> : IRequestFilterProvide
     /// attached because constraints were declared, so an empty set is a wiring fault rather than an
     /// absence of work.
     /// </remarks>
-    private static IReadOnlyList<IValidatorFor<TValidated>> Resolve(IExecutionContext context) {
-        var validators = context.RequestServices
-            .GetServices<IValidatorFor<TValidated>>()
-            .ToArray();
+    private static IReadOnlyList<IValidatorFor<TValidated>> Resolve(IExecutionContext context)
+    {
+        var validators = context.RequestServices.GetServices<IValidatorFor<TValidated>>().ToArray();
 
-        if (validators.Length == 0) {
+        if (validators.Length == 0)
+        {
             throw new InvalidOperationException(
-                $"No IValidatorFor<{typeof(TValidated).Name}> is registered, but the handler declares " +
-                "constraints. Check the build log for a source generator failure first - a generator " +
-                "that throws is reported as warning CS8785 and leaves the build green having emitted " +
-                "no validators at all. Failing that, the generated validators register themselves " +
-                "through the application's entry point, so the entry point may not be the one built " +
-                "against.");
+                $"No IValidatorFor<{typeof(TValidated).Name}> is registered, but the handler declares "
+                    + "constraints. Check the build log for a source generator failure first - a generator "
+                    + "that throws is reported as warning CS8785 and leaves the build green having emitted "
+                    + "no validators at all. Failing that, the generated validators register themselves "
+                    + "through the application's entry point, so the entry point may not be the one built "
+                    + "against."
+            );
         }
 
         return validators;

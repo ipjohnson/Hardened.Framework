@@ -34,7 +34,8 @@ namespace Hardened.Requests.Abstract.RequestFilter;
 /// each covering its own compilation - see <see cref="DeclaringAssembly"/>.
 /// </para>
 /// </remarks>
-public interface IApplicationFilterDeclarations {
+public interface IApplicationFilterDeclarations
+{
     /// <summary>
     /// The declarations, in the order they were written on the entry point.
     /// </summary>

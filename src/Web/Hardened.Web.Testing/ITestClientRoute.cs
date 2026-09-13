@@ -18,8 +18,8 @@ namespace Hardened.Web.Testing;
 /// still wins for the client it names.
 /// </para>
 /// </remarks>
-public interface ITestClientRoute {
-
+public interface ITestClientRoute
+{
     /// <summary>Whether this route knows how to build <paramref name="clientType"/>.</summary>
     bool CanBuild(Type clientType);
 

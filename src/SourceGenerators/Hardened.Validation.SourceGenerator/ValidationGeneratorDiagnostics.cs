@@ -7,8 +7,8 @@ namespace Hardened.Validation.SourceGenerator;
 /// <summary>
 /// What this generator says when it cannot emit what it was asked for.
 /// </summary>
-public static class ValidationGeneratorDiagnostics {
-
+public static class ValidationGeneratorDiagnostics
+{
     /// <summary>
     /// Two validators claimed the same generated file.
     /// </summary>
@@ -30,12 +30,13 @@ public static class ValidationGeneratorDiagnostics {
     public static readonly DiagnosticDescriptor DuplicateValidatorSourceDescriptor = new(
         "HRDV002",
         "Two validators claimed the same generated file",
-        "A validator for '{0}' could not be added: {1} No validator is generated for it, and a " +
-        "handler that validates it will fail at runtime. This is a defect in " +
-        "Hardened.Validation.SourceGenerator rather than in the application - please report it.",
+        "A validator for '{0}' could not be added: {1} No validator is generated for it, and a "
+            + "handler that validates it will fail at runtime. This is a defect in "
+            + "Hardened.Validation.SourceGenerator rather than in the application - please report it.",
         "Hardened.Validation",
         DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+        isEnabledByDefault: true
+    );
 
     /// <summary>
     /// A required member of a value type that nothing can find missing.
@@ -63,13 +64,14 @@ public static class ValidationGeneratorDiagnostics {
     public static readonly DiagnosticDescriptor RequiredValueTypeCannotBeMissedDescriptor = new(
         "HRDV003",
         "A required member of a value type cannot be found missing",
-        "'{0}.{1}' is required and is '{2}', which is a value type - so an omitted member " +
-        "deserializes to default({2}) and the required check passes, because default({2}) is not " +
-        "null. Declare it 'required', or add [JsonRequired], so the deserializer rejects the " +
-        "absence. Making it '{2}?' also works and changes the model's shape.",
+        "'{0}.{1}' is required and is '{2}', which is a value type - so an omitted member "
+            + "deserializes to default({2}) and the required check passes, because default({2}) is not "
+            + "null. Declare it 'required', or add [JsonRequired], so the deserializer rejects the "
+            + "absence. Making it '{2}?' also works and changes the model's shape.",
         "Hardened.Validation",
         DiagnosticSeverity.Warning,
-        isEnabledByDefault: true);
+        isEnabledByDefault: true
+    );
 
     /// <summary>
     /// A property whose type carries constraints that nothing will run.
@@ -95,25 +97,31 @@ public static class ValidationGeneratorDiagnostics {
     public static readonly DiagnosticDescriptor UnreachableNestedConstraintsDescriptor = new(
         "HRDV004",
         "Nested constraints are never reached",
-        "'{0}.{1}' does not declare [ValidateNested] and its {2} type '{3}' declares constraints, " +
-        "so none of them run and an invalid '{3}' is accepted with no error. Add [ValidateNested] " +
-        "to the property, or set <NoWarn>$(NoWarn);HRDV004</NoWarn> if the skip is intended.",
+        "'{0}.{1}' does not declare [ValidateNested] and its {2} type '{3}' declares constraints, "
+            + "so none of them run and an invalid '{3}' is accepted with no error. Add [ValidateNested] "
+            + "to the property, or set <NoWarn>$(NoWarn);HRDV004</NoWarn> if the skip is intended.",
         "Hardened.Validation",
         DiagnosticSeverity.Warning,
-        isEnabledByDefault: true);
+        isEnabledByDefault: true
+    );
 
     /// <summary>
     /// Reports <see cref="UnreachableNestedConstraintsDescriptor"/> against the parent's property.
     /// </summary>
     public static Diagnostic UnreachableNestedConstraints(
-        INamedTypeSymbol owner, IPropertySymbol property, ITypeSymbol nested, bool isElement) =>
+        INamedTypeSymbol owner,
+        IPropertySymbol property,
+        ITypeSymbol nested,
+        bool isElement
+    ) =>
         Diagnostic.Create(
             UnreachableNestedConstraintsDescriptor,
             property.Locations.Length > 0 ? property.Locations[0] : Location.None,
             owner.Name,
             property.Name,
             isElement ? "element" : "member",
-            nested.Name);
+            nested.Name
+        );
 
     /// <summary>
     /// Reports <see cref="RequiredValueTypeCannotBeMissedDescriptor"/> against the member.
@@ -123,13 +131,16 @@ public static class ValidationGeneratorDiagnostics {
     /// on one property and a diagnostic pointing at the class makes the reader find which.
     /// </remarks>
     public static Diagnostic RequiredValueTypeCannotBeMissed(
-        INamedTypeSymbol owner, IPropertySymbol property) =>
+        INamedTypeSymbol owner,
+        IPropertySymbol property
+    ) =>
         Diagnostic.Create(
             RequiredValueTypeCannotBeMissedDescriptor,
             property.Locations.Length > 0 ? property.Locations[0] : Location.None,
             owner.Name,
             property.Name,
-            property.Type.ToDisplayString());
+            property.Type.ToDisplayString()
+        );
 
     /// <summary>
     /// Reports <see cref="DuplicateValidatorSourceDescriptor"/> against the type that collided.
@@ -140,10 +151,15 @@ public static class ValidationGeneratorDiagnostics {
     /// generator and the wrong one for the reader trying to find the type it names.
     /// </remarks>
     public static Diagnostic DuplicateValidatorSource(
-        ValidatedTypeModel model, ArgumentException exception) =>
+        ValidatedTypeModel model,
+        ArgumentException exception
+    ) =>
         Diagnostic.Create(
             DuplicateValidatorSourceDescriptor,
             Location.None,
-            model.Namespace.Length == 0 ? model.ValidatorName : model.Namespace + "." + model.ValidatorName,
-            exception.Message);
+            model.Namespace.Length == 0
+                ? model.ValidatorName
+                : model.Namespace + "." + model.ValidatorName,
+            exception.Message
+        );
 }

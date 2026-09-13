@@ -31,7 +31,8 @@ namespace Hardened.Web.StaticContent;
 /// had. Which source answers is a decision, made once in
 /// <c>HardenedStaticContent.ConfigureServices</c> from whether the build produced a manifest.
 /// </remarks>
-public class FileSystemContentSource : IStaticContentSource {
+public class FileSystemContentSource : IStaticContentSource
+{
     private const string GzFileExtension = ".gz";
     private const string BrFileExtension = ".br";
 
@@ -76,7 +77,9 @@ public class FileSystemContentSource : IStaticContentSource {
         IFileExtToMimeTypeHelper fileExtToMimeTypeHelper,
         IGZipStaticContentCompressor compressor,
         IETagProvider etagProvider,
-        ILogger<FileSystemContentSource> logger) {
+        ILogger<FileSystemContentSource> logger
+    )
+    {
         _fileExtToMimeTypeHelper = fileExtToMimeTypeHelper;
         _compressor = compressor;
         _etagProvider = etagProvider;
@@ -85,17 +88,21 @@ public class FileSystemContentSource : IStaticContentSource {
 
         // Fully qualified so that containment checks in ResolveWithinRoot compare canonical paths on
         // both sides.
-        _rootPath = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), _configuration.Path));
+        _rootPath = Path.GetFullPath(
+            Path.Combine(Directory.GetCurrentDirectory(), _configuration.Path)
+        );
         Enabled = Directory.Exists(_rootPath);
 
-        if (!Enabled) {
+        if (!Enabled)
+        {
             // AppContext.BaseDirectory rather than Assembly.Location, which is an empty string for
             // an assembly inside a single-file or AOT-published application. So the fallback that
             // exists for a process whose working directory is not its deployment directory was the
             // one thing that stopped working in the deployments most likely to have one.
             var baseDirectory = AppContext.BaseDirectory;
 
-            if (!string.IsNullOrEmpty(baseDirectory)) {
+            if (!string.IsNullOrEmpty(baseDirectory))
+            {
                 _rootPath = Path.GetFullPath(Path.Combine(baseDirectory, _configuration.Path));
                 Enabled = Directory.Exists(_rootPath);
             }
@@ -111,23 +118,30 @@ public class FileSystemContentSource : IStaticContentSource {
     public StaticContentLocation? Locate(string requestPath) =>
         Enabled ? Locate(requestPath, viaFallback: false) : null;
 
-    public async ValueTask<StaticContentEntry?> Load(StaticContentLocation location) {
-        if (location.Cached != null) {
+    public async ValueTask<StaticContentEntry?> Load(StaticContentLocation location)
+    {
+        if (location.Cached != null)
+        {
             return location.Cached;
         }
 
-        if (!_configuration.CacheContent) {
+        if (!_configuration.CacheContent)
+        {
             return await Read(location);
         }
 
         var lazy = _entries.GetOrAdd(
             location.Key,
             _ => new Lazy<Task<StaticContentEntry?>>(
-                () => Read(location), LazyThreadSafetyMode.ExecutionAndPublication));
+                () => Read(location),
+                LazyThreadSafetyMode.ExecutionAndPublication
+            )
+        );
 
         var entry = await lazy.Value;
 
-        if (entry == null) {
+        if (entry == null)
+        {
             // Never cache a failure. The file was there when Locate looked, so this is a deletion or
             // a transient read error, and pinning it would answer 404 for a file that came back.
             _entries.TryRemove(location.Key, out _);
@@ -136,39 +150,50 @@ public class FileSystemContentSource : IStaticContentSource {
         return entry;
     }
 
-    private async Task<StaticContentEntry?> Read(StaticContentLocation location) {
+    private async Task<StaticContentEntry?> Read(StaticContentLocation location)
+    {
         byte[] fileBytes;
 
-        try {
+        try
+        {
             fileBytes = await File.ReadAllBytesAsync(location.FilePath);
         }
-        catch (Exception exception) when (
-            exception is FileNotFoundException or DirectoryNotFoundException) {
+        catch (Exception exception)
+            when (exception is FileNotFoundException or DirectoryNotFoundException)
+        {
             // Deleted between Locate and here. A race rather than a mistake, and the caller turns it
             // into the same answer the path would have got had Locate seen it gone.
             return null;
         }
 
-        var (contentType, isBinary) =
-            _fileExtToMimeTypeHelper.GetMimeTypeInfo(Path.GetExtension(location.Key));
+        var (contentType, isBinary) = _fileExtToMimeTypeHelper.GetMimeTypeInfo(
+            Path.GetExtension(location.Key)
+        );
 
         // Read after the bytes rather than before: a file rewritten between the two would otherwise
         // be served with a timestamp older than its contents, and a cache holding it would never
         // revalidate.
         DateTimeOffset? lastModified;
 
-        try {
+        try
+        {
             lastModified = File.GetLastWriteTimeUtc(location.FilePath);
         }
-        catch (Exception exception) when (
-            exception is IOException or UnauthorizedAccessException) {
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
             lastModified = null;
         }
 
-        if (location.ContentEncoding != null) {
+        if (location.ContentEncoding != null)
+        {
             return new StaticContentEntry(
-                contentType, location.ContentEncoding, isBinary,
-                _etagProvider.GenerateETag(fileBytes), fileBytes, lastModified);
+                contentType,
+                location.ContentEncoding,
+                isBinary,
+                _etagProvider.GenerateETag(fileBytes),
+                fileBytes,
+                lastModified
+            );
         }
 
         return BuildEntry(contentType, isBinary, fileBytes, lastModified);
@@ -184,64 +209,114 @@ public class FileSystemContentSource : IStaticContentSource {
     /// one request and recovered on every one after it.
     /// </remarks>
     private StaticContentEntry BuildEntry(
-        string contentType, bool isBinary, byte[] fileBytes, DateTimeOffset? lastModified) {
+        string contentType,
+        bool isBinary,
+        byte[] fileBytes,
+        DateTimeOffset? lastModified
+    )
+    {
         var hash = _etagProvider.GenerateETag(fileBytes);
 
         // Compression is paid once into a cache and recovered on every request after it. With no
         // cache there is no "after", so it would be paid on every request at the level that
         // produces the smallest result - the wrong trade for a browser on localhost.
-        if (!_configuration.CacheContent ||
-            !_configuration.CompressTextContent || isBinary || fileBytes.Length <= CompressionThreshold) {
+        if (
+            !_configuration.CacheContent
+            || !_configuration.CompressTextContent
+            || isBinary
+            || fileBytes.Length <= CompressionThreshold
+        )
+        {
             return new StaticContentEntry(
-                contentType, null, isBinary, hash, fileBytes, lastModified);
+                contentType,
+                null,
+                isBinary,
+                hash,
+                fileBytes,
+                lastModified
+            );
         }
 
         return new StaticContentEntry(
-            contentType, KnownEncoding.GZip, isBinary, hash,
-            _compressor.CompressContent(fileBytes, CompressionLevel.SmallestSize), lastModified);
+            contentType,
+            KnownEncoding.GZip,
+            isBinary,
+            hash,
+            _compressor.CompressContent(fileBytes, CompressionLevel.SmallestSize),
+            lastModified
+        );
     }
 
     /// <summary>
     /// The file behind <paramref name="requestPath"/>: the path as written, its default document,
     /// one of its pre-compressed siblings, or the fall back file.
     /// </summary>
-    private StaticContentLocation? Locate(string requestPath, bool viaFallback) {
+    private StaticContentLocation? Locate(string requestPath, bool viaFallback)
+    {
         var filePath = ResolveWithinRoot(requestPath);
 
         // Outside the configured root - refuse before touching the filesystem or the cache.
-        if (filePath == null) {
+        if (filePath == null)
+        {
             return FallBack(viaFallback);
         }
 
         // Skipped outright when caching is off rather than left to miss: nothing is ever written,
         // so the lookup could only cost a hash of the path and return nothing.
-        if (_configuration.CacheContent &&
-            _entries.TryGetValue(filePath, out var lazy) &&
-            lazy.IsValueCreated &&
-            lazy.Value is { IsCompletedSuccessfully: true, Result: { } cached }) {
+        if (
+            _configuration.CacheContent
+            && _entries.TryGetValue(filePath, out var lazy)
+            && lazy.IsValueCreated
+            && lazy.Value is { IsCompletedSuccessfully: true, Result: { } cached }
+        )
+        {
             return new StaticContentLocation(
-                filePath, filePath, cached.ContentEncoding, cached, viaFallback);
+                filePath,
+                filePath,
+                cached.ContentEncoding,
+                cached,
+                viaFallback
+            );
         }
 
-        if (Servable(filePath)) {
+        if (Servable(filePath))
+        {
             return new StaticContentLocation(filePath, filePath, null, null, viaFallback);
         }
 
-        if (Servable(filePath + GzFileExtension)) {
+        if (Servable(filePath + GzFileExtension))
+        {
             return new StaticContentLocation(
-                filePath, filePath + GzFileExtension, KnownEncoding.GZip, null, viaFallback);
+                filePath,
+                filePath + GzFileExtension,
+                KnownEncoding.GZip,
+                null,
+                viaFallback
+            );
         }
 
-        if (Servable(filePath + BrFileExtension)) {
+        if (Servable(filePath + BrFileExtension))
+        {
             return new StaticContentLocation(
-                filePath, filePath + BrFileExtension, KnownEncoding.Br, null, viaFallback);
+                filePath,
+                filePath + BrFileExtension,
+                KnownEncoding.Br,
+                null,
+                viaFallback
+            );
         }
 
         var defaultDocument = DefaultDocumentIn(filePath);
 
-        if (defaultDocument != null) {
+        if (defaultDocument != null)
+        {
             return new StaticContentLocation(
-                defaultDocument, defaultDocument, null, null, viaFallback);
+                defaultDocument,
+                defaultDocument,
+                null,
+                null,
+                viaFallback
+            );
         }
 
         return FallBack(viaFallback);
@@ -258,15 +333,19 @@ public class FileSystemContentSource : IStaticContentSource {
     /// answer. Without it the only way to serve anything at <c>/</c> was the single-page fall back,
     /// which then answered every unknown path too - so a plain static site was not expressible.
     /// </remarks>
-    private string? DefaultDocumentIn(string directoryPath) {
-        if (!Directory.Exists(directoryPath)) {
+    private string? DefaultDocumentIn(string directoryPath)
+    {
+        if (!Directory.Exists(directoryPath))
+        {
             return null;
         }
 
-        foreach (var document in DefaultDocuments) {
+        foreach (var document in DefaultDocuments)
+        {
             var candidate = Path.Combine(directoryPath, document);
 
-            if (Servable(candidate)) {
+            if (Servable(candidate))
+            {
                 return candidate;
             }
         }
@@ -283,26 +362,32 @@ public class FileSystemContentSource : IStaticContentSource {
     /// normalises the request path the way Kestrel does - API Gateway delivers RawPath - so
     /// the source cannot assume that has already happened.
     /// </summary>
-    private string? ResolveWithinRoot(string requestPath) {
-        if (!_configuration.ServeHiddenFiles && IsHidden(requestPath)) {
+    private string? ResolveWithinRoot(string requestPath)
+    {
+        if (!_configuration.ServeHiddenFiles && IsHidden(requestPath))
+        {
             return null;
         }
 
         string candidate;
 
-        try {
+        try
+        {
             candidate = Path.GetFullPath(Path.Combine(_rootPath, requestPath.TrimStart('/')));
         }
-        catch (Exception exception) when (
-            exception is ArgumentException or NotSupportedException or PathTooLongException) {
+        catch (Exception exception)
+            when (exception is ArgumentException or NotSupportedException or PathTooLongException)
+        {
             // Malformed path - treat exactly like one that escapes the root.
             return null;
         }
 
-        if (!IsUnder(_rootPath, candidate)) {
+        if (!IsUnder(_rootPath, candidate))
+        {
             _logger.LogWarning(
                 "Static content request {RequestPath} resolved outside the configured root and was refused",
-                requestPath);
+                requestPath
+            );
 
             return null;
         }
@@ -329,37 +414,45 @@ public class FileSystemContentSource : IStaticContentSource {
     /// layer, a CI artifact step - can create one.
     /// </para>
     /// </remarks>
-    private bool Servable(string path) {
-        if (!File.Exists(path)) {
+    private bool Servable(string path)
+    {
+        if (!File.Exists(path))
+        {
             return false;
         }
 
-        try {
+        try
+        {
             var target = new FileInfo(path).ResolveLinkTarget(returnFinalTarget: true);
 
-            if (target == null || IsUnder(_rootPath, Path.GetFullPath(target.FullName))) {
+            if (target == null || IsUnder(_rootPath, Path.GetFullPath(target.FullName)))
+            {
                 return true;
             }
 
             _logger.LogWarning(
-                "Static content {Path} is a link to {Target}, which is outside the configured " +
-                "root, and was refused", path, target.FullName);
+                "Static content {Path} is a link to {Target}, which is outside the configured "
+                    + "root, and was refused",
+                path,
+                target.FullName
+            );
 
             return false;
         }
-        catch (Exception exception) when (
-            exception is IOException or UnauthorizedAccessException) {
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
             // Unreadable link. Treated as escaping, because what it points at cannot be checked.
             return false;
         }
     }
 
-    private static bool IsUnder(string root, string candidate) {
+    private static bool IsUnder(string root, string candidate)
+    {
         var relative = Path.GetRelativePath(root, candidate);
 
-        return relative != ".." &&
-               !relative.StartsWith(".." + Path.DirectorySeparatorChar, StringComparison.Ordinal) &&
-               !Path.IsPathRooted(relative);
+        return relative != ".."
+            && !relative.StartsWith(".." + Path.DirectorySeparatorChar, StringComparison.Ordinal)
+            && !Path.IsPathRooted(relative);
     }
 
     /// <summary>
@@ -371,11 +464,16 @@ public class FileSystemContentSource : IStaticContentSource {
     /// but the common case is a build step that copied a directory wholesale, and the framework
     /// answering that request is the last chance to not.
     /// </remarks>
-    private static bool IsHidden(string requestPath) {
-        foreach (var segment in requestPath.Split('/', StringSplitOptions.RemoveEmptyEntries)) {
-            if (segment.Length > 1 &&
-                segment[0] == '.' &&
-                !string.Equals(segment, WellKnown, StringComparison.OrdinalIgnoreCase)) {
+    private static bool IsHidden(string requestPath)
+    {
+        foreach (var segment in requestPath.Split('/', StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (
+                segment.Length > 1
+                && segment[0] == '.'
+                && !string.Equals(segment, WellKnown, StringComparison.OrdinalIgnoreCase)
+            )
+            {
                 return true;
             }
         }
@@ -392,26 +490,36 @@ public class FileSystemContentSource : IStaticContentSource {
     /// application is broken rather than like a setting is wrong. Reported once and disabled: the
     /// build task refuses outright, which is the version of this that fails before deployment.
     /// </remarks>
-    private string? ResolveFallBackFile() {
+    private string? ResolveFallBackFile()
+    {
         var configured = _configuration.FallBackFile;
 
-        if (!Enabled || string.IsNullOrEmpty(configured)) {
+        if (!Enabled || string.IsNullOrEmpty(configured))
+        {
             return null;
         }
 
         var resolved = ResolveWithinRoot(configured!);
 
-        if (resolved != null && (Servable(resolved) ||
-                                 Servable(resolved + GzFileExtension) ||
-                                 Servable(resolved + BrFileExtension) ||
-                                 DefaultDocumentIn(resolved) != null)) {
+        if (
+            resolved != null
+            && (
+                Servable(resolved)
+                || Servable(resolved + GzFileExtension)
+                || Servable(resolved + BrFileExtension)
+                || DefaultDocumentIn(resolved) != null
+            )
+        )
+        {
             return configured;
         }
 
         _logger.LogError(
-            "Static content is configured with fall back file {FallBackFile}, which is not in {Root}. " +
-            "Unknown paths will answer 404 rather than the application shell",
-            configured, _rootPath);
+            "Static content is configured with fall back file {FallBackFile}, which is not in {Root}. "
+                + "Unknown paths will answer 404 rather than the application shell",
+            configured,
+            _rootPath
+        );
 
         return null;
     }
@@ -425,26 +533,37 @@ public class FileSystemContentSource : IStaticContentSource {
     /// escapes. A root that is the application's own directory serves <c>appsettings.json</c> the
     /// same way. Neither is refused - an author may mean it - but neither should be silent.
     /// </remarks>
-    private void WarnIfRootIsSuspicious() {
-        if (!Enabled) {
+    private void WarnIfRootIsSuspicious()
+    {
+        if (!Enabled)
+        {
             return;
         }
 
-        if (Path.GetPathRoot(_rootPath) == _rootPath) {
+        if (Path.GetPathRoot(_rootPath) == _rootPath)
+        {
             _logger.LogWarning(
-                "Static content is rooted at {Root}, the filesystem root, so every file this " +
-                "process can read is reachable over HTTP", _rootPath);
+                "Static content is rooted at {Root}, the filesystem root, so every file this "
+                    + "process can read is reachable over HTTP",
+                _rootPath
+            );
 
             return;
         }
 
-        if (string.Equals(
+        if (
+            string.Equals(
                 Path.TrimEndingDirectorySeparator(_rootPath),
                 Path.TrimEndingDirectorySeparator(AppContext.BaseDirectory),
-                StringComparison.Ordinal)) {
+                StringComparison.Ordinal
+            )
+        )
+        {
             _logger.LogWarning(
-                "Static content is rooted at the application's own directory {Root}, so its " +
-                "configuration and assemblies are reachable over HTTP", _rootPath);
+                "Static content is rooted at the application's own directory {Root}, so its "
+                    + "configuration and assemblies are reachable over HTTP",
+                _rootPath
+            );
         }
     }
 }

@@ -1,4 +1,5 @@
 using Hardened.Web.Runtime.Responses;
+
 namespace Hardened.IntegrationTests.OpenApi.SUT.Tests;
 
 /// <summary>
@@ -24,10 +25,11 @@ namespace Hardened.IntegrationTests.OpenApi.SUT.Tests;
 /// specification-first direction that would drift from it.
 /// </para>
 /// </remarks>
-public class PublishedFromTheProjectFileTests {
-
+public class PublishedFromTheProjectFileTests
+{
     [HardenedTest]
-    public async Task TheDocumentIsServedWherePublishUrlSaid(ITestWebApp testWebApp) {
+    public async Task TheDocumentIsServedWherePublishUrlSaid(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/openapi.yaml");
 
         response.Assert.Ok();
@@ -37,7 +39,8 @@ public class PublishedFromTheProjectFileTests {
     }
 
     [HardenedTest]
-    public async Task TheReferencePageIsServedWhereUiUrlSaid(ITestWebApp testWebApp) {
+    public async Task TheReferencePageIsServedWhereUiUrlSaid(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/docs");
 
         response.Assert.Ok();
@@ -55,7 +58,8 @@ public class PublishedFromTheProjectFileTests {
     /// an AST, which is what the page used to be handed and why it rendered nothing.
     /// </remarks>
     [HardenedTest]
-    public async Task ThePageReadsTheDocumentThatWasPublished(ITestWebApp testWebApp) {
+    public async Task ThePageReadsTheDocumentThatWasPublished(ITestWebApp testWebApp)
+    {
         var page = await (await testWebApp.Get("/docs")).ReadTextAsync();
 
         Assert.Contains("data-url=\"/openapi.json\"", page);
@@ -74,7 +78,8 @@ public class PublishedFromTheProjectFileTests {
     /// worth asserting on are the conventional ones it did not name.
     /// </remarks>
     [HardenedTest]
-    public async Task NothingIsServedAtTheDefaultPaths(ITestWebApp testWebApp) {
+    public async Task NothingIsServedAtTheDefaultPaths(ITestWebApp testWebApp)
+    {
         Assert.Equal(404, (await testWebApp.Get("/openapi")).StatusCode);
         Assert.Equal(404, (await testWebApp.Get("/swagger.json")).StatusCode);
         Assert.Equal(404, (await testWebApp.Get("/swagger")).StatusCode);

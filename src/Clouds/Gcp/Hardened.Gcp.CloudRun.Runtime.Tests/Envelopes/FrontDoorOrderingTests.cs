@@ -8,10 +8,11 @@ namespace Hardened.Gcp.CloudRun.Runtime.Tests.Envelopes;
 /// <summary>
 /// A fallback envelope is asked after every ordinary one, whatever order they were registered in.
 /// </summary>
-public class FrontDoorOrderingTests {
-
+public class FrontDoorOrderingTests
+{
     [Fact]
-    public void FallbacksAreAskedLastWhateverTheRegistrationOrder() {
+    public void FallbacksAreAskedLastWhateverTheRegistrationOrder()
+    {
         var generic = new Generic();
         var specific = new Specific();
 
@@ -21,7 +22,8 @@ public class FrontDoorOrderingTests {
     }
 
     [Fact]
-    public void OrdinaryEnvelopesKeepTheirRegistrationOrder() {
+    public void OrdinaryEnvelopesKeepTheirRegistrationOrder()
+    {
         var first = new Specific();
         var second = new Specific();
 
@@ -32,13 +34,19 @@ public class FrontDoorOrderingTests {
         Assert.IsType<Generic>(frontDoor.Envelopes[2]);
     }
 
-    private sealed class Specific : ITriggerEnvelope {
+    private sealed class Specific : ITriggerEnvelope
+    {
         public bool Recognises(IExecutionRequest request) => true;
-        public CloudRunTriggerRequest? Unwrap(IExecutionRequest request, TriggerPayload payload) => null;
+
+        public CloudRunTriggerRequest? Unwrap(IExecutionRequest request, TriggerPayload payload) =>
+            null;
     }
 
-    private sealed class Generic : IFallbackTriggerEnvelope {
+    private sealed class Generic : IFallbackTriggerEnvelope
+    {
         public bool Recognises(IExecutionRequest request) => true;
-        public CloudRunTriggerRequest? Unwrap(IExecutionRequest request, TriggerPayload payload) => null;
+
+        public CloudRunTriggerRequest? Unwrap(IExecutionRequest request, TriggerPayload payload) =>
+            null;
     }
 }

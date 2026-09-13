@@ -30,7 +30,8 @@ namespace Hardened.Requests.Runtime.Filters;
 /// test over a <c>MemoryStream</c>, which accepts either.
 /// </para>
 /// </remarks>
-public class SseFraming : IStreamFraming {
+public class SseFraming : IStreamFraming
+{
     /// <summary>The one instance, because it holds nothing.</summary>
     public static readonly SseFraming Instance = new();
 
@@ -62,15 +63,23 @@ public class SseFraming : IStreamFraming {
     public string ContentType => KnownContentType.EventStream;
 
     public async ValueTask WriteItem(
-        IExecutionContext context, Func<IExecutionContext, Task> serialize) {
+        IExecutionContext context,
+        Func<IExecutionContext, Task> serialize
+    )
+    {
         var body = context.Response.Body;
         var cancellationToken = context.CancellationToken;
 
-        if (context.Response.ResponseValue is ISseEvent metadata) {
+        if (context.Response.ResponseValue is ISseEvent metadata)
+        {
             await WriteField(body, "id", metadata.Id, cancellationToken);
             await WriteField(body, "event", metadata.Event, cancellationToken);
-            await WriteField(body, "retry",
-                metadata.Retry?.ToString(CultureInfo.InvariantCulture), cancellationToken);
+            await WriteField(
+                body,
+                "retry",
+                metadata.Retry?.ToString(CultureInfo.InvariantCulture),
+                cancellationToken
+            );
 
             // The payload is what the handler yielded, not the wrapper around it - serializing the
             // wrapper would put the id and the event name inside data as well as beside it.
@@ -84,13 +93,19 @@ public class SseFraming : IStreamFraming {
         await body.WriteAsync(EventTerminator, 0, EventTerminator.Length, cancellationToken);
     }
 
-    public async ValueTask WriteCompletion(IExecutionContext context) {
+    public async ValueTask WriteCompletion(IExecutionContext context)
+    {
         // Only when nothing was written, a heartbeat included. Every event already ends with a
         // blank line, so a stream that produced anything is complete, and adding to it would
         // dispatch an empty event.
-        if (NothingWritten(context)) {
+        if (NothingWritten(context))
+        {
             await context.Response.Body.WriteAsync(
-                EmptyStreamComment, 0, EmptyStreamComment.Length, context.CancellationToken);
+                EmptyStreamComment,
+                0,
+                EmptyStreamComment.Length,
+                context.CancellationToken
+            );
         }
     }
 
@@ -105,15 +120,21 @@ public class SseFraming : IStreamFraming {
     /// gone out. On a transport the filter flushes after every item and every heartbeat, so a
     /// response that has started is one that carried something.
     /// </remarks>
-    private static bool NothingWritten(IExecutionContext context) {
+    private static bool NothingWritten(IExecutionContext context)
+    {
         var body = context.Response.Body;
 
         return body.CanSeek ? body.Position == 0 : !context.Response.ResponseStarted;
     }
 
-    public async ValueTask<bool> WriteHeartbeat(IExecutionContext context) {
+    public async ValueTask<bool> WriteHeartbeat(IExecutionContext context)
+    {
         await context.Response.Body.WriteAsync(
-            Heartbeat, 0, Heartbeat.Length, context.CancellationToken);
+            Heartbeat,
+            0,
+            Heartbeat.Length,
+            context.CancellationToken
+        );
 
         return true;
     }
@@ -129,9 +150,14 @@ public class SseFraming : IStreamFraming {
     /// newlines, which is exactly the gap somebody eventually puts a header value into.
     /// </remarks>
     private static async ValueTask WriteField(
-        Stream body, string name, string? value, CancellationToken cancellationToken) {
-        if (string.IsNullOrEmpty(value) ||
-            value!.IndexOf('\n') >= 0 || value.IndexOf('\r') >= 0) {
+        Stream body,
+        string name,
+        string? value,
+        CancellationToken cancellationToken
+    )
+    {
+        if (string.IsNullOrEmpty(value) || value!.IndexOf('\n') >= 0 || value.IndexOf('\r') >= 0)
+        {
             return;
         }
 

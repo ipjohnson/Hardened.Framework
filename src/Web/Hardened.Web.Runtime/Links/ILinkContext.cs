@@ -21,7 +21,8 @@ namespace Hardened.Web.Runtime.Links;
 /// kept alongside for callers who want the raw route with no context at all.
 /// </para>
 /// </remarks>
-public interface ILinkContext {
+public interface ILinkContext
+{
     /// <summary>
     /// What the transport prefixes to every path before the application sees it. Empty when the
     /// application is served from the root, which is the ordinary case on Kestrel.

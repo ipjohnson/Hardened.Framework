@@ -19,8 +19,8 @@ namespace Hardened.Requests.Abstract.Responses;
 /// still does and every writer of a response calls one method.
 /// </para>
 /// </remarks>
-public interface IProvidesResponseHeaders {
-
+public interface IProvidesResponseHeaders
+{
     /// <summary>
     /// Adds whatever headers the status requires. Called before the body is written.
     /// </summary>

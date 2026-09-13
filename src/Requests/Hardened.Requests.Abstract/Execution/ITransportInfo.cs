@@ -23,7 +23,8 @@ namespace Hardened.Requests.Abstract.Execution;
 /// metrics with.
 /// </para>
 /// </remarks>
-public interface ITransportInfo {
+public interface ITransportInfo
+{
     /// <summary>
     /// The value for <paramref name="key"/>, or null when this transport cannot answer it.
     /// </summary>
@@ -62,7 +63,8 @@ public interface ITransportInfo {
 /// something.
 /// </para>
 /// </remarks>
-public static class KnownTransportKeys {
+public static class KnownTransportKeys
+{
     /// <summary>
     /// Who made the request, behind any intermediaries.
     /// </summary>
@@ -102,7 +104,8 @@ public static class KnownTransportKeys {
 /// The honest answer for an in-memory harness and for a queue or stream record, where there is no
 /// connection to describe. A singleton, because it holds nothing and most requests never ask.
 /// </remarks>
-public class EmptyTransportInfo : ITransportInfo {
+public class EmptyTransportInfo : ITransportInfo
+{
     public static readonly EmptyTransportInfo Instance = new();
 
     private EmptyTransportInfo() { }

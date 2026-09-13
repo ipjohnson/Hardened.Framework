@@ -11,8 +11,10 @@ namespace Hardened.Functions.Testing;
 /// reaches a published function - which is what keeps the façades trimmable. Names no cloud, so a
 /// test written against them does not change when the host does.
 /// </remarks>
-public static class TriggerTestingServiceCollectionExtensions {
-    public static IServiceCollection AddTriggerTesting(this IServiceCollection services) {
+public static class TriggerTestingServiceCollectionExtensions
+{
+    public static IServiceCollection AddTriggerTesting(this IServiceCollection services)
+    {
         services.AddSingleton<TriggerInvoker>();
 
         // TryAdd, so a provider's testing attribute can register the envelope delivery instead and

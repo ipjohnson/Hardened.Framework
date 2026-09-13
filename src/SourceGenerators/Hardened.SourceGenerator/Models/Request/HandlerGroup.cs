@@ -10,7 +10,8 @@ namespace Hardened.SourceGenerator.Models.Request;
 /// and the generated links type. They must agree, or a route name would change meaning when the
 /// document round-trips, which is the whole reason tags were added before links.
 /// </remarks>
-public static class HandlerGroup {
+public static class HandlerGroup
+{
     private const string ControllerSuffix = "Controller";
 
     private const string ServiceSuffix = "Service";
@@ -26,24 +27,32 @@ public static class HandlerGroup {
     /// Undoing that here is what makes a link name the same in both, which is the same round-trip
     /// property tags were added for.
     /// </remarks>
-    public static string Name(RequestHandlerModel handler) {
-        if (!string.IsNullOrEmpty(handler.Tag)) {
+    public static string Name(RequestHandlerModel handler)
+    {
+        if (!string.IsNullOrEmpty(handler.Tag))
+        {
             return handler.Tag!;
         }
 
         var name = handler.ControllerType.Name;
 
-        if (name.Length > ControllerSuffix.Length &&
-            name.EndsWith(ControllerSuffix, StringComparison.Ordinal)) {
+        if (
+            name.Length > ControllerSuffix.Length
+            && name.EndsWith(ControllerSuffix, StringComparison.Ordinal)
+        )
+        {
             return name.Substring(0, name.Length - ControllerSuffix.Length);
         }
 
         // I{Tag}Service, the shape a tag becomes on the specification-first side. The uppercase
         // test is what keeps a controller genuinely called "InvoiceService" from losing its I.
-        if (name.Length > ServiceSuffix.Length + 1 &&
-            name[0] == 'I' &&
-            char.IsUpper(name[1]) &&
-            name.EndsWith(ServiceSuffix, StringComparison.Ordinal)) {
+        if (
+            name.Length > ServiceSuffix.Length + 1
+            && name[0] == 'I'
+            && char.IsUpper(name[1])
+            && name.EndsWith(ServiceSuffix, StringComparison.Ordinal)
+        )
+        {
             return name.Substring(1, name.Length - ServiceSuffix.Length - 1);
         }
 
@@ -61,21 +70,26 @@ public static class HandlerGroup {
     /// </remarks>
     public static string Identifier(RequestHandlerModel handler) => Identifier(Name(handler));
 
-    public static string Identifier(string name) {
+    public static string Identifier(string name)
+    {
         var builder = new StringBuilder(name.Length);
         var capitalise = true;
 
-        foreach (var character in name) {
-            if (char.IsLetterOrDigit(character)) {
+        foreach (var character in name)
+        {
+            if (char.IsLetterOrDigit(character))
+            {
                 builder.Append(capitalise ? char.ToUpperInvariant(character) : character);
                 capitalise = false;
             }
-            else {
+            else
+            {
                 capitalise = true;
             }
         }
 
-        if (builder.Length == 0) {
+        if (builder.Length == 0)
+        {
             return "Default";
         }
 

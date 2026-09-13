@@ -27,9 +27,13 @@ namespace Hardened.Requests.Abstract.Authorization;
 // The 403 only. A 401 is already published for any operation carrying a security requirement,
 // with the WWW-Authenticate challenge beside it, and that is keyed on the more accurate signal:
 // whether the operation requires authentication at all, rather than on which attribute imposed it.
-[AnswersStatus(403, typeof(Errors.ErrorModel),
-    Description = "The caller does not hold what this operation requires.")]
-public interface IAuthorizeAttribute {
+[AnswersStatus(
+    403,
+    typeof(Errors.ErrorModel),
+    Description = "The caller does not hold what this operation requires."
+)]
+public interface IAuthorizeAttribute
+{
     /// <summary>
     /// What this attribute requires of the caller.
     /// </summary>

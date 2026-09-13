@@ -16,15 +16,18 @@ namespace Hardened.Azure.Functions.Http;
 /// not-found handler can tell an unmatched route from an answered one, and the worker's status is
 /// an enum with no null.
 /// </remarks>
-public class HttpFunctionResponse : IExecutionResponse {
+public class HttpFunctionResponse : IExecutionResponse
+{
     private IHeaderCollection? _headerCollection;
 
-    public HttpFunctionResponse(Stream body) {
+    public HttpFunctionResponse(Stream body)
+    {
         Body = body;
         Cookies = new CookieSetCollectionImpl();
     }
 
-    public string? ContentType {
+    public string? ContentType
+    {
         get => Headers.Get(KnownHeaders.ContentType);
         set => Headers.Set(KnownHeaders.ContentType, value);
     }
@@ -56,18 +59,22 @@ public class HttpFunctionResponse : IExecutionResponse {
 
     public object Clone() => Clone(null);
 
-    public IExecutionResponse Clone(IHeaderCollection? headerCollection) {
-        var clone = new HttpFunctionResponse(Body) {
+    public IExecutionResponse Clone(IHeaderCollection? headerCollection)
+    {
+        var clone = new HttpFunctionResponse(Body)
+        {
             ResponseValue = ResponseValue,
             OutputFactory = OutputFactory,
             Output = Output,
             IsBinary = IsBinary,
             ShouldSerialize = ShouldSerialize,
-            Status = Status
+            Status = Status,
         };
 
-        if (headerCollection != null) {
-            foreach (var header in headerCollection) {
+        if (headerCollection != null)
+        {
+            foreach (var header in headerCollection)
+            {
                 clone.Headers.Set(header.Key, header.Value);
             }
         }

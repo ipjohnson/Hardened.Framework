@@ -25,7 +25,8 @@ namespace Hardened.Gcp.CloudRun.Testing.Containers;
 /// Scheduler, Eventarc or a caller would.
 /// </para>
 /// </remarks>
-public sealed class CloudRunService : IAsyncDisposable {
+public sealed class CloudRunService : IAsyncDisposable
+{
     public const string Image = "mcr.microsoft.com/dotnet/aspnet:8.0";
 
     /// <summary>What the emulator names the service by on the network.</summary>
@@ -38,7 +39,8 @@ public sealed class CloudRunService : IAsyncDisposable {
     /// <param name="network">The network to join, or null for a service reached from the host alone.</param>
     /// <param name="outputDirectory">The fixture's build output, from <c>ApplicationOutput.Of</c>.</param>
     /// <param name="assembly">The fixture's assembly name, which is what <c>dotnet</c> runs.</param>
-    public CloudRunService(INetwork? network, string outputDirectory, string assembly) {
+    public CloudRunService(INetwork? network, string outputDirectory, string assembly)
+    {
         var builder = new ContainerBuilder(Image)
             .WithBindMount(outputDirectory, "/app", AccessMode.ReadOnly)
             .WithEnvironment("PORT", Port.ToString())
@@ -49,7 +51,8 @@ public sealed class CloudRunService : IAsyncDisposable {
             // before there is anything to receive it.
             .WithWaitStrategy(Wait.ForUnixContainer().UntilMessageIsLogged("LISTENING"));
 
-        if (network != null) {
+        if (network != null)
+        {
             builder = builder.WithNetwork(network).WithNetworkAliases(Alias);
         }
 
@@ -64,7 +67,8 @@ public sealed class CloudRunService : IAsyncDisposable {
     public string PushEndpoint => $"http://{Alias}:{Port}/";
 
     /// <summary>The service from the host, on the port the kernel picked.</summary>
-    public Uri HostAddress => new($"http://{_container.Hostname}:{_container.GetMappedPublicPort(Port)}/");
+    public Uri HostAddress =>
+        new($"http://{_container.Hostname}:{_container.GetMappedPublicPort(Port)}/");
 
     public ObservedInvocations Observed => new(_container);
 
@@ -85,17 +89,29 @@ public sealed class CloudRunService : IAsyncDisposable {
     /// One request from the host to the service, the way a source outside the container sends it.
     /// </summary>
     public async Task<HttpResponseMessage> SendAsync(
-        HttpMethod method, string path, string? body, string contentType, CancellationToken cancellationToken = default,
-        params (string Name, string Value)[] headers) {
-        using var client = new HttpClient { BaseAddress = HostAddress, Timeout = TimeSpan.FromSeconds(60) };
+        HttpMethod method,
+        string path,
+        string? body,
+        string contentType,
+        CancellationToken cancellationToken = default,
+        params (string Name, string Value)[] headers
+    )
+    {
+        using var client = new HttpClient
+        {
+            BaseAddress = HostAddress,
+            Timeout = TimeSpan.FromSeconds(60),
+        };
         using var request = new HttpRequestMessage(method, path);
 
-        if (body != null) {
+        if (body != null)
+        {
             request.Content = new StringContent(body, Encoding.UTF8);
             request.Content.Headers.ContentType = new MediaTypeHeaderValue(contentType);
         }
 
-        foreach (var (name, value) in headers) {
+        foreach (var (name, value) in headers)
+        {
             request.Headers.TryAddWithoutValidation(name, value);
         }
 

@@ -1,10 +1,10 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
+using Hardened.Generation;
 using Hardened.Generation.Models;
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.OpenApiDocument;
-using Hardened.Generation;
 
 namespace Hardened.SourceGenerator.Requests;
 
@@ -27,8 +27,8 @@ namespace Hardened.SourceGenerator.Requests;
 /// what the contract said rather than what the generated C# could be made to admit.
 /// </para>
 /// </remarks>
-internal static class SpecSchemaWriter {
-
+internal static class SpecSchemaWriter
+{
     /// <summary>
     /// The schema for one named component, plus every component it reaches.
     /// </summary>
@@ -37,8 +37,10 @@ internal static class SpecSchemaWriter {
     /// <c>text/plain</c> string, a bare number. It carried no schema at all, so the document
     /// published the status with no <c>content</c> and a generated client read nothing.
     /// </summary>
-    public static HandlerSchema? ForScalar(string? type, string? format) {
-        if (string.IsNullOrEmpty(type)) {
+    public static HandlerSchema? ForScalar(string? type, string? format)
+    {
+        if (string.IsNullOrEmpty(type))
+        {
             return null;
         }
 
@@ -49,8 +51,10 @@ internal static class SpecSchemaWriter {
         return new HandlerSchema(schema, System.Array.Empty<SchemaComponent>());
     }
 
-    public static HandlerSchema? ForRef(string? schemaRef, IReadOnlyList<SchemaModel> schemas) {
-        if (schemaRef == null) {
+    public static HandlerSchema? ForRef(string? schemaRef, IReadOnlyList<SchemaModel> schemas)
+    {
+        if (schemaRef == null)
+        {
             return null;
         }
 
@@ -65,8 +69,10 @@ internal static class SpecSchemaWriter {
     }
 
     /// <summary>The schema for an array of a named component.</summary>
-    public static HandlerSchema? ForArrayOf(string? itemsRef, IReadOnlyList<SchemaModel> schemas) {
-        if (itemsRef == null) {
+    public static HandlerSchema? ForArrayOf(string? itemsRef, IReadOnlyList<SchemaModel> schemas)
+    {
+        if (itemsRef == null)
+        {
             return null;
         }
 
@@ -78,13 +84,17 @@ internal static class SpecSchemaWriter {
         return components.Count == 0
             ? null
             : new HandlerSchema(
-                "{\"type\":\"array\",\"items\":" + Reference(name) + "}", Components(components));
+                "{\"type\":\"array\",\"items\":" + Reference(name) + "}",
+                Components(components)
+            );
     }
 
-    private static IReadOnlyList<SchemaComponent> Components(Dictionary<string, string> components) {
+    private static IReadOnlyList<SchemaComponent> Components(Dictionary<string, string> components)
+    {
         var result = new List<SchemaComponent>();
 
-        foreach (var pair in components) {
+        foreach (var pair in components)
+        {
             result.Add(new SchemaComponent(pair.Key, pair.Value));
         }
 
@@ -105,23 +115,31 @@ internal static class SpecSchemaWriter {
     /// a <c>$ref</c> back to the same component rather than by expanding forever.
     /// </remarks>
     private static void Collect(
-        string name, IReadOnlyList<SchemaModel> schemas,
-        Dictionary<string, string> components, HashSet<string> seen) {
-        if (!seen.Add(name)) {
+        string name,
+        IReadOnlyList<SchemaModel> schemas,
+        Dictionary<string, string> components,
+        HashSet<string> seen
+    )
+    {
+        if (!seen.Add(name))
+        {
             return;
         }
 
         SchemaModel? schema = null;
 
-        foreach (var candidate in schemas) {
-            if (NamingHelper.ToPascalCase(candidate.Name) == name) {
+        foreach (var candidate in schemas)
+        {
+            if (NamingHelper.ToPascalCase(candidate.Name) == name)
+            {
                 schema = candidate;
 
                 break;
             }
         }
 
-        if (schema == null) {
+        if (schema == null)
+        {
             return;
         }
 
@@ -129,22 +147,32 @@ internal static class SpecSchemaWriter {
     }
 
     private static string Write(
-        SchemaModel schema, IReadOnlyList<SchemaModel> schemas,
-        Dictionary<string, string> components, HashSet<string> seen) {
+        SchemaModel schema,
+        IReadOnlyList<SchemaModel> schemas,
+        Dictionary<string, string> components,
+        HashSet<string> seen
+    )
+    {
         var builder = new StringBuilder();
 
-        switch (schema.Kind) {
+        switch (schema.Kind)
+        {
             case SchemaKind.Enum:
                 builder.Append("{\"type\":\"string\"");
                 Describe(builder, schema.Description);
                 builder.Append(",\"enum\":[");
 
-                for (var i = 0; i < schema.EnumValues.Count; i++) {
-                    if (i > 0) {
+                for (var i = 0; i < schema.EnumValues.Count; i++)
+                {
+                    if (i > 0)
+                    {
                         builder.Append(',');
                     }
 
-                    builder.Append('"').Append(JsonSchemaWriter.Escape(schema.EnumValues[i])).Append('"');
+                    builder
+                        .Append('"')
+                        .Append(JsonSchemaWriter.Escape(schema.EnumValues[i]))
+                        .Append('"');
                 }
 
                 builder.Append("]}");
@@ -154,15 +182,29 @@ internal static class SpecSchemaWriter {
             case SchemaKind.Array:
                 builder.Append("{\"type\":\"array\"");
                 Describe(builder, schema.Description);
-                builder.Append(",\"items\":")
-                    .Append(Inline(schema.ArrayItemsRef, schema.ArrayItemsType, schema.ArrayItemsFormat,
-                        null, null, false, schemas, components, seen));
+                builder
+                    .Append(",\"items\":")
+                    .Append(
+                        Inline(
+                            schema.ArrayItemsRef,
+                            schema.ArrayItemsType,
+                            schema.ArrayItemsFormat,
+                            null,
+                            null,
+                            false,
+                            schemas,
+                            components,
+                            seen
+                        )
+                    );
 
-                if (schema.MinItems.HasValue) {
+                if (schema.MinItems.HasValue)
+                {
                     builder.Append(",\"minItems\":").Append(schema.MinItems.Value);
                 }
 
-                if (schema.MaxItems.HasValue) {
+                if (schema.MaxItems.HasValue)
+                {
                     builder.Append(",\"maxItems\":").Append(schema.MaxItems.Value);
                 }
 
@@ -176,15 +218,28 @@ internal static class SpecSchemaWriter {
                 // exactly one of these each, so the document has to say which.
                 builder.Append("{\"oneOf\":[");
 
-                for (var i = 0; i < schema.OneOf.Count; i++) {
-                    if (i > 0) {
+                for (var i = 0; i < schema.OneOf.Count; i++)
+                {
+                    if (i > 0)
+                    {
                         builder.Append(',');
                     }
 
                     var branch = schema.OneOf[i];
 
                     builder.Append(
-                        Inline(branch.Ref, branch.Type, branch.Format, null, null, false, schemas, components, seen));
+                        Inline(
+                            branch.Ref,
+                            branch.Type,
+                            branch.Format,
+                            null,
+                            null,
+                            false,
+                            schemas,
+                            components,
+                            seen
+                        )
+                    );
                 }
 
                 builder.Append(']');
@@ -194,14 +249,34 @@ internal static class SpecSchemaWriter {
                 break;
 
             case SchemaKind.Dictionary:
-                builder.Append(Map(schema.DictionaryValueRef, schema.DictionaryValueType,
-                    schema.DictionaryValueFormat, schema.Description, schemas, components, seen));
+                builder.Append(
+                    Map(
+                        schema.DictionaryValueRef,
+                        schema.DictionaryValueType,
+                        schema.DictionaryValueFormat,
+                        schema.Description,
+                        schemas,
+                        components,
+                        seen
+                    )
+                );
 
                 break;
 
             case SchemaKind.Primitive:
-                builder.Append(Inline(null, schema.Type, schema.Format, schema.Description,
-                    null, false, schemas, components, seen));
+                builder.Append(
+                    Inline(
+                        null,
+                        schema.Type,
+                        schema.Format,
+                        schema.Description,
+                        null,
+                        false,
+                        schemas,
+                        components,
+                        seen
+                    )
+                );
 
                 break;
 
@@ -228,11 +303,18 @@ internal static class SpecSchemaWriter {
     /// generated one and read null. The model carried the value type the whole time.
     /// </remarks>
     private static string Map(
-        string? valueRef, string? valueType, string? valueFormat, string? description,
-        IReadOnlyList<SchemaModel> schemas, Dictionary<string, string> components,
-        HashSet<string> seen) {
-        var builder = new StringBuilder("{\"type\":\"object\",\"additionalProperties\":")
-            .Append(Inline(valueRef, valueType, valueFormat, null, null, false, schemas, components, seen));
+        string? valueRef,
+        string? valueType,
+        string? valueFormat,
+        string? description,
+        IReadOnlyList<SchemaModel> schemas,
+        Dictionary<string, string> components,
+        HashSet<string> seen
+    )
+    {
+        var builder = new StringBuilder("{\"type\":\"object\",\"additionalProperties\":").Append(
+            Inline(valueRef, valueType, valueFormat, null, null, false, schemas, components, seen)
+        );
 
         Describe(builder, description);
 
@@ -240,18 +322,26 @@ internal static class SpecSchemaWriter {
     }
 
     private static void WriteProperties(
-        StringBuilder builder, SchemaModel schema, IReadOnlyList<SchemaModel> schemas,
-        Dictionary<string, string> components, HashSet<string> seen) {
-        if (schema.Properties.Count == 0) {
+        StringBuilder builder,
+        SchemaModel schema,
+        IReadOnlyList<SchemaModel> schemas,
+        Dictionary<string, string> components,
+        HashSet<string> seen
+    )
+    {
+        if (schema.Properties.Count == 0)
+        {
             return;
         }
 
         builder.Append(",\"properties\":{");
 
-        for (var i = 0; i < schema.Properties.Count; i++) {
+        for (var i = 0; i < schema.Properties.Count; i++)
+        {
             var property = schema.Properties[i];
 
-            if (i > 0) {
+            if (i > 0)
+            {
                 builder.Append(',');
             }
 
@@ -263,37 +353,79 @@ internal static class SpecSchemaWriter {
             // gets the indices the original contract declared rather than none.
             var index = property.MessagePackIndex;
 
-            if (property.IsArray) {
-                var array = new StringBuilder("{\"type\":\"array\",\"items\":")
-                    .Append(Inline(property.ArrayItemsRef, property.ArrayItemsType,
-                        property.ArrayItemsFormat, null, null, false, schemas, components, seen));
+            if (property.IsArray)
+            {
+                var array = new StringBuilder("{\"type\":\"array\",\"items\":").Append(
+                    Inline(
+                        property.ArrayItemsRef,
+                        property.ArrayItemsType,
+                        property.ArrayItemsFormat,
+                        null,
+                        null,
+                        false,
+                        schemas,
+                        components,
+                        seen
+                    )
+                );
 
-                if (property.MinItems.HasValue) {
+                if (property.MinItems.HasValue)
+                {
                     array.Append(",\"minItems\":").Append(property.MinItems.Value);
                 }
 
-                if (property.MaxItems.HasValue) {
+                if (property.MaxItems.HasValue)
+                {
                     array.Append(",\"maxItems\":").Append(property.MaxItems.Value);
                 }
 
                 Describe(array, property.Description);
 
-                builder.Append(JsonSchemaWriter.WithMessagePackIndex(
-                    Nullable(array.Append('}').ToString(), property.IsNullable), index));
+                builder.Append(
+                    JsonSchemaWriter.WithMessagePackIndex(
+                        Nullable(array.Append('}').ToString(), property.IsNullable),
+                        index
+                    )
+                );
             }
-            else if (property.IsDictionary) {
-                builder.Append(JsonSchemaWriter.WithMessagePackIndex(
-                    Nullable(
-                        Map(property.DictionaryValueRef, property.DictionaryValueType,
-                            property.DictionaryValueFormat, property.Description, schemas, components, seen),
-                        property.IsNullable),
-                    index));
+            else if (property.IsDictionary)
+            {
+                builder.Append(
+                    JsonSchemaWriter.WithMessagePackIndex(
+                        Nullable(
+                            Map(
+                                property.DictionaryValueRef,
+                                property.DictionaryValueType,
+                                property.DictionaryValueFormat,
+                                property.Description,
+                                schemas,
+                                components,
+                                seen
+                            ),
+                            property.IsNullable
+                        ),
+                        index
+                    )
+                );
             }
-            else {
-                builder.Append(JsonSchemaWriter.WithMessagePackIndex(
-                    Inline(property.Ref, property.Type, property.Format,
-                        property.Description, property, property.IsNullable, schemas, components, seen),
-                    index));
+            else
+            {
+                builder.Append(
+                    JsonSchemaWriter.WithMessagePackIndex(
+                        Inline(
+                            property.Ref,
+                            property.Type,
+                            property.Format,
+                            property.Description,
+                            property,
+                            property.IsNullable,
+                            schemas,
+                            components,
+                            seen
+                        ),
+                        index
+                    )
+                );
             }
         }
 
@@ -309,23 +441,29 @@ internal static class SpecSchemaWriter {
     /// A member bound to a response header is not in the body at all, so it cannot be required of
     /// one - listing it would describe a payload no service ever sends.
     /// </remarks>
-    private static void WriteRequired(StringBuilder builder, SchemaModel schema) {
+    private static void WriteRequired(StringBuilder builder, SchemaModel schema)
+    {
         var required = new List<string>();
 
-        foreach (var property in schema.Properties) {
-            if (property.IsRequired && !property.IsHeaderBound) {
+        foreach (var property in schema.Properties)
+        {
+            if (property.IsRequired && !property.IsHeaderBound)
+            {
                 required.Add(property.Name);
             }
         }
 
-        if (required.Count == 0) {
+        if (required.Count == 0)
+        {
             return;
         }
 
         builder.Append(",\"required\":[");
 
-        for (var i = 0; i < required.Count; i++) {
-            if (i > 0) {
+        for (var i = 0; i < required.Count; i++)
+        {
+            if (i > 0)
+            {
                 builder.Append(',');
             }
 
@@ -346,16 +484,25 @@ internal static class SpecSchemaWriter {
     /// trial's document-fidelity matrix came out inverted - parameters constrained, bodies bare.
     /// </remarks>
     private static string Inline(
-        string? schemaRef, string? type, string? format, string? description,
-        IConstraintFacets? facets, bool isNullable,
-        IReadOnlyList<SchemaModel> schemas, Dictionary<string, string> components,
-        HashSet<string> seen) {
-        if (schemaRef != null) {
+        string? schemaRef,
+        string? type,
+        string? format,
+        string? description,
+        IConstraintFacets? facets,
+        bool isNullable,
+        IReadOnlyList<SchemaModel> schemas,
+        Dictionary<string, string> components,
+        HashSet<string> seen
+    )
+    {
+        if (schemaRef != null)
+        {
             var name = NamingHelper.ToPascalCase(TypeMapper.GetRefName(schemaRef));
 
             Collect(name, schemas, components, seen);
 
-            if (string.IsNullOrEmpty(description)) {
+            if (string.IsNullOrEmpty(description))
+            {
                 return Reference(name);
             }
 
@@ -367,15 +514,22 @@ internal static class SpecSchemaWriter {
         }
 
         var builder = new StringBuilder("{\"type\":\"")
-            .Append(JsonSchemaWriter.Escape(type ?? "string")).Append('"');
+            .Append(JsonSchemaWriter.Escape(type ?? "string"))
+            .Append('"');
 
-        if (!string.IsNullOrEmpty(format)) {
+        if (!string.IsNullOrEmpty(format))
+        {
             builder.Append(",\"format\":\"").Append(JsonSchemaWriter.Escape(format!)).Append('"');
         }
 
-        if (facets != null) {
+        if (facets != null)
+        {
             OpenApiDocumentGenerator.AppendConstraintFacets(
-                builder, type ?? "string", facets, OpenApiVersionFacts.Default);
+                builder,
+                type ?? "string",
+                facets,
+                OpenApiVersionFacts.Default
+            );
         }
 
         Describe(builder, description);
@@ -392,20 +546,24 @@ internal static class SpecSchemaWriter {
     /// correct here for the same reason it gives: the default document is one this spelling is
     /// valid in. A <c>$ref</c> is left alone; the referenced schema describes the type.
     /// </remarks>
-    private static string Nullable(string schema, bool isNullable) {
-        if (!isNullable) {
+    private static string Nullable(string schema, bool isNullable)
+    {
+        if (!isNullable)
+        {
             return schema;
         }
 
         const string prefix = "{\"type\":\"";
 
-        if (!schema.StartsWith(prefix, System.StringComparison.Ordinal)) {
+        if (!schema.StartsWith(prefix, System.StringComparison.Ordinal))
+        {
             return schema;
         }
 
         var close = schema.IndexOf('"', prefix.Length);
 
-        if (close < 0) {
+        if (close < 0)
+        {
             return schema;
         }
 
@@ -414,21 +572,22 @@ internal static class SpecSchemaWriter {
         return "{\"type\":[\"" + name + "\",\"null\"]" + schema.Substring(close + 1);
     }
 
-    private static void Describe(StringBuilder builder, string? description) {
-        if (string.IsNullOrEmpty(description)) {
+    private static void Describe(StringBuilder builder, string? description)
+    {
+        if (string.IsNullOrEmpty(description))
+        {
             return;
         }
 
-        builder.Append(",\"description\":\"")
-            .Append(JsonSchemaWriter.Escape(description!)).Append('"');
+        builder
+            .Append(",\"description\":\"")
+            .Append(JsonSchemaWriter.Escape(description!))
+            .Append('"');
     }
 
     /// <summary>The status's own wording, where the contract gave the response none.</summary>
     public static string DescriptionFor(string? declared, int status) =>
-        string.IsNullOrEmpty(declared)
-            ? HttpResponseDescription.For(status)
-            : declared!;
+        string.IsNullOrEmpty(declared) ? HttpResponseDescription.For(status) : declared!;
 
-    private static string Invariant(int value) =>
-        value.ToString(CultureInfo.InvariantCulture);
+    private static string Invariant(int value) => value.ToString(CultureInfo.InvariantCulture);
 }

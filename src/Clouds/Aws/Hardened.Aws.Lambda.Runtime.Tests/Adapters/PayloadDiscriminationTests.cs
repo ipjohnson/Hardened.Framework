@@ -1,13 +1,13 @@
-using Hardened.Aws.Lambda.Runtime.Adapters;
-using Hardened.Aws.Lambda.Runtime.Tests.Infrastructure;
-using Xunit;
-using Hardened.Aws.Lambda.Http;
 using Hardened.Aws.Lambda.DynamoDb;
 using Hardened.Aws.Lambda.EventBridge;
+using Hardened.Aws.Lambda.Http;
 using Hardened.Aws.Lambda.Kinesis;
+using Hardened.Aws.Lambda.Runtime.Adapters;
+using Hardened.Aws.Lambda.Runtime.Tests.Infrastructure;
 using Hardened.Aws.Lambda.S3;
 using Hardened.Aws.Lambda.Sns;
 using Hardened.Aws.Lambda.Sqs;
+using Xunit;
 
 namespace Hardened.Aws.Lambda.Runtime.Tests.Adapters;
 
@@ -26,34 +26,42 @@ namespace Hardened.Aws.Lambda.Runtime.Tests.Adapters;
 /// adapter matching on the array rather than on the event source value is caught.
 /// </para>
 /// </remarks>
-public class PayloadDiscriminationTests {
-    private static readonly (string Name, IPayloadAdapter Adapter)[] Adapters = [
+public class PayloadDiscriminationTests
+{
+    private static readonly (string Name, IPayloadAdapter Adapter)[] Adapters =
+    [
         ("sqs", new SqsAdapter()),
         ("sns", new SnsAdapter()),
         ("dynamodb", new DynamoDbAdapter()),
         ("kinesis", new KinesisAdapter()),
         ("s3", new S3Adapter()),
         ("eventbridge", new EventBridgeAdapter()),
-        ("http", new LambdaHttpAdapter())
+        ("http", new LambdaHttpAdapter()),
     ];
 
-    public static TheoryData<string, string> Payloads() => new() {
-        { "sqs", Infrastructure.Payloads.SqsJson },
-        { "sns", Infrastructure.Payloads.SnsJson },
-        { "dynamodb", Infrastructure.Payloads.DynamoDbJson },
-        { "kinesis", Infrastructure.Payloads.KinesisJson },
-        { "s3", Infrastructure.Payloads.S3Json },
-        { "eventbridge", Infrastructure.Payloads.EventBridgeJson },
-        { "eventbridge", Infrastructure.Payloads.ScheduledJson },
-        { "http", Infrastructure.Payloads.HttpJson }
-    };
+    public static TheoryData<string, string> Payloads() =>
+        new()
+        {
+            { "sqs", Infrastructure.Payloads.SqsJson },
+            { "sns", Infrastructure.Payloads.SnsJson },
+            { "dynamodb", Infrastructure.Payloads.DynamoDbJson },
+            { "kinesis", Infrastructure.Payloads.KinesisJson },
+            { "s3", Infrastructure.Payloads.S3Json },
+            { "eventbridge", Infrastructure.Payloads.EventBridgeJson },
+            { "eventbridge", Infrastructure.Payloads.ScheduledJson },
+            { "http", Infrastructure.Payloads.HttpJson },
+        };
 
     [Theory]
     [MemberData(nameof(Payloads))]
-    public void ExactlyOneAdapterClaimsEachPayload(string expected, string json) {
+    public void ExactlyOneAdapterClaimsEachPayload(string expected, string json)
+    {
         using var payload = Infrastructure.Payloads.Payload(json);
 
-        var claimed = Adapters.Where(a => a.Adapter.Handles(payload.Json)).Select(a => a.Name).ToArray();
+        var claimed = Adapters
+            .Where(a => a.Adapter.Handles(payload.Json))
+            .Select(a => a.Name)
+            .ToArray();
 
         Assert.Equal([expected], claimed);
     }
@@ -72,9 +80,11 @@ public class PayloadDiscriminationTests {
     /// </remarks>
     [Theory]
     [InlineData("firehose")]
-    public void NothingClaimsASourceWithNoAdapter(string source) {
-        var json = source switch {
-            _ => Infrastructure.Payloads.FirehoseJson
+    public void NothingClaimsASourceWithNoAdapter(string source)
+    {
+        var json = source switch
+        {
+            _ => Infrastructure.Payloads.FirehoseJson,
         };
 
         using var payload = Infrastructure.Payloads.Payload(json);
@@ -94,7 +104,8 @@ public class PayloadDiscriminationTests {
     [InlineData("""{"source":"com.acme.orders"}""")]
     [InlineData("[]")]
     [InlineData("42")]
-    public void NothingClaimsAnApplicationsOwnPayload(string json) {
+    public void NothingClaimsAnApplicationsOwnPayload(string json)
+    {
         using var payload = Infrastructure.Payloads.Payload(json);
 
         Assert.Empty(Adapters.Where(a => a.Adapter.Handles(payload.Json)).Select(a => a.Name));

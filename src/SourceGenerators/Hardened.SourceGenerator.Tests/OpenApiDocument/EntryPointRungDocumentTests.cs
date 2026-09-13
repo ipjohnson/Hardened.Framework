@@ -26,55 +26,67 @@ namespace Hardened.SourceGenerator.Tests.OpenApiDocument;
 /// of the other.
 /// </para>
 /// </remarks>
-public class EntryPointRungDocumentTests {
-
+public class EntryPointRungDocumentTests
+{
     private static ITypeDefinition Type(string name) => TypeDefinition.Get("TestApp", name);
 
     private static DeclaredScope Reads => new("GET,HEAD", notWhenStreaming: true);
 
-    private static DeclaredOperationFacts NotModified(DeclaredScope? scope = null) {
+    private static DeclaredOperationFacts NotModified(DeclaredScope? scope = null)
+    {
         var reach = scope ?? Reads;
 
         return new DeclaredOperationFacts(
             [new ScopedRefusal(new ResponseSchemaModel(304, "Nothing is sent.", null), reach)],
             [
                 new ScopedResponseHeader(304, "ETag", "The tag, repeated.", reach),
-                new ScopedResponseHeader(200, "ETag", "A tag for this response.", reach)
+                new ScopedResponseHeader(200, "ETag", "A tag for this response.", reach),
             ],
-            [new ScopedRequestHeader("If-None-Match", "A tag a previous response carried.", reach)]);
+            [new ScopedRequestHeader("If-None-Match", "A tag a previous response carried.", reach)]
+        );
     }
 
     private static EntryPointSelector.Model App(DeclaredOperationFacts? facts) =>
-        new() {
+        new()
+        {
             EntryPointType = Type("Application"),
             AttributeModels = Array.Empty<AttributeModel>(),
-            FilterFacts = facts
+            FilterFacts = facts,
         };
 
     private static RequestHandlerModel Handler(
         string httpMethod = "GET",
         bool streams = false,
         IReadOnlyList<ResponseSchemaModel>? responses = null,
-        RequestParameterInformation? parameter = null) =>
-        new(new RequestHandlerNameModel("/books", httpMethod),
+        RequestParameterInformation? parameter = null
+    ) =>
+        new(
+            new RequestHandlerNameModel("/books", httpMethod),
             Type("BookController"),
             "List",
             TypeDefinition.Get("TestApp.Generated", "BookController_List"),
             parameter == null ? [] : [parameter],
             new ResponseInformationModel { ReturnType = Type("Book"), IsAsyncEnumerable = streams },
-            []) {
-            ResponseSchemas = responses ?? Array.Empty<ResponseSchemaModel>()
+            []
+        )
+        {
+            ResponseSchemas = responses ?? Array.Empty<ResponseSchemaModel>(),
         };
 
-    private static JsonElement Operation(DeclaredOperationFacts? facts, RequestHandlerModel handler) =>
+    private static JsonElement Operation(
+        DeclaredOperationFacts? facts,
+        RequestHandlerModel handler
+    ) =>
         JsonDocument
             .Parse(OpenApiDocumentGenerator.Write(App(facts), [handler], ""))
-            .RootElement
-            .GetProperty("paths").GetProperty("/books")
+            .RootElement.GetProperty("paths")
+            .GetProperty("/books")
             .GetProperty(handler.Name.Method.ToLowerInvariant());
 
     private static string[] Statuses(JsonElement operation) =>
-        operation.GetProperty("responses").EnumerateObject()
+        operation
+            .GetProperty("responses")
+            .EnumerateObject()
             .Select(response => response.Name)
             .OrderBy(status => status, StringComparer.Ordinal)
             .ToArray();
@@ -89,20 +101,27 @@ public class EntryPointRungDocumentTests {
     /// nothing about what the handler answers when it runs, so it cannot be the whole set.
     /// </summary>
     [Fact]
-    public void ADeclaredRefusalJoinsTheOperationsOwnSuccess() {
+    public void ADeclaredRefusalJoinsTheOperationsOwnSuccess()
+    {
         var operation = Operation(NotModified(), Handler());
 
         Assert.Equal(["200", "304"], Statuses(operation));
     }
 
     [Fact]
-    public void TheHeadersTheDeclarationWritesLandOnTheStatusesItNames() {
+    public void TheHeadersTheDeclarationWritesLandOnTheStatusesItNames()
+    {
         var operation = Operation(NotModified(), Handler());
 
         Assert.Equal(
             ["ETag"],
-            operation.GetProperty("responses").GetProperty("304")
-                .GetProperty("headers").EnumerateObject().Select(header => header.Name));
+            operation
+                .GetProperty("responses")
+                .GetProperty("304")
+                .GetProperty("headers")
+                .EnumerateObject()
+                .Select(header => header.Name)
+        );
 
         Assert.Contains("If-None-Match", Parameters(operation));
     }
@@ -115,7 +134,10 @@ public class EntryPointRungDocumentTests {
     [InlineData("POST", false)]
     [InlineData("GET", true)]
     public void AnOperationTheDeclarationDoesNotReachPublishesNothingFromIt(
-        string httpMethod, bool streams) {
+        string httpMethod,
+        bool streams
+    )
+    {
         var operation = Operation(NotModified(), Handler(httpMethod, streams));
 
         Assert.DoesNotContain("304", Statuses(operation));
@@ -127,15 +149,21 @@ public class EntryPointRungDocumentTests {
     /// entries go last for that reason.
     /// </summary>
     [Fact]
-    public void AStatusTheOperationAlreadyDeclaresKeepsItsOwnDescription() {
+    public void AStatusTheOperationAlreadyDeclaresKeepsItsOwnDescription()
+    {
         var operation = Operation(
             NotModified(),
-            Handler(responses: [new ResponseSchemaModel(304, "The handler's own wording.", null)]));
+            Handler(responses: [new ResponseSchemaModel(304, "The handler's own wording.", null)])
+        );
 
         Assert.Equal(
             "The handler's own wording.",
-            operation.GetProperty("responses").GetProperty("304")
-                .GetProperty("description").GetString());
+            operation
+                .GetProperty("responses")
+                .GetProperty("304")
+                .GetProperty("description")
+                .GetString()
+        );
     }
 
     /// <summary>
@@ -143,12 +171,22 @@ public class EntryPointRungDocumentTests {
     /// own, and two entries under one name is a document no generator can read.
     /// </summary>
     [Fact]
-    public void AHeaderTheOperationBindsIsNotPublishedTwice() {
+    public void AHeaderTheOperationBindsIsNotPublishedTwice()
+    {
         var operation = Operation(
             NotModified(),
-            Handler(parameter: new RequestParameterInformation(
-                Type("String"), "ifNoneMatch", false, null,
-                ParameterBindType.Header, "If-None-Match", 0)));
+            Handler(
+                parameter: new RequestParameterInformation(
+                    Type("String"),
+                    "ifNoneMatch",
+                    false,
+                    null,
+                    ParameterBindType.Header,
+                    "If-None-Match",
+                    0
+                )
+            )
+        );
 
         Assert.Single(Parameters(operation), name => name == "If-None-Match");
     }
@@ -158,7 +196,8 @@ public class EntryPointRungDocumentTests {
     /// a verb restriction means.
     /// </summary>
     [Fact]
-    public void ADeclarationStatingNoReachCoversEveryOperation() {
+    public void ADeclarationStatingNoReachCoversEveryOperation()
+    {
         var facts = NotModified(new DeclaredScope(null, notWhenStreaming: false));
 
         Assert.Contains("304", Statuses(Operation(facts, Handler("POST"))));
@@ -169,13 +208,14 @@ public class EntryPointRungDocumentTests {
     /// An entry point declaring no filter writes the document it wrote before this existed.
     /// </summary>
     [Fact]
-    public void AnEntryPointDeclaringNoFilterChangesNothing() {
+    public void AnEntryPointDeclaringNoFilterChangesNothing()
+    {
         var handler = Handler();
 
         Assert.Equal(
             OpenApiDocumentGenerator.Write(App(null), [handler], ""),
-            OpenApiDocumentGenerator.Write(
-                App(DeclaredOperationFacts.Empty), [handler], ""));
+            OpenApiDocumentGenerator.Write(App(DeclaredOperationFacts.Empty), [handler], "")
+        );
 
         Assert.Equal(["200"], Statuses(Operation(null, handler)));
     }

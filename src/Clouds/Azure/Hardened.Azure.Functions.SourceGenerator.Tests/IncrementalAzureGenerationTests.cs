@@ -16,26 +16,27 @@ namespace Hardened.Azure.Functions.SourceGenerator.Tests;
 /// would otherwise churn on every keystroke.
 /// </para>
 /// </summary>
-public class IncrementalAzureGenerationTests {
+public class IncrementalAzureGenerationTests
+{
+    private static string Application(string queue = "orders", string extraMembers = "") =>
+        $$"""
+            using Hardened.Shared.Runtime.Attributes;
+            using Hardened.Functions.Runtime.Attributes;
 
-    private static string Application(string queue = "orders", string extraMembers = "") => $$"""
-        using Hardened.Shared.Runtime.Attributes;
-        using Hardened.Functions.Runtime.Attributes;
+            namespace TestApp;
 
-        namespace TestApp;
+            public class Order { public string Id { get; set; } = ""; }
 
-        public class Order { public string Id { get; set; } = ""; }
+            [HardenedModule]
+            public partial class TestApplication { }
 
-        [HardenedModule]
-        public partial class TestApplication { }
+            public class Handlers {
+                {{extraMembers}}
 
-        public class Handlers {
-            {{extraMembers}}
-
-            [Queue("{{queue}}")]
-            public void OnOrder(Order order) { }
-        }
-        """;
+                [Queue("{{queue}}")]
+                public void OnOrder(Order order) { }
+            }
+            """;
 
     private static IncrementalRunResult Rerun(string first, string second) =>
         GeneratorTestHarness.RunIncremental(
@@ -43,13 +44,16 @@ public class IncrementalAzureGenerationTests {
             new Dictionary<string, string> { ["Test.cs"] = second },
             [new AzureFunctionsSourceGenerator()],
             AzureGeneratorHarness.Anchors,
-            buildProperties: new Dictionary<string, string> {
-                ["HardenedQueueModule"] = AzureGeneratorHarness.ServiceBusModule
-            });
+            buildProperties: new Dictionary<string, string>
+            {
+                ["HardenedQueueModule"] = AzureGeneratorHarness.ServiceBusModule,
+            }
+        );
 
     /// <summary>The unchanged compilation. Anything less than fully cached here is a bug.</summary>
     [Fact]
-    public void RerunningOverIdenticalSourceReusesEveryOutput() {
+    public void RerunningOverIdenticalSourceReusesEveryOutput()
+    {
         var result = Rerun(Application(), Application());
 
         Assert.True(result.AllOutputsCached);
@@ -62,8 +66,12 @@ public class IncrementalAzureGenerationTests {
     /// bound modules exist for.
     /// </summary>
     [Fact]
-    public void AddingACommentReusesEveryOutput() {
-        var result = Rerun(Application(), Application(extraMembers: "// nothing the worker cares about"));
+    public void AddingACommentReusesEveryOutput()
+    {
+        var result = Rerun(
+            Application(),
+            Application(extraMembers: "// nothing the worker cares about")
+        );
 
         Assert.True(result.AllOutputsCached);
         Assert.Equal(result.FirstRun, result.SecondRun);
@@ -74,7 +82,8 @@ public class IncrementalAzureGenerationTests {
     /// worker code must not be rewritten for it.
     /// </summary>
     [Fact]
-    public void AddingAnUnattributedMethodReusesEveryOutput() {
+    public void AddingAnUnattributedMethodReusesEveryOutput()
+    {
         var result = Rerun(Application(), Application(extraMembers: "public void Helper() { }"));
 
         Assert.True(result.AllOutputsCached);
@@ -83,11 +92,15 @@ public class IncrementalAzureGenerationTests {
 
     /// <summary>Renaming the queue is a different function, and the output has to say so.</summary>
     [Fact]
-    public void RenamingTheQueueRegeneratesTheFunction() {
+    public void RenamingTheQueueRegeneratesTheFunction()
+    {
         var result = Rerun(Application("orders"), Application("returns"));
 
         Assert.False(result.AllOutputsCached);
         Assert.Contains("Queue_returns", result.SecondRun["TestApplication.AzureFunctions.cs"]);
-        Assert.DoesNotContain("Queue_orders", result.SecondRun["TestApplication.AzureFunctions.cs"]);
+        Assert.DoesNotContain(
+            "Queue_orders",
+            result.SecondRun["TestApplication.AzureFunctions.cs"]
+        );
     }
 }

@@ -19,9 +19,11 @@ namespace Hardened.Requests.Abstract.Authorization;
 /// where it is machine-readable and where the design already decided to disclose it.
 /// </para>
 /// </remarks>
-public class AuthorizationException : StatusCodeException {
+public class AuthorizationException : StatusCodeException
+{
     public AuthorizationException(AuthorizationChallenge challenge, string? message = null)
-        : base(challenge.StatusCode, value: null, message: message ?? MessageFor(challenge)) {
+        : base(challenge.StatusCode, value: null, message: message ?? MessageFor(challenge))
+    {
         Challenge = challenge;
     }
 

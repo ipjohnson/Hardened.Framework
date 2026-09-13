@@ -2,28 +2,34 @@
 
 namespace Hardened.Shared.Testing.Impl;
 
-public class TestEnvironment : IHardenedEnvironment {
+public class TestEnvironment : IHardenedEnvironment
+{
     private readonly IDictionary<string, object> _values;
     private readonly IDictionary<string, object>? _customData;
 
-    public TestEnvironment(string name, 
-        IDictionary<string, object> values, 
+    public TestEnvironment(
+        string name,
+        IDictionary<string, object> values,
         IReadOnlyList<string>? arguments = null,
-        IDictionary<string, object>? customData = null) {
+        IDictionary<string, object>? customData = null
+    )
+    {
         _values = values;
         Name = name;
         _customData = customData;
         Arguments = arguments ?? Array.Empty<string>();
-        
     }
 
     public string Name { get; }
 
     public IReadOnlyList<string> Arguments { get; }
 
-    public T? Value<T>(string name, T? defaultValue = default) {
-        if (_values.TryGetValue(name, out var value)) {
-            if (value is T tValue) {
+    public T? Value<T>(string name, T? defaultValue = default)
+    {
+        if (_values.TryGetValue(name, out var value))
+        {
+            if (value is T tValue)
+            {
                 return tValue;
             }
 
@@ -33,11 +39,13 @@ public class TestEnvironment : IHardenedEnvironment {
         return defaultValue;
     }
 
-    public T? CustomData<T>(string name, T? defaultValue = default) {
-        if (_customData != null && _customData.TryGetValue(name, out var value)) {
+    public T? CustomData<T>(string name, T? defaultValue = default)
+    {
+        if (_customData != null && _customData.TryGetValue(name, out var value))
+        {
             return (T)value;
         }
-        
+
         return defaultValue;
     }
 }

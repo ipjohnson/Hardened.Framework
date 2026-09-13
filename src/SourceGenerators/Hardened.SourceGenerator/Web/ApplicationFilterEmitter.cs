@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using CSharpAuthor;
-using static CSharpAuthor.SyntaxHelpers;
 using Hardened.SourceGenerator.Shared;
+using static CSharpAuthor.SyntaxHelpers;
 
 namespace Hardened.SourceGenerator.Web;
 
@@ -26,14 +26,16 @@ namespace Hardened.SourceGenerator.Web;
 /// application that does not use it.
 /// </para>
 /// </remarks>
-internal static class ApplicationFilterEmitter {
-
+internal static class ApplicationFilterEmitter
+{
     public const string ContainerName = "ApplicationFilters";
 
     private const string DeclaredField = "_declared";
 
-    public static void Emit(ClassDefinition appClass, IReadOnlyList<AttributeModel> declarations) {
-        if (declarations.Count == 0) {
+    public static void Emit(ClassDefinition appClass, IReadOnlyList<AttributeModel> declarations)
+    {
+        if (declarations.Count == 0)
+        {
             return;
         }
 
@@ -42,9 +44,9 @@ internal static class ApplicationFilterEmitter {
         container.Modifiers |= ComponentModifier.Private | ComponentModifier.Sealed;
         container.AddBaseType(KnownTypes.Requests.IApplicationFilterDeclarations);
         container.Comment =
-            "The filters this application declares for every handler in this compilation. " +
-            "Merged into each handler's metadata as its chain is built; see " +
-            "IApplicationFilterDeclarations.";
+            "The filters this application declares for every handler in this compilation. "
+            + "Merged into each handler's metadata as its chain is built; see "
+            + "IApplicationFilterDeclarations.";
 
         var field = container.AddField(typeof(object).MakeArrayType(), DeclaredField);
 
@@ -57,8 +59,10 @@ internal static class ApplicationFilterEmitter {
                 TypeDefinitionEnum.InterfaceDefinition,
                 "System.Collections.Generic",
                 "IReadOnlyList",
-                new[] { TypeDefinition.Get(typeof(object)) }),
-            "Declared");
+                new[] { TypeDefinition.Get(typeof(object)) }
+            ),
+            "Declared"
+        );
 
         property.Modifiers |= ComponentModifier.Public;
         property.Set = null;
@@ -74,15 +78,19 @@ internal static class ApplicationFilterEmitter {
     /// from the same <see cref="AttributeModel"/>: the constructor arguments and the property
     /// initializer an attribute was written with, already qualified.
     /// </remarks>
-    private static IOutputComponent Declared(IReadOnlyList<AttributeModel> declarations) {
+    private static IOutputComponent Declared(IReadOnlyList<AttributeModel> declarations)
+    {
         var instances = new List<object>(declarations.Count);
 
-        foreach (var declaration in declarations) {
+        foreach (var declaration in declarations)
+        {
             var instance = New(
                 (ITypeDefinition)declaration.TypeDefinition,
-                new CodeOutputComponent(declaration.Arguments) { Indented = false });
+                new CodeOutputComponent(declaration.Arguments) { Indented = false }
+            );
 
-            if (!string.IsNullOrEmpty(declaration.PropertyAssignment)) {
+            if (!string.IsNullOrEmpty(declaration.PropertyAssignment))
+            {
                 instance.AddInitValue(declaration.PropertyAssignment);
             }
 

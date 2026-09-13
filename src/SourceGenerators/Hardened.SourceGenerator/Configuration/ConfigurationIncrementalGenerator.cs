@@ -1,72 +1,106 @@
-﻿using System.Collections.Immutable;
+﻿using System.Collections.Generic;
+using System.Collections.Immutable;
 using CSharpAuthor;
 using Hardened.SourceGenerator.Shared;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System.Collections.Generic;
 
 namespace Hardened.SourceGenerator.Configuration;
 
-public static class ConfigurationIncrementalGenerator {
+public static class ConfigurationIncrementalGenerator
+{
     public static void Setup(
         IncrementalGeneratorInitializationContext initializationContext,
-        IncrementalValuesProvider<EntryPointSelector.Model> entryPointProvider) {
-        var classSelector =
-            new SyntaxSelector<ClassDeclarationSyntax>(KnownTypes.Configuration.ConfigurationModelAttribute);
+        IncrementalValuesProvider<EntryPointSelector.Model> entryPointProvider
+    )
+    {
+        var classSelector = new SyntaxSelector<ClassDeclarationSyntax>(
+            KnownTypes.Configuration.ConfigurationModelAttribute
+        );
 
-        var configurationFileModels = initializationContext.SyntaxProvider.CreateSyntaxProvider(
-            classSelector.Where,
-            GenerateConfigurationFileModel
-        ).WithComparer(new ConfigurationFileModelComparer());
+        var configurationFileModels = initializationContext
+            .SyntaxProvider.CreateSyntaxProvider(
+                classSelector.Where,
+                GenerateConfigurationFileModel
+            )
+            .WithComparer(new ConfigurationFileModelComparer());
 
         initializationContext.RegisterSourceOutput(
             configurationFileModels,
-            SourceGeneratorWrapper.Wrap<ConfigurationFileModel>(ConfigurationPropertyImplementationGenerator.Generate));
+            SourceGeneratorWrapper.Wrap<ConfigurationFileModel>(
+                ConfigurationPropertyImplementationGenerator.Generate
+            )
+        );
 
         var modelCollection = configurationFileModels.Collect();
         initializationContext.RegisterSourceOutput(
             entryPointProvider.Combine(modelCollection),
-            SourceGeneratorWrapper.Wrap<
-                (EntryPointSelector.Model AppModel, ImmutableArray<ConfigurationFileModel> ConfigFiles)
-            >(ConfigurationEntryPointGenerator.Generate));
+            SourceGeneratorWrapper.Wrap<(
+                EntryPointSelector.Model AppModel,
+                ImmutableArray<ConfigurationFileModel> ConfigFiles
+            )>(ConfigurationEntryPointGenerator.Generate)
+        );
     }
 
-    private static ConfigurationFileModel GenerateConfigurationFileModel(GeneratorSyntaxContext context,
-        CancellationToken cancellationToken) {
+    private static ConfigurationFileModel GenerateConfigurationFileModel(
+        GeneratorSyntaxContext context,
+        CancellationToken cancellationToken
+    )
+    {
         var classDeclarationSyntax = (ClassDeclarationSyntax)context.Node;
 
-        var classTypeDef = TypeDefinition.Get(classDeclarationSyntax.GetNamespace(),
-            classDeclarationSyntax.Identifier.ToString());
+        var classTypeDef = TypeDefinition.Get(
+            classDeclarationSyntax.GetNamespace(),
+            classDeclarationSyntax.Identifier.ToString()
+        );
 
-        var interfaceDef = TypeDefinition.Get(classDeclarationSyntax.GetNamespace(),
-            "I" + classDeclarationSyntax.Identifier);
+        var interfaceDef = TypeDefinition.Get(
+            classDeclarationSyntax.GetNamespace(),
+            "I" + classDeclarationSyntax.Identifier
+        );
 
         var fieldModels = new List<ConfigurationFieldModel>();
 
-        foreach (var memberDeclarationSyntax in classDeclarationSyntax.Members) {
-            if (memberDeclarationSyntax is FieldDeclarationSyntax fieldDeclarationSyntax) {
-                if (fieldDeclarationSyntax.GetAttribute("HideConfigurationField") != null) {
+        foreach (var memberDeclarationSyntax in classDeclarationSyntax.Members)
+        {
+            if (memberDeclarationSyntax is FieldDeclarationSyntax fieldDeclarationSyntax)
+            {
+                if (fieldDeclarationSyntax.GetAttribute("HideConfigurationField") != null)
+                {
                     continue;
                 }
 
-                foreach (var variableDeclaratorSyntax in fieldDeclarationSyntax.Declaration.Variables) {
+                foreach (
+                    var variableDeclaratorSyntax in fieldDeclarationSyntax.Declaration.Variables
+                )
+                {
                     var name = variableDeclaratorSyntax.Identifier.ValueText;
 
-                    var fieldType = fieldDeclarationSyntax.Declaration.Type.GetTypeDefinition(context);
+                    var fieldType = fieldDeclarationSyntax.Declaration.Type.GetTypeDefinition(
+                        context
+                    );
 
-                    if (fieldType != null) {
+                    if (fieldType != null)
+                    {
                         var fromEnvVarString = "";
 
-                        var fromEnvVar =
-                            fieldDeclarationSyntax.GetAttribute("FromEnvironmentVariable");
+                        var fromEnvVar = fieldDeclarationSyntax.GetAttribute(
+                            "FromEnvironmentVariable"
+                        );
 
-                        if (fromEnvVar != null) {
+                        if (fromEnvVar != null)
+                        {
                             fromEnvVarString =
-                                fromEnvVar.ArgumentList?.Arguments.FirstOrDefault()?.ToString() ?? "";
+                                fromEnvVar.ArgumentList?.Arguments.FirstOrDefault()?.ToString()
+                                ?? "";
                         }
 
-                        var model =
-                            new ConfigurationFieldModel(fieldType, name, PropertyNameFrom(name), fromEnvVarString);
+                        var model = new ConfigurationFieldModel(
+                            fieldType,
+                            name,
+                            PropertyNameFrom(name),
+                            fromEnvVarString
+                        );
 
                         fieldModels.Add(model);
                     }
@@ -77,19 +111,26 @@ public static class ConfigurationIncrementalGenerator {
         return new ConfigurationFileModel(classTypeDef, interfaceDef, fieldModels);
     }
 
-    private static string PropertyNameFrom(string name) {
+    private static string PropertyNameFrom(string name)
+    {
         name = name.TrimStart('_');
 
-        if (name.Length > 1) {
+        if (name.Length > 1)
+        {
             return char.ToUpperInvariant(name[0]) + name.Substring(1);
         }
 
         return name.ToUpperInvariant();
     }
 
-    public class ConfigurationFileModel {
-        public ConfigurationFileModel(ITypeDefinition modelType, ITypeDefinition interfaceType,
-            IReadOnlyList<ConfigurationFieldModel> fieldModels) {
+    public class ConfigurationFileModel
+    {
+        public ConfigurationFileModel(
+            ITypeDefinition modelType,
+            ITypeDefinition interfaceType,
+            IReadOnlyList<ConfigurationFieldModel> fieldModels
+        )
+        {
             ModelType = modelType;
             FieldModels = fieldModels;
             InterfaceType = interfaceType;
@@ -101,24 +142,30 @@ public static class ConfigurationIncrementalGenerator {
 
         public IReadOnlyList<ConfigurationFieldModel> FieldModels { get; }
 
-        public override bool Equals(object obj) {
-            if (obj is not ConfigurationFileModel model) {
+        public override bool Equals(object obj)
+        {
+            if (obj is not ConfigurationFileModel model)
+            {
                 return false;
             }
 
-            if (!ModelType.Equals(model.ModelType)) {
+            if (!ModelType.Equals(model.ModelType))
+            {
                 return false;
             }
 
-            if (!InterfaceType.Equals(model.InterfaceType)) {
+            if (!InterfaceType.Equals(model.InterfaceType))
+            {
                 return false;
             }
 
             return FieldModels.DeepEquals(model.FieldModels);
         }
 
-        public override int GetHashCode() {
-            unchecked {
+        public override int GetHashCode()
+        {
+            unchecked
+            {
                 var hashCode = ModelType.GetHashCode();
                 hashCode = (hashCode * 397) ^ InterfaceType.GetHashCode();
                 hashCode = (hashCode * 397) ^ FieldModels.GetHashCodeAggregation();
@@ -127,9 +174,15 @@ public static class ConfigurationIncrementalGenerator {
         }
     }
 
-    public class ConfigurationFieldModel {
-        public ConfigurationFieldModel(ITypeDefinition fieldType, string name, string propertyName,
-            string fromEnvironmentVariable) {
+    public class ConfigurationFieldModel
+    {
+        public ConfigurationFieldModel(
+            ITypeDefinition fieldType,
+            string name,
+            string propertyName,
+            string fromEnvironmentVariable
+        )
+        {
             FieldType = fieldType;
             Name = name;
             PropertyName = propertyName;
@@ -144,19 +197,23 @@ public static class ConfigurationIncrementalGenerator {
 
         public string FromEnvironmentVariable { get; }
 
-        public override bool Equals(object obj) {
-            if (obj is not ConfigurationFieldModel configurationFieldModel) {
+        public override bool Equals(object obj)
+        {
+            if (obj is not ConfigurationFieldModel configurationFieldModel)
+            {
                 return false;
             }
 
-            return FieldType.Equals(configurationFieldModel.FieldType) &&
-                   Name.Equals(configurationFieldModel.Name) &&
-                   PropertyName.Equals(configurationFieldModel.PropertyName) &&
-                   FromEnvironmentVariable.Equals(configurationFieldModel.FromEnvironmentVariable);
+            return FieldType.Equals(configurationFieldModel.FieldType)
+                && Name.Equals(configurationFieldModel.Name)
+                && PropertyName.Equals(configurationFieldModel.PropertyName)
+                && FromEnvironmentVariable.Equals(configurationFieldModel.FromEnvironmentVariable);
         }
 
-        public override int GetHashCode() {
-            unchecked {
+        public override int GetHashCode()
+        {
+            unchecked
+            {
                 var hashCode = FieldType.GetHashCode();
 
                 hashCode = (hashCode * 397) ^ Name.GetHashCode();

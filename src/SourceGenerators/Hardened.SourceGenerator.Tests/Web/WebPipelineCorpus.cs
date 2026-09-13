@@ -9,8 +9,10 @@ namespace Hardened.SourceGenerator.Tests.Web;
 /// where a status reaches the handler, and an entry-point attribute changes the table itself. Two
 /// scenarios that would emit the same shapes are one scenario.
 /// </remarks>
-public static class WebPipelineCorpus {
-    public static readonly string[] Scenarios = [
+public static class WebPipelineCorpus
+{
+    public static readonly string[] Scenarios =
+    [
         "literal-get",
         "path-and-query",
         "body-post",
@@ -22,19 +24,21 @@ public static class WebPipelineCorpus {
         "form-fields",
         "execution-context",
         "streaming-response",
-        "raw-response"
+        "raw-response",
     ];
 
     public static string Source(string scenario) =>
-        Application(scenario switch {
-            "literal-get" => """
+        Application(
+            scenario switch
+            {
+                "literal-get" => """
                 public class HomeController {
                     [Get("/hello")]
                     public string Hello() => "hello";
                 }
                 """,
 
-            "path-and-query" => """
+                "path-and-query" => """
                 public class SearchController {
                     [Get("/search/{category}")]
                     public Task<string> Search(string category, [FromQueryString] int? limit) =>
@@ -42,7 +46,7 @@ public static class WebPipelineCorpus {
                 }
                 """,
 
-            "body-post" => """
+                "body-post" => """
                 public record Order(string Sku, int Quantity);
 
                 public class OrderController {
@@ -51,7 +55,7 @@ public static class WebPipelineCorpus {
                 }
                 """,
 
-            "constrained-token" => """
+                "constrained-token" => """
                 public class ItemController {
                     [Get("/items/{id:int}")]
                     public Task<string> Get(int id) => Task.FromResult(id.ToString());
@@ -61,7 +65,7 @@ public static class WebPipelineCorpus {
                 }
                 """,
 
-            "verb-set" => """
+                "verb-set" => """
                 public class TicketController {
                     [Get("/tickets/{id}")]
                     public Task<string> Get(string id) => Task.FromResult(id);
@@ -74,7 +78,7 @@ public static class WebPipelineCorpus {
                 }
                 """,
 
-            "declared-status" => """
+                "declared-status" => """
                 public class WidgetController {
                     [Post("/widgets", SuccessStatus = 201)]
                     public Task<string> Create() => Task.FromResult("made");
@@ -84,7 +88,7 @@ public static class WebPipelineCorpus {
                 }
                 """,
 
-            "injected-service" => """
+                "injected-service" => """
                 public interface IClock { string Now(); }
 
                 public class ClockController {
@@ -93,7 +97,7 @@ public static class WebPipelineCorpus {
                 }
                 """,
 
-            "cookie-and-header" => """
+                "cookie-and-header" => """
                 public class SessionController {
                     [Get("/session")]
                     public Task<string> Read(
@@ -103,7 +107,7 @@ public static class WebPipelineCorpus {
                 }
                 """,
 
-            "form-fields" => """
+                "form-fields" => """
                 public class SignUpController {
                     [Post("/sign-up")]
                     public Task<string> SignUp(
@@ -113,7 +117,7 @@ public static class WebPipelineCorpus {
                 }
                 """,
 
-            "execution-context" => """
+                "execution-context" => """
                 public class ContextController {
                     [Get("/whoami")]
                     public Task<string> WhoAmI(IExecutionContext context) =>
@@ -121,7 +125,7 @@ public static class WebPipelineCorpus {
                 }
                 """,
 
-            "streaming-response" => """
+                "streaming-response" => """
                 public class FeedController {
                     [Get("/feed")]
                     [ServerSentEvents]
@@ -132,7 +136,7 @@ public static class WebPipelineCorpus {
                 }
                 """,
 
-            "raw-response" => """
+                "raw-response" => """
                 public class BlobController {
                     [Get("/blob")]
                     [RawResponse("application/octet-stream")]
@@ -140,26 +144,32 @@ public static class WebPipelineCorpus {
                 }
                 """,
 
-            _ => throw new ArgumentOutOfRangeException(nameof(scenario), scenario, "Unknown scenario.")
-        });
+                _ => throw new ArgumentOutOfRangeException(
+                    nameof(scenario),
+                    scenario,
+                    "Unknown scenario."
+                ),
+            }
+        );
 
     /// <summary>
     /// The module declaration every scenario hangs off. Partial because the table is emitted into it.
     /// </summary>
-    private static string Application(string body) => $$"""
-        using System;
-        using System.Collections.Generic;
-        using System.Threading.Tasks;
-        using Hardened.Requests.Abstract.Attributes;
-        using Hardened.Requests.Abstract.Execution;
-        using Hardened.Shared.Runtime.Attributes;
-        using Hardened.Web.Runtime.Attributes;
+    private static string Application(string body) =>
+        $$"""
+            using System;
+            using System.Collections.Generic;
+            using System.Threading.Tasks;
+            using Hardened.Requests.Abstract.Attributes;
+            using Hardened.Requests.Abstract.Execution;
+            using Hardened.Shared.Runtime.Attributes;
+            using Hardened.Web.Runtime.Attributes;
 
-        namespace TestApp;
+            namespace TestApp;
 
-        [HardenedModule]
-        public partial class Application { }
+            [HardenedModule]
+            public partial class Application { }
 
-        {{body}}
-        """;
+            {{body}}
+            """;
 }

@@ -4,7 +4,8 @@ using Hardened.SourceGenerator.Shared;
 
 namespace Hardened.SourceGenerator.Models.Request;
 
-public class RequestHandlerModel {
+public class RequestHandlerModel
+{
     public RequestHandlerModel(
         RequestHandlerNameModel name,
         ITypeDefinition controllerType,
@@ -12,7 +13,9 @@ public class RequestHandlerModel {
         ITypeDefinition invokeHandlerType,
         IReadOnlyList<RequestParameterInformation> requestParameterInformationList,
         ResponseInformationModel responseInformation,
-        IReadOnlyList<AttributeModel> filters) {
+        IReadOnlyList<AttributeModel> filters
+    )
+    {
         Name = name;
         ControllerType = controllerType;
         HandlerMethod = handlerMethod;
@@ -43,14 +46,18 @@ public class RequestHandlerModel {
     public RequestHandlerModel WithFilters(
         IReadOnlyList<AttributeModel> filters,
         ResponseInformationModel? responseInformation = null,
-        IReadOnlyList<ResponseSchemaModel>? responseSchemas = null) =>
-        new(Name,
+        IReadOnlyList<ResponseSchemaModel>? responseSchemas = null
+    ) =>
+        new(
+            Name,
             ControllerType,
             HandlerMethod,
             InvokeHandlerType,
             RequestParameterInformationList,
             responseInformation ?? ResponseInformation,
-            filters) {
+            filters
+        )
+        {
             ParametersInterface = ParametersInterface,
             ParametersValidator = ParametersValidator,
             ResponseSchema = ResponseSchema,
@@ -76,7 +83,7 @@ public class RequestHandlerModel {
             MisplacedSchemeAttributes = MisplacedSchemeAttributes,
             AdditionalBodyParameters = AdditionalBodyParameters,
             HasGeneratedValidation = HasGeneratedValidation,
-            IsStatic = IsStatic
+            IsStatic = IsStatic,
         };
 
     public RequestHandlerNameModel Name { get; }
@@ -288,8 +295,7 @@ public class RequestHandlerModel {
     /// handler whose contract declared none, and always empty for code-first, which has no way to
     /// declare a scheme yet.
     /// </remarks>
-    public IReadOnlyList<string> SecurityRequirements { get; set; } =
-        System.Array.Empty<string>();
+    public IReadOnlyList<string> SecurityRequirements { get; set; } = System.Array.Empty<string>();
 
     /// <summary>
     /// The schemes this handler's attributes declare by using them, for
@@ -336,156 +342,213 @@ public class RequestHandlerModel {
     public IReadOnlyList<string> AdditionalBodyParameters { get; set; } =
         System.Array.Empty<string>();
 
-    public override bool Equals(object obj) {
-        if (obj is not RequestHandlerModel requestHandlerModel) {
+    public override bool Equals(object obj)
+    {
+        if (obj is not RequestHandlerModel requestHandlerModel)
+        {
             return false;
         }
 
-        if (!Name.Equals(requestHandlerModel.Name)) {
+        if (!Name.Equals(requestHandlerModel.Name))
+        {
             return false;
         }
 
-        if (!ControllerType.Equals(requestHandlerModel.ControllerType)) {
+        if (!ControllerType.Equals(requestHandlerModel.ControllerType))
+        {
             return false;
         }
 
-        if (!HandlerMethod.Equals(requestHandlerModel.HandlerMethod)) {
+        if (!HandlerMethod.Equals(requestHandlerModel.HandlerMethod))
+        {
             return false;
         }
 
-
-        if (!InvokeHandlerType.Equals(requestHandlerModel.InvokeHandlerType)) {
+        if (!InvokeHandlerType.Equals(requestHandlerModel.InvokeHandlerType))
+        {
             return false;
         }
 
-        if (!ResponseInformation.Equals(requestHandlerModel.ResponseInformation)) {
+        if (!ResponseInformation.Equals(requestHandlerModel.ResponseInformation))
+        {
             return false;
         }
 
-        if (!ResponseSchemas.SequenceEqual(requestHandlerModel.ResponseSchemas)) {
+        if (!ResponseSchemas.SequenceEqual(requestHandlerModel.ResponseSchemas))
+        {
             return false;
         }
 
-        if (Filters.Count != requestHandlerModel.Filters.Count) {
+        if (Filters.Count != requestHandlerModel.Filters.Count)
+        {
             return false;
         }
 
-        for (var i = 0; i < requestHandlerModel.Filters.Count; i++) {
+        for (var i = 0; i < requestHandlerModel.Filters.Count; i++)
+        {
             var x = Filters[i];
             var y = requestHandlerModel.Filters[i];
 
-            if (!x.Equals(y)) {
+            if (!x.Equals(y))
+            {
                 return false;
             }
         }
 
-        if (RequestParameterInformationList.Count != requestHandlerModel.RequestParameterInformationList.Count) {
+        if (
+            RequestParameterInformationList.Count
+            != requestHandlerModel.RequestParameterInformationList.Count
+        )
+        {
             return false;
         }
 
-        for (var i = 0; i < RequestParameterInformationList.Count; i++) {
+        for (var i = 0; i < RequestParameterInformationList.Count; i++)
+        {
             var x = RequestParameterInformationList[i];
             var y = requestHandlerModel.RequestParameterInformationList[i];
 
-            if (!x.Equals(y)) {
+            if (!x.Equals(y))
+            {
                 return false;
             }
         }
 
-        if (!Equals(ParametersInterface, requestHandlerModel.ParametersInterface)) {
+        if (!Equals(ParametersInterface, requestHandlerModel.ParametersInterface))
+        {
             return false;
         }
 
-        if (!Equals(ParametersValidator, requestHandlerModel.ParametersValidator)) {
+        if (!Equals(ParametersValidator, requestHandlerModel.ParametersValidator))
+        {
             return false;
         }
 
-        if (!string.Equals(Tag, requestHandlerModel.Tag, StringComparison.Ordinal)) {
+        if (!string.Equals(Tag, requestHandlerModel.Tag, StringComparison.Ordinal))
+        {
             return false;
         }
 
-        if (!string.Equals(OperationId, requestHandlerModel.OperationId, StringComparison.Ordinal)) {
+        if (!string.Equals(OperationId, requestHandlerModel.OperationId, StringComparison.Ordinal))
+        {
             return false;
         }
 
-        if (!string.Equals(
-                TagDescription, requestHandlerModel.TagDescription, StringComparison.Ordinal)) {
+        if (
+            !string.Equals(
+                TagDescription,
+                requestHandlerModel.TagDescription,
+                StringComparison.Ordinal
+            )
+        )
+        {
             return false;
         }
 
-        if (!string.Equals(Summary, requestHandlerModel.Summary, StringComparison.Ordinal)) {
+        if (!string.Equals(Summary, requestHandlerModel.Summary, StringComparison.Ordinal))
+        {
             return false;
         }
 
-        if (SecurityRequirements.Count != requestHandlerModel.SecurityRequirements.Count) {
+        if (SecurityRequirements.Count != requestHandlerModel.SecurityRequirements.Count)
+        {
             return false;
         }
 
-        for (var i = 0; i < SecurityRequirements.Count; i++) {
-            if (!string.Equals(
-                    SecurityRequirements[i], requestHandlerModel.SecurityRequirements[i],
-                    StringComparison.Ordinal)) {
+        for (var i = 0; i < SecurityRequirements.Count; i++)
+        {
+            if (
+                !string.Equals(
+                    SecurityRequirements[i],
+                    requestHandlerModel.SecurityRequirements[i],
+                    StringComparison.Ordinal
+                )
+            )
+            {
                 return false;
             }
         }
 
-        if (DeclaredSecuritySchemes.Count != requestHandlerModel.DeclaredSecuritySchemes.Count) {
+        if (DeclaredSecuritySchemes.Count != requestHandlerModel.DeclaredSecuritySchemes.Count)
+        {
             return false;
         }
 
-        for (var i = 0; i < DeclaredSecuritySchemes.Count; i++) {
-            if (!DeclaredSecuritySchemes[i].Equals(requestHandlerModel.DeclaredSecuritySchemes[i])) {
+        for (var i = 0; i < DeclaredSecuritySchemes.Count; i++)
+        {
+            if (!DeclaredSecuritySchemes[i].Equals(requestHandlerModel.DeclaredSecuritySchemes[i]))
+            {
                 return false;
             }
         }
 
-        if (ParameterEnums.Count != requestHandlerModel.ParameterEnums.Count) {
+        if (ParameterEnums.Count != requestHandlerModel.ParameterEnums.Count)
+        {
             return false;
         }
 
-        for (var i = 0; i < ParameterEnums.Count; i++) {
-            if (!ParameterEnums[i].Equals(requestHandlerModel.ParameterEnums[i])) {
+        for (var i = 0; i < ParameterEnums.Count; i++)
+        {
+            if (!ParameterEnums[i].Equals(requestHandlerModel.ParameterEnums[i]))
+            {
                 return false;
             }
         }
 
-        if (MisplacedSchemeAttributes.Count != requestHandlerModel.MisplacedSchemeAttributes.Count) {
+        if (MisplacedSchemeAttributes.Count != requestHandlerModel.MisplacedSchemeAttributes.Count)
+        {
             return false;
         }
 
-        if (!AdditionalBodyParameters.SequenceEqual(
-                requestHandlerModel.AdditionalBodyParameters, StringComparer.Ordinal)) {
+        if (
+            !AdditionalBodyParameters.SequenceEqual(
+                requestHandlerModel.AdditionalBodyParameters,
+                StringComparer.Ordinal
+            )
+        )
+        {
             return false;
         }
 
-        for (var i = 0; i < MisplacedSchemeAttributes.Count; i++) {
-            if (!string.Equals(
-                    MisplacedSchemeAttributes[i], requestHandlerModel.MisplacedSchemeAttributes[i],
-                    StringComparison.Ordinal)) {
+        for (var i = 0; i < MisplacedSchemeAttributes.Count; i++)
+        {
+            if (
+                !string.Equals(
+                    MisplacedSchemeAttributes[i],
+                    requestHandlerModel.MisplacedSchemeAttributes[i],
+                    StringComparison.Ordinal
+                )
+            )
+            {
                 return false;
             }
         }
 
-        if (!string.Equals(Description, requestHandlerModel.Description, StringComparison.Ordinal)) {
+        if (!string.Equals(Description, requestHandlerModel.Description, StringComparison.Ordinal))
+        {
             return false;
         }
 
-        if (IsDeprecated != requestHandlerModel.IsDeprecated) {
+        if (IsDeprecated != requestHandlerModel.IsDeprecated)
+        {
             return false;
         }
 
-        if (HasGeneratedValidation != requestHandlerModel.HasGeneratedValidation) {
+        if (HasGeneratedValidation != requestHandlerModel.HasGeneratedValidation)
+        {
             return false;
         }
 
-        if (IsStatic != requestHandlerModel.IsStatic) {
+        if (IsStatic != requestHandlerModel.IsStatic)
+        {
             return false;
         }
 
         return true;
     }
 
-    public override string ToString() {
+    public override string ToString()
+    {
         var stringBuilder = new StringBuilder();
 
         stringBuilder.Append(Name);
@@ -497,8 +560,10 @@ public class RequestHandlerModel {
         return stringBuilder.ToString();
     }
 
-    public override int GetHashCode() {
-        unchecked {
+    public override int GetHashCode()
+    {
+        unchecked
+        {
             var hashCode = Name.GetHashCode();
 
             hashCode = (hashCode * 397) ^ ControllerType.GetHashCode();

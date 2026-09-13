@@ -29,25 +29,31 @@ namespace Hardened.Web.Runtime.Health;
 /// register this in a Lambda module.
 /// </para>
 /// </remarks>
-public class HealthCheckProvider : IWebExecutionRequestHandlerProvider {
+public class HealthCheckProvider : IWebExecutionRequestHandlerProvider
+{
     private readonly HealthCheckConfiguration _config;
     private readonly IServiceProvider _rootProvider;
 
     private IExecutionRequestHandler? _live;
     private IExecutionRequestHandler? _ready;
 
-    public HealthCheckProvider(HealthCheckConfiguration config, IServiceProvider rootProvider) {
+    public HealthCheckProvider(HealthCheckConfiguration config, IServiceProvider rootProvider)
+    {
         _config = config;
         _rootProvider = rootProvider;
     }
 
-    public RequestHandlerInfo? GetExecutionRequestHandler(IExecutionContext context) {
+    public RequestHandlerInfo? GetExecutionRequestHandler(IExecutionContext context)
+    {
         var method = context.Request.Method;
 
         // HEAD as well as GET: a probe issuing HEAD is asking the same question, and the routing
         // table's usual HEAD-to-GET redirection does not apply to a provider serving its own chain.
-        if (!string.Equals(method, "GET", StringComparison.OrdinalIgnoreCase) &&
-            !string.Equals(method, "HEAD", StringComparison.OrdinalIgnoreCase)) {
+        if (
+            !string.Equals(method, "GET", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(method, "HEAD", StringComparison.OrdinalIgnoreCase)
+        )
+        {
             return null;
         }
 
@@ -55,22 +61,32 @@ public class HealthCheckProvider : IWebExecutionRequestHandlerProvider {
 
         // Built once, lazily, rather than per request - conventions are asked per handler
         // construction, which is the contract they are written against.
-        if (string.Equals(path, _config.LivePath, StringComparison.Ordinal)) {
+        if (string.Equals(path, _config.LivePath, StringComparison.Ordinal))
+        {
             return new RequestHandlerInfo(
                 _live ??= Handler.For(
-                    _rootProvider, _config, _config.LivePath,
+                    _rootProvider,
+                    _config,
+                    _config.LivePath,
                     nameof(HealthCheckController.Live),
-                    static (controller, context) => controller.Live(context)),
-                PathTokenCollection.Empty);
+                    static (controller, context) => controller.Live(context)
+                ),
+                PathTokenCollection.Empty
+            );
         }
 
-        if (string.Equals(path, _config.ReadyPath, StringComparison.Ordinal)) {
+        if (string.Equals(path, _config.ReadyPath, StringComparison.Ordinal))
+        {
             return new RequestHandlerInfo(
                 _ready ??= Handler.For(
-                    _rootProvider, _config, _config.ReadyPath,
+                    _rootProvider,
+                    _config,
+                    _config.ReadyPath,
                     nameof(HealthCheckController.Ready),
-                    static (controller, context) => controller.Ready(context)),
-                PathTokenCollection.Empty);
+                    static (controller, context) => controller.Ready(context)
+                ),
+                PathTokenCollection.Empty
+            );
         }
 
         return null;
@@ -79,8 +95,8 @@ public class HealthCheckProvider : IWebExecutionRequestHandlerProvider {
     /// <summary>
     /// A probe, run as an ordinary handler.
     /// </summary>
-    private sealed class Handler : BaseExecutionHandler<HealthCheckController> {
-
+    private sealed class Handler : BaseExecutionHandler<HealthCheckController>
+    {
         /// <summary>
         /// Empty, and load bearing. There is deliberately no <c>[AllowAnonymous]</c>: that is the one
         /// thing a convention cannot narrow, and without it a probe inherits the application's
@@ -88,20 +104,31 @@ public class HealthCheckProvider : IWebExecutionRequestHandlerProvider {
         /// </summary>
         private static readonly object[] Metadata = [];
 
-        private Handler(ExecutionHandlerSetup setup) : base(setup) { }
+        private Handler(ExecutionHandlerSetup setup)
+            : base(setup) { }
 
         public static Handler For(
             IServiceProvider serviceProvider,
             HealthCheckConfiguration config,
             string path,
             string methodName,
-            Func<HealthCheckController, IExecutionContext, Task> answer) =>
-            new(ExecutionHelper.AsyncStandardFilterEmptyParameters<HealthCheckController>(
-                serviceProvider,
-                new ExecutionRequestHandlerInfo(
-                    path, "GET", typeof(HealthCheckController), methodName, [], Metadata,
-                    config.Requirement),
-                (context, controller) => answer(controller, context),
-                ExecutionHelper.GetFilterInfo(Metadata)));
+            Func<HealthCheckController, IExecutionContext, Task> answer
+        ) =>
+            new(
+                ExecutionHelper.AsyncStandardFilterEmptyParameters<HealthCheckController>(
+                    serviceProvider,
+                    new ExecutionRequestHandlerInfo(
+                        path,
+                        "GET",
+                        typeof(HealthCheckController),
+                        methodName,
+                        [],
+                        Metadata,
+                        config.Requirement
+                    ),
+                    (context, controller) => answer(controller, context),
+                    ExecutionHelper.GetFilterInfo(Metadata)
+                )
+            );
     }
 }

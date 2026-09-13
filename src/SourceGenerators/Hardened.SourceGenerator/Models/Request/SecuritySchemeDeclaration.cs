@@ -8,9 +8,10 @@ namespace Hardened.SourceGenerator.Models.Request;
 /// Value-equal because it rides <c>RequestHandlerModel</c>'s equality, which is an incremental
 /// cache key - editing a scheme type's attribute must invalidate the document that repeats it.
 /// </remarks>
-public sealed class SecuritySchemeDeclaration : System.IEquatable<SecuritySchemeDeclaration> {
-
-    public SecuritySchemeDeclaration(string name, string json, bool carriesScopes) {
+public sealed class SecuritySchemeDeclaration : System.IEquatable<SecuritySchemeDeclaration>
+{
+    public SecuritySchemeDeclaration(string name, string json, bool carriesScopes)
+    {
         Name = name;
         Json = json;
         CarriesScopes = carriesScopes;
@@ -26,13 +27,17 @@ public sealed class SecuritySchemeDeclaration : System.IEquatable<SecurityScheme
     public bool CarriesScopes { get; }
 
     public bool Equals(SecuritySchemeDeclaration? other) =>
-        other is not null &&
-        Name == other.Name && Json == other.Json && CarriesScopes == other.CarriesScopes;
+        other is not null
+        && Name == other.Name
+        && Json == other.Json
+        && CarriesScopes == other.CarriesScopes;
 
     public override bool Equals(object? obj) => Equals(obj as SecuritySchemeDeclaration);
 
-    public override int GetHashCode() {
-        unchecked {
+    public override int GetHashCode()
+    {
+        unchecked
+        {
             return (Name.GetHashCode() * 397) ^ Json.GetHashCode();
         }
     }

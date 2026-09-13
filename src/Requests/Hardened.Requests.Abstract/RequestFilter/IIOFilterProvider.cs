@@ -3,14 +3,17 @@ using Hardened.Requests.Abstract.Serializer;
 
 namespace Hardened.Requests.Abstract.RequestFilter;
 
-public interface IIOFilterProvider {
+public interface IIOFilterProvider
+{
     IExecutionFilter ProvideFilter(
         IExecutionRequestHandlerInfo handlerInfo,
-        Func<IExecutionContext, Task<IExecutionRequestParameters>> deserializeRequest);
+        Func<IExecutionContext, Task<IExecutionRequestParameters>> deserializeRequest
+    );
 
     IExecutionFilter ProvideAsyncEnumerableFilter<TItem>(
         IExecutionRequestHandlerInfo handlerInfo,
-        Func<IExecutionContext, Task<IExecutionRequestParameters>> deserializeRequest);
+        Func<IExecutionContext, Task<IExecutionRequestParameters>> deserializeRequest
+    );
 
     /// <summary>
     /// The streamed filter, framed the way the handler asked for.
@@ -26,6 +29,6 @@ public interface IIOFilterProvider {
     IExecutionFilter ProvideAsyncEnumerableFilter<TItem>(
         IExecutionRequestHandlerInfo handlerInfo,
         Func<IExecutionContext, Task<IExecutionRequestParameters>> deserializeRequest,
-        IStreamFraming? framing) =>
-        ProvideAsyncEnumerableFilter<TItem>(handlerInfo, deserializeRequest);
+        IStreamFraming? framing
+    ) => ProvideAsyncEnumerableFilter<TItem>(handlerInfo, deserializeRequest);
 }

@@ -19,7 +19,8 @@ namespace Hardened.Gcp.CloudRun.Runtime.Execution;
 /// a variable and see it; three lookups per trigger request are nothing beside decoding its body.
 /// </para>
 /// </remarks>
-public sealed class CloudRunTransportInfo : ITransportInfo {
+public sealed class CloudRunTransportInfo : ITransportInfo
+{
     /// <summary>The service's name, from <c>K_SERVICE</c>.</summary>
     public const string ServiceKey = "faas.name";
 
@@ -47,11 +48,17 @@ public sealed class CloudRunTransportInfo : ITransportInfo {
             inner,
             Environment.GetEnvironmentVariable(ServiceVariable),
             Environment.GetEnvironmentVariable(RevisionVariable),
-            Environment.GetEnvironmentVariable(ConfigurationVariable)) {
-    }
+            Environment.GetEnvironmentVariable(ConfigurationVariable)
+        ) { }
 
     /// <summary>Over <paramref name="inner"/>, with the three facts stated outright.</summary>
-    public CloudRunTransportInfo(ITransportInfo inner, string? service, string? revision, string? configuration) {
+    public CloudRunTransportInfo(
+        ITransportInfo inner,
+        string? service,
+        string? revision,
+        string? configuration
+    )
+    {
         _inner = inner;
         _service = Value(service);
         _revision = Value(revision);
@@ -62,13 +69,15 @@ public sealed class CloudRunTransportInfo : ITransportInfo {
     public IReadOnlyList<string> Keys => _keys ??= _inner.Keys.Concat(OwnKeys).Distinct().ToArray();
 
     public string? Get(string key) =>
-        key switch {
+        key switch
+        {
             ServiceKey => _service,
             RevisionKey => _revision,
             ConfigurationKey => _configuration,
-            _ => _inner.Get(key)
+            _ => _inner.Get(key),
         };
 
     /// <summary>Null for an unset or empty variable, which is what "not on Cloud Run" looks like.</summary>
-    private static string? Value(string? variable) => string.IsNullOrEmpty(variable) ? null : variable;
+    private static string? Value(string? variable) =>
+        string.IsNullOrEmpty(variable) ? null : variable;
 }

@@ -7,9 +7,10 @@ namespace Hardened.Requests.Serializers.MessagePack.Tests;
 /// <summary>
 /// A model out and the same model back, through the serializer pair the package registers.
 /// </summary>
-public class RoundTripTests {
-
-    private static async Task<byte[]> Write(object value) {
+public class RoundTripTests
+{
+    private static async Task<byte[]> Write(object value)
+    {
         var context = Pipeline.Context();
 
         context.Response.ResponseValue = value;
@@ -20,10 +21,12 @@ public class RoundTripTests {
     }
 
     [Fact]
-    public async Task AModelGoesOutAsMessagePackAndComesBack() {
+    public async Task AModelGoesOutAsMessagePackAndComesBack()
+    {
         var bytes = await Write(new Pipeline.Payload("first", 2));
 
-        var read = await Pipeline.Deserializer(Pipeline.Pool())
+        var read = await Pipeline
+            .Deserializer(Pipeline.Pool())
             .DeserializeRequestBody<Pipeline.Payload>(Pipeline.Context(bytes));
 
         Assert.Equal(new Pipeline.Payload("first", 2), read);
@@ -35,14 +38,18 @@ public class RoundTripTests {
     /// through itself.
     /// </summary>
     [Fact]
-    public async Task TheBytesAreMessagePack() {
+    public async Task TheBytesAreMessagePack()
+    {
         var bytes = await Write(new Pipeline.Payload("first", 2));
 
         Assert.Equal(
             MessagePackSerializer.Serialize(
-                new Pipeline.Payload("first", 2), Pipeline.Options().Options,
-                TestContext.Current.CancellationToken),
-            bytes);
+                new Pipeline.Payload("first", 2),
+                Pipeline.Options().Options,
+                TestContext.Current.CancellationToken
+            ),
+            bytes
+        );
     }
 
     /// <summary>
@@ -50,13 +57,16 @@ public class RoundTripTests {
     /// <c>[MessagePackObject]</c> takes.
     /// </summary>
     [Fact]
-    public async Task AStringKeyedModelRoundTrips() {
+    public async Task AStringKeyedModelRoundTrips()
+    {
         var bytes = await Write(new Pipeline.Named("first", 2));
 
         Assert.Equal(
             new Pipeline.Named("first", 2),
-            await Pipeline.Deserializer(Pipeline.Pool())
-                .DeserializeRequestBody<Pipeline.Named>(Pipeline.Context(bytes)));
+            await Pipeline
+                .Deserializer(Pipeline.Pool())
+                .DeserializeRequestBody<Pipeline.Named>(Pipeline.Context(bytes))
+        );
     }
 
     /// <summary>
@@ -65,16 +75,15 @@ public class RoundTripTests {
     /// why the chain carries it.
     /// </summary>
     [Fact]
-    public async Task AListOfModelsRoundTrips() {
-        var bytes = await Write(
-            new List<Pipeline.Payload> { new("first", 1), new("second", 2) });
+    public async Task AListOfModelsRoundTrips()
+    {
+        var bytes = await Write(new List<Pipeline.Payload> { new("first", 1), new("second", 2) });
 
-        var read = await Pipeline.Deserializer(Pipeline.Pool())
+        var read = await Pipeline
+            .Deserializer(Pipeline.Pool())
             .DeserializeRequestBody<List<Pipeline.Payload>>(Pipeline.Context(bytes));
 
-        Assert.Equal(
-            [new Pipeline.Payload("first", 1), new Pipeline.Payload("second", 2)],
-            read);
+        Assert.Equal([new Pipeline.Payload("first", 1), new Pipeline.Payload("second", 2)], read);
     }
 
     /// <summary>
@@ -83,18 +92,23 @@ public class RoundTripTests {
     /// same trap <c>JsonTypeInfoLookup.For(options, value)</c> exists to avoid on the JSON side.
     /// </summary>
     [Fact]
-    public async Task TheRuntimeTypeDecidesTheFormatter() {
+    public async Task TheRuntimeTypeDecidesTheFormatter()
+    {
         object boxed = new Pipeline.Payload("first", 2);
 
         Assert.Equal(
             MessagePackSerializer.Serialize(
-                new Pipeline.Payload("first", 2), Pipeline.Options().Options,
-                TestContext.Current.CancellationToken),
-            await Write(boxed));
+                new Pipeline.Payload("first", 2),
+                Pipeline.Options().Options,
+                TestContext.Current.CancellationToken
+            ),
+            await Write(boxed)
+        );
     }
 
     [Fact]
-    public async Task ANullResponseWritesNothing() {
+    public async Task ANullResponseWritesNothing()
+    {
         var context = Pipeline.Context();
 
         context.Response.ResponseValue = null;

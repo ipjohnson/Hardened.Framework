@@ -27,7 +27,8 @@ namespace Hardened.Requests.Abstract.Authorization;
 /// execution context and can resolve anything from it.
 /// </para>
 /// </remarks>
-public abstract class AuthorizationPolicy : IAuthorizationPolicy {
+public abstract class AuthorizationPolicy : IAuthorizationPolicy
+{
     private Requirement? _requirement;
 
     public Requirement Requirement => _requirement ??= Define();
@@ -51,6 +52,6 @@ public abstract class AuthorizationPolicy : IAuthorizationPolicy {
     /// <inheritdoc cref="Requirement.Predicate"/>
     protected static Requirement Predicate(
         Func<ICallerPrincipal, IExecutionContext, bool> predicate,
-        string? description = null) =>
-        Combinator.Predicate(predicate, description);
+        string? description = null
+    ) => Combinator.Predicate(predicate, description);
 }

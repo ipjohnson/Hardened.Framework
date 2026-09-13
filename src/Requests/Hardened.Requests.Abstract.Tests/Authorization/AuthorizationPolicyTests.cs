@@ -14,40 +14,46 @@ namespace Hardened.Requests.Abstract.Tests.Authorization;
 /// application is more verbose than the guide says.
 /// </para>
 /// </summary>
-public class AuthorizationPolicyTests {
-
+public class AuthorizationPolicyTests
+{
     private static readonly IExecutionContext Context = Substitute.For<IExecutionContext>();
 
     /// <summary>The plan's example, verbatim.</summary>
-    private class CanManagePets : AuthorizationPolicy {
+    private class CanManagePets : AuthorizationPolicy
+    {
         protected override Requirement Define() =>
             (Grant("pets:read") & Grant("pets:write")) | Grant("admin:*");
     }
 
-    private class CountingPolicy : AuthorizationPolicy {
+    private class CountingPolicy : AuthorizationPolicy
+    {
         public int DefineCalls { get; private set; }
 
-        protected override Requirement Define() {
+        protected override Requirement Define()
+        {
             DefineCalls++;
             return Grant("counted");
         }
     }
 
-    private class OwnsTheResource : AuthorizationPolicy {
+    private class OwnsTheResource : AuthorizationPolicy
+    {
         protected override Requirement Define() =>
-            Grant("pets:read") & Predicate((principal, _) => principal.Subject == "owner", "is owner");
+            Grant("pets:read")
+            & Predicate((principal, _) => principal.Subject == "owner", "is owner");
     }
 
-    private class UsesNamedCombinators : AuthorizationPolicy {
-        protected override Requirement Define() =>
-            AnyOf(AllOf(Grant("a"), Grant("b")), Grant("c"));
+    private class UsesNamedCombinators : AuthorizationPolicy
+    {
+        protected override Requirement Define() => AnyOf(AllOf(Grant("a"), Grant("b")), Grant("c"));
     }
 
     private static ICallerPrincipal Holding(string? subject, params string[] grants) =>
         new CallerPrincipal("bearer", grants, subject);
 
     [Fact]
-    public void Define_ProducesTheRequirementTheAttributeWillUse() {
+    public void Define_ProducesTheRequirementTheAttributeWillUse()
+    {
         var requirement = new CanManagePets().Requirement;
 
         Assert.True(requirement.IsSatisfiedBy(Holding(null, "pets:read", "pets:write"), Context));
@@ -60,7 +66,8 @@ public class AuthorizationPolicyTests {
     /// every request, so rebuilding the tree per read would put allocation on the request path.
     /// </summary>
     [Fact]
-    public void Requirement_IsBuiltOnceAndReused() {
+    public void Requirement_IsBuiltOnceAndReused()
+    {
         var policy = new CountingPolicy();
 
         var first = policy.Requirement;
@@ -75,12 +82,14 @@ public class AuthorizationPolicyTests {
     /// costs nothing.
     /// </summary>
     [Fact]
-    public void Define_IsNotCalledUntilTheRequirementIsRead() {
+    public void Define_IsNotCalledUntilTheRequirementIsRead()
+    {
         Assert.Equal(0, new CountingPolicy().DefineCalls);
     }
 
     [Fact]
-    public void Policy_IsAnIAuthorizationPolicy() {
+    public void Policy_IsAnIAuthorizationPolicy()
+    {
         IAuthorizationPolicy policy = new CanManagePets();
 
         Assert.NotNull(policy.Requirement);
@@ -91,7 +100,8 @@ public class AuthorizationPolicyTests {
     /// alternative to constructor-injecting dependencies into a type the attribute has to build.
     /// </summary>
     [Fact]
-    public void Predicate_IsAvailableInsideAPolicy() {
+    public void Predicate_IsAvailableInsideAPolicy()
+    {
         var requirement = new OwnsTheResource().Requirement;
 
         Assert.True(requirement.IsSatisfiedBy(Holding("owner", "pets:read"), Context));
@@ -100,7 +110,8 @@ public class AuthorizationPolicyTests {
     }
 
     [Fact]
-    public void NamedCombinators_AreAvailableInsideAPolicy() {
+    public void NamedCombinators_AreAvailableInsideAPolicy()
+    {
         var requirement = new UsesNamedCombinators().Requirement;
 
         Assert.True(requirement.IsSatisfiedBy(Holding(null, "a", "b"), Context));

@@ -1,42 +1,50 @@
-using Hardened.Idl.Emitters;
 using Hardened.Generation.Models;
+using Hardened.Idl.Emitters;
 using Xunit;
 
 namespace Hardened.OpenApi.BuildTask.Tests;
 
-public class ServiceInterfaceEmitterTests {
+public class ServiceInterfaceEmitterTests
+{
     [Fact]
-    public void Emit_GeneratesInterfaceWithMethods() {
-        var service = new ServiceModel {
+    public void Emit_GeneratesInterfaceWithMethods()
+    {
+        var service = new ServiceModel
+        {
             Tag = "Pet",
-            Operations = new List<OperationModel> {
-                new() {
+            Operations = new List<OperationModel>
+            {
+                new()
+                {
                     OperationId = "listPets",
                     Path = "/pets",
                     HttpMethod = "GET",
                     Tag = "Pet",
                     SuccessStatusCode = 200,
                     ResponseRef = "#/components/schemas/PetList",
-                    Parameters = new List<ParameterModel> {
-                        new() {
+                    Parameters = new List<ParameterModel>
+                    {
+                        new()
+                        {
                             Name = "limit",
                             In = "query",
                             IsRequired = false,
                             Type = "integer",
-                            Format = "int32"
-                        }
-                    }
+                            Format = "int32",
+                        },
+                    },
                 },
-                new() {
+                new()
+                {
                     OperationId = "createPet",
                     Path = "/pets",
                     HttpMethod = "POST",
                     Tag = "Pet",
                     SuccessStatusCode = 201,
                     RequestBodyRef = "#/components/schemas/CreatePetRequest",
-                    ResponseRef = "#/components/schemas/Pet"
-                }
-            }
+                    ResponseRef = "#/components/schemas/Pet",
+                },
+            },
         };
 
         var result = EmitterHarness.ServiceInterface(service);
@@ -48,21 +56,32 @@ public class ServiceInterfaceEmitterTests {
     }
 
     [Fact]
-    public void Emit_VoidReturn_GeneratesTask() {
-        var service = new ServiceModel {
+    public void Emit_VoidReturn_GeneratesTask()
+    {
+        var service = new ServiceModel
+        {
             Tag = "Pet",
-            Operations = new List<OperationModel> {
-                new() {
+            Operations = new List<OperationModel>
+            {
+                new()
+                {
                     OperationId = "deletePet",
                     Path = "/pets/{petId}",
                     HttpMethod = "DELETE",
                     Tag = "Pet",
                     SuccessStatusCode = 204,
-                    Parameters = new List<ParameterModel> {
-                        new() { Name = "petId", In = "path", IsRequired = true, Type = "string" }
-                    }
-                }
-            }
+                    Parameters = new List<ParameterModel>
+                    {
+                        new()
+                        {
+                            Name = "petId",
+                            In = "path",
+                            IsRequired = true,
+                            Type = "string",
+                        },
+                    },
+                },
+            },
         };
 
         var result = EmitterHarness.ServiceInterface(service);
@@ -71,11 +90,15 @@ public class ServiceInterfaceEmitterTests {
     }
 
     [Fact]
-    public void Emit_ArrayReturnType_GeneratesTaskOfList() {
-        var service = new ServiceModel {
+    public void Emit_ArrayReturnType_GeneratesTaskOfList()
+    {
+        var service = new ServiceModel
+        {
             Tag = "Pet",
-            Operations = new List<OperationModel> {
-                new() {
+            Operations = new List<OperationModel>
+            {
+                new()
+                {
                     OperationId = "listPets",
                     Path = "/pets",
                     HttpMethod = "GET",
@@ -83,17 +106,19 @@ public class ServiceInterfaceEmitterTests {
                     SuccessStatusCode = 200,
                     ResponseIsArray = true,
                     ResponseArrayItemsRef = "#/components/schemas/Pet",
-                    Parameters = new List<ParameterModel> {
-                        new() {
+                    Parameters = new List<ParameterModel>
+                    {
+                        new()
+                        {
                             Name = "limit",
                             In = "query",
                             IsRequired = false,
                             Type = "integer",
-                            Format = "int32"
-                        }
-                    }
-                }
-            }
+                            Format = "int32",
+                        },
+                    },
+                },
+            },
         };
 
         var result = EmitterHarness.ServiceInterface(service);
@@ -112,23 +137,40 @@ public class ServiceInterfaceEmitterTests {
     /// stops implementing its own interface.
     /// </remarks>
     [Fact]
-    public void Emit_HeaderParameters_AppearInSignature() {
-        var service = new ServiceModel {
+    public void Emit_HeaderParameters_AppearInSignature()
+    {
+        var service = new ServiceModel
+        {
             Tag = "Auth",
-            Operations = new List<OperationModel> {
-                new() {
+            Operations = new List<OperationModel>
+            {
+                new()
+                {
                     OperationId = "getProfile",
                     Path = "/profile",
                     HttpMethod = "GET",
                     Tag = "Auth",
                     SuccessStatusCode = 200,
                     ResponseRef = "#/components/schemas/Profile",
-                    Parameters = new List<ParameterModel> {
-                        new() { Name = "Authorization", In = "header", IsRequired = true, Type = "string" },
-                        new() { Name = "userId", In = "path", IsRequired = true, Type = "string" }
-                    }
-                }
-            }
+                    Parameters = new List<ParameterModel>
+                    {
+                        new()
+                        {
+                            Name = "Authorization",
+                            In = "header",
+                            IsRequired = true,
+                            Type = "string",
+                        },
+                        new()
+                        {
+                            Name = "userId",
+                            In = "path",
+                            IsRequired = true,
+                            Type = "string",
+                        },
+                    },
+                },
+            },
         };
 
         var result = EmitterHarness.ServiceInterface(service);
@@ -142,23 +184,40 @@ public class ServiceInterfaceEmitterTests {
     /// same set.
     /// </summary>
     [Fact]
-    public void Emit_CookieParameters_AppearInSignature() {
-        var service = new ServiceModel {
+    public void Emit_CookieParameters_AppearInSignature()
+    {
+        var service = new ServiceModel
+        {
             Tag = "Auth",
-            Operations = new List<OperationModel> {
-                new() {
+            Operations = new List<OperationModel>
+            {
+                new()
+                {
                     OperationId = "getProfile",
                     Path = "/profile",
                     HttpMethod = "GET",
                     Tag = "Auth",
                     SuccessStatusCode = 200,
                     ResponseRef = "#/components/schemas/Profile",
-                    Parameters = new List<ParameterModel> {
-                        new() { Name = "session", In = "cookie", IsRequired = true, Type = "string" },
-                        new() { Name = "userId", In = "path", IsRequired = true, Type = "string" }
-                    }
-                }
-            }
+                    Parameters = new List<ParameterModel>
+                    {
+                        new()
+                        {
+                            Name = "session",
+                            In = "cookie",
+                            IsRequired = true,
+                            Type = "string",
+                        },
+                        new()
+                        {
+                            Name = "userId",
+                            In = "path",
+                            IsRequired = true,
+                            Type = "string",
+                        },
+                    },
+                },
+            },
         };
 
         var result = EmitterHarness.ServiceInterface(service);
@@ -167,20 +226,24 @@ public class ServiceInterfaceEmitterTests {
     }
 
     [Fact]
-    public void Emit_SummaryXmlComments_GeneratedForMethods() {
-        var service = new ServiceModel {
+    public void Emit_SummaryXmlComments_GeneratedForMethods()
+    {
+        var service = new ServiceModel
+        {
             Tag = "Pet",
-            Operations = new List<OperationModel> {
-                new() {
+            Operations = new List<OperationModel>
+            {
+                new()
+                {
                     OperationId = "listPets",
                     Path = "/pets",
                     HttpMethod = "GET",
                     Tag = "Pet",
                     SuccessStatusCode = 200,
                     ResponseIsArray = true,
-                    ResponseArrayItemsRef = "#/components/schemas/Pet"
-                }
-            }
+                    ResponseArrayItemsRef = "#/components/schemas/Pet",
+                },
+            },
         };
 
         var result = EmitterHarness.ServiceInterface(service);

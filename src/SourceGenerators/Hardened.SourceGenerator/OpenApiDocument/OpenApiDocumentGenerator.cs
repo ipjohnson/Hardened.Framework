@@ -32,14 +32,19 @@ namespace Hardened.SourceGenerator.OpenApiDocument;
 /// specification-first generator was restructured to achieve.
 /// </para>
 /// </remarks>
-public static class OpenApiDocumentGenerator {
-
+public static class OpenApiDocumentGenerator
+{
     /// <summary>
     /// The document for one entry point.
     /// </summary>
     public static string Write(
-        EntryPointSelector.Model appModel, IReadOnlyList<RequestHandlerModel> handlers, string basePath,
-        OpenApiVersion version = OpenApiVersionFacts.Default, DocumentIdentity? identity = null) {
+        EntryPointSelector.Model appModel,
+        IReadOnlyList<RequestHandlerModel> handlers,
+        string basePath,
+        OpenApiVersion version = OpenApiVersionFacts.Default,
+        DocumentIdentity? identity = null
+    )
+    {
         var builder = new StringBuilder();
 
         // Before anything reads a handler, because the entry point's rung says something about
@@ -63,7 +68,8 @@ public static class OpenApiDocumentGenerator {
         var infoVersion = identity?.Version ?? declaredVersion ?? "1.0.0";
         var description = identity?.Description ?? declaredDescription;
 
-        builder.Append("{\"openapi\":\"")
+        builder
+            .Append("{\"openapi\":\"")
             .Append(OpenApiVersionFacts.VersionString(version))
             .Append("\",\"info\":{\"title\":\"")
             .Append(JsonSchemaWriter.Escape(title))
@@ -89,7 +95,8 @@ public static class OpenApiDocumentGenerator {
         // exactly as it does when the same enum sits in a body schema.
         var enums = new Dictionary<string, EnumVocabulary>(System.StringComparer.Ordinal);
 
-        foreach (var vocabulary in EnumVocabularies.Collect(handlers)) {
+        foreach (var vocabulary in EnumVocabularies.Collect(handlers))
+        {
             enums[vocabulary.QualifiedName] = vocabulary;
         }
 
@@ -97,7 +104,8 @@ public static class OpenApiDocumentGenerator {
         // parameter's schema refers to the component by name, and a parameter-only enum has no
         // body schema to carry it in. A body schema that reaches the same enum writes the same
         // component again, byte for byte.
-        foreach (var vocabulary in enums.Values) {
+        foreach (var vocabulary in enums.Values)
+        {
             components[vocabulary.Name] = EnumComponent(vocabulary);
         }
 
@@ -110,13 +118,17 @@ public static class OpenApiDocumentGenerator {
         // every parser keeps the last - so a GET declared beside a constrained DELETE vanished from
         // the document while continuing to serve.
         var byPath = handlers
-            .GroupBy(handler => RouteTemplate.NamesOnly(RoutePath.Combine(basePath, handler.Name.Path)))
+            .GroupBy(handler =>
+                RouteTemplate.NamesOnly(RoutePath.Combine(basePath, handler.Name.Path))
+            )
             .OrderBy(group => group.Key, System.StringComparer.Ordinal);
 
         var firstPath = true;
 
-        foreach (var group in byPath) {
-            if (!firstPath) {
+        foreach (var group in byPath)
+        {
+            if (!firstPath)
+            {
                 builder.Append(',');
             }
 
@@ -124,8 +136,12 @@ public static class OpenApiDocumentGenerator {
 
             var firstOperation = true;
 
-            foreach (var handler in group.OrderBy(h => h.Name.Method, System.StringComparer.Ordinal)) {
-                if (!firstOperation) {
+            foreach (
+                var handler in group.OrderBy(h => h.Name.Method, System.StringComparer.Ordinal)
+            )
+            {
+                if (!firstOperation)
+                {
                     builder.Append(',');
                 }
 
@@ -146,11 +162,16 @@ public static class OpenApiDocumentGenerator {
         // declaration. Identity wins a name collision, because a contract's spelling is the one
         // reviewed.
         var securitySchemes = new List<(string Name, string Json)>(
-            identity?.SecuritySchemes ?? (IReadOnlyList<(string, string)>)System.Array.Empty<(string, string)>());
+            identity?.SecuritySchemes
+                ?? (IReadOnlyList<(string, string)>)System.Array.Empty<(string, string)>()
+        );
 
-        foreach (var handler in handlers) {
-            foreach (var declared in handler.DeclaredSecuritySchemes) {
-                if (!securitySchemes.Exists(existing => existing.Name == declared.Name)) {
+        foreach (var handler in handlers)
+        {
+            foreach (var declared in handler.DeclaredSecuritySchemes)
+            {
+                if (!securitySchemes.Exists(existing => existing.Name == declared.Name))
+                {
                     securitySchemes.Add((declared.Name, declared.Json));
                 }
             }
@@ -158,20 +179,27 @@ public static class OpenApiDocumentGenerator {
 
         securitySchemes.Sort((left, right) => string.CompareOrdinal(left.Name, right.Name));
 
-        if (components.Count > 0 || securitySchemes.Count > 0) {
+        if (components.Count > 0 || securitySchemes.Count > 0)
+        {
             builder.Append(",\"components\":{");
 
-            if (components.Count > 0) {
+            if (components.Count > 0)
+            {
                 builder.Append("\"schemas\":{");
 
                 var firstComponent = true;
 
-                foreach (var component in components) {
-                    if (!firstComponent) {
+                foreach (var component in components)
+                {
+                    if (!firstComponent)
+                    {
                         builder.Append(',');
                     }
 
-                    builder.Append('"').Append(JsonSchemaWriter.Escape(component.Key)).Append("\":")
+                    builder
+                        .Append('"')
+                        .Append(JsonSchemaWriter.Escape(component.Key))
+                        .Append("\":")
                         .Append(component.Value);
 
                     firstComponent = false;
@@ -180,20 +208,27 @@ public static class OpenApiDocumentGenerator {
                 builder.Append('}');
             }
 
-            if (securitySchemes.Count > 0) {
-                if (components.Count > 0) {
+            if (securitySchemes.Count > 0)
+            {
+                if (components.Count > 0)
+                {
                     builder.Append(',');
                 }
 
                 builder.Append("\"securitySchemes\":{");
 
-                for (var i = 0; i < securitySchemes.Count; i++) {
-                    if (i > 0) {
+                for (var i = 0; i < securitySchemes.Count; i++)
+                {
+                    if (i > 0)
+                    {
                         builder.Append(',');
                     }
 
-                    builder.Append('"').Append(JsonSchemaWriter.Escape(securitySchemes[i].Name))
-                        .Append("\":").Append(securitySchemes[i].Json);
+                    builder
+                        .Append('"')
+                        .Append(JsonSchemaWriter.Escape(securitySchemes[i].Name))
+                        .Append("\":")
+                        .Append(securitySchemes[i].Json);
                 }
 
                 builder.Append('}');
@@ -223,17 +258,25 @@ public static class OpenApiDocumentGenerator {
     /// </para>
     /// </remarks>
     private static IReadOnlyList<RequestHandlerModel> WithEntryPointRung(
-        EntryPointSelector.Model appModel, IReadOnlyList<RequestHandlerModel> handlers) {
-        if (appModel.FilterFacts is not DeclaredOperationFacts facts || facts.IsEmpty) {
+        EntryPointSelector.Model appModel,
+        IReadOnlyList<RequestHandlerModel> handlers
+    )
+    {
+        if (appModel.FilterFacts is not DeclaredOperationFacts facts || facts.IsEmpty)
+        {
             return handlers;
         }
 
         var merged = new List<RequestHandlerModel>(handlers.Count);
 
-        foreach (var handler in handlers) {
-            merged.Add(Merged(
-                handler,
-                facts.For(handler.Name.Method, handler.ResponseInformation.IsAsyncEnumerable)));
+        foreach (var handler in handlers)
+        {
+            merged.Add(
+                Merged(
+                    handler,
+                    facts.For(handler.Name.Method, handler.ResponseInformation.IsAsyncEnumerable)
+                )
+            );
         }
 
         return merged;
@@ -255,29 +298,48 @@ public static class OpenApiDocumentGenerator {
     /// </para>
     /// </remarks>
     private static IReadOnlyList<RequestHandlerModel> WithJsonErrorBodies(
-        EntryPointSelector.Model appModel, IReadOnlyList<RequestHandlerModel> handlers) {
-        if (!DeclaresJsonErrorBodies(appModel)) {
+        EntryPointSelector.Model appModel,
+        IReadOnlyList<RequestHandlerModel> handlers
+    )
+    {
+        if (!DeclaresJsonErrorBodies(appModel))
+        {
             return handlers;
         }
 
         var narrowed = new List<RequestHandlerModel>(handlers.Count);
 
-        foreach (var handler in handlers) {
+        foreach (var handler in handlers)
+        {
             // A copy of both, because a handler model is shared with the rest of the pipeline and
             // its response information is a record whose members are settable - mutating either in
             // place would change what every other reader of it sees.
-            narrowed.Add(handler.WithFilters(
-                handler.Filters,
-                handler.ResponseInformation with { ErrorContentTypes = Json }));
+            narrowed.Add(
+                handler.WithFilters(
+                    handler.Filters,
+                    handler.ResponseInformation with
+                    {
+                        ErrorContentTypes = Json,
+                    }
+                )
+            );
         }
 
         return narrowed;
     }
 
     /// <summary>Whether the entry point carries <c>[JsonErrorBodies]</c>.</summary>
-    private static bool DeclaresJsonErrorBodies(EntryPointSelector.Model appModel) {
-        foreach (var attribute in appModel.AttributeModels) {
-            if (attribute.TypeDefinition.Name.StartsWith("JsonErrorBodies", StringComparison.Ordinal)) {
+    private static bool DeclaresJsonErrorBodies(EntryPointSelector.Model appModel)
+    {
+        foreach (var attribute in appModel.AttributeModels)
+        {
+            if (
+                attribute.TypeDefinition.Name.StartsWith(
+                    "JsonErrorBodies",
+                    StringComparison.Ordinal
+                )
+            )
+            {
                 return true;
             }
         }
@@ -286,9 +348,16 @@ public static class OpenApiDocumentGenerator {
     }
 
     private static RequestHandlerModel Merged(
-        RequestHandlerModel handler, OperationDeclarations reaching) {
-        if (reaching.Refusals.Count == 0 && reaching.ResponseHeaders.Count == 0 &&
-            reaching.RequestHeaders.Count == 0) {
+        RequestHandlerModel handler,
+        OperationDeclarations reaching
+    )
+    {
+        if (
+            reaching.Refusals.Count == 0
+            && reaching.ResponseHeaders.Count == 0
+            && reaching.RequestHeaders.Count == 0
+        )
+        {
             return handler;
         }
 
@@ -297,25 +366,30 @@ public static class OpenApiDocumentGenerator {
         var merged = handler.WithFilters(
             handler.Filters,
             responseSchemas: reaching.WithHeaders(
-                handler.ResponseSchemas.Concat(reaching.Refusals).ToList()));
+                handler.ResponseSchemas.Concat(reaching.Refusals).ToList()
+            )
+        );
 
         // A refusal names what can be answered instead of the handler and says nothing about what
         // the handler answers when it runs, so the return type is still the only source of the
         // success. The same rule [Throws<T>] follows.
-        if (reaching.Refusals.Count > 0 && handler.ResponseInformation.UnionCases == null) {
+        if (reaching.Refusals.Count > 0 && handler.ResponseInformation.UnionCases == null)
+        {
             merged.DeclaredResponsesAreComplete = false;
         }
 
-        merged.DeclaredHeaderParameters =
-            Combined(handler.DeclaredHeaderParameters, reaching.HeaderParameters());
+        merged.DeclaredHeaderParameters = Combined(
+            handler.DeclaredHeaderParameters,
+            reaching.HeaderParameters()
+        );
 
         // Headers() answers null where it merged nothing in, which is every handler the rung
         // declares no header for.
         merged.SingleResponseHeaders =
             reaching.Headers(
                 handler.ResponseInformation.DefaultStatusCode ?? 200,
-                handler.SingleResponseHeaders ?? System.Array.Empty<ResponseHeaderModel>())
-            ?? handler.SingleResponseHeaders;
+                handler.SingleResponseHeaders ?? System.Array.Empty<ResponseHeaderModel>()
+            ) ?? handler.SingleResponseHeaders;
 
         return merged;
     }
@@ -325,16 +399,28 @@ public static class OpenApiDocumentGenerator {
     /// </summary>
     private static IReadOnlyList<DeclaredHeaderParameterModel> Combined(
         IReadOnlyList<DeclaredHeaderParameterModel> declared,
-        IReadOnlyList<DeclaredHeaderParameterModel> wider) {
-        if (wider.Count == 0) {
+        IReadOnlyList<DeclaredHeaderParameterModel> wider
+    )
+    {
+        if (wider.Count == 0)
+        {
             return declared;
         }
 
         var result = new List<DeclaredHeaderParameterModel>(declared);
 
-        foreach (var header in wider) {
-            if (!result.Exists(existing =>
-                    string.Equals(existing.Name, header.Name, System.StringComparison.OrdinalIgnoreCase))) {
+        foreach (var header in wider)
+        {
+            if (
+                !result.Exists(existing =>
+                    string.Equals(
+                        existing.Name,
+                        header.Name,
+                        System.StringComparison.OrdinalIgnoreCase
+                    )
+                )
+            )
+            {
                 result.Add(header);
             }
         }
@@ -348,29 +434,34 @@ public static class OpenApiDocumentGenerator {
         SortedDictionary<string, string> components,
         IReadOnlyDictionary<string, string> operationIds,
         OpenApiVersion version,
-        IReadOnlyDictionary<string, EnumVocabulary> enums) {
+        IReadOnlyDictionary<string, EnumVocabulary> enums
+    )
+    {
         builder.Append('"').Append(handler.Name.Method.ToLowerInvariant()).Append("\":{");
 
-        builder.Append("\"tags\":[\"")
-            .Append(JsonSchemaWriter.Escape(Tag(handler)))
-            .Append("\"],");
+        builder.Append("\"tags\":[\"").Append(JsonSchemaWriter.Escape(Tag(handler))).Append("\"],");
 
-        builder.Append("\"operationId\":\"")
+        builder
+            .Append("\"operationId\":\"")
             .Append(JsonSchemaWriter.Escape(operationIds[HandlerKey(handler)]))
             .Append('"');
 
         WriteText(builder, "summary", handler.Summary);
         WriteText(builder, "description", handler.Description);
 
-        if (handler.IsDeprecated) {
+        if (handler.IsDeprecated)
+        {
             builder.Append(",\"deprecated\":true");
         }
 
-        if (handler.SecurityRequirements.Count > 0) {
+        if (handler.SecurityRequirements.Count > 0)
+        {
             builder.Append(",\"security\":[");
 
-            for (var i = 0; i < handler.SecurityRequirements.Count; i++) {
-                if (i > 0) {
+            for (var i = 0; i < handler.SecurityRequirements.Count; i++)
+            {
+                if (i > 0)
+                {
                     builder.Append(',');
                 }
 
@@ -388,13 +479,19 @@ public static class OpenApiDocumentGenerator {
         builder.Append('}');
     }
 
-    private static void WriteText(StringBuilder builder, string field, string? value) {
-        if (string.IsNullOrEmpty(value)) {
+    private static void WriteText(StringBuilder builder, string field, string? value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
             return;
         }
 
-        builder.Append(",\"").Append(field).Append("\":\"")
-            .Append(JsonSchemaWriter.Escape(value!)).Append('"');
+        builder
+            .Append(",\"")
+            .Append(field)
+            .Append("\":\"")
+            .Append(JsonSchemaWriter.Escape(value!))
+            .Append('"');
     }
 
     /// <summary>
@@ -414,13 +511,23 @@ public static class OpenApiDocumentGenerator {
     /// everything up to the first one.
     /// </remarks>
     private static (string? Title, string? Version, string? Description) InfoAttribute(
-        EntryPointSelector.Model appModel) {
-        if (appModel.AttributeModels == null) {
+        EntryPointSelector.Model appModel
+    )
+    {
+        if (appModel.AttributeModels == null)
+        {
             return (null, null, null);
         }
 
-        foreach (var attribute in appModel.AttributeModels) {
-            if (!attribute.TypeDefinition.Name.StartsWith("OpenApiInfo", System.StringComparison.Ordinal)) {
+        foreach (var attribute in appModel.AttributeModels)
+        {
+            if (
+                !attribute.TypeDefinition.Name.StartsWith(
+                    "OpenApiInfo",
+                    System.StringComparison.Ordinal
+                )
+            )
+            {
                 continue;
             }
 
@@ -433,7 +540,8 @@ public static class OpenApiDocumentGenerator {
             return (
                 title.Length > 0 ? title : null,
                 infoVersion.Length > 0 ? infoVersion : null,
-                description.Length > 0 ? description : null);
+                description.Length > 0 ? description : null
+            );
         }
 
         return (null, null, null);
@@ -450,33 +558,46 @@ public static class OpenApiDocumentGenerator {
     /// thing twice, and publishing both would put the same host in the list two ways.
     /// </remarks>
     private static void WriteServers(
-        StringBuilder builder, EntryPointSelector.Model appModel, DocumentIdentity? identity) {
-        if (identity != null && identity.Servers.Count > 0) {
+        StringBuilder builder,
+        EntryPointSelector.Model appModel,
+        DocumentIdentity? identity
+    )
+    {
+        if (identity != null && identity.Servers.Count > 0)
+        {
             var firstDeclared = true;
 
-            foreach (var (url, description) in identity.Servers) {
-                if (url.Length == 0) {
+            foreach (var (url, description) in identity.Servers)
+            {
+                if (url.Length == 0)
+                {
                     continue;
                 }
 
                 WriteServer(builder, url, description ?? "", ref firstDeclared);
             }
 
-            if (!firstDeclared) {
+            if (!firstDeclared)
+            {
                 builder.Append(']');
             }
 
             return;
         }
 
-        if (appModel.AttributeModels == null) {
+        if (appModel.AttributeModels == null)
+        {
             return;
         }
 
         var first = true;
 
-        foreach (var attribute in appModel.AttributeModels) {
-            if (!attribute.TypeDefinition.Name.StartsWith("Server", System.StringComparison.Ordinal)) {
+        foreach (var attribute in appModel.AttributeModels)
+        {
+            if (
+                !attribute.TypeDefinition.Name.StartsWith("Server", System.StringComparison.Ordinal)
+            )
+            {
                 continue;
             }
 
@@ -485,27 +606,37 @@ public static class OpenApiDocumentGenerator {
             var parts = AttributeArguments.Split(attribute.Arguments);
             var url = AttributeArguments.Text(parts, 0, "url");
 
-            if (url.Length == 0) {
+            if (url.Length == 0)
+            {
                 continue;
             }
 
             WriteServer(builder, url, AttributeArguments.Text(parts, 1, "description"), ref first);
         }
 
-        if (!first) {
+        if (!first)
+        {
             builder.Append(']');
         }
     }
 
     private static void WriteServer(
-        StringBuilder builder, string url, string description, ref bool first) {
+        StringBuilder builder,
+        string url,
+        string description,
+        ref bool first
+    )
+    {
         builder.Append(first ? ",\"servers\":[" : ",");
 
         builder.Append("{\"url\":\"").Append(JsonSchemaWriter.Escape(url)).Append('"');
 
-        if (description.Length > 0) {
-            builder.Append(",\"description\":\"")
-                .Append(JsonSchemaWriter.Escape(description)).Append('"');
+        if (description.Length > 0)
+        {
+            builder
+                .Append(",\"description\":\"")
+                .Append(JsonSchemaWriter.Escape(description))
+                .Append('"');
         }
 
         builder.Append('}');
@@ -524,41 +655,54 @@ public static class OpenApiDocumentGenerator {
     /// rather than what the application declared. Emitted in the order the handlers do, which is
     /// the order the routing table was built in.
     /// </remarks>
-    private static void WriteTags(StringBuilder builder, IReadOnlyList<RequestHandlerModel> handlers) {
+    private static void WriteTags(
+        StringBuilder builder,
+        IReadOnlyList<RequestHandlerModel> handlers
+    )
+    {
         var seen = new List<string>();
         var descriptions = new Dictionary<string, string>();
 
-        foreach (var handler in handlers) {
+        foreach (var handler in handlers)
+        {
             var tag = Tag(handler);
 
-            if (!seen.Contains(tag)) {
+            if (!seen.Contains(tag))
+            {
                 seen.Add(tag);
             }
 
             // The contract's prose for the group, where a handler carries it. First writer wins,
             // which cannot disagree with itself: every handler under one tag came from the same
             // service and carries the same description.
-            if (!descriptions.ContainsKey(tag) && !string.IsNullOrEmpty(handler.TagDescription)) {
+            if (!descriptions.ContainsKey(tag) && !string.IsNullOrEmpty(handler.TagDescription))
+            {
                 descriptions[tag] = handler.TagDescription!;
             }
         }
 
-        if (seen.Count == 0) {
+        if (seen.Count == 0)
+        {
             return;
         }
 
         builder.Append(",\"tags\":[");
 
-        for (var i = 0; i < seen.Count; i++) {
-            if (i > 0) {
+        for (var i = 0; i < seen.Count; i++)
+        {
+            if (i > 0)
+            {
                 builder.Append(',');
             }
 
             builder.Append("{\"name\":\"").Append(JsonSchemaWriter.Escape(seen[i])).Append('"');
 
-            if (descriptions.TryGetValue(seen[i], out var description)) {
-                builder.Append(",\"description\":\"")
-                    .Append(JsonSchemaWriter.Escape(description)).Append('"');
+            if (descriptions.TryGetValue(seen[i], out var description))
+            {
+                builder
+                    .Append(",\"description\":\"")
+                    .Append(JsonSchemaWriter.Escape(description))
+                    .Append('"');
             }
 
             builder.Append('}');
@@ -568,30 +712,44 @@ public static class OpenApiDocumentGenerator {
     }
 
     private static void WriteParameters(
-        StringBuilder builder, RequestHandlerModel handler, OpenApiVersion version,
-        IReadOnlyDictionary<string, EnumVocabulary> enums) {
-        var bound = handler.RequestParameterInformationList
-            .Where(p => Location(p.BindingType) != null)
+        StringBuilder builder,
+        RequestHandlerModel handler,
+        OpenApiVersion version,
+        IReadOnlyDictionary<string, EnumVocabulary> enums
+    )
+    {
+        var bound = handler
+            .RequestParameterInformationList.Where(p => Location(p.BindingType) != null)
             .ToList();
 
         // A header a filter reads is dropped where the handler binds one of that name: the
         // handler's carries a type, a constraint and a description of its own, and two entries
         // under one name is a document no generator can read.
-        var declared = handler.DeclaredHeaderParameters
-            .Where(header => !bound.Any(parameter => string.Equals(
-                BoundName(parameter), header.Name, System.StringComparison.OrdinalIgnoreCase)))
+        var declared = handler
+            .DeclaredHeaderParameters.Where(header =>
+                !bound.Any(parameter =>
+                    string.Equals(
+                        BoundName(parameter),
+                        header.Name,
+                        System.StringComparison.OrdinalIgnoreCase
+                    )
+                )
+            )
             .ToList();
 
-        if (bound.Count == 0 && declared.Count == 0) {
+        if (bound.Count == 0 && declared.Count == 0)
+        {
             return;
         }
 
         builder.Append(",\"parameters\":[");
 
-        for (var i = 0; i < bound.Count; i++) {
+        for (var i = 0; i < bound.Count; i++)
+        {
             var parameter = bound[i];
 
-            if (i > 0) {
+            if (i > 0)
+            {
                 builder.Append(',');
             }
 
@@ -603,13 +761,20 @@ public static class OpenApiDocumentGenerator {
             // because OpenAPI requires it of them and a path segment cannot be absent. A
             // [Required] on a parameter that could be absent is the same demand the validator
             // makes, and is published as one.
-            var required = (parameter.Required || parameter.RequiredByConstraint) &&
-                           (parameter.DefaultValue == null ||
-                            parameter.BindingType == ParameterBindType.Path);
+            var required =
+                (parameter.Required || parameter.RequiredByConstraint)
+                && (
+                    parameter.DefaultValue == null
+                    || parameter.BindingType == ParameterBindType.Path
+                );
 
-            builder.Append("{\"name\":\"").Append(JsonSchemaWriter.Escape(name))
-                .Append("\",\"in\":\"").Append(Location(parameter.BindingType))
-                .Append("\",\"required\":").Append(required ? "true" : "false");
+            builder
+                .Append("{\"name\":\"")
+                .Append(JsonSchemaWriter.Escape(name))
+                .Append("\",\"in\":\"")
+                .Append(Location(parameter.BindingType))
+                .Append("\",\"required\":")
+                .Append(required ? "true" : "false");
 
             WriteText(builder, "description", parameter.Description);
 
@@ -617,21 +782,30 @@ public static class OpenApiDocumentGenerator {
             // because a template expression is a name and nothing else, so without this the
             // document describes a segment-bounded token and a generated client escapes the
             // separators the route exists to accept.
-            if (parameter.BindingType == ParameterBindType.Path &&
-                RouteTemplate.IsCatchAll(handler.Name.Path, name)) {
+            if (
+                parameter.BindingType == ParameterBindType.Path
+                && RouteTemplate.IsCatchAll(handler.Name.Path, name)
+            )
+            {
                 builder.Append(",\"x-hardened-catch-all\":true");
             }
 
-            builder.Append(",\"schema\":").Append(ParameterSchema(parameter, version, enums))
+            builder
+                .Append(",\"schema\":")
+                .Append(ParameterSchema(parameter, version, enums))
                 .Append('}');
         }
 
-        for (var i = 0; i < declared.Count; i++) {
-            if (bound.Count > 0 || i > 0) {
+        for (var i = 0; i < declared.Count; i++)
+        {
+            if (bound.Count > 0 || i > 0)
+            {
                 builder.Append(',');
             }
 
-            builder.Append("{\"name\":\"").Append(JsonSchemaWriter.Escape(declared[i].Name))
+            builder
+                .Append("{\"name\":\"")
+                .Append(JsonSchemaWriter.Escape(declared[i].Name))
                 .Append("\",\"in\":\"header\",\"required\":false");
 
             WriteText(builder, "description", declared[i].Description);
@@ -643,8 +817,13 @@ public static class OpenApiDocumentGenerator {
     }
 
     private static void WriteRequestBody(
-        StringBuilder builder, RequestHandlerModel handler, SortedDictionary<string, string> components) {
-        if (handler.RequestSchema == null) {
+        StringBuilder builder,
+        RequestHandlerModel handler,
+        SortedDictionary<string, string> components
+    )
+    {
+        if (handler.RequestSchema == null)
+        {
             return;
         }
 
@@ -656,7 +835,8 @@ public static class OpenApiDocumentGenerator {
         // for.
         var contentType = handler.RequestContentType ?? "application/json";
 
-        builder.Append(",\"requestBody\":{\"required\":true,\"content\":{\"")
+        builder
+            .Append(",\"requestBody\":{\"required\":true,\"content\":{\"")
             .Append(JsonSchemaWriter.Escape(contentType))
             .Append("\":{\"schema\":")
             .Append(handler.RequestSchema.Schema)
@@ -682,8 +862,12 @@ public static class OpenApiDocumentGenerator {
     /// </para>
     /// </remarks>
     private static void WriteResponses(
-        StringBuilder builder, RequestHandlerModel handler, SortedDictionary<string, string> components,
-        OpenApiVersion version) {
+        StringBuilder builder,
+        RequestHandlerModel handler,
+        SortedDictionary<string, string> components,
+        OpenApiVersion version
+    )
+    {
         var successStatus = handler.ResponseInformation.DefaultStatusCode ?? 200;
 
         builder.Append(",\"responses\":{");
@@ -705,13 +889,16 @@ public static class OpenApiDocumentGenerator {
         // about what order means.
         var responses = new SortedDictionary<int, string>();
 
-        if (handler.ResponseSchemas.Count == 0) {
+        if (handler.ResponseSchemas.Count == 0)
+        {
             WriteSingleResponse(responses, handler, components, version, successStatus);
         }
-        else if (returnTypeDeclaredThem) {
+        else if (returnTypeDeclaredThem)
+        {
             WriteDeclaredResponses(responses, handler, components, version);
         }
-        else {
+        else
+        {
             WriteSingleResponse(responses, handler, components, version, successStatus);
             WriteDeclaredResponses(responses, handler, components, version);
         }
@@ -724,8 +911,10 @@ public static class OpenApiDocumentGenerator {
 
         var first = true;
 
-        foreach (var response in responses) {
-            if (!first) {
+        foreach (var response in responses)
+        {
+            if (!first)
+            {
                 builder.Append(',');
             }
 
@@ -762,16 +951,23 @@ public static class OpenApiDocumentGenerator {
     /// </para>
     /// </remarks>
     private static void WriteAuthorizationResponse(
-        SortedDictionary<int, string> responses, RequestHandlerModel handler,
-        SortedDictionary<string, string> components) {
-        if (!EveryAlternativeRequiresAScope(handler) || DeclaresStatus(handler, 403)) {
+        SortedDictionary<int, string> responses,
+        RequestHandlerModel handler,
+        SortedDictionary<string, string> components
+    )
+    {
+        if (!EveryAlternativeRequiresAScope(handler) || DeclaresStatus(handler, 403))
+        {
             return;
         }
 
         components["ErrorModel"] = ErrorModelSchema;
 
         responses[403] = Envelope(
-            handler, "The caller does not hold what this operation requires.", ErrorModelRef);
+            handler,
+            "The caller does not hold what this operation requires.",
+            ErrorModelRef
+        );
     }
 
     /// <summary>
@@ -783,13 +979,17 @@ public static class OpenApiDocumentGenerator {
     /// because this generator writes the same strings a few lines further down and holds no JSON
     /// reader; a bracket pair with something between it is the whole of the question.
     /// </remarks>
-    private static bool EveryAlternativeRequiresAScope(RequestHandlerModel handler) {
-        if (handler.SecurityRequirements.Count == 0) {
+    private static bool EveryAlternativeRequiresAScope(RequestHandlerModel handler)
+    {
+        if (handler.SecurityRequirements.Count == 0)
+        {
             return false;
         }
 
-        foreach (var requirement in handler.SecurityRequirements) {
-            if (!NamesAScope(requirement)) {
+        foreach (var requirement in handler.SecurityRequirements)
+        {
+            if (!NamesAScope(requirement))
+            {
                 return false;
             }
         }
@@ -798,17 +998,21 @@ public static class OpenApiDocumentGenerator {
     }
 
     /// <summary>Whether one requirement object carries a non-empty scope array.</summary>
-    private static bool NamesAScope(string requirement) {
+    private static bool NamesAScope(string requirement)
+    {
         var open = requirement.IndexOf('[');
 
-        while (open >= 0) {
+        while (open >= 0)
+        {
             var close = requirement.IndexOf(']', open);
 
-            if (close < 0) {
+            if (close < 0)
+            {
                 return false;
             }
 
-            if (requirement.Substring(open + 1, close - open - 1).Trim().Length > 0) {
+            if (requirement.Substring(open + 1, close - open - 1).Trim().Length > 0)
+            {
                 return true;
             }
 
@@ -830,9 +1034,13 @@ public static class OpenApiDocumentGenerator {
     /// taken from so the two paths publish one sentence.
     /// </remarks>
     private static void WriteTimeoutResponse(
-        SortedDictionary<int, string> responses, RequestHandlerModel handler,
-        SortedDictionary<string, string> components) {
-        if (handler.DeclaredTimeout is not { } timeout || DeclaresStatus(handler, timeout.Status)) {
+        SortedDictionary<int, string> responses,
+        RequestHandlerModel handler,
+        SortedDictionary<string, string> components
+    )
+    {
+        if (handler.DeclaredTimeout is not { } timeout || DeclaresStatus(handler, timeout.Status))
+        {
             return;
         }
 
@@ -840,14 +1048,19 @@ public static class OpenApiDocumentGenerator {
 
         // A string, like every other response header this writes. A header is a string on the
         // wire whatever it carries, which is the rule ResponseHeaderModel states.
-        var headers = timeout.RetryAfterSeconds > 0
-            ? "\"headers\":{\"Retry-After\":{" +
-              "\"description\":\"How long to wait before trying again, in seconds.\"," +
-              "\"schema\":{\"type\":\"string\"}}}"
-            : null;
+        var headers =
+            timeout.RetryAfterSeconds > 0
+                ? "\"headers\":{\"Retry-After\":{"
+                    + "\"description\":\"How long to wait before trying again, in seconds.\","
+                    + "\"schema\":{\"type\":\"string\"}}}"
+                : null;
 
         responses[timeout.Status] = Envelope(
-            handler, "The operation did not finish inside its budget.", ErrorModelRef, headers);
+            handler,
+            "The operation did not finish inside its budget.",
+            ErrorModelRef,
+            headers
+        );
     }
 
     /// <summary>
@@ -871,23 +1084,30 @@ public static class OpenApiDocumentGenerator {
     /// vocabulary can carry it.
     /// </para>
     /// </remarks>
-    private static void WriteTimeout(StringBuilder builder, RequestHandlerModel handler) {
-        if (handler.DeclaredTimeout is not { } timeout) {
+    private static void WriteTimeout(StringBuilder builder, RequestHandlerModel handler)
+    {
+        if (handler.DeclaredTimeout is not { } timeout)
+        {
             return;
         }
 
         builder.Append(",\"x-hardened-timeout\":");
 
-        if (timeout.Status == 504 && timeout.RetryAfterSeconds == 0) {
+        if (timeout.Status == 504 && timeout.RetryAfterSeconds == 0)
+        {
             builder.Append(timeout.Milliseconds);
 
             return;
         }
 
-        builder.Append("{\"milliseconds\":").Append(timeout.Milliseconds)
-            .Append(",\"status\":").Append(timeout.Status);
+        builder
+            .Append("{\"milliseconds\":")
+            .Append(timeout.Milliseconds)
+            .Append(",\"status\":")
+            .Append(timeout.Status);
 
-        if (timeout.RetryAfterSeconds > 0) {
+        if (timeout.RetryAfterSeconds > 0)
+        {
             builder.Append(",\"retryAfterSeconds\":").Append(timeout.RetryAfterSeconds);
         }
 
@@ -898,23 +1118,30 @@ public static class OpenApiDocumentGenerator {
     /// A handler that returns one type: the status it succeeds with, and the body it sends.
     /// </summary>
     private static void WriteSingleResponse(
-        SortedDictionary<int, string> responses, RequestHandlerModel handler,
+        SortedDictionary<int, string> responses,
+        RequestHandlerModel handler,
         SortedDictionary<string, string> components,
-        OpenApiVersion version, int successStatus) {
+        OpenApiVersion version,
+        int successStatus
+    )
+    {
         var builder = new StringBuilder("{\"description\":\"")
             .Append(JsonSchemaWriter.Escape(HttpResponseDescription.For(successStatus)))
             .Append('"');
 
         // A handler returning a plain value has no ResponseSchemas entry to hang a declared header
         // on, and this is the writer that describes its success.
-        if (handler.SingleResponseHeaders is { Count: > 0 } headers) {
+        if (handler.SingleResponseHeaders is { Count: > 0 } headers)
+        {
             WriteResponseHeaders(builder, headers);
         }
 
-        if (handler.ResponseInformation.IsAsyncEnumerable) {
+        if (handler.ResponseInformation.IsAsyncEnumerable)
+        {
             WriteStreamedResponse(builder, handler, components, version);
         }
-        else if (handler.ResponseSchema != null && CarriesBody(successStatus)) {
+        else if (handler.ResponseSchema != null && CarriesBody(successStatus))
+        {
             Merge(components, handler.ResponseSchema);
 
             WriteContentMap(builder, ContentTypes(handler), handler.ResponseSchema.Schema);
@@ -939,24 +1166,29 @@ public static class OpenApiDocumentGenerator {
     /// </para>
     /// </remarks>
     private static void WriteDeclaredResponses(
-        SortedDictionary<int, string> responses, RequestHandlerModel handler,
+        SortedDictionary<int, string> responses,
+        RequestHandlerModel handler,
         SortedDictionary<string, string> components,
-        OpenApiVersion version) {
+        OpenApiVersion version
+    )
+    {
         var streamedStatus = handler.ResponseInformation.IsAsyncEnumerable
             ? handler.ResponseInformation.DefaultStatusCode ?? 200
             : (int?)null;
 
-        var byStatus = handler.ResponseSchemas
-            .GroupBy(response => response.Status)
+        var byStatus = handler
+            .ResponseSchemas.GroupBy(response => response.Status)
             .OrderBy(group => group.Key);
 
         var successContentTypes = ContentTypes(handler);
         var errorContentTypes = ErrorContentTypes(handler);
 
-        foreach (var group in byStatus) {
+        foreach (var group in byStatus)
+        {
             var description = group.First().Description;
 
-            if (group.Key == 404 && RouteTemplate.HasConstraint(handler.Name.Path)) {
+            if (group.Key == 404 && RouteTemplate.HasConstraint(handler.Name.Path))
+            {
                 description = Sentence(description) + ConstrainedPathNote;
             }
 
@@ -976,21 +1208,27 @@ public static class OpenApiDocumentGenerator {
             // A described operation's streamed success sits in the declared set for its
             // description and headers, and carries no schema of its own: the item is on
             // ResponseSchema, and the streamed path writes it the way it does code-first.
-            if (group.Key == streamedStatus) {
+            if (group.Key == streamedStatus)
+            {
                 WriteStreamedResponse(builder, handler, components, version);
             }
-            else if (bodies.Count > 0 && CarriesBody(group.Key)) {
+            else if (bodies.Count > 0 && CarriesBody(group.Key))
+            {
                 string schema;
 
-                if (bodies.Count == 1) {
+                if (bodies.Count == 1)
+                {
                     Merge(components, bodies[0].Schema!);
                     schema = bodies[0].Schema!.Schema;
                 }
-                else {
+                else
+                {
                     var oneOf = new StringBuilder("{\"oneOf\":[");
 
-                    for (var i = 0; i < bodies.Count; i++) {
-                        if (i > 0) {
+                    for (var i = 0; i < bodies.Count; i++)
+                    {
+                        if (i > 0)
+                        {
                             oneOf.Append(',');
                         }
 
@@ -1017,17 +1255,23 @@ public static class OpenApiDocumentGenerator {
     /// <c>ResponseHeaderModel</c> gives - a header is a string on the wire whatever it carries.
     /// </remarks>
     private static void WriteResponseHeaders(
-        StringBuilder builder, IEnumerable<ResponseSchemaModel> responses) =>
-        WriteResponseHeaders(builder, responses.SelectMany(response => response.Headers));
+        StringBuilder builder,
+        IEnumerable<ResponseSchemaModel> responses
+    ) => WriteResponseHeaders(builder, responses.SelectMany(response => response.Headers));
 
     private static void WriteResponseHeaders(
-        StringBuilder builder, IEnumerable<Generation.Models.ResponseHeaderModel> headers) {
+        StringBuilder builder,
+        IEnumerable<Generation.Models.ResponseHeaderModel> headers
+    )
+    {
         var seen = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
         var first = true;
 
         {
-            foreach (var header in headers) {
-                if (!seen.Add(header.Name)) {
+            foreach (var header in headers)
+            {
+                if (!seen.Add(header.Name))
+                {
                     continue;
                 }
 
@@ -1035,9 +1279,12 @@ public static class OpenApiDocumentGenerator {
 
                 builder.Append('"').Append(JsonSchemaWriter.Escape(header.Name)).Append("\":{");
 
-                if (!string.IsNullOrEmpty(header.Description)) {
-                    builder.Append("\"description\":\"")
-                        .Append(JsonSchemaWriter.Escape(header.Description!)).Append("\",");
+                if (!string.IsNullOrEmpty(header.Description))
+                {
+                    builder
+                        .Append("\"description\":\"")
+                        .Append(JsonSchemaWriter.Escape(header.Description!))
+                        .Append("\",");
                 }
 
                 builder.Append("\"schema\":{\"type\":\"string\"}}");
@@ -1046,26 +1293,27 @@ public static class OpenApiDocumentGenerator {
             }
         }
 
-        if (!first) {
+        if (!first)
+        {
             builder.Append('}');
         }
     }
 
     /// <summary>The schema of the framework's validation 400, written once into components.</summary>
     private const string ValidationErrorSchema =
-        "{\"type\":\"object\"," +
-        "\"description\":\"How a request that failed validation is answered.\"," +
-        "\"required\":[\"type\",\"message\",\"errors\"]," +
-        "\"properties\":{" +
-        "\"type\":{\"type\":\"string\"}," +
-        "\"message\":{\"type\":\"string\"}," +
-        "\"errors\":{\"type\":\"array\",\"items\":{" +
-        "\"type\":\"object\"," +
-        "\"required\":[\"field\",\"code\",\"message\"]," +
-        "\"properties\":{" +
-        "\"field\":{\"type\":\"string\"}," +
-        "\"code\":{\"type\":\"string\"}," +
-        "\"message\":{\"type\":\"string\"}}}}}}";
+        "{\"type\":\"object\","
+        + "\"description\":\"How a request that failed validation is answered.\","
+        + "\"required\":[\"type\",\"message\",\"errors\"],"
+        + "\"properties\":{"
+        + "\"type\":{\"type\":\"string\"},"
+        + "\"message\":{\"type\":\"string\"},"
+        + "\"errors\":{\"type\":\"array\",\"items\":{"
+        + "\"type\":\"object\","
+        + "\"required\":[\"field\",\"code\",\"message\"],"
+        + "\"properties\":{"
+        + "\"field\":{\"type\":\"string\"},"
+        + "\"code\":{\"type\":\"string\"},"
+        + "\"message\":{\"type\":\"string\"}}}}}}";
 
     /// <summary>
     /// The 400 every operation with a generated validator can answer, declared rather than
@@ -1078,21 +1326,30 @@ public static class OpenApiDocumentGenerator {
     /// 400, whose description then wins.
     /// </remarks>
     private static void WriteValidationResponse(
-        SortedDictionary<int, string> responses, RequestHandlerModel handler,
-        SortedDictionary<string, string> components) {
-        if (handler.ParametersValidator == null && !handler.HasGeneratedValidation &&
-            !HasBindingRefusals(handler)) {
+        SortedDictionary<int, string> responses,
+        RequestHandlerModel handler,
+        SortedDictionary<string, string> components
+    )
+    {
+        if (
+            handler.ParametersValidator == null
+            && !handler.HasGeneratedValidation
+            && !HasBindingRefusals(handler)
+        )
+        {
             return;
         }
 
         // An operation whose contract declares the validation status answers it there: the
         // declared 422 is already in the response set, and a synthesized 400 beside it would
         // describe a status validation no longer produces on this operation.
-        if (handler.ResponseInformation.ValidationErrorStatus != null) {
+        if (handler.ResponseInformation.ValidationErrorStatus != null)
+        {
             return;
         }
 
-        if (DeclaresStatus(handler, 400)) {
+        if (DeclaresStatus(handler, 400))
+        {
             return;
         }
 
@@ -1120,22 +1377,39 @@ public static class OpenApiDocumentGenerator {
     /// explained away.
     /// </para>
     /// </remarks>
-    private static bool HasBindingRefusals(RequestHandlerModel handler) {
-        foreach (var parameter in handler.RequestParameterInformationList) {
-            if (parameter.BindingType is not (ParameterBindType.Path or ParameterBindType.QueryString
-                or ParameterBindType.Header or ParameterBindType.Cookie or ParameterBindType.Form)) {
+    private static bool HasBindingRefusals(RequestHandlerModel handler)
+    {
+        foreach (var parameter in handler.RequestParameterInformationList)
+        {
+            if (
+                parameter.BindingType
+                is not (
+                    ParameterBindType.Path
+                    or ParameterBindType.QueryString
+                    or ParameterBindType.Header
+                    or ParameterBindType.Cookie
+                    or ParameterBindType.Form
+                )
+            )
+            {
                 continue;
             }
 
             var name = parameter.ParameterType.Name.TrimEnd('?');
 
-            if (name is "String" or "string" or "Object" or "object") {
+            if (name is "String" or "string" or "Object" or "object")
+            {
                 continue;
             }
 
-            if (parameter.BindingType == ParameterBindType.Path &&
-                RouteConstraintFacts.GuaranteesConversion(
-                    RouteTemplate.ConstraintOn(handler.Name.Path, BoundName(parameter)), name)) {
+            if (
+                parameter.BindingType == ParameterBindType.Path
+                && RouteConstraintFacts.GuaranteesConversion(
+                    RouteTemplate.ConstraintOn(handler.Name.Path, BoundName(parameter)),
+                    name
+                )
+            )
+            {
                 continue;
             }
 
@@ -1150,9 +1424,12 @@ public static class OpenApiDocumentGenerator {
         string.IsNullOrEmpty(parameter.BindingName) ? parameter.Name : parameter.BindingName;
 
     /// <summary>Whether the handler already declares <paramref name="status"/> itself.</summary>
-    private static bool DeclaresStatus(RequestHandlerModel handler, int status) {
-        foreach (var response in handler.ResponseSchemas) {
-            if (response.Status == status) {
+    private static bool DeclaresStatus(RequestHandlerModel handler, int status)
+    {
+        foreach (var response in handler.ResponseSchemas)
+        {
+            if (response.Status == status)
+            {
                 return true;
             }
         }
@@ -1162,13 +1439,13 @@ public static class OpenApiDocumentGenerator {
 
     /// <summary>The schema of the framework's undeclared error body, written once into components.</summary>
     private const string ErrorModelSchema =
-        "{\"type\":\"object\"," +
-        "\"description\":\"How a refused or failed request is answered when the contract declared no body for it.\"," +
-        "\"required\":[\"type\",\"message\",\"details\"]," +
-        "\"properties\":{" +
-        "\"type\":{\"type\":\"string\"}," +
-        "\"message\":{\"type\":\"string\"}," +
-        "\"details\":{\"type\":\"string\"}}}";
+        "{\"type\":\"object\","
+        + "\"description\":\"How a refused or failed request is answered when the contract declared no body for it.\","
+        + "\"required\":[\"type\",\"message\",\"details\"],"
+        + "\"properties\":{"
+        + "\"type\":{\"type\":\"string\"},"
+        + "\"message\":{\"type\":\"string\"},"
+        + "\"details\":{\"type\":\"string\"}}}";
 
     /// <summary>
     /// The 401 an operation with security requirements can answer, declared rather than implied.
@@ -1181,23 +1458,31 @@ public static class OpenApiDocumentGenerator {
     /// whose description then wins.
     /// </remarks>
     private static void WriteAuthenticationResponse(
-        SortedDictionary<int, string> responses, RequestHandlerModel handler,
-        SortedDictionary<string, string> components) {
-        if (handler.SecurityRequirements.Count == 0) {
+        SortedDictionary<int, string> responses,
+        RequestHandlerModel handler,
+        SortedDictionary<string, string> components
+    )
+    {
+        if (handler.SecurityRequirements.Count == 0)
+        {
             return;
         }
 
-        if (DeclaresStatus(handler, 401)) {
+        if (DeclaresStatus(handler, 401))
+        {
             return;
         }
 
         components["ErrorModel"] = ErrorModelSchema;
 
         responses[401] = Envelope(
-            handler, "Authentication required.", ErrorModelRef,
-            "\"headers\":{\"WWW-Authenticate\":{" +
-            "\"description\":\"The challenge naming the scheme to authenticate with.\"," +
-            "\"schema\":{\"type\":\"string\"}}}");
+            handler,
+            "Authentication required.",
+            ErrorModelRef,
+            "\"headers\":{\"WWW-Authenticate\":{"
+                + "\"description\":\"The challenge naming the scheme to authenticate with.\","
+                + "\"schema\":{\"type\":\"string\"}}}"
+        );
     }
 
     /// <summary>
@@ -1218,17 +1503,23 @@ public static class OpenApiDocumentGenerator {
     /// </para>
     /// </remarks>
     private static void WriteConstrainedPathResponse(
-        SortedDictionary<int, string> responses, RequestHandlerModel handler) {
-        if (!RouteTemplate.HasConstraint(handler.Name.Path)) {
+        SortedDictionary<int, string> responses,
+        RequestHandlerModel handler
+    )
+    {
+        if (!RouteTemplate.HasConstraint(handler.Name.Path))
+        {
             return;
         }
 
-        if (DeclaresStatus(handler, 404)) {
+        if (DeclaresStatus(handler, 404))
+        {
             return;
         }
 
-        responses[404] = "{\"description\":" +
-                         "\"The path did not name a resource: a token failed its route constraint.\"}";
+        responses[404] =
+            "{\"description\":"
+            + "\"The path did not name a resource: a token failed its route constraint.\"}";
     }
 
     /// <summary>
@@ -1245,8 +1536,8 @@ public static class OpenApiDocumentGenerator {
     /// What a declared 404 gains where a route constraint answers the same status.
     /// </summary>
     private const string ConstrainedPathNote =
-        " A token that fails its route constraint answers this status too, before the handler and " +
-        "with no body.";
+        " A token that fails its route constraint answers this status too, before the handler and "
+        + "with no body.";
 
     /// <summary>
     /// The media type every response falls back to, and the one an error body can always be
@@ -1279,22 +1570,27 @@ public static class OpenApiDocumentGenerator {
     /// type code-first was <c>[RawResponse]</c>, which went on nothing else.
     /// </para>
     /// </remarks>
-    private static IReadOnlyList<string> ContentTypes(RequestHandlerModel handler) {
+    private static IReadOnlyList<string> ContentTypes(RequestHandlerModel handler)
+    {
         // The success half where the model carries it apart. A described operation's negotiated set
         // ends with its error representations, which the runtime needs and the success response is
         // not - see OperationModel.SuccessContentTypes.
-        var produced = handler.ResponseInformation.SuccessContentTypes ??
-                       handler.ResponseInformation.ProducedContentTypes;
+        var produced =
+            handler.ResponseInformation.SuccessContentTypes
+            ?? handler.ResponseInformation.ProducedContentTypes;
 
-        if (!string.IsNullOrEmpty(produced)) {
+        if (!string.IsNullOrEmpty(produced))
+        {
             var types = Split(produced!);
 
-            if (types.Count > 0) {
+            if (types.Count > 0)
+            {
                 return types;
             }
         }
 
-        if (!string.IsNullOrEmpty(handler.ResponseInformation.RawResponseContentType)) {
+        if (!string.IsNullOrEmpty(handler.ResponseInformation.RawResponseContentType))
+        {
             return new[] { handler.ResponseInformation.RawResponseContentType! };
         }
 
@@ -1329,22 +1625,28 @@ public static class OpenApiDocumentGenerator {
     /// path with nothing producible, which is the case it commits JSON for.
     /// </para>
     /// </remarks>
-    private static IReadOnlyList<string> ErrorContentTypes(RequestHandlerModel handler) {
+    private static IReadOnlyList<string> ErrorContentTypes(RequestHandlerModel handler)
+    {
         // Stated, where a contract stated it. A described operation says what its refusals look
         // like, so there is nothing to work out and nothing to be generous about: those media types
         // and no others.
-        if (handler.ResponseInformation.ErrorContentTypes is { } described) {
+        if (handler.ResponseInformation.ErrorContentTypes is { } described)
+        {
             return Split(described);
         }
 
-        if (handler.ResponseInformation.ReturnsBytesOrText ||
-            handler.ResponseInformation.IsAsyncEnumerable) {
+        if (
+            handler.ResponseInformation.ReturnsBytesOrText
+            || handler.ResponseInformation.IsAsyncEnumerable
+        )
+        {
             return JsonOnly;
         }
 
         var declared = ContentTypes(handler);
 
-        if (declared.Count == 1 && declared[0] == Json) {
+        if (declared.Count == 1 && declared[0] == Json)
+        {
             return JsonOnly;
         }
 
@@ -1352,7 +1654,8 @@ public static class OpenApiDocumentGenerator {
 
         types.AddRange(declared);
 
-        if (!types.Contains(Json)) {
+        if (!types.Contains(Json))
+        {
             types.Add(Json);
         }
 
@@ -1374,12 +1677,18 @@ public static class OpenApiDocumentGenerator {
     /// had to be fixed in all four or in none.
     /// </remarks>
     private static string Envelope(
-        RequestHandlerModel handler, string description, string schema, string? headers = null) {
+        RequestHandlerModel handler,
+        string description,
+        string schema,
+        string? headers = null
+    )
+    {
         var builder = new StringBuilder("{\"description\":\"")
             .Append(JsonSchemaWriter.Escape(description))
             .Append('"');
 
-        if (headers != null) {
+        if (headers != null)
+        {
             builder.Append(',').Append(headers);
         }
 
@@ -1391,13 +1700,16 @@ public static class OpenApiDocumentGenerator {
     /// <summary>
     /// A comma-joined media type list as the set it names, in order and without repeats.
     /// </summary>
-    private static List<string> Split(string contentTypes) {
+    private static List<string> Split(string contentTypes)
+    {
         var types = new List<string>();
 
-        foreach (var type in contentTypes.Split(',')) {
+        foreach (var type in contentTypes.Split(','))
+        {
             var trimmed = type.Trim();
 
-            if (trimmed.Length > 0 && !types.Contains(trimmed)) {
+            if (trimmed.Length > 0 && !types.Contains(trimmed))
+            {
                 types.Add(trimmed);
             }
         }
@@ -1432,16 +1744,26 @@ public static class OpenApiDocumentGenerator {
     private static bool CarriesBody(int status) => status != 204 && status != 304;
 
     private static void WriteContentMap(
-        StringBuilder builder, IReadOnlyList<string> contentTypes, string schema) {
+        StringBuilder builder,
+        IReadOnlyList<string> contentTypes,
+        string schema
+    )
+    {
         builder.Append(",\"content\":{");
 
-        for (var i = 0; i < contentTypes.Count; i++) {
-            if (i > 0) {
+        for (var i = 0; i < contentTypes.Count; i++)
+        {
+            if (i > 0)
+            {
                 builder.Append(',');
             }
 
-            builder.Append('"').Append(JsonSchemaWriter.Escape(contentTypes[i]))
-                .Append("\":{\"schema\":").Append(schema).Append('}');
+            builder
+                .Append('"')
+                .Append(JsonSchemaWriter.Escape(contentTypes[i]))
+                .Append("\":{\"schema\":")
+                .Append(schema)
+                .Append('}');
         }
 
         builder.Append('}');
@@ -1473,20 +1795,30 @@ public static class OpenApiDocumentGenerator {
     /// </para>
     /// </remarks>
     private static void WriteStreamedResponse(
-        StringBuilder builder, RequestHandlerModel handler, SortedDictionary<string, string> components,
-        OpenApiVersion version) {
+        StringBuilder builder,
+        RequestHandlerModel handler,
+        SortedDictionary<string, string> components,
+        OpenApiVersion version
+    )
+    {
         var contentType = StreamFramingNames.ContentType(handler.ResponseInformation.StreamFraming);
 
-        builder.Append(",\"content\":{\"").Append(JsonSchemaWriter.Escape(contentType)).Append("\":{");
+        builder
+            .Append(",\"content\":{\"")
+            .Append(JsonSchemaWriter.Escape(contentType))
+            .Append("\":{");
 
-        if (handler.ResponseSchema != null) {
+        if (handler.ResponseSchema != null)
+        {
             Merge(components, handler.ResponseSchema);
 
-            builder.Append("\"schema\":{\"type\":\"array\",\"items\":")
+            builder
+                .Append("\"schema\":{\"type\":\"array\",\"items\":")
                 .Append(handler.ResponseSchema.Schema)
                 .Append('}');
 
-            if (OpenApiVersionFacts.SupportsItemSchema(version)) {
+            if (OpenApiVersionFacts.SupportsItemSchema(version))
+            {
                 builder.Append(",\"itemSchema\":").Append(handler.ResponseSchema.Schema);
             }
         }
@@ -1494,8 +1826,10 @@ public static class OpenApiDocumentGenerator {
         builder.Append("}}");
     }
 
-    private static void Merge(SortedDictionary<string, string> components, HandlerSchema schema) {
-        foreach (var component in schema.Components) {
+    private static void Merge(SortedDictionary<string, string> components, HandlerSchema schema)
+    {
+        foreach (var component in schema.Components)
+        {
             components[component.Name] = component.Json;
         }
     }
@@ -1533,27 +1867,36 @@ public static class OpenApiDocumentGenerator {
     /// </para>
     /// </remarks>
     private static IReadOnlyDictionary<string, string> OperationIds(
-        IReadOnlyList<RequestHandlerModel> handlers) {
+        IReadOnlyList<RequestHandlerModel> handlers
+    )
+    {
         var ids = new Dictionary<string, string>(System.StringComparer.Ordinal);
         var declared = new HashSet<string>(System.StringComparer.Ordinal);
 
-        foreach (var handler in handlers) {
-            if (handler.OperationId != null) {
+        foreach (var handler in handlers)
+        {
+            if (handler.OperationId != null)
+            {
                 ids[HandlerKey(handler)] = handler.OperationId;
                 declared.Add(handler.OperationId);
             }
         }
 
-        var byName = new Dictionary<string, List<RequestHandlerModel>>(System.StringComparer.Ordinal);
+        var byName = new Dictionary<string, List<RequestHandlerModel>>(
+            System.StringComparer.Ordinal
+        );
 
-        foreach (var handler in handlers) {
-            if (handler.OperationId != null) {
+        foreach (var handler in handlers)
+        {
+            if (handler.OperationId != null)
+            {
                 continue;
             }
 
             var name = CamelCase(handler.HandlerMethod);
 
-            if (!byName.TryGetValue(name, out var sharing)) {
+            if (!byName.TryGetValue(name, out var sharing))
+            {
                 sharing = new List<RequestHandlerModel>();
                 byName[name] = sharing;
             }
@@ -1561,10 +1904,12 @@ public static class OpenApiDocumentGenerator {
             sharing.Add(handler);
         }
 
-        foreach (var pair in byName) {
+        foreach (var pair in byName)
+        {
             var contested = pair.Value.Count > 1 || declared.Contains(pair.Key);
 
-            foreach (var handler in pair.Value) {
+            foreach (var handler in pair.Value)
+            {
                 ids[HandlerKey(handler)] = contested
                     ? CamelCase(Tag(handler)) + Pascal(handler.HandlerMethod)
                     : pair.Key;
@@ -1622,26 +1967,38 @@ public static class OpenApiDocumentGenerator {
     /// type that is not one of the application's enums.
     /// </summary>
     private static string? EnumSchema(
-        ITypeDefinition type, IReadOnlyDictionary<string, EnumVocabulary> enums) {
+        ITypeDefinition type,
+        IReadOnlyDictionary<string, EnumVocabulary> enums
+    )
+    {
         var qualified = "global::" + type.Namespace + "." + type.Name.TrimEnd('?');
 
-        if (!enums.TryGetValue(qualified, out var vocabulary)) {
+        if (!enums.TryGetValue(qualified, out var vocabulary))
+        {
             return null;
         }
 
-        return "{\"$ref\":\"#/components/schemas/" + JsonSchemaWriter.Escape(vocabulary.Name) + "\"}";
+        return "{\"$ref\":\"#/components/schemas/"
+            + JsonSchemaWriter.Escape(vocabulary.Name)
+            + "\"}";
     }
 
     /// <summary>The component an enum is written as: its values, in the vocabulary the wire carries.</summary>
-    private static string EnumComponent(EnumVocabulary vocabulary) {
+    private static string EnumComponent(EnumVocabulary vocabulary)
+    {
         var builder = new StringBuilder("{\"type\":\"string\",\"enum\":[");
 
-        for (var i = 0; i < vocabulary.Values.Count; i++) {
-            if (i > 0) {
+        for (var i = 0; i < vocabulary.Values.Count; i++)
+        {
+            if (i > 0)
+            {
                 builder.Append(',');
             }
 
-            builder.Append('"').Append(JsonSchemaWriter.Escape(vocabulary.Values[i].Wire)).Append('"');
+            builder
+                .Append('"')
+                .Append(JsonSchemaWriter.Escape(vocabulary.Values[i].Wire))
+                .Append('"');
         }
 
         return builder.Append("]}").ToString();
@@ -1685,43 +2042,69 @@ public static class OpenApiDocumentGenerator {
     /// nullable scalar arrives as a <c>Nullable</c> with no argument to read.
     /// </remarks>
     private static string ParameterSchema(
-        RequestParameterInformation parameter, OpenApiVersion version,
-        IReadOnlyDictionary<string, EnumVocabulary> enums) {
+        RequestParameterInformation parameter,
+        OpenApiVersion version,
+        IReadOnlyDictionary<string, EnumVocabulary> enums
+    )
+    {
         var spec = parameter.SpecParameter;
 
-        if (spec == null || (string.IsNullOrEmpty(spec.Type) &&
-                             spec.EnumValues is not { Count: > 0 } &&
-                             !spec.IsArray)) {
+        if (
+            spec == null
+            || (
+                string.IsNullOrEmpty(spec.Type)
+                && spec.EnumValues is not { Count: > 0 }
+                && !spec.IsArray
+            )
+        )
+        {
             // A hand-written handler's constraints, read off the parameter where its symbol was
             // in hand and spliced in here, so a bound the validator enforces is a bound the
             // document states - the same statement written twice, as it is for a property.
             return SchemaConstraintWriter.Merge(
-                CodeFirstSchema(parameter.ParameterType, enums), parameter.SchemaFacets);
+                CodeFirstSchema(parameter.ParameterType, enums),
+                parameter.SchemaFacets
+            );
         }
 
         var builder = new StringBuilder();
 
         builder.Append('{');
 
-        if (spec.IsArray) {
+        if (spec.IsArray)
+        {
             builder.Append("\"type\":\"array\"");
 
-            if (spec.MinItems.HasValue) {
+            if (spec.MinItems.HasValue)
+            {
                 builder.Append(",\"minItems\":").Append(spec.MinItems.Value);
             }
 
-            if (spec.MaxItems.HasValue) {
+            if (spec.MaxItems.HasValue)
+            {
                 builder.Append(",\"maxItems\":").Append(spec.MaxItems.Value);
             }
 
             builder.Append(",\"items\":");
             AppendScalarFacets(
-                builder, spec.ArrayItemsType ?? "string", spec.Format, spec, version, openObject: true);
-        } else {
+                builder,
+                spec.ArrayItemsType ?? "string",
+                spec.Format,
+                spec,
+                version,
+                openObject: true
+            );
+        }
+        else
+        {
             AppendScalarFacets(
                 builder,
                 string.IsNullOrEmpty(spec.Type) ? "string" : spec.Type!,
-                spec.Format, spec, version, openObject: false);
+                spec.Format,
+                spec,
+                version,
+                openObject: false
+            );
         }
 
         builder.Append('}');
@@ -1739,21 +2122,30 @@ public static class OpenApiDocumentGenerator {
     /// document is the defect this replaces.
     /// </remarks>
     private static void AppendScalarFacets(
-        StringBuilder builder, string type, string? format, IConstraintFacets spec,
-        OpenApiVersion version, bool openObject) {
-        if (openObject) {
+        StringBuilder builder,
+        string type,
+        string? format,
+        IConstraintFacets spec,
+        OpenApiVersion version,
+        bool openObject
+    )
+    {
+        if (openObject)
+        {
             builder.Append('{');
         }
 
         builder.Append("\"type\":\"").Append(JsonSchemaWriter.Escape(type)).Append('"');
 
-        if (!string.IsNullOrEmpty(format)) {
+        if (!string.IsNullOrEmpty(format))
+        {
             builder.Append(",\"format\":\"").Append(JsonSchemaWriter.Escape(format!)).Append('"');
         }
 
         AppendConstraintFacets(builder, type, spec, version);
 
-        if (openObject) {
+        if (openObject)
+        {
             builder.Append('}');
         }
     }
@@ -1768,12 +2160,20 @@ public static class OpenApiDocumentGenerator {
     /// which never learned these keywords.
     /// </remarks>
     internal static void AppendConstraintFacets(
-        StringBuilder builder, string type, IConstraintFacets spec, OpenApiVersion version) {
-        if (spec.EnumValues is { Count: > 0 }) {
+        StringBuilder builder,
+        string type,
+        IConstraintFacets spec,
+        OpenApiVersion version
+    )
+    {
+        if (spec.EnumValues is { Count: > 0 })
+        {
             builder.Append(",\"enum\":[");
 
-            for (var i = 0; i < spec.EnumValues.Count; i++) {
-                if (i > 0) {
+            for (var i = 0; i < spec.EnumValues.Count; i++)
+            {
+                if (i > 0)
+                {
                     builder.Append(',');
                 }
 
@@ -1783,41 +2183,58 @@ public static class OpenApiDocumentGenerator {
             builder.Append(']');
         }
 
-        if (spec.Minimum.HasValue) {
-            builder.Append(version == OpenApiVersion.V3_0
-                    ? ",\"minimum\":"
-                    : spec.ExclusiveMinimum ? ",\"exclusiveMinimum\":" : ",\"minimum\":")
+        if (spec.Minimum.HasValue)
+        {
+            builder
+                .Append(
+                    version == OpenApiVersion.V3_0 ? ",\"minimum\":"
+                    : spec.ExclusiveMinimum ? ",\"exclusiveMinimum\":"
+                    : ",\"minimum\":"
+                )
                 .Append(Number(spec.Minimum.Value));
 
-            if (version == OpenApiVersion.V3_0 && spec.ExclusiveMinimum) {
+            if (version == OpenApiVersion.V3_0 && spec.ExclusiveMinimum)
+            {
                 builder.Append(",\"exclusiveMinimum\":true");
             }
         }
 
-        if (spec.Maximum.HasValue) {
-            builder.Append(version == OpenApiVersion.V3_0
-                    ? ",\"maximum\":"
-                    : spec.ExclusiveMaximum ? ",\"exclusiveMaximum\":" : ",\"maximum\":")
+        if (spec.Maximum.HasValue)
+        {
+            builder
+                .Append(
+                    version == OpenApiVersion.V3_0 ? ",\"maximum\":"
+                    : spec.ExclusiveMaximum ? ",\"exclusiveMaximum\":"
+                    : ",\"maximum\":"
+                )
                 .Append(Number(spec.Maximum.Value));
 
-            if (version == OpenApiVersion.V3_0 && spec.ExclusiveMaximum) {
+            if (version == OpenApiVersion.V3_0 && spec.ExclusiveMaximum)
+            {
                 builder.Append(",\"exclusiveMaximum\":true");
             }
         }
 
-        if (spec.MinLength.HasValue) {
+        if (spec.MinLength.HasValue)
+        {
             builder.Append(",\"minLength\":").Append(spec.MinLength.Value);
         }
 
-        if (spec.MaxLength.HasValue) {
+        if (spec.MaxLength.HasValue)
+        {
             builder.Append(",\"maxLength\":").Append(spec.MaxLength.Value);
         }
 
-        if (!string.IsNullOrEmpty(spec.Pattern)) {
-            builder.Append(",\"pattern\":\"").Append(JsonSchemaWriter.Escape(spec.Pattern!)).Append('"');
+        if (!string.IsNullOrEmpty(spec.Pattern))
+        {
+            builder
+                .Append(",\"pattern\":\"")
+                .Append(JsonSchemaWriter.Escape(spec.Pattern!))
+                .Append('"');
         }
 
-        if (!string.IsNullOrEmpty(spec.Default)) {
+        if (!string.IsNullOrEmpty(spec.Default))
+        {
             builder.Append(",\"default\":").Append(DefaultLiteralJson(type, spec.Default!));
         }
     }
@@ -1831,13 +2248,18 @@ public static class OpenApiDocumentGenerator {
     /// textual. A default that does not parse as its declared type is written as a string rather
     /// than invalidating the document over it.
     /// </summary>
-    private static string DefaultLiteralJson(string type, string value) {
-        switch (type) {
+    private static string DefaultLiteralJson(string type, string value)
+    {
+        switch (type)
+        {
             case "integer":
             case "number":
                 return decimal.TryParse(
-                    value, System.Globalization.NumberStyles.Number,
-                    System.Globalization.CultureInfo.InvariantCulture, out var number)
+                    value,
+                    System.Globalization.NumberStyles.Number,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    out var number
+                )
                     ? Number(number)
                     : "\"" + JsonSchemaWriter.Escape(value) + "\"";
             case "boolean" when value is "true" or "false":
@@ -1856,18 +2278,24 @@ public static class OpenApiDocumentGenerator {
     /// application does not have.
     /// </remarks>
     private static string CodeFirstSchema(
-        ITypeDefinition type, IReadOnlyDictionary<string, EnumVocabulary> enums) {
+        ITypeDefinition type,
+        IReadOnlyDictionary<string, EnumVocabulary> enums
+    )
+    {
         var itemType = CollectionParameter.ItemType(type);
 
-        if (itemType == null) {
+        if (itemType == null)
+        {
             return EnumSchema(type, enums) ?? ScalarSchema(type);
         }
 
-        return "{\"type\":\"array\",\"items\":" +
-               (EnumSchema(itemType, enums) ?? ScalarSchema(itemType)) + "}";
+        return "{\"type\":\"array\",\"items\":"
+            + (EnumSchema(itemType, enums) ?? ScalarSchema(itemType))
+            + "}";
     }
 
-    private static string ScalarSchema(ITypeDefinition type) {
+    private static string ScalarSchema(ITypeDefinition type)
+    {
         // Two spellings of every predefined type reach here, and both must match. A bare `int`
         // parameter is built from its symbol and named "Int32"; `int?` is unwrapped through
         // TypeDefinition.Get(typeof(int)), whose whole point is the C# keyword name, so it
@@ -1876,13 +2304,24 @@ public static class OpenApiDocumentGenerator {
         // itself about what it is. The trailing '?' is the third spelling, trimmed.
         var name = type.Name.TrimEnd('?');
 
-        return name switch {
+        return name switch
+        {
             "String" or "string" or "Char" or "char" => "{\"type\":\"string\"}",
             "Boolean" or "bool" => "{\"type\":\"boolean\"}",
-            "Byte" or "byte" or "SByte" or "sbyte" or "Int16" or "short" or "UInt16" or "ushort"
-                or "Int32" or "int" or "UInt32" or "uint" =>
-                "{\"type\":\"integer\",\"format\":\"int32\"}",
-            "Int64" or "long" or "UInt64" or "ulong" => "{\"type\":\"integer\",\"format\":\"int64\"}",
+            "Byte"
+            or "byte"
+            or "SByte"
+            or "sbyte"
+            or "Int16"
+            or "short"
+            or "UInt16"
+            or "ushort"
+            or "Int32"
+            or "int"
+            or "UInt32"
+            or "uint" => "{\"type\":\"integer\",\"format\":\"int32\"}",
+            "Int64" or "long" or "UInt64" or "ulong" =>
+                "{\"type\":\"integer\",\"format\":\"int64\"}",
             "Single" or "float" => "{\"type\":\"number\",\"format\":\"float\"}",
             "Double" or "double" => "{\"type\":\"number\",\"format\":\"double\"}",
             "Decimal" or "decimal" => "{\"type\":\"number\"}",
@@ -1890,16 +2329,17 @@ public static class OpenApiDocumentGenerator {
             "DateOnly" => "{\"type\":\"string\",\"format\":\"date\"}",
             "Guid" => "{\"type\":\"string\",\"format\":\"uuid\"}",
             "Uri" => "{\"type\":\"string\",\"format\":\"uri\"}",
-            _ => "{\"type\":\"string\"}"
+            _ => "{\"type\":\"string\"}",
         };
     }
 
     private static string? Location(ParameterBindType bindType) =>
-        bindType switch {
+        bindType switch
+        {
             ParameterBindType.Path => "path",
             ParameterBindType.QueryString => "query",
             ParameterBindType.Header => "header",
             ParameterBindType.Cookie => "cookie",
-            _ => null
+            _ => null,
         };
 }

@@ -18,8 +18,8 @@ namespace Hardened.SourceGenerator.Tests.Requests;
 /// so a reintroduction fails on the exact line rather than somewhere downstream.
 /// </para>
 /// </summary>
-public class GeneratedCodeRegressionTests {
-
+public class GeneratedCodeRegressionTests
+{
     /// <summary>
     /// <c>[FromQueryString("q")]</c>. The name was read with <c>ToFullString()</c>, which returns
     /// the argument's <em>source text</em> — quotes included — and the emitter quoted it a second
@@ -27,11 +27,18 @@ public class GeneratedCodeRegressionTests {
     /// value instead (SyntaxNodeExtensions.GetFirstStringArgumentValue).
     /// </summary>
     [Fact]
-    public void ANamedQueryStringBindingEmitsASinglyQuotedName() {
-        var result = RequestGeneratorHarness.Generate(RequestGeneratorHarness.Controller("""
-                [Get("/search")]
-                public string Search([FromQueryString("q")] string term) => term;
-            """)).AssertNoErrors();
+    public void ANamedQueryStringBindingEmitsASinglyQuotedName()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                RequestGeneratorHarness.Controller(
+                    """
+                        [Get("/search")]
+                        public string Search([FromQueryString("q")] string term) => term;
+                    """
+                )
+            )
+            .AssertNoErrors();
 
         var source = result.SourceContaining("Search");
 
@@ -44,11 +51,18 @@ public class GeneratedCodeRegressionTests {
     /// README documents, and the one every multi-tenant handler uses.
     /// </summary>
     [Fact]
-    public void ANamedHeaderBindingEmitsASinglyQuotedName() {
-        var result = RequestGeneratorHarness.Generate(RequestGeneratorHarness.Controller("""
-                [Get("/tenant")]
-                public string Tenant([FromHeader("X-Tenant")] string tenant) => tenant;
-            """)).AssertNoErrors();
+    public void ANamedHeaderBindingEmitsASinglyQuotedName()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                RequestGeneratorHarness.Controller(
+                    """
+                        [Get("/tenant")]
+                        public string Tenant([FromHeader("X-Tenant")] string tenant) => tenant;
+                    """
+                )
+            )
+            .AssertNoErrors();
 
         var source = result.SourceContaining("Tenant");
 
@@ -61,21 +75,26 @@ public class GeneratedCodeRegressionTests {
     /// re-quoting path, and is the form a constant-driven header name usually takes.
     /// </summary>
     [Fact]
-    public void ABindingNameGivenAsAConstantIsResolvedToItsValue() {
-        var result = RequestGeneratorHarness.Generate("""
-            using Hardened.Web.Runtime.Attributes;
+    public void ABindingNameGivenAsAConstantIsResolvedToItsValue()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                """
+                using Hardened.Web.Runtime.Attributes;
 
-            namespace TestApp;
+                namespace TestApp;
 
-            public static class Headers {
-                public const string Tenant = "X-Tenant";
-            }
+                public static class Headers {
+                    public const string Tenant = "X-Tenant";
+                }
 
-            public class TenantController {
-                [Get("/tenant")]
-                public string Tenant([FromHeader(Headers.Tenant)] string tenant) => tenant;
-            }
-            """).AssertNoErrors();
+                public class TenantController {
+                    [Get("/tenant")]
+                    public string Tenant([FromHeader(Headers.Tenant)] string tenant) => tenant;
+                }
+                """
+            )
+            .AssertNoErrors();
 
         var source = result.SourceContaining("Tenant");
 
@@ -95,25 +114,31 @@ public class GeneratedCodeRegressionTests {
     /// </para>
     /// </summary>
     [Fact]
-    public void AHandlerWithMetadataAndNoParametersFillsTheParametersSlot() {
-        var result = RequestGeneratorHarness.Generate("""
-            using Hardened.Requests.Runtime.Filters;
-            using Hardened.Web.Runtime.Attributes;
+    public void AHandlerWithMetadataAndNoParametersFillsTheParametersSlot()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                """
+                using Hardened.Requests.Runtime.Filters;
+                using Hardened.Web.Runtime.Attributes;
 
-            namespace TestApp;
+                namespace TestApp;
 
-            public class HealthController {
-                [Get("/health")]
-                [Retry(Retries = 2)]
-                public string Health() => "ok";
-            }
-            """).AssertNoErrors();
+                public class HealthController {
+                    [Get("/health")]
+                    [Retry(Retries = 2)]
+                    public string Health() => "ok";
+                }
+                """
+            )
+            .AssertNoErrors();
 
         var source = result.SourceContaining("Health");
 
         Assert.Contains(
             "new global::Hardened.Requests.Runtime.Execution.ExecutionRequestHandlerInfo(\"/health\", \"GET\", typeof(global::TestApp.HealthController), \"Health\", null, _metadata)",
-            source);
+            source
+        );
     }
 
     /// <summary>
@@ -122,23 +147,29 @@ public class GeneratedCodeRegressionTests {
     /// here.
     /// </summary>
     [Fact]
-    public void AHandlerWithParametersAndNoMetadataPassesOnlyTheParameters() {
-        var result = RequestGeneratorHarness.Generate("""
-            using Hardened.Web.Runtime.Attributes;
+    public void AHandlerWithParametersAndNoMetadataPassesOnlyTheParameters()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                """
+                using Hardened.Web.Runtime.Attributes;
 
-            namespace TestApp;
+                namespace TestApp;
 
-            public class OrderController {
-                [Get("/orders/{id}")]
-                public string GetOrder(string id) => id;
-            }
-            """).AssertNoErrors();
+                public class OrderController {
+                    [Get("/orders/{id}")]
+                    public string GetOrder(string id) => id;
+                }
+                """
+            )
+            .AssertNoErrors();
 
         var source = result.SourceContaining("GetOrder");
 
         Assert.Contains(
             "new global::Hardened.Requests.Runtime.Execution.ExecutionRequestHandlerInfo(\"/orders/{id}\", \"GET\", typeof(global::TestApp.OrderController), \"GetOrder\", _parameterInfo)",
-            source);
+            source
+        );
         Assert.DoesNotContain("_metadata", source);
     }
 
@@ -146,23 +177,29 @@ public class GeneratedCodeRegressionTests {
     /// Both slots filled, which is the shape the fix has to keep working.
     /// </summary>
     [Fact]
-    public void AHandlerWithBothParametersAndMetadataPassesBothInOrder() {
-        var result = RequestGeneratorHarness.Generate("""
-            using Hardened.Requests.Runtime.Filters;
-            using Hardened.Web.Runtime.Attributes;
+    public void AHandlerWithBothParametersAndMetadataPassesBothInOrder()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                """
+                using Hardened.Requests.Runtime.Filters;
+                using Hardened.Web.Runtime.Attributes;
 
-            namespace TestApp;
+                namespace TestApp;
 
-            public class OrderController {
-                [Get("/orders/{id}")]
-                [Retry(Retries = 2)]
-                public string GetOrder(string id) => id;
-            }
-            """).AssertNoErrors();
+                public class OrderController {
+                    [Get("/orders/{id}")]
+                    [Retry(Retries = 2)]
+                    public string GetOrder(string id) => id;
+                }
+                """
+            )
+            .AssertNoErrors();
 
         Assert.Contains(
             "\"GetOrder\", _parameterInfo, _metadata)",
-            result.SourceContaining("GetOrder"));
+            result.SourceContaining("GetOrder")
+        );
     }
 
     /// <summary>
@@ -170,21 +207,27 @@ public class GeneratedCodeRegressionTests {
     /// and the only shape where the trailing arguments are both absent.
     /// </summary>
     [Fact]
-    public void AHandlerWithNeitherParametersNorMetadataPassesNeither() {
-        var result = RequestGeneratorHarness.Generate("""
-            using Hardened.Web.Runtime.Attributes;
+    public void AHandlerWithNeitherParametersNorMetadataPassesNeither()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                """
+                using Hardened.Web.Runtime.Attributes;
 
-            namespace TestApp;
+                namespace TestApp;
 
-            public class HealthController {
-                [Get("/health")]
-                public string Health() => "ok";
-            }
-            """).AssertNoErrors();
+                public class HealthController {
+                    [Get("/health")]
+                    public string Health() => "ok";
+                }
+                """
+            )
+            .AssertNoErrors();
 
         Assert.Contains(
             "new global::Hardened.Requests.Runtime.Execution.ExecutionRequestHandlerInfo(\"/health\", \"GET\", typeof(global::TestApp.HealthController), \"Health\")",
-            result.SourceContaining("Health"));
+            result.SourceContaining("Health")
+        );
     }
 
     /// <summary>
@@ -201,11 +244,18 @@ public class GeneratedCodeRegressionTests {
     /// </para>
     /// </summary>
     [Fact]
-    public void HeaderBindingResolvesGetOnThePlainHeaderDictionary() {
-        var result = RequestGeneratorHarness.Generate(RequestGeneratorHarness.Controller("""
-                [Get("/tenant")]
-                public string Tenant([FromHeader("X-Tenant")] string tenant) => tenant;
-            """)).AssertNoErrors();
+    public void HeaderBindingResolvesGetOnThePlainHeaderDictionary()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                RequestGeneratorHarness.Controller(
+                    """
+                        [Get("/tenant")]
+                        public string Tenant([FromHeader("X-Tenant")] string tenant) => tenant;
+                    """
+                )
+            )
+            .AssertNoErrors();
 
         var source = result.SourceContaining("Tenant");
 
@@ -218,13 +268,23 @@ public class GeneratedCodeRegressionTests {
     /// re-quote, so it stayed broken for the same reason and is fixed by the same extension.
     /// </summary>
     [Fact]
-    public void AnUnnamedHeaderBindingUsesTheParameterName() {
-        var result = RequestGeneratorHarness.Generate(RequestGeneratorHarness.Controller("""
-                [Get("/tenant")]
-                public string Tenant([FromHeader] string tenant) => tenant;
-            """)).AssertNoErrors();
+    public void AnUnnamedHeaderBindingUsesTheParameterName()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                RequestGeneratorHarness.Controller(
+                    """
+                        [Get("/tenant")]
+                        public string Tenant([FromHeader] string tenant) => tenant;
+                    """
+                )
+            )
+            .AssertNoErrors();
 
-        Assert.Contains("context.Request.Headers.Get(\"tenant\")", result.SourceContaining("Tenant"));
+        Assert.Contains(
+            "context.Request.Headers.Get(\"tenant\")",
+            result.SourceContaining("Tenant")
+        );
     }
 
     /// <summary>
@@ -232,25 +292,30 @@ public class GeneratedCodeRegressionTests {
     /// them together, and the parameters slot is exactly where a combination would go wrong.
     /// </summary>
     [Fact]
-    public void AllThreeRegressionShapesCompileTogether() {
-        var result = RequestGeneratorHarness.Generate("""
-            using Hardened.Requests.Runtime.Filters;
-            using Hardened.Web.Runtime.Attributes;
+    public void AllThreeRegressionShapesCompileTogether()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                """
+                using Hardened.Requests.Runtime.Filters;
+                using Hardened.Web.Runtime.Attributes;
 
-            namespace TestApp;
+                namespace TestApp;
 
-            public class TenantController {
-                [Get("/tenant/search")]
-                [Retry(Retries = 2)]
-                public string Search(
-                    [FromQueryString("q")] string term,
-                    [FromHeader("X-Tenant")] string tenant) => term + tenant;
+                public class TenantController {
+                    [Get("/tenant/search")]
+                    [Retry(Retries = 2)]
+                    public string Search(
+                        [FromQueryString("q")] string term,
+                        [FromHeader("X-Tenant")] string tenant) => term + tenant;
 
-                [Get("/tenant/health")]
-                [Retry(Retries = 2)]
-                public string Health() => "ok";
-            }
-            """).AssertNoErrors();
+                    [Get("/tenant/health")]
+                    [Retry(Retries = 2)]
+                    public string Health() => "ok";
+                }
+                """
+            )
+            .AssertNoErrors();
 
         Assert.Contains("_parameterInfo, _metadata)", result.SourceContaining("Search"));
         Assert.Contains("null, _metadata)", result.SourceContaining("Health"));

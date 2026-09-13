@@ -21,14 +21,18 @@ namespace Hardened.Smithy.BuildTask.Tests;
 /// in front of it.
 /// </para>
 /// </remarks>
-public class DanglingTargetTests {
-
-    private static ServiceSpecModel Parse(string shapes) {
+public class DanglingTargetTests
+{
+    private static ServiceSpecModel Parse(string shapes)
+    {
         var diagnostics = new List<string>();
         var model = SmithySpecParser.Parse(
             $$"""
-              { "smithy": "2.0", "shapes": { {{shapes}} } }
-              """, "depot", diagnostics);
+            { "smithy": "2.0", "shapes": { {{shapes}} } }
+            """,
+            "depot",
+            diagnostics
+        );
 
         Assert.NotNull(model);
 
@@ -46,14 +50,17 @@ public class DanglingTargetTests {
 
     /// <summary>An error shape bound to an operation that the model never declares.</summary>
     [Fact]
-    public void AnUndeclaredErrorShapeIsRecorded() {
-        var model = Parse($$"""
+    public void AnUndeclaredErrorShapeIsRecorded()
+    {
+        var model = Parse(
+            $$"""
             {{Service}},
             "com.example#Op": {
               "type": "operation",
               "errors": [ { "target": "com.example#NoSuchError" } ],
               "traits": { "smithy.api#http": { "method": "GET", "uri": "/x", "code": 200 } } }
-            """);
+            """
+        );
 
         var dangling = Assert.Single(model.DanglingReferences);
 
@@ -62,31 +69,35 @@ public class DanglingTargetTests {
     }
 
     [Fact]
-    public void AnUndeclaredInputShapeIsRecorded() {
-        var model = Parse($$"""
+    public void AnUndeclaredInputShapeIsRecorded()
+    {
+        var model = Parse(
+            $$"""
             {{Service}},
             "com.example#Op": {
               "type": "operation",
               "input": { "target": "com.example#NoSuchInput" },
               "traits": { "smithy.api#http": { "method": "POST", "uri": "/x", "code": 200 } } }
-            """);
+            """
+        );
 
-        Assert.Equal(
-            "com.example#NoSuchInput", Assert.Single(model.DanglingReferences).Reference);
+        Assert.Equal("com.example#NoSuchInput", Assert.Single(model.DanglingReferences).Reference);
     }
 
     [Fact]
-    public void AnUndeclaredOutputShapeIsRecorded() {
-        var model = Parse($$"""
+    public void AnUndeclaredOutputShapeIsRecorded()
+    {
+        var model = Parse(
+            $$"""
             {{Service}},
             "com.example#Op": {
               "type": "operation",
               "output": { "target": "com.example#NoSuchOutput" },
               "traits": { "smithy.api#http": { "method": "GET", "uri": "/x", "code": 200 } } }
-            """);
+            """
+        );
 
-        Assert.Equal(
-            "com.example#NoSuchOutput", Assert.Single(model.DanglingReferences).Reference);
+        Assert.Equal("com.example#NoSuchOutput", Assert.Single(model.DanglingReferences).Reference);
     }
 
     /// <summary>
@@ -105,7 +116,8 @@ public class DanglingTargetTests {
         """;
 
     [Fact]
-    public void AnUndeclaredOperationIsRecorded() {
+    public void AnUndeclaredOperationIsRecorded()
+    {
         var model = Parse(OneGoodOneMissing);
 
         var dangling = Assert.Single(model.DanglingReferences);
@@ -116,9 +128,9 @@ public class DanglingTargetTests {
 
     /// <summary>It stops the build, under the front end that read the model.</summary>
     [Fact]
-    public void ItStopsTheBuildUnderTheSmithyPrefix() {
-        var problem = Assert.Single(
-            Problems(Parse(OneGoodOneMissing)), p => p.Code == "HSMT027");
+    public void ItStopsTheBuildUnderTheSmithyPrefix()
+    {
+        var problem = Assert.Single(Problems(Parse(OneGoodOneMissing)), p => p.Code == "HSMT027");
 
         Assert.True(problem.Fatal);
         Assert.Contains("com.example#Missing", problem.Message);
@@ -126,8 +138,10 @@ public class DanglingTargetTests {
 
     /// <summary>A model that declares what it references says nothing.</summary>
     [Fact]
-    public void AModelThatResolvesIsSilent() {
-        var model = Parse($$"""
+    public void AModelThatResolvesIsSilent()
+    {
+        var model = Parse(
+            $$"""
             {{Service}},
             "com.example#Op": {
               "type": "operation",
@@ -136,7 +150,8 @@ public class DanglingTargetTests {
             "com.example#Out": {
               "type": "structure",
               "members": { "sku": { "target": "smithy.api#String" } } }
-            """);
+            """
+        );
 
         Assert.Empty(model.DanglingReferences);
         Assert.DoesNotContain(Problems(model), p => p.Code == "HSMT027");

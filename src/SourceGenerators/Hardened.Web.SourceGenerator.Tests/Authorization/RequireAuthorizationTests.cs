@@ -16,44 +16,50 @@ namespace Hardened.Web.SourceGenerator.Tests.Authorization;
 /// difference this makes is whether that is learned at build or from a 403 on one route in whatever
 /// environment somebody happened to exercise it in.
 /// </remarks>
-public class RequireAuthorizationTests {
+public class RequireAuthorizationTests
+{
     private const string DiagnosticId = "HAUTH001";
 
-    private static readonly Type[] Anchors = [
+    private static readonly Type[] Anchors =
+    [
         typeof(GetAttribute),
         typeof(FromBodyAttribute),
-        typeof(AllowAnonymousAttribute)
+        typeof(AllowAnonymousAttribute),
     ];
 
     private static GeneratorResult Generate(string moduleAttributes, string controllerBody) =>
         GeneratorTestHarness.Run(
-            new Dictionary<string, string> {
+            new Dictionary<string, string>
+            {
                 ["Test.cs"] = $$"""
-                    using Hardened.Shared.Runtime.Attributes;
-                    using Hardened.Web.Runtime.Attributes;
-                    using Hardened.Requests.Runtime.Authorization;
+                using Hardened.Shared.Runtime.Attributes;
+                using Hardened.Web.Runtime.Attributes;
+                using Hardened.Requests.Runtime.Authorization;
 
-                    namespace TestApp;
+                namespace TestApp;
 
-                    [HardenedModule]
-                    {{moduleAttributes}}
-                    public partial class TestApplication { }
+                [HardenedModule]
+                {{moduleAttributes}}
+                public partial class TestApplication { }
 
-                    public class UserController {
-                    {{controllerBody}}
-                    }
-                    """
+                public class UserController {
+                {{controllerBody}}
+                }
+                """,
             },
             new IIncrementalGenerator[] { new WebLibrarySourceGenerator() },
-            Anchors);
+            Anchors
+        );
 
-    private static IReadOnlyList<Diagnostic> Reported(string moduleAttributes, string controllerBody) =>
-        Generate(moduleAttributes, controllerBody).GeneratorDiagnostics
-            .Where(diagnostic => diagnostic.Id == DiagnosticId)
+    private static IReadOnlyList<Diagnostic> Reported(
+        string moduleAttributes,
+        string controllerBody
+    ) =>
+        Generate(moduleAttributes, controllerBody)
+            .GeneratorDiagnostics.Where(diagnostic => diagnostic.Id == DiagnosticId)
             .ToList();
 
-    private const string OneUnguardedHandler =
-        """
+    private const string OneUnguardedHandler = """
             [Get("/users")]
             public string All() => "";
         """;
@@ -65,7 +71,8 @@ public class RequireAuthorizationTests {
     /// application that has adopted none of this.
     /// </summary>
     [Fact]
-    public void AnApplicationThatHasNotOptedInReportsNothing() {
+    public void AnApplicationThatHasNotOptedInReportsNothing()
+    {
         Assert.Empty(Reported("", OneUnguardedHandler));
     }
 
@@ -74,7 +81,8 @@ public class RequireAuthorizationTests {
     #region opted in
 
     [Fact]
-    public void AnUnguardedHandlerIsReported() {
+    public void AnUnguardedHandlerIsReported()
+    {
         var reported = Assert.Single(Reported("[RequireAuthorization]", OneUnguardedHandler));
 
         Assert.Contains("UserController.All", reported.GetMessage());
@@ -85,14 +93,16 @@ public class RequireAuthorizationTests {
     /// on day one. CI turns warnings into errors, so an unannotated handler still cannot merge.
     /// </summary>
     [Fact]
-    public void ItIsAWarningByDefault() {
+    public void ItIsAWarningByDefault()
+    {
         var reported = Assert.Single(Reported("[RequireAuthorization]", OneUnguardedHandler));
 
         Assert.Equal(DiagnosticSeverity.Warning, reported.Severity);
     }
 
     [Fact]
-    public void EveryUnguardedHandlerIsReported() {
+    public void EveryUnguardedHandlerIsReported()
+    {
         var reported = Reported(
             "[RequireAuthorization]",
             """
@@ -101,7 +111,8 @@ public class RequireAuthorizationTests {
 
                 [Get("/users/{id}")]
                 public string ById(string id) => id;
-            """);
+            """
+        );
 
         Assert.Equal(2, reported.Count);
     }
@@ -111,14 +122,18 @@ public class RequireAuthorizationTests {
     #region saying something
 
     [Fact]
-    public void AHandlerWithAGrantAttributeIsNotReported() {
-        Assert.Empty(Reported(
-            "[RequireAuthorization]",
-            """
-                [Get("/users")]
-                [AuthorizeGrants("users:read")]
-                public string All() => "";
-            """));
+    public void AHandlerWithAGrantAttributeIsNotReported()
+    {
+        Assert.Empty(
+            Reported(
+                "[RequireAuthorization]",
+                """
+                    [Get("/users")]
+                    [AuthorizeGrants("users:read")]
+                    public string All() => "";
+                """
+            )
+        );
     }
 
     /// <summary>
@@ -138,18 +153,22 @@ public class RequireAuthorizationTests {
     /// </para>
     /// </remarks>
     [Fact]
-    public void AHandlerGuardedByADerivedAttributeIsNotReported() {
-        Assert.Empty(Reported(
-            "[RequireAuthorization]",
-            """
-                public sealed class RequiresUserReadAttribute : AuthorizeGrantsAttribute {
-                    public RequiresUserReadAttribute() : base("users:read") { }
-                }
+    public void AHandlerGuardedByADerivedAttributeIsNotReported()
+    {
+        Assert.Empty(
+            Reported(
+                "[RequireAuthorization]",
+                """
+                    public sealed class RequiresUserReadAttribute : AuthorizeGrantsAttribute {
+                        public RequiresUserReadAttribute() : base("users:read") { }
+                    }
 
-                [Get("/users")]
-                [RequiresUserRead]
-                public string All() => "";
-            """));
+                    [Get("/users")]
+                    [RequiresUserRead]
+                    public string All() => "";
+                """
+            )
+        );
     }
 
     /// <summary>
@@ -157,20 +176,24 @@ public class RequireAuthorizationTests {
     /// honours without it deriving from anything of the framework's.
     /// </summary>
     [Fact]
-    public void AHandlerGuardedByACustomAuthorizeAttributeIsNotReported() {
-        Assert.Empty(Reported(
-            "[RequireAuthorization]",
-            """
-                public sealed class TenantMemberAttribute
-                    : System.Attribute, Hardened.Requests.Abstract.Authorization.IAuthorizeAttribute {
-                    public Hardened.Requests.Abstract.Authorization.Requirement Requirement { get; } =
-                        Hardened.Requests.Abstract.Authorization.Requirement.Grant("tenant:member");
-                }
+    public void AHandlerGuardedByACustomAuthorizeAttributeIsNotReported()
+    {
+        Assert.Empty(
+            Reported(
+                "[RequireAuthorization]",
+                """
+                    public sealed class TenantMemberAttribute
+                        : System.Attribute, Hardened.Requests.Abstract.Authorization.IAuthorizeAttribute {
+                        public Hardened.Requests.Abstract.Authorization.Requirement Requirement { get; } =
+                            Hardened.Requests.Abstract.Authorization.Requirement.Grant("tenant:member");
+                    }
 
-                [Get("/users")]
-                [TenantMember]
-                public string All() => "";
-            """));
+                    [Get("/users")]
+                    [TenantMember]
+                    public string All() => "";
+                """
+            )
+        );
     }
 
     /// <summary>
@@ -183,16 +206,20 @@ public class RequireAuthorizationTests {
     /// negative this exists to prevent.
     /// </remarks>
     [Fact]
-    public void AHandlerCarryingAnUnrelatedAuthorizeAttributeIsStillReported() {
-        Assert.Single(Reported(
-            "[RequireAuthorization]",
-            """
-                public sealed class SomeOtherFrameworksAuthorizeAttribute : System.Attribute { }
+    public void AHandlerCarryingAnUnrelatedAuthorizeAttributeIsStillReported()
+    {
+        Assert.Single(
+            Reported(
+                "[RequireAuthorization]",
+                """
+                    public sealed class SomeOtherFrameworksAuthorizeAttribute : System.Attribute { }
 
-                [Get("/users")]
-                [SomeOtherFrameworksAuthorize]
-                public string All() => "";
-            """));
+                    [Get("/users")]
+                    [SomeOtherFrameworksAuthorize]
+                    public string All() => "";
+                """
+            )
+        );
     }
 
     /// <summary>
@@ -200,14 +227,18 @@ public class RequireAuthorizationTests {
     /// silence this as surely as a policy does.
     /// </summary>
     [Fact]
-    public void AHandlerWithAllowAnonymousIsNotReported() {
-        Assert.Empty(Reported(
-            "[RequireAuthorization]",
-            """
-                [Get("/health")]
-                [AllowAnonymous]
-                public string Health() => "";
-            """));
+    public void AHandlerWithAllowAnonymousIsNotReported()
+    {
+        Assert.Empty(
+            Reported(
+                "[RequireAuthorization]",
+                """
+                    [Get("/health")]
+                    [AllowAnonymous]
+                    public string Health() => "";
+                """
+            )
+        );
     }
 
     /// <summary>
@@ -215,32 +246,35 @@ public class RequireAuthorizationTests {
     /// pipeline reads it too - a handler's filters carry its controller's attributes.
     /// </summary>
     [Fact]
-    public void AControllerLevelAttributeCoversEveryHandlerInIt() {
+    public void AControllerLevelAttributeCoversEveryHandlerInIt()
+    {
         var result = GeneratorTestHarness.Run(
-            new Dictionary<string, string> {
+            new Dictionary<string, string>
+            {
                 ["Test.cs"] = """
-                    using Hardened.Shared.Runtime.Attributes;
-                    using Hardened.Web.Runtime.Attributes;
-                    using Hardened.Requests.Runtime.Authorization;
+                using Hardened.Shared.Runtime.Attributes;
+                using Hardened.Web.Runtime.Attributes;
+                using Hardened.Requests.Runtime.Authorization;
 
-                    namespace TestApp;
+                namespace TestApp;
 
-                    [HardenedModule]
-                    [RequireAuthorization]
-                    public partial class TestApplication { }
+                [HardenedModule]
+                [RequireAuthorization]
+                public partial class TestApplication { }
 
-                    [AuthorizeGrants("users:read")]
-                    public class UserController {
-                        [Get("/users")]
-                        public string All() => "";
+                [AuthorizeGrants("users:read")]
+                public class UserController {
+                    [Get("/users")]
+                    public string All() => "";
 
-                        [Get("/users/{id}")]
-                        public string ById(string id) => id;
-                    }
-                    """
+                    [Get("/users/{id}")]
+                    public string ById(string id) => id;
+                }
+                """,
             },
             new IIncrementalGenerator[] { new WebLibrarySourceGenerator() },
-            Anchors);
+            Anchors
+        );
 
         Assert.Empty(result.GeneratorDiagnostics.Where(d => d.Id == DiagnosticId));
     }
@@ -250,17 +284,21 @@ public class RequireAuthorizationTests {
     /// controller passing because something in it said something.
     /// </summary>
     [Fact]
-    public void OnlyTheHandlerThatSaidNothingIsReported() {
-        var reported = Assert.Single(Reported(
-            "[RequireAuthorization]",
-            """
-                [Get("/users")]
-                [AuthorizeGrants("users:read")]
-                public string All() => "";
+    public void OnlyTheHandlerThatSaidNothingIsReported()
+    {
+        var reported = Assert.Single(
+            Reported(
+                "[RequireAuthorization]",
+                """
+                    [Get("/users")]
+                    [AuthorizeGrants("users:read")]
+                    public string All() => "";
 
-                [Get("/users/{id}")]
-                public string ById(string id) => id;
-            """));
+                    [Get("/users/{id}")]
+                    public string ById(string id) => id;
+                """
+            )
+        );
 
         Assert.Contains("UserController.ById", reported.GetMessage());
     }
@@ -279,7 +317,8 @@ public class RequireAuthorizationTests {
     /// value.
     /// </remarks>
     [Fact]
-    public void TheDiagnosticPointsAtTheHandlerThatSaidNothing() {
+    public void TheDiagnosticPointsAtTheHandlerThatSaidNothing()
+    {
         var reported = Assert.Single(Reported("[RequireAuthorization]", OneUnguardedHandler));
 
         Assert.NotEqual(Location.None, reported.Location);
@@ -296,7 +335,8 @@ public class RequireAuthorizationTests {
         // The identifier, so an editor underlines the name rather than the whole method.
         Assert.Equal(
             "All".Length,
-            span.EndLinePosition.Character - span.StartLinePosition.Character);
+            span.EndLinePosition.Character - span.StartLinePosition.Character
+        );
     }
 
     #endregion
@@ -321,35 +361,38 @@ public class RequireAuthorizationTests {
     /// </para>
     /// </remarks>
     [Fact]
-    public void ReportingDoesNotCostTheGeneratedOutputItsCaching() {
-        string App(string extra) => $$"""
-            using Hardened.Shared.Runtime.Attributes;
-            using Hardened.Web.Runtime.Attributes;
-            using Hardened.Requests.Runtime.Authorization;
+    public void ReportingDoesNotCostTheGeneratedOutputItsCaching()
+    {
+        string App(string extra) =>
+            $$"""
+                using Hardened.Shared.Runtime.Attributes;
+                using Hardened.Web.Runtime.Attributes;
+                using Hardened.Requests.Runtime.Authorization;
 
-            namespace TestApp;
+                namespace TestApp;
 
-            [HardenedModule]
-            [RequireAuthorization]
-            [Hardened.Shared.Runtime.Attributes.Enable<Hardened.Web.Runtime.OpenApi.OpenApiDocumentPublishing>]
-            public partial class TestApplication { }
+                [HardenedModule]
+                [RequireAuthorization]
+                [Hardened.Shared.Runtime.Attributes.Enable<Hardened.Web.Runtime.OpenApi.OpenApiDocumentPublishing>]
+                public partial class TestApplication { }
 
-            public class UserController {
-                {{extra}}
+                public class UserController {
+                    {{extra}}
 
-                [Get("/users")]
-                public string All() => "";
+                    [Get("/users")]
+                    public string All() => "";
 
-                [Get("/users/{id}")]
-                public string ById(string id) => id;
-            }
-            """;
+                    [Get("/users/{id}")]
+                    public string ById(string id) => id;
+                }
+                """;
 
         var result = GeneratorTestHarness.RunIncremental(
             new Dictionary<string, string> { ["Test.cs"] = App("") },
             new Dictionary<string, string> { ["Test.cs"] = App("// a comment") },
             new IIncrementalGenerator[] { new WebLibrarySourceGenerator() },
-            Anchors);
+            Anchors
+        );
 
         // Nothing the generator emitted changed.
         Assert.Equal(result.FirstRun, result.SecondRun);
@@ -367,15 +410,19 @@ public class RequireAuthorizationTests {
         // The routing-generator marker is not one of them. Post-initialization output is written
         // once for the compilation and has no incremental step at all, which is better than cached
         // rather than worse - so it is taken out of the count rather than expected in it.
-        var cached = result.OutputReasons.Count(
-            reason => reason == IncrementalStepRunReason.Cached);
+        var cached = result.OutputReasons.Count(reason =>
+            reason == IncrementalStepRunReason.Cached
+        );
 
-        var fromSteps = result.FirstRun.Count(
-            source => !source.Key.Contains("Hardened.Web.Marker"));
+        var fromSteps = result.FirstRun.Count(source =>
+            !source.Key.Contains("Hardened.Web.Marker")
+        );
 
-        Assert.True(cached >= fromSteps,
-            $"{cached} outputs were served from cache and {fromSteps} generated files have a step " +
-            "behind them, so at least one was rebuilt by an edit that changed nothing.");
+        Assert.True(
+            cached >= fromSteps,
+            $"{cached} outputs were served from cache and {fromSteps} generated files have a step "
+                + "behind them, so at least one was rebuilt by an edit that changed nothing."
+        );
     }
 
     #endregion
@@ -388,14 +435,18 @@ public class RequireAuthorizationTests {
     /// generator never sees, in a referenced assembly it never compiled.
     /// </summary>
     [Fact]
-    public void OptingInEmitsTheRuntimeRegistration() {
+    public void OptingInEmitsTheRuntimeRegistration()
+    {
         var sources = Generate("[RequireAuthorization]", OneUnguardedHandler).GeneratedSources;
 
         Assert.Contains(
             sources.Values,
-            source => source.Contains(
-                "Hardened.Requests.Runtime.Authorization.AuthorizationServiceCollectionExtensions" +
-                ".RequireAuthorization("));
+            source =>
+                source.Contains(
+                    "Hardened.Requests.Runtime.Authorization.AuthorizationServiceCollectionExtensions"
+                        + ".RequireAuthorization("
+                )
+        );
     }
 
     /// <summary>
@@ -403,12 +454,15 @@ public class RequireAuthorizationTests {
     /// startup changes.
     /// </summary>
     [Fact]
-    public void NotOptingInEmitsNoRegistration() {
+    public void NotOptingInEmitsNoRegistration()
+    {
         var sources = Generate("", OneUnguardedHandler).GeneratedSources;
 
         Assert.DoesNotContain(
             sources.Values,
-            source => source.Contains("AuthorizationServiceCollectionExtensions.RequireAuthorization("));
+            source =>
+                source.Contains("AuthorizationServiceCollectionExtensions.RequireAuthorization(")
+        );
     }
 
     #endregion

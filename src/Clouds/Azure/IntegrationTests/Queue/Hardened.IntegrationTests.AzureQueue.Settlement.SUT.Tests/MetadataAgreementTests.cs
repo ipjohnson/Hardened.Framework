@@ -8,10 +8,16 @@ namespace Hardened.IntegrationTests.AzureQueue.Settlement.SUT.Tests;
 /// The provider the generator wrote and the file the Worker SDK's build task wrote describe the
 /// same queue function, and both say the host is not to complete on its behalf.
 /// </summary>
-public class MetadataAgreementTests {
+public class MetadataAgreementTests
+{
     [Fact]
-    public async Task TheProviderAndTheBuildTaskAgree() {
-        Assert.Empty(await MetadataAgreement.Disagreements(new SettlementTestAppAzureFunctionMetadataProvider()));
+    public async Task TheProviderAndTheBuildTaskAgree()
+    {
+        Assert.Empty(
+            await MetadataAgreement.Disagreements(
+                new SettlementTestAppAzureFunctionMetadataProvider()
+            )
+        );
     }
 
     /// <summary>
@@ -19,11 +25,18 @@ public class MetadataAgreementTests {
     /// every message the function abandoned.
     /// </summary>
     [Fact]
-    public async Task TheBindingTurnsOffTheHostsCompletion() {
+    public async Task TheBindingTurnsOffTheHostsCompletion()
+    {
         var function = Assert.Single(
-            await new SettlementTestAppAzureFunctionMetadataProvider().GetFunctionMetadataAsync(AppContext.BaseDirectory));
+            await new SettlementTestAppAzureFunctionMetadataProvider().GetFunctionMetadataAsync(
+                AppContext.BaseDirectory
+            )
+        );
 
-        var trigger = Assert.Single(function.RawBindings!, binding => binding.Contains("serviceBusTrigger"));
+        var trigger = Assert.Single(
+            function.RawBindings!,
+            binding => binding.Contains("serviceBusTrigger")
+        );
 
         Assert.Contains("\"autoCompleteMessages\":false", trigger);
     }

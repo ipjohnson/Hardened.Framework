@@ -1,5 +1,5 @@
-using Amazon.Lambda.RuntimeSupport;
 using Amazon.Lambda.Core;
+using Amazon.Lambda.RuntimeSupport;
 using Hardened.Shared.Runtime.Application;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -22,7 +22,8 @@ namespace Hardened.Aws.Lambda.Runtime.Hosting;
 /// day failing while every subsequent one on a warm sandbox succeeds.
 /// </para>
 /// </remarks>
-public static class HardenedLambdaBootstrap {
+public static class HardenedLambdaBootstrap
+{
     /// <summary>
     /// Serves invocations until the sandbox is shut down.
     /// </summary>
@@ -33,7 +34,10 @@ public static class HardenedLambdaBootstrap {
     /// Stops the loop. See the overload below for why a deployed function never uses it.
     /// </param>
     public static async Task Run(
-        IServiceProvider serviceProvider, CancellationToken cancellationToken = default) {
+        IServiceProvider serviceProvider,
+        CancellationToken cancellationToken = default
+    )
+    {
         // Through the guard, so the services run once per provider however the host was reached -
         // the same call KestrelServerRunner.StartAsync makes, and for the same reason.
         //
@@ -61,7 +65,10 @@ public static class HardenedLambdaBootstrap {
     /// of something larger, and for a test that has to get its process back.
     /// </param>
     public static async Task Run(
-        LambdaInvocationHandler handler, CancellationToken cancellationToken = default) {
+        LambdaInvocationHandler handler,
+        CancellationToken cancellationToken = default
+    )
+    {
         // Constructed rather than built through LambdaBootstrapBuilder, whose Create overloads
         // resolve a lambda to Action<Stream, ILambdaContext, MemoryStream> before they reach
         // LambdaBootstrapHandler. Nothing in the builder is wanted here anyway: there is no
@@ -80,5 +87,6 @@ public static class HardenedLambdaBootstrap {
     /// </remarks>
     private static LambdaBootstrapHandler Handler(LambdaInvocationHandler handler) =>
         async request => new InvocationResponse(
-            await handler.Invoke(request.InputStream, request.LambdaContext));
+            await handler.Invoke(request.InputStream, request.LambdaContext)
+        );
 }

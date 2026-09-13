@@ -10,7 +10,8 @@ namespace Hardened.Requests.Abstract.Authorization;
 /// silent change to what the framework permits, which is the same class of defect as the
 /// <c>bool?</c> this replaced.
 /// </remarks>
-public static class AuthorizationDecisions {
+public static class AuthorizationDecisions
+{
     /// <summary>
     /// Combines two decisions.
     /// </summary>
@@ -30,17 +31,26 @@ public static class AuthorizationDecisions {
     /// contributors were registered or consulted in.
     /// </para>
     /// </remarks>
-    public static AuthorizationDecision Combine(AuthorizationDecision left, AuthorizationDecision right) {
-        if (left == AuthorizationDecision.Deny || right == AuthorizationDecision.Deny) {
+    public static AuthorizationDecision Combine(
+        AuthorizationDecision left,
+        AuthorizationDecision right
+    )
+    {
+        if (left == AuthorizationDecision.Deny || right == AuthorizationDecision.Deny)
+        {
             return AuthorizationDecision.Deny;
         }
 
-        if (left == AuthorizationDecision.DenyInsufficientAuthentication ||
-            right == AuthorizationDecision.DenyInsufficientAuthentication) {
+        if (
+            left == AuthorizationDecision.DenyInsufficientAuthentication
+            || right == AuthorizationDecision.DenyInsufficientAuthentication
+        )
+        {
             return AuthorizationDecision.DenyInsufficientAuthentication;
         }
 
-        if (left == AuthorizationDecision.Allow || right == AuthorizationDecision.Allow) {
+        if (left == AuthorizationDecision.Allow || right == AuthorizationDecision.Allow)
+        {
             return AuthorizationDecision.Allow;
         }
 
@@ -55,16 +65,19 @@ public static class AuthorizationDecisions {
     /// is the whole point: no contributors registered has to reach the same answer as every
     /// contributor abstaining, because they are indistinguishable from here.
     /// </remarks>
-    public static AuthorizationDecision Combine(IEnumerable<AuthorizationDecision> decisions) {
+    public static AuthorizationDecision Combine(IEnumerable<AuthorizationDecision> decisions)
+    {
         ArgumentNullException.ThrowIfNull(decisions);
 
         var combined = AuthorizationDecision.Abstain;
 
-        foreach (var decision in decisions) {
+        foreach (var decision in decisions)
+        {
             combined = Combine(combined, decision);
 
             // Nothing outranks a deny, so there is no reason to keep asking.
-            if (combined == AuthorizationDecision.Deny) {
+            if (combined == AuthorizationDecision.Deny)
+            {
                 break;
             }
         }

@@ -20,12 +20,16 @@ namespace Hardened.Requests.Runtime.Filters;
 /// everything past the first.
 /// </para>
 /// </remarks>
-public class ConditionalFilterProvider : IRequestFilterProvider {
+public class ConditionalFilterProvider : IRequestFilterProvider
+{
     private readonly IRequestFilterProvider _provider;
     private readonly Func<IExecutionRequestHandlerInfo, bool> _when;
 
     public ConditionalFilterProvider(
-        IRequestFilterProvider provider, Func<IExecutionRequestHandlerInfo, bool> when) {
+        IRequestFilterProvider provider,
+        Func<IExecutionRequestHandlerInfo, bool> when
+    )
+    {
         _provider = provider;
         _when = when;
     }

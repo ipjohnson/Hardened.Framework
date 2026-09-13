@@ -33,12 +33,16 @@ public record ObservedResponse(
     int StatusCode,
     IReadOnlyDictionary<string, IReadOnlyList<string>> Headers,
     IReadOnlyList<string> SetCookies,
-    byte[] Body) {
-
+    byte[] Body
+)
+{
     /// <summary>The first value of a header, or null. Names are matched as they are over the wire.</summary>
-    public string? Header(string name) {
-        foreach (var pair in Headers) {
-            if (string.Equals(pair.Key, name, StringComparison.OrdinalIgnoreCase)) {
+    public string? Header(string name)
+    {
+        foreach (var pair in Headers)
+        {
+            if (string.Equals(pair.Key, name, StringComparison.OrdinalIgnoreCase))
+            {
                 return pair.Value.Count > 0 ? pair.Value[0] : null;
             }
         }

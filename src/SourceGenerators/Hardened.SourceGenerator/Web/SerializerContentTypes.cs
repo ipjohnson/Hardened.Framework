@@ -29,8 +29,10 @@ namespace Hardened.SourceGenerator.Web;
 /// <c>HandlerValidationGenerator</c> makes the identical move with a bool.
 /// </para>
 /// </remarks>
-public static class SerializerContentTypes {
-    private const string AttributeName = "Hardened.Requests.Abstract.Attributes.WritesContentTypeAttribute";
+public static class SerializerContentTypes
+{
+    private const string AttributeName =
+        "Hardened.Requests.Abstract.Attributes.WritesContentTypeAttribute";
 
     /// <summary>
     /// <c>application/json</c> is always here. The framework registers a serializer for it, and an
@@ -39,12 +41,14 @@ public static class SerializerContentTypes {
     /// </summary>
     public const string AlwaysWritable = "application/json";
 
-    public static string Read(Compilation compilation) {
+    public static string Read(Compilation compilation)
+    {
         var found = new SortedSet<string>(StringComparer.OrdinalIgnoreCase) { AlwaysWritable };
 
         Collect(compilation.Assembly, found);
 
-        foreach (var reference in compilation.SourceModule.ReferencedAssemblySymbols) {
+        foreach (var reference in compilation.SourceModule.ReferencedAssemblySymbols)
+        {
             Collect(reference, found);
         }
 
@@ -61,9 +65,12 @@ public static class SerializerContentTypes {
     /// tag, and it is the lookup the compile-time binding uses. A wildcard match here would go
     /// quiet for a spelling the locator will not find.
     /// </remarks>
-    public static bool Writes(string writable, string contentType) {
-        foreach (var declared in writable.Split(',')) {
-            if (declared.Equals(contentType, StringComparison.OrdinalIgnoreCase)) {
+    public static bool Writes(string writable, string contentType)
+    {
+        foreach (var declared in writable.Split(','))
+        {
+            if (declared.Equals(contentType, StringComparison.OrdinalIgnoreCase))
+            {
                 return true;
             }
         }
@@ -71,18 +78,24 @@ public static class SerializerContentTypes {
         return false;
     }
 
-    private static void Collect(IAssemblySymbol assembly, ISet<string> found) {
-        foreach (var attribute in assembly.GetAttributes()) {
-            if (attribute.AttributeClass?.ToDisplayString() != AttributeName) {
+    private static void Collect(IAssemblySymbol assembly, ISet<string> found)
+    {
+        foreach (var attribute in assembly.GetAttributes())
+        {
+            if (attribute.AttributeClass?.ToDisplayString() != AttributeName)
+            {
                 continue;
             }
 
-            if (attribute.ConstructorArguments.Length != 1) {
+            if (attribute.ConstructorArguments.Length != 1)
+            {
                 continue;
             }
 
-            foreach (var value in attribute.ConstructorArguments[0].Values) {
-                if (value.Value is string contentType && contentType.Length > 0) {
+            foreach (var value in attribute.ConstructorArguments[0].Values)
+            {
+                if (value.Value is string contentType && contentType.Length > 0)
+                {
                     found.Add(contentType);
                 }
             }

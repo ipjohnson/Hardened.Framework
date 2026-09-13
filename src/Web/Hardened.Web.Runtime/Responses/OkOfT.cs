@@ -1,6 +1,5 @@
-using Microsoft.Extensions.Primitives;
-
 using Hardened.Requests.Abstract.Responses;
+using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Web.Runtime.Responses;
 
@@ -35,9 +34,11 @@ namespace Hardened.Web.Runtime.Responses;
 /// </remarks>
 [HttpStatus(200)]
 public sealed record Ok<T>(T Value, IReadOnlyDictionary<string, string>? Headers = null)
-    : IHttpStatusResponse, IProvidesResponseHeaders, ICarriesResponseBody,
-        IResponseExpectation<Ok<T>> {
-
+    : IHttpStatusResponse,
+        IProvidesResponseHeaders,
+        ICarriesResponseBody,
+        IResponseExpectation<Ok<T>>
+{
     /// <summary>
     /// A 200 carrying one header, which is the common case - an <c>ETag</c>.
     /// </summary>
@@ -50,12 +51,15 @@ public sealed record Ok<T>(T Value, IReadOnlyDictionary<string, string>? Headers
 
     object? ICarriesResponseBody.Body => Value;
 
-    public void ApplyHeaders(IDictionary<string, StringValues> headers) {
-        if (Headers == null) {
+    public void ApplyHeaders(IDictionary<string, StringValues> headers)
+    {
+        if (Headers == null)
+        {
             return;
         }
 
-        foreach (var header in Headers) {
+        foreach (var header in Headers)
+        {
             headers[header.Key] = header.Value;
         }
     }
@@ -63,7 +67,6 @@ public sealed record Ok<T>(T Value, IReadOnlyDictionary<string, string>? Headers
     // Every response header, not only the ones this record was constructed with: the read side
     // cannot tell a header a handler added from one the pipeline did, and a test asking for one
     // wants it either way.
-    public static Ok<T> FromResponse(
-        object? body, IReadOnlyDictionary<string, string> headers) =>
+    public static Ok<T> FromResponse(object? body, IReadOnlyDictionary<string, string> headers) =>
         new(ResponseExpectation.Body<T>(body), headers);
 }

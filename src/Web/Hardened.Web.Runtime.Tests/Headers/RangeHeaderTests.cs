@@ -1,6 +1,6 @@
 using Hardened.Requests.Abstract.Headers;
-using Microsoft.Extensions.Primitives;
 using Hardened.Web.Runtime.Headers;
+using Microsoft.Extensions.Primitives;
 using Xunit;
 
 namespace Hardened.Web.Runtime.Tests.Headers;
@@ -16,13 +16,16 @@ namespace Hardened.Web.Runtime.Tests.Headers;
 /// so every case below says which it is.
 /// </para>
 /// </summary>
-public class RangeHeaderTests {
-
+public class RangeHeaderTests
+{
     private const long Length = 1000;
 
     private static RangeResult Resolve(string? header, out ByteRange range) =>
         RangeHeader.Resolve(
-            header == null ? StringValues.Empty : new StringValues(header), Length, out range);
+            header == null ? StringValues.Empty : new StringValues(header),
+            Length,
+            out range
+        );
 
     #region ranges that resolve
 
@@ -31,7 +34,8 @@ public class RangeHeaderTests {
     [InlineData("bytes=500-999", 500, 999)]
     [InlineData("bytes=0-0", 0, 0)]
     [InlineData("bytes=999-999", 999, 999)]
-    public void AClosedRangeResolvesToItself(string header, long from, long to) {
+    public void AClosedRangeResolvesToItself(string header, long from, long to)
+    {
         Assert.Equal(RangeResult.Satisfiable, Resolve(header, out var range));
         Assert.Equal(from, range.From);
         Assert.Equal(to, range.To);
@@ -39,7 +43,8 @@ public class RangeHeaderTests {
 
     /// <summary>An open end means "to the end", which is what a media element sends first.</summary>
     [Fact]
-    public void AnOpenEndedRangeRunsToTheEnd() {
+    public void AnOpenEndedRangeRunsToTheEnd()
+    {
         Assert.Equal(RangeResult.Satisfiable, Resolve("bytes=500-", out var range));
         Assert.Equal(500, range.From);
         Assert.Equal(999, range.To);
@@ -52,7 +57,8 @@ public class RangeHeaderTests {
     [Theory]
     [InlineData("bytes=-500", 500, 999)]
     [InlineData("bytes=-1", 999, 999)]
-    public void ASuffixRangeIsTheEndOfTheResource(string header, long from, long to) {
+    public void ASuffixRangeIsTheEndOfTheResource(string header, long from, long to)
+    {
         Assert.Equal(RangeResult.Satisfiable, Resolve(header, out var range));
         Assert.Equal(from, range.From);
         Assert.Equal(to, range.To);
@@ -60,7 +66,8 @@ public class RangeHeaderTests {
 
     /// <summary>A suffix longer than the resource is the whole resource, not an error.</summary>
     [Fact]
-    public void ASuffixLongerThanTheResourceIsTheWholeResource() {
+    public void ASuffixLongerThanTheResourceIsTheWholeResource()
+    {
         Assert.Equal(RangeResult.Satisfiable, Resolve("bytes=-5000", out var range));
         Assert.Equal(0, range.From);
         Assert.Equal(999, range.To);
@@ -68,7 +75,8 @@ public class RangeHeaderTests {
 
     /// <summary>An end past the last byte is clamped rather than refused - the start was valid.</summary>
     [Fact]
-    public void AnEndPastTheResourceIsClamped() {
+    public void AnEndPastTheResourceIsClamped()
+    {
         Assert.Equal(RangeResult.Satisfiable, Resolve("bytes=900-5000", out var range));
         Assert.Equal(900, range.From);
         Assert.Equal(999, range.To);
@@ -78,7 +86,8 @@ public class RangeHeaderTests {
     [InlineData("bytes = 0-499")]
     [InlineData("BYTES=0-499")]
     [InlineData("  bytes=0-499  ")]
-    public void WhitespaceAndCaseDoNotMatter(string header) {
+    public void WhitespaceAndCaseDoNotMatter(string header)
+    {
         Assert.Equal(RangeResult.Satisfiable, Resolve(header, out _));
     }
 
@@ -95,7 +104,8 @@ public class RangeHeaderTests {
     [InlineData("bytes=1000-")]
     [InlineData("bytes=1000-1500")]
     [InlineData("bytes=5000-6000")]
-    public void AStartPastTheEndIsUnsatisfiable(string header) {
+    public void AStartPastTheEndIsUnsatisfiable(string header)
+    {
         Assert.Equal(RangeResult.Unsatisfiable, Resolve(header, out _));
     }
 
@@ -106,15 +116,18 @@ public class RangeHeaderTests {
     [Theory]
     [InlineData("bytes=0-")]
     [InlineData("bytes=-100")]
-    public void NoRangeOverAnEmptyResourceIsSatisfiable(string header) {
+    public void NoRangeOverAnEmptyResourceIsSatisfiable(string header)
+    {
         Assert.Equal(
             RangeResult.Unsatisfiable,
-            RangeHeader.Resolve(new StringValues(header), 0, out _));
+            RangeHeader.Resolve(new StringValues(header), 0, out _)
+        );
     }
 
     /// <summary>The length a 416 names, which is how a client that guessed wrong learns what to ask.</summary>
     [Fact]
-    public void AnUnsatisfiedRangeNamesTheLength() {
+    public void AnUnsatisfiedRangeNamesTheLength()
+    {
         Assert.Equal("bytes */1000", ByteRange.Unsatisfied(Length));
     }
 
@@ -123,7 +136,8 @@ public class RangeHeaderTests {
     #region ranges that are ignored
 
     [Fact]
-    public void NoHeaderIsNoRange() {
+    public void NoHeaderIsNoRange()
+    {
         Assert.Equal(RangeResult.None, Resolve(null, out _));
     }
 
@@ -134,7 +148,8 @@ public class RangeHeaderTests {
     [Theory]
     [InlineData("bytes=0-99,200-299")]
     [InlineData("bytes=0-99, 200-299, 400-499")]
-    public void AMultipleRangeRequestIsIgnored(string header) {
+    public void AMultipleRangeRequestIsIgnored(string header)
+    {
         Assert.Equal(RangeResult.None, Resolve(header, out _));
     }
 
@@ -155,7 +170,8 @@ public class RangeHeaderTests {
     [InlineData("   ")]
     [InlineData("bytes=-1.5")]
     [InlineData("bytes=1e3-")]
-    public void AnUnparseableRangeIsIgnored(string header) {
+    public void AnUnparseableRangeIsIgnored(string header)
+    {
         Assert.Equal(RangeResult.None, Resolve(header, out _));
     }
 
@@ -164,7 +180,8 @@ public class RangeHeaderTests {
     #region what a 206 says
 
     [Fact]
-    public void AContentRangeNamesTheSliceAndTheWhole() {
+    public void AContentRangeNamesTheSliceAndTheWhole()
+    {
         Assert.Equal("bytes 500-999/1000", new ByteRange(500, 999).ContentRange(Length));
     }
 
@@ -172,7 +189,8 @@ public class RangeHeaderTests {
     [InlineData(0, 0, 1)]
     [InlineData(0, 499, 500)]
     [InlineData(500, 999, 500)]
-    public void ARangeKnowsHowLongItIs(long from, long to, long expected) {
+    public void ARangeKnowsHowLongItIs(long from, long to, long expected)
+    {
         Assert.Equal(expected, new ByteRange(from, to).Length);
     }
 

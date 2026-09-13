@@ -1,10 +1,10 @@
-﻿using CSharpAuthor;
+﻿using System.Collections.Immutable;
+using CSharpAuthor;
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Shared;
 using Hardened.SourceGenerator.Web;
-using System.Collections.Immutable;
-using Xunit;
 using Hardened.Web.Runtime.Responses;
+using Xunit;
 
 namespace Hardened.SourceGenerator.Tests.Caching;
 
@@ -18,8 +18,8 @@ namespace Hardened.SourceGenerator.Tests.Caching;
 /// where a member left out of Equals means a real edit is cached away and never regenerated.
 /// </para>
 /// </summary>
-public class ModelComparisonTests {
-
+public class ModelComparisonTests
+{
     private static ITypeDefinition Type(string name) => TypeDefinition.Get("System", name);
 
     private static RequestParameterInformation Parameter(
@@ -30,12 +30,22 @@ public class ModelComparisonTests {
         ParameterBindType bindingType = ParameterBindType.Path,
         string bindingName = "id",
         int parameterIndex = 0,
-        AttributeModel? customAttribute = null) =>
-        new(Type(typeName), name, required, defaultValue, bindingType, bindingName, parameterIndex,
-            customAttribute);
+        AttributeModel? customAttribute = null
+    ) =>
+        new(
+            Type(typeName),
+            name,
+            required,
+            defaultValue,
+            bindingType,
+            bindingName,
+            parameterIndex,
+            customAttribute
+        );
 
     [Fact]
-    public void IdenticallyBuiltParametersAreEqual() {
+    public void IdenticallyBuiltParametersAreEqual()
+    {
         Assert.True(Parameter().Equals(Parameter()));
         Assert.Equal(Parameter().GetHashCode(), Parameter().GetHashCode());
     }
@@ -46,22 +56,26 @@ public class ModelComparisonTests {
     /// output for a source file that no longer matches it.
     /// </summary>
     [Fact]
-    public void AParameterDifferingInItsTypeIsNotEqual() {
+    public void AParameterDifferingInItsTypeIsNotEqual()
+    {
         Assert.False(Parameter().Equals(Parameter(typeName: "Int32")));
     }
 
     [Fact]
-    public void AParameterDifferingInItsNameIsNotEqual() {
+    public void AParameterDifferingInItsNameIsNotEqual()
+    {
         Assert.False(Parameter().Equals(Parameter(name: "orderId")));
     }
 
     [Fact]
-    public void AParameterDifferingInWhetherItIsRequiredIsNotEqual() {
+    public void AParameterDifferingInWhetherItIsRequiredIsNotEqual()
+    {
         Assert.False(Parameter().Equals(Parameter(required: false)));
     }
 
     [Fact]
-    public void AParameterDifferingInItsDefaultValueIsNotEqual() {
+    public void AParameterDifferingInItsDefaultValueIsNotEqual()
+    {
         Assert.False(Parameter().Equals(Parameter(defaultValue: "\"none\"")));
         Assert.False(Parameter(defaultValue: "\"none\"").Equals(Parameter()));
     }
@@ -71,12 +85,14 @@ public class ModelComparisonTests {
     /// that moves from the path to the query string must not compare equal.
     /// </summary>
     [Fact]
-    public void AParameterDifferingInItsBindingSourceIsNotEqual() {
+    public void AParameterDifferingInItsBindingSourceIsNotEqual()
+    {
         Assert.False(Parameter().Equals(Parameter(bindingType: ParameterBindType.QueryString)));
     }
 
     [Fact]
-    public void AParameterDifferingInItsBindingNameIsNotEqual() {
+    public void AParameterDifferingInItsBindingNameIsNotEqual()
+    {
         Assert.False(Parameter().Equals(Parameter(bindingName: "orderId")));
     }
 
@@ -85,22 +101,35 @@ public class ModelComparisonTests {
     /// its arguments changes the emitted code.
     /// </summary>
     [Fact]
-    public void AParameterDifferingInItsCustomAttributeArgumentsIsNotEqual() {
-        var claim = new AttributeModel(TypeDefinition.Get("TestApp", "FromClaimAttribute"), "\"sub\"", "");
+    public void AParameterDifferingInItsCustomAttributeArgumentsIsNotEqual()
+    {
+        var claim = new AttributeModel(
+            TypeDefinition.Get("TestApp", "FromClaimAttribute"),
+            "\"sub\"",
+            ""
+        );
         var other = claim with { Arguments = "\"tenant\"" };
 
         Assert.False(
             Parameter(bindingType: ParameterBindType.CustomAttribute, customAttribute: claim)
-                .Equals(Parameter(bindingType: ParameterBindType.CustomAttribute, customAttribute: other)));
+                .Equals(
+                    Parameter(
+                        bindingType: ParameterBindType.CustomAttribute,
+                        customAttribute: other
+                    )
+                )
+        );
     }
 
     [Fact]
-    public void AParameterIsNotEqualToAnUnrelatedObject() {
+    public void AParameterIsNotEqualToAnUnrelatedObject()
+    {
         Assert.False(Parameter().Equals("not a parameter"));
     }
 
     [Fact]
-    public void AParameterDescribesItselfByTypeAndName() {
+    public void AParameterDescribesItselfByTypeAndName()
+    {
         Assert.Equal("System.String id", Parameter().ToString());
     }
 
@@ -109,7 +138,8 @@ public class ModelComparisonTests {
     /// Roslyn's caching tables hash before they compare.
     /// </summary>
     [Fact]
-    public void ParametersDifferingInAnyComparedMemberHashDifferently() {
+    public void ParametersDifferingInAnyComparedMemberHashDifferently()
+    {
         var baseline = Parameter().GetHashCode();
 
         Assert.NotEqual(baseline, Parameter(typeName: "Int32").GetHashCode());
@@ -125,21 +155,30 @@ public class ModelComparisonTests {
     /// element by element, which is what makes adding, removing or retyping one parameter visible.
     /// </summary>
     [Fact]
-    public void HandlerModelsDifferingInOneParameterAreNotEqual() {
+    public void HandlerModelsDifferingInOneParameterAreNotEqual()
+    {
         Assert.False(Handler(Parameter()).Equals(Handler(Parameter(name: "orderId"))));
         Assert.False(Handler(Parameter()).Equals(Handler(Parameter(), Parameter(name: "page"))));
     }
 
     [Fact]
-    public void HandlerModelsDifferingInOneFilterAreNotEqual() {
-        var audit = new AttributeModel(TypeDefinition.Get("TestApp", "AuditAttribute"), "\"orders\"", "");
+    public void HandlerModelsDifferingInOneFilterAreNotEqual()
+    {
+        var audit = new AttributeModel(
+            TypeDefinition.Get("TestApp", "AuditAttribute"),
+            "\"orders\"",
+            ""
+        );
 
-        Assert.False(Handler(filters: [audit]).Equals(Handler(filters: [audit with { Arguments = "\"x\"" }])));
+        Assert.False(
+            Handler(filters: [audit]).Equals(Handler(filters: [audit with { Arguments = "\"x\"" }]))
+        );
         Assert.False(Handler(filters: [audit]).Equals(Handler()));
     }
 
     [Fact]
-    public void HandlerModelsDifferingInTheirInvokeTypeAreNotEqual() {
+    public void HandlerModelsDifferingInTheirInvokeTypeAreNotEqual()
+    {
         var first = Handler();
         var second = new RequestHandlerModel(
             first.Name,
@@ -148,23 +187,30 @@ public class ModelComparisonTests {
             TypeDefinition.Get("TestApp.Generated", "Different"),
             first.RequestParameterInformationList,
             first.ResponseInformation,
-            first.Filters);
+            first.Filters
+        );
 
         Assert.False(first.Equals(second));
     }
 
     [Fact]
-    public void AHandlerModelDescribesItselfByRouteAndTarget() {
+    public void AHandlerModelDescribesItselfByRouteAndTarget()
+    {
         Assert.Equal("GET:/orders/{id}:TestApp.OrderController.GetOrder", Handler().ToString());
     }
 
     [Fact]
-    public void ARequestHandlerNameDescribesItselfByMethodAndPath() {
-        Assert.Equal("GET:/orders/{id}", new RequestHandlerNameModel("/orders/{id}", "GET").ToString());
+    public void ARequestHandlerNameDescribesItselfByMethodAndPath()
+    {
+        Assert.Equal(
+            "GET:/orders/{id}",
+            new RequestHandlerNameModel("/orders/{id}", "GET").ToString()
+        );
     }
 
     [Fact]
-    public void ARequestHandlerNameIsNotEqualToAnUnrelatedObject() {
+    public void ARequestHandlerNameIsNotEqualToAnUnrelatedObject()
+    {
         Assert.False(new RequestHandlerNameModel("/a", "GET").Equals("GET:/a"));
     }
 
@@ -173,7 +219,8 @@ public class ModelComparisonTests {
     /// so each has to take part in equality.
     /// </summary>
     [Fact]
-    public void ResponseModelsDifferingInTheirAsyncShapeAreNotEqual() {
+    public void ResponseModelsDifferingInTheirAsyncShapeAreNotEqual()
+    {
         var baseline = new ResponseInformationModel { ReturnType = Type("String") };
 
         Assert.NotEqual(baseline, baseline with { IsAsync = true });
@@ -205,8 +252,10 @@ public class ModelComparisonTests {
     /// negotiated set.
     /// </remarks>
     [Fact]
-    public void AResponseModelDescribesAllOfItsResponseAnnotations() {
-        var model = new ResponseInformationModel {
+    public void AResponseModelDescribesAllOfItsResponseAnnotations()
+    {
+        var model = new ResponseInformationModel
+        {
             IsAsync = true,
             OutputType = Type("Fortunes"),
             RawResponseContentType = "text/csv",
@@ -227,19 +276,20 @@ public class ModelComparisonTests {
             ValidationErrorStatus = 422,
             StreamFramingDiagnostic = "sse",
             MissingContentTypeDiagnostic = true,
-            UnproducibleContentTypeDiagnostic = "text/csv"
+            UnproducibleContentTypeDiagnostic = "text/csv",
         };
 
         // Every field, because this string is what the incremental caches compare to decide
         // whether to rerun. A field left out of it is a change the generator does not notice.
         Assert.Equal(
-            "True:System.Fortunes:text/csv:True:True:sse:System.String:201:" +
-            "Models.DefaultErrorBodies.NotFoundProblem:" +
-            "new Dictionary<int, object> { { 401, Models.DefaultErrorBodies.UnauthorizedProblem } }:" +
-            "text/plain,text/csv:text/plain:application/json:" +
-            "global::App.Todo|201|01;global::App.NotFound|404|01:" +
-            "global::App.Created|201|111|global::App.Todo::OutOfStock:422:sse:True:text/csv",
-            model.ToString());
+            "True:System.Fortunes:text/csv:True:True:sse:System.String:201:"
+                + "Models.DefaultErrorBodies.NotFoundProblem:"
+                + "new Dictionary<int, object> { { 401, Models.DefaultErrorBodies.UnauthorizedProblem } }:"
+                + "text/plain,text/csv:text/plain:application/json:"
+                + "global::App.Todo|201|01;global::App.NotFound|404|01:"
+                + "global::App.Created|201|111|global::App.Todo::OutOfStock:422:sse:True:text/csv",
+            model.ToString()
+        );
     }
 
     /// <summary>
@@ -251,17 +301,24 @@ public class ModelComparisonTests {
     /// signature no longer declares. That surfaces as a status nothing in the source explains.
     /// </remarks>
     [Fact]
-    public void TwoResponsesDifferingOnlyInTheirCaseSetAreDifferent() {
-        var baseline = new ResponseInformationModel {
+    public void TwoResponsesDifferingOnlyInTheirCaseSetAreDifferent()
+    {
+        var baseline = new ResponseInformationModel
+        {
             IsAsync = true,
             ReturnType = Type("String"),
-            UnionCases = "global::App.Todo|200|01"
+            UnionCases = "global::App.Todo|200|01",
         };
 
         Assert.NotEqual(
             baseline.ToString(),
-            (baseline with { UnionCases = "global::App.Todo|200|01;global::App.Gone|410|01" })
-                .ToString());
+            (
+                baseline with
+                {
+                    UnionCases = "global::App.Todo|200|01;global::App.Gone|410|01",
+                }
+            ).ToString()
+        );
     }
 
     /// <summary>
@@ -269,12 +326,14 @@ public class ModelComparisonTests {
     /// even where everything else about the two agrees.
     /// </summary>
     [Fact]
-    public void AResponseSetIsDifferentFromASingleReturnType() {
+    public void AResponseSetIsDifferentFromASingleReturnType()
+    {
         var single = new ResponseInformationModel { IsAsync = true, ReturnType = Type("String") };
 
         Assert.NotEqual(
             single.ToString(),
-            (single with { UnionCases = "global::App.Todo|200|01" }).ToString());
+            (single with { UnionCases = "global::App.Todo|200|01" }).ToString()
+        );
     }
 
     /// <summary>
@@ -286,10 +345,14 @@ public class ModelComparisonTests {
     /// close, arriving by the back door.
     /// </remarks>
     [Fact]
-    public void TwoResponsesDifferingOnlyInDeclaredStatusAreDifferent() {
+    public void TwoResponsesDifferingOnlyInDeclaredStatusAreDifferent()
+    {
         var baseline = new ResponseInformationModel { IsAsync = true, ReturnType = Type("String") };
 
-        Assert.NotEqual(baseline.ToString(), (baseline with { DefaultStatusCode = 201 }).ToString());
+        Assert.NotEqual(
+            baseline.ToString(),
+            (baseline with { DefaultStatusCode = 201 }).ToString()
+        );
     }
 
     /// <summary>
@@ -299,22 +362,30 @@ public class ModelComparisonTests {
     /// And two differing only in what they produce, which is what negotiation reads.
     /// </summary>
     [Fact]
-    public void TwoResponsesDifferingOnlyInProducedContentTypesAreDifferent() {
+    public void TwoResponsesDifferingOnlyInProducedContentTypesAreDifferent()
+    {
         var baseline = new ResponseInformationModel { IsAsync = true, ReturnType = Type("String") };
 
         Assert.NotEqual(
             baseline.ToString(),
-            (baseline with { ProducedContentTypes = "text/plain" }).ToString());
+            (baseline with { ProducedContentTypes = "text/plain" }).ToString()
+        );
     }
 
     [Fact]
-    public void TwoResponsesDifferingOnlyInNullBodyAreDifferent() {
+    public void TwoResponsesDifferingOnlyInNullBodyAreDifferent()
+    {
         var baseline = new ResponseInformationModel { IsAsync = true, ReturnType = Type("String") };
 
         Assert.NotEqual(
             baseline.ToString(),
-            (baseline with { NullResponseBodyExpression = "Models.DefaultErrorBodies.NotFoundProblem" })
-            .ToString());
+            (
+                baseline with
+                {
+                    NullResponseBodyExpression = "Models.DefaultErrorBodies.NotFoundProblem",
+                }
+            ).ToString()
+        );
     }
 
     /// <summary>
@@ -326,15 +397,20 @@ public class ModelComparisonTests {
     /// describe - which is exactly the defect the declared bodies exist to close.
     /// </remarks>
     [Fact]
-    public void TwoResponsesDifferingOnlyInDeclaredErrorBodiesAreDifferent() {
+    public void TwoResponsesDifferingOnlyInDeclaredErrorBodiesAreDifferent()
+    {
         var baseline = new ResponseInformationModel { IsAsync = true, ReturnType = Type("String") };
 
         Assert.NotEqual(
             baseline.ToString(),
-            (baseline with {
-                DeclaredErrorBodiesExpression =
-                    "new Dictionary<int, object> { { 401, Models.DefaultErrorBodies.UnauthorizedProblem } }"
-            }).ToString());
+            (
+                baseline with
+                {
+                    DeclaredErrorBodiesExpression =
+                        "new Dictionary<int, object> { { 401, Models.DefaultErrorBodies.UnauthorizedProblem } }",
+                }
+            ).ToString()
+        );
     }
 
     /// <summary>
@@ -347,12 +423,14 @@ public class ModelComparisonTests {
     /// difference here too.
     /// </remarks>
     [Fact]
-    public void TwoStreamsDifferingOnlyInFramingDescribeThemselvesDifferently() {
+    public void TwoStreamsDifferingOnlyInFramingDescribeThemselvesDifferently()
+    {
         var baseline = new ResponseInformationModel { ReturnType = Type("String") };
 
         Assert.NotEqual(
             (baseline with { StreamFraming = "sse" }).ToString(),
-            (baseline with { StreamFraming = null }).ToString());
+            (baseline with { StreamFraming = null }).ToString()
+        );
     }
 
     /// <summary>
@@ -360,12 +438,14 @@ public class ModelComparisonTests {
     /// themselves identically.
     /// </summary>
     [Fact]
-    public void TwoResponsesDifferingOnlyInWhichAnnotationTheyCarryDescribeThemselvesDifferently() {
+    public void TwoResponsesDifferingOnlyInWhichAnnotationTheyCarryDescribeThemselvesDifferently()
+    {
         var baseline = new ResponseInformationModel { ReturnType = Type("String") };
 
         Assert.NotEqual(
             (baseline with { OutputType = Type("Fortunes") }).ToString(),
-            (baseline with { RawResponseContentType = "Fortunes" }).ToString());
+            (baseline with { RawResponseContentType = "Fortunes" }).ToString()
+        );
     }
 
     /// <summary>
@@ -374,7 +454,8 @@ public class ModelComparisonTests {
     /// be reported as no change.
     /// </summary>
     [Fact]
-    public void DeepEqualsComparesElementwise() {
+    public void DeepEqualsComparesElementwise()
+    {
         Assert.True(new[] { "a", "b" }.DeepEquals(new[] { "a", "b" }));
         Assert.False(new[] { "a", "b" }.DeepEquals(new[] { "a" }));
         Assert.False(new[] { "a", "b" }.DeepEquals(new[] { "a", "c" }));
@@ -382,25 +463,30 @@ public class ModelComparisonTests {
     }
 
     [Fact]
-    public void DeepEqualsTreatsANullElementAsEqualOnlyToAnotherNull() {
+    public void DeepEqualsTreatsANullElementAsEqualOnlyToAnotherNull()
+    {
         Assert.True(new string?[] { null }.DeepEquals(new string?[] { null }));
         Assert.False(new string?[] { null }.DeepEquals(new string?[] { "a" }));
         Assert.False(new string?[] { "a" }.DeepEquals(new string?[] { null }));
     }
 
     [Fact]
-    public void HashCodeAggregationDependsOnOrderAndContent() {
+    public void HashCodeAggregationDependsOnOrderAndContent()
+    {
         Assert.Equal(
             new[] { "a", "b" }.GetHashCodeAggregation(),
-            new[] { "a", "b" }.GetHashCodeAggregation());
+            new[] { "a", "b" }.GetHashCodeAggregation()
+        );
 
         Assert.NotEqual(
             new[] { "a", "b" }.GetHashCodeAggregation(),
-            new[] { "b", "a" }.GetHashCodeAggregation());
+            new[] { "b", "a" }.GetHashCodeAggregation()
+        );
 
         Assert.NotEqual(
             new[] { "a", "b" }.GetHashCodeAggregation(),
-            new[] { "a" }.GetHashCodeAggregation());
+            new[] { "a" }.GetHashCodeAggregation()
+        );
     }
 
     /// <summary>
@@ -408,7 +494,8 @@ public class ModelComparisonTests {
     /// application class that changed has to compare unequal or the table is never rebuilt.
     /// </summary>
     [Fact]
-    public void EntryPointModelsComparedByTheirTypeMethodsAndAttributes() {
+    public void EntryPointModelsComparedByTheirTypeMethodsAndAttributes()
+    {
         var comparer = new EntryPointSelector.Comparer();
 
         Assert.True(comparer.Equals(EntryPoint(), EntryPoint()));
@@ -418,28 +505,40 @@ public class ModelComparisonTests {
     }
 
     [Fact]
-    public void EntryPointModelsDifferingInTheirAttributesAreNotEqual() {
+    public void EntryPointModelsDifferingInTheirAttributesAreNotEqual()
+    {
         var comparer = new EntryPointSelector.Comparer();
-        var basePath = new AttributeModel(TypeDefinition.Get("TestApp", "BasePathAttribute"), "\"/v1\"", "");
+        var basePath = new AttributeModel(
+            TypeDefinition.Get("TestApp", "BasePathAttribute"),
+            "\"/v1\"",
+            ""
+        );
 
         Assert.False(comparer.Equals(EntryPoint(), EntryPoint(attributes: [basePath])));
-        Assert.False(comparer.Equals(
-            EntryPoint(attributes: [basePath]),
-            EntryPoint(attributes: [basePath with { Arguments = "\"/v2\"" }])));
+        Assert.False(
+            comparer.Equals(
+                EntryPoint(attributes: [basePath]),
+                EntryPoint(attributes: [basePath with { Arguments = "\"/v2\"" }])
+            )
+        );
     }
 
     [Fact]
-    public void EntryPointModelsDifferingInTheirPropertiesAreNotEqual() {
+    public void EntryPointModelsDifferingInTheirPropertiesAreNotEqual()
+    {
         var comparer = new EntryPointSelector.Comparer();
         var property = new HardenedPropertyDefinition("Name", Type("String"));
 
         Assert.False(comparer.Equals(EntryPoint(), EntryPoint(properties: [property])));
-        Assert.False(comparer.Equals(EntryPoint(properties: [property]), EntryPoint(properties: null)));
+        Assert.False(
+            comparer.Equals(EntryPoint(properties: [property]), EntryPoint(properties: null))
+        );
         Assert.True(comparer.Equals(EntryPoint(properties: null), EntryPoint(properties: null)));
     }
 
     [Fact]
-    public void TheSameEntryPointModelInstanceIsEqualToItself() {
+    public void TheSameEntryPointModelInstanceIsEqualToItself()
+    {
         var comparer = new EntryPointSelector.Comparer();
         var model = EntryPoint();
 
@@ -471,7 +570,8 @@ public class ModelComparisonTests {
     /// </para>
     /// </summary>
     [Fact]
-    public void TheCombinedRoutingComparerComparesBothHalvesByReference() {
+    public void TheCombinedRoutingComparerComparesBothHalvesByReference()
+    {
         var comparer = new WebIncrementalGenerator.CombinedComparer();
         var entryPoint = EntryPoint();
         var handlers = ImmutableArray.Create(Handler());
@@ -480,14 +580,19 @@ public class ModelComparisonTests {
         Assert.True(comparer.Equals((entryPoint, handlers), (entryPoint, handlers)));
         Assert.Equal(
             comparer.GetHashCode((entryPoint, handlers)),
-            comparer.GetHashCode((entryPoint, handlers)));
+            comparer.GetHashCode((entryPoint, handlers))
+        );
 
         // A change on either side is noticed.
-        Assert.False(comparer.Equals(
-            (entryPoint, handlers), (EntryPoint(name: "Other"), handlers)));
-        Assert.False(comparer.Equals(
-            (entryPoint, handlers),
-            (entryPoint, ImmutableArray.Create(Handler(), Handler(path: "/orders")))));
+        Assert.False(
+            comparer.Equals((entryPoint, handlers), (EntryPoint(name: "Other"), handlers))
+        );
+        Assert.False(
+            comparer.Equals(
+                (entryPoint, handlers),
+                (entryPoint, ImmutableArray.Create(Handler(), Handler(path: "/orders")))
+            )
+        );
 
         // And so is a rebuilt-but-identical entry point: this is the missed cache hit, and the
         // line that would flip to Assert.True if CombinedComparer used EntryPointSelector.Comparer.
@@ -507,17 +612,20 @@ public class ModelComparisonTests {
     /// </para>
     /// </summary>
     [Fact]
-    public void TheCombinedRoutingComparerHashesTheHandlersStructurally() {
+    public void TheCombinedRoutingComparerHashesTheHandlersStructurally()
+    {
         var comparer = new WebIncrementalGenerator.CombinedComparer();
         var entryPoint = EntryPoint();
 
         Assert.Equal(
             comparer.GetHashCode((entryPoint, ImmutableArray.Create(Handler()))),
-            comparer.GetHashCode((entryPoint, ImmutableArray.Create(Handler()))));
+            comparer.GetHashCode((entryPoint, ImmutableArray.Create(Handler())))
+        );
 
         Assert.NotEqual(
             comparer.GetHashCode((entryPoint, ImmutableArray.Create(Handler()))),
-            comparer.GetHashCode((entryPoint, ImmutableArray.Create(Handler(path: "/other")))));
+            comparer.GetHashCode((entryPoint, ImmutableArray.Create(Handler(path: "/other"))))
+        );
     }
 
     /// <summary>
@@ -525,21 +633,36 @@ public class ModelComparisonTests {
     /// parameters each take part.
     /// </summary>
     [Fact]
-    public void MethodDefinitionsCompareByNameReturnTypeAndParameters() {
+    public void MethodDefinitionsCompareByNameReturnTypeAndParameters()
+    {
         var parameter = new HardenedParameterDefinition("id", Type("String"));
         var method = new HardenedMethodDefinition("Configure", Type("Void"), [parameter]);
 
-        Assert.True(method.Equals(new HardenedMethodDefinition("Configure", Type("Void"), [parameter])));
-        Assert.False(method.Equals(new HardenedMethodDefinition("Other", Type("Void"), [parameter])));
-        Assert.False(method.Equals(new HardenedMethodDefinition("Configure", Type("String"), [parameter])));
+        Assert.True(
+            method.Equals(new HardenedMethodDefinition("Configure", Type("Void"), [parameter]))
+        );
+        Assert.False(
+            method.Equals(new HardenedMethodDefinition("Other", Type("Void"), [parameter]))
+        );
+        Assert.False(
+            method.Equals(new HardenedMethodDefinition("Configure", Type("String"), [parameter]))
+        );
         Assert.False(method.Equals(new HardenedMethodDefinition("Configure", Type("Void"), [])));
-        Assert.False(method.Equals(new HardenedMethodDefinition("Configure", Type("Void"),
-            [new HardenedParameterDefinition("other", Type("String"))])));
+        Assert.False(
+            method.Equals(
+                new HardenedMethodDefinition(
+                    "Configure",
+                    Type("Void"),
+                    [new HardenedParameterDefinition("other", Type("String"))]
+                )
+            )
+        );
         Assert.False(method.Equals("not a method"));
     }
 
     [Fact]
-    public void ParameterDefinitionsCompareByNameAndType() {
+    public void ParameterDefinitionsCompareByNameAndType()
+    {
         var parameter = new HardenedParameterDefinition("id", Type("String"));
 
         Assert.True(parameter.Equals(new HardenedParameterDefinition("id", Type("String"))));
@@ -549,14 +672,14 @@ public class ModelComparisonTests {
         Assert.Equal("System.String id", parameter.ToString());
     }
 
-    private static RequestHandlerModel Handler(
-        params RequestParameterInformation[] parameters) =>
+    private static RequestHandlerModel Handler(params RequestParameterInformation[] parameters) =>
         Handler(path: "/orders/{id}", filters: null, parameters: parameters);
 
     private static RequestHandlerModel Handler(
         string path = "/orders/{id}",
         IReadOnlyList<AttributeModel>? filters = null,
-        params RequestParameterInformation[] parameters) =>
+        params RequestParameterInformation[] parameters
+    ) =>
         new(
             new RequestHandlerNameModel(path, "GET"),
             TypeDefinition.Get("TestApp", "OrderController"),
@@ -564,19 +687,22 @@ public class ModelComparisonTests {
             TypeDefinition.Get("TestApp.Generated", "OrderController_GetOrder"),
             parameters.Length > 0 ? parameters : [Parameter()],
             new ResponseInformationModel { ReturnType = Type("String") },
-            filters ?? []);
+            filters ?? []
+        );
 
     private static EntryPointSelector.Model EntryPoint(
         string name = "Application",
         bool rootEntryPoint = false,
         string methodName = "Configure",
         IReadOnlyList<AttributeModel>? attributes = null,
-        IReadOnlyList<HardenedPropertyDefinition>? properties = null) =>
-        new() {
+        IReadOnlyList<HardenedPropertyDefinition>? properties = null
+    ) =>
+        new()
+        {
             EntryPointType = TypeDefinition.Get("TestApp", name),
             RootEntryPoint = rootEntryPoint,
             AttributeModels = attributes ?? [],
             MethodDefinitions = [new HardenedMethodDefinition(methodName, Type("Void"), [])],
-            PropertyDefinitions = properties
+            PropertyDefinitions = properties,
         };
 }

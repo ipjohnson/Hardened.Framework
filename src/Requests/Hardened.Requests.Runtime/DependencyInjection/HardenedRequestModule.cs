@@ -4,16 +4,16 @@ using DependencyModules.Runtime.Attributes;
 using DependencyModules.Runtime.Interfaces;
 using Hardened.Requests.Abstract.Authorization;
 using Hardened.Requests.Abstract.RequestFilter;
-using Hardened.Requests.Runtime.Authorization;
-using Hardened.Requests.Runtime.Configuration;
-using Hardened.Shared.Runtime.Application;
-using Hardened.Shared.Runtime.Configuration;
-using Hardened.Shared.Runtime.DependencyInjection;
 using Hardened.Requests.Abstract.Serializer;
 using Hardened.Requests.Abstract.Timeouts;
+using Hardened.Requests.Runtime.Authorization;
+using Hardened.Requests.Runtime.Configuration;
 using Hardened.Requests.Runtime.Filters;
 using Hardened.Requests.Runtime.Serializer;
 using Hardened.Requests.Runtime.Streaming;
+using Hardened.Shared.Runtime.Application;
+using Hardened.Shared.Runtime.Configuration;
+using Hardened.Shared.Runtime.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
@@ -22,8 +22,10 @@ namespace Hardened.Requests.Runtime.DependencyInjection;
 
 [DependencyModule]
 [HardenedCoreModule]
-public partial class HardenedRequestModule : IServiceCollectionConfiguration {
-    public void ConfigureServices(IServiceCollection services) {
+public partial class HardenedRequestModule : IServiceCollectionConfiguration
+{
+    public void ConfigureServices(IServiceCollection services)
+    {
         RegisterReflectionSerializers(services);
 
         // Under its own type as well as the interface, and one instance for both. IOFilterProvider
@@ -31,44 +33,76 @@ public partial class HardenedRequestModule : IServiceCollectionConfiguration {
         // type rather than about a media type - so it has to name the writer rather than look one
         // up by tag, where an application could have registered something else under text/plain.
         services.TryAddSingleton<RawResponseSerializer>();
-        services.AddSingleton<IResponseSerializer>(
-            provider => provider.GetRequiredService<RawResponseSerializer>());
+        services.AddSingleton<IResponseSerializer>(provider =>
+            provider.GetRequiredService<RawResponseSerializer>()
+        );
 
         // The same treatment, and for the same reason: a streamed handler is bound to this writer
         // from its return type rather than by looking up the media type its framing committed.
         services.TryAddSingleton<StreamingJsonResponseSerializer>();
-        services.AddSingleton<IResponseSerializer>(
-            provider => provider.GetRequiredService<StreamingJsonResponseSerializer>());
+        services.AddSingleton<IResponseSerializer>(provider =>
+            provider.GetRequiredService<StreamingJsonResponseSerializer>()
+        );
 
         services.AddSingleton<IConfigurationPackage>(
-            new SimpleConfigurationPackage(new IConfigurationValueProvider[] {
-                new NewConfigurationValueProvider<IResponseHeaderConfiguration, ResponseHeaderConfiguration>(null),
-                new NewConfigurationValueProvider<IJsonSerializerConfiguration, JsonSerializerConfiguration>(null),
-                new NewConfigurationValueProvider<IAuthorizationConfiguration, AuthorizationConfiguration>(null),
-                new NewConfigurationValueProvider<IStreamingConfiguration, StreamingConfiguration>(null)
-            }));
-        services.AddSingleton(
-            s => Options.Create(s.GetRequiredService<IConfigurationManager>()
-                .GetConfiguration<IResponseHeaderConfiguration>()));
+            new SimpleConfigurationPackage(
+                new IConfigurationValueProvider[]
+                {
+                    new NewConfigurationValueProvider<
+                        IResponseHeaderConfiguration,
+                        ResponseHeaderConfiguration
+                    >(null),
+                    new NewConfigurationValueProvider<
+                        IJsonSerializerConfiguration,
+                        JsonSerializerConfiguration
+                    >(null),
+                    new NewConfigurationValueProvider<
+                        IAuthorizationConfiguration,
+                        AuthorizationConfiguration
+                    >(null),
+                    new NewConfigurationValueProvider<
+                        IStreamingConfiguration,
+                        StreamingConfiguration
+                    >(null),
+                }
+            )
+        );
+        services.AddSingleton(s =>
+            Options.Create(
+                s.GetRequiredService<IConfigurationManager>()
+                    .GetConfiguration<IResponseHeaderConfiguration>()
+            )
+        );
 
-        services.AddSingleton(
-            s => Options.Create(s.GetRequiredService<IConfigurationManager>()
-                .GetConfiguration<IJsonSerializerConfiguration>()));
+        services.AddSingleton(s =>
+            Options.Create(
+                s.GetRequiredService<IConfigurationManager>()
+                    .GetConfiguration<IJsonSerializerConfiguration>()
+            )
+        );
 
-        services.AddSingleton(
-            s => Options.Create(s.GetRequiredService<IConfigurationManager>()
-                .GetConfiguration<IAuthorizationConfiguration>()));
+        services.AddSingleton(s =>
+            Options.Create(
+                s.GetRequiredService<IConfigurationManager>()
+                    .GetConfiguration<IAuthorizationConfiguration>()
+            )
+        );
 
-        services.AddSingleton(
-            s => Options.Create(s.GetRequiredService<IConfigurationManager>()
-                .GetConfiguration<IStreamingConfiguration>()));
+        services.AddSingleton(s =>
+            Options.Create(
+                s.GetRequiredService<IConfigurationManager>()
+                    .GetConfiguration<IStreamingConfiguration>()
+            )
+        );
 
         // The caller, as a service a handler can take. Scoped rather than resolved from the
         // context, because the container has no per-request instance of the context to build one
         // from. Two registrations rather than one: the middleware fills the holder and everything
         // else reads the interface, which is what keeps the setter off the contract.
         services.AddScoped<CurrentCaller>();
-        services.AddScoped<ICurrentCaller>(provider => provider.GetRequiredService<CurrentCaller>());
+        services.AddScoped<ICurrentCaller>(provider =>
+            provider.GetRequiredService<CurrentCaller>()
+        );
 
         // The deadline, as a service a handler can take. Singleton rather than scoped, because a
         // described handler can only reach this through its constructor - its signature is the
@@ -85,7 +119,8 @@ public partial class HardenedRequestModule : IServiceCollectionConfiguration {
         // TryAddEnumerable for the reason the CORS one is: a startup service registered twice runs
         // twice, and this one installs a filter provider.
         services.TryAddEnumerable(
-            ServiceDescriptor.Singleton<IStartupService, AuthorizationStartupService>());
+            ServiceDescriptor.Singleton<IStartupService, AuthorizationStartupService>()
+        );
 
         // Request decompression is not registered here any more. Content-Encoding is an HTTP
         // request header and a Lambda invocation carries none, so installing the filter for every
@@ -97,7 +132,8 @@ public partial class HardenedRequestModule : IServiceCollectionConfiguration {
         // from the provider, because a source registered as IPrincipalSource<TScheme> is reachable
         // only by its closed service type and a built provider cannot be asked what those are.
         services.TryAddEnumerable(
-            ServiceDescriptor.Singleton<IStartupService>(new AuthenticationStartupService(services)));
+            ServiceDescriptor.Singleton<IStartupService>(new AuthenticationStartupService(services))
+        );
     }
 
     /// <summary>
@@ -126,14 +162,22 @@ public partial class HardenedRequestModule : IServiceCollectionConfiguration {
     /// better failure than reflecting successfully until something is trimmed away.
     /// </para>
     /// </remarks>
-    [UnconditionalSuppressMessage("Trimming", "IL2026:RequiresUnreferencedCode",
-        Justification = "Guarded on JsonSerializer.IsReflectionEnabledByDefault, which the trimmer " +
-                        "folds to false and removes the branch for a trimmed or AOT publish.")]
-    [UnconditionalSuppressMessage("AOT", "IL3050:RequiresDynamicCode",
-        Justification = "Guarded on JsonSerializer.IsReflectionEnabledByDefault, which the trimmer " +
-                        "folds to false and removes the branch for a trimmed or AOT publish.")]
-    private static void RegisterReflectionSerializers(IServiceCollection services) {
-        if (!JsonSerializer.IsReflectionEnabledByDefault) {
+    [UnconditionalSuppressMessage(
+        "Trimming",
+        "IL2026:RequiresUnreferencedCode",
+        Justification = "Guarded on JsonSerializer.IsReflectionEnabledByDefault, which the trimmer "
+            + "folds to false and removes the branch for a trimmed or AOT publish."
+    )]
+    [UnconditionalSuppressMessage(
+        "AOT",
+        "IL3050:RequiresDynamicCode",
+        Justification = "Guarded on JsonSerializer.IsReflectionEnabledByDefault, which the trimmer "
+            + "folds to false and removes the branch for a trimmed or AOT publish."
+    )]
+    private static void RegisterReflectionSerializers(IServiceCollection services)
+    {
+        if (!JsonSerializer.IsReflectionEnabledByDefault)
+        {
             return;
         }
 
@@ -145,8 +189,9 @@ public partial class HardenedRequestModule : IServiceCollectionConfiguration {
         // defect and the same fix; precedence here is RequestDeserializerOrder's, which the locator
         // sorts on, so the Try was never carrying it.
         services.TryAddSingleton<SystemTextJsonRequestDeserializer>();
-        services.AddSingleton<IRequestDeserializer>(
-            provider => provider.GetRequiredService<SystemTextJsonRequestDeserializer>());
+        services.AddSingleton<IRequestDeserializer>(provider =>
+            provider.GetRequiredService<SystemTextJsonRequestDeserializer>()
+        );
 
         services.AddSingleton<IResponseSerializer, SystemTextJsonResponseSerializer>();
     }

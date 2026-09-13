@@ -21,7 +21,8 @@ namespace Hardened.Azure.Functions.Runtime.Hosting;
 /// <c>DynamicDependency</c>.
 /// </para>
 /// </remarks>
-public interface IHardenedFunctionsApplication {
+public interface IHardenedFunctionsApplication
+{
     /// <summary>Registers the generated metadata provider and executor with the worker.</summary>
     void ConfigureFunctionsWorker(IServiceCollection services);
 }

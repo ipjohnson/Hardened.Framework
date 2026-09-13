@@ -5,8 +5,10 @@ using static CSharpAuthor.SyntaxHelpers;
 namespace Hardened.Azure.Functions.SourceGenerator;
 
 /// <summary>One parameter of a generated shim, before the <c>FunctionContext</c> every shim ends with.</summary>
-internal sealed class ShimParameter {
-    public ShimParameter(ITypeDefinition type, string name, bool isTrigger) {
+internal sealed class ShimParameter
+{
+    public ShimParameter(ITypeDefinition type, string name, bool isTrigger)
+    {
         Type = type;
         Name = name;
         IsTrigger = isTrigger;
@@ -24,8 +26,10 @@ internal sealed class ShimParameter {
 /// A fixed-delay retry policy as the module wrote it: the count and the delay, each as the C#
 /// text the shim's attribute re-emits and as the value the provider's metadata carries.
 /// </summary>
-internal sealed class RetryPolicy {
-    public RetryPolicy(string countText, string count, string delayText, string delay) {
+internal sealed class RetryPolicy
+{
+    public RetryPolicy(string countText, string count, string delayText, string delay)
+    {
         CountText = countText;
         Count = count;
         DelayText = delayText;
@@ -42,8 +46,13 @@ internal sealed class RetryPolicy {
 }
 
 /// <summary>The binding attribute's arguments, as C# text.</summary>
-internal sealed class AttributeArguments {
-    public AttributeArguments(IReadOnlyList<string> positional, IReadOnlyList<KeyValuePair<string, string>> named) {
+internal sealed class AttributeArguments
+{
+    public AttributeArguments(
+        IReadOnlyList<string> positional,
+        IReadOnlyList<KeyValuePair<string, string>> named
+    )
+    {
         Positional = positional;
         Named = named;
     }
@@ -83,7 +92,8 @@ internal sealed class AttributeArguments {
 /// which handler runs is decided from the event or the request in the pipeline.
 /// </para>
 /// </remarks>
-internal abstract class AzureBinding {
+internal abstract class AzureBinding
+{
     protected const string Worker = "Microsoft.Azure.Functions.Worker";
 
     /// <summary>The scheme the handler routes under, which is what selects a row.</summary>
@@ -124,11 +134,14 @@ internal abstract class AzureBinding {
     /// supply, for HRDAZ003: the required ones, and for the families with a retry policy, the
     /// half of the pair the application left out.
     /// </summary>
-    public virtual IReadOnlyList<string> MissingSettings(ModuleSettings settings) {
+    public virtual IReadOnlyList<string> MissingSettings(ModuleSettings settings)
+    {
         var missing = new List<string>();
 
-        foreach (var required in RequiredSettings) {
-            if (settings.Get(required) == null) {
+        foreach (var required in RequiredSettings)
+        {
+            if (settings.Get(required) == null)
+            {
                 missing.Add(required);
             }
         }
@@ -156,7 +169,8 @@ internal abstract class AzureBinding {
     public ShimParameter Trigger => Parameters[0];
 
     /// <summary>Every trigger this generator can write a function for.</summary>
-    public static readonly IReadOnlyList<AzureBinding> All = new AzureBinding[] {
+    public static readonly IReadOnlyList<AzureBinding> All = new AzureBinding[]
+    {
         new QueueBinding(),
         new TopicBinding(),
         new TimerBinding(),
@@ -164,12 +178,15 @@ internal abstract class AzureBinding {
         new ChangeBinding(),
         new BlobBinding(),
         new EventBinding(),
-        new HttpBinding()
+        new HttpBinding(),
     };
 
-    public static AzureBinding? For(string scheme) {
-        foreach (var binding in All) {
-            if (binding.Scheme == scheme) {
+    public static AzureBinding? For(string scheme)
+    {
+        foreach (var binding in All)
+        {
+            if (binding.Scheme == scheme)
+            {
                 return binding;
             }
         }
@@ -179,26 +196,34 @@ internal abstract class AzureBinding {
 
     /// <summary>The Service Bus module's settings, shared by the queue and topic rows.</summary>
     private static void ServiceBusArguments(
-        List<KeyValuePair<string, string>> named, ModuleSettings settings) {
+        List<KeyValuePair<string, string>> named,
+        ModuleSettings settings
+    )
+    {
         named.Add(new KeyValuePair<string, string>("IsBatched", "true"));
 
-        if (settings.Get("Connection") is { } connection) {
+        if (settings.Get("Connection") is { } connection)
+        {
             named.Add(new KeyValuePair<string, string>("Connection", connection.Text));
         }
 
         // The host completes a batch itself unless told not to; settling per message means
         // telling it not to, and the adapter completing what it accepted.
-        if (settings.Get("ReportsItemFailures")?.Flag == true) {
+        if (settings.Get("ReportsItemFailures")?.Flag == true)
+        {
             named.Add(new KeyValuePair<string, string>("AutoCompleteMessages", "false"));
         }
     }
 
-    private static void ServiceBusJson(JsonObject json, ModuleSettings settings) {
-        if (settings.Get("Connection")?.Literal is { } connection) {
+    private static void ServiceBusJson(JsonObject json, ModuleSettings settings)
+    {
+        if (settings.Get("Connection")?.Literal is { } connection)
+        {
             json.String("connection", connection);
         }
 
-        if (settings.Get("ReportsItemFailures")?.Flag == true) {
+        if (settings.Get("ReportsItemFailures")?.Flag == true)
+        {
             json.Bool("autoCompleteMessages", false);
         }
 
@@ -216,34 +241,50 @@ internal abstract class AzureBinding {
     /// half a policy is a function whose failures nothing retries, written by an application that
     /// asked for retries. <see cref="RetryMissing"/> names the missing half for HRDAZ003.
     /// </remarks>
-    private static RetryPolicy? FixedDelayRetry(ModuleSettings settings) {
+    private static RetryPolicy? FixedDelayRetry(ModuleSettings settings)
+    {
         var count = settings.Get("RetryCount");
         var delay = settings.Get("RetryDelay");
 
-        if (count?.Number == null || delay?.Literal == null) {
+        if (count?.Number == null || delay?.Literal == null)
+        {
             return null;
         }
 
         return new RetryPolicy(count.Text, count.Number, delay.Text, delay.Literal);
     }
 
-    private static void RetryMissing(List<string> missing, ModuleSettings settings) {
+    private static void RetryMissing(List<string> missing, ModuleSettings settings)
+    {
         var count = settings.Get("RetryCount") != null;
         var delay = settings.Get("RetryDelay") != null;
 
-        if (count && !delay) {
+        if (count && !delay)
+        {
             missing.Add("RetryDelay");
         }
-        else if (delay && !count) {
+        else if (delay && !count)
+        {
             missing.Add("RetryCount");
         }
     }
 
-    private static readonly IReadOnlyList<ShimParameter> ServiceBusParameters = new[] {
+    private static readonly IReadOnlyList<ShimParameter> ServiceBusParameters = new[]
+    {
         new ShimParameter(
-            TypeDefinition.Get("Azure.Messaging.ServiceBus", "ServiceBusReceivedMessage", isArray: true),
-            "messages", isTrigger: true),
-        new ShimParameter(TypeDefinition.Get(Worker, "ServiceBusMessageActions"), "messageActions", isTrigger: false)
+            TypeDefinition.Get(
+                "Azure.Messaging.ServiceBus",
+                "ServiceBusReceivedMessage",
+                isArray: true
+            ),
+            "messages",
+            isTrigger: true
+        ),
+        new ShimParameter(
+            TypeDefinition.Get(Worker, "ServiceBusMessageActions"),
+            "messageActions",
+            isTrigger: false
+        ),
     };
 
     private const string ServiceBusDelivery =
@@ -254,17 +295,21 @@ internal abstract class AzureBinding {
     /// <c>ServiceBusReceivedMessage[]</c> with the settlement actions beside it, for
     /// <c>Hardened.Azure.Functions.ServiceBus</c>.
     /// </summary>
-    private sealed class QueueBinding : AzureBinding {
+    private sealed class QueueBinding : AzureBinding
+    {
         public override string Scheme => "QUEUE";
         public override string Property => "HardenedQueueModule";
         public override string FunctionPrefix => "Queue";
         public override bool PerSource => true;
-        public override ITypeDefinition Attribute { get; } = TypeDefinition.Get(Worker, "ServiceBusTriggerAttribute");
+        public override ITypeDefinition Attribute { get; } =
+            TypeDefinition.Get(Worker, "ServiceBusTriggerAttribute");
         public override IReadOnlyList<ShimParameter> Parameters => ServiceBusParameters;
-        public override IReadOnlyList<string> ReadSettings { get; } = new[] { "Connection", "ReportsItemFailures" };
+        public override IReadOnlyList<string> ReadSettings { get; } =
+            new[] { "Connection", "ReportsItemFailures" };
         public override string DataExpression => ServiceBusDelivery;
 
-        public override AttributeArguments Arguments(string source, ModuleSettings settings) {
+        public override AttributeArguments Arguments(string source, ModuleSettings settings)
+        {
             var named = new List<KeyValuePair<string, string>>();
 
             ServiceBusArguments(named, settings);
@@ -272,7 +317,8 @@ internal abstract class AzureBinding {
             return new AttributeArguments(new[] { QuoteString(source) }, named);
         }
 
-        public override IReadOnlyList<string> RawBindings(string source, ModuleSettings settings) {
+        public override IReadOnlyList<string> RawBindings(string source, ModuleSettings settings)
+        {
             var json = new JsonObject()
                 .String("name", "messages")
                 .String("direction", "In")
@@ -289,27 +335,34 @@ internal abstract class AzureBinding {
     /// <c>[Topic("order-events")]</c>: the same trigger on a subscription of the topic. The
     /// subscription is the module's, because it is named for the consumer.
     /// </summary>
-    private sealed class TopicBinding : AzureBinding {
+    private sealed class TopicBinding : AzureBinding
+    {
         public override string Scheme => "TOPIC";
         public override string Property => "HardenedTopicModule";
         public override string FunctionPrefix => "Topic";
         public override bool PerSource => true;
-        public override ITypeDefinition Attribute { get; } = TypeDefinition.Get(Worker, "ServiceBusTriggerAttribute");
+        public override ITypeDefinition Attribute { get; } =
+            TypeDefinition.Get(Worker, "ServiceBusTriggerAttribute");
         public override IReadOnlyList<ShimParameter> Parameters => ServiceBusParameters;
         public override IReadOnlyList<string> RequiredSettings { get; } = new[] { "Subscription" };
-        public override IReadOnlyList<string> ReadSettings { get; } = new[] { "Subscription", "Connection", "ReportsItemFailures" };
+        public override IReadOnlyList<string> ReadSettings { get; } =
+            new[] { "Subscription", "Connection", "ReportsItemFailures" };
         public override string DataExpression => ServiceBusDelivery;
 
-        public override AttributeArguments Arguments(string source, ModuleSettings settings) {
+        public override AttributeArguments Arguments(string source, ModuleSettings settings)
+        {
             var named = new List<KeyValuePair<string, string>>();
 
             ServiceBusArguments(named, settings);
 
             return new AttributeArguments(
-                new[] { QuoteString(source), settings.Get("Subscription")!.Text }, named);
+                new[] { QuoteString(source), settings.Get("Subscription")!.Text },
+                named
+            );
         }
 
-        public override IReadOnlyList<string> RawBindings(string source, ModuleSettings settings) {
+        public override IReadOnlyList<string> RawBindings(string source, ModuleSettings settings)
+        {
             var json = new JsonObject()
                 .String("name", "messages")
                 .String("direction", "In")
@@ -327,24 +380,32 @@ internal abstract class AzureBinding {
     /// <c>[Timer("nightly")]</c>: a timer whose schedule is the app setting named after the
     /// trigger, so the expression stays a deployment setting as the attribute promises.
     /// </summary>
-    private sealed class TimerBinding : AzureBinding {
+    private sealed class TimerBinding : AzureBinding
+    {
         public override string Scheme => "TIMER";
         public override string Property => "HardenedTimerModule";
         public override string FunctionPrefix => "Timer";
         public override bool PerSource => true;
-        public override ITypeDefinition Attribute { get; } = TypeDefinition.Get(Worker, "TimerTriggerAttribute");
+        public override ITypeDefinition Attribute { get; } =
+            TypeDefinition.Get(Worker, "TimerTriggerAttribute");
 
-        public override IReadOnlyList<ShimParameter> Parameters { get; } = new[] {
-            new ShimParameter(TypeDefinition.Get(typeof(string)), "timer", isTrigger: true)
-        };
+        public override IReadOnlyList<ShimParameter> Parameters { get; } =
+            new[]
+            {
+                new ShimParameter(TypeDefinition.Get(typeof(string)), "timer", isTrigger: true),
+            };
 
         private static string Schedule(string source) => "%Hardened:Timers:" + source + "%";
 
         public override AttributeArguments Arguments(string source, ModuleSettings settings) =>
-            new(new[] { QuoteString(Schedule(source)) }, Array.Empty<KeyValuePair<string, string>>());
+            new(
+                new[] { QuoteString(Schedule(source)) },
+                Array.Empty<KeyValuePair<string, string>>()
+            );
 
         public override IReadOnlyList<string> RawBindings(string source, ModuleSettings settings) =>
-            new[] {
+            new[]
+            {
                 new JsonObject()
                     .String("name", "timer")
                     .String("direction", "In")
@@ -352,7 +413,7 @@ internal abstract class AzureBinding {
                     .String("dataType", "String")
                     .String("schedule", Schedule(source))
                     .Raw("properties", "{}")
-                    .ToString()
+                    .ToString(),
             };
     }
 
@@ -366,17 +427,21 @@ internal abstract class AzureBinding {
     /// named ...". <see cref="DefaultConnection"/> follows the Service Bus extension's naming, so
     /// a deployment sets <c>AzureWebJobsEventHubs</c> beside <c>AzureWebJobsServiceBus</c>.
     /// </remarks>
-    private sealed class StreamBinding : AzureBinding {
+    private sealed class StreamBinding : AzureBinding
+    {
         public const string DefaultConnection = "AzureWebJobsEventHubs";
 
         public override string Scheme => "STREAM";
         public override string Property => "HardenedStreamModule";
         public override string FunctionPrefix => "Stream";
         public override bool PerSource => true;
-        public override ITypeDefinition Attribute { get; } = TypeDefinition.Get(Worker, "EventHubTriggerAttribute");
-        public override IReadOnlyList<string> ReadSettings { get; } = new[] { "Connection", "ConsumerGroup", "RetryCount", "RetryDelay" };
+        public override ITypeDefinition Attribute { get; } =
+            TypeDefinition.Get(Worker, "EventHubTriggerAttribute");
+        public override IReadOnlyList<string> ReadSettings { get; } =
+            new[] { "Connection", "ConsumerGroup", "RetryCount", "RetryDelay" };
 
-        public override IReadOnlyList<string> MissingSettings(ModuleSettings settings) {
+        public override IReadOnlyList<string> MissingSettings(ModuleSettings settings)
+        {
             var missing = (List<string>)base.MissingSettings(settings);
 
             RetryMissing(missing, settings);
@@ -386,25 +451,37 @@ internal abstract class AzureBinding {
 
         public override RetryPolicy? Retry(ModuleSettings settings) => FixedDelayRetry(settings);
 
-        public override IReadOnlyList<ShimParameter> Parameters { get; } = new[] {
-            new ShimParameter(
-                TypeDefinition.Get("Azure.Messaging.EventHubs", "EventData", isArray: true), "events", isTrigger: true)
-        };
-
-        public override AttributeArguments Arguments(string source, ModuleSettings settings) {
-            var named = new List<KeyValuePair<string, string>> {
-                new("IsBatched", "true"),
-                new("Connection", settings.Get("Connection")?.Text ?? QuoteString(DefaultConnection))
+        public override IReadOnlyList<ShimParameter> Parameters { get; } =
+            new[]
+            {
+                new ShimParameter(
+                    TypeDefinition.Get("Azure.Messaging.EventHubs", "EventData", isArray: true),
+                    "events",
+                    isTrigger: true
+                ),
             };
 
-            if (settings.Get("ConsumerGroup") is { } group) {
+        public override AttributeArguments Arguments(string source, ModuleSettings settings)
+        {
+            var named = new List<KeyValuePair<string, string>>
+            {
+                new("IsBatched", "true"),
+                new(
+                    "Connection",
+                    settings.Get("Connection")?.Text ?? QuoteString(DefaultConnection)
+                ),
+            };
+
+            if (settings.Get("ConsumerGroup") is { } group)
+            {
                 named.Add(new KeyValuePair<string, string>("ConsumerGroup", group.Text));
             }
 
             return new AttributeArguments(new[] { QuoteString(source) }, named);
         }
 
-        public override IReadOnlyList<string> RawBindings(string source, ModuleSettings settings) {
+        public override IReadOnlyList<string> RawBindings(string source, ModuleSettings settings)
+        {
             var json = new JsonObject()
                 .String("name", "events")
                 .String("direction", "In")
@@ -412,7 +489,8 @@ internal abstract class AzureBinding {
                 .String("eventHubName", source)
                 .String("connection", settings.Get("Connection")?.Literal ?? DefaultConnection);
 
-            if (settings.Get("ConsumerGroup")?.Literal is { } group) {
+            if (settings.Get("ConsumerGroup")?.Literal is { } group)
+            {
                 json.String("consumerGroup", group);
             }
 
@@ -428,16 +506,20 @@ internal abstract class AzureBinding {
     /// host sends so the adapter can split it, for <c>Hardened.Azure.Functions.CosmosDb</c>. The
     /// database and the lease container are the module's.
     /// </summary>
-    private sealed class ChangeBinding : AzureBinding {
+    private sealed class ChangeBinding : AzureBinding
+    {
         public override string Scheme => "CHANGE";
         public override string Property => "HardenedChangeModule";
         public override string FunctionPrefix => "Change";
         public override bool PerSource => true;
-        public override ITypeDefinition Attribute { get; } = TypeDefinition.Get(Worker, "CosmosDBTriggerAttribute");
+        public override ITypeDefinition Attribute { get; } =
+            TypeDefinition.Get(Worker, "CosmosDBTriggerAttribute");
         public override IReadOnlyList<string> RequiredSettings { get; } = new[] { "Database" };
-        public override IReadOnlyList<string> ReadSettings { get; } = new[] { "Database", "Connection", "LeaseContainer", "RetryCount", "RetryDelay" };
+        public override IReadOnlyList<string> ReadSettings { get; } =
+            new[] { "Database", "Connection", "LeaseContainer", "RetryCount", "RetryDelay" };
 
-        public override IReadOnlyList<string> MissingSettings(ModuleSettings settings) {
+        public override IReadOnlyList<string> MissingSettings(ModuleSettings settings)
+        {
             var missing = (List<string>)base.MissingSettings(settings);
 
             RetryMissing(missing, settings);
@@ -447,18 +529,23 @@ internal abstract class AzureBinding {
 
         public override RetryPolicy? Retry(ModuleSettings settings) => FixedDelayRetry(settings);
 
-        public override IReadOnlyList<ShimParameter> Parameters { get; } = new[] {
-            new ShimParameter(TypeDefinition.Get(typeof(string)), "documents", isTrigger: true)
-        };
+        public override IReadOnlyList<ShimParameter> Parameters { get; } =
+            new[]
+            {
+                new ShimParameter(TypeDefinition.Get(typeof(string)), "documents", isTrigger: true),
+            };
 
-        public override AttributeArguments Arguments(string source, ModuleSettings settings) {
+        public override AttributeArguments Arguments(string source, ModuleSettings settings)
+        {
             var named = new List<KeyValuePair<string, string>>();
 
-            if (settings.Get("Connection") is { } connection) {
+            if (settings.Get("Connection") is { } connection)
+            {
                 named.Add(new KeyValuePair<string, string>("Connection", connection.Text));
             }
 
-            if (settings.Get("LeaseContainer") is { } lease) {
+            if (settings.Get("LeaseContainer") is { } lease)
+            {
                 named.Add(new KeyValuePair<string, string>("LeaseContainerName", lease.Text));
             }
 
@@ -467,10 +554,13 @@ internal abstract class AzureBinding {
             named.Add(new KeyValuePair<string, string>("CreateLeaseContainerIfNotExists", "true"));
 
             return new AttributeArguments(
-                new[] { settings.Get("Database")!.Text, QuoteString(source) }, named);
+                new[] { settings.Get("Database")!.Text, QuoteString(source) },
+                named
+            );
         }
 
-        public override IReadOnlyList<string> RawBindings(string source, ModuleSettings settings) {
+        public override IReadOnlyList<string> RawBindings(string source, ModuleSettings settings)
+        {
             var json = new JsonObject()
                 .String("name", "documents")
                 .String("direction", "In")
@@ -479,11 +569,13 @@ internal abstract class AzureBinding {
                 .String("databaseName", settings.Get("Database")!.Literal!)
                 .String("containerName", source);
 
-            if (settings.Get("Connection")?.Literal is { } connection) {
+            if (settings.Get("Connection")?.Literal is { } connection)
+            {
                 json.String("connection", connection);
             }
 
-            if (settings.Get("LeaseContainer")?.Literal is { } lease) {
+            if (settings.Get("LeaseContainer")?.Literal is { } lease)
+            {
                 json.String("leaseContainerName", lease);
             }
 
@@ -498,41 +590,57 @@ internal abstract class AzureBinding {
     /// <c>[Blob("uploads")]</c>: a blob trigger on the container, fed by Event Grid, bound as a
     /// <c>BlobClient</c> so nothing is downloaded, for <c>Hardened.Azure.Functions.Blobs</c>.
     /// </summary>
-    private sealed class BlobBinding : AzureBinding {
+    private sealed class BlobBinding : AzureBinding
+    {
         public override string Scheme => "BLOB";
         public override string Property => "HardenedBlobModule";
         public override string FunctionPrefix => "Blob";
         public override bool PerSource => true;
-        public override ITypeDefinition Attribute { get; } = TypeDefinition.Get(Worker, "BlobTriggerAttribute");
+        public override ITypeDefinition Attribute { get; } =
+            TypeDefinition.Get(Worker, "BlobTriggerAttribute");
         public override IReadOnlyList<string> ReadSettings { get; } = new[] { "Connection" };
 
-        public override IReadOnlyList<ShimParameter> Parameters { get; } = new[] {
-            new ShimParameter(TypeDefinition.Get("Azure.Storage.Blobs", "BlobClient"), "blob", isTrigger: true)
-        };
+        public override IReadOnlyList<ShimParameter> Parameters { get; } =
+            new[]
+            {
+                new ShimParameter(
+                    TypeDefinition.Get("Azure.Storage.Blobs", "BlobClient"),
+                    "blob",
+                    isTrigger: true
+                ),
+            };
 
         private static string Path(string source) => source + "/{name}";
 
-        public override AttributeArguments Arguments(string source, ModuleSettings settings) {
+        public override AttributeArguments Arguments(string source, ModuleSettings settings)
+        {
             var named = new List<KeyValuePair<string, string>>();
 
-            if (settings.Get("Connection") is { } connection) {
+            if (settings.Get("Connection") is { } connection)
+            {
                 named.Add(new KeyValuePair<string, string>("Connection", connection.Text));
             }
 
-            named.Add(new KeyValuePair<string, string>(
-                "Source", "global::" + Worker + ".BlobTriggerSource.EventGrid"));
+            named.Add(
+                new KeyValuePair<string, string>(
+                    "Source",
+                    "global::" + Worker + ".BlobTriggerSource.EventGrid"
+                )
+            );
 
             return new AttributeArguments(new[] { QuoteString(Path(source)) }, named);
         }
 
-        public override IReadOnlyList<string> RawBindings(string source, ModuleSettings settings) {
+        public override IReadOnlyList<string> RawBindings(string source, ModuleSettings settings)
+        {
             var json = new JsonObject()
                 .String("name", "blob")
                 .String("direction", "In")
                 .String("type", "blobTrigger")
                 .String("path", Path(source));
 
-            if (settings.Get("Connection")?.Literal is { } connection) {
+            if (settings.Get("Connection")?.Literal is { } connection)
+            {
                 json.String("connection", connection);
             }
 
@@ -547,22 +655,31 @@ internal abstract class AzureBinding {
     /// <c>[Event(source, type)]</c>, all of them: one Event Grid function for the family, bound as
     /// the CloudEvent's JSON for <c>Hardened.Azure.Functions.EventGrid</c> to parse and route.
     /// </summary>
-    private sealed class EventBinding : AzureBinding {
+    private sealed class EventBinding : AzureBinding
+    {
         public override string Scheme => "EVENT";
         public override string Property => "HardenedEventModule";
         public override string FunctionPrefix => "Event";
         public override bool PerSource => false;
-        public override ITypeDefinition Attribute { get; } = TypeDefinition.Get(Worker, "EventGridTriggerAttribute");
+        public override ITypeDefinition Attribute { get; } =
+            TypeDefinition.Get(Worker, "EventGridTriggerAttribute");
 
-        public override IReadOnlyList<ShimParameter> Parameters { get; } = new[] {
-            new ShimParameter(TypeDefinition.Get(typeof(string)), "cloudEvent", isTrigger: true)
-        };
+        public override IReadOnlyList<ShimParameter> Parameters { get; } =
+            new[]
+            {
+                new ShimParameter(
+                    TypeDefinition.Get(typeof(string)),
+                    "cloudEvent",
+                    isTrigger: true
+                ),
+            };
 
         public override AttributeArguments Arguments(string source, ModuleSettings settings) =>
             new(Array.Empty<string>(), Array.Empty<KeyValuePair<string, string>>());
 
         public override IReadOnlyList<string> RawBindings(string source, ModuleSettings settings) =>
-            new[] {
+            new[]
+            {
                 new JsonObject()
                     .String("name", "cloudEvent")
                     .String("direction", "In")
@@ -570,7 +687,7 @@ internal abstract class AzureBinding {
                     .String("dataType", "String")
                     .String("cardinality", "One")
                     .Raw("properties", "{}")
-                    .ToString()
+                    .ToString(),
             };
     }
 
@@ -578,35 +695,60 @@ internal abstract class AzureBinding {
     /// The web verbs, all of them: one anonymous HTTP function catching every method under every
     /// path, for <c>Hardened.Azure.Functions.Http</c>, whose routing table does the routing.
     /// </summary>
-    private sealed class HttpBinding : AzureBinding {
-        private static readonly string[] Methods = { "get", "post", "put", "patch", "delete", "head", "options" };
+    private sealed class HttpBinding : AzureBinding
+    {
+        private static readonly string[] Methods =
+        {
+            "get",
+            "post",
+            "put",
+            "patch",
+            "delete",
+            "head",
+            "options",
+        };
 
         public override string Scheme => "HTTP";
         public override string Property => "HardenedHttpModule";
         public override string FunctionPrefix => "Http";
         public override bool PerSource => false;
-        public override ITypeDefinition Attribute { get; } = TypeDefinition.Get(Worker, "HttpTriggerAttribute");
-        public override ITypeDefinition ReturnType { get; } = TypeDefinition.Get(Worker + ".Http", "HttpResponseData");
+        public override ITypeDefinition Attribute { get; } =
+            TypeDefinition.Get(Worker, "HttpTriggerAttribute");
+        public override ITypeDefinition ReturnType { get; } =
+            TypeDefinition.Get(Worker + ".Http", "HttpResponseData");
         public override string Dispatch => "Web";
 
-        public override IReadOnlyList<ShimParameter> Parameters { get; } = new[] {
-            new ShimParameter(TypeDefinition.Get(Worker + ".Http", "HttpRequestData"), "request", isTrigger: true)
-        };
+        public override IReadOnlyList<ShimParameter> Parameters { get; } =
+            new[]
+            {
+                new ShimParameter(
+                    TypeDefinition.Get(Worker + ".Http", "HttpRequestData"),
+                    "request",
+                    isTrigger: true
+                ),
+            };
 
-        public override AttributeArguments Arguments(string source, ModuleSettings settings) {
-            var positional = new List<string> { "global::" + Worker + ".AuthorizationLevel.Anonymous" };
+        public override AttributeArguments Arguments(string source, ModuleSettings settings)
+        {
+            var positional = new List<string>
+            {
+                "global::" + Worker + ".AuthorizationLevel.Anonymous",
+            };
 
-            foreach (var method in Methods) {
+            foreach (var method in Methods)
+            {
                 positional.Add(QuoteString(method));
             }
 
             return new AttributeArguments(
                 positional,
-                new[] { new KeyValuePair<string, string>("Route", QuoteString("{*path}")) });
+                new[] { new KeyValuePair<string, string>("Route", QuoteString("{*path}")) }
+            );
         }
 
         public override IReadOnlyList<string> RawBindings(string source, ModuleSettings settings) =>
-            new[] {
+            new[]
+            {
                 new JsonObject()
                     .String("name", "request")
                     .String("direction", "In")
@@ -621,17 +763,20 @@ internal abstract class AzureBinding {
                     .String("name", "$return")
                     .String("type", "http")
                     .String("direction", "Out")
-                    .ToString()
+                    .ToString(),
             };
     }
 
     /// <summary>A JSON object written in insertion order, which is the build task's order too.</summary>
-    internal sealed class JsonObject {
+    internal sealed class JsonObject
+    {
         private readonly StringBuilder _builder = new StringBuilder("{");
         private bool _first = true;
 
-        private JsonObject Key(string key) {
-            if (!_first) {
+        private JsonObject Key(string key)
+        {
+            if (!_first)
+            {
                 _builder.Append(',');
             }
 
@@ -641,31 +786,37 @@ internal abstract class AzureBinding {
             return this;
         }
 
-        public JsonObject String(string key, string value) {
+        public JsonObject String(string key, string value)
+        {
             Key(key)._builder.Append('"').Append(Escape(value)).Append('"');
 
             return this;
         }
 
-        public JsonObject Bool(string key, bool value) {
+        public JsonObject Bool(string key, bool value)
+        {
             Key(key)._builder.Append(value ? "true" : "false");
 
             return this;
         }
 
-        public JsonObject Raw(string key, string json) {
+        public JsonObject Raw(string key, string json)
+        {
             Key(key)._builder.Append(json);
 
             return this;
         }
 
-        public JsonObject Strings(string key, IEnumerable<string> values) {
+        public JsonObject Strings(string key, IEnumerable<string> values)
+        {
             Key(key)._builder.Append('[');
 
             var first = true;
 
-            foreach (var value in values) {
-                if (!first) {
+            foreach (var value in values)
+            {
+                if (!first)
+                {
                     _builder.Append(',');
                 }
 
@@ -684,11 +835,14 @@ internal abstract class AzureBinding {
         /// The characters a JSON string cannot carry bare. No Azure entity name allows them, and the
         /// escape is here so a name from another source cannot break the metadata.
         /// </summary>
-        internal static string Escape(string value) {
+        internal static string Escape(string value)
+        {
             var builder = new StringBuilder(value.Length);
 
-            foreach (var character in value) {
-                switch (character) {
+            foreach (var character in value)
+            {
+                switch (character)
+                {
                     case '"':
                         builder.Append("\\\"");
                         break;
@@ -705,10 +859,12 @@ internal abstract class AzureBinding {
                         builder.Append("\\t");
                         break;
                     default:
-                        if (character < ' ') {
+                        if (character < ' ')
+                        {
                             builder.Append("\\u").Append(((int)character).ToString("x4"));
                         }
-                        else {
+                        else
+                        {
                             builder.Append(character);
                         }
 

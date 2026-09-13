@@ -1,13 +1,13 @@
 using System.Text;
 using Amazon.Lambda.Core;
+using Hardened.Aws.Lambda.EventBridge;
+using Hardened.Aws.Lambda.Http;
+using Hardened.Aws.Lambda.Invoke;
 using Hardened.Aws.Lambda.Runtime.Adapters;
 using Hardened.Aws.Lambda.Runtime.Execution;
 using Hardened.Aws.Lambda.Runtime.Hosting;
 using Hardened.Aws.Lambda.Runtime.Streaming;
 using Hardened.Aws.Lambda.Runtime.Tests.Infrastructure;
-using Hardened.Aws.Lambda.Http;
-using Hardened.Aws.Lambda.EventBridge;
-using Hardened.Aws.Lambda.Invoke;
 using Hardened.Aws.Lambda.Sns;
 using Hardened.Aws.Lambda.Sqs;
 using Hardened.Requests.Abstract.Execution;
@@ -23,13 +23,14 @@ namespace Hardened.Aws.Lambda.Runtime.Tests.Hosting;
 /// <summary>
 /// The invocation loop: which adapter is chosen, what reaches the pipeline, and what comes back.
 /// </summary>
-public class LambdaInvocationHandlerTests {
-
+public class LambdaInvocationHandlerTests
+{
     /// <summary>
     /// Records what the executor was handed, so a test can assert on the request the adapter built
     /// and the policy the adapter asked for without running a real pipeline.
     /// </summary>
-    private sealed class RecordingExecutor : IRequestExecutor {
+    private sealed class RecordingExecutor : IRequestExecutor
+    {
         public IExecutionContext? Context;
         public HostFailurePolicy? Policy;
         public Func<IExecutionContext, Task>? Body;
@@ -41,7 +42,8 @@ public class LambdaInvocationHandlerTests {
 
         public void End(IExecutionContext context) { }
 
-        public Task Run(IExecutionContext context, HostFailurePolicy onFailure) {
+        public Task Run(IExecutionContext context, HostFailurePolicy onFailure)
+        {
             Context = context;
             Policy = onFailure;
 
@@ -50,7 +52,9 @@ public class LambdaInvocationHandlerTests {
     }
 
     private static (LambdaInvocationHandler Handler, RecordingExecutor Executor) Build(
-        params IPayloadAdapter[] adapters) {
+        params IPayloadAdapter[] adapters
+    )
+    {
         var executor = new RecordingExecutor();
 
         var services = new ServiceCollection();
@@ -68,10 +72,17 @@ public class LambdaInvocationHandlerTests {
 
         var provider = services.BuildServiceProvider();
 
-        return (new LambdaInvocationHandler(
-                provider, executor, new NullMetricLoggerProvider(), adapters,
-                new CapturingResponseStreamFactory(), Mode()),
-            executor);
+        return (
+            new LambdaInvocationHandler(
+                provider,
+                executor,
+                new NullMetricLoggerProvider(),
+                adapters,
+                new CapturingResponseStreamFactory(),
+                Mode()
+            ),
+            executor
+        );
     }
 
     /// <summary>
@@ -79,9 +90,11 @@ public class LambdaInvocationHandlerTests {
     /// otherwise, which is the default a function with no variable set runs under.
     /// </summary>
     private static IOptions<ILambdaResponseModeConfiguration> Mode(
-        LambdaResponseMode mode = LambdaResponseMode.Buffered) =>
+        LambdaResponseMode mode = LambdaResponseMode.Buffered
+    ) =>
         Options.Create<ILambdaResponseModeConfiguration>(
-            new LambdaResponseModeConfiguration { Mode = mode });
+            new LambdaResponseModeConfiguration { Mode = mode }
+        );
 
     private static ILambdaContext Context() =>
         new TestLambdaContext(remainingTime: TimeSpan.FromSeconds(30));
@@ -95,7 +108,8 @@ public class LambdaInvocationHandlerTests {
     /// from ever parsing a payload to find out what they already know.
     /// </summary>
     [Fact]
-    public async Task OneAdapterIsNotAsked() {
+    public async Task OneAdapterIsNotAsked()
+    {
         var adapter = new CountingAdapter(new InvokeAdapter());
 
         var (handler, _) = Build(adapter);
@@ -106,8 +120,13 @@ public class LambdaInvocationHandlerTests {
     }
 
     [Fact]
-    public async Task SeveralAdaptersAreAskedUntilOneClaims() {
-        var (handler, executor) = Build(new SqsAdapter(), new SnsAdapter(), new EventBridgeAdapter());
+    public async Task SeveralAdaptersAreAskedUntilOneClaims()
+    {
+        var (handler, executor) = Build(
+            new SqsAdapter(),
+            new SnsAdapter(),
+            new EventBridgeAdapter()
+        );
 
         await handler.Invoke(Input(Payloads.SnsJson), Context());
 
@@ -120,22 +139,26 @@ public class LambdaInvocationHandlerTests {
     /// for a different shape. The message names what the function was built for.
     /// </summary>
     [Fact]
-    public async Task APayloadNothingClaimsIsAnError() {
+    public async Task APayloadNothingClaimsIsAnError()
+    {
         var (handler, _) = Build(new SqsAdapter(), new SnsAdapter());
 
-        var failure = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => handler.Invoke(Input("""{"detail-type":"OrderPlaced","source":"acme"}"""), Context()));
+        var failure = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            handler.Invoke(Input("""{"detail-type":"OrderPlaced","source":"acme"}"""), Context())
+        );
 
         Assert.Contains("SqsAdapter", failure.Message);
         Assert.Contains("SnsAdapter", failure.Message);
     }
 
     [Fact]
-    public async Task AFunctionWithNoAdapterSaysSo() {
+    public async Task AFunctionWithNoAdapterSaysSo()
+    {
         var (handler, _) = Build();
 
-        var failure = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => handler.Invoke(Input("{}"), Context()));
+        var failure = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            handler.Invoke(Input("{}"), Context())
+        );
 
         Assert.Contains("registered no payload adapter", failure.Message);
     }
@@ -143,7 +166,8 @@ public class LambdaInvocationHandlerTests {
     // ------------------------------------------------------------------ the policy
 
     [Fact]
-    public async Task AWebAdapterAsksForTheFailureToBeAnswered() {
+    public async Task AWebAdapterAsksForTheFailureToBeAnswered()
+    {
         var (handler, executor) = Build(new LambdaHttpAdapter());
 
         await handler.Invoke(Input(Payloads.HttpJson), Context());
@@ -152,7 +176,8 @@ public class LambdaInvocationHandlerTests {
     }
 
     [Fact]
-    public async Task AnEventAdapterAsksForTheFailureToBeRethrown() {
+    public async Task AnEventAdapterAsksForTheFailureToBeRethrown()
+    {
         var (handler, executor) = Build(new SqsAdapter());
 
         await handler.Invoke(Input(Payloads.SqsJson), Context());
@@ -167,10 +192,12 @@ public class LambdaInvocationHandlerTests {
     /// for SQS, nothing at all for SNS.
     /// </summary>
     [Fact]
-    public async Task TheAdapterWritesTheAnswer() {
+    public async Task TheAdapterWritesTheAnswer()
+    {
         var (handler, executor) = Build(new LambdaHttpAdapter());
 
-        executor.Body = context => {
+        executor.Body = context =>
+        {
             context.Response.Status = 201;
 
             return Task.CompletedTask;
@@ -182,7 +209,8 @@ public class LambdaInvocationHandlerTests {
     }
 
     [Fact]
-    public async Task ASourceThatReadsNoResponseWritesNothing() {
+    public async Task ASourceThatReadsNoResponseWritesNothing()
+    {
         var (handler, _) = Build(new SnsAdapter());
 
         var output = await handler.Invoke(Input(Payloads.SnsJson), Context());
@@ -194,7 +222,8 @@ public class LambdaInvocationHandlerTests {
     /// The stream is handed back positioned at zero, because the bootstrap reads it straight out.
     /// </summary>
     [Fact]
-    public async Task TheAnswerIsRewound() {
+    public async Task TheAnswerIsRewound()
+    {
         var (handler, _) = Build(new SqsAdapter());
 
         var output = await handler.Invoke(Input(Payloads.SqsJson), Context());
@@ -209,12 +238,14 @@ public class LambdaInvocationHandlerTests {
     /// to log, flush or report. The token trips before that.
     /// </summary>
     [Fact]
-    public async Task TheDeadlineBecomesACancellationToken() {
+    public async Task TheDeadlineBecomesACancellationToken()
+    {
         var (handler, executor) = Build(new SqsAdapter());
 
         await handler.Invoke(
             Input(Payloads.SqsJson),
-            new TestLambdaContext(remainingTime: TimeSpan.FromSeconds(30)));
+            new TestLambdaContext(remainingTime: TimeSpan.FromSeconds(30))
+        );
 
         Assert.True(executor.Context!.CancellationToken.CanBeCanceled);
         Assert.False(executor.Context.CancellationToken.IsCancellationRequested);
@@ -225,12 +256,14 @@ public class LambdaInvocationHandlerTests {
     /// to do the work, and starting it would be killed halfway.
     /// </summary>
     [Fact]
-    public async Task AnInvocationWithNoTimeLeftStartsCancelled() {
+    public async Task AnInvocationWithNoTimeLeftStartsCancelled()
+    {
         var (handler, executor) = Build(new SqsAdapter());
 
         await handler.Invoke(
             Input(Payloads.SqsJson),
-            new TestLambdaContext(remainingTime: TimeSpan.FromMilliseconds(10)));
+            new TestLambdaContext(remainingTime: TimeSpan.FromMilliseconds(10))
+        );
 
         Assert.True(executor.Context!.CancellationToken.IsCancellationRequested);
     }
@@ -244,7 +277,8 @@ public class LambdaInvocationHandlerTests {
     /// chain on the second message and run every handler twice.
     /// </remarks>
     [Fact]
-    public async Task DispatchIsInstalledOnlyOnce() {
+    public async Task DispatchIsInstalledOnlyOnce()
+    {
         var (handler, _) = Build(new SqsAdapter());
 
         await handler.Invoke(Input(Payloads.SqsJson), Context());
@@ -254,7 +288,8 @@ public class LambdaInvocationHandlerTests {
     }
 
     /// <summary>Stands in for whichever dispatch a routing generator registered.</summary>
-    private sealed class StubDispatch : IHandlerDispatch {
+    private sealed class StubDispatch : IHandlerDispatch
+    {
         public Task Execute(IExecutionChain chain) => Task.CompletedTask;
     }
 
@@ -266,15 +301,16 @@ public class LambdaInvocationHandlerTests {
     /// way to ask: the alternative is running a chain and counting how often a handler was reached,
     /// which needs a routed handler and turns a two-line assertion into a second integration test.
     /// </remarks>
-    private static int DispatchFilters(LambdaInvocationHandler handler) {
+    private static int DispatchFilters(LambdaInvocationHandler handler)
+    {
         var middleware = (MiddlewareService)handler.Middleware;
 
         var field = typeof(MiddlewareService).GetField(
             "_filters",
-            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic
+        );
 
-        var filters =
-            (List<Func<IExecutionContext, IExecutionFilter>>)field!.GetValue(middleware)!;
+        var filters = (List<Func<IExecutionContext, IExecutionFilter>>)field!.GetValue(middleware)!;
 
         return filters.Count(factory => factory(null!) is StubDispatch);
     }
@@ -284,7 +320,8 @@ public class LambdaInvocationHandlerTests {
     /// web dispatch answers 404 for anything its table misses - so the host refuses and names both.
     /// </summary>
     [Fact]
-    public async Task TwoKindsOfDispatchAreRefused() {
+    public async Task TwoKindsOfDispatchAreRefused()
+    {
         var services = new ServiceCollection();
 
         services.AddSingleton<IKnownServices>(new StubKnownServices());
@@ -293,12 +330,17 @@ public class LambdaInvocationHandlerTests {
         services.AddSingleton<IHandlerDispatch, OtherStubDispatch>();
 
         var handler = new LambdaInvocationHandler(
-            services.BuildServiceProvider(), new RecordingExecutor(),
-            new NullMetricLoggerProvider(), [new SqsAdapter()],
-            new CapturingResponseStreamFactory(), Mode());
+            services.BuildServiceProvider(),
+            new RecordingExecutor(),
+            new NullMetricLoggerProvider(),
+            [new SqsAdapter()],
+            new CapturingResponseStreamFactory(),
+            Mode()
+        );
 
-        var failure = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => handler.Invoke(Input(Payloads.SqsJson), Context()));
+        var failure = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            handler.Invoke(Input(Payloads.SqsJson), Context())
+        );
 
         Assert.Contains("StubDispatch", failure.Message);
         Assert.Contains("OtherStubDispatch", failure.Message);
@@ -310,38 +352,48 @@ public class LambdaInvocationHandlerTests {
     /// do forever.
     /// </summary>
     [Fact]
-    public async Task NoDispatchAtAllIsRefused() {
+    public async Task NoDispatchAtAllIsRefused()
+    {
         var services = new ServiceCollection();
 
         services.AddSingleton<IKnownServices>(new StubKnownServices());
         services.AddSingleton<IMiddlewareService, MiddlewareService>();
 
         var handler = new LambdaInvocationHandler(
-            services.BuildServiceProvider(), new RecordingExecutor(),
-            new NullMetricLoggerProvider(), [new SqsAdapter()],
-            new CapturingResponseStreamFactory(), Mode());
+            services.BuildServiceProvider(),
+            new RecordingExecutor(),
+            new NullMetricLoggerProvider(),
+            [new SqsAdapter()],
+            new CapturingResponseStreamFactory(),
+            Mode()
+        );
 
-        var failure = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => handler.Invoke(Input(Payloads.SqsJson), Context()));
+        var failure = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            handler.Invoke(Input(Payloads.SqsJson), Context())
+        );
 
         Assert.Contains("declares no handlers", failure.Message);
     }
 
-    private sealed class OtherStubDispatch : IHandlerDispatch {
+    private sealed class OtherStubDispatch : IHandlerDispatch
+    {
         public Task Execute(IExecutionChain chain) => Task.CompletedTask;
     }
 
     /// <summary>Counts how often the peek was run, without changing what the adapter answers.</summary>
-    private sealed class CountingAdapter : IPayloadAdapter {
+    private sealed class CountingAdapter : IPayloadAdapter
+    {
         private readonly IPayloadAdapter _inner;
 
         public int Asked;
 
-        public CountingAdapter(IPayloadAdapter inner) {
+        public CountingAdapter(IPayloadAdapter inner)
+        {
             _inner = inner;
         }
 
-        public bool Handles(System.Text.Json.JsonElement payload) {
+        public bool Handles(System.Text.Json.JsonElement payload)
+        {
             Asked++;
 
             return _inner.Handles(payload);

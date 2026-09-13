@@ -1,9 +1,9 @@
 using System.Text.Json;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
+using Hardened.Web.Runtime.Responses;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Primitives;
-using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.Runtime.Health;
 
@@ -24,11 +24,13 @@ namespace Hardened.Web.Runtime.Health;
 /// being pinned to the first probe.
 /// </para>
 /// </remarks>
-public class HealthCheckController {
+public class HealthCheckController
+{
     private readonly IServiceProvider _rootProvider;
     private readonly HealthCheckConfiguration _config;
 
-    public HealthCheckController(IServiceProvider rootProvider, HealthCheckConfiguration config) {
+    public HealthCheckController(IServiceProvider rootProvider, HealthCheckConfiguration config)
+    {
         _rootProvider = rootProvider;
         _config = config;
     }
@@ -36,18 +38,21 @@ public class HealthCheckController {
     /// <summary>
     /// Alive if this code is running. No dependency is consulted, on purpose.
     /// </summary>
-    public Task Live(IExecutionContext context) {
+    public Task Live(IExecutionContext context)
+    {
         Write(context, 200, HealthStatus.Healthy, Array.Empty<(string, HealthCheckResult)>());
 
         return Task.CompletedTask;
     }
 
-    public async Task Ready(IExecutionContext context) {
+    public async Task Ready(IExecutionContext context)
+    {
         // Resolved per probe rather than held, so a check registered as scoped or transient behaves
         // as its registration says rather than being pinned to the first probe.
         var checks = _rootProvider.GetServices<IHealthCheck>().ToArray();
 
-        if (checks.Length == 0) {
+        if (checks.Length == 0)
+        {
             // No checks is ready. An application that registered none has not said it is unhealthy;
             // it has said it has nothing to verify.
             Write(context, 200, HealthStatus.Healthy, Array.Empty<(string, HealthCheckResult)>());
@@ -55,14 +60,18 @@ public class HealthCheckController {
             return;
         }
 
-        using var budget = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken);
+        using var budget = CancellationTokenSource.CreateLinkedTokenSource(
+            context.CancellationToken
+        );
 
         budget.CancelAfter(_config.TotalTimeout);
 
         var results = await Task.WhenAll(checks.Select(check => Run(check, budget.Token)));
 
         var worst = results.Aggregate(
-            HealthStatus.Healthy, (current, result) => Max(current, result.Item2.Status));
+            HealthStatus.Healthy,
+            (current, result) => Max(current, result.Item2.Status)
+        );
 
         Write(context, worst == HealthStatus.Unhealthy ? 503 : 200, worst, results);
     }
@@ -76,18 +85,25 @@ public class HealthCheckController {
     /// allowed to fail the probe itself, because a 500 from a readiness endpoint is far less
     /// actionable than a 503.
     /// </remarks>
-    private async Task<(string, HealthCheckResult)> Run(IHealthCheck check, CancellationToken budget) {
+    private async Task<(string, HealthCheckResult)> Run(
+        IHealthCheck check,
+        CancellationToken budget
+    )
+    {
         using var perCheck = CancellationTokenSource.CreateLinkedTokenSource(budget);
 
         perCheck.CancelAfter(_config.CheckTimeout);
 
-        try {
+        try
+        {
             return (check.Name, await check.Check(perCheck.Token));
         }
-        catch (OperationCanceledException) {
+        catch (OperationCanceledException)
+        {
             return (check.Name, HealthCheckResult.Unhealthy("timed out"));
         }
-        catch (Exception exception) {
+        catch (Exception exception)
+        {
             return (check.Name, HealthCheckResult.Unhealthy(exception.GetType().Name));
         }
     }
@@ -108,7 +124,9 @@ public class HealthCheckController {
         IExecutionContext context,
         int status,
         HealthStatus overall,
-        IReadOnlyCollection<(string Name, HealthCheckResult Result)> results) {
+        IReadOnlyCollection<(string Name, HealthCheckResult Result)> results
+    )
+    {
         var response = context.Response;
 
         response.Status = status;
@@ -121,14 +139,17 @@ public class HealthCheckController {
         writer.WriteStartObject();
         writer.WriteString("status", overall.ToString());
 
-        if (_config.IncludeDetail && results.Count > 0) {
+        if (_config.IncludeDetail && results.Count > 0)
+        {
             writer.WriteStartObject("checks");
 
-            foreach (var (name, result) in results) {
+            foreach (var (name, result) in results)
+            {
                 writer.WriteStartObject(name);
                 writer.WriteString("status", result.Status.ToString());
 
-                if (result.Description != null) {
+                if (result.Description != null)
+                {
                     writer.WriteString("description", result.Description);
                 }
 

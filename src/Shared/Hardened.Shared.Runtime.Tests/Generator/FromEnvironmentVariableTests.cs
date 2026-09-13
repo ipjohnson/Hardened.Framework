@@ -29,12 +29,13 @@ namespace Hardened.Shared.Runtime.Tests.Generator;
 /// test host, so a suite that sets them leaks into every other test running in the same process.
 /// </para>
 /// </summary>
-public class FromEnvironmentVariableTests {
-
-    private static readonly Type[] Anchors = [
-        typeof(ConfigurationModelAttribute),  // Hardened.Shared.Runtime
-        typeof(IConfigurationPackage),        // Hardened.Shared.Runtime
-        typeof(IServiceCollection)            // Microsoft.Extensions.DependencyInjection.Abstractions
+public class FromEnvironmentVariableTests
+{
+    private static readonly Type[] Anchors =
+    [
+        typeof(ConfigurationModelAttribute), // Hardened.Shared.Runtime
+        typeof(IConfigurationPackage), // Hardened.Shared.Runtime
+        typeof(IServiceCollection), // Microsoft.Extensions.DependencyInjection.Abstractions
     ];
 
     private const string ModelSource = """
@@ -66,21 +67,29 @@ public class FromEnvironmentVariableTests {
     /// executed rather than read. Each run gets its own assembly name: the loader tolerates two
     /// assemblies with the same simple name, but nothing good comes of relying on that.
     /// </summary>
-    private static Assembly GeneratedAssembly(string assemblyName) {
-        var result = GeneratorTestHarness.Run(
+    private static Assembly GeneratedAssembly(string assemblyName)
+    {
+        var result = GeneratorTestHarness
+            .Run(
                 new Dictionary<string, string> { ["Test.cs"] = ModelSource },
                 [new LibrarySourceGenerator(), new HardenedSourceGenerator()],
                 Anchors,
-                assemblyName: assemblyName)
+                assemblyName: assemblyName
+            )
             .AssertNoErrors();
 
         using var stream = new MemoryStream();
 
         var emitResult = result.Compilation.Emit(stream);
 
-        Assert.True(emitResult.Success,
-            "The generated assembly did not emit: " +
-            string.Join(Environment.NewLine, emitResult.Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error)));
+        Assert.True(
+            emitResult.Success,
+            "The generated assembly did not emit: "
+                + string.Join(
+                    Environment.NewLine,
+                    emitResult.Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error)
+                )
+        );
 
         return Assembly.Load(stream.ToArray());
     }
@@ -89,21 +98,27 @@ public class FromEnvironmentVariableTests {
     /// The resolved configuration, as the application would get it: the module's generated
     /// <c>ConfigurationProvider</c> handed to a <see cref="ConfigurationManager"/>.
     /// </summary>
-    private static object Resolve(Assembly assembly, IHardenedEnvironment environment) {
-        var package = (IConfigurationPackage)Activator.CreateInstance(
-            assembly.GetType("TestApp.TestModule+ConfigurationProvider")!)!;
+    private static object Resolve(Assembly assembly, IHardenedEnvironment environment)
+    {
+        var package = (IConfigurationPackage)
+            Activator.CreateInstance(
+                assembly.GetType("TestApp.TestModule+ConfigurationProvider")!
+            )!;
 
         return Resolve(new ConfigurationManager(environment, [package]), assembly);
     }
 
-    private static object Resolve(IConfigurationManager manager, Assembly assembly) {
-        try {
+    private static object Resolve(IConfigurationManager manager, Assembly assembly)
+    {
+        try
+        {
             return typeof(IConfigurationManager)
                 .GetMethod(nameof(IConfigurationManager.GetConfiguration))!
                 .MakeGenericMethod(assembly.GetType("TestApp.IServiceOptions")!)
                 .Invoke(manager, null)!;
         }
-        catch (TargetInvocationException exception) when (exception.InnerException != null) {
+        catch (TargetInvocationException exception) when (exception.InnerException != null)
+        {
             // Reflection wraps whatever the configuration read threw. The wrapper is noise; the
             // exception the application would actually see is the inner one.
             throw exception.InnerException;
@@ -114,14 +129,17 @@ public class FromEnvironmentVariableTests {
         configuration.GetType().GetProperty(property)!.GetValue(configuration);
 
     private static EnvironmentImpl EnvironmentWith(params (string Name, string Value)[] values) =>
-        new(name: "development",
-            environmentValues: values.ToDictionary(pair => pair.Name, pair => pair.Value));
+        new(
+            name: "development",
+            environmentValues: values.ToDictionary(pair => pair.Name, pair => pair.Value)
+        );
 
     /// <summary>
     /// Documented: the variable falls back to "the field's initialiser when the variable is unset".
     /// </summary>
     [Fact]
-    public void AnUnsetVariableLeavesTheFieldInitialiserInPlace() {
+    public void AnUnsetVariableLeavesTheFieldInitialiserInPlace()
+    {
         var configuration = Resolve(GeneratedAssembly("EnvUnset"), EnvironmentWith());
 
         Assert.Equal("http://default", Read(configuration, "ServiceUrl"));
@@ -135,20 +153,24 @@ public class FromEnvironmentVariableTests {
     /// overwrite every default with "".
     /// </summary>
     [Fact]
-    public void AnEmptyVariableLeavesTheFieldInitialiserInPlace() {
+    public void AnEmptyVariableLeavesTheFieldInitialiserInPlace()
+    {
         var configuration = Resolve(
             GeneratedAssembly("EnvEmpty"),
-            EnvironmentWith(("SERVICE_URL", ""), ("RETENTION_DAYS", "")));
+            EnvironmentWith(("SERVICE_URL", ""), ("RETENTION_DAYS", ""))
+        );
 
         Assert.Equal("http://default", Read(configuration, "ServiceUrl"));
         Assert.Equal(180, Read(configuration, "RetentionDays"));
     }
 
     [Fact]
-    public void ASetVariableReplacesTheFieldInitialiser() {
+    public void ASetVariableReplacesTheFieldInitialiser()
+    {
         var configuration = Resolve(
             GeneratedAssembly("EnvSet"),
-            EnvironmentWith(("SERVICE_URL", "http://from-environment")));
+            EnvironmentWith(("SERVICE_URL", "http://from-environment"))
+        );
 
         Assert.Equal("http://from-environment", Read(configuration, "ServiceUrl"));
     }
@@ -158,10 +180,12 @@ public class FromEnvironmentVariableTests {
     /// <c>RETENTION_DAYS=90</c> arrives as <c>90</c>."
     /// </summary>
     [Fact]
-    public void AValueIsConvertedToTheFieldsType() {
+    public void AValueIsConvertedToTheFieldsType()
+    {
         var configuration = Resolve(
             GeneratedAssembly("EnvConvert"),
-            EnvironmentWith(("RETENTION_DAYS", "90"), ("VERBOSE", "true")));
+            EnvironmentWith(("RETENTION_DAYS", "90"), ("VERBOSE", "true"))
+        );
 
         Assert.Equal(90, Read(configuration, "RetentionDays"));
         Assert.Equal(true, Read(configuration, "Verbose"));
@@ -173,19 +197,26 @@ public class FromEnvironmentVariableTests {
     /// the worse outcome.
     /// </summary>
     [Fact]
-    public void AValueThatCannotBeConvertedThrows() {
+    public void AValueThatCannotBeConvertedThrows()
+    {
         var assembly = GeneratedAssembly("EnvBadConvert");
 
-        Assert.Throws<FormatException>(
-            () => Resolve(assembly, EnvironmentWith(("RETENTION_DAYS", "ninety"))));
+        Assert.Throws<FormatException>(() =>
+            Resolve(assembly, EnvironmentWith(("RETENTION_DAYS", "ninety")))
+        );
     }
 
     /// <summary>A field with no attribute is not touched by the environment at all.</summary>
     [Fact]
-    public void AFieldWithNoAttributeIsNeverReadFromTheEnvironment() {
+    public void AFieldWithNoAttributeIsNeverReadFromTheEnvironment()
+    {
         var configuration = Resolve(
             GeneratedAssembly("EnvUnattributed"),
-            EnvironmentWith(("NotFromTheEnvironment", "changed"), ("_notFromTheEnvironment", "changed")));
+            EnvironmentWith(
+                ("NotFromTheEnvironment", "changed"),
+                ("_notFromTheEnvironment", "changed")
+            )
+        );
 
         Assert.Equal("untouched", Read(configuration, "NotFromTheEnvironment"));
     }
@@ -196,15 +227,20 @@ public class FromEnvironmentVariableTests {
     /// want on Lambda, where the process outlives many invocations."
     /// </summary>
     [Fact]
-    public void AVariableChangedAfterTheFirstResolutionIsNotPickedUp() {
+    public void AVariableChangedAfterTheFirstResolutionIsNotPickedUp()
+    {
         var assembly = GeneratedAssembly("EnvCached");
         var values = new Dictionary<string, string> { ["SERVICE_URL"] = "http://first" };
 
-        var package = (IConfigurationPackage)Activator.CreateInstance(
-            assembly.GetType("TestApp.TestModule+ConfigurationProvider")!)!;
+        var package = (IConfigurationPackage)
+            Activator.CreateInstance(
+                assembly.GetType("TestApp.TestModule+ConfigurationProvider")!
+            )!;
 
         var manager = new ConfigurationManager(
-            new EnvironmentImpl(name: "development", environmentValues: values), [package]);
+            new EnvironmentImpl(name: "development", environmentValues: values),
+            [package]
+        );
 
         var first = Resolve(manager, assembly);
 
@@ -221,15 +257,20 @@ public class FromEnvironmentVariableTests {
     /// registered still throws — the model being present in the assembly is not enough.
     /// </summary>
     [Fact]
-    public void AModelTheModuleDidNotContributeIsStillUnregistered() {
+    public void AModelTheModuleDidNotContributeIsStillUnregistered()
+    {
         var assembly = GeneratedAssembly("EnvUnregistered");
 
-        var package = (IConfigurationPackage)Activator.CreateInstance(
-            assembly.GetType("TestApp.TestModule+ConfigurationProvider")!)!;
+        var package = (IConfigurationPackage)
+            Activator.CreateInstance(
+                assembly.GetType("TestApp.TestModule+ConfigurationProvider")!
+            )!;
 
         var manager = new ConfigurationManager(EnvironmentWith(), [package]);
 
-        var exception = Assert.Throws<Exception>(() => manager.GetConfiguration<UnrelatedConfiguration>());
+        var exception = Assert.Throws<Exception>(() =>
+            manager.GetConfiguration<UnrelatedConfiguration>()
+        );
 
         Assert.Contains(nameof(UnrelatedConfiguration), exception.Message);
     }

@@ -8,13 +8,17 @@ using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Requests.Testing;
 
-public class TestExecutionRequest : IExecutionRequest {
+public class TestExecutionRequest : IExecutionRequest
+{
     private IPathTokenCollection? _pathTokens;
 
     public TestExecutionRequest(
         string method,
         string path,
-        string? accepts, IQueryStringCollection queryString) {
+        string? accepts,
+        IQueryStringCollection queryString
+    )
+    {
         Method = method;
         Path = path;
         Accept = accepts;
@@ -26,12 +30,16 @@ public class TestExecutionRequest : IExecutionRequest {
         string? path,
         IDictionary<string, StringValues>? headers,
         IQueryStringCollection? queryString,
-        IReadOnlyList<string>? cookies) {
+        IReadOnlyList<string>? cookies
+    )
+    {
         return new TestExecutionRequest(
             method ?? Method,
             path ?? Path,
             Accept,
-            queryString ?? QueryString) {
+            queryString ?? QueryString
+        )
+        {
             // Cloned, not shared: a forked chain must be able to rebind without writing
             // through to the request it was forked from. See the conformance suite.
             Parameters = Parameters?.Clone(),
@@ -57,12 +65,13 @@ public class TestExecutionRequest : IExecutionRequest {
 
     public Stream Body { get; set; } = Stream.Null;
 
-
-    public IDictionary<string, StringValues> Headers { get; set; } = new Dictionary<string, StringValues>();
+    public IDictionary<string, StringValues> Headers { get; set; } =
+        new Dictionary<string, StringValues>();
 
     public IQueryStringCollection QueryString { get; }
 
-    public IPathTokenCollection PathTokens {
+    public IPathTokenCollection PathTokens
+    {
         get => _pathTokens ?? PathTokenCollection.Empty;
         set => _pathTokens = value;
     }
@@ -88,15 +97,18 @@ public class TestExecutionRequest : IExecutionRequest {
 /// A dictionary rather than the lazy lookup the real transports use, because a test knows every
 /// answer up front and there is no connection to avoid touching.
 /// </remarks>
-public class TestTransportInfo : ITransportInfo {
+public class TestTransportInfo : ITransportInfo
+{
     private readonly IDictionary<string, string> _values;
 
-    public TestTransportInfo(IDictionary<string, string> values) {
+    public TestTransportInfo(IDictionary<string, string> values)
+    {
         _values = values;
     }
 
     public TestTransportInfo(params (string Key, string Value)[] values)
-        : this(values.ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal)) { }
+        : this(values.ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal))
+    { }
 
     public string? Get(string key) => _values.TryGetValue(key, out var value) ? value : null;
 

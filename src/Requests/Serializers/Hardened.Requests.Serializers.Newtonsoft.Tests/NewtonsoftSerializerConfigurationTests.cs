@@ -12,10 +12,11 @@ namespace Hardened.Requests.Serializers.Newtonsoft.Tests;
 /// default has to produce a serializer without any configuration at all, because installing the
 /// package and configuring nothing is the common case.
 /// </remarks>
-public class NewtonsoftSerializerConfigurationTests {
-
+public class NewtonsoftSerializerConfigurationTests
+{
     [Fact]
-    public void TheDefaultProviderBuildsASerializer() {
+    public void TheDefaultProviderBuildsASerializer()
+    {
         var configuration = new NewtonsoftSerializerConfiguration();
 
         Assert.NotNull(configuration.SerializerProvider(null!));
@@ -26,26 +27,33 @@ public class NewtonsoftSerializerConfigurationTests {
     /// it a singleton, and it calls this exactly once.
     /// </summary>
     [Fact]
-    public void TheDefaultProviderBuildsAFreshSerializerEachCall() {
+    public void TheDefaultProviderBuildsAFreshSerializerEachCall()
+    {
         var configuration = new NewtonsoftSerializerConfiguration();
 
         Assert.NotSame(
-            configuration.SerializerProvider(null!), configuration.SerializerProvider(null!));
+            configuration.SerializerProvider(null!),
+            configuration.SerializerProvider(null!)
+        );
     }
 
     [Fact]
-    public void TheProviderCanBeReplaced() {
+    public void TheProviderCanBeReplaced()
+    {
         var expected = JsonSerializer.CreateDefault();
-        var configuration = new NewtonsoftSerializerConfiguration {
-            SerializerProvider = _ => expected
+        var configuration = new NewtonsoftSerializerConfiguration
+        {
+            SerializerProvider = _ => expected,
         };
 
         Assert.Same(expected, configuration.SerializerProvider(null!));
     }
 
     [Fact]
-    public void TheConfigurationImplementsItsGeneratedInterface() {
+    public void TheConfigurationImplementsItsGeneratedInterface()
+    {
         Assert.IsAssignableFrom<INewtonsoftSerializerConfiguration>(
-            new NewtonsoftSerializerConfiguration());
+            new NewtonsoftSerializerConfiguration()
+        );
     }
 }

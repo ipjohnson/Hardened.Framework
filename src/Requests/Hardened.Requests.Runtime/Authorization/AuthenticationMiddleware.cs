@@ -32,20 +32,25 @@ namespace Hardened.Requests.Runtime.Authorization;
 /// whatever the context holds.
 /// </para>
 /// </remarks>
-public sealed class AuthenticationMiddleware : IExecutionFilter {
+public sealed class AuthenticationMiddleware : IExecutionFilter
+{
     private readonly IPrincipalSource[] _sources;
 
-    public AuthenticationMiddleware(IEnumerable<IPrincipalSource> sources) {
+    public AuthenticationMiddleware(IEnumerable<IPrincipalSource> sources)
+    {
         _sources = sources.ToArray();
     }
 
-    public async Task Execute(IExecutionChain chain) {
+    public async Task Execute(IExecutionChain chain)
+    {
         var context = chain.Context;
 
-        for (var i = 0; i < _sources.Length; i++) {
+        for (var i = 0; i < _sources.Length; i++)
+        {
             var principal = await _sources[i].Authenticate(context);
 
-            if (principal != null) {
+            if (principal != null)
+            {
                 context.CallerPrincipal = principal;
 
                 break;
@@ -55,7 +60,8 @@ public sealed class AuthenticationMiddleware : IExecutionFilter {
         // One resolve per request of an application that opted into authentication. Asked for
         // rather than required, because a host that composed this middleware without the request
         // module's registrations still has a caller to establish.
-        if (context.RequestServices?.GetService<CurrentCaller>() is { } caller) {
+        if (context.RequestServices?.GetService<CurrentCaller>() is { } caller)
+        {
             caller.Principal = context.CallerPrincipal;
         }
 

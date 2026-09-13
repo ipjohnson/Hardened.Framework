@@ -8,10 +8,13 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Hardened.SourceGenerator.Requests;
 
-public abstract class BaseRequestModelGenerator {
+public abstract class BaseRequestModelGenerator
+{
     public virtual RequestHandlerModel GenerateRequestModel(
         GeneratorSyntaxContext context,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken
+    )
+    {
         cancellationToken.ThrowIfCancellationRequested();
 
         var methodDeclaration = (MethodDeclarationSyntax)context.Node;
@@ -29,7 +32,11 @@ public abstract class BaseRequestModelGenerator {
         // declarations naming no status, which the emit step has a context to report, and the
         // validation status a [Throws<RequestValidationError>(422)] states.
         var thrown = ThrownResponseSelector.Read(
-            context, methodDeclaration, response, cancellationToken);
+            context,
+            methodDeclaration,
+            response,
+            cancellationToken
+        );
 
         // Narrowed here rather than in the selector, because this is the first place the verb and
         // the response shape are both known - and a declaration on a class reaches only the
@@ -50,23 +57,24 @@ public abstract class BaseRequestModelGenerator {
             filters,
             OpenApiDocument.JsonSchemaWriter.Write(
                 SchemaSubject(context, methodDeclaration, response),
-                context.SemanticModel.Compilation.Assembly),
+                context.SemanticModel.Compilation.Assembly
+            ),
             // Every kind of declaration in one list: what a Response or union return type says,
             // what [Throws<T>] says, and what a guard on the operation can answer instead of the
             // handler. The document writer groups by status and does not care which produced an
             // entry. Filter-declared responses go last, so a status the handler declared itself
             // keeps the shape the handler gave it.
             declared.WithHeaders(
-                DeclaredResponses(context, response)
-                    .Concat(thrown)
-                    .Concat(refusals)
-                    .ToList()),
+                DeclaredResponses(context, response).Concat(thrown).Concat(refusals).ToList()
+            ),
             // Complete unless a declaration named only failures and left the success to the return
             // type. [Throws<T>] is one such, and a guard that can refuse the operation is another:
             // both add a status the handler can be answered with instead of running, and neither
             // says anything about what it answers when it does run.
-            response.UnionCases != null || (thrown.Count == 0 && refusals.Count == 0),
-            BodySchema(context, methodDeclaration, parameters));
+            response.UnionCases != null
+                || (thrown.Count == 0 && refusals.Count == 0),
+            BodySchema(context, methodDeclaration, parameters)
+        );
 
         // After Compose, because it is a fact about the handler rather than an input to
         // assembling it: what the attributes declare for the published document.
@@ -119,31 +127,44 @@ public abstract class BaseRequestModelGenerator {
     /// enum happened to be in a response too.
     /// </remarks>
     private static IReadOnlyList<EnumVocabulary> ParameterEnums(
-        GeneratorSyntaxContext context, MethodDeclarationSyntax methodDeclaration) {
+        GeneratorSyntaxContext context,
+        MethodDeclarationSyntax methodDeclaration
+    )
+    {
         List<EnumVocabulary>? found = null;
 
-        foreach (var parameter in methodDeclaration.ParameterList.Parameters) {
-            if (parameter.Type == null) {
+        foreach (var parameter in methodDeclaration.ParameterList.Parameters)
+        {
+            if (parameter.Type == null)
+            {
                 continue;
             }
 
             var symbol = context.SemanticModel.GetTypeInfo(parameter.Type).Type;
 
-            if (symbol is INamedTypeSymbol {
+            if (
+                symbol is INamedTypeSymbol
+                {
                     OriginalDefinition.SpecialType: SpecialType.System_Nullable_T
-                } nullable) {
+                } nullable
+            )
+            {
                 symbol = nullable.TypeArguments[0];
             }
 
-            if (symbol is not INamedTypeSymbol { TypeKind: TypeKind.Enum } enumSymbol ||
-                !EnumWireNaming.IsOwned(enumSymbol, context.SemanticModel.Compilation.Assembly)) {
+            if (
+                symbol is not INamedTypeSymbol { TypeKind: TypeKind.Enum } enumSymbol
+                || !EnumWireNaming.IsOwned(enumSymbol, context.SemanticModel.Compilation.Assembly)
+            )
+            {
                 continue;
             }
 
             var naming = EnumWireNaming.For(enumSymbol, EnumWireNaming.AssemblyDefault(enumSymbol));
             var members = EnumWireNaming.Members(enumSymbol, naming);
 
-            if (members.Count == 0) {
+            if (members.Count == 0)
+            {
                 continue;
             }
 
@@ -151,12 +172,16 @@ public abstract class BaseRequestModelGenerator {
 
             found ??= new List<EnumVocabulary>();
 
-            if (found.All(vocabulary => vocabulary.QualifiedName != qualified)) {
-                found.Add(new EnumVocabulary(
-                    qualified,
-                    enumSymbol.Name,
-                    naming,
-                    members.Select(pair => new EnumWireValue(pair.Member, pair.Wire)).ToList()));
+            if (found.All(vocabulary => vocabulary.QualifiedName != qualified))
+            {
+                found.Add(
+                    new EnumVocabulary(
+                        qualified,
+                        enumSymbol.Name,
+                        naming,
+                        members.Select(pair => new EnumWireValue(pair.Member, pair.Wire)).ToList()
+                    )
+                );
             }
         }
 
@@ -184,12 +209,14 @@ public abstract class BaseRequestModelGenerator {
         HandlerSchema? responseSchema,
         IReadOnlyList<ResponseSchemaModel> responseSchemas,
         bool responsesAreComplete,
-        HandlerSchema? requestSchema) =>
-        new(nameModel, controllerType, methodName, invokeHandlerType, parameters, response, filters) {
+        HandlerSchema? requestSchema
+    ) =>
+        new(nameModel, controllerType, methodName, invokeHandlerType, parameters, response, filters)
+        {
             ResponseSchema = responseSchema,
             ResponseSchemas = responseSchemas,
             DeclaredResponsesAreComplete = responsesAreComplete,
-            RequestSchema = requestSchema
+            RequestSchema = requestSchema,
         };
 
     /// <summary>
@@ -211,34 +238,47 @@ public abstract class BaseRequestModelGenerator {
     /// </para>
     /// </remarks>
     private static IReadOnlyList<ResponseSchemaModel> DeclaredResponses(
-        GeneratorSyntaxContext context, ResponseInformationModel response) {
-        if (response.UnionCases == null) {
+        GeneratorSyntaxContext context,
+        ResponseInformationModel response
+    )
+    {
+        if (response.UnionCases == null)
+        {
             return Array.Empty<ResponseSchemaModel>();
         }
 
         var responses = new List<ResponseSchemaModel>();
 
-        foreach (var unionCase in UnionResponseSelector.Decode(response.UnionCases)) {
+        foreach (var unionCase in UnionResponseSelector.Decode(response.UnionCases))
+        {
             // The body's type where the case wraps one, because that is what reaches the wire. A
             // schema written from NotFound<ApiError> would describe a shape carrying the payload
             // under a member, which no client ever receives.
             var described = unionCase.BodyTypeName ?? unionCase.TypeName;
 
             var symbol = Resolve(
-                context.SemanticModel.Compilation, described.Replace("global::", ""));
+                context.SemanticModel.Compilation,
+                described.Replace("global::", "")
+            );
 
             var model = new ResponseSchemaModel(
                 unionCase.Status,
                 HttpResponseDescription.For(unionCase.Status),
                 unionCase.HasBody
                     ? OpenApiDocument.JsonSchemaWriter.Write(
-                        symbol, context.SemanticModel.Compilation.Assembly)
-                    : null);
+                        symbol,
+                        context.SemanticModel.Compilation.Assembly
+                    )
+                    : null
+            );
 
             // The headers the case declares, off the case type rather than the body's - a
             // Created<Todo> sends a Todo and carries a Location, and the Location is the case's.
-            if (unionCase.AppliesHeaders &&
-                CaseSymbol(context, unionCase.TypeName) is { } caseSymbol) {
+            if (
+                unionCase.AppliesHeaders
+                && CaseSymbol(context, unionCase.TypeName) is { } caseSymbol
+            )
+            {
                 model.Headers = UnionResponseSelector.DeclaredHeaders(caseSymbol);
             }
 
@@ -257,10 +297,14 @@ public abstract class BaseRequestModelGenerator {
     /// same read <c>DeclaredResponses</c> makes per case.
     /// </remarks>
     private static IReadOnlyList<Hardened.Generation.Models.ResponseHeaderModel> DeclaredResponseHeaders(
-        GeneratorSyntaxContext context, ResponseInformationModel response) {
+        GeneratorSyntaxContext context,
+        ResponseInformationModel response
+    )
+    {
         var single = UnionResponseSelector.Decode(response.DeclaredResponse).FirstOrDefault();
 
-        if (single.TypeName == null || !single.AppliesHeaders) {
+        if (single.TypeName == null || !single.AppliesHeaders)
+        {
             return System.Array.Empty<Hardened.Generation.Models.ResponseHeaderModel>();
         }
 
@@ -278,16 +322,20 @@ public abstract class BaseRequestModelGenerator {
     /// so the unbound type is the right one to resolve; a case's header names never depend on its
     /// type arguments.
     /// </remarks>
-    private static INamedTypeSymbol? CaseSymbol(GeneratorSyntaxContext context, string typeName) {
+    private static INamedTypeSymbol? CaseSymbol(GeneratorSyntaxContext context, string typeName)
+    {
         var name = typeName.Replace("global::", "");
         var angle = name.IndexOf('<');
 
-        if (angle >= 0) {
+        if (angle >= 0)
+        {
             var arity = 1;
             var depth = 0;
 
-            for (var i = angle + 1; i < name.Length; i++) {
-                switch (name[i]) {
+            for (var i = angle + 1; i < name.Length; i++)
+            {
+                switch (name[i])
+                {
                     case '<':
                         depth++;
                         break;
@@ -302,8 +350,10 @@ public abstract class BaseRequestModelGenerator {
                 }
             }
 
-            name = name.Substring(0, angle) + "`" +
-                   arity.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            name =
+                name.Substring(0, angle)
+                + "`"
+                + arity.ToString(System.Globalization.CultureInfo.InvariantCulture);
         }
 
         return Resolve(context.SemanticModel.Compilation, name);
@@ -323,17 +373,21 @@ public abstract class BaseRequestModelGenerator {
     /// segment is the innermost type and every dot to its left is either another nesting or the
     /// end of the namespace.
     /// </remarks>
-    private static INamedTypeSymbol? Resolve(Compilation compilation, string metadataName) {
+    private static INamedTypeSymbol? Resolve(Compilation compilation, string metadataName)
+    {
         var name = metadataName;
 
-        while (true) {
-            if (compilation.GetTypeByMetadataName(name) is { } symbol) {
+        while (true)
+        {
+            if (compilation.GetTypeByMetadataName(name) is { } symbol)
+            {
                 return symbol;
             }
 
             var dot = name.LastIndexOf('.');
 
-            if (dot < 0) {
+            if (dot < 0)
+            {
                 return null;
             }
 
@@ -362,24 +416,31 @@ public abstract class BaseRequestModelGenerator {
     private static ITypeSymbol? SchemaSubject(
         GeneratorSyntaxContext context,
         MethodDeclarationSyntax methodDeclaration,
-        ResponseInformationModel response) {
+        ResponseInformationModel response
+    )
+    {
         var declared = context.SemanticModel.GetTypeInfo(methodDeclaration.ReturnType).Type;
 
         // The invoker's substitution, made here as well: a bare Task is void with a different
         // spelling. Without it the schema writer walked Task itself, and the document published a
         // Task component with its BCL entourage as the operation's 200.
-        if (declared is INamedTypeSymbol { Arity: 0, Name: "Task" or "ValueTask" } bare &&
-            bare.ContainingNamespace.ToDisplayString() == "System.Threading.Tasks") {
+        if (
+            declared is INamedTypeSymbol { Arity: 0, Name: "Task" or "ValueTask" } bare
+            && bare.ContainingNamespace.ToDisplayString() == "System.Threading.Tasks"
+        )
+        {
             return null;
         }
 
-        if (response.UnionCases == null) {
+        if (response.UnionCases == null)
+        {
             // A response type returned on its own describes what it sends, not itself. A schema
             // written from Created<Todo> describes {value, location, status}, which no client ever
             // receives - the same defect writing Response<T1..Tn>'s own schema would have been.
             var single = UnionResponseSelector.Decode(response.DeclaredResponse).FirstOrDefault();
 
-            if (single.BodyTypeName == null) {
+            if (single.BodyTypeName == null)
+            {
                 return declared;
             }
 
@@ -389,18 +450,21 @@ public abstract class BaseRequestModelGenerator {
             // No schema is a gap; the wrapper is a shape no client ever receives, offered as the
             // contract.
             return context.SemanticModel.Compilation.GetTypeByMetadataName(
-                single.BodyTypeName.Replace("global::", ""));
+                single.BodyTypeName.Replace("global::", "")
+            );
         }
 
         var successStatus = response.DefaultStatusCode ?? 200;
 
-        var success = UnionResponseSelector.Decode(response.UnionCases)
+        var success = UnionResponseSelector
+            .Decode(response.UnionCases)
             .FirstOrDefault(c => c.Status == successStatus);
 
         return success.TypeName == null
             ? declared
             : context.SemanticModel.Compilation.GetTypeByMetadataName(
-                  success.TypeName.Replace("global::", "")) ?? declared;
+                success.TypeName.Replace("global::", "")
+            ) ?? declared;
     }
 
     /// <summary>
@@ -409,40 +473,51 @@ public abstract class BaseRequestModelGenerator {
     private static HandlerSchema? BodySchema(
         GeneratorSyntaxContext context,
         MethodDeclarationSyntax methodDeclaration,
-        IReadOnlyList<RequestParameterInformation> parameters) {
+        IReadOnlyList<RequestParameterInformation> parameters
+    )
+    {
         var body = parameters.FirstOrDefault(p => p.BindingType == ParameterBindType.Body);
 
-        if (body == null) {
+        if (body == null)
+        {
             return null;
         }
 
-        var syntax = methodDeclaration.ParameterList.Parameters
-            .FirstOrDefault(p => p.Identifier.Text == body.Name);
+        var syntax = methodDeclaration.ParameterList.Parameters.FirstOrDefault(p =>
+            p.Identifier.Text == body.Name
+        );
 
         return syntax?.Type == null
             ? null
             : OpenApiDocument.JsonSchemaWriter.Write(
                 context.SemanticModel.GetTypeInfo(syntax.Type).Type,
-                context.SemanticModel.Compilation.Assembly);
+                context.SemanticModel.Compilation.Assembly
+            );
     }
 
     protected abstract RequestHandlerNameModel GetRequestNameModel(
         GeneratorSyntaxContext context,
         MethodDeclarationSyntax methodDeclaration,
-        CancellationToken cancellation);
+        CancellationToken cancellation
+    );
 
     /// <summary>The names of every body parameter after the first, in declaration order.</summary>
     private static IReadOnlyList<string> AdditionalBodyParameters(
-        IReadOnlyList<RequestParameterInformation> parameters) {
+        IReadOnlyList<RequestParameterInformation> parameters
+    )
+    {
         List<string>? additional = null;
         var seen = false;
 
-        foreach (var parameter in parameters) {
-            if (parameter.BindingType != ParameterBindType.Body) {
+        foreach (var parameter in parameters)
+        {
+            if (parameter.BindingType != ParameterBindType.Body)
+            {
                 continue;
             }
 
-            if (seen) {
+            if (seen)
+            {
                 (additional ??= new List<string>()).Add(parameter.Name);
             }
 
@@ -455,31 +530,39 @@ public abstract class BaseRequestModelGenerator {
     protected abstract ITypeDefinition GetInvokeHandlerType(
         GeneratorSyntaxContext context,
         MethodDeclarationSyntax methodDeclaration,
-        CancellationToken cancellation);
+        CancellationToken cancellation
+    );
 
     protected virtual IReadOnlyList<RequestParameterInformation> GetParameters(
         GeneratorSyntaxContext generatorSyntaxContext,
         MethodDeclarationSyntax methodDeclaration,
         RequestHandlerNameModel requestHandlerNameModel,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken
+    )
+    {
         var parameters = new List<RequestParameterInformation>();
-        for(var i = 0; i < methodDeclaration.ParameterList.Parameters.Count; i++) {
+        for (var i = 0; i < methodDeclaration.ParameterList.Parameters.Count; i++)
+        {
             var parameter = methodDeclaration.ParameterList.Parameters[i];
             cancellationToken.ThrowIfCancellationRequested();
 
-            RequestParameterInformation? parameterInformation =
-                GetParameterInfoFromAttributes(generatorSyntaxContext, methodDeclaration,
-                    requestHandlerNameModel,
-                    parameter,
-                    i);
+            RequestParameterInformation? parameterInformation = GetParameterInfoFromAttributes(
+                generatorSyntaxContext,
+                methodDeclaration,
+                requestHandlerNameModel,
+                parameter,
+                i
+            );
 
-            if (parameterInformation == null) {
+            if (parameterInformation == null)
+            {
                 parameterInformation = GetParameterInfo(
                     generatorSyntaxContext,
                     methodDeclaration,
                     requestHandlerNameModel,
                     parameter,
-                    i);
+                    i
+                );
             }
 
             // What the parameter's own constraints say for the document, read here because this
@@ -487,10 +570,15 @@ public abstract class BaseRequestModelGenerator {
             // which reads the same attributes through ValidationModules; this reads only the ones
             // the document can say, so the two are the same statement written twice, as they are
             // for a property.
-            if (PublishesFacets(parameterInformation.BindingType) &&
-                generatorSyntaxContext.SemanticModel.GetDeclaredSymbol(parameter) is { } symbol) {
+            if (
+                PublishesFacets(parameterInformation.BindingType)
+                && generatorSyntaxContext.SemanticModel.GetDeclaredSymbol(parameter) is { } symbol
+            )
+            {
                 parameterInformation.SchemaFacets = SchemaConstraintWriter.FacetsOf(symbol);
-                parameterInformation.RequiredByConstraint = SchemaConstraintWriter.IsRequired(symbol);
+                parameterInformation.RequiredByConstraint = SchemaConstraintWriter.IsRequired(
+                    symbol
+                );
             }
 
             parameters.Add(parameterInformation);
@@ -505,44 +593,49 @@ public abstract class BaseRequestModelGenerator {
     /// or the context is not the caller's to constrain.
     /// </summary>
     private static bool PublishesFacets(ParameterBindType bindingType) =>
-        bindingType is ParameterBindType.Path
-            or ParameterBindType.QueryString
-            or ParameterBindType.Header
-            or ParameterBindType.Cookie;
+        bindingType
+            is ParameterBindType.Path
+                or ParameterBindType.QueryString
+                or ParameterBindType.Header
+                or ParameterBindType.Cookie;
 
     protected virtual RequestParameterInformation? DefaultGetParameterFromAttribute(
-        AttributeSyntax attribute, 
-        GeneratorSyntaxContext generatorSyntaxContext, 
-        ParameterSyntax parameter, 
-        int parameterIndex) {
+        AttributeSyntax attribute,
+        GeneratorSyntaxContext generatorSyntaxContext,
+        ParameterSyntax parameter,
+        int parameterIndex
+    )
+    {
         var parameterType = parameter.Type?.GetTypeDefinition(generatorSyntaxContext)!;
         var name = parameter.Identifier.ValueText;
 
         string? defaultValue = null;
 
-        if (parameter.Default != null) {
+        if (parameter.Default != null)
+        {
             defaultValue = parameter.Default.Value.ToFullString();
         }
 
         return new RequestParameterInformation(
-                parameterType,
-                name,
-                !parameterType.IsNullable,
-                defaultValue,
-                ParameterBindType.CustomAttribute,
-                "",
-                parameterIndex,
-                AttributeModelHelper.GetAttribute(generatorSyntaxContext, attribute)
-                );
+            parameterType,
+            name,
+            !parameterType.IsNullable,
+            defaultValue,
+            ParameterBindType.CustomAttribute,
+            "",
+            parameterIndex,
+            AttributeModelHelper.GetAttribute(generatorSyntaxContext, attribute)
+        );
     }
 
-    
     protected virtual RequestParameterInformation GetParameterInfo(
         GeneratorSyntaxContext generatorSyntaxContext,
         MethodDeclarationSyntax methodDeclarationSyntax,
         RequestHandlerNameModel requestHandlerNameModel,
         ParameterSyntax parameter,
-        int parameterIndex) {
+        int parameterIndex
+    )
+    {
         var parameterType = parameter.Type?.GetTypeDefinition(generatorSyntaxContext);
 
         // Resolution returns null for a name the compiler cannot bind, which happens constantly in
@@ -552,7 +645,8 @@ public abstract class BaseRequestModelGenerator {
         // assembly its generated code, not just this handler. Now the parameter is recorded as
         // unresolved and the handler is skipped at the output stage, where a diagnostic can
         // actually be reported.
-        if (parameterType == null) {
+        if (parameterType == null)
+        {
             return new RequestParameterInformation(
                 TypeDefinition.Get("", parameter.Type?.ToString() ?? "?"),
                 parameter.Identifier.ValueText,
@@ -560,48 +654,75 @@ public abstract class BaseRequestModelGenerator {
                 null,
                 ParameterBindType.Unresolved,
                 parameter.Identifier.ValueText,
-                parameterIndex);
+                parameterIndex
+            );
         }
 
-        if (KnownTypes.Requests.IExecutionContext.Equals(parameterType)) {
-            return CreateRequestParameterInformation(parameter, parameterType,
+        if (KnownTypes.Requests.IExecutionContext.Equals(parameterType))
+        {
+            return CreateRequestParameterInformation(
+                parameter,
+                parameterType,
                 ParameterBindType.ExecutionContext,
                 parameterIndex,
-                true);
+                true
+            );
         }
 
-        if (KnownTypes.Requests.IExecutionRequest.Equals(parameterType)) {
-            return CreateRequestParameterInformation(parameter, parameterType,
+        if (KnownTypes.Requests.IExecutionRequest.Equals(parameterType))
+        {
+            return CreateRequestParameterInformation(
+                parameter,
+                parameterType,
                 ParameterBindType.ExecutionRequest,
                 parameterIndex,
-                true);
+                true
+            );
         }
 
-        if (KnownTypes.Requests.IExecutionResponse.Equals(parameterType)) {
-            return CreateRequestParameterInformation(parameter, parameterType,
+        if (KnownTypes.Requests.IExecutionResponse.Equals(parameterType))
+        {
+            return CreateRequestParameterInformation(
+                parameter,
+                parameterType,
                 ParameterBindType.ExecutionResponse,
                 parameterIndex,
-                true);
+                true
+            );
         }
 
-        if (KnownTypes.DI.IServiceProvider.Equals(parameterType)) {
-            return CreateRequestParameterInformation(parameter, parameterType,
-                ParameterBindType.ServiceProvider,parameterIndex);
+        if (KnownTypes.DI.IServiceProvider.Equals(parameterType))
+        {
+            return CreateRequestParameterInformation(
+                parameter,
+                parameterType,
+                ParameterBindType.ServiceProvider,
+                parameterIndex
+            );
         }
 
         // Ahead of the interface and body branches, because CancellationToken is a struct and would
         // otherwise fall all the way through to Body - deserializing a request body into a
         // CancellationToken, which fails at run time on a signature that reads as ordinary C#.
-        if (KnownTypes.System.CancellationToken.Equals(parameterType)) {
-            return CreateRequestParameterInformation(parameter, parameterType,
+        if (KnownTypes.System.CancellationToken.Equals(parameterType))
+        {
+            return CreateRequestParameterInformation(
+                parameter,
+                parameterType,
                 ParameterBindType.CancellationToken,
                 parameterIndex,
-                true);
+                true
+            );
         }
 
-        if (parameterType.TypeDefinitionEnum == TypeDefinitionEnum.InterfaceDefinition) {
-            return CreateRequestParameterInformation(parameter, parameterType,
-                ParameterBindType.FromServiceProvider,parameterIndex);
+        if (parameterType.TypeDefinitionEnum == TypeDefinitionEnum.InterfaceDefinition)
+        {
+            return CreateRequestParameterInformation(
+                parameter,
+                parameterType,
+                ParameterBindType.FromServiceProvider,
+                parameterIndex
+            );
         }
 
         // ValueText, not Text: a parameter written `@base` is the route token `base`, and Text
@@ -609,15 +730,27 @@ public abstract class BaseRequestModelGenerator {
         // through to the body, where HRDR005 reported a token nothing bound.
         var id = parameter.Identifier.ValueText;
 
-        if (RouteTokens.BindsParameter(requestHandlerNameModel.Path, id)) {
-            return CreateRequestParameterInformation(parameter, parameterType,
-                ParameterBindType.Path,parameterIndex);
+        if (RouteTokens.BindsParameter(requestHandlerNameModel.Path, id))
+        {
+            return CreateRequestParameterInformation(
+                parameter,
+                parameterType,
+                ParameterBindType.Path,
+                parameterIndex
+            );
         }
 
         return CreateRequestParameterInformation(
-            parameter, parameterType, ParameterBindType.Body, parameterIndex,
-            constructorRequiresServices: ConstructorRequiresServices(generatorSyntaxContext, parameter),
-            registeredAsService: RegisteredAsService(generatorSyntaxContext, parameter));
+            parameter,
+            parameterType,
+            ParameterBindType.Body,
+            parameterIndex,
+            constructorRequiresServices: ConstructorRequiresServices(
+                generatorSyntaxContext,
+                parameter
+            ),
+            registeredAsService: RegisteredAsService(generatorSyntaxContext, parameter)
+        );
     }
 
     /// <summary>
@@ -625,8 +758,11 @@ public abstract class BaseRequestModelGenerator {
     /// the constructor test cannot: a body model is never registered, and a service registered
     /// this way is one whatever its constructors take.
     /// </summary>
-    private static readonly string[] RegistrationAttributes = {
-        "SingletonServiceAttribute", "ScopedServiceAttribute", "TransientServiceAttribute"
+    private static readonly string[] RegistrationAttributes =
+    {
+        "SingletonServiceAttribute",
+        "ScopedServiceAttribute",
+        "TransientServiceAttribute",
     };
 
     private const string RegistrationNamespace = "DependencyModules.Runtime.Attributes";
@@ -643,25 +779,36 @@ public abstract class BaseRequestModelGenerator {
     /// </remarks>
     private static bool RegisteredAsService(
         GeneratorSyntaxContext generatorSyntaxContext,
-        ParameterSyntax parameter) {
-        if (parameter.Type == null) {
+        ParameterSyntax parameter
+    )
+    {
+        if (parameter.Type == null)
+        {
             return false;
         }
 
-        if (generatorSyntaxContext.SemanticModel.GetTypeInfo(parameter.Type).Type
-            is not INamedTypeSymbol type) {
+        if (
+            generatorSyntaxContext.SemanticModel.GetTypeInfo(parameter.Type).Type
+            is not INamedTypeSymbol type
+        )
+        {
             return false;
         }
 
-        foreach (var attribute in type.GetAttributes()) {
+        foreach (var attribute in type.GetAttributes())
+        {
             var attributeClass = attribute.AttributeClass;
 
-            if (attributeClass == null ||
-                Array.IndexOf(RegistrationAttributes, attributeClass.Name) < 0) {
+            if (
+                attributeClass == null
+                || Array.IndexOf(RegistrationAttributes, attributeClass.Name) < 0
+            )
+            {
                 continue;
             }
 
-            if (attributeClass.ContainingNamespace?.ToDisplayString() == RegistrationNamespace) {
+            if (attributeClass.ContainingNamespace?.ToDisplayString() == RegistrationNamespace)
+            {
                 return true;
             }
         }
@@ -682,24 +829,33 @@ public abstract class BaseRequestModelGenerator {
     /// </remarks>
     private static bool ConstructorRequiresServices(
         GeneratorSyntaxContext generatorSyntaxContext,
-        ParameterSyntax parameter) {
-        if (parameter.Type == null) {
+        ParameterSyntax parameter
+    )
+    {
+        if (parameter.Type == null)
+        {
             return false;
         }
 
-        if (generatorSyntaxContext.SemanticModel.GetTypeInfo(parameter.Type).Type
-            is not INamedTypeSymbol type) {
+        if (
+            generatorSyntaxContext.SemanticModel.GetTypeInfo(parameter.Type).Type
+            is not INamedTypeSymbol type
+        )
+        {
             return false;
         }
 
-        if (type.TypeKind != TypeKind.Class || type.IsAbstract || type.IsRecord) {
+        if (type.TypeKind != TypeKind.Class || type.IsAbstract || type.IsRecord)
+        {
             return false;
         }
 
         var constructors = 0;
 
-        foreach (var constructor in type.InstanceConstructors) {
-            if (constructor.DeclaredAccessibility != Accessibility.Public) {
+        foreach (var constructor in type.InstanceConstructors)
+        {
+            if (constructor.DeclaredAccessibility != Accessibility.Public)
+            {
                 continue;
             }
 
@@ -707,14 +863,17 @@ public abstract class BaseRequestModelGenerator {
 
             var takesService = false;
 
-            foreach (var constructorParameter in constructor.Parameters) {
-                if (constructorParameter.Type.TypeKind == TypeKind.Interface) {
+            foreach (var constructorParameter in constructor.Parameters)
+            {
+                if (constructorParameter.Type.TypeKind == TypeKind.Interface)
+                {
                     takesService = true;
                     break;
                 }
             }
 
-            if (!takesService) {
+            if (!takesService)
+            {
                 return false;
             }
         }
@@ -731,17 +890,21 @@ public abstract class BaseRequestModelGenerator {
         string? bindingName = null,
         AttributeModel? customAttribute = null,
         bool constructorRequiresServices = false,
-        bool registeredAsService = false) {
-        if (!parameterType.IsNullable && parameter.ToFullString().Contains("?")) {
+        bool registeredAsService = false
+    )
+    {
+        if (!parameterType.IsNullable && parameter.ToFullString().Contains("?"))
+        {
             parameterType = parameterType.MakeNullable();
         }
 
         string? defaultValue = null;
 
-        if (parameter.Default != null) {
+        if (parameter.Default != null)
+        {
             defaultValue = parameter.Default.Value.ToFullString();
         }
-        
+
         return new RequestParameterInformation(
             parameterType,
             parameter.Identifier.ValueText,
@@ -752,7 +915,8 @@ public abstract class BaseRequestModelGenerator {
             parameterIndex,
             customAttribute,
             constructorRequiresServices,
-            registeredAsService);
+            registeredAsService
+        );
     }
 
     protected abstract RequestParameterInformation? GetParameterInfoFromAttributes(
@@ -760,9 +924,11 @@ public abstract class BaseRequestModelGenerator {
         MethodDeclarationSyntax methodDeclarationSyntax,
         RequestHandlerNameModel requestHandlerNameModel,
         ParameterSyntax parameter,
-        int parameterIndex);
+        int parameterIndex
+    );
 
-    protected virtual string GetControllerMethod(MethodDeclarationSyntax methodDeclaration) {
+    protected virtual string GetControllerMethod(MethodDeclarationSyntax methodDeclaration)
+    {
         return methodDeclaration.Identifier.Text;
     }
 
@@ -776,20 +942,26 @@ public abstract class BaseRequestModelGenerator {
     /// code. The selector is what keeps a declaration that cannot be called from arriving here at
     /// all - see <c>WebRequestHandlerModelGenerator.SelectWebRequestMethods</c>.
     /// </remarks>
-    protected virtual ITypeDefinition GetControllerType(SyntaxNode contextNode) {
-        var typeDeclarationSyntax =
-            contextNode.Ancestors().OfType<TypeDeclarationSyntax>().First();
+    protected virtual ITypeDefinition GetControllerType(SyntaxNode contextNode)
+    {
+        var typeDeclarationSyntax = contextNode.Ancestors().OfType<TypeDeclarationSyntax>().First();
 
-        var namespaceSyntax = typeDeclarationSyntax.Ancestors()
-            .OfType<BaseNamespaceDeclarationSyntax>().First();
+        var namespaceSyntax = typeDeclarationSyntax
+            .Ancestors()
+            .OfType<BaseNamespaceDeclarationSyntax>()
+            .First();
 
-        return TypeDefinition.Get(namespaceSyntax.Name.ToFullString().TrimEnd(),
-            typeDeclarationSyntax.Identifier.Text);
+        return TypeDefinition.Get(
+            namespaceSyntax.Name.ToFullString().TrimEnd(),
+            typeDeclarationSyntax.Identifier.Text
+        );
     }
 
     protected virtual ResponseInformationModel GetResponseInformation(
         GeneratorSyntaxContext context,
-        MethodDeclarationSyntax methodDeclaration) {
+        MethodDeclarationSyntax methodDeclaration
+    )
+    {
         var output = OutputAttributeSelector.Read(context, methodDeclaration);
 
         var returnType = methodDeclaration.ReturnType.GetTypeDefinition(context);
@@ -798,14 +970,20 @@ public abstract class BaseRequestModelGenerator {
         var isAsyncEnumerable = false;
         ITypeDefinition? asyncEnumerableItemType = null;
 
-        if (returnType is GenericTypeDefinition genericType) {
-            if (genericType.Name.Equals("Task") || genericType.Name.Equals("ValueTask")) {
+        if (returnType is GenericTypeDefinition genericType)
+        {
+            if (genericType.Name.Equals("Task") || genericType.Name.Equals("ValueTask"))
+            {
                 isAsync = true;
-            } else if (genericType.Name.Equals("IAsyncEnumerable")) {
+            }
+            else if (genericType.Name.Equals("IAsyncEnumerable"))
+            {
                 isAsyncEnumerable = true;
                 asyncEnumerableItemType = genericType.TypeArguments[0];
             }
-        } else if (returnType?.Name == "Task") {
+        }
+        else if (returnType?.Name == "Task")
+        {
             isAsync = true;
             returnType = TypeDefinition.Get(typeof(void));
         }
@@ -823,9 +1001,9 @@ public abstract class BaseRequestModelGenerator {
         // [Produces] and declares exactly that type. The two spellings are one declaration, so
         // [Produces("text/event-stream")] frames a stream as events without the second attribute.
         var framing =
-            producedContentTypes != null &&
-            producedContentTypes.IndexOf(
-                Headers.EventStream, StringComparison.OrdinalIgnoreCase) >= 0
+            producedContentTypes != null
+            && producedContentTypes.IndexOf(Headers.EventStream, StringComparison.OrdinalIgnoreCase)
+                >= 0
                 ? StreamFramingNames.ServerSentEvents
                 : null;
 
@@ -834,12 +1012,16 @@ public abstract class BaseRequestModelGenerator {
         // What the return type states about itself, for a handler with no set around it. Read
         // before the status below, because a type's own [HttpStatus] is what the document has to
         // publish - the same precedence a case has inside a set.
-        var declaredResponse =
-            UnionResponseSelector.ReadDeclared(context.SemanticModel, methodDeclaration, successStatus);
+        var declaredResponse = UnionResponseSelector.ReadDeclared(
+            context.SemanticModel,
+            methodDeclaration,
+            successStatus
+        );
 
         var declaredCase = UnionResponseSelector.Decode(declaredResponse).FirstOrDefault();
 
-        return new ResponseInformationModel {
+        return new ResponseInformationModel
+        {
             DeclaredResponse = declaredResponse,
             StreamFraming = framing,
             StreamFramingDiagnostic = framing != null && !isAsyncEnumerable ? framing : null,
@@ -858,9 +1040,16 @@ public abstract class BaseRequestModelGenerator {
             // A model declared as something no serializer here writes. A warning, because the host
             // may register one - see ContentTypeDiagnostics.
             UnproducibleContentTypeDiagnostic = UnproducibleContentTypes(
-                producedContentTypes, context, methodDeclaration, isAsyncEnumerable),
+                producedContentTypes,
+                context,
+                methodDeclaration,
+                isAsyncEnumerable
+            ),
             RawResponseContentType = CommittedContentType(
-                producedContentTypes, returnsBytesOrText, isAsyncEnumerable),
+                producedContentTypes,
+                returnsBytesOrText,
+                isAsyncEnumerable
+            ),
             // The type's status where it declares one, so a handler returning Created<T> publishes
             // 201 rather than the 200 nothing asked for.
             DefaultStatusCode = declaredCase.TypeName != null ? declaredCase.Status : successStatus,
@@ -869,9 +1058,16 @@ public abstract class BaseRequestModelGenerator {
             // Structural, so this recognises Response<T1..Tn>, a generated response union and a
             // C# 15 union declaration through one check - and returns null for everything else,
             // which is every handler that exists today.
-            UnionCases = UnionResponseSelector.Read(context.SemanticModel, methodDeclaration, successStatus),
-            UnionDiagnostic =
-                UnionResponseSelector.Diagnose(context.SemanticModel, methodDeclaration, successStatus)
+            UnionCases = UnionResponseSelector.Read(
+                context.SemanticModel,
+                methodDeclaration,
+                successStatus
+            ),
+            UnionDiagnostic = UnionResponseSelector.Diagnose(
+                context.SemanticModel,
+                methodDeclaration,
+                successStatus
+            ),
         };
     }
 
@@ -883,25 +1079,34 @@ public abstract class BaseRequestModelGenerator {
     /// <c>ResponseInformationModel.DefaultStatusCode</c>, which is what keeps the two front ends to
     /// one runtime behaviour rather than two that agree by inspection.
     /// </remarks>
-    private static int? DeclaredSuccessStatus(GeneratorSyntaxContext context) {
-        foreach (var verb in RoutingVerbs) {
+    private static int? DeclaredSuccessStatus(GeneratorSyntaxContext context)
+    {
+        foreach (var verb in RoutingVerbs)
+        {
             var attribute = context.Node.GetAttribute(verb);
 
-            if (attribute?.ArgumentList == null) {
+            if (attribute?.ArgumentList == null)
+            {
                 continue;
             }
 
-            foreach (var argument in attribute.ArgumentList.Arguments) {
-                if (argument.NameEquals?.Name.Identifier.Text != "SuccessStatus") {
+            foreach (var argument in attribute.ArgumentList.Arguments)
+            {
+                if (argument.NameEquals?.Name.Identifier.Text != "SuccessStatus")
+                {
                     continue;
                 }
 
-                if (int.TryParse(
+                if (
+                    int.TryParse(
                         argument.Expression.ToString(),
                         System.Globalization.NumberStyles.Integer,
                         System.Globalization.CultureInfo.InvariantCulture,
-                        out var status) &&
-                    status != 200) {
+                        out var status
+                    )
+                    && status != 200
+                )
+                {
                     return status;
                 }
             }
@@ -932,48 +1137,79 @@ public abstract class BaseRequestModelGenerator {
     /// </para>
     /// </remarks>
     private static string? DeclaredContentTypes(
-        GeneratorSyntaxContext context, MethodDeclarationSyntax methodDeclaration) {
-        return DeclaredOn(context, methodDeclaration.AttributeLists) ??
-               DeclaredOn(context, methodDeclaration.Ancestors().OfType<TypeDeclarationSyntax>()
-                   .FirstOrDefault()?.AttributeLists);
+        GeneratorSyntaxContext context,
+        MethodDeclarationSyntax methodDeclaration
+    )
+    {
+        return DeclaredOn(context, methodDeclaration.AttributeLists)
+            ?? DeclaredOn(
+                context,
+                methodDeclaration
+                    .Ancestors()
+                    .OfType<TypeDeclarationSyntax>()
+                    .FirstOrDefault()
+                    ?.AttributeLists
+            );
     }
 
     private static string? DeclaredOn(
-        GeneratorSyntaxContext context, SyntaxList<AttributeListSyntax>? attributeLists) {
-        if (attributeLists == null) {
+        GeneratorSyntaxContext context,
+        SyntaxList<AttributeListSyntax>? attributeLists
+    )
+    {
+        if (attributeLists == null)
+        {
             return null;
         }
 
-        foreach (var attributeList in attributeLists.Value) {
-            foreach (var attribute in attributeList.Attributes) {
+        foreach (var attributeList in attributeLists.Value)
+        {
+            foreach (var attribute in attributeList.Attributes)
+            {
                 var name = attribute.Name.ToString();
 
-                if (name is not ("Produces" or "ProducesAttribute" or
-                    "RawResponse" or "RawResponseAttribute" or
-                    "ServerSentEvents" or "ServerSentEventsAttribute")) {
+                if (
+                    name
+                    is not (
+                        "Produces"
+                        or "ProducesAttribute"
+                        or "RawResponse"
+                        or "RawResponseAttribute"
+                        or "ServerSentEvents"
+                        or "ServerSentEventsAttribute"
+                    )
+                )
+                {
                     continue;
                 }
 
                 // The two aliases take no arguments and declare a fixed media type, which is the
                 // whole of what each of them is. Read from syntax, where a base class is invisible,
                 // so the literals are repeated here rather than derived.
-                if (name.StartsWith("ServerSentEvents")) {
+                if (name.StartsWith("ServerSentEvents"))
+                {
                     return Headers.EventStream;
                 }
 
                 // [RawResponse] with no argument is text/plain, which is the default its
                 // constructor states. Every other spelling names its types.
-                if (attribute.ArgumentList == null ||
-                    attribute.ArgumentList.Arguments.Count == 0) {
+                if (attribute.ArgumentList == null || attribute.ArgumentList.Arguments.Count == 0)
+                {
                     return name.StartsWith("RawResponse") ? "text/plain" : null;
                 }
 
                 var types = new List<string>();
 
-                foreach (var argument in attribute.ArgumentList.Arguments) {
+                foreach (var argument in attribute.ArgumentList.Arguments)
+                {
                     var literal = argument.Expression.ToString().Trim();
 
-                    if (literal.Length > 1 && literal[0] == '"' && literal[literal.Length - 1] == '"') {
+                    if (
+                        literal.Length > 1
+                        && literal[0] == '"'
+                        && literal[literal.Length - 1] == '"'
+                    )
+                    {
                         types.Add(literal.Substring(1, literal.Length - 2));
 
                         continue;
@@ -988,13 +1224,18 @@ public abstract class BaseRequestModelGenerator {
                     //
                     // The literal above stays the fast path. This costs a semantic model lookup,
                     // and only for an operation that wrote something other than a literal.
-                    if (context.SemanticModel.GetConstantValue(argument.Expression) is
-                        { HasValue: true, Value: string constant } && constant.Length > 0) {
+                    if (
+                        context.SemanticModel.GetConstantValue(argument.Expression)
+                            is { HasValue: true, Value: string constant }
+                        && constant.Length > 0
+                    )
+                    {
                         types.Add(constant);
                     }
                 }
 
-                if (types.Count > 0) {
+                if (types.Count > 0)
+                {
                     return string.Join(",", types);
                 }
             }
@@ -1024,11 +1265,16 @@ public abstract class BaseRequestModelGenerator {
     private static string CommittedContentType(
         string? producedContentTypes,
         bool returnsBytesOrText,
-        bool isAsyncEnumerable) {
-        if (producedContentTypes == null ||
-            producedContentTypes.IndexOf(',') >= 0 ||
-            isAsyncEnumerable ||
-            !returnsBytesOrText) {
+        bool isAsyncEnumerable
+    )
+    {
+        if (
+            producedContentTypes == null
+            || producedContentTypes.IndexOf(',') >= 0
+            || isAsyncEnumerable
+            || !returnsBytesOrText
+        )
+        {
             return "";
         }
 
@@ -1058,15 +1304,24 @@ public abstract class BaseRequestModelGenerator {
     /// </para>
     /// </remarks>
     private static bool WritesRawBytes(
-        GeneratorSyntaxContext context, MethodDeclarationSyntax methodDeclaration) {
+        GeneratorSyntaxContext context,
+        MethodDeclarationSyntax methodDeclaration
+    )
+    {
         var returnType = UnwrappedReturnType(context, methodDeclaration);
 
-        if (returnType is IArrayTypeSymbol array) {
+        if (returnType is IArrayTypeSymbol array)
+        {
             return array.ElementType.SpecialType == SpecialType.System_Byte;
         }
 
-        for (var current = returnType; current != null; current = current.BaseType) {
-            if (current.Name == "Stream" && current.ContainingNamespace?.ToDisplayString() == "System.IO") {
+        for (var current = returnType; current != null; current = current.BaseType)
+        {
+            if (
+                current.Name == "Stream"
+                && current.ContainingNamespace?.ToDisplayString() == "System.IO"
+            )
+            {
                 return true;
             }
         }
@@ -1085,9 +1340,13 @@ public abstract class BaseRequestModelGenerator {
     /// right for bytes and wrong for a model a client may legitimately ask for another way.
     /// </remarks>
     private static bool ReturnsBytesOrText(
-        GeneratorSyntaxContext context, MethodDeclarationSyntax methodDeclaration) {
-        return WritesRawBytes(context, methodDeclaration) ||
-               UnwrappedReturnType(context, methodDeclaration)?.SpecialType == SpecialType.System_String;
+        GeneratorSyntaxContext context,
+        MethodDeclarationSyntax methodDeclaration
+    )
+    {
+        return WritesRawBytes(context, methodDeclaration)
+            || UnwrappedReturnType(context, methodDeclaration)?.SpecialType
+                == SpecialType.System_String;
     }
 
     /// <summary>
@@ -1118,20 +1377,29 @@ public abstract class BaseRequestModelGenerator {
         string? producedContentTypes,
         GeneratorSyntaxContext context,
         MethodDeclarationSyntax methodDeclaration,
-        bool isAsyncEnumerable) {
-        if (producedContentTypes == null ||
-            isAsyncEnumerable ||
-            ReturnsBytesOrText(context, methodDeclaration)) {
+        bool isAsyncEnumerable
+    )
+    {
+        if (
+            producedContentTypes == null
+            || isAsyncEnumerable
+            || ReturnsBytesOrText(context, methodDeclaration)
+        )
+        {
             return null;
         }
 
         var unproducible = new List<string>();
 
-        foreach (var contentType in producedContentTypes.Split(',')) {
+        foreach (var contentType in producedContentTypes.Split(','))
+        {
             var trimmed = contentType.Trim();
 
-            if (trimmed.Length > 0 &&
-                !trimmed.Equals("application/json", StringComparison.OrdinalIgnoreCase)) {
+            if (
+                trimmed.Length > 0
+                && !trimmed.Equals("application/json", StringComparison.OrdinalIgnoreCase)
+            )
+            {
                 unproducible.Add(trimmed);
             }
         }
@@ -1140,40 +1408,63 @@ public abstract class BaseRequestModelGenerator {
     }
 
     private static ITypeSymbol? UnwrappedReturnType(
-        GeneratorSyntaxContext context, MethodDeclarationSyntax methodDeclaration) {
+        GeneratorSyntaxContext context,
+        MethodDeclarationSyntax methodDeclaration
+    )
+    {
         var returnType = context.SemanticModel.GetTypeInfo(methodDeclaration.ReturnType).Type;
 
-        if (returnType is INamedTypeSymbol { IsGenericType: true } generic &&
-            generic.Name is "Task" or "ValueTask" &&
-            generic.TypeArguments.Length == 1) {
+        if (
+            returnType is INamedTypeSymbol { IsGenericType: true } generic
+            && generic.Name is "Task" or "ValueTask"
+            && generic.TypeArguments.Length == 1
+        )
+        {
             return generic.TypeArguments[0];
         }
 
         return returnType;
     }
 
-    private static readonly string[] RoutingVerbs =
-        new[] { "Get", "Post", "Put", "Patch", "Delete" };
+    private static readonly string[] RoutingVerbs = new[]
+    {
+        "Get",
+        "Post",
+        "Put",
+        "Patch",
+        "Delete",
+    };
 
     /// <summary>
     /// Media type literals the transform compares against, spelled here because a generator cannot
     /// reference the runtime assembly that declares them.
     /// </summary>
-    private static class Headers {
+    private static class Headers
+    {
         public const string EventStream = "text/event-stream";
     }
 
     protected virtual IReadOnlyList<AttributeModel> GetFilters(
         GeneratorSyntaxContext context,
         MethodDeclarationSyntax methodDeclarationSyntax,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken
+    )
+    {
         var filterList = new List<AttributeModel>();
 
         filterList.AddRange(
-            GetFiltersForMethod(context, methodDeclarationSyntax, cancellationToken));
-        filterList.AddRange(GetFiltersForClass(context,
-            methodDeclarationSyntax.Ancestors().OfType<TypeDeclarationSyntax>().FirstOrDefault(),
-            cancellationToken));
+            GetFiltersForMethod(context, methodDeclarationSyntax, cancellationToken)
+        );
+        filterList.AddRange(
+            GetFiltersForClass(
+                context,
+                methodDeclarationSyntax
+                    .Ancestors()
+                    .OfType<TypeDeclarationSyntax>()
+                    .FirstOrDefault(),
+                cancellationToken
+            )
+        );
 
         return filterList;
     }
@@ -1181,8 +1472,11 @@ public abstract class BaseRequestModelGenerator {
     protected virtual IEnumerable<AttributeModel> GetFiltersForClass(
         GeneratorSyntaxContext context,
         TypeDeclarationSyntax? parent,
-        CancellationToken cancellationToken) {
-        if (parent == null) {
+        CancellationToken cancellationToken
+    )
+    {
+        if (parent == null)
+        {
             return Enumerable.Empty<AttributeModel>();
         }
 
@@ -1194,20 +1488,27 @@ public abstract class BaseRequestModelGenerator {
     protected virtual IEnumerable<AttributeModel> GetFiltersForMethod(
         GeneratorSyntaxContext context,
         MethodDeclarationSyntax methodDeclarationSyntax,
-        CancellationToken cancellationToken) {
-        return GetFiltersFromAttributes(context, methodDeclarationSyntax.AttributeLists,
-            cancellationToken);
+        CancellationToken cancellationToken
+    )
+    {
+        return GetFiltersFromAttributes(
+            context,
+            methodDeclarationSyntax.AttributeLists,
+            cancellationToken
+        );
     }
 
     protected virtual IEnumerable<AttributeModel> GetFiltersFromAttributes(
         GeneratorSyntaxContext context,
         SyntaxList<AttributeListSyntax> attributeListSyntax,
-        CancellationToken cancellationToken) {
-
+        CancellationToken cancellationToken
+    )
+    {
         return AttributeModelHelper.GetAttributes(
             context,
             attributeListSyntax,
             cancellationToken,
-            IsFilterAttribute);
+            IsFilterAttribute
+        );
     }
 }

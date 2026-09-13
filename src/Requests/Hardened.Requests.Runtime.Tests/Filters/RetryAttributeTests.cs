@@ -10,8 +10,8 @@ namespace Hardened.Requests.Runtime.Tests.Filters;
 /// <c>[Retry]</c> is the declarative face of <see cref="RetryFilter"/>: what a handler author
 /// writes, and the only place the filter's position in the pipeline is decided.
 /// </summary>
-public class RetryAttributeTests {
-
+public class RetryAttributeTests
+{
     private static readonly IExecutionRequestHandlerInfo HandlerInfo =
         new ExecutionRequestHandlerInfo("/orders", "POST", typeof(RetryAttributeTests), "Post");
 
@@ -21,7 +21,8 @@ public class RetryAttributeTests {
     /// the behaviour of every handler that wrote the attribute bare.
     /// </summary>
     [Fact]
-    public void Defaults_AreThreeAttemptsHalfASecondApartWithinTenSeconds() {
+    public void Defaults_AreThreeAttemptsHalfASecondApartWithinTenSeconds()
+    {
         var attribute = new RetryAttribute();
 
         Assert.Equal(3, attribute.Attempts);
@@ -37,7 +38,8 @@ public class RetryAttributeTests {
     [Theory]
     [InlineData(1)]
     [InlineData(4)]
-    public void Retries_IsTheSameValueAsAttempts(int value) {
+    public void Retries_IsTheSameValueAsAttempts(int value)
+    {
         Assert.Equal(value, new RetryAttribute { Retries = value }.Attempts);
         Assert.Equal(value, new RetryAttribute { Attempts = value }.Retries);
     }
@@ -48,7 +50,8 @@ public class RetryAttributeTests {
     /// looks like a success, because that filter catches the failure and returns normally.
     /// </summary>
     [Fact]
-    public void GetFilters_OrdersTheFilterBehindSerialization() {
+    public void GetFilters_OrdersTheFilterBehindSerialization()
+    {
         var filterInfo = Assert.Single(new RetryAttribute().GetFilters(HandlerInfo));
 
         Assert.Equal(FilterOrder.Retry, filterInfo.Order);
@@ -60,7 +63,8 @@ public class RetryAttributeTests {
     /// re-deriving it spends the whole budget on the same answer.
     /// </summary>
     [Fact]
-    public void GetFilters_OrdersTheFilterBehindAuthorization() {
+    public void GetFilters_OrdersTheFilterBehindAuthorization()
+    {
         var filterInfo = Assert.Single(new RetryAttribute().GetFilters(HandlerInfo));
 
         Assert.True(filterInfo.Order > FilterOrder.Authorization);
@@ -71,7 +75,8 @@ public class RetryAttributeTests {
     /// and a duplicate would square every retry budget.
     /// </summary>
     [Fact]
-    public void GetFilters_ContributesExactlyOneFilter() {
+    public void GetFilters_ContributesExactlyOneFilter()
+    {
         Assert.Single(new RetryAttribute().GetFilters(HandlerInfo));
     }
 
@@ -81,7 +86,8 @@ public class RetryAttributeTests {
     /// bound before it runs and there is nothing left to replay.
     /// </summary>
     [Fact]
-    public void GetFilters_BuildsTheFilterWithoutResolvingAnyService() {
+    public void GetFilters_BuildsTheFilterWithoutResolvingAnyService()
+    {
         var filterInfo = Assert.Single(new RetryAttribute().GetFilters(HandlerInfo));
 
         Assert.IsType<RetryFilter>(filterInfo.FilterFunc(null!));

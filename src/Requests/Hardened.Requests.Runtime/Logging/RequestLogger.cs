@@ -26,7 +26,8 @@ namespace Hardened.Requests.Runtime.Logging;
 /// </para>
 /// </remarks>
 [SingletonService(Using = RegistrationType.Try)]
-public partial class RequestLogger : IRequestLogger {
+public partial class RequestLogger : IRequestLogger
+{
     /// <summary>
     /// The span in flight, keyed by the context it belongs to.
     /// </summary>
@@ -64,11 +65,13 @@ public partial class RequestLogger : IRequestLogger {
 
     private readonly ILogger<RequestLogger> _logger;
 
-    public RequestLogger(ILogger<RequestLogger> logger) {
+    public RequestLogger(ILogger<RequestLogger> logger)
+    {
         _logger = logger;
     }
 
-    public void RequestBegin(IExecutionContext context) {
+    public void RequestBegin(IExecutionContext context)
+    {
         // The span is started before anything else here, and the order is load-bearing rather than
         // stylistic. Starting it sets Activity.Current, and the context's correlation id reads from
         // there on first access - so opening the scope first would realize an id with no trace to
@@ -85,11 +88,17 @@ public partial class RequestLogger : IRequestLogger {
         // rather than starting a second one that looks unrelated.
         var span = TryGetParent(context.Request, out var parent)
             ? HardenedDiagnostics.ActivitySource.StartActivity(
-                context.Request.Method, ActivityKind.Server, parent)
+                context.Request.Method,
+                ActivityKind.Server,
+                parent
+            )
             : HardenedDiagnostics.ActivitySource.StartActivity(
-                context.Request.Method, ActivityKind.Server);
+                context.Request.Method,
+                ActivityKind.Server
+            );
 
-        if (span is not null) {
+        if (span is not null)
+        {
             span.SetTag("http.request.method", context.Request.Method);
             span.SetTag("url.path", context.Request.Path);
 
@@ -117,18 +126,21 @@ public partial class RequestLogger : IRequestLogger {
     /// guarantees an id exists at all: with no collector attached there is no span, and the context
     /// issues one of its own instead.
     /// </remarks>
-    private void OpenCorrelationScope(IExecutionContext context) {
+    private void OpenCorrelationScope(IExecutionContext context)
+    {
         var correlationId = context.CorrelationId;
 
         // Substituted contexts in a test hand back null for a property they were never set up with.
         // A scope keyed to nothing is worse than no scope.
-        if (string.IsNullOrEmpty(correlationId)) {
+        if (string.IsNullOrEmpty(correlationId))
+        {
             return;
         }
 
         var scope = _logger.BeginScope(new CorrelationScope(correlationId));
 
-        if (scope is not null) {
+        if (scope is not null)
+        {
             _scopes.AddOrUpdate(context, scope);
         }
     }
@@ -142,8 +154,10 @@ public partial class RequestLogger : IRequestLogger {
     /// <c>AsyncLocal</c> in every provider that implements them, and an undisposed scope can leave
     /// the id attached to whatever the thread does next.
     /// </remarks>
-    private void CloseCorrelationScope(IExecutionContext context) {
-        if (!_scopes.TryGetValue(context, out var scope)) {
+    private void CloseCorrelationScope(IExecutionContext context)
+    {
+        if (!_scopes.TryGetValue(context, out var scope))
+        {
             return;
         }
 
@@ -161,12 +175,14 @@ public partial class RequestLogger : IRequestLogger {
     /// finds anything else falls back to <c>ToString</c>, which is why that is overridden rather
     /// than left to print a type name.
     /// </remarks>
-    private sealed class CorrelationScope : IReadOnlyList<KeyValuePair<string, object>> {
+    private sealed class CorrelationScope : IReadOnlyList<KeyValuePair<string, object>>
+    {
         public const string Key = "CorrelationId";
 
         private readonly string _correlationId;
 
-        public CorrelationScope(string correlationId) {
+        public CorrelationScope(string correlationId)
+        {
             _correlationId = correlationId;
         }
 
@@ -177,7 +193,8 @@ public partial class RequestLogger : IRequestLogger {
                 ? new KeyValuePair<string, object>(Key, _correlationId)
                 : throw new ArgumentOutOfRangeException(nameof(index));
 
-        public IEnumerator<KeyValuePair<string, object>> GetEnumerator() {
+        public IEnumerator<KeyValuePair<string, object>> GetEnumerator()
+        {
             yield return new KeyValuePair<string, object>(Key, _correlationId);
         }
 
@@ -202,16 +219,19 @@ public partial class RequestLogger : IRequestLogger {
     /// root span.
     /// </para>
     /// </remarks>
-    private static bool TryGetParent(IExecutionRequest request, out ActivityContext parent) {
+    private static bool TryGetParent(IExecutionRequest request, out ActivityContext parent)
+    {
         parent = default;
 
-        if (!request.Headers.TryGetValue("traceparent", out var traceparent)) {
+        if (!request.Headers.TryGetValue("traceparent", out var traceparent))
+        {
             return false;
         }
 
         var value = traceparent.ToString();
 
-        if (string.IsNullOrEmpty(value)) {
+        if (string.IsNullOrEmpty(value))
+        {
             return false;
         }
 
@@ -221,9 +241,14 @@ public partial class RequestLogger : IRequestLogger {
         return ActivityContext.TryParse(value, tracestate.ToString(), out parent);
     }
 
-    public void RequestMapped(IExecutionContext context) {
-        LogRequestMapped(context.Request.Method, context.Request.Path, context.HandlerInfo!.HandlerType.Name,
-             context.HandlerInfo!.InvokeMethod);
+    public void RequestMapped(IExecutionContext context)
+    {
+        LogRequestMapped(
+            context.Request.Method,
+            context.Request.Path,
+            context.HandlerInfo!.HandlerType.Name,
+            context.HandlerInfo!.InvokeMethod
+        );
 
         // The low-cardinality template, not the path that arrived. Attached here, before the handler
         // runs, because this is the moment routing decided - where ASP.NET has to go back and rename
@@ -234,7 +259,8 @@ public partial class RequestLogger : IRequestLogger {
         // and without it http.server.request.duration is one histogram for the whole service.
         context.RequestMetrics.Tag("http.route", route);
 
-        if (!_spans.TryGetValue(context, out var span)) {
+        if (!_spans.TryGetValue(context, out var span))
+        {
             return;
         }
 
@@ -263,23 +289,28 @@ public partial class RequestLogger : IRequestLogger {
     /// nothing extra and adding one costs two lines.
     /// </para>
     /// </remarks>
-    private static object StatusTag(int status) {
-        if (status == 200) {
+    private static object StatusTag(int status)
+    {
+        if (status == 200)
+        {
             return _ok;
         }
 
-        if (status == 404) {
+        if (status == 404)
+        {
             return _notFound;
         }
 
-        if (status == 400) {
+        if (status == 400)
+        {
             return _badRequest;
         }
 
         return status;
     }
 
-    public void RequestEnd(IExecutionContext context) {
+    public void RequestEnd(IExecutionContext context)
+    {
         LogRequestFinished(
             context.Request.Method,
             context.Request.Path,
@@ -305,7 +336,8 @@ public partial class RequestLogger : IRequestLogger {
 
         context.RequestMetrics.Tag("http.response.status_code", statusTag);
 
-        if (_spans.TryGetValue(context, out var span)) {
+        if (_spans.TryGetValue(context, out var span))
+        {
             _spans.Remove(context);
 
             span.SetTag("http.response.status_code", statusTag);
@@ -313,7 +345,8 @@ public partial class RequestLogger : IRequestLogger {
             // 4xx is the caller's mistake, not the server's. The conventions leave a server span
             // Unset for those and reserve Error for 5xx, so that a trace backend's error rate means
             // "this service failed" rather than "someone sent a bad request".
-            if (status >= 500) {
+            if (status >= 500)
+            {
                 span.SetStatus(ActivityStatusCode.Error);
             }
 
@@ -333,9 +366,14 @@ public partial class RequestLogger : IRequestLogger {
     /// A malformed body used to be logged here at Error with its stack, and again from
     /// <see cref="RequestFailed"/> at Error with the same stack, for a 400.
     /// </summary>
-    public void RequestParameterBindFailed(IExecutionContext context, Exception? exp) {
-        _logger.LogDebug(exp, "{method} {path} failed to bind parameters",
-            context.Request.Method, context.Request.Path);
+    public void RequestParameterBindFailed(IExecutionContext context, Exception? exp)
+    {
+        _logger.LogDebug(
+            exp,
+            "{method} {path} failed to bind parameters",
+            context.Request.Method,
+            context.Request.Path
+        );
     }
 
     /// <summary>
@@ -363,23 +401,46 @@ public partial class RequestLogger : IRequestLogger {
     /// chain.
     /// </para>
     /// </remarks>
-    public void RequestFailed(IExecutionContext context, Exception exp) {
+    public void RequestFailed(IExecutionContext context, Exception exp)
+    {
         var status = context.Response.Status;
         var started = context.Response.ResponseStarted;
 
-        if (!started && exp is OperationCanceledException &&
-            context.HandlerInfo?.Timeout is { } budget && status == budget.Status) {
+        if (
+            !started
+            && exp is OperationCanceledException
+            && context.HandlerInfo?.Timeout is { } budget
+            && status == budget.Status
+        )
+        {
             LogRequestTimedOut(
-                context.Request.Method, context.Request.Path, budget.Milliseconds, budget.Status);
+                context.Request.Method,
+                context.Request.Path,
+                budget.Milliseconds,
+                budget.Status
+            );
         }
-        else if (!started && status is >= 400 and < 500) {
-            LogRequestRefused(context.Request.Method, context.Request.Path, status.Value, exp.Message);
+        else if (!started && status is >= 400 and < 500)
+        {
+            LogRequestRefused(
+                context.Request.Method,
+                context.Request.Path,
+                status.Value,
+                exp.Message
+            );
         }
-        else {
-            _logger.LogError(exp, "{method} {path} request failed", context.Request.Method, context.Request.Path);
+        else
+        {
+            _logger.LogError(
+                exp,
+                "{method} {path} request failed",
+                context.Request.Method,
+                context.Request.Path
+            );
         }
 
-        if (!_spans.TryGetValue(context, out var span)) {
+        if (!_spans.TryGetValue(context, out var span))
+        {
             return;
         }
 
@@ -389,51 +450,83 @@ public partial class RequestLogger : IRequestLogger {
         // The stack repeats what the log line above already carries, deliberately: logs and traces
         // are sampled and retained separately, and a trace that says only "it failed" sends whoever
         // is reading it looking for a log line that may no longer exist.
-        span.AddEvent(new ActivityEvent("exception", tags: new ActivityTagsCollection {
-            { "exception.type", exp.GetType().FullName },
-            { "exception.message", exp.Message },
-            { "exception.stacktrace", exp.ToString() }
-        }));
+        span.AddEvent(
+            new ActivityEvent(
+                "exception",
+                tags: new ActivityTagsCollection
+                {
+                    { "exception.type", exp.GetType().FullName },
+                    { "exception.message", exp.Message },
+                    { "exception.stacktrace", exp.ToString() },
+                }
+            )
+        );
     }
 
-    public void ResourceNotFound(IExecutionContext context) {
+    public void ResourceNotFound(IExecutionContext context)
+    {
         LogResourceNotFound(context.Request.Method, context.Request.Path);
     }
 
     [LoggerMessage(
         EventId = 78000,
         Level = LogLevel.Information,
-        Message = "{httpMethod} {path} started")]
+        Message = "{httpMethod} {path} started"
+    )]
     protected partial void LogRequestStarted(string httpMethod, string path);
 
     [LoggerMessage(
         EventId = 78001,
         Level = LogLevel.Information,
-        Message = "{httpMethod} {path} mapped to {typeName}.{methodName}")]
-    protected partial void LogRequestMapped(string httpMethod, string path, string typeName, string methodName);
+        Message = "{httpMethod} {path} mapped to {typeName}.{methodName}"
+    )]
+    protected partial void LogRequestMapped(
+        string httpMethod,
+        string path,
+        string typeName,
+        string methodName
+    );
 
     [LoggerMessage(
         EventId = 78002,
         Level = LogLevel.Information,
-        Message = "{httpMethod} {path}  finished status code '{statusCode}'  duration {durationMs}")]
+        Message = "{httpMethod} {path}  finished status code '{statusCode}'  duration {durationMs}"
+    )]
     protected partial void LogRequestFinished(
-        string httpMethod, string path, int? statusCode, TimeSpan durationMs);
+        string httpMethod,
+        string path,
+        int? statusCode,
+        TimeSpan durationMs
+    );
 
     [Microsoft.Extensions.Logging.LoggerMessage(
         EventId = 78003,
         Level = LogLevel.Information,
-        Message = "{httpMethod} {path} Resource Not Found")]
+        Message = "{httpMethod} {path} Resource Not Found"
+    )]
     protected partial void LogResourceNotFound(string httpMethod, string path);
 
     [LoggerMessage(
         EventId = 78004,
         Level = LogLevel.Warning,
-        Message = "{httpMethod} {path} refused with {statusCode}: {reason}")]
-    protected partial void LogRequestRefused(string httpMethod, string path, int statusCode, string reason);
+        Message = "{httpMethod} {path} refused with {statusCode}: {reason}"
+    )]
+    protected partial void LogRequestRefused(
+        string httpMethod,
+        string path,
+        int statusCode,
+        string reason
+    );
 
     [LoggerMessage(
         EventId = 78005,
         Level = LogLevel.Warning,
-        Message = "{httpMethod} {path} did not finish inside its {milliseconds} ms budget, answered {statusCode}")]
-    protected partial void LogRequestTimedOut(string httpMethod, string path, int milliseconds, int statusCode);
+        Message = "{httpMethod} {path} did not finish inside its {milliseconds} ms budget, answered {statusCode}"
+    )]
+    protected partial void LogRequestTimedOut(
+        string httpMethod,
+        string path,
+        int milliseconds,
+        int statusCode
+    );
 }

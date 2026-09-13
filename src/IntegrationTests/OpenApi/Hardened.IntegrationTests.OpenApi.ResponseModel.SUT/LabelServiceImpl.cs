@@ -1,10 +1,10 @@
 using System.Threading;
 using Hardened.IntegrationTests.OpenApi.ResponseModel.SUT.Models;
-using Hardened.Requests.Abstract.Timeouts;
-using Hardened.Requests.Runtime.Filters;
 using Hardened.IntegrationTests.OpenApi.ResponseModel.SUT.Services;
 using Hardened.Requests.Abstract.Attributes;
 using Hardened.Requests.Abstract.Responses;
+using Hardened.Requests.Abstract.Timeouts;
+using Hardened.Requests.Runtime.Filters;
 using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.IntegrationTests.OpenApi.ResponseModel.SUT;
@@ -21,7 +21,8 @@ namespace Hardened.IntegrationTests.OpenApi.ResponseModel.SUT;
 /// <c>Responses</c> SUT returns for the same status.
 /// </remarks>
 [Handler]
-public class LabelServiceImpl : ILabelService {
+public class LabelServiceImpl : ILabelService
+{
     private readonly IRequestDeadline _deadline;
 
     /// <summary>
@@ -29,7 +30,8 @@ public class LabelServiceImpl : ILabelService {
     /// signature belongs to the contract. Registered as a singleton for that reason, so this class's
     /// own lifetime does not decide whether it can ask.
     /// </summary>
-    public LabelServiceImpl(IRequestDeadline deadline) {
+    public LabelServiceImpl(IRequestDeadline deadline)
+    {
         _deadline = deadline;
     }
 
@@ -65,12 +67,14 @@ public class LabelServiceImpl : ILabelService {
     /// the record and the detail from here.
     /// </summary>
     [Timeout(Milliseconds = 30_000)]
-    public Task<GetLabelResponse> GetLabel(string labelId, CancellationToken cancellationToken) {
+    public Task<GetLabelResponse> GetLabel(string labelId, CancellationToken cancellationToken)
+    {
         LastTokenCanBeCanceled = cancellationToken.CanBeCanceled;
         LastDeadlineRemainingMs = _deadline.Deadline?.GetRemainingMilliseconds();
         AccessorTokenMatchedTheBoundOne = _deadline.CancellationToken == cancellationToken;
 
-        if (labelId == "missing") {
+        if (labelId == "missing")
+        {
             return Task.FromResult<GetLabelResponse>(new NotFound("label", "No such label"));
         }
 
@@ -78,14 +82,21 @@ public class LabelServiceImpl : ILabelService {
     }
 
     public Task<CreateLabelResponse> CreateLabel(
-        LabelRequest body, CancellationToken cancellationToken) {
+        LabelRequest body,
+        CancellationToken cancellationToken
+    )
+    {
         return Task.FromResult<CreateLabelResponse>(body);
     }
 
     /// <summary>The shared instance, for a handler with nothing to add: no allocation for the 404.</summary>
     public Task<ArchiveLabelResponse> ArchiveLabel(
-        string labelId, CancellationToken cancellationToken) {
-        if (labelId == "missing") {
+        string labelId,
+        CancellationToken cancellationToken
+    )
+    {
+        if (labelId == "missing")
+        {
             return Task.FromResult<ArchiveLabelResponse>(NotFound.Default);
         }
 

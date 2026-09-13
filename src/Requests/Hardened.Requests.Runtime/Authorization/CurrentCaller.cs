@@ -21,6 +21,7 @@ namespace Hardened.Requests.Runtime.Authorization;
 /// is asked to run, which is what keeps this free for the applications that use none of it.
 /// </para>
 /// </remarks>
-internal sealed class CurrentCaller : ICurrentCaller {
+internal sealed class CurrentCaller : ICurrentCaller
+{
     public ICallerPrincipal Principal { get; set; } = AnonymousCallerPrincipal.Instance;
 }

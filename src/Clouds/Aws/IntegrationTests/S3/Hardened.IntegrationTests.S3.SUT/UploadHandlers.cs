@@ -10,7 +10,8 @@ namespace Hardened.IntegrationTests.S3.SUT;
 /// the notification and fetching it is the handler's own call - which is the one way a blob trigger
 /// differs from every other trigger in the framework.
 /// </remarks>
-public class Upload {
+public class Upload
+{
     public string Bucket { get; set; } = "";
 
     public string Key { get; set; } = "";
@@ -21,11 +22,13 @@ public class Upload {
 }
 
 /// <summary>Where a handled notification goes, so a test can observe it.</summary>
-public interface IUploadSink {
+public interface IUploadSink
+{
     void Arrived(Upload upload);
 }
 
-public class UploadHandlers {
+public class UploadHandlers
+{
     [Blob("uploads")]
     public void OnUpload(Upload upload, IUploadSink sink) => sink.Arrived(upload);
 }

@@ -1,6 +1,6 @@
+using DependencyModules.Testing.Attributes;
 using DependencyModules.Testing.Attributes.Interfaces;
 using DependencyModules.Testing.Impl;
-using DependencyModules.Testing.Attributes;
 using Hardened.Requests.Abstract.Middleware;
 using Hardened.Shared.Runtime.Application;
 using Hardened.Shared.Testing.Attributes;
@@ -17,19 +17,25 @@ namespace Hardened.Web.Testing;
 /// <see cref="TestWebResponse.Failure"/>, because nothing crosses a wire. Declared on a method to
 /// opt one test back to it inside a class or an assembly that declared a socket host.
 /// </remarks>
-[AttributeUsage(AttributeTargets.Method | AttributeTargets.Class | AttributeTargets.Assembly, AllowMultiple = false)]
-public sealed class PipelineHostAttribute : TestHostAttribute {
-
+[AttributeUsage(
+    AttributeTargets.Method | AttributeTargets.Class | AttributeTargets.Assembly,
+    AllowMultiple = false
+)]
+public sealed class PipelineHostAttribute : TestHostAttribute
+{
     /// <remarks>
     /// The handler is appended only when the entry point is a module rather than an application
     /// root, which is the branch <c>[WebTesting]</c> always took; an application root composes
     /// its own chain.
     /// </remarks>
-    public override ITestHost CreateHost(ITestMethodContext testMethod, IServiceCollection services) {
+    public override ITestHost CreateHost(ITestMethodContext testMethod, IServiceCollection services)
+    {
         var entryPoint = testMethod.Method.GetTestAttribute<HardenedTestEntryPointAttribute>();
 
         return new PipelineHost(
-            appendHandler: entryPoint != null && !typeof(IApplicationRoot).IsAssignableFrom(entryPoint.EntryPoint));
+            appendHandler: entryPoint != null
+                && !typeof(IApplicationRoot).IsAssignableFrom(entryPoint.EntryPoint)
+        );
     }
 }
 
@@ -37,19 +43,22 @@ public sealed class PipelineHostAttribute : TestHostAttribute {
 /// The pipeline as a host: what <see cref="ITestWebApp"/> and <see cref="PipelineHttpMessageHandler"/>
 /// always ran, behind the seam a socket host shares.
 /// </summary>
-public sealed class PipelineHost : ITestHost {
+public sealed class PipelineHost : ITestHost
+{
     private readonly bool _appendHandler;
     private IServiceProvider? _provider;
     private ITestContainerSource? _source;
     private bool _started;
 
     /// <summary>A host over a container that is already built and composed, for a harness built by hand.</summary>
-    public PipelineHost(IServiceProvider provider) {
+    public PipelineHost(IServiceProvider provider)
+    {
         _provider = provider;
         _appendHandler = false;
     }
 
-    internal PipelineHost(bool appendHandler) {
+    internal PipelineHost(bool appendHandler)
+    {
         _appendHandler = appendHandler;
     }
 
@@ -74,8 +83,10 @@ public sealed class PipelineHost : ITestHost {
     /// filter at the end of the chain - what <c>UseHardened</c> does for the ASP.NET pipeline and
     /// <c>KestrelServerRunner</c> does for Kestrel.
     /// </summary>
-    public async Task StartAsync(IServiceProvider provider, CancellationToken cancellationToken) {
-        if (_started) {
+    public async Task StartAsync(IServiceProvider provider, CancellationToken cancellationToken)
+    {
+        if (_started)
+        {
             return;
         }
 
@@ -108,8 +119,10 @@ public sealed class PipelineHost : ITestHost {
     /// that looks composed and is not.
     /// </para>
     /// </remarks>
-    private async ValueTask<IServiceProvider> ContainerForRequestAsync(bool reuse = false) {
-        if (_source is not { } source) {
+    private async ValueTask<IServiceProvider> ContainerForRequestAsync(bool reuse = false)
+    {
+        if (_source is not { } source)
+        {
             return Provider;
         }
 
@@ -118,7 +131,8 @@ public sealed class PipelineHost : ITestHost {
         // can point at - so "one container for this client" and "the container the test is in" being
         // the same container is the reading that needs no explaining. Two clients that both ask
         // therefore land together, which is what modelling one warm environment means.
-        if (reuse) {
+        if (reuse)
+        {
             return Provider;
         }
 
@@ -137,8 +151,10 @@ public sealed class PipelineHost : ITestHost {
     /// plain list and a fresh container has a fresh empty one. This is what <c>UseHardened</c> does
     /// for the ASP.NET pipeline and <c>KestrelServerRunner</c> does for Kestrel.
     /// </remarks>
-    private void Compose(IServiceProvider provider) {
-        if (!_appendHandler) {
+    private void Compose(IServiceProvider provider)
+    {
+        if (!_appendHandler)
+        {
             return;
         }
 
@@ -158,17 +174,31 @@ public sealed class PipelineHost : ITestHost {
         new PipelineHttpMessageHandler(() => ContainerForRequestAsync(reuseContainer), credential);
 
     public Task<TestWebResponse> SendAsync(
-        TestHostRequest request, CancellationToken cancellationToken) =>
-        SendAsync(request, cancellationToken, reuseContainer: false);
+        TestHostRequest request,
+        CancellationToken cancellationToken
+    ) => SendAsync(request, cancellationToken, reuseContainer: false);
 
     public async Task<TestWebResponse> SendAsync(
-        TestHostRequest request, CancellationToken cancellationToken, bool reuseContainer) {
+        TestHostRequest request,
+        CancellationToken cancellationToken,
+        bool reuseContainer
+    )
+    {
         var executionRequest = PipelineRequest.CreateRequest(
-            request.Method, request.PathAndQuery, request.Headers, request.Body, request.Credential);
+            request.Method,
+            request.PathAndQuery,
+            request.Headers,
+            request.Body,
+            request.Credential
+        );
         var body = new MemoryStream();
 
         var response = await PipelineRequest.Run(
-            await ContainerForRequestAsync(reuseContainer), executionRequest, body, cancellationToken);
+            await ContainerForRequestAsync(reuseContainer),
+            executionRequest,
+            body,
+            cancellationToken
+        );
 
         return new TestWebResponse(response);
     }
@@ -176,5 +206,8 @@ public sealed class PipelineHost : ITestHost {
     public ValueTask DisposeAsync() => default;
 
     private IServiceProvider Provider =>
-        _provider ?? throw new InvalidOperationException("The pipeline host has not been started, so it has no container to run a request through.");
+        _provider
+        ?? throw new InvalidOperationException(
+            "The pipeline host has not been started, so it has no container to run a request through."
+        );
 }

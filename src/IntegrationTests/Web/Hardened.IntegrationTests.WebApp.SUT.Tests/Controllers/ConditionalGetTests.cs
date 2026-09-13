@@ -2,9 +2,9 @@ using DependencyModules.Testing.Attributes;
 using Hardened.IntegrationTests.WebApp.SUT.Controllers;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Testing;
-using Microsoft.Extensions.Primitives;
 using Hardened.Web.Runtime.Headers;
 using Hardened.Web.Runtime.Responses;
+using Microsoft.Extensions.Primitives;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 
@@ -18,8 +18,8 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 /// method or the class, rather than a filter driven by hand - and one handler that declares
 /// nothing, to show it gets nothing.
 /// </remarks>
-public class ConditionalGetTests {
-
+public class ConditionalGetTests
+{
     private const string Catalog = "/response-cache/catalog?culture=en-GB";
 
     private const string Document = "/conditional/document";
@@ -30,16 +30,19 @@ public class ConditionalGetTests {
         request => request.Headers[KnownHeaders.IfNoneMatch] = new StringValues(tag);
 
     private static Action<TestWebRequest> IfModifiedSince(DateTimeOffset when) =>
-        request => request.Headers[KnownHeaders.IfModifiedSince] = new StringValues(HttpDate.Format(when));
+        request =>
+            request.Headers[KnownHeaders.IfModifiedSince] = new StringValues(HttpDate.Format(when));
 
     private static Action<TestWebRequest> Both(string tag, DateTimeOffset when) =>
-        request => {
+        request =>
+        {
             IfNoneMatch(tag)(request);
             IfModifiedSince(when)(request);
         };
 
     private static Action<TestWebRequest> Plain(Action<TestWebRequest>? also = null) =>
-        request => {
+        request =>
+        {
             request.Headers[KnownHeaders.AcceptEncoding] = new StringValues("identity");
             also?.Invoke(request);
         };
@@ -48,9 +51,11 @@ public class ConditionalGetTests {
         response.Headers[KnownHeaders.ETag].ToString();
 
     private static Action<TestWebRequest> Grants(string value) =>
-        request => request.Headers[TestGrantsPrincipalSource.GrantsHeader] = new StringValues(value);
+        request =>
+            request.Headers[TestGrantsPrincipalSource.GrantsHeader] = new StringValues(value);
 
-    private static void AssertNotModified(TestWebResponse response) {
+    private static void AssertNotModified(TestWebResponse response)
+    {
         Assert.Equal(304, response.StatusCode);
         Assert.Equal(0, response.Body.Length);
         Assert.False(response.Headers.ContainsKey(KnownHeaders.ContentType));
@@ -64,7 +69,8 @@ public class ConditionalGetTests {
     /// tag the cache wrote as it encodes. A hit carries the same one.
     /// </summary>
     [HardenedTest]
-    public async Task ACachedReadCarriesAValidatorOnTheMissAndTheHit(ITestWebApp testWebApp) {
+    public async Task ACachedReadCarriesAValidatorOnTheMissAndTheHit(ITestWebApp testWebApp)
+    {
         var miss = await testWebApp.Get(Catalog);
         var hit = await testWebApp.Get(Catalog);
 
@@ -77,7 +83,8 @@ public class ConditionalGetTests {
     /// from the entry, and so does this - without the body, and without the handler.
     /// </summary>
     [HardenedTest]
-    public async Task AClientHoldingTheTagIsAnswered304FromTheCache(ITestWebApp testWebApp) {
+    public async Task AClientHoldingTheTagIsAnswered304FromTheCache(ITestWebApp testWebApp)
+    {
         var miss = await testWebApp.Get(Catalog);
 
         var revalidated = await testWebApp.Get(Catalog, IfNoneMatch(Tag(miss)));
@@ -92,7 +99,8 @@ public class ConditionalGetTests {
     }
 
     [HardenedTest]
-    public async Task AClientHoldingAStaleTagIsAnsweredInFull(ITestWebApp testWebApp) {
+    public async Task AClientHoldingAStaleTagIsAnsweredInFull(ITestWebApp testWebApp)
+    {
         await testWebApp.Get(Catalog);
 
         var response = await testWebApp.Get(Catalog, IfNoneMatch("\"stale\""));
@@ -107,7 +115,8 @@ public class ConditionalGetTests {
     /// would be of bytes the filter discarded, not of the body a 200 carries.
     /// </summary>
     [HardenedTest]
-    public async Task AHeadHoldingTheTagIs304WithoutALength(ITestWebApp testWebApp) {
+    public async Task AHeadHoldingTheTagIs304WithoutALength(ITestWebApp testWebApp)
+    {
         var miss = await testWebApp.Get(Catalog);
 
         var head = await testWebApp.Request("HEAD", null, Catalog, IfNoneMatch(Tag(miss)));
@@ -124,7 +133,8 @@ public class ConditionalGetTests {
     /// nothing re-encoded them afterwards.
     /// </summary>
     [HardenedTest]
-    public async Task AHandlerWithNoTagOfItsOwnIsTaggedOverTheBytesItSends(ITestWebApp testWebApp) {
+    public async Task AHandlerWithNoTagOfItsOwnIsTaggedOverTheBytesItSends(ITestWebApp testWebApp)
+    {
         var first = await testWebApp.Get(Generated);
 
         first.Assert.Ok();
@@ -143,7 +153,8 @@ public class ConditionalGetTests {
     /// tag from one that takes it compressed, and neither is told the other's has not changed.
     /// </summary>
     [HardenedTest]
-    public async Task EachRepresentationIsRevalidatedAgainstItsOwnTag(ITestWebApp testWebApp) {
+    public async Task EachRepresentationIsRevalidatedAgainstItsOwnTag(ITestWebApp testWebApp)
+    {
         var compressed = await testWebApp.Get(Generated);
         var plain = await testWebApp.Get(Generated, Plain());
 
@@ -158,7 +169,8 @@ public class ConditionalGetTests {
     }
 
     [HardenedTest]
-    public async Task ADifferentBodyIsADifferentTag(ITestWebApp testWebApp) {
+    public async Task ADifferentBodyIsADifferentTag(ITestWebApp testWebApp)
+    {
         var en = await testWebApp.Get(Generated);
         var fr = await testWebApp.Get("/conditional/generated?culture=fr");
 
@@ -168,23 +180,39 @@ public class ConditionalGetTests {
     // ---------------------------------------------------------------- a handler's own validator
 
     [HardenedTest]
-    public async Task AHandlerThatWritesItsOwnTagIsRevalidatedAgainstIt(ITestWebApp testWebApp) {
+    public async Task AHandlerThatWritesItsOwnTagIsRevalidatedAgainstIt(ITestWebApp testWebApp)
+    {
         var first = await testWebApp.Get(Document);
 
         first.Assert.Ok();
 
         Assert.Equal("W/" + ConditionalController.Version, Tag(first));
 
-        var revalidated = await testWebApp.Get(Document, IfNoneMatch(ConditionalController.Version));
+        var revalidated = await testWebApp.Get(
+            Document,
+            IfNoneMatch(ConditionalController.Version)
+        );
 
         AssertNotModified(revalidated);
-        Assert.Equal(HttpDate.Format(ConditionalController.UpdatedAt), revalidated.Headers[KnownHeaders.LastModified].ToString());
+        Assert.Equal(
+            HttpDate.Format(ConditionalController.UpdatedAt),
+            revalidated.Headers[KnownHeaders.LastModified].ToString()
+        );
     }
 
     [HardenedTest]
-    public async Task AHandlerThatWritesLastModifiedIsRevalidatedAgainstTheDate(ITestWebApp testWebApp) {
-        var unchanged = await testWebApp.Get(Document, IfModifiedSince(ConditionalController.UpdatedAt));
-        var changed = await testWebApp.Get(Document, IfModifiedSince(ConditionalController.UpdatedAt.AddDays(-1)));
+    public async Task AHandlerThatWritesLastModifiedIsRevalidatedAgainstTheDate(
+        ITestWebApp testWebApp
+    )
+    {
+        var unchanged = await testWebApp.Get(
+            Document,
+            IfModifiedSince(ConditionalController.UpdatedAt)
+        );
+        var changed = await testWebApp.Get(
+            Document,
+            IfModifiedSince(ConditionalController.UpdatedAt.AddDays(-1))
+        );
 
         AssertNotModified(unchanged);
         changed.Assert.Ok();
@@ -194,8 +222,12 @@ public class ConditionalGetTests {
     /// RFC 9110 §13.2.1: the validator outranks the date, including when it does not match.
     /// </summary>
     [HardenedTest]
-    public async Task AStaleTagOutranksASatisfiedDate(ITestWebApp testWebApp) {
-        var response = await testWebApp.Get(Document, Both("\"stale\"", ConditionalController.UpdatedAt));
+    public async Task AStaleTagOutranksASatisfiedDate(ITestWebApp testWebApp)
+    {
+        var response = await testWebApp.Get(
+            Document,
+            Both("\"stale\"", ConditionalController.UpdatedAt)
+        );
 
         response.Assert.Ok();
     }
@@ -206,7 +238,8 @@ public class ConditionalGetTests {
     /// different feature.
     /// </summary>
     [HardenedTest]
-    public async Task A304FromAHandlersOwnTagStillRanTheHandler([Shared] ITestWebApp testWebApp) {
+    public async Task A304FromAHandlersOwnTagStillRanTheHandler([Shared] ITestWebApp testWebApp)
+    {
         await testWebApp.Get(Document, IfNoneMatch(ConditionalController.Version));
 
         var next = await testWebApp.Get(Document);
@@ -221,7 +254,10 @@ public class ConditionalGetTests {
     /// caller claims to hold.
     /// </summary>
     [HardenedTest]
-    public async Task AHandlerWithoutTheAttributeIsNeitherTaggedNorRevalidated(ITestWebApp testWebApp) {
+    public async Task AHandlerWithoutTheAttributeIsNeitherTaggedNorRevalidated(
+        ITestWebApp testWebApp
+    )
+    {
         var response = await testWebApp.Get("/response-cache/uncached", IfNoneMatch("*"));
 
         response.Assert.Ok();
@@ -236,14 +272,17 @@ public class ConditionalGetTests {
     /// was recorded rather than the tag.
     /// </summary>
     [HardenedTest]
-    public async Task ARefusedCallerHoldingTheTagIsStillRefused(ITestWebApp testWebApp) {
+    public async Task ARefusedCallerHoldingTheTagIsStillRefused(ITestWebApp testWebApp)
+    {
         var warm = await testWebApp.Get("/response-cache/granted", Grants("pets:read"));
 
         warm.Assert.Ok();
 
         var grantless = await testWebApp.Get("/response-cache/granted", IfNoneMatch(Tag(warm)));
 
-        Assert.True(grantless.StatusCode is 401 or 403,
-            $"a grantless caller holding the tag was answered {grantless.StatusCode}");
+        Assert.True(
+            grantless.StatusCode is 401 or 403,
+            $"a grantless caller holding the tag was answered {grantless.StatusCode}"
+        );
     }
 }

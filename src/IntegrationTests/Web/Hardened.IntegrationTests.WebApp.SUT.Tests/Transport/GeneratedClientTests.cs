@@ -1,9 +1,9 @@
 using Hardened.IntegrationTests.WebApp.SUT.Client;
 using Hardened.IntegrationTests.WebApp.SUT.Services;
+using Hardened.Web.Runtime.Responses;
 using Microsoft.Kiota.Abstractions;
 using NSubstitute;
 using ClientModels = Hardened.IntegrationTests.WebApp.SUT.Client.Models;
-using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Transport;
 
@@ -21,32 +21,46 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Transport;
 /// read from <see cref="LastResponse"/> here; <see cref="KiotaReturnsTests"/> asserts the same
 /// answers as response types instead.
 /// </remarks>
-public class GeneratedClientTests {
-
+public class GeneratedClientTests
+{
     [HardenedTest]
-    public async Task APathParameterReachesTheHandler(WebAppClient client) {
-        var answer = await client.Verbs.Item["42"].GetAsync(cancellationToken: TestContext.Current.CancellationToken);
+    public async Task APathParameterReachesTheHandler(WebAppClient client)
+    {
+        var answer = await client
+            .Verbs.Item["42"]
+            .GetAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal("got:42", answer);
     }
 
     [HardenedTest]
-    public async Task ABodyIsSerializedAndTheAnswerDeserialized(WebAppClient client) {
+    public async Task ABodyIsSerializedAndTheAnswerDeserialized(WebAppClient client)
+    {
         var sum = await client.Int.Add.PostAsync(
             new ClientModels.MathAddModel { Values = [1, 2, 3] },
-            cancellationToken: TestContext.Current.CancellationToken);
+            cancellationToken: TestContext.Current.CancellationToken
+        );
 
         Assert.Equal(6, sum);
     }
 
     /// <summary>One path, three verbs, and a query parameter on the fourth: each reaches its own handler.</summary>
     [HardenedTest]
-    public async Task EachVerbReachesItsOwnHandler(WebAppClient client) {
+    public async Task EachVerbReachesItsOwnHandler(WebAppClient client)
+    {
         var token = TestContext.Current.CancellationToken;
 
         var deleted = await client.Verbs.Item["7"].DeleteAsync(cancellationToken: token);
-        var patched = await client.Verbs.Item["7"].PatchAsync(new ClientModels.MathAddModel { Values = [1, 2] }, cancellationToken: token);
-        var byQuery = await client.Verbs.Item.DeleteAsync(request => request.QueryParameters.Name = "stale", token);
+        var patched = await client
+            .Verbs.Item["7"]
+            .PatchAsync(
+                new ClientModels.MathAddModel { Values = [1, 2] },
+                cancellationToken: token
+            );
+        var byQuery = await client.Verbs.Item.DeleteAsync(
+            request => request.QueryParameters.Name = "stale",
+            token
+        );
 
         Assert.Equal("deleted:7", deleted);
         Assert.Equal("patched:7:1,2", patched);
@@ -57,20 +71,28 @@ public class GeneratedClientTests {
     /// The client does not surface a success status; the transport keeps it for the test.
     /// </summary>
     [HardenedTest]
-    public async Task ADeclaredStatusIsReadFromLastResponse(WebAppClient client) {
-        var created = await client.Verbs.Created.PostAsync(cancellationToken: TestContext.Current.CancellationToken);
+    public async Task ADeclaredStatusIsReadFromLastResponse(WebAppClient client)
+    {
+        var created = await client.Verbs.Created.PostAsync(
+            cancellationToken: TestContext.Current.CancellationToken
+        );
 
         Assert.Equal("created", created);
         Assert.Equal(201, LastResponse.Status);
 
-        await client.Verbs.Emptied.DeleteAsync(cancellationToken: TestContext.Current.CancellationToken);
+        await client.Verbs.Emptied.DeleteAsync(
+            cancellationToken: TestContext.Current.CancellationToken
+        );
 
         Assert.Equal(204, LastResponse.Status);
     }
 
     [HardenedTest]
-    public async Task AnEnumComesBackAsTheGeneratedMember(WebAppClient client) {
-        var ticket = await client.EnumVocabulary.Ticket.GetAsync(cancellationToken: TestContext.Current.CancellationToken);
+    public async Task AnEnumComesBackAsTheGeneratedMember(WebAppClient client)
+    {
+        var ticket = await client.EnumVocabulary.Ticket.GetAsync(
+            cancellationToken: TestContext.Current.CancellationToken
+        );
 
         Assert.Equal("Ship it", ticket!.Title);
         Assert.Equal(ClientModels.Priority.InProgress, ticket.Priority);
@@ -82,23 +104,32 @@ public class GeneratedClientTests {
     /// carrying the errors the filter wrote.
     /// </summary>
     [HardenedTest]
-    public async Task ADeclaredRefusalIsTheTypedExceptionTheDocumentPromised(WebAppClient client) {
+    public async Task ADeclaredRefusalIsTheTypedExceptionTheDocumentPromised(WebAppClient client)
+    {
         var refusal = await Assert.ThrowsAsync<ClientModels.RequestValidationError>(() =>
             client.Registration.Declared422.PostAsync(
                 new ClientModels.RegistrationModel { Name = "too young", Age = 5 },
-                cancellationToken: TestContext.Current.CancellationToken));
+                cancellationToken: TestContext.Current.CancellationToken
+            )
+        );
 
         Assert.Equal(422, refusal.ResponseStatusCode);
-        Assert.Contains(refusal.Errors!, error => error.Field!.EndsWith("age", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(
+            refusal.Errors!,
+            error => error.Field!.EndsWith("age", StringComparison.OrdinalIgnoreCase)
+        );
     }
 
     /// <summary>The undeclared route answers the same body as a 400; the document says so, and the type follows.</summary>
     [HardenedTest]
-    public async Task TheDefaultRefusalIsTypedToo(WebAppClient client) {
+    public async Task TheDefaultRefusalIsTypedToo(WebAppClient client)
+    {
         var refusal = await Assert.ThrowsAsync<ClientModels.RequestValidationError>(() =>
             client.Registration.PostAsync(
                 new ClientModels.RegistrationModel { Name = "too young", Age = 5 },
-                cancellationToken: TestContext.Current.CancellationToken));
+                cancellationToken: TestContext.Current.CancellationToken
+            )
+        );
 
         Assert.Equal(400, refusal.ResponseStatusCode);
     }
@@ -116,9 +147,13 @@ public class GeneratedClientTests {
     /// the runtime answers is still undeclared and this is still what a client sees.
     /// </remarks>
     [HardenedTest]
-    public async Task AnUndeclaredRefusalIsABareApiException(WebAppClient client) {
+    public async Task AnUndeclaredRefusalIsABareApiException(WebAppClient client)
+    {
         var refusal = await Assert.ThrowsAsync<ApiException>(() =>
-            client.Authorization.PetsUnstated.GetAsync(cancellationToken: TestContext.Current.CancellationToken));
+            client.Authorization.PetsUnstated.GetAsync(
+                cancellationToken: TestContext.Current.CancellationToken
+            )
+        );
 
         Assert.Equal(401, refusal.ResponseStatusCode);
     }
@@ -129,17 +164,25 @@ public class GeneratedClientTests {
     /// </summary>
     [HardenedTest]
     public async Task AnAuthenticationRefusalIsTypedWhereTheOperationNamesAScheme(
-        [Anonymous] WebAppClient nobody) {
+        [Anonymous] WebAppClient nobody
+    )
+    {
         var refusal = await Assert.ThrowsAsync<ClientModels.ErrorModel>(() =>
-            nobody.Authorization.Pets.GetAsync(cancellationToken: TestContext.Current.CancellationToken));
+            nobody.Authorization.Pets.GetAsync(
+                cancellationToken: TestContext.Current.CancellationToken
+            )
+        );
 
         Assert.Equal(401, refusal.ResponseStatusCode);
     }
 
     [HardenedTest]
     [Grants("pets:read")]
-    public async Task TheCredentialInScopeReachesAGuardedHandler(WebAppClient client) {
-        var pets = await client.Authorization.Pets.GetAsync(cancellationToken: TestContext.Current.CancellationToken);
+    public async Task TheCredentialInScopeReachesAGuardedHandler(WebAppClient client)
+    {
+        var pets = await client.Authorization.Pets.GetAsync(
+            cancellationToken: TestContext.Current.CancellationToken
+        );
 
         Assert.NotNull(pets);
         Assert.Equal(200, LastResponse.Status);
@@ -154,14 +197,20 @@ public class GeneratedClientTests {
     /// </remarks>
     [HardenedTest]
     public async Task ThreeGeneratedClientsCarryThreeCredentials(
-        [Grants("pets:read")] WebAppClient reader, [Anonymous] WebAppClient nobody, [Grants("pets:write")] WebAppClient writer) {
+        [Grants("pets:read")] WebAppClient reader,
+        [Anonymous] WebAppClient nobody,
+        [Grants("pets:write")] WebAppClient writer
+    )
+    {
         var token = TestContext.Current.CancellationToken;
 
         var pets = await reader.Authorization.Pets.GetAsync(cancellationToken: token);
-        var refused = await Assert.ThrowsAsync<ClientModels.ErrorModel>(
-            () => nobody.Authorization.Pets.GetAsync(cancellationToken: token));
-        var forbidden = await Assert.ThrowsAsync<ClientModels.ErrorModel>(
-            () => writer.Authorization.Pets.GetAsync(cancellationToken: token));
+        var refused = await Assert.ThrowsAsync<ClientModels.ErrorModel>(() =>
+            nobody.Authorization.Pets.GetAsync(cancellationToken: token)
+        );
+        var forbidden = await Assert.ThrowsAsync<ClientModels.ErrorModel>(() =>
+            writer.Authorization.Pets.GetAsync(cancellationToken: token)
+        );
 
         Assert.NotNull(pets);
         Assert.Equal(401, refused.ResponseStatusCode);
@@ -176,9 +225,13 @@ public class GeneratedClientTests {
     /// </summary>
     [HardenedTest]
     [Grants("pets:write")]
-    public async Task ADeclaredRefusalIsATypedErrorInTheGeneratedClient(WebAppClient client) {
+    public async Task ADeclaredRefusalIsATypedErrorInTheGeneratedClient(WebAppClient client)
+    {
         var forbidden = await Assert.ThrowsAsync<ClientModels.ErrorModel>(() =>
-            client.Authorization.Pets.GetAsync(cancellationToken: TestContext.Current.CancellationToken));
+            client.Authorization.Pets.GetAsync(
+                cancellationToken: TestContext.Current.CancellationToken
+            )
+        );
 
         Assert.Equal(403, forbidden.ResponseStatusCode);
         Assert.Equal("This request is not permitted.", forbidden.Message);
@@ -190,22 +243,37 @@ public class GeneratedClientTests {
     /// </summary>
     [HardenedTest]
     public async Task AMockIsVisibleToAHandlerReachedThroughTheGeneratedClient(
-        WebAppClient client, [Mock] IMathService<int> mathService) {
+        WebAppClient client,
+        [Mock] IMathService<int> mathService
+    )
+    {
         mathService.Add(Arg.Any<int[]>()).Returns(100);
 
         var sum = await client.Int.Add.PostAsync(
             new ClientModels.MathAddModel { Values = [1, 2] },
-            cancellationToken: TestContext.Current.CancellationToken);
+            cancellationToken: TestContext.Current.CancellationToken
+        );
 
         Assert.Equal(100, sum);
     }
 
     [HardenedTest]
-    public async Task TheHarnessAndTheGeneratedClientDriveOnePipeline(ITestWebApp app, WebAppClient client) {
-        var direct = await app.Post(new MathAddModel { Values = new List<int> { 10, 20, 30 } }, "/int/add");
+    public async Task TheHarnessAndTheGeneratedClientDriveOnePipeline(
+        ITestWebApp app,
+        WebAppClient client
+    )
+    {
+        var direct = await app.Post(
+            new MathAddModel
+            {
+                Values = new List<int> { 10, 20, 30 },
+            },
+            "/int/add"
+        );
         var viaClient = await client.Int.Add.PostAsync(
             new ClientModels.MathAddModel { Values = [10, 20, 30] },
-            cancellationToken: TestContext.Current.CancellationToken);
+            cancellationToken: TestContext.Current.CancellationToken
+        );
 
         direct.Assert.Ok();
 

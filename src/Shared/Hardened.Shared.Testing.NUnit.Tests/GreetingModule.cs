@@ -3,11 +3,13 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Hardened.Shared.Testing.NUnit.Tests;
 
-public interface IGreetingService {
+public interface IGreetingService
+{
     string Greet(string name);
 }
 
-public class RealGreetingService : IGreetingService {
+public class RealGreetingService : IGreetingService
+{
     public string Greet(string name) => $"real hello {name}";
 }
 
@@ -17,10 +19,13 @@ public class RealGreetingService : IGreetingService {
 /// <see cref="IServiceCollectionConfiguration"/>, so a module implementing only
 /// <see cref="IDependencyModule.PopulateServiceCollection"/> would load and register nothing.
 /// </summary>
-public class GreetingModule : IDependencyModule, IServiceCollectionConfiguration {
-    public void PopulateServiceCollection(IServiceCollection serviceCollection) => ConfigureServices(serviceCollection);
+public class GreetingModule : IDependencyModule, IServiceCollectionConfiguration
+{
+    public void PopulateServiceCollection(IServiceCollection serviceCollection) =>
+        ConfigureServices(serviceCollection);
 
-    public void ConfigureServices(IServiceCollection services) {
+    public void ConfigureServices(IServiceCollection services)
+    {
         services.AddSingleton<IGreetingService, RealGreetingService>();
     }
 }

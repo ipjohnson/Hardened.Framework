@@ -23,10 +23,12 @@ namespace Hardened.IntegrationTests.CloudRunQueue.Simulator.Tests;
 /// </para>
 /// </remarks>
 [Trait("Category", "Simulator")]
-public sealed class PubSubPushTests : IClassFixture<PubSubPushTests.Stack> {
+public sealed class PubSubPushTests : IClassFixture<PubSubPushTests.Stack>
+{
     private readonly Stack _stack;
 
-    public PubSubPushTests(Stack stack) {
+    public PubSubPushTests(Stack stack)
+    {
         _stack = stack;
     }
 
@@ -39,10 +41,18 @@ public sealed class PubSubPushTests : IClassFixture<PubSubPushTests.Stack> {
     /// the evidence.
     /// </summary>
     [Fact]
-    public async Task AMessagePublishedToTheEmulatorReachesTheHandlerInTheContainer() {
-        await _stack.Emulator.PublishAsync(_stack.Topic, """{"id":"e-1","quantity":4}""", cancellationToken: Token);
+    public async Task AMessagePublishedToTheEmulatorReachesTheHandlerInTheContainer()
+    {
+        await _stack.Emulator.PublishAsync(
+            _stack.Topic,
+            """{"id":"e-1","quantity":4}""",
+            cancellationToken: Token
+        );
 
-        var observed = await _stack.Service.Observed.WaitFor(one => one.Has("id", "e-1"), cancellationToken: Token);
+        var observed = await _stack.Service.Observed.WaitFor(
+            one => one.Has("id", "e-1"),
+            cancellationToken: Token
+        );
 
         Assert.Equal("queue", observed.Get("kind"));
         Assert.Equal(4, observed.Fields.GetProperty("quantity").GetInt32());
@@ -54,23 +64,34 @@ public sealed class PubSubPushTests : IClassFixture<PubSubPushTests.Stack> {
     /// throws, which is what makes a second attempt visible from outside.
     /// </summary>
     [Fact]
-    public async Task AFailedHandlerIsRedelivered() {
-        await _stack.Emulator.PublishAsync(_stack.Topic, """{"id":"e-refused","quantity":-1}""", cancellationToken: Token);
+    public async Task AFailedHandlerIsRedelivered()
+    {
+        await _stack.Emulator.PublishAsync(
+            _stack.Topic,
+            """{"id":"e-refused","quantity":-1}""",
+            cancellationToken: Token
+        );
 
         var attempts = await _stack.Service.Observed.WaitForMatching(
-            one => one.Has("id", "e-refused"), count: 2, cancellationToken: Token);
+            one => one.Has("id", "e-refused"),
+            count: 2,
+            cancellationToken: Token
+        );
 
         Assert.All(attempts, one => Assert.Equal("true", one.Get("refused")));
     }
 
-    public sealed class Stack : IAsyncLifetime {
+    public sealed class Stack : IAsyncLifetime
+    {
         private readonly INetwork _network = new NetworkBuilder().Build();
 
-        public Stack() {
+        public Stack()
+        {
             Service = new CloudRunService(
                 _network,
                 ApplicationOutput.Of("Hardened.IntegrationTests.CloudRunQueue.SUT"),
-                "Hardened.IntegrationTests.CloudRunQueue.SUT");
+                "Hardened.IntegrationTests.CloudRunQueue.SUT"
+            );
             Emulator = new PubSubEmulator(_network);
         }
 
@@ -80,7 +101,8 @@ public sealed class PubSubPushTests : IClassFixture<PubSubPushTests.Stack> {
 
         public TopicName Topic { get; private set; } = null!;
 
-        public async ValueTask InitializeAsync() {
+        public async ValueTask InitializeAsync()
+        {
             await _network.CreateAsync(Token);
 
             await Task.WhenAll(Service.StartAsync(Token), Emulator.StartAsync(Token));
@@ -88,10 +110,15 @@ public sealed class PubSubPushTests : IClassFixture<PubSubPushTests.Stack> {
             // The subscription is named orders, which is what the handler declared; the topic's
             // name is the deployment's business and the handler never sees it.
             Topic = await Emulator.CreateTopicWithPushSubscription(
-                "order-events", "orders", Service.PushEndpoint, Token);
+                "order-events",
+                "orders",
+                Service.PushEndpoint,
+                Token
+            );
         }
 
-        public async ValueTask DisposeAsync() {
+        public async ValueTask DisposeAsync()
+        {
             await Emulator.DisposeAsync();
             await Service.DisposeAsync();
             await _network.DisposeAsync();
@@ -103,26 +130,33 @@ public sealed class PubSubPushTests : IClassFixture<PubSubPushTests.Stack> {
 /// Waiting for several observations that match, which the harness's <c>WaitFor</c> and
 /// <c>WaitForCount</c> do not cover between them.
 /// </summary>
-internal static class ObservedInvocationsExtensions {
+internal static class ObservedInvocationsExtensions
+{
     public static async Task<IReadOnlyList<Observation>> WaitForMatching(
         this ObservedInvocations observed,
         Func<Observation, bool> predicate,
         int count,
         TimeSpan? timeout = null,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default
+    )
+    {
         var deadline = DateTime.UtcNow + (timeout ?? ObservedInvocations.DefaultTimeout);
 
-        while (true) {
+        while (true)
+        {
             var matching = (await observed.Current(cancellationToken)).Where(predicate).ToArray();
 
-            if (matching.Length >= count) {
+            if (matching.Length >= count)
+            {
                 return matching;
             }
 
-            if (DateTime.UtcNow > deadline) {
+            if (DateTime.UtcNow > deadline)
+            {
                 throw new TimeoutException(
-                    $"Waited {(timeout ?? ObservedInvocations.DefaultTimeout).TotalSeconds:0} s for {count} " +
-                    $"matching observation(s) and saw {matching.Length}.");
+                    $"Waited {(timeout ?? ObservedInvocations.DefaultTimeout).TotalSeconds:0} s for {count} "
+                        + $"matching observation(s) and saw {matching.Length}."
+                );
             }
 
             await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken);

@@ -6,9 +6,9 @@ using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Runtime.Caching;
 using Hardened.Requests.Runtime.Errors;
 using Hardened.Requests.Runtime.Tests.Support;
+using Hardened.Web.Runtime.Compression;
 using Microsoft.Extensions.Primitives;
 using Xunit;
-using Hardened.Web.Runtime.Compression;
 
 namespace Hardened.Web.Runtime.Tests.Compression;
 
@@ -23,36 +23,46 @@ namespace Hardened.Web.Runtime.Tests.Compression;
 /// header, and the header being gone by the time anything downstream reads the body.
 /// </para>
 /// </summary>
-public class RequestDecompressionFilterTests {
-
+public class RequestDecompressionFilterTests
+{
     private const string Json = """{"name":"encoded","value":7}""";
 
     private static RequestDecompressionFilter Filter(long? cap = null) =>
-        new(new CompressionConfiguration {
-            MaxDecompressedRequestBytes = cap ?? CompressionConfiguration.DefaultMaxDecompressedRequestBytes
-        });
+        new(
+            new CompressionConfiguration
+            {
+                MaxDecompressedRequestBytes =
+                    cap ?? CompressionConfiguration.DefaultMaxDecompressedRequestBytes,
+            }
+        );
 
-    private static IExecutionContext Context(byte[] body, StringValues contentEncoding = default) {
+    private static IExecutionContext Context(byte[] body, StringValues contentEncoding = default)
+    {
         var context = Pipeline.Context(method: "POST", body: body);
 
         context.Request.Headers[KnownHeaders.ContentType] = new StringValues("application/json");
         context.Request.Headers[KnownHeaders.ContentLength] = body.Length.ToString();
 
-        if (!StringValues.IsNullOrEmpty(contentEncoding)) {
+        if (!StringValues.IsNullOrEmpty(contentEncoding))
+        {
             context.Request.Headers[KnownHeaders.ContentEncoding] = contentEncoding;
         }
 
         return context;
     }
 
-    private static byte[] GZipped(string content) => Encode(content, output => new GZipStream(output, CompressionLevel.Fastest, true));
+    private static byte[] GZipped(string content) =>
+        Encode(content, output => new GZipStream(output, CompressionLevel.Fastest, true));
 
-    private static byte[] Brotlied(string content) => Encode(content, output => new BrotliStream(output, CompressionLevel.Fastest, true));
+    private static byte[] Brotlied(string content) =>
+        Encode(content, output => new BrotliStream(output, CompressionLevel.Fastest, true));
 
-    private static byte[] Encode(string content, Func<Stream, Stream> encoder) {
+    private static byte[] Encode(string content, Func<Stream, Stream> encoder)
+    {
         var output = new MemoryStream();
 
-        using (var encoding = encoder(output)) {
+        using (var encoding = encoder(output))
+        {
             var bytes = Encoding.UTF8.GetBytes(content);
 
             encoding.Write(bytes, 0, bytes.Length);
@@ -66,22 +76,37 @@ public class RequestDecompressionFilterTests {
     /// request looked like from inside, which is where the bind would read it.
     /// </summary>
     private static async Task<(string Body, Dictionary<string, StringValues> Headers)> ReadInside(
-        IExecutionContext context, RequestDecompressionFilter? filter = null) {
+        IExecutionContext context,
+        RequestDecompressionFilter? filter = null
+    )
+    {
         string body = "";
         Dictionary<string, StringValues> headers = new();
 
-        await Pipeline.Chain(context, filter ?? Filter(), new Pipeline.Inline(async chain => {
-            using var reader = new StreamReader(chain.Context.Request.Body, Encoding.UTF8, leaveOpen: true);
+        await Pipeline
+            .Chain(
+                context,
+                filter ?? Filter(),
+                new Pipeline.Inline(async chain =>
+                {
+                    using var reader = new StreamReader(
+                        chain.Context.Request.Body,
+                        Encoding.UTF8,
+                        leaveOpen: true
+                    );
 
-            body = await reader.ReadToEndAsync();
-            headers = new Dictionary<string, StringValues>(chain.Context.Request.Headers);
-        })).Next();
+                    body = await reader.ReadToEndAsync();
+                    headers = new Dictionary<string, StringValues>(chain.Context.Request.Headers);
+                })
+            )
+            .Next();
 
         return (body, headers);
     }
 
     [Fact]
-    public async Task AnUncompressedBodyIsLeftAlone() {
+    public async Task AnUncompressedBodyIsLeftAlone()
+    {
         var (body, headers) = await ReadInside(Context(Encoding.UTF8.GetBytes(Json)));
 
         Assert.Equal(Json, body);
@@ -89,14 +114,16 @@ public class RequestDecompressionFilterTests {
     }
 
     [Fact]
-    public async Task AGzippedBodyIsDecodedBeforeAnythingReadsIt() {
+    public async Task AGzippedBodyIsDecodedBeforeAnythingReadsIt()
+    {
         var (body, _) = await ReadInside(Context(GZipped(Json), KnownEncoding.GZip));
 
         Assert.Equal(Json, body);
     }
 
     [Fact]
-    public async Task ABrotliBodyIsDecodedBeforeAnythingReadsIt() {
+    public async Task ABrotliBodyIsDecodedBeforeAnythingReadsIt()
+    {
         var (body, _) = await ReadInside(Context(Brotlied(Json), KnownEncoding.Br));
 
         Assert.Equal(Json, body);
@@ -109,7 +136,8 @@ public class RequestDecompressionFilterTests {
     [Theory]
     [InlineData("identity", KnownEncoding.GZip)]
     [InlineData("identity, gzip")]
-    public async Task ACodingIsRecognisedBesideIdentity(params string[] values) {
+    public async Task ACodingIsRecognisedBesideIdentity(params string[] values)
+    {
         var (body, _) = await ReadInside(Context(GZipped(Json), new StringValues(values)));
 
         Assert.Equal(Json, body);
@@ -118,7 +146,8 @@ public class RequestDecompressionFilterTests {
     [Theory]
     [InlineData("identity")]
     [InlineData("")]
-    public async Task IdentityMeansNoCoding(string value) {
+    public async Task IdentityMeansNoCoding(string value)
+    {
         var context = Context(Encoding.UTF8.GetBytes(Json), value);
 
         var (body, _) = await ReadInside(context);
@@ -133,7 +162,8 @@ public class RequestDecompressionFilterTests {
     /// describes the body anything will read.
     /// </summary>
     [Fact]
-    public async Task TheCodingHeadersAreRemovedForEverythingDownstream() {
+    public async Task TheCodingHeadersAreRemovedForEverythingDownstream()
+    {
         var (_, headers) = await ReadInside(Context(GZipped(Json), KnownEncoding.GZip));
 
         Assert.False(headers.ContainsKey(KnownHeaders.ContentEncoding));
@@ -145,7 +175,8 @@ public class RequestDecompressionFilterTests {
     /// afterwards sees the stream the transport supplied rather than a disposed decoder.
     /// </summary>
     [Fact]
-    public async Task TheTransportBodyIsRestoredAfterTheChain() {
+    public async Task TheTransportBodyIsRestoredAfterTheChain()
+    {
         var context = Context(GZipped(Json), KnownEncoding.GZip);
         var transport = context.Request.Body;
 
@@ -164,15 +195,23 @@ public class RequestDecompressionFilterTests {
     [InlineData("deflate")]
     [InlineData("compress")]
     [InlineData("zstd")]
-    public async Task AnUnsupportedCodingIsA415NamingWhatWasSent(string encoding) {
+    public async Task AnUnsupportedCodingIsA415NamingWhatWasSent(string encoding)
+    {
         var context = Context(Encoding.UTF8.GetBytes(Json), encoding);
         var reached = false;
 
-        await Pipeline.Chain(context, Filter(), new Pipeline.Inline(_ => {
-            reached = true;
+        await Pipeline
+            .Chain(
+                context,
+                Filter(),
+                new Pipeline.Inline(_ =>
+                {
+                    reached = true;
 
-            return Task.CompletedTask;
-        })).Next();
+                    return Task.CompletedTask;
+                })
+            )
+            .Next();
 
         var exception = Assert.IsType<BadContentEncodingException>(context.Response.ExceptionValue);
 
@@ -185,7 +224,8 @@ public class RequestDecompressionFilterTests {
     /// A 415 for a content coding is not well-formed without saying what is supported.
     /// </summary>
     [Fact]
-    public void The415CarriesTheCodingsTheFilterDecodes() {
+    public void The415CarriesTheCodingsTheFilterDecodes()
+    {
         var headers = new Dictionary<string, StringValues>();
 
         new BadContentEncodingException("deflate").ApplyHeaders(headers);
@@ -199,7 +239,8 @@ public class RequestDecompressionFilterTests {
     /// name.
     /// </summary>
     [Fact]
-    public void AnUnsupportedCodingIsAStatusByType() {
+    public void AnUnsupportedCodingIsAStatusByType()
+    {
         var exception = new BadContentEncodingException("deflate");
 
         Assert.IsAssignableFrom<IStatusCodeException>(exception);
@@ -211,10 +252,13 @@ public class RequestDecompressionFilterTests {
     /// names the whole value so the caller can see which part was the problem.
     /// </summary>
     [Fact]
-    public async Task ABodyCodedTwiceIsRefusedUnderTheWholeValue() {
+    public async Task ABodyCodedTwiceIsRefusedUnderTheWholeValue()
+    {
         var context = Context(GZipped(Json), "gzip, br");
 
-        await Pipeline.Chain(context, Filter(), new Pipeline.Inline(_ => Task.CompletedTask)).Next();
+        await Pipeline
+            .Chain(context, Filter(), new Pipeline.Inline(_ => Task.CompletedTask))
+            .Next();
 
         var exception = Assert.IsType<BadContentEncodingException>(context.Response.ExceptionValue);
 
@@ -226,9 +270,11 @@ public class RequestDecompressionFilterTests {
     /// as text.
     /// </summary>
     [Fact]
-    public async Task ABodyThatLiesAboutItsCodingFailsToRead() {
+    public async Task ABodyThatLiesAboutItsCodingFailsToRead()
+    {
         await Assert.ThrowsAnyAsync<Exception>(async () =>
-            await ReadInside(Context(Encoding.UTF8.GetBytes(Json), KnownEncoding.GZip)));
+            await ReadInside(Context(Encoding.UTF8.GetBytes(Json), KnownEncoding.GZip))
+        );
     }
 
     /// <summary>
@@ -237,11 +283,13 @@ public class RequestDecompressionFilterTests {
     /// throws a 413, which the bind's caller records like any other failure to read the body.
     /// </summary>
     [Fact]
-    public async Task ABodyDecodingPastTheCapIsA413() {
+    public async Task ABodyDecodingPastTheCapIsA413()
+    {
         var large = new string('x', 1000);
 
         var exception = await Assert.ThrowsAsync<DecompressedBodyTooLargeException>(async () =>
-            await ReadInside(Context(GZipped(large), KnownEncoding.GZip), Filter(cap: 100)));
+            await ReadInside(Context(GZipped(large), KnownEncoding.GZip), Filter(cap: 100))
+        );
 
         Assert.Equal(413, exception.StatusCode);
         Assert.Equal(100, exception.Limit);
@@ -249,10 +297,14 @@ public class RequestDecompressionFilterTests {
     }
 
     [Fact]
-    public async Task ABodyDecodingToExactlyTheCapIsRead() {
+    public async Task ABodyDecodingToExactlyTheCapIsRead()
+    {
         var exact = new string('x', 100);
 
-        var (body, _) = await ReadInside(Context(GZipped(exact), KnownEncoding.GZip), Filter(cap: 100));
+        var (body, _) = await ReadInside(
+            Context(GZipped(exact), KnownEncoding.GZip),
+            Filter(cap: 100)
+        );
 
         Assert.Equal(exact, body);
     }
@@ -262,7 +314,8 @@ public class RequestDecompressionFilterTests {
     /// body shares an entry with its plain twin rather than filling a second one.
     /// </summary>
     [Fact]
-    public async Task AGzipBodyAndItsPlainTwinShareAByPayloadKey() {
+    public async Task AGzipBodyAndItsPlainTwinShareAByPayloadKey()
+    {
         var plain = await KeyInside(Context(Encoding.UTF8.GetBytes(Json)));
         var gzipped = await KeyInside(Context(GZipped(Json), KnownEncoding.GZip));
 
@@ -274,7 +327,8 @@ public class RequestDecompressionFilterTests {
     /// API Gateway delivers header names lowercased.
     /// </summary>
     [Fact]
-    public async Task TheCodingHeaderIsReadWhateverItsCase() {
+    public async Task TheCodingHeaderIsReadWhateverItsCase()
+    {
         var context = Pipeline.Context(method: "POST", body: GZipped(Json));
 
         context.Request.Headers["content-encoding"] = KnownEncoding.GZip;
@@ -286,8 +340,11 @@ public class RequestDecompressionFilterTests {
     }
 
     [Fact]
-    public async Task ABlankValueBesideTheCodingIsIgnored() {
-        var (body, _) = await ReadInside(Context(GZipped(Json), new StringValues(["", " ", KnownEncoding.GZip])));
+    public async Task ABlankValueBesideTheCodingIsIgnored()
+    {
+        var (body, _) = await ReadInside(
+            Context(GZipped(Json), new StringValues(["", " ", KnownEncoding.GZip]))
+        );
 
         Assert.Equal(Json, body);
     }
@@ -297,44 +354,65 @@ public class RequestDecompressionFilterTests {
     /// nothing else. Every reader the framework has goes through one of these members.
     /// </summary>
     [Fact]
-    public async Task TheDecodedBodyReadsAndCountsAndDoesNothingElse() {
+    public async Task TheDecodedBodyReadsAndCountsAndDoesNothingElse()
+    {
         var context = Context(GZipped(Json), KnownEncoding.GZip);
 
-        await Pipeline.Chain(context, Filter(), new Pipeline.Inline(async chain => {
-            var body = chain.Context.Request.Body;
+        await Pipeline
+            .Chain(
+                context,
+                Filter(),
+                new Pipeline.Inline(async chain =>
+                {
+                    var body = chain.Context.Request.Body;
 
-            Assert.True(body.CanRead);
-            Assert.False(body.CanSeek);
-            Assert.False(body.CanWrite);
+                    Assert.True(body.CanRead);
+                    Assert.False(body.CanSeek);
+                    Assert.False(body.CanWrite);
 
-            var first = body.ReadByte();
-            var buffer = new byte[4];
-            var read = body.Read(buffer, 0, 2);
-            read += body.Read(buffer.AsSpan(2, 2));
-            read += await body.ReadAsync(buffer, 0, 0, TestContext.Current.CancellationToken);
+                    var first = body.ReadByte();
+                    var buffer = new byte[4];
+                    var read = body.Read(buffer, 0, 2);
+                    read += body.Read(buffer.AsSpan(2, 2));
+                    read += await body.ReadAsync(
+                        buffer,
+                        0,
+                        0,
+                        TestContext.Current.CancellationToken
+                    );
 
-            body.Flush();
-            await body.FlushAsync(TestContext.Current.CancellationToken);
+                    body.Flush();
+                    await body.FlushAsync(TestContext.Current.CancellationToken);
 
-            Assert.Equal('{', (char)first);
-            Assert.Equal(4, read);
-            Assert.Equal(5, body.Position);
-            Assert.Equal(Json.Substring(1, 4), Encoding.UTF8.GetString(buffer));
+                    Assert.Equal('{', (char)first);
+                    Assert.Equal(4, read);
+                    Assert.Equal(5, body.Position);
+                    Assert.Equal(Json.Substring(1, 4), Encoding.UTF8.GetString(buffer));
 
-            Assert.Throws<NotSupportedException>(() => body.Length);
-            Assert.Throws<NotSupportedException>(() => body.Position = 0);
-            Assert.Throws<NotSupportedException>(() => body.Seek(0, SeekOrigin.Begin));
-            Assert.Throws<NotSupportedException>(() => body.SetLength(0));
-            Assert.Throws<NotSupportedException>(() => body.Write(buffer, 0, 1));
-        })).Next();
+                    Assert.Throws<NotSupportedException>(() => body.Length);
+                    Assert.Throws<NotSupportedException>(() => body.Position = 0);
+                    Assert.Throws<NotSupportedException>(() => body.Seek(0, SeekOrigin.Begin));
+                    Assert.Throws<NotSupportedException>(() => body.SetLength(0));
+                    Assert.Throws<NotSupportedException>(() => body.Write(buffer, 0, 1));
+                })
+            )
+            .Next();
     }
 
-    private static async Task<string?> KeyInside(IExecutionContext context) {
+    private static async Task<string?> KeyInside(IExecutionContext context)
+    {
         string? key = null;
 
-        await Pipeline.Chain(context, Filter(), new Pipeline.Inline(async chain => {
-            key = await ByPayload.Create([]).Key(chain.Context);
-        })).Next();
+        await Pipeline
+            .Chain(
+                context,
+                Filter(),
+                new Pipeline.Inline(async chain =>
+                {
+                    key = await ByPayload.Create([]).Key(chain.Context);
+                })
+            )
+            .Next();
 
         return key;
     }

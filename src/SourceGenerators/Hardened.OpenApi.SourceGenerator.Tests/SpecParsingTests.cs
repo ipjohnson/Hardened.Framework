@@ -1,8 +1,8 @@
-using Hardened.Generation.Models;
-using Xunit;
-using Hardened.Idl;
 using Hardened.Generation;
+using Hardened.Generation.Models;
+using Hardened.Idl;
 using Hardened.Web.Runtime.Responses;
+using Xunit;
 
 namespace Hardened.OpenApi.SourceGenerator.Tests;
 
@@ -11,9 +11,10 @@ namespace Hardened.OpenApi.SourceGenerator.Tests;
 /// <see cref="OpenApiSpecParser.Parse"/> — the same entry point the generator calls — rather than
 /// through a hand-built model, so a shape asserted here is one a spec can actually produce.
 /// </summary>
-public class SpecParsingTests {
-
-    private static ServiceSpecModel Parse(string yaml) {
+public class SpecParsingTests
+{
+    private static ServiceSpecModel Parse(string yaml)
+    {
         var model = OpenApiSpecParser.Parse(yaml, "test", CancellationToken.None);
 
         Assert.NotNull(model);
@@ -28,7 +29,8 @@ public class SpecParsingTests {
     /// property can be typed as.
     /// </summary>
     [Fact]
-    public void ARefToAnObjectSchemaIsKept() {
+    public void ARefToAnObjectSchemaIsKept()
+    {
         var model = Parse(
             """
             openapi: "3.0.0"
@@ -45,9 +47,12 @@ public class SpecParsingTests {
                   properties:
                     address:
                       $ref: '#/components/schemas/Address'
-            """);
+            """
+        );
 
-        var address = model.Schemas.First(s => s.Name == "Person").Properties.First(p => p.Name == "address");
+        var address = model
+            .Schemas.First(s => s.Name == "Person")
+            .Properties.First(p => p.Name == "address");
 
         Assert.Equal("#/components/schemas/Address", address.Ref);
     }
@@ -57,7 +62,8 @@ public class SpecParsingTests {
     /// a C# class that never gets generated, so the underlying type is used.
     /// </summary>
     [Fact]
-    public void ARefToAPrimitiveAliasIsInlinedToItsUnderlyingType() {
+    public void ARefToAPrimitiveAliasIsInlinedToItsUnderlyingType()
+    {
         var model = Parse(
             """
             openapi: "3.0.0"
@@ -72,7 +78,8 @@ public class SpecParsingTests {
                   properties:
                     id:
                       $ref: '#/components/schemas/CustomId'
-            """);
+            """
+        );
 
         var id = model.Schemas.First(s => s.Name == "Person").Properties.First(p => p.Name == "id");
 
@@ -82,7 +89,8 @@ public class SpecParsingTests {
 
     /// <summary>A <c>$ref</c> to an enum is kept — an enum does get a generated C# type.</summary>
     [Fact]
-    public void ARefToAnEnumIsKept() {
+    public void ARefToAnEnumIsKept()
+    {
         var model = Parse(
             """
             openapi: "3.0.0"
@@ -98,15 +106,19 @@ public class SpecParsingTests {
                   properties:
                     status:
                       $ref: '#/components/schemas/Status'
-            """);
+            """
+        );
 
-        var status = model.Schemas.First(s => s.Name == "Device").Properties.First(p => p.Name == "status");
+        var status = model
+            .Schemas.First(s => s.Name == "Device")
+            .Properties.First(p => p.Name == "status");
 
         Assert.Equal("#/components/schemas/Status", status.Ref);
     }
 
     [Fact]
-    public void AnArrayOfRefsCarriesTheItemReference() {
+    public void AnArrayOfRefsCarriesTheItemReference()
+    {
         var model = Parse(
             """
             openapi: "3.0.0"
@@ -125,16 +137,20 @@ public class SpecParsingTests {
                       type: array
                       items:
                         $ref: '#/components/schemas/Part'
-            """);
+            """
+        );
 
-        var parts = model.Schemas.First(s => s.Name == "Widget").Properties.First(p => p.Name == "parts");
+        var parts = model
+            .Schemas.First(s => s.Name == "Widget")
+            .Properties.First(p => p.Name == "parts");
 
         Assert.True(parts.IsArray);
         Assert.Equal("#/components/schemas/Part", parts.ArrayItemsRef);
     }
 
     [Fact]
-    public void ATopLevelArraySchemaCarriesItsItemReference() {
+    public void ATopLevelArraySchemaCarriesItsItemReference()
+    {
         var model = Parse(
             """
             openapi: "3.0.0"
@@ -150,7 +166,8 @@ public class SpecParsingTests {
                   type: array
                   items:
                     $ref: '#/components/schemas/Pet'
-            """);
+            """
+        );
 
         var list = model.Schemas.First(s => s.Name == "PetList");
 
@@ -163,7 +180,8 @@ public class SpecParsingTests {
     /// mapper turns it into <c>List&lt;string&gt;</c>.
     /// </summary>
     [Fact]
-    public void AnArrayOfPrimitivesCarriesItsItemType() {
+    public void AnArrayOfPrimitivesCarriesItsItemType()
+    {
         var model = Parse(
             """
             openapi: "3.0.0"
@@ -177,9 +195,12 @@ public class SpecParsingTests {
                     tags:
                       type: array
                       items: { type: string }
-            """);
+            """
+        );
 
-        var tags = model.Schemas.First(s => s.Name == "Widget").Properties.First(p => p.Name == "tags");
+        var tags = model
+            .Schemas.First(s => s.Name == "Widget")
+            .Properties.First(p => p.Name == "tags");
 
         Assert.True(tags.IsArray);
         Assert.Null(tags.ArrayItemsRef);
@@ -193,7 +214,8 @@ public class SpecParsingTests {
     /// required list as well as its own.
     /// </summary>
     [Fact]
-    public void AllOfMergesTheBaseSchemasPropertiesAndRequiredList() {
+    public void AllOfMergesTheBaseSchemasPropertiesAndRequiredList()
+    {
         var model = Parse(Specs.AllOfComposition);
 
         var dog = model.Schemas.First(s => s.Name == "Dog");
@@ -209,7 +231,8 @@ public class SpecParsingTests {
     /// the first entry loses the middle layer.
     /// </summary>
     [Fact]
-    public void AllOfMergesEveryBranchNotOnlyTheFirst() {
+    public void AllOfMergesEveryBranchNotOnlyTheFirst()
+    {
         var model = Parse(
             """
             openapi: "3.0.0"
@@ -232,7 +255,8 @@ public class SpecParsingTests {
                     - type: object
                       properties:
                         c: { type: string }
-            """);
+            """
+        );
 
         var c = model.Schemas.First(s => s.Name == "C");
 
@@ -265,7 +289,8 @@ public class SpecParsingTests {
     /// </para>
     /// </remarks>
     [Fact]
-    public void AnUndiscriminatedOneOfComponentBecomesAChoiceType() {
+    public void AnUndiscriminatedOneOfComponentBecomesAChoiceType()
+    {
         var model = Parse(
             """
             openapi: "3.0.0"
@@ -290,7 +315,8 @@ public class SpecParsingTests {
                   properties:
                     method:
                       $ref: '#/components/schemas/PaymentMethod'
-            """);
+            """
+        );
 
         var paymentMethod = model.Schemas.First(s => s.Name == "PaymentMethod");
 
@@ -299,9 +325,12 @@ public class SpecParsingTests {
         // Named by the component, so both branches are reachable and neither renames the type.
         Assert.Equal(
             new[] { "#/components/schemas/Card", "#/components/schemas/Cash" },
-            paymentMethod.OneOf.Select(branch => branch.Ref).ToArray());
+            paymentMethod.OneOf.Select(branch => branch.Ref).ToArray()
+        );
 
-        var method = model.Schemas.First(s => s.Name == "Order").Properties.First(p => p.Name == "method");
+        var method = model
+            .Schemas.First(s => s.Name == "Order")
+            .Properties.First(p => p.Name == "method");
 
         // The property carries the reference it was written with, and types as the choice.
         Assert.Equal("#/components/schemas/PaymentMethod", method.Ref);
@@ -315,7 +344,8 @@ public class SpecParsingTests {
     /// stays a string, because the enum has no name to declare a type under.
     /// </summary>
     [Fact]
-    public void AnInlineEnumStaysAStringWithItsValuesRecorded() {
+    public void AnInlineEnumStaysAStringWithItsValuesRecorded()
+    {
         var model = Parse(
             """
             openapi: "3.0.0"
@@ -329,9 +359,12 @@ public class SpecParsingTests {
                     status:
                       type: string
                       enum: [available, pending, sold]
-            """);
+            """
+        );
 
-        var status = model.Schemas.First(s => s.Name == "Pet").Properties.First(p => p.Name == "status");
+        var status = model
+            .Schemas.First(s => s.Name == "Pet")
+            .Properties.First(p => p.Name == "status");
 
         Assert.Equal(["available", "pending", "sold"], status.EnumValues);
         Assert.Equal("string", TypeMapper.MapPropertyToCSharpType(status));
@@ -342,7 +375,8 @@ public class SpecParsingTests {
     /// document gave them.
     /// </summary>
     [Fact]
-    public void ANamedEnumSchemaBecomesAnEnumKind() {
+    public void ANamedEnumSchemaBecomesAnEnumKind()
+    {
         var model = Parse(
             """
             openapi: "3.0.0"
@@ -353,7 +387,8 @@ public class SpecParsingTests {
                 PetStatus:
                   type: string
                   enum: [available, pending, sold]
-            """);
+            """
+        );
 
         var status = model.Schemas.First(s => s.Name == "PetStatus");
 
@@ -366,7 +401,8 @@ public class SpecParsingTests {
     /// where it sits. It used to map to <c>JsonElement</c> for want of a name.
     /// </summary>
     [Fact]
-    public void AnInlineNestedObjectIsLiftedIntoASchema() {
+    public void AnInlineNestedObjectIsLiftedIntoASchema()
+    {
         var model = Parse(
             """
             openapi: "3.0.0"
@@ -381,9 +417,12 @@ public class SpecParsingTests {
                       type: object
                       properties:
                         street: { type: string }
-            """);
+            """
+        );
 
-        var shipping = model.Schemas.First(s => s.Name == "Order").Properties.First(p => p.Name == "shipping");
+        var shipping = model
+            .Schemas.First(s => s.Name == "Order")
+            .Properties.First(p => p.Name == "shipping");
 
         Assert.Equal("OrderShipping", TypeMapper.MapPropertyToCSharpType(shipping));
         Assert.Contains(model.Schemas, schema => schema.Name == "OrderShipping");
@@ -394,7 +433,8 @@ public class SpecParsingTests {
     /// than an object with none.
     /// </summary>
     [Fact]
-    public void AdditionalPropertiesAloneMakesTheSchemaADictionary() {
+    public void AdditionalPropertiesAloneMakesTheSchemaADictionary()
+    {
         var model = Parse(
             """
             openapi: "3.0.0"
@@ -410,7 +450,8 @@ public class SpecParsingTests {
                   type: object
                   additionalProperties:
                     $ref: '#/components/schemas/Part'
-            """);
+            """
+        );
 
         var dictionary = model.Schemas.First(s => s.Name == "PartsByName");
 
@@ -423,7 +464,8 @@ public class SpecParsingTests {
     /// own, and maps to <c>Dictionary&lt;string, T&gt;</c>.
     /// </summary>
     [Fact]
-    public void ADictionaryValuedPropertyMapsToADictionary() {
+    public void ADictionaryValuedPropertyMapsToADictionary()
+    {
         var model = Parse(
             """
             openapi: "3.0.0"
@@ -437,9 +479,12 @@ public class SpecParsingTests {
                     labels:
                       type: object
                       additionalProperties: { type: string }
-            """);
+            """
+        );
 
-        var labels = model.Schemas.First(s => s.Name == "Widget").Properties.First(p => p.Name == "labels");
+        var labels = model
+            .Schemas.First(s => s.Name == "Widget")
+            .Properties.First(p => p.Name == "labels");
 
         Assert.True(labels.IsDictionary);
         Assert.Equal("Dictionary<string, string>", TypeMapper.MapPropertyToCSharpType(labels));
@@ -452,7 +497,8 @@ public class SpecParsingTests {
     /// document still said <c>format: decimal</c>.
     /// </summary>
     [Fact]
-    public void ADecimalValuedMapKeepsItsFormat() {
+    public void ADecimalValuedMapKeepsItsFormat()
+    {
         var model = Parse(
             """
             openapi: "3.0.0"
@@ -466,9 +512,12 @@ public class SpecParsingTests {
                     quotes:
                       type: object
                       additionalProperties: { type: number, format: decimal }
-            """);
+            """
+        );
 
-        var quotes = model.Schemas.First(s => s.Name == "Rates").Properties.First(p => p.Name == "quotes");
+        var quotes = model
+            .Schemas.First(s => s.Name == "Rates")
+            .Properties.First(p => p.Name == "quotes");
 
         Assert.Equal("decimal", quotes.DictionaryValueFormat);
         Assert.Equal("Dictionary<string, decimal>", TypeMapper.MapPropertyToCSharpType(quotes));
@@ -479,7 +528,8 @@ public class SpecParsingTests {
     /// list of decimals bound as a list of doubles.
     /// </summary>
     [Fact]
-    public void AnArrayParameterKeepsItsItemFormat() {
+    public void AnArrayParameterKeepsItsItemFormat()
+    {
         var model = Parse(
             """
             openapi: "3.0.0"
@@ -497,9 +547,13 @@ public class SpecParsingTests {
                         items: { type: number, format: decimal }
                   responses:
                     '200': { description: ok }
-            """);
+            """
+        );
 
-        var amounts = model.Services.First(s => s.Tag == "Rate").Operations.Single().Parameters.Single();
+        var amounts = model
+            .Services.First(s => s.Tag == "Rate")
+            .Operations.Single()
+            .Parameters.Single();
 
         Assert.Equal("decimal", amounts.ArrayItemsFormat);
         Assert.Equal("List<decimal>", TypeMapper.MapParameterToCSharpType(amounts));
@@ -512,7 +566,8 @@ public class SpecParsingTests {
     /// left out of it is optional, and the record emitter gives it a nullable type and a default.
     /// </summary>
     [Fact]
-    public void OmissionFromTheRequiredListIsWhatMakesAPropertyOptional() {
+    public void OmissionFromTheRequiredListIsWhatMakesAPropertyOptional()
+    {
         var model = Parse(
             """
             openapi: "3.0.0"
@@ -526,7 +581,8 @@ public class SpecParsingTests {
                   properties:
                     id: { type: string }
                     tag: { type: string }
-            """);
+            """
+        );
 
         var pet = model.Schemas.First(s => s.Name == "Pet");
 
@@ -540,7 +596,8 @@ public class SpecParsingTests {
     /// empty rather than null so the emitters do not have to guard it.
     /// </summary>
     [Fact]
-    public void ASchemaWithNoRequiredListHasNoRequiredProperties() {
+    public void ASchemaWithNoRequiredListHasNoRequiredProperties()
+    {
         var model = Parse(
             """
             openapi: "3.0.0"
@@ -553,7 +610,8 @@ public class SpecParsingTests {
                   properties:
                     id: { type: string }
                     tag: { type: string }
-            """);
+            """
+        );
 
         var pet = model.Schemas.First(s => s.Name == "Pet");
 
@@ -573,7 +631,8 @@ public class SpecParsingTests {
     [InlineData("query", "query")]
     [InlineData("header", "header")]
     [InlineData("cookie", "cookie")]
-    public void EveryParameterLocationIsRecordedLowercased(string location, string expected) {
+    public void EveryParameterLocationIsRecordedLowercased(string location, string expected)
+    {
         var model = Parse(
             $$"""
             openapi: "3.0.0"
@@ -594,7 +653,8 @@ public class SpecParsingTests {
                       schema: { type: string }
                   responses:
                     '200': { description: ok }
-            """);
+            """
+        );
 
         var operation = model.Services.First(s => s.Tag == "Thing").Operations.Single();
         var probe = operation.Parameters.First(p => p.Name == "probe");
@@ -608,7 +668,8 @@ public class SpecParsingTests {
     /// generated parameter nullable.
     /// </summary>
     [Fact]
-    public void AParameterWithoutARequiredFlagIsOptional() {
+    public void AParameterWithoutARequiredFlagIsOptional()
+    {
         var model = Parse(
             """
             openapi: "3.0.0"
@@ -624,9 +685,13 @@ public class SpecParsingTests {
                       schema: { type: integer }
                   responses:
                     '200': { description: ok }
-            """);
+            """
+        );
 
-        var page = model.Services.First(s => s.Tag == "Thing").Operations.Single().Parameters.Single();
+        var page = model
+            .Services.First(s => s.Tag == "Thing")
+            .Operations.Single()
+            .Parameters.Single();
 
         Assert.False(page.IsRequired);
     }
@@ -636,7 +701,8 @@ public class SpecParsingTests {
     /// <c>List&lt;T&gt;</c> rather than a single value.
     /// </summary>
     [Fact]
-    public void AnArrayParameterKeepsItsItemType() {
+    public void AnArrayParameterKeepsItsItemType()
+    {
         var model = Parse(
             """
             openapi: "3.0.0"
@@ -654,9 +720,13 @@ public class SpecParsingTests {
                         items: { type: integer }
                   responses:
                     '200': { description: ok }
-            """);
+            """
+        );
 
-        var ids = model.Services.First(s => s.Tag == "Thing").Operations.Single().Parameters.Single();
+        var ids = model
+            .Services.First(s => s.Tag == "Thing")
+            .Operations.Single()
+            .Parameters.Single();
 
         Assert.True(ids.IsArray);
         Assert.Equal("integer", ids.ArrayItemsType);
@@ -668,7 +738,8 @@ public class SpecParsingTests {
     /// a generated signature.
     /// </summary>
     [Fact]
-    public void AParameterMarkedCodegenExcludeIsDropped() {
+    public void AParameterMarkedCodegenExcludeIsDropped()
+    {
         var model = Parse(Specs.CodegenExcludedParameter);
 
         var parameters = model.Services.First(s => s.Tag == "Thing").Operations.Single().Parameters;
@@ -686,15 +757,20 @@ public class SpecParsingTests {
     /// the route still matched on its wildcard node.
     /// </remarks>
     [Fact]
-    public void APathItemParameterReachesEveryOperationOnThatPath() {
+    public void APathItemParameterReachesEveryOperationOnThatPath()
+    {
         var model = Parse(Specs.PathItemLevelParameters);
 
         var operations = model.Services.First(s => s.Tag == "Pet").Operations;
 
         Assert.Equal(3, operations.Count);
 
-        foreach (var operation in operations) {
-            var petId = Assert.Single(operation.Parameters, p => p.Name == "petId" && p.In == "path");
+        foreach (var operation in operations)
+        {
+            var petId = Assert.Single(
+                operation.Parameters,
+                p => p.Name == "petId" && p.In == "path"
+            );
 
             Assert.True(petId.IsRequired);
             Assert.Equal("string", petId.Type);
@@ -706,11 +782,14 @@ public class SpecParsingTests {
     /// its own. Order here is the generated method's signature order.
     /// </summary>
     [Fact]
-    public void APathItemParameterPrecedesTheOperationsOwn() {
+    public void APathItemParameterPrecedesTheOperationsOwn()
+    {
         var model = Parse(Specs.PathItemLevelParameters);
 
-        var list = model.Services.First(s => s.Tag == "Pet")
-            .Operations.First(o => o.OperationId == "listPetToys").Parameters;
+        var list = model
+            .Services.First(s => s.Tag == "Pet")
+            .Operations.First(o => o.OperationId == "listPetToys")
+            .Parameters;
 
         Assert.Equal(new[] { "petId", "limit" }, list.Select(p => p.Name).ToArray());
     }
@@ -720,11 +799,14 @@ public class SpecParsingTests {
     /// than appending — so overriding a parameter does not reorder the signature.
     /// </summary>
     [Fact]
-    public void AnOperationOverridesAPathItemParameterInPlace() {
+    public void AnOperationOverridesAPathItemParameterInPlace()
+    {
         var model = Parse(Specs.PathItemLevelParameters);
 
-        var replace = model.Services.First(s => s.Tag == "Pet")
-            .Operations.First(o => o.OperationId == "replacePet").Parameters;
+        var replace = model
+            .Services.First(s => s.Tag == "Pet")
+            .Operations.First(o => o.OperationId == "replacePet")
+            .Parameters;
 
         Assert.Equal(new[] { "petId" }, replace.Select(p => p.Name).ToArray());
 
@@ -743,11 +825,14 @@ public class SpecParsingTests {
     /// itself. Merging the two into one parameter would be the wrong answer to it.
     /// </remarks>
     [Fact]
-    public void AParameterIsIdentifiedByNameAndLocationTogether() {
+    public void AParameterIsIdentifiedByNameAndLocationTogether()
+    {
         var model = Parse(Specs.ParametersSharingANameAcrossLocations);
 
-        var deletePet = model.Services.First(s => s.Tag == "Pet")
-            .Operations.First(o => o.OperationId == "deletePet").Parameters;
+        var deletePet = model
+            .Services.First(s => s.Tag == "Pet")
+            .Operations.First(o => o.OperationId == "deletePet")
+            .Parameters;
 
         Assert.Equal(new[] { "petId", "petId" }, deletePet.Select(p => p.Name).ToArray());
         Assert.Equal(new[] { "path", "header" }, deletePet.Select(p => p.In).ToArray());
@@ -760,7 +845,8 @@ public class SpecParsingTests {
     /// object rather than falling through to the untyped primitive case.
     /// </summary>
     [Fact]
-    public void ADiscriminatedOneOfBecomesAPolymorphicBase() {
+    public void ADiscriminatedOneOfBecomesAPolymorphicBase()
+    {
         var model = Parse(Specs.DiscriminatedHierarchy);
 
         var pet = model.Schemas.First(s => s.Name == "Pet");
@@ -772,15 +858,20 @@ public class SpecParsingTests {
 
     /// <summary>The mapping is read in document order, value to reference.</summary>
     [Fact]
-    public void TheDiscriminatorMappingIsRead() {
+    public void TheDiscriminatorMappingIsRead()
+    {
         var model = Parse(Specs.DiscriminatedHierarchy);
 
         var pet = model.Schemas.First(s => s.Name == "Pet");
 
-        Assert.Equal(new[] { "dog", "cat" }, pet.DiscriminatorMapping.Select(m => m.Value).ToArray());
+        Assert.Equal(
+            new[] { "dog", "cat" },
+            pet.DiscriminatorMapping.Select(m => m.Value).ToArray()
+        );
         Assert.Equal(
             new[] { "#/components/schemas/Dog", "#/components/schemas/Cat" },
-            pet.DiscriminatorMapping.Select(m => m.Ref).ToArray());
+            pet.DiscriminatorMapping.Select(m => m.Ref).ToArray()
+        );
     }
 
     /// <summary>
@@ -788,7 +879,8 @@ public class SpecParsingTests {
     /// from, and still carries the merged property set its record declares.
     /// </summary>
     [Fact]
-    public void AnAllOfBranchPointingAtADiscriminatedBaseSetsTheBaseRef() {
+    public void AnAllOfBranchPointingAtADiscriminatedBaseSetsTheBaseRef()
+    {
         var model = Parse(Specs.DiscriminatedHierarchy);
 
         var dog = model.Schemas.First(s => s.Name == "Dog");
@@ -806,7 +898,8 @@ public class SpecParsingTests {
     /// rather than turned into inheritance.
     /// </summary>
     [Fact]
-    public void AnAllOfWithoutADiscriminatedBaseIsStillFlattened() {
+    public void AnAllOfWithoutADiscriminatedBaseIsStillFlattened()
+    {
         var model = Parse(Specs.AllOfComposition);
 
         var dog = model.Schemas.First(s => s.Name == "Dog");
@@ -818,10 +911,12 @@ public class SpecParsingTests {
 
     /// <summary>Every constraint the validation emitter reads survives parsing.</summary>
     [Fact]
-    public void EveryValidationConstraintOnAParameterIsParsed() {
+    public void EveryValidationConstraintOnAParameterIsParsed()
+    {
         var model = Parse(Specs.EveryValidationConstraint);
 
-        var operation = model.Services.First(s => s.Tag == "Order")
+        var operation = model
+            .Services.First(s => s.Tag == "Order")
             .Operations.First(o => o.OperationId == "listOrders");
 
         var limit = operation.Parameters.First(p => p.Name == "limit");
@@ -844,10 +939,12 @@ public class SpecParsingTests {
     /// <c>RangeRule</c> takes them that way.
     /// </summary>
     [Fact]
-    public void ExclusiveBoundsOnABodyPropertyAreParsedAsFlags() {
+    public void ExclusiveBoundsOnABodyPropertyAreParsedAsFlags()
+    {
         var model = Parse(Specs.EveryValidationConstraint);
 
-        var create = model.Services.First(s => s.Tag == "Order")
+        var create = model
+            .Services.First(s => s.Tag == "Order")
             .Operations.First(o => o.OperationId == "createOrder");
 
         var discount = create.RequestBodyProperties.First(p => p.Name == "discount");
@@ -863,10 +960,12 @@ public class SpecParsingTests {
     /// <c>RequiredRule</c> on the property rather than only a non-nullable record parameter.
     /// </summary>
     [Fact]
-    public void ARequestBodysRequiredPropertiesReachTheOperation() {
+    public void ARequestBodysRequiredPropertiesReachTheOperation()
+    {
         var model = Parse(Specs.EveryValidationConstraint);
 
-        var create = model.Services.First(s => s.Tag == "Order")
+        var create = model
+            .Services.First(s => s.Tag == "Order")
             .Operations.First(o => o.OperationId == "createOrder");
 
         Assert.Equal(["sku"], create.RequestBodyRequired);
@@ -879,7 +978,8 @@ public class SpecParsingTests {
     /// constraints does not pay for a filter that would pass everything.
     /// </summary>
     [Fact]
-    public void AnOperationWithNoConstraintsHasNoValidationToDo() {
+    public void AnOperationWithNoConstraintsHasNoValidationToDo()
+    {
         var model = Parse(
             """
             openapi: "3.0.0"
@@ -895,7 +995,8 @@ public class SpecParsingTests {
                       schema: { type: integer }
                   responses:
                     '200': { description: ok }
-            """);
+            """
+        );
 
         var operation = model.Services.First(s => s.Tag == "Thing").Operations.Single();
 
@@ -909,7 +1010,8 @@ public class SpecParsingTests {
     /// one lands on.
     /// </summary>
     [Fact]
-    public void OperationsAreGroupedByTheirFirstTag() {
+    public void OperationsAreGroupedByTheirFirstTag()
+    {
         var model = Parse(
             """
             openapi: "3.0.0"
@@ -921,7 +1023,8 @@ public class SpecParsingTests {
                   operationId: listPets
                   responses:
                     '200': { description: ok }
-            """);
+            """
+        );
 
         Assert.Equal("Pet", Assert.Single(model.Services).Tag);
     }
@@ -931,7 +1034,8 @@ public class SpecParsingTests {
     /// hardcoded 200.
     /// </summary>
     [Fact]
-    public void TheSuccessStatusComesFromTheLowest2xxResponse() {
+    public void TheSuccessStatusComesFromTheLowest2xxResponse()
+    {
         var model = Parse(
             """
             openapi: "3.0.0"
@@ -945,7 +1049,8 @@ public class SpecParsingTests {
                     '400': { description: bad }
                     '201': { description: created }
                     '202': { description: accepted }
-            """);
+            """
+        );
 
         Assert.Equal(201, model.Services.Single().Operations.Single().SuccessStatusCode);
     }
@@ -955,7 +1060,8 @@ public class SpecParsingTests {
     /// picking up a 4xx.
     /// </summary>
     [Fact]
-    public void AnOperationWithNoSuccessResponseKeepsTheDefaultStatus() {
+    public void AnOperationWithNoSuccessResponseKeepsTheDefaultStatus()
+    {
         var model = Parse(
             """
             openapi: "3.0.0"
@@ -967,7 +1073,8 @@ public class SpecParsingTests {
                   operationId: listPets
                   responses:
                     '404': { description: gone }
-            """);
+            """
+        );
 
         Assert.Equal(200, model.Services.Single().Operations.Single().SuccessStatusCode);
     }
@@ -985,7 +1092,8 @@ public class SpecParsingTests {
     /// it returned.
     /// </remarks>
     [Fact]
-    public void ANonJsonResponseRecordsItsSchemaAndMediaType() {
+    public void ANonJsonResponseRecordsItsSchemaAndMediaType()
+    {
         var model = Parse(
             """
             openapi: "3.0.0"
@@ -1001,7 +1109,8 @@ public class SpecParsingTests {
                       content:
                         text/plain:
                           schema: { type: string }
-            """);
+            """
+        );
 
         var operation = model.Services.Single().Operations.Single();
 
@@ -1022,7 +1131,8 @@ public class SpecParsingTests {
     /// <c>[Template&lt;T&gt;]</c> on the implementation is where that is said now.
     /// </remarks>
     [Fact]
-    public void AnUnknownVendorExtensionIsIgnored() {
+    public void AnUnknownVendorExtensionIsIgnored()
+    {
         var model = Parse(
             """
             openapi: "3.0.0"
@@ -1039,7 +1149,8 @@ public class SpecParsingTests {
                       content:
                         text/html:
                           schema: { type: string }
-            """);
+            """
+        );
 
         var operation = model.Services.Single().Operations.Single();
 
@@ -1053,7 +1164,8 @@ public class SpecParsingTests {
     /// already-generated code returns for every operation that lists a non-JSON type first.
     /// </summary>
     [Fact]
-    public void AnOperationOfferingJsonAndSomethingElseRecordsJson() {
+    public void AnOperationOfferingJsonAndSomethingElseRecordsJson()
+    {
         var model = Parse(
             """
             openapi: "3.0.0"
@@ -1071,17 +1183,21 @@ public class SpecParsingTests {
                           schema: { type: string }
                         application/json:
                           schema: { type: string }
-            """);
+            """
+        );
 
-        Assert.Equal("application/json",
-            model.Services.Single().Operations.Single().ResponseContentType);
+        Assert.Equal(
+            "application/json",
+            model.Services.Single().Operations.Single().ResponseContentType
+        );
     }
 
     /// <summary>
     /// The request body's media type is recorded on the same basis as the response's.
     /// </summary>
     [Fact]
-    public void ANonJsonRequestBodyRecordsItsMediaType() {
+    public void ANonJsonRequestBodyRecordsItsMediaType()
+    {
         var model = Parse(
             """
             openapi: "3.0.0"
@@ -1097,10 +1213,13 @@ public class SpecParsingTests {
                         schema: { type: string }
                   responses:
                     '200': { description: ok }
-            """);
+            """
+        );
 
-        Assert.Equal("text/plain",
-            model.Services.Single().Operations.Single().RequestBodyContentType);
+        Assert.Equal(
+            "text/plain",
+            model.Services.Single().Operations.Single().RequestBodyContentType
+        );
     }
 
     /// <summary>
@@ -1108,7 +1227,8 @@ public class SpecParsingTests {
     /// it on the JSON path rather than sending it through the raw writer with a null content type.
     /// </summary>
     [Fact]
-    public void AnOperationWithNoResponseContentRecordsNoMediaType() {
+    public void AnOperationWithNoResponseContentRecordsNoMediaType()
+    {
         var model = Parse(
             """
             openapi: "3.0.0"
@@ -1120,14 +1240,16 @@ public class SpecParsingTests {
                   operationId: ping
                   responses:
                     '204': { description: no content }
-            """);
+            """
+        );
 
         Assert.Null(model.Services.Single().Operations.Single().ResponseContentType);
     }
 
     /// <summary>An array response records the item reference rather than the array's own.</summary>
     [Fact]
-    public void AnArrayResponseRecordsItsItemReference() {
+    public void AnArrayResponseRecordsItsItemReference()
+    {
         var model = Parse(Specs.EverySchemaShape);
 
         var operation = model.Services.Single().Operations.Single();
@@ -1141,7 +1263,8 @@ public class SpecParsingTests {
     /// send <c>GET /pets</c> and <c>POST /pets</c> to different handlers.
     /// </summary>
     [Fact]
-    public void OnePathUnderTwoVerbsIsTwoOperations() {
+    public void OnePathUnderTwoVerbsIsTwoOperations()
+    {
         var model = Parse(Specs.EveryVerb);
 
         var operations = model.Services.Single().Operations;
@@ -1149,13 +1272,15 @@ public class SpecParsingTests {
         Assert.Equal(6, operations.Count);
         Assert.Equal(
             ["DELETE", "GET", "GET", "PATCH", "POST", "PUT"],
-            operations.Select(o => o.HttpMethod).OrderBy(m => m, StringComparer.Ordinal));
+            operations.Select(o => o.HttpMethod).OrderBy(m => m, StringComparer.Ordinal)
+        );
     }
 
     // ── document-level extensions ─────────────────────────────────────────────────────────────
 
     [Fact]
-    public void FilterTypesAreParsedWithTheirDefaults() {
+    public void FilterTypesAreParsedWithTheirDefaults()
+    {
         var model = Parse(Specs.FilterTypes);
 
         var rateLimit = model.FilterTypes.First(f => f.Name == "RateLimit");
@@ -1176,7 +1301,8 @@ public class SpecParsingTests {
     /// the type name.
     /// </summary>
     [Fact]
-    public void AFilterTypeCanDeclareThatItIsDefinedElsewhere() {
+    public void AFilterTypeCanDeclareThatItIsDefinedElsewhere()
+    {
         var model = Parse(Specs.FilterTypes);
 
         Assert.False(model.FilterTypes.First(f => f.Name == "External").Generate);
@@ -1187,7 +1313,8 @@ public class SpecParsingTests {
     /// attribute, and nothing to qualify the <c>x-filters</c> reference with.
     /// </summary>
     [Fact]
-    public void AFilterTypeWithNoNamespaceIsDropped() {
+    public void AFilterTypeWithNoNamespaceIsDropped()
+    {
         var model = Parse(
             """
             openapi: "3.0.0"
@@ -1198,13 +1325,15 @@ public class SpecParsingTests {
                 properties:
                   Level: { type: string }
             paths: {}
-            """);
+            """
+        );
 
         Assert.Empty(model.FilterTypes);
     }
 
     [Fact]
-    public void FilterInstancesCarryTheirOverriddenPropertyValues() {
+    public void FilterInstancesCarryTheirOverriddenPropertyValues()
+    {
         var model = Parse(Specs.FilterTypes);
 
         var instance = Assert.Single(model.Services.Single().Operations.Single().FilterInstances);
@@ -1227,7 +1356,8 @@ public class SpecParsingTests {
     /// both produced <c>deleteV2Droplets</c> - one interface method declared twice.
     /// </remarks>
     [Fact]
-    public void AMissingOperationIdIsDerivedFromTheVerbAndPath() {
+    public void AMissingOperationIdIsDerivedFromTheVerbAndPath()
+    {
         var model = Parse(
             """
             openapi: "3.0.0"
@@ -1238,8 +1368,12 @@ public class SpecParsingTests {
                   tags: [Label]
                   responses:
                     '200': { description: ok }
-            """);
+            """
+        );
 
-        Assert.Equal("getShippingLabelsByIdHistory", model.Services.Single().Operations.Single().OperationId);
+        Assert.Equal(
+            "getShippingLabelsByIdHistory",
+            model.Services.Single().Operations.Single().OperationId
+        );
     }
 }

@@ -26,37 +26,42 @@ namespace Hardened.Aws.Lambda.Http;
 /// already the correlation id and the rest have no consumer.
 /// </para>
 /// </remarks>
-public sealed class LambdaHttpTransportInfo : ITransportInfo {
-    private static readonly string[] KeyList = [
+public sealed class LambdaHttpTransportInfo : ITransportInfo
+{
+    private static readonly string[] KeyList =
+    [
         KnownTransportKeys.ClientAddress,
         KnownTransportKeys.ServerAddress,
         KnownTransportKeys.NetworkProtocolVersion,
-        KnownTransportKeys.UrlScheme
+        KnownTransportKeys.UrlScheme,
     ];
 
     private readonly APIGatewayHttpApiV2ProxyRequest _request;
 
-    public LambdaHttpTransportInfo(APIGatewayHttpApiV2ProxyRequest request) {
+    public LambdaHttpTransportInfo(APIGatewayHttpApiV2ProxyRequest request)
+    {
         _request = request;
     }
 
     public IReadOnlyList<string> Keys => KeyList;
 
     public string? Get(string key) =>
-        key switch {
+        key switch
+        {
             KnownTransportKeys.ClientAddress => Empty(_request.RequestContext?.Http?.SourceIp),
 
             KnownTransportKeys.ServerAddress => Empty(_request.RequestContext?.DomainName),
 
             // "HTTP/1.1" on the event; the convention wants the version alone.
-            KnownTransportKeys.NetworkProtocolVersion =>
-                Version(_request.RequestContext?.Http?.Protocol),
+            KnownTransportKeys.NetworkProtocolVersion => Version(
+                _request.RequestContext?.Http?.Protocol
+            ),
 
             // Neither API Gateway nor a function URL serves plaintext, so this is not read off
             // the request - there is nothing on it that could say otherwise.
             KnownTransportKeys.UrlScheme => "https",
 
-            _ => null
+            _ => null,
         };
 
     /// <summary>
@@ -68,8 +73,10 @@ public sealed class LambdaHttpTransportInfo : ITransportInfo {
     /// </remarks>
     private static string? Empty(string? value) => string.IsNullOrEmpty(value) ? null : value;
 
-    private static string? Version(string? protocol) {
-        if (string.IsNullOrEmpty(protocol)) {
+    private static string? Version(string? protocol)
+    {
+        if (string.IsNullOrEmpty(protocol))
+        {
             return null;
         }
 

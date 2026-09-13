@@ -2,7 +2,8 @@ using Hardened.Functions.Runtime.Attributes;
 
 namespace Hardened.IntegrationTests.AzureEvents.SUT;
 
-public class Order {
+public class Order
+{
     public string Id { get; set; } = "";
 
     public int Quantity { get; set; }
@@ -15,7 +16,8 @@ public class Order {
 /// Injected rather than a static list, so each test observes only its own invocations and no
 /// fixture has to reset anything between them.
 /// </remarks>
-public interface ITriggerLog {
+public interface ITriggerLog
+{
     void Record(string entry);
 }
 
@@ -23,7 +25,8 @@ public interface ITriggerLog {
 /// One handler per trigger, written the way an application would write them. The Events
 /// fixture's handlers on Lambda, unchanged.
 /// </summary>
-public class EventHandlers {
+public class EventHandlers
+{
     [Queue("orders-new")]
     public void OnQueued(Order order, ITriggerLog log) => log.Record("queue:" + order.Id);
 

@@ -14,8 +14,8 @@ namespace Hardened.Requests.Abstract.Tests.Authorization;
 /// silently, so both are pinned.
 /// </para>
 /// </summary>
-public class RequirementTests {
-
+public class RequirementTests
+{
     private static readonly IExecutionContext Context = Substitute.For<IExecutionContext>();
 
     private static ICallerPrincipal Holding(params string[] grants) =>
@@ -24,12 +24,14 @@ public class RequirementTests {
     #region grants
 
     [Fact]
-    public void Grant_IsSatisfiedWhenTheCallerHoldsIt() {
+    public void Grant_IsSatisfiedWhenTheCallerHoldsIt()
+    {
         Assert.True(Requirement.Grant("pets:read").IsSatisfiedBy(Holding("pets:read"), Context));
     }
 
     [Fact]
-    public void Grant_IsNotSatisfiedWhenTheCallerDoesNot() {
+    public void Grant_IsNotSatisfiedWhenTheCallerDoesNot()
+    {
         Assert.False(Requirement.Grant("pets:write").IsSatisfiedBy(Holding("pets:read"), Context));
     }
 
@@ -38,10 +40,11 @@ public class RequirementTests {
     /// what anonymous means. That is the point of the empty grant set.
     /// </summary>
     [Fact]
-    public void Grant_IsNotSatisfiedByTheAnonymousPrincipal() {
+    public void Grant_IsNotSatisfiedByTheAnonymousPrincipal()
+    {
         Assert.False(
-            Requirement.Grant("pets:read")
-                .IsSatisfiedBy(AnonymousCallerPrincipal.Instance, Context));
+            Requirement.Grant("pets:read").IsSatisfiedBy(AnonymousCallerPrincipal.Instance, Context)
+        );
     }
 
     /// <summary>
@@ -49,7 +52,8 @@ public class RequirementTests {
     /// server, and a case-insensitive match here would admit a grant the issuer never made.
     /// </summary>
     [Fact]
-    public void Grant_MatchesCaseSensitively() {
+    public void Grant_MatchesCaseSensitively()
+    {
         Assert.False(Requirement.Grant("pets:read").IsSatisfiedBy(Holding("Pets:Read"), Context));
     }
 
@@ -58,7 +62,8 @@ public class RequirementTests {
     /// which then constrains what a grant is allowed to be; this pins that the decision was to wait.
     /// </summary>
     [Fact]
-    public void Grant_TreatsAWildcardAsAnOrdinaryString() {
+    public void Grant_TreatsAWildcardAsAnOrdinaryString()
+    {
         var requirement = Requirement.Grant("admin:*");
 
         Assert.True(requirement.IsSatisfiedBy(Holding("admin:*"), Context));
@@ -66,7 +71,8 @@ public class RequirementTests {
     }
 
     [Fact]
-    public void Grant_RejectsAnEmptyName() {
+    public void Grant_RejectsAnEmptyName()
+    {
         Assert.Throws<ArgumentException>(() => Requirement.Grant(""));
     }
 
@@ -75,14 +81,17 @@ public class RequirementTests {
     #region authenticated
 
     [Fact]
-    public void Authenticated_IsSatisfiedByAnyAuthenticatedCaller() {
+    public void Authenticated_IsSatisfiedByAnyAuthenticatedCaller()
+    {
         Assert.True(Requirement.Authenticated().IsSatisfiedBy(Holding(), Context));
     }
 
     [Fact]
-    public void Authenticated_IsNotSatisfiedByTheAnonymousPrincipal() {
+    public void Authenticated_IsNotSatisfiedByTheAnonymousPrincipal()
+    {
         Assert.False(
-            Requirement.Authenticated().IsSatisfiedBy(AnonymousCallerPrincipal.Instance, Context));
+            Requirement.Authenticated().IsSatisfiedBy(AnonymousCallerPrincipal.Instance, Context)
+        );
     }
 
     /// <summary>
@@ -92,12 +101,14 @@ public class RequirementTests {
     /// position and read a body for a request that presented no credential at all.
     /// </summary>
     [Fact]
-    public void Authenticated_DoesNotNeedTheContext() {
+    public void Authenticated_DoesNotNeedTheContext()
+    {
         Assert.False(Requirement.Authenticated().RequiresContext);
     }
 
     [Fact]
-    public void Authenticated_NamesNoGrants() {
+    public void Authenticated_NamesNoGrants()
+    {
         Assert.Empty(Requirement.Authenticated().RequiredGrants);
     }
 
@@ -106,10 +117,12 @@ public class RequirementTests {
     #region composition
 
     [Fact]
-    public void AllOf_NeedsEveryGrant() {
+    public void AllOf_NeedsEveryGrant()
+    {
         var requirement = Requirement.AllOf(
             Requirement.Grant("pets:read"),
-            Requirement.Grant("pets:write"));
+            Requirement.Grant("pets:write")
+        );
 
         Assert.True(requirement.IsSatisfiedBy(Holding("pets:read", "pets:write"), Context));
         Assert.False(requirement.IsSatisfiedBy(Holding("pets:read"), Context));
@@ -117,10 +130,12 @@ public class RequirementTests {
     }
 
     [Fact]
-    public void AnyOf_NeedsOnlyOne() {
+    public void AnyOf_NeedsOnlyOne()
+    {
         var requirement = Requirement.AnyOf(
             Requirement.Grant("pets:read"),
-            Requirement.Grant("admin:*"));
+            Requirement.Grant("admin:*")
+        );
 
         Assert.True(requirement.IsSatisfiedBy(Holding("pets:read"), Context));
         Assert.True(requirement.IsSatisfiedBy(Holding("admin:*"), Context));
@@ -133,8 +148,10 @@ public class RequirementTests {
     /// would turn an AND into an OR silently, so it is asserted rather than assumed.
     /// </summary>
     [Fact]
-    public void Operators_BindAndTighterThanOr() {
-        var requirement = Requirement.Grant("pets:read") & Requirement.Grant("pets:write")
+    public void Operators_BindAndTighterThanOr()
+    {
+        var requirement =
+            Requirement.Grant("pets:read") & Requirement.Grant("pets:write")
             | Requirement.Grant("admin:*");
 
         Assert.True(requirement.IsSatisfiedBy(Holding("pets:read", "pets:write"), Context));
@@ -147,7 +164,8 @@ public class RequirementTests {
     }
 
     [Fact]
-    public void Operators_ProduceTheSameResultAsTheNamedCombinators() {
+    public void Operators_ProduceTheSameResultAsTheNamedCombinators()
+    {
         var written = Requirement.Grant("a") & Requirement.Grant("b");
         var named = Requirement.AllOf(Requirement.Grant("a"), Requirement.Grant("b"));
 
@@ -160,21 +178,25 @@ public class RequirementTests {
     /// readable, which both end up in a caller-visible challenge.
     /// </summary>
     [Fact]
-    public void Combining_FlattensNestedNodesOfTheSameKind() {
+    public void Combining_FlattensNestedNodesOfTheSameKind()
+    {
         var requirement = Requirement.Grant("a") & Requirement.Grant("b") & Requirement.Grant("c");
 
         Assert.Equal("(a & b & c)", requirement.ToString());
     }
 
     [Fact]
-    public void Combining_DoesNotFlattenAcrossKinds() {
-        var requirement = (Requirement.Grant("a") & Requirement.Grant("b")) | Requirement.Grant("c");
+    public void Combining_DoesNotFlattenAcrossKinds()
+    {
+        var requirement =
+            (Requirement.Grant("a") & Requirement.Grant("b")) | Requirement.Grant("c");
 
         Assert.Equal("((a & b) | c)", requirement.ToString());
     }
 
     [Fact]
-    public void Combining_OneRequirementReturnsItUnwrapped() {
+    public void Combining_OneRequirementReturnsItUnwrapped()
+    {
         var grant = Requirement.Grant("only");
 
         Assert.Same(grant, Requirement.AllOf(grant));
@@ -187,7 +209,8 @@ public class RequirementTests {
     /// because something declared a constraint, so an empty one is a bug worth saying out loud.
     /// </summary>
     [Fact]
-    public void Combining_NothingThrowsRatherThanEvaluatingToAnything() {
+    public void Combining_NothingThrowsRatherThanEvaluatingToAnything()
+    {
         Assert.Throws<ArgumentException>(() => Requirement.AllOf());
         Assert.Throws<ArgumentException>(() => Requirement.AnyOf());
     }
@@ -197,7 +220,8 @@ public class RequirementTests {
     #region required grants
 
     [Fact]
-    public void RequiredGrants_NamesEveryGrantInAnAnd() {
+    public void RequiredGrants_NamesEveryGrantInAnAnd()
+    {
         var requirement = Requirement.Grant("pets:read") & Requirement.Grant("pets:write");
 
         Assert.Equal(["pets:read", "pets:write"], requirement.RequiredGrants);
@@ -208,15 +232,18 @@ public class RequirementTests {
     /// and naming one arbitrary branch would send the caller after the wrong grant.
     /// </summary>
     [Fact]
-    public void RequiredGrants_NamesEveryBranchOfAnOr() {
+    public void RequiredGrants_NamesEveryBranchOfAnOr()
+    {
         var requirement = Requirement.Grant("pets:read") | Requirement.Grant("admin:*");
 
         Assert.Equal(["pets:read", "admin:*"], requirement.RequiredGrants);
     }
 
     [Fact]
-    public void RequiredGrants_DoesNotRepeatAGrantNamedTwice() {
-        var requirement = (Requirement.Grant("a") & Requirement.Grant("b"))
+    public void RequiredGrants_DoesNotRepeatAGrantNamedTwice()
+    {
+        var requirement =
+            (Requirement.Grant("a") & Requirement.Grant("b"))
             | (Requirement.Grant("a") & Requirement.Grant("c"));
 
         Assert.Equal(["a", "b", "c"], requirement.RequiredGrants);
@@ -232,12 +259,14 @@ public class RequirementTests {
     /// be rejected anyway.
     /// </summary>
     [Fact]
-    public void RequiresContext_IsFalseForGrantsAlone() {
+    public void RequiresContext_IsFalseForGrantsAlone()
+    {
         Assert.False((Requirement.Grant("a") & Requirement.Grant("b")).RequiresContext);
     }
 
     [Fact]
-    public void RequiresContext_IsTrueForAPredicate() {
+    public void RequiresContext_IsTrueForAPredicate()
+    {
         Assert.True(Requirement.Predicate((_, _) => true).RequiresContext);
     }
 
@@ -247,7 +276,8 @@ public class RequirementTests {
     /// case it exists to serve.
     /// </summary>
     [Fact]
-    public void RequiresContext_IsTrueWhenAnyBranchNeedsIt() {
+    public void RequiresContext_IsTrueWhenAnyBranchNeedsIt()
+    {
         var requirement = Requirement.Grant("pets:read") | Requirement.Predicate((_, _) => true);
 
         Assert.True(requirement.RequiresContext);
@@ -258,15 +288,19 @@ public class RequirementTests {
     #region predicates
 
     [Fact]
-    public void Predicate_IsHandedThePrincipalAndTheContext() {
+    public void Predicate_IsHandedThePrincipalAndTheContext()
+    {
         ICallerPrincipal? seenPrincipal = null;
         IExecutionContext? seenContext = null;
 
-        var requirement = Requirement.Predicate((principal, context) => {
-            seenPrincipal = principal;
-            seenContext = context;
-            return true;
-        });
+        var requirement = Requirement.Predicate(
+            (principal, context) =>
+            {
+                seenPrincipal = principal;
+                seenContext = context;
+                return true;
+            }
+        );
 
         var caller = Holding("pets:read");
 
@@ -276,7 +310,8 @@ public class RequirementTests {
     }
 
     [Fact]
-    public void Predicate_ContributesNoRequiredGrants() {
+    public void Predicate_ContributesNoRequiredGrants()
+    {
         Assert.Empty(Requirement.Predicate((_, _) => true).RequiredGrants);
     }
 
@@ -284,14 +319,17 @@ public class RequirementTests {
     /// A lambda has no useful name, so the description is what a diagnostic or a log line can show.
     /// </summary>
     [Fact]
-    public void Predicate_RendersItsDescription() {
+    public void Predicate_RendersItsDescription()
+    {
         Assert.Equal(
             "caller owns the pet",
-            Requirement.Predicate((_, _) => true, "caller owns the pet").ToString());
+            Requirement.Predicate((_, _) => true, "caller owns the pet").ToString()
+        );
     }
 
     [Fact]
-    public void Predicate_RejectsANullDelegate() {
+    public void Predicate_RejectsANullDelegate()
+    {
         Assert.Throws<ArgumentNullException>(() => Requirement.Predicate(null!));
     }
 

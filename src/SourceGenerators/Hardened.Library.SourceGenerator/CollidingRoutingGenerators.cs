@@ -26,8 +26,8 @@ namespace Hardened.Library.SourceGenerator;
 /// ran. Absence and duplication are the same question with two wrong answers.
 /// </para>
 /// </remarks>
-internal static class CollidingRoutingGenerators {
-
+internal static class CollidingRoutingGenerators
+{
     /// <summary>
     /// <c>HRDR008</c>. <c>HRDR006</c> is no routing generator; this is more than one.
     /// </summary>
@@ -37,38 +37,42 @@ internal static class CollidingRoutingGenerators {
     /// Built per call rather than held in a static field: RS2008 looks for the field, and these
     /// projects set <c>EnforceExtendedAnalyzerRules</c>.
     /// </summary>
-    private static DiagnosticDescriptor Descriptor() => new(
-        id: DiagnosticId,
-        title: "More than one routing generator is compiling this assembly",
-        messageFormat:
-        "{0} are both compiling this project's routes, so every generated name - the routing " +
-        "table, the links type and a class per handler - is declared twice, as CS0102 and CS0111 " +
-        "in obj/**/generated/**. A generator reaches this project through a ProjectReference, or " +
-        "a PackageReference that is not a development dependency, unless the reference says " +
-        "PrivateAssets=\"all\". Add it to the one that brought the second generator.",
-        category: "Hardened.Routing",
-        defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+    private static DiagnosticDescriptor Descriptor() =>
+        new(
+            id: DiagnosticId,
+            title: "More than one routing generator is compiling this assembly",
+            messageFormat: "{0} are both compiling this project's routes, so every generated name - the routing "
+                + "table, the links type and a class per handler - is declared twice, as CS0102 and CS0111 "
+                + "in obj/**/generated/**. A generator reaches this project through a ProjectReference, or "
+                + "a PackageReference that is not a development dependency, unless the reference says "
+                + "PrivateAssets=\"all\". Add it to the one that brought the second generator.",
+            category: "Hardened.Routing",
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true
+        );
 
     /// <summary>Reports the collision, if there is one.</summary>
-    public static void Report(SourceProductionContext context, Compilation compilation) {
-        if (compilation.GetTypeByMetadataName(RoutingGeneratorMarker.TypeName)
-            is not { } marker) {
+    public static void Report(SourceProductionContext context, Compilation compilation)
+    {
+        if (compilation.GetTypeByMetadataName(RoutingGeneratorMarker.TypeName) is not { } marker)
+        {
             return;
         }
 
         // One declaration per generator that ran, whatever their files are called. Counted here
         // rather than after the names are read, so two generators the path cannot tell apart are
         // still two generators.
-        if (marker.DeclaringSyntaxReferences.Length < 2) {
+        if (marker.DeclaringSyntaxReferences.Length < 2)
+        {
             return;
         }
 
         // Location.None, as everywhere else this generator reports from: a syntax location would
         // travel through the incremental caches, which compare for equality to decide whether to
         // regenerate. The message carries the names instead.
-        context.ReportDiagnostic(Diagnostic.Create(
-            Descriptor(), Location.None, Join(Emitters(marker))));
+        context.ReportDiagnostic(
+            Diagnostic.Create(Descriptor(), Location.None, Join(Emitters(marker)))
+        );
     }
 
     /// <summary>
@@ -79,10 +83,12 @@ internal static class CollidingRoutingGenerators {
     /// reference that brought one of them. Distinct, because the count was settled above and a
     /// name repeated in the sentence would read as one generator that ran twice.
     /// </remarks>
-    private static IReadOnlyList<string> Emitters(INamedTypeSymbol marker) {
+    private static IReadOnlyList<string> Emitters(INamedTypeSymbol marker)
+    {
         var names = new List<string>();
 
-        foreach (var declaration in marker.DeclaringSyntaxReferences) {
+        foreach (var declaration in marker.DeclaringSyntaxReferences)
+        {
             names.Add(GeneratorName(declaration.SyntaxTree.FilePath));
         }
 
@@ -107,7 +113,8 @@ internal static class CollidingRoutingGenerators {
     /// Reporting "two generators" beats reporting nothing.
     /// </para>
     /// </remarks>
-    internal static string GeneratorName(string filePath) {
+    internal static string GeneratorName(string filePath)
+    {
         var segments = filePath.Split(new[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
 
         return segments.Length >= 3 ? segments[segments.Length - 3] : "an unnamed generator";
@@ -117,8 +124,10 @@ internal static class CollidingRoutingGenerators {
     /// The names as a sentence subject: "A and B", or "A, B and C" - or, when every path read
     /// the same, the one name and a count.
     /// </summary>
-    private static string Join(IReadOnlyList<string> names) {
-        if (names.Count == 1) {
+    private static string Join(IReadOnlyList<string> names)
+    {
+        if (names.Count == 1)
+        {
             return "Two copies of " + names[0];
         }
 

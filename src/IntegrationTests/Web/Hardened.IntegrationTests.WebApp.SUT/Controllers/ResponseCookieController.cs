@@ -9,20 +9,24 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Controllers;
 /// dropping them.
 /// </summary>
 [BasePath("/cookies")]
-public class ResponseCookieController {
-
+public class ResponseCookieController
+{
     [Get("/set")]
-    public string SetCookie(IExecutionContext context) {
+    public string SetCookie(IExecutionContext context)
+    {
         context.Response.Cookies.Append("session", "abc123");
 
         return "set";
     }
 
     [Get("/set-with-options")]
-    public string SetCookieWithOptions(IExecutionContext context) {
+    public string SetCookieWithOptions(IExecutionContext context)
+    {
         context.Response.Cookies.Append(
-            "preference", "dark",
-            new CookieSetOptions(Path: "/app", HttpOnly: true, Secure: true));
+            "preference",
+            "dark",
+            new CookieSetOptions(Path: "/app", HttpOnly: true, Secure: true)
+        );
 
         return "set";
     }

@@ -26,8 +26,8 @@ namespace Hardened.SourceGenerator.Validation;
 /// <c>Validation/**</c> - so a file there referencing this one does not compile in that project.
 /// </para>
 /// </remarks>
-public static class NonBindingAttributeFacts {
-
+public static class NonBindingAttributeFacts
+{
     private const string EnumeratorCancellation =
         "System.Runtime.CompilerServices.EnumeratorCancellationAttribute";
 
@@ -53,8 +53,10 @@ public static class NonBindingAttributeFacts {
     /// takes someone's unrelated attribute out of the binding path it was written for.
     /// </para>
     /// </remarks>
-    public static bool IsNonBinding(GeneratorSyntaxContext context, AttributeSyntax attribute) {
-        if (ConstraintAttributeFacts.IsConstraint(context, attribute)) {
+    public static bool IsNonBinding(GeneratorSyntaxContext context, AttributeSyntax attribute)
+    {
+        if (ConstraintAttributeFacts.IsConstraint(context, attribute))
+        {
             return true;
         }
 

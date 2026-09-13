@@ -50,5 +50,10 @@ namespace Hardened.Shared.Runtime.Attributes;
 /// <c>[TemplateBase]</c>, <c>[TemplateContentType]</c> - so a package supplying a new template
 /// engine needs no generator change at all.
 /// </typeparam>
-[AttributeUsage(AttributeTargets.Class | AttributeTargets.Assembly, AllowMultiple = true, Inherited = false)]
-public class EnableAttribute<TFeature> : Attribute where TFeature : new();
+[AttributeUsage(
+    AttributeTargets.Class | AttributeTargets.Assembly,
+    AllowMultiple = true,
+    Inherited = false
+)]
+public class EnableAttribute<TFeature> : Attribute
+    where TFeature : new();

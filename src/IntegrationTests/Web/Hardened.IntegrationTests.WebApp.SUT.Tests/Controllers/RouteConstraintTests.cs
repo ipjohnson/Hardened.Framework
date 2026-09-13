@@ -1,4 +1,5 @@
 using Hardened.Web.Runtime.Responses;
+
 namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 
 /// <summary>
@@ -11,10 +12,11 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 /// the truthful answer: there is no resource at that URL. It also rejects the value before any
 /// filter or binder runs.
 /// </remarks>
-public class RouteConstraintTests {
-
+public class RouteConstraintTests
+{
     [HardenedTest]
-    public async Task AConstrainedTokenMatchesAValueThatPasses(ITestWebApp testWebApp) {
+    public async Task AConstrainedTokenMatchesAValueThatPasses(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/binding/path-constrained/21");
 
         response.Assert.Ok();
@@ -22,7 +24,8 @@ public class RouteConstraintTests {
     }
 
     [HardenedTest]
-    public async Task AConstrainedTokenIs404ForAValueThatFails(ITestWebApp testWebApp) {
+    public async Task AConstrainedTokenIs404ForAValueThatFails(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/binding/path-constrained/abc");
 
         response.Assert.NotFound();
@@ -34,14 +37,16 @@ public class RouteConstraintTests {
     /// it off when the value is input being validated.
     /// </summary>
     [HardenedTest]
-    public async Task TheUnconstrainedShapeStillAnswers400(ITestWebApp testWebApp) {
+    public async Task TheUnconstrainedShapeStillAnswers400(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/binding/path-typed/abc");
 
         response.Assert.BadRequest();
     }
 
     [HardenedTest]
-    public async Task ADeclaredConstraintMatchesAValueThatPasses(ITestWebApp testWebApp) {
+    public async Task ADeclaredConstraintMatchesAValueThatPasses(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/binding/path-code/ABC");
 
         response.Assert.Ok();
@@ -49,7 +54,8 @@ public class RouteConstraintTests {
     }
 
     [HardenedTest]
-    public async Task ADeclaredConstraintIs404ForAValueThatFails(ITestWebApp testWebApp) {
+    public async Task ADeclaredConstraintIs404ForAValueThatFails(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/binding/path-code/abc");
 
         response.Assert.NotFound();
@@ -66,7 +72,8 @@ public class RouteConstraintTests {
     /// this fixture.
     /// </remarks>
     [HardenedTest]
-    public async Task ACatchAllTokenBindsFromThePath(ITestWebApp testWebApp) {
+    public async Task ACatchAllTokenBindsFromThePath(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/binding/files/a/b/c.txt");
 
         response.Assert.Ok();

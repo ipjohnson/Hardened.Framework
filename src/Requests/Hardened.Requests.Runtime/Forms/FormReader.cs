@@ -25,22 +25,26 @@ namespace Hardened.Requests.Runtime.Forms;
 /// </para>
 /// </remarks>
 [SingletonService(Using = RegistrationType.Try)]
-public class FormReader : IFormReader {
-
-    public async ValueTask<IFormCollection> ReadForm(IExecutionContext context) {
-        if (!MediaType.Matches(context.Request.ContentType, KnownContentType.FormUrlEncoded)) {
+public class FormReader : IFormReader
+{
+    public async ValueTask<IFormCollection> ReadForm(IExecutionContext context)
+    {
+        if (!MediaType.Matches(context.Request.ContentType, KnownContentType.FormUrlEncoded))
+        {
             return EmptyFormCollection.Instance;
         }
 
         var body = context.Request.Body;
 
-        if (body == null!) {
+        if (body == null!)
+        {
             return EmptyFormCollection.Instance;
         }
 
         // From the start, because a filter ahead of this one may have read it. RetryFilter already
         // rewinds a seekable body between attempts for the same reason.
-        if (body.CanSeek) {
+        if (body.CanSeek)
+        {
             body.Position = 0;
         }
 
@@ -48,14 +52,16 @@ public class FormReader : IFormReader {
 
         // leaveOpen, because the body is the transport's and the response has not been written yet.
         // Disposing the reader would close a stream something downstream may still be holding.
-        using (var reader = new StreamReader(body, Encoding.UTF8, true, 1024, leaveOpen: true)) {
+        using (var reader = new StreamReader(body, Encoding.UTF8, true, 1024, leaveOpen: true))
+        {
             content = await reader.ReadToEndAsync().ConfigureAwait(false);
         }
 
         // Put it back for whatever reads next. A handler binding both form fields and a body model
         // is reported at build time, but a filter reading the body is not something the generator
         // can see.
-        if (body.CanSeek) {
+        if (body.CanSeek)
+        {
             body.Position = 0;
         }
 

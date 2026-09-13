@@ -25,13 +25,18 @@ namespace Hardened.Requests.Serializers.MessagePack.Tests;
 /// reads one: the formatters are hand-written, so nothing finds them by convention.
 /// </para>
 /// </remarks>
-public class ErrorEnvelopeTests {
-
+public class ErrorEnvelopeTests
+{
     private static readonly MessagePackSerializerOptions ClientOptions =
         MessagePackSerializerOptions.Standard.WithResolver(
-            CompositeResolver.Create([], [HardenedFormatterResolver.Instance, StandardResolver.Instance]));
+            CompositeResolver.Create(
+                [],
+                [HardenedFormatterResolver.Instance, StandardResolver.Instance]
+            )
+        );
 
-    private static async Task<T?> RoundTrip<T>(T value) {
+    private static async Task<T?> RoundTrip<T>(T value)
+    {
         var context = Pipeline.Context();
 
         context.Response.ResponseValue = value;
@@ -39,13 +44,23 @@ public class ErrorEnvelopeTests {
         await Pipeline.ResponseSerializer(Pipeline.Pool()).SerializeResponse(context);
 
         return MessagePackSerializer.Deserialize<T>(
-            Pipeline.BodyOf(context), ClientOptions, TestContext.Current.CancellationToken);
+            Pipeline.BodyOf(context),
+            ClientOptions,
+            TestContext.Current.CancellationToken
+        );
     }
 
     [Fact]
-    public async Task AnErrorModelRoundTrips() {
+    public async Task AnErrorModelRoundTrips()
+    {
         var read = await RoundTrip(
-            new ErrorModel { Type = "about:blank", Message = "Nope.", Details = "No detail." });
+            new ErrorModel
+            {
+                Type = "about:blank",
+                Message = "Nope.",
+                Details = "No detail.",
+            }
+        );
 
         Assert.NotNull(read);
         Assert.Equal("about:blank", read.Type);
@@ -54,15 +69,30 @@ public class ErrorEnvelopeTests {
     }
 
     [Fact]
-    public async Task AValidationErrorRoundTripsWithItsFields() {
-        var read = await RoundTrip(new RequestValidationError {
-            Type = "validation",
-            Message = "The request is not valid.",
-            Errors = {
-                new RequestValidationFieldError { Field = "id", Code = "range", Message = "Too low." },
-                new RequestValidationFieldError { Field = "title", Code = "length", Message = "Too long." }
+    public async Task AValidationErrorRoundTripsWithItsFields()
+    {
+        var read = await RoundTrip(
+            new RequestValidationError
+            {
+                Type = "validation",
+                Message = "The request is not valid.",
+                Errors =
+                {
+                    new RequestValidationFieldError
+                    {
+                        Field = "id",
+                        Code = "range",
+                        Message = "Too low.",
+                    },
+                    new RequestValidationFieldError
+                    {
+                        Field = "title",
+                        Code = "length",
+                        Message = "Too long.",
+                    },
+                },
             }
-        });
+        );
 
         Assert.NotNull(read);
         Assert.Equal("validation", read.Type);
@@ -76,8 +106,11 @@ public class ErrorEnvelopeTests {
     /// An envelope with no field errors, which is every refusal that is not a validation failure.
     /// </summary>
     [Fact]
-    public async Task AValidationErrorWithNoFieldsRoundTrips() {
-        var read = await RoundTrip(new RequestValidationError { Type = "validation", Message = "No." });
+    public async Task AValidationErrorWithNoFieldsRoundTrips()
+    {
+        var read = await RoundTrip(
+            new RequestValidationError { Type = "validation", Message = "No." }
+        );
 
         Assert.NotNull(read);
         Assert.Empty(read.Errors);
@@ -88,14 +121,22 @@ public class ErrorEnvelopeTests {
     /// <c>type</c> reads the same envelope either way.
     /// </summary>
     [Fact]
-    public void TheKeysAreTheJsonPropertyNames() {
+    public void TheKeysAreTheJsonPropertyNames()
+    {
         var json = MessagePackSerializer.ConvertToJson(
             MessagePackSerializer.Serialize(
-                new ErrorModel { Type = "about:blank", Message = "Nope.", Details = "d" },
+                new ErrorModel
+                {
+                    Type = "about:blank",
+                    Message = "Nope.",
+                    Details = "d",
+                },
                 ClientOptions,
-                TestContext.Current.CancellationToken),
+                TestContext.Current.CancellationToken
+            ),
             ClientOptions,
-            TestContext.Current.CancellationToken);
+            TestContext.Current.CancellationToken
+        );
 
         Assert.Contains("\"type\"", json);
         Assert.Contains("\"message\"", json);
@@ -107,14 +148,19 @@ public class ErrorEnvelopeTests {
     /// break between a client and a server one version apart.
     /// </summary>
     [Fact]
-    public void AnUnknownMemberIsSkipped() {
+    public void AnUnknownMemberIsSkipped()
+    {
         var bytes = MessagePackSerializer.ConvertFromJson(
             "{\"type\":\"about:blank\",\"message\":\"Nope.\",\"details\":\"d\",\"instance\":\"/x\"}",
             ClientOptions,
-            TestContext.Current.CancellationToken);
+            TestContext.Current.CancellationToken
+        );
 
         var read = MessagePackSerializer.Deserialize<ErrorModel>(
-            bytes, ClientOptions, TestContext.Current.CancellationToken);
+            bytes,
+            ClientOptions,
+            TestContext.Current.CancellationToken
+        );
 
         Assert.NotNull(read);
         Assert.Equal("about:blank", read.Type);
@@ -126,11 +172,17 @@ public class ErrorEnvelopeTests {
     /// <c>null</c>.
     /// </summary>
     [Fact]
-    public void ANilReadsAsAnEmptyEnvelope() {
+    public void ANilReadsAsAnEmptyEnvelope()
+    {
         var read = MessagePackSerializer.Deserialize<ErrorModel>(
-            MessagePackSerializer.ConvertFromJson("null", ClientOptions, TestContext.Current.CancellationToken),
+            MessagePackSerializer.ConvertFromJson(
+                "null",
+                ClientOptions,
+                TestContext.Current.CancellationToken
+            ),
             ClientOptions,
-            TestContext.Current.CancellationToken);
+            TestContext.Current.CancellationToken
+        );
 
         Assert.NotNull(read);
         Assert.Equal("", read.Type);

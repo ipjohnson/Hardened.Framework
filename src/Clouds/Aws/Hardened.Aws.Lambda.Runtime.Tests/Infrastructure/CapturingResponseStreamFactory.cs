@@ -9,7 +9,8 @@ namespace Hardened.Aws.Lambda.Runtime.Tests.Infrastructure;
 /// The stream-opening seam, recording the prelude each stream opened with and keeping every byte
 /// written to it.
 /// </summary>
-internal sealed class CapturingResponseStreamFactory : IResponseStreamFactory {
+internal sealed class CapturingResponseStreamFactory : IResponseStreamFactory
+{
     public List<HttpResponseStreamPrelude> Preludes { get; } = [];
 
     public int PlainStreams { get; private set; }
@@ -19,13 +20,15 @@ internal sealed class CapturingResponseStreamFactory : IResponseStreamFactory {
     /// <summary>The prelude of the one stream a test expects to have been opened.</summary>
     public HttpResponseStreamPrelude Prelude => Assert.Single(Preludes);
 
-    public Stream CreateStream() {
+    public Stream CreateStream()
+    {
         PlainStreams++;
 
         return Target;
     }
 
-    public Stream CreateHttpStream(HttpResponseStreamPrelude prelude) {
+    public Stream CreateHttpStream(HttpResponseStreamPrelude prelude)
+    {
         Preludes.Add(prelude);
 
         return Target;
@@ -36,8 +39,11 @@ internal sealed class CapturingResponseStreamFactory : IResponseStreamFactory {
 /// A memory stream that says when it has been written to, so a test can wait for the pump rather
 /// than sleep, and that can be told to fail every write.
 /// </summary>
-internal sealed class SignallingStream : MemoryStream {
-    private readonly TaskCompletionSource _firstWrite = new(TaskCreationOptions.RunContinuationsAsynchronously);
+internal sealed class SignallingStream : MemoryStream
+{
+    private readonly TaskCompletionSource _firstWrite = new(
+        TaskCreationOptions.RunContinuationsAsynchronously
+    );
 
     /// <summary>Completes on the first write that reached this stream.</summary>
     public Task FirstWrite => _firstWrite.Task;
@@ -47,19 +53,25 @@ internal sealed class SignallingStream : MemoryStream {
     /// <summary>Everything written to the stream, as the reader on the far end would see it.</summary>
     public string Text => Encoding.UTF8.GetString(ToArray());
 
-    public override void Write(ReadOnlySpan<byte> buffer) {
+    public override void Write(ReadOnlySpan<byte> buffer)
+    {
         Throw();
         base.Write(buffer);
         _firstWrite.TrySetResult();
     }
 
-    public override void Write(byte[] buffer, int offset, int count) {
+    public override void Write(byte[] buffer, int offset, int count)
+    {
         Throw();
         base.Write(buffer, offset, count);
         _firstWrite.TrySetResult();
     }
 
-    public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default) {
+    public override ValueTask WriteAsync(
+        ReadOnlyMemory<byte> buffer,
+        CancellationToken cancellationToken = default
+    )
+    {
         Throw();
         var result = base.WriteAsync(buffer, cancellationToken);
         _firstWrite.TrySetResult();
@@ -67,7 +79,13 @@ internal sealed class SignallingStream : MemoryStream {
         return result;
     }
 
-    public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) {
+    public override Task WriteAsync(
+        byte[] buffer,
+        int offset,
+        int count,
+        CancellationToken cancellationToken
+    )
+    {
         Throw();
         var result = base.WriteAsync(buffer, offset, count, cancellationToken);
         _firstWrite.TrySetResult();
@@ -75,8 +93,10 @@ internal sealed class SignallingStream : MemoryStream {
         return result;
     }
 
-    private void Throw() {
-        if (FailWith != null) {
+    private void Throw()
+    {
+        if (FailWith != null)
+        {
             throw FailWith;
         }
     }

@@ -1,8 +1,8 @@
-using Hardened.OpenApi.SourceGenerator;
-using Hardened.Generation.Models;
-using Xunit;
-using Hardened.Idl;
 using Hardened.Generation;
+using Hardened.Generation.Models;
+using Hardened.Idl;
+using Hardened.OpenApi.SourceGenerator;
+using Xunit;
 
 namespace Hardened.OpenApi.BuildTask.Tests;
 
@@ -15,17 +15,19 @@ namespace Hardened.OpenApi.BuildTask.Tests;
 /// survive it produces wrong C# rather than an error. See <see cref="DeepEquality"/> for why the
 /// models' own <c>Equals</c> is not enough to catch that.
 /// </remarks>
-public class SpecModelSerializerTests {
-
+public class SpecModelSerializerTests
+{
     [Fact]
-    public void RoundTrip_PreservesEveryFieldOnAFullyPopulatedModel() {
+    public void RoundTrip_PreservesEveryFieldOnAFullyPopulatedModel()
+    {
         var model = FullyPopulated();
 
         DeepEquality.AssertEqual(model, SpecModelSerializer.Read(SpecModelSerializer.Write(model)));
     }
 
     [Fact]
-    public void RoundTrip_PreservesAnEmptyModel() {
+    public void RoundTrip_PreservesAnEmptyModel()
+    {
         var model = new ServiceSpecModel { FileName = "empty" };
 
         DeepEquality.AssertEqual(model, SpecModelSerializer.Read(SpecModelSerializer.Write(model)));
@@ -36,18 +38,35 @@ public class SpecModelSerializerTests {
     /// different C#, and a format that collapses them fails silently.
     /// </summary>
     [Fact]
-    public void RoundTrip_KeepsNullDistinctFromEmptyString() {
-        var model = new ServiceSpecModel {
+    public void RoundTrip_KeepsNullDistinctFromEmptyString()
+    {
+        var model = new ServiceSpecModel
+        {
             FileName = "nulls",
-            Schemas = {
-                new SchemaModel {
+            Schemas =
+            {
+                new SchemaModel
+                {
                     Name = "Thing",
                     Kind = SchemaKind.Object,
                     Type = null,
                     Format = "",
-                    Properties = {
-                        new PropertyModel { Name = "a", Type = null, Format = "", Pattern = null },
-                        new PropertyModel { Name = "b", Type = "", Format = null, Pattern = "" },
+                    Properties =
+                    {
+                        new PropertyModel
+                        {
+                            Name = "a",
+                            Type = null,
+                            Format = "",
+                            Pattern = null,
+                        },
+                        new PropertyModel
+                        {
+                            Name = "b",
+                            Type = "",
+                            Format = null,
+                            Pattern = "",
+                        },
                     },
                 },
             },
@@ -69,22 +88,34 @@ public class SpecModelSerializerTests {
     /// "declares an empty set", and the emitters branch on it.
     /// </summary>
     [Fact]
-    public void RoundTrip_KeepsANullListDistinctFromAnEmptyOne() {
-        var model = new ServiceSpecModel {
+    public void RoundTrip_KeepsANullListDistinctFromAnEmptyOne()
+    {
+        var model = new ServiceSpecModel
+        {
             FileName = "lists",
-            Schemas = {
-                new SchemaModel {
+            Schemas =
+            {
+                new SchemaModel
+                {
                     Name = "Thing",
-                    Properties = {
+                    Properties =
+                    {
                         new PropertyModel { Name = "none", EnumValues = null },
                         new PropertyModel { Name = "empty", EnumValues = new List<string>() },
-                        new PropertyModel { Name = "some", EnumValues = new List<string> { "a", "b" } },
+                        new PropertyModel
+                        {
+                            Name = "some",
+                            EnumValues = new List<string> { "a", "b" },
+                        },
                     },
                 },
             },
         };
 
-        var properties = SpecModelSerializer.Read(SpecModelSerializer.Write(model)).Schemas.Single().Properties;
+        var properties = SpecModelSerializer
+            .Read(SpecModelSerializer.Write(model))
+            .Schemas.Single()
+            .Properties;
 
         Assert.Null(properties[0].EnumValues);
         Assert.NotNull(properties[1].EnumValues);
@@ -106,18 +137,33 @@ public class SpecModelSerializerTests {
     [InlineData("withlist separator")]
     [InlineData("^[A-Z]{3}\\d+$")]
     [InlineData("")]
-    public void RoundTrip_SurvivesAwkwardCharacters(string value) {
-        var model = new ServiceSpecModel {
+    public void RoundTrip_SurvivesAwkwardCharacters(string value)
+    {
+        var model = new ServiceSpecModel
+        {
             FileName = "escapes",
-            Schemas = {
-                new SchemaModel {
+            Schemas =
+            {
+                new SchemaModel
+                {
                     Name = "Thing",
-                    Properties = { new PropertyModel { Name = "a", Pattern = value, EnumValues = new List<string> { value, "plain" } } },
+                    Properties =
+                    {
+                        new PropertyModel
+                        {
+                            Name = "a",
+                            Pattern = value,
+                            EnumValues = new List<string> { value, "plain" },
+                        },
+                    },
                 },
             },
         };
 
-        var property = SpecModelSerializer.Read(SpecModelSerializer.Write(model)).Schemas.Single().Properties.Single();
+        var property = SpecModelSerializer
+            .Read(SpecModelSerializer.Write(model))
+            .Schemas.Single()
+            .Properties.Single();
 
         Assert.Equal(value, property.Pattern);
         Assert.Equal(new[] { value, "plain" }, property.EnumValues);
@@ -128,12 +174,25 @@ public class SpecModelSerializerTests {
     /// a type the spec asked us not to.
     /// </summary>
     [Fact]
-    public void RoundTrip_PreservesGenerateFalseOnAFilterType() {
-        var model = new ServiceSpecModel {
+    public void RoundTrip_PreservesGenerateFalseOnAFilterType()
+    {
+        var model = new ServiceSpecModel
+        {
             FileName = "filters",
-            FilterTypes = {
-                new FilterTypeModel { Name = "external", Namespace = "Some.Ns", Generate = false },
-                new FilterTypeModel { Name = "ours", Namespace = "Some.Ns", Generate = true },
+            FilterTypes =
+            {
+                new FilterTypeModel
+                {
+                    Name = "external",
+                    Namespace = "Some.Ns",
+                    Generate = false,
+                },
+                new FilterTypeModel
+                {
+                    Name = "ours",
+                    Namespace = "Some.Ns",
+                    Generate = true,
+                },
             },
         };
 
@@ -148,7 +207,8 @@ public class SpecModelSerializerTests {
     /// on every build, the timestamp moves, and the generator re-runs against an unchanged spec.
     /// </summary>
     [Fact]
-    public void Write_IsStableAcrossCalls() {
+    public void Write_IsStableAcrossCalls()
+    {
         var model = FullyPopulated();
 
         Assert.Equal(SpecModelSerializer.Write(model), SpecModelSerializer.Write(model));
@@ -159,7 +219,8 @@ public class SpecModelSerializerTests {
     /// runs. Unordered output would make every build look dirty to the Inputs/Outputs check.
     /// </summary>
     [Fact]
-    public void Write_OrdersFilterPropertyValues() {
+    public void Write_OrdersFilterPropertyValues()
+    {
         var operation = new OperationModel { OperationId = "op" };
         var instance = new FilterInstanceModel { FilterTypeName = "f" };
         instance.PropertyValues["zebra"] = "1";
@@ -167,15 +228,25 @@ public class SpecModelSerializerTests {
         instance.PropertyValues["mango"] = "3";
         operation.FilterInstances.Add(instance);
 
-        var model = new ServiceSpecModel {
+        var model = new ServiceSpecModel
+        {
             FileName = "s",
-            Services = { new ServiceModel { Tag = "t", Operations = { operation } } },
+            Services =
+            {
+                new ServiceModel { Tag = "t", Operations = { operation } },
+            },
         };
 
         var text = SpecModelSerializer.Write(model);
 
-        Assert.True(text.IndexOf("apple", StringComparison.Ordinal) < text.IndexOf("mango", StringComparison.Ordinal));
-        Assert.True(text.IndexOf("mango", StringComparison.Ordinal) < text.IndexOf("zebra", StringComparison.Ordinal));
+        Assert.True(
+            text.IndexOf("apple", StringComparison.Ordinal)
+                < text.IndexOf("mango", StringComparison.Ordinal)
+        );
+        Assert.True(
+            text.IndexOf("mango", StringComparison.Ordinal)
+                < text.IndexOf("zebra", StringComparison.Ordinal)
+        );
     }
 
     [Theory]
@@ -184,7 +255,8 @@ public class SpecModelSerializerTests {
     [InlineData("#hardened-openapi-model 99\nspec\tFileName=x\n")]
     [InlineData("#hardened-openapi-model 1\nnosuchrecord\tKey=v\n")]
     [InlineData("#hardened-openapi-model 1\nspec\tmissing-the-equals\n")]
-    public void Read_RejectsAnythingItDoesNotUnderstand(string text) {
+    public void Read_RejectsAnythingItDoesNotUnderstand(string text)
+    {
         Assert.Throws<FormatException>(() => SpecModelSerializer.Read(text));
     }
 
@@ -195,7 +267,8 @@ public class SpecModelSerializerTests {
     /// </summary>
     [Theory]
     [MemberData(nameof(SingleFieldMutations))]
-    public void DeepEquality_DetectsADifferenceAtEveryDepth(string because, int mutation) {
+    public void DeepEquality_DetectsADifferenceAtEveryDepth(string because, int mutation)
+    {
         var expected = FullyPopulated();
         var actual = FullyPopulated();
 
@@ -209,24 +282,40 @@ public class SpecModelSerializerTests {
 
     // Indexed rather than passed as delegates: the models are internal to the task assembly and
     // visible here only through InternalsVisibleTo, so a public [MemberData] cannot name them.
-    public static TheoryData<string, int> SingleFieldMutations() {
+    public static TheoryData<string, int> SingleFieldMutations()
+    {
         var data = new TheoryData<string, int>();
 
-        for (var i = 0; i < MutationNames.Length; i++) {
+        for (var i = 0; i < MutationNames.Length; i++)
+        {
             data.Add(MutationNames[i], i);
         }
 
         return data;
     }
 
-    private static readonly string[] MutationNames = [
-        "top-level scalar", "nested scalar", "null becoming a value", "value becoming null",
-        "empty string vs null", "nullable int", "nullable decimal", "bool", "enum",
-        "string list item", "string list length", "list becoming null", "deeply nested scalar",
-        "dictionary value", "dictionary key", "collection length",
+    private static readonly string[] MutationNames =
+    [
+        "top-level scalar",
+        "nested scalar",
+        "null becoming a value",
+        "value becoming null",
+        "empty string vs null",
+        "nullable int",
+        "nullable decimal",
+        "bool",
+        "enum",
+        "string list item",
+        "string list length",
+        "list becoming null",
+        "deeply nested scalar",
+        "dictionary value",
+        "dictionary key",
+        "collection length",
     ];
 
-    private static readonly Action<ServiceSpecModel>[] Mutations = [
+    private static readonly Action<ServiceSpecModel>[] Mutations =
+    [
         model => model.FileName = "changed",
         model => model.Schemas[0].Format = "changed",
         model => model.Schemas[1].Type = "object",
@@ -249,11 +338,14 @@ public class SpecModelSerializerTests {
     /// Every field on every model set to a value distinguishable from its default, so the reflective
     /// comparison has something to catch when one goes missing.
     /// </summary>
-    private static ServiceSpecModel FullyPopulated() {
-        var property = new PropertyModel {
+    private static ServiceSpecModel FullyPopulated()
+    {
+        var property = new PropertyModel
+        {
             // A named branch and a bare one, because the name is optional and rides on the same
             // encoded string as the reference.
-            OneOf = {
+            OneOf =
+            {
                 new ChoiceBranchModel { Ref = "#/components/schemas/Tag", Name = "tag" },
                 new ChoiceBranchModel { Type = "string", Format = "uuid" },
             },
@@ -287,7 +379,8 @@ public class SpecModelSerializerTests {
             MaxItems = 20,
         };
 
-        var parameter = new ParameterModel {
+        var parameter = new ParameterModel
+        {
             Name = "petId",
             In = "path",
             Description = "The pet's identifier.",
@@ -317,7 +410,8 @@ public class SpecModelSerializerTests {
         filterInstance.PropertyValues["window"] = "60";
         filterInstance.PropertyValues["limit"] = "100";
 
-        var operation = new OperationModel {
+        var operation = new OperationModel
+        {
             OperationId = "getPet",
             Path = "/pets/{petId}",
             HttpMethod = "GET",
@@ -337,20 +431,26 @@ public class SpecModelSerializerTests {
             ResponseIsArray = true,
             ResponseArrayItemsRef = "#/components/schemas/Pet",
             SuccessStatusCode = 201,
-            SuccessResponses = {
-                new SuccessResponseModel {
+            SuccessResponses =
+            {
+                new SuccessResponseModel
+                {
                     StatusCode = 201,
                     Ref = "#/components/schemas/Pet",
                     Type = "object",
                     ContentType = "application/json",
-                    Description = "Created."
+                    Description = "Created.",
                 },
                 // Bodyless, and a second success - the two shapes that had nowhere to go before.
                 new SuccessResponseModel { StatusCode = 204 },
             },
-            ErrorResponses = {
-                new ErrorResponseModel {
-                    StatusCode = 404, Ref = "#/components/schemas/ApiError", Description = "Gone."
+            ErrorResponses =
+            {
+                new ErrorResponseModel
+                {
+                    StatusCode = 404,
+                    Ref = "#/components/schemas/ApiError",
+                    Description = "Gone.",
                 },
                 new ErrorResponseModel { StatusCode = 503 },
             },
@@ -358,7 +458,8 @@ public class SpecModelSerializerTests {
             // Both shapes, because they serialize differently: one carries grants and the other
             // carries only the authentication flag, and a reader that dropped the flag would turn
             // "be someone" into "requires nothing".
-            AuthorizationBranches = {
+            AuthorizationBranches =
+            {
                 new AuthorizationBranchModel { Grants = { "pets:read", "pets:write" } },
                 new AuthorizationBranchModel { RequiresAuthentication = true },
             },
@@ -366,19 +467,31 @@ public class SpecModelSerializerTests {
             RequestBodyRequired = { "name", "tag" },
         };
 
-        return new ServiceSpecModel {
+        return new ServiceSpecModel
+        {
             FileName = "petstore",
             BindCancellationToken = true,
-            Schemas = {
-                new SchemaModel {
+            Schemas =
+            {
+                new SchemaModel
+                {
                     Name = "Pet",
                     Kind = SchemaKind.Object,
                     Description = "A pet in the store.",
                     DiscriminatorPropertyName = "petType",
                     BaseRef = "#/components/schemas/Animal",
-                    DiscriminatorMapping = {
-                        new DiscriminatorMappingModel { Value = "dog", Ref = "#/components/schemas/Dog" },
-                        new DiscriminatorMappingModel { Value = "cat", Ref = "#/components/schemas/Cat" },
+                    DiscriminatorMapping =
+                    {
+                        new DiscriminatorMappingModel
+                        {
+                            Value = "dog",
+                            Ref = "#/components/schemas/Dog",
+                        },
+                        new DiscriminatorMappingModel
+                        {
+                            Value = "cat",
+                            Ref = "#/components/schemas/Cat",
+                        },
                     },
                     Properties = { property },
                     EnumValues = { "unused" },
@@ -394,41 +507,70 @@ public class SpecModelSerializerTests {
                     Type = "object",
                     Format = "custom",
                 },
-                new SchemaModel { Name = "PetStatus", Kind = SchemaKind.Enum, EnumValues = { "available", "sold" } },
+                new SchemaModel
+                {
+                    Name = "PetStatus",
+                    Kind = SchemaKind.Enum,
+                    EnumValues = { "available", "sold" },
+                },
                 // A union, whose branches did not cross the file at all before: every member is
                 // named, as a Smithy union names them.
-                new SchemaModel {
+                new SchemaModel
+                {
                     Name = "PetEvent",
                     Kind = SchemaKind.OneOf,
-                    OneOf = {
-                        new ChoiceBranchModel { Ref = "#/components/schemas/Adopted", Name = "adopted" },
+                    OneOf =
+                    {
+                        new ChoiceBranchModel
+                        {
+                            Ref = "#/components/schemas/Adopted",
+                            Name = "adopted",
+                        },
                         new ChoiceBranchModel { Type = "string", Name = "note" },
                     },
                 },
             },
-            Services = { new ServiceModel { Tag = "Pet", TagDescription = "Everything about pets.", Operations = { operation } } },
+            Services =
+            {
+                new ServiceModel
+                {
+                    Tag = "Pet",
+                    TagDescription = "Everything about pets.",
+                    Operations = { operation },
+                },
+            },
             // The document's own identity. Absent here for as long as it has existed, so the round
             // trip for every one of these was written and never proven - which is the hole this
             // file's reflection comparer exists to close, left open by the model it compares.
             Title = "Petstore API",
             Version = "2.1.0",
             InfoDescription = "Everything about the pets in the store.",
-            SecuritySchemes = {
-                new SecuritySchemeModel { Name = "bearer", Json = "{\"type\":\"http\",\"scheme\":\"bearer\"}" },
+            SecuritySchemes =
+            {
+                new SecuritySchemeModel
+                {
+                    Name = "bearer",
+                    Json = "{\"type\":\"http\",\"scheme\":\"bearer\"}",
+                },
             },
             // Two, because the list is ordered and one entry cannot show that. The second carries
             // no description, which is the member that has to stay null rather than becoming "".
-            Servers = {
+            Servers =
+            {
                 new ServerModel { Url = "https://api.example.com", Description = "production" },
                 new ServerModel { Url = "https://staging.example.com" },
             },
-            FilterTypes = {
-                new FilterTypeModel {
+            FilterTypes =
+            {
+                new FilterTypeModel
+                {
                     Name = "rateLimit",
                     Namespace = "Sample.Filters",
                     Generate = false,
-                    Properties = {
-                        new FilterTypePropertyModel {
+                    Properties =
+                    {
+                        new FilterTypePropertyModel
+                        {
                             Name = "window",
                             CSharpType = "int",
                             Default = "60",

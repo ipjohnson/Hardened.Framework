@@ -24,9 +24,10 @@ namespace Hardened.Generation.Models;
 /// diagnostic in a cache key.
 /// </para>
 /// </remarks>
-internal sealed class UnmappedKeywordModel {
-
-    public UnmappedKeywordModel(string keyword, string location) {
+internal sealed class UnmappedKeywordModel
+{
+    public UnmappedKeywordModel(string keyword, string location)
+    {
         Keyword = keyword;
         Location = location;
     }

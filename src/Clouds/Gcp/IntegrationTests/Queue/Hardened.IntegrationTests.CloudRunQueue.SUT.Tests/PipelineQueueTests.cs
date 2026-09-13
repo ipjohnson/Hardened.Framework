@@ -19,11 +19,14 @@ namespace Hardened.IntegrationTests.CloudRunQueue.SUT.Tests;
 /// expects to find.
 /// </remarks>
 [PipelineDelivery]
-public class PipelineQueueTests {
-
+public class PipelineQueueTests
+{
     [HardenedTest]
     public async Task AQueueMessageReachesTheHandlerThroughThePipeline(
-        CloudRunQueueApp.Queues queues, [Mock] IOrderStore store) {
+        CloudRunQueueApp.Queues queues,
+        [Mock] IOrderStore store
+    )
+    {
         await queues.Orders(new Order { Id = "p-1", Quantity = 2 });
 
         store.Received().Place(Arg.Is<Order>(order => order.Id == "p-1" && order.Quantity == 2));
@@ -35,11 +38,16 @@ public class PipelineQueueTests {
     /// </summary>
     [HardenedTest]
     public async Task AFailedMessageFailsTheDelivery(
-        CloudRunQueueApp.Queues queues, [Mock] IOrderStore store) {
-        store.When(one => one.Place(Arg.Is<Order>(order => order.Id == "p-2")))
+        CloudRunQueueApp.Queues queues,
+        [Mock] IOrderStore store
+    )
+    {
+        store
+            .When(one => one.Place(Arg.Is<Order>(order => order.Id == "p-2")))
             .Do(_ => throw new InvalidOperationException("refused"));
 
-        await Assert.ThrowsAsync<InvalidOperationException>(
-            () => queues.Orders(new Order { Id = "p-1" }, new Order { Id = "p-2" }));
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            queues.Orders(new Order { Id = "p-1" }, new Order { Id = "p-2" })
+        );
     }
 }

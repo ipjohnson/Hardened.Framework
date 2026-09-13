@@ -20,10 +20,11 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests;
 /// configuration reaching the model, and the model reaching the page.
 /// </para>
 /// </remarks>
-public class OpenApiUiTests {
-
+public class OpenApiUiTests
+{
     [HardenedTest]
-    public async Task TheUiIsServedAsHtml(ITestWebApp testWebApp) {
+    public async Task TheUiIsServedAsHtml(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/docs");
 
         response.Assert.Ok();
@@ -36,7 +37,8 @@ public class OpenApiUiTests {
     /// property survived the generated attribute at all - a non-nullable one would have arrived null.
     /// </summary>
     [HardenedTest]
-    public async Task TheConfiguredTitleReachesThePage(ITestWebApp testWebApp) {
+    public async Task TheConfiguredTitleReachesThePage(ITestWebApp testWebApp)
+    {
         var page = await (await testWebApp.Get("/docs")).ReadTextAsync();
 
         Assert.Contains("<title>Integration Tests</title>", page);
@@ -46,7 +48,8 @@ public class OpenApiUiTests {
     /// And the defaults it did not set reach it too, rather than being blanked by the attribute.
     /// </summary>
     [HardenedTest]
-    public async Task TheUnsetDefaultsReachThePage(ITestWebApp testWebApp) {
+    public async Task TheUnsetDefaultsReachThePage(ITestWebApp testWebApp)
+    {
         var page = await (await testWebApp.Get("/docs")).ReadTextAsync();
 
         Assert.Contains("data-url=\"/openapi.json\"", page);
@@ -60,7 +63,8 @@ public class OpenApiUiTests {
     /// 404 is the failure this pairing exists to avoid, and nothing in the type system prevents it.
     /// </summary>
     [HardenedTest]
-    public async Task ThePageReferencesADocumentThisApplicationServes(ITestWebApp testWebApp) {
+    public async Task ThePageReferencesADocumentThisApplicationServes(ITestWebApp testWebApp)
+    {
         var page = await (await testWebApp.Get("/docs")).ReadTextAsync();
 
         var start = page.IndexOf("data-url=\"", StringComparison.Ordinal) + "data-url=\"".Length;
@@ -85,7 +89,8 @@ public class OpenApiUiTests {
     /// describes this application.
     /// </remarks>
     [HardenedTest]
-    public async Task ThePageDoesNotAppearInTheDocument(ITestWebApp testWebApp) {
+    public async Task ThePageDoesNotAppearInTheDocument(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/openapi.json");
 
         using var document = JsonDocument.Parse(await response.ReadTextAsync());
@@ -97,7 +102,8 @@ public class OpenApiUiTests {
     /// A verb the page does not answer is a 405 rather than a 404: the resource exists.
     /// </summary>
     [HardenedTest]
-    public async Task AWriteToThePageIsMethodNotAllowed(ITestWebApp testWebApp) {
+    public async Task AWriteToThePageIsMethodNotAllowed(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Post(new { }, "/docs");
 
         Assert.Equal(405, response.StatusCode);
@@ -113,7 +119,8 @@ public class OpenApiUiTests {
     /// service publishing several specifications wants one page for each.
     /// </remarks>
     [HardenedTest]
-    public async Task ASecondPageIsServedAtItsOwnPath(ITestWebApp testWebApp) {
+    public async Task ASecondPageIsServedAtItsOwnPath(ITestWebApp testWebApp)
+    {
         var page = await (await testWebApp.Get("/docs/internal")).ReadTextAsync();
 
         Assert.Contains("<title>Internal</title>", page);
@@ -125,7 +132,8 @@ public class OpenApiUiTests {
     /// one registered in the container would be whichever module ran last.
     /// </summary>
     [HardenedTest]
-    public async Task EachPageRendersItsOwnConfiguration(ITestWebApp testWebApp) {
+    public async Task EachPageRendersItsOwnConfiguration(ITestWebApp testWebApp)
+    {
         var first = await (await testWebApp.Get("/docs")).ReadTextAsync();
         var second = await (await testWebApp.Get("/docs/internal")).ReadTextAsync();
 
@@ -141,7 +149,8 @@ public class OpenApiUiTests {
     /// function and cannot travel in a <c>data-</c> attribute.
     /// </summary>
     [HardenedTest]
-    public async Task ThePluginPageInitialisesInScript(ITestWebApp testWebApp) {
+    public async Task ThePluginPageInitialisesInScript(ITestWebApp testWebApp)
+    {
         var page = await (await testWebApp.Get("/docs/msgpack")).ReadTextAsync();
 
         Assert.Contains("<title>MessagePack</title>", page);
@@ -155,8 +164,10 @@ public class OpenApiUiTests {
     /// change to every reference page an application serves.
     /// </summary>
     [HardenedTest]
-    public async Task TheOtherPagesKeepTheAttributeForm(ITestWebApp testWebApp) {
-        foreach (var path in new[] { "/docs", "/docs/internal" }) {
+    public async Task TheOtherPagesKeepTheAttributeForm(ITestWebApp testWebApp)
+    {
+        foreach (var path in new[] { "/docs", "/docs/internal" })
+        {
             var page = await (await testWebApp.Get(path)).ReadTextAsync();
 
             Assert.Contains("<script id=\"api-reference\" data-url=\"", page);

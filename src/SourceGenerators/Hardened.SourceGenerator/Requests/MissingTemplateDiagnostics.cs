@@ -21,7 +21,8 @@ namespace Hardened.SourceGenerator.Requests;
 /// needs no view and is a legitimate thing to write.
 /// </para>
 /// </remarks>
-public static class MissingTemplateDiagnostics {
+public static class MissingTemplateDiagnostics
+{
     public const string DiagnosticId = "HOAG020";
 
     private const string Markup = "text/html";
@@ -31,35 +32,48 @@ public static class MissingTemplateDiagnostics {
     /// <c>UnresolvedHandler.Descriptor</c> is: RS2008 looks for the field, and these projects set
     /// <c>EnforceExtendedAnalyzerRules</c>.
     /// </summary>
-    private static DiagnosticDescriptor Descriptor() => new(
-        id: DiagnosticId,
-        title: "Operation declares markup but names no view",
-        messageFormat:
-        "'{0}.{1}' answers '{2}' with a model, and declares no [Output<T>]. Nothing serializes " +
-        "an object as markup, so this would fail at run time. Name the view on the implementation.",
-        category: "Hardened.OpenApi",
-        defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+    private static DiagnosticDescriptor Descriptor() =>
+        new(
+            id: DiagnosticId,
+            title: "Operation declares markup but names no view",
+            messageFormat: "'{0}.{1}' answers '{2}' with a model, and declares no [Output<T>]. Nothing serializes "
+                + "an object as markup, so this would fail at run time. Name the view on the implementation.",
+            category: "Hardened.OpenApi",
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true
+        );
 
     public static void ReportIfMarkupWithoutAView(
-        this RequestHandlerModel model, SourceProductionContext context) {
+        this RequestHandlerModel model,
+        SourceProductionContext context
+    )
+    {
         var response = model.ResponseInformation;
 
-        if (response.OutputType != null ||
-            !response.RendersAModel ||
-            response.DeclaredContentType == null ||
-            !response.DeclaredContentType.StartsWith(Markup, System.StringComparison.OrdinalIgnoreCase)) {
+        if (
+            response.OutputType != null
+            || !response.RendersAModel
+            || response.DeclaredContentType == null
+            || !response.DeclaredContentType.StartsWith(
+                Markup,
+                System.StringComparison.OrdinalIgnoreCase
+            )
+        )
+        {
             return;
         }
 
         // Location.None, as everywhere else models are reported from: a syntax location would
         // travel with the model through the incremental caches, which compare models for equality
         // to decide whether to regenerate.
-        context.ReportDiagnostic(Diagnostic.Create(
-            Descriptor(),
-            Location.None,
-            model.ControllerType.Name,
-            model.HandlerMethod,
-            response.DeclaredContentType));
+        context.ReportDiagnostic(
+            Diagnostic.Create(
+                Descriptor(),
+                Location.None,
+                model.ControllerType.Name,
+                model.HandlerMethod,
+                response.DeclaredContentType
+            )
+        );
     }
 }

@@ -24,7 +24,8 @@ namespace Hardened.Aws.Lambda.Runtime.Execution;
 /// that, which is what lets a handler abandon work and answer.
 /// </para>
 /// </remarks>
-public class LambdaExecutionContext : IExecutionContext {
+public class LambdaExecutionContext : IExecutionContext
+{
     /// <summary>
     /// How long before the deadline the token trips.
     /// </summary>
@@ -43,7 +44,9 @@ public class LambdaExecutionContext : IExecutionContext {
         IExecutionRequest request,
         IExecutionResponse response,
         CancellationToken cancellationToken,
-        IMetricLogger? metricLogger = null) {
+        IMetricLogger? metricLogger = null
+    )
+    {
         RootServiceProvider = rootServiceProvider;
         RequestServices = requestServices;
         KnownServices = knownServices;
@@ -65,15 +68,20 @@ public class LambdaExecutionContext : IExecutionContext {
     /// which is the honest answer: there is no time to do the work.
     /// </remarks>
     public static CancellationTokenSource ForInvocation(
-        ILambdaContext context, TimeSpan? margin = null) {
+        ILambdaContext context,
+        TimeSpan? margin = null
+    )
+    {
         var remaining = context.RemainingTime - (margin ?? DefaultDeadlineMargin);
 
         var source = new CancellationTokenSource();
 
-        if (remaining <= TimeSpan.Zero) {
+        if (remaining <= TimeSpan.Zero)
+        {
             source.Cancel();
         }
-        else {
+        else
+        {
             source.CancelAfter(remaining);
         }
 
@@ -84,7 +92,9 @@ public class LambdaExecutionContext : IExecutionContext {
         IExecutionRequest? request = null,
         IExecutionResponse? response = null,
         IServiceProvider? serviceProvider = null,
-        IMetricLogger? metricLogger = null) {
+        IMetricLogger? metricLogger = null
+    )
+    {
         return new LambdaExecutionContext(
             RootServiceProvider,
             serviceProvider ?? RequestServices,
@@ -92,14 +102,16 @@ public class LambdaExecutionContext : IExecutionContext {
             request ?? Request,
             response ?? Response,
             CancellationToken,
-            metricLogger ?? RequestMetrics) {
+            metricLogger ?? RequestMetrics
+        )
+        {
             HandlerInstance = HandlerInstance,
             HandlerInfo = HandlerInfo,
             DefaultOutput = DefaultOutput,
             // The reference, not a copy: a fork is the same caller.
             CallerPrincipal = CallerPrincipal,
             // And the same invocation, so a fanned-out batch reports one id rather than ten.
-            CorrelationId = CorrelationId
+            CorrelationId = CorrelationId,
         };
     }
 
@@ -118,7 +130,8 @@ public class LambdaExecutionContext : IExecutionContext {
     private string? _correlationId;
 
     /// <inheritdoc />
-    public string CorrelationId {
+    public string CorrelationId
+    {
         get => _correlationId ??= CorrelationIdentifier.ForCurrentTrace();
         init => _correlationId = value;
     }

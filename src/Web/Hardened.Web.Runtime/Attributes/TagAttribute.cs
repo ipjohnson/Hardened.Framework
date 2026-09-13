@@ -20,8 +20,10 @@ namespace Hardened.Web.Runtime.Attributes;
 /// </para>
 /// </summary>
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
-public class TagAttribute : Attribute {
-    public TagAttribute(string name) {
+public class TagAttribute : Attribute
+{
+    public TagAttribute(string name)
+    {
         Name = name;
     }
 

@@ -27,9 +27,10 @@ namespace Hardened.IntegrationTests.Benchmark.SUT.Tests;
 /// ordered them against JSON are all gone.
 /// </para>
 /// </remarks>
-public class ServiceRegistrationTests {
-
-    private static List<string> RegistrationsFor(Type serviceType) {
+public class ServiceRegistrationTests
+{
+    private static List<string> RegistrationsFor(Type serviceType)
+    {
         var services = new ServiceCollection();
 
         new BenchmarkTestApp().PopulateServiceCollection(services);
@@ -44,7 +45,8 @@ public class ServiceRegistrationTests {
     /// The set has more than one member, which is the property <c>Try</c> silently destroys.
     /// </summary>
     [Fact]
-    public void ResponseSerializersResolveAsASetRatherThanASingleWinner() {
+    public void ResponseSerializersResolveAsASetRatherThanASingleWinner()
+    {
         var serializers = RegistrationsFor(typeof(IResponseSerializer));
 
         Assert.Contains("SystemTextJsonResponseSerializer", serializers);

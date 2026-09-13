@@ -23,20 +23,20 @@ namespace Hardened.Web.SourceGenerator.Tests.Templates;
 /// generated registrations rather than where the attribute was written.
 /// </para>
 /// </remarks>
-public class EnableModuleTests {
-
-    private static readonly Type[] Anchors = [
+public class EnableModuleTests
+{
+    private static readonly Type[] Anchors =
+    [
         typeof(GetAttribute),
         typeof(FromBodyAttribute),
-        typeof(TemplateBaseAttribute)
+        typeof(TemplateBaseAttribute),
     ];
 
     /// <summary>
     /// A marker implementing <c>IDependencyModule</c> outright, which is the shape a marker from a
     /// referenced package has: its interface is in metadata, so the semantic model sees it.
     /// </summary>
-    private const string ModuleMarker =
-        """
+    private const string ModuleMarker = """
         using DependencyModules.Runtime.Interfaces;
         using Microsoft.Extensions.DependencyInjection;
 
@@ -51,33 +51,41 @@ public class EnableModuleTests {
 
     private static GeneratorResult Generate(string markers) =>
         GeneratorTestHarness.Run(
-            new Dictionary<string, string> {
+            new Dictionary<string, string>
+            {
                 ["Engine.cs"] = ModuleMarker,
                 ["Application.cs"] = $$"""
-                    using Hardened.Shared.Runtime.Attributes;
-                    using Hardened.Web.Runtime.Attributes;
-                    using Other.Engine;
+                using Hardened.Shared.Runtime.Attributes;
+                using Hardened.Web.Runtime.Attributes;
+                using Other.Engine;
 
-                    namespace TestApp;
+                namespace TestApp;
 
-                    [HardenedModule]
-                    {{markers}}
-                    public partial class Application { }
+                [HardenedModule]
+                {{markers}}
+                public partial class Application { }
 
-                    public class HomeController {
-                        [Get("/")]
-                        public string Home() => "home";
-                    }
-                    """
+                public class HomeController {
+                    [Get("/")]
+                    public string Home() => "home";
+                }
+                """,
             },
             new IIncrementalGenerator[] { new WebLibrarySourceGenerator() },
-            Anchors);
+            Anchors
+        );
 
     [Fact]
-    public void AMarkerThatIsAModuleIsRegistered() {
-        var routing = Generate("[Enable<EngineModule>]").AssertNoErrors().SourceContaining("Routing");
+    public void AMarkerThatIsAModuleIsRegistered()
+    {
+        var routing = Generate("[Enable<EngineModule>]")
+            .AssertNoErrors()
+            .SourceContaining("Routing");
 
-        Assert.Contains("AddModule(serviceCollection, new global::Other.Engine.EngineModule())", routing);
+        Assert.Contains(
+            "AddModule(serviceCollection, new global::Other.Engine.EngineModule())",
+            routing
+        );
     }
 
     /// <summary>
@@ -85,15 +93,19 @@ public class EnableModuleTests {
     /// feature, and carrying services is the exception.
     /// </summary>
     [Fact]
-    public void AMarkerThatIsNotAModuleRegistersNothing() {
-        var routing = Generate("[Enable<PlainMarker>]").AssertNoErrors().SourceContaining("Routing");
+    public void AMarkerThatIsNotAModuleRegistersNothing()
+    {
+        var routing = Generate("[Enable<PlainMarker>]")
+            .AssertNoErrors()
+            .SourceContaining("Routing");
 
         Assert.DoesNotContain("AddModule", routing);
     }
 
     /// <summary>And a module with no feature attributes still registers, since that is the point.</summary>
     [Fact]
-    public void ItDoesNotDependOnTheMarkerDeclaringAnyOtherFacet() {
+    public void ItDoesNotDependOnTheMarkerDeclaringAnyOtherFacet()
+    {
         var result = Generate("[Enable<EngineModule>]").AssertNoErrors();
 
         Assert.DoesNotContain(result.GeneratedSources.Keys, key => key.Contains("Engine"));

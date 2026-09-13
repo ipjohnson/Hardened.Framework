@@ -5,7 +5,8 @@ using Hardened.SourceGenerator.Shared;
 
 namespace Hardened.SourceGenerator.Models.Request;
 
-public class RequestParameterInformation {
+public class RequestParameterInformation
+{
     public RequestParameterInformation(
         ITypeDefinition parameterType,
         string name,
@@ -16,10 +17,11 @@ public class RequestParameterInformation {
         int parameterIndex,
         AttributeModel? customAttribute = null,
         bool constructorRequiresServices = false,
-        bool registeredAsService = false) {
+        bool registeredAsService = false
+    )
+    {
         ConstructorRequiresServices = constructorRequiresServices;
         RegisteredAsService = registeredAsService;
-
 
         ParameterType = parameterType;
         Name = name;
@@ -61,7 +63,7 @@ public class RequestParameterInformation {
     public bool Required { get; }
 
     public string? DefaultValue { get; }
-    
+
     public AttributeModel? CustomAttribute { get; }
 
     public ParameterBindType BindingType { get; }
@@ -131,9 +133,7 @@ public class RequestParameterInformation {
     /// </summary>
     public bool RegisteredAsService { get; }
 
-    public int ParameterIndex {
-        get;
-    }
+    public int ParameterIndex { get; }
 
     /// <summary>
     /// The same parameter at a different position, with everything else carried across.
@@ -146,7 +146,8 @@ public class RequestParameterInformation {
     /// has to change.
     /// </remarks>
     public RequestParameterInformation WithIndex(int parameterIndex) =>
-        new(ParameterType,
+        new(
+            ParameterType,
             Name,
             Required,
             DefaultValue,
@@ -155,100 +156,125 @@ public class RequestParameterInformation {
             parameterIndex,
             CustomAttribute,
             ConstructorRequiresServices,
-            RegisteredAsService) {
+            RegisteredAsService
+        )
+        {
             Description = Description,
             SpecParameter = SpecParameter,
             SchemaFacets = SchemaFacets,
-            RequiredByConstraint = RequiredByConstraint
+            RequiredByConstraint = RequiredByConstraint,
         };
 
-    public override bool Equals(object obj) {
-        if (obj is not RequestParameterInformation requestParameterInformation) {
+    public override bool Equals(object obj)
+    {
+        if (obj is not RequestParameterInformation requestParameterInformation)
+        {
             return false;
         }
 
-        if (!ParameterType.Equals(requestParameterInformation.ParameterType)) {
+        if (!ParameterType.Equals(requestParameterInformation.ParameterType))
+        {
             return false;
         }
 
-        if (!Name.Equals(requestParameterInformation.Name)) {
+        if (!Name.Equals(requestParameterInformation.Name))
+        {
             return false;
         }
 
-        if (!Required.Equals(requestParameterInformation.Required)) {
+        if (!Required.Equals(requestParameterInformation.Required))
+        {
             return false;
         }
 
-        if (DefaultValue != requestParameterInformation.DefaultValue) {
+        if (DefaultValue != requestParameterInformation.DefaultValue)
+        {
             return false;
         }
 
-        if (!BindingType.Equals(requestParameterInformation.BindingType)) {
+        if (!BindingType.Equals(requestParameterInformation.BindingType))
+        {
             return false;
         }
 
-        if (!BindingName.Equals(requestParameterInformation.BindingName)) {
+        if (!BindingName.Equals(requestParameterInformation.BindingName))
+        {
             return false;
         }
 
-        if (CustomAttribute != null &&
-            !CustomAttribute.Equals(requestParameterInformation.CustomAttribute)) {
+        if (
+            CustomAttribute != null
+            && !CustomAttribute.Equals(requestParameterInformation.CustomAttribute)
+        )
+        {
             return false;
         }
 
         // Both reach the published document and nothing else. Left out of equality, an edit to a
         // parameter's prose or its declared constraints compares equal and the cached document
         // keeps the old text - the exact staleness ResponseModelSelector's remarks warn about.
-        if (Description != requestParameterInformation.Description) {
+        if (Description != requestParameterInformation.Description)
+        {
             return false;
         }
 
-        if (!Equals(SpecParameter, requestParameterInformation.SpecParameter)) {
+        if (!Equals(SpecParameter, requestParameterInformation.SpecParameter))
+        {
             return false;
         }
 
-        if (SchemaFacets != requestParameterInformation.SchemaFacets ||
-            RequiredByConstraint != requestParameterInformation.RequiredByConstraint) {
+        if (
+            SchemaFacets != requestParameterInformation.SchemaFacets
+            || RequiredByConstraint != requestParameterInformation.RequiredByConstraint
+        )
+        {
             return false;
         }
 
-        if (ConstructorRequiresServices != requestParameterInformation.ConstructorRequiresServices) {
+        if (ConstructorRequiresServices != requestParameterInformation.ConstructorRequiresServices)
+        {
             return false;
         }
 
-        if (RegisteredAsService != requestParameterInformation.RegisteredAsService) {
+        if (RegisteredAsService != requestParameterInformation.RegisteredAsService)
+        {
             return false;
         }
 
         return true;
     }
 
-    public override string ToString() {
+    public override string ToString()
+    {
         return $"{ParameterType} {Name}";
     }
 
-    public override int GetHashCode() {
-        unchecked {
+    public override int GetHashCode()
+    {
+        unchecked
+        {
             var hashCode = ParameterType.GetHashCode();
             hashCode = (hashCode * 397) ^ Name.GetHashCode();
             hashCode = (hashCode * 397) ^ Required.GetHashCode();
             hashCode = (hashCode * 397) ^ (DefaultValue != null ? DefaultValue.GetHashCode() : 0);
             hashCode = (hashCode * 397) ^ (int)BindingType;
             hashCode = (hashCode * 397) ^ BindingName.GetHashCode();
-            
-            if (CustomAttribute is not null) {
+
+            if (CustomAttribute is not null)
+            {
                 hashCode = (hashCode * 397) ^ CustomAttribute.GetHashCode();
             }
 
             hashCode = (hashCode * 397) ^ ConstructorRequiresServices.GetHashCode();
             hashCode = (hashCode * 397) ^ RegisteredAsService.GetHashCode();
-            
+
             return hashCode;
         }
     }
 }
 
-public enum ParameterBindType {
+public enum ParameterBindType
+{
     Path,
     QueryString,
     Header,

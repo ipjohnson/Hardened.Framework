@@ -25,8 +25,10 @@ namespace Hardened.Web.Runtime.Responses;
 /// </remarks>
 [HttpStatus(412)]
 public sealed record PreconditionFailed<T>(T Body)
-    : IHttpStatusResponse, ICarriesResponseBody, IResponseExpectation<PreconditionFailed<T>> {
-
+    : IHttpStatusResponse,
+        ICarriesResponseBody,
+        IResponseExpectation<PreconditionFailed<T>>
+{
     public string Type => ProblemTypes.PreconditionFailed;
 
     public string Title => "Precondition Failed";
@@ -38,6 +40,7 @@ public sealed record PreconditionFailed<T>(T Body)
     object? ICarriesResponseBody.Body => Body;
 
     public static PreconditionFailed<T> FromResponse(
-        object? body, IReadOnlyDictionary<string, string> headers) =>
-        new(ResponseExpectation.Body<T>(body));
+        object? body,
+        IReadOnlyDictionary<string, string> headers
+    ) => new(ResponseExpectation.Body<T>(body));
 }

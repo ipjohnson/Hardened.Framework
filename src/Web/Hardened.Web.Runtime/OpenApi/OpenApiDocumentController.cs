@@ -2,9 +2,9 @@ using System.Globalization;
 using System.IO.Compression;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
-using Microsoft.Extensions.Primitives;
 using Hardened.Web.Runtime.Headers;
 using Hardened.Web.Runtime.Responses;
+using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Web.Runtime.OpenApi;
 
@@ -24,13 +24,14 @@ namespace Hardened.Web.Runtime.OpenApi;
 /// hands to <c>ExecutionHelper</c>, not held here.
 /// </para>
 /// </remarks>
-public class OpenApiDocumentController {
-
+public class OpenApiDocumentController
+{
     /// <summary>
     /// Writes the bytes directly rather than going through serialization: the document is already
     /// JSON or YAML, and handing it to a serializer would encode it a second time as a string.
     /// </summary>
-    public async Task Write(IExecutionContext context, byte[] gzipDocument, string contentType) {
+    public async Task Write(IExecutionContext context, byte[] gzipDocument, string contentType)
+    {
         var response = context.Response;
 
         response.Status = 200;
@@ -38,11 +39,13 @@ public class OpenApiDocumentController {
         response.ShouldSerialize = false;
         response.Headers[KnownHeaders.CacheControl] = new StringValues("no-cache");
 
-        if (AcceptsGZip(context)) {
+        if (AcceptsGZip(context))
+        {
             response.IsBinary = true;
             response.Headers[KnownHeaders.ContentEncoding] = KnownEncoding.GZipStringValues;
-            response.Headers[KnownHeaders.ContentLength] =
-                gzipDocument.Length.ToString(CultureInfo.InvariantCulture);
+            response.Headers[KnownHeaders.ContentLength] = gzipDocument.Length.ToString(
+                CultureInfo.InvariantCulture
+            );
 
             await response.Body.WriteAsync(gzipDocument, 0, gzipDocument.Length);
 
@@ -66,6 +69,6 @@ public class OpenApiDocumentController {
     /// <c>StringValues.Contains</c> and got the wrong answer for every browser.
     /// </remarks>
     private static bool AcceptsGZip(IExecutionContext context) =>
-        context.Request.Headers.TryGetValue(KnownHeaders.AcceptEncoding, out var accepted) &&
-        AcceptEncodingHeader.Accepts(accepted, KnownEncoding.GZip);
+        context.Request.Headers.TryGetValue(KnownHeaders.AcceptEncoding, out var accepted)
+        && AcceptEncodingHeader.Accepts(accepted, KnownEncoding.GZip);
 }

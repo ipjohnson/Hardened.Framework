@@ -23,27 +23,42 @@ namespace Hardened.Azure.Functions.Runtime.Tests.Conformance;
 /// than the Service Bus enrolment makes, and it is the honest one.
 /// </para>
 /// </remarks>
-public class CosmosDbRequestConformanceTests : PayloadExecutionRequestConformanceTests {
-    protected override IExecutionRequestConformanceAdapter Adapter { get; } = new CosmosDbAdapter_();
+public class CosmosDbRequestConformanceTests : PayloadExecutionRequestConformanceTests
+{
+    protected override IExecutionRequestConformanceAdapter Adapter { get; } =
+        new CosmosDbAdapter_();
 
-    private sealed class CosmosDbAdapter_ : IExecutionRequestConformanceAdapter {
+    private sealed class CosmosDbAdapter_ : IExecutionRequestConformanceAdapter
+    {
         public string TransportName => "Azure Functions Cosmos DB";
 
-        public IExecutionRequest CreateRequest(ConformanceRequestSpec spec) {
-            var document = new CosmosDbDocument(spec.Body ?? Array.Empty<byte>(), "conformance", "1", null, null);
+        public IExecutionRequest CreateRequest(ConformanceRequestSpec spec)
+        {
+            var document = new CosmosDbDocument(
+                spec.Body ?? Array.Empty<byte>(),
+                "conformance",
+                "1",
+                null,
+                null
+            );
 
             var batch = new CosmosDbRequest(
                 "CHANGE",
                 "/conformance",
                 Stream.Null,
                 new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase),
-                new[] { document });
+                new[] { document }
+            );
 
             var fork = batch.ForDocument(document);
 
-            var headers = new Dictionary<string, StringValues>(fork.Headers, StringComparer.OrdinalIgnoreCase);
+            var headers = new Dictionary<string, StringValues>(
+                fork.Headers,
+                StringComparer.OrdinalIgnoreCase
+            );
 
-            foreach (var header in spec.Headers) {
+            foreach (var header in spec.Headers)
+            {
                 headers[header.Key] = header.Value;
             }
 

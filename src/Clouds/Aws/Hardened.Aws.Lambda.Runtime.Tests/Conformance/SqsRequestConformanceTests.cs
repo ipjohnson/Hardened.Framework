@@ -24,16 +24,20 @@ namespace Hardened.Aws.Lambda.Runtime.Tests.Conformance;
 /// queue has. String attributes only - a binary attribute is not a header.
 /// </para>
 /// </remarks>
-public class SqsRequestConformanceTests : PayloadExecutionRequestConformanceTests {
+public class SqsRequestConformanceTests : PayloadExecutionRequestConformanceTests
+{
     protected override IExecutionRequestConformanceAdapter Adapter { get; } = new SqsAdapter_();
 
-    private sealed class SqsAdapter_ : IExecutionRequestConformanceAdapter {
+    private sealed class SqsAdapter_ : IExecutionRequestConformanceAdapter
+    {
         private readonly SqsAdapter _adapter = new();
 
         public string TransportName => "Lambda SQS";
 
-        public IExecutionRequest CreateRequest(ConformanceRequestSpec spec) {
-            var record = new SQSEvent.SQSMessage {
+        public IExecutionRequest CreateRequest(ConformanceRequestSpec spec)
+        {
+            var record = new SQSEvent.SQSMessage
+            {
                 MessageId = "conformance",
                 ReceiptHandle = "conformance-receipt",
                 EventSource = SqsAdapter.EventSourceValue,
@@ -41,10 +45,12 @@ public class SqsRequestConformanceTests : PayloadExecutionRequestConformanceTest
                 Body = spec.Body == null ? null : Encoding.UTF8.GetString(spec.Body),
                 MessageAttributes = spec.Headers.ToDictionary(
                     header => header.Key,
-                    header => new SQSEvent.MessageAttribute {
+                    header => new SQSEvent.MessageAttribute
+                    {
                         StringValue = header.Value,
-                        DataType = "String"
-                    })
+                        DataType = "String",
+                    }
+                ),
             };
 
             using var payload = Payloads.Sqs(record);

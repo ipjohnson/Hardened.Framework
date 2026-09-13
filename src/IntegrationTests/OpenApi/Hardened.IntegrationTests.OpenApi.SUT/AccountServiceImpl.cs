@@ -20,8 +20,8 @@ namespace Hardened.IntegrationTests.OpenApi.SUT;
 /// </para>
 /// </remarks>
 [Handler]
-public class AccountServiceImpl : IAccountService {
-
+public class AccountServiceImpl : IAccountService
+{
     /// <summary>The last password received, so a test can prove it arrived at all.</summary>
     public static string? LastPasswordSeen { get; private set; }
 
@@ -31,7 +31,8 @@ public class AccountServiceImpl : IAccountService {
     /// </summary>
     public static string? LastIdSeen { get; private set; }
 
-    public Task<Account> CreateAccount(Account body) {
+    public Task<Account> CreateAccount(Account body)
+    {
         LastPasswordSeen = body.Password;
         LastIdSeen = body.Id;
 

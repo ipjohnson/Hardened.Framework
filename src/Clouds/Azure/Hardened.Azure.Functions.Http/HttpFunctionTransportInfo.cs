@@ -18,40 +18,49 @@ namespace Hardened.Azure.Functions.Http;
 /// channel, and the host does not say what its own peer was.
 /// </para>
 /// </remarks>
-public sealed class HttpFunctionTransportInfo : ITransportInfo {
-    private static readonly string[] KeyList = [
+public sealed class HttpFunctionTransportInfo : ITransportInfo
+{
+    private static readonly string[] KeyList =
+    [
         KnownTransportKeys.ClientAddress,
         KnownTransportKeys.ServerAddress,
         KnownTransportKeys.ServerPort,
-        KnownTransportKeys.UrlScheme
+        KnownTransportKeys.UrlScheme,
     ];
 
     private readonly HttpRequestData _request;
 
-    public HttpFunctionTransportInfo(HttpRequestData request) {
+    public HttpFunctionTransportInfo(HttpRequestData request)
+    {
         _request = request;
     }
 
     public IReadOnlyList<string> Keys => KeyList;
 
     public string? Get(string key) =>
-        key switch {
+        key switch
+        {
             KnownTransportKeys.ClientAddress => ForwardedFor(),
             KnownTransportKeys.ServerAddress => Empty(_request.Url.Host),
-            KnownTransportKeys.ServerPort => _request.Url.IsDefaultPort ? null : _request.Url.Port.ToString(),
+            KnownTransportKeys.ServerPort => _request.Url.IsDefaultPort
+                ? null
+                : _request.Url.Port.ToString(),
             KnownTransportKeys.UrlScheme => Empty(_request.Url.Scheme),
-            _ => null
+            _ => null,
         };
 
     /// <summary>The first address in <c>X-Forwarded-For</c>, which is the caller the proxy saw.</summary>
-    private string? ForwardedFor() {
-        if (!_request.Headers.TryGetValues("X-Forwarded-For", out var values)) {
+    private string? ForwardedFor()
+    {
+        if (!_request.Headers.TryGetValues("X-Forwarded-For", out var values))
+        {
             return null;
         }
 
         var first = values.FirstOrDefault();
 
-        if (string.IsNullOrEmpty(first)) {
+        if (string.IsNullOrEmpty(first))
+        {
             return null;
         }
 
@@ -61,7 +70,8 @@ public sealed class HttpFunctionTransportInfo : ITransportInfo {
         // The host writes the port beside the address, which the convention keeps separate.
         var colon = address.LastIndexOf(':');
 
-        if (colon > 0 && address.IndexOf(':') == colon) {
+        if (colon > 0 && address.IndexOf(':') == colon)
+        {
             address = address.Substring(0, colon);
         }
 

@@ -8,21 +8,24 @@ namespace Hardened.Requests.Runtime.Tests.Caching;
 /// <summary>
 /// Keying on the request body, and putting the body back for the bind that follows.
 /// </summary>
-public class ByPayloadTests {
-
-    private static async Task<string?> KeyFor(string body) {
+public class ByPayloadTests
+{
+    private static async Task<string?> KeyFor(string body)
+    {
         var context = Pipeline.Context("POST", "/quotes", body: Encoding.UTF8.GetBytes(body));
 
         return await ByPayload.Create([]).Key(context);
     }
 
     [Fact]
-    public async Task TheSamePayloadKeysTheSame() {
+    public async Task TheSamePayloadKeysTheSame()
+    {
         Assert.Equal(await KeyFor("""{"sku":"a"}"""), await KeyFor("""{"sku":"a"}"""));
     }
 
     [Fact]
-    public async Task ADifferentPayloadKeysDifferently() {
+    public async Task ADifferentPayloadKeysDifferently()
+    {
         Assert.NotEqual(await KeyFor("""{"sku":"a"}"""), await KeyFor("""{"sku":"b"}"""));
     }
 
@@ -31,7 +34,8 @@ public class ByPayloadTests {
     /// to read. This is the half that puts it back.
     /// </summary>
     [Fact]
-    public async Task TheBodyIsReadableAgainAfterwards() {
+    public async Task TheBodyIsReadableAgainAfterwards()
+    {
         var context = Pipeline.Context("POST", "/quotes", body: "payload"u8.ToArray());
 
         await ByPayload.Create([]).Key(context);
@@ -46,7 +50,8 @@ public class ByPayloadTests {
     /// time.
     /// </summary>
     [Fact]
-    public async Task ARequestWithNoBodyKeysAsEmpty() {
+    public async Task ARequestWithNoBodyKeysAsEmpty()
+    {
         var context = Pipeline.Context();
 
         Assert.Equal(string.Empty, await ByPayload.Create([]).Key(context));
@@ -58,7 +63,8 @@ public class ByPayloadTests {
     /// failure.
     /// </summary>
     [Fact]
-    public void ValuesAreRefused() {
+    public void ValuesAreRefused()
+    {
         var exception = Assert.Throws<ArgumentException>(() => ByPayload.Create(["culture"]));
 
         Assert.Contains("culture", exception.Message);

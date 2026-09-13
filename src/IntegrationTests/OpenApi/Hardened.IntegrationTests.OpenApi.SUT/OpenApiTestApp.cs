@@ -34,8 +34,10 @@ namespace Hardened.IntegrationTests.OpenApi.SUT;
 /// </remarks>
 [HardenedModule]
 [HardenedWebModule]
-public partial class OpenApiTestApp : IServiceCollectionConfiguration {
-    public void ConfigureServices(IServiceCollection services) {
+public partial class OpenApiTestApp : IServiceCollectionConfiguration
+{
+    public void ConfigureServices(IServiceCollection services)
+    {
         services.AddSingleton<IPrincipalSource, TestGrantsPrincipalSource>();
     }
 }

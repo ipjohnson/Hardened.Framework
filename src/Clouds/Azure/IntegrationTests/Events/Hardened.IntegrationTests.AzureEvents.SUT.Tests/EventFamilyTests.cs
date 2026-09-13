@@ -21,11 +21,14 @@ namespace Hardened.IntegrationTests.AzureEvents.SUT.Tests;
 /// route alone, because both arrive as the same message type.
 /// </para>
 /// </summary>
-public class EventFamilyTests {
-
+public class EventFamilyTests
+{
     [HardenedTest]
     public async Task ANotificationReachesTheTopicHandler(
-        AzureEventsTestApp.Topics topics, [Mock] ITriggerLog log) {
+        AzureEventsTestApp.Topics topics,
+        [Mock] ITriggerLog log
+    )
+    {
         await topics.OrderEvents(new Order { Id = "t-1" });
 
         log.Received().Record("topic:t-1");
@@ -36,7 +39,10 @@ public class EventFamilyTests {
     /// </summary>
     [HardenedTest]
     public async Task AScheduledInvocationReachesTheTimerHandler(
-        AzureEventsTestApp.Timers timers, [Mock] ITriggerLog log) {
+        AzureEventsTestApp.Timers timers,
+        [Mock] ITriggerLog log
+    )
+    {
         await timers.NightlyRollup();
 
         log.Received().Record("timer:nightly-rollup");
@@ -44,7 +50,10 @@ public class EventFamilyTests {
 
     [HardenedTest]
     public async Task AQueueMessageReachesTheQueueHandler(
-        AzureEventsTestApp.Queues queues, [Mock] ITriggerLog log) {
+        AzureEventsTestApp.Queues queues,
+        [Mock] ITriggerLog log
+    )
+    {
         await queues.OrdersNew(new Order { Id = "q-1" });
 
         log.Received().Record("queue:q-1");
@@ -58,12 +67,15 @@ public class EventFamilyTests {
         AzureEventsTestApp.Queues queues,
         AzureEventsTestApp.Topics topics,
         AzureEventsTestApp.Timers timers,
-        [Mock] ITriggerLog log) {
+        [Mock] ITriggerLog log
+    )
+    {
         await queues.OrdersNew(new Order { Id = "q-1" });
         await topics.OrderEvents(new Order { Id = "t-1" });
         await timers.NightlyRollup();
 
-        Received.InOrder(() => {
+        Received.InOrder(() =>
+        {
             log.Record("queue:q-1");
             log.Record("topic:t-1");
             log.Record("timer:nightly-rollup");
@@ -75,7 +87,8 @@ public class EventFamilyTests {
     /// registering it twice would put two adapters in front of every Service Bus batch.
     /// </summary>
     [HardenedTest]
-    public void FourTriggersRegisterThreeAdapters(IServiceProvider provider) {
+    public void FourTriggersRegisterThreeAdapters(IServiceProvider provider)
+    {
         var adapters = provider.GetServices<ITriggerAdapter>().ToArray();
 
         Assert.Equal(3, adapters.Length);

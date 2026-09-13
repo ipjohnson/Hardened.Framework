@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using System.Threading;
-using Hardened.Idl;
 using Hardened.Generation;
 using Hardened.Generation.Models;
+using Hardened.Idl;
 using Hardened.OpenApi.SourceGenerator;
 using Xunit;
 
@@ -16,9 +16,10 @@ namespace Hardened.OpenApi.BuildTask.Tests;
 /// guessed - twice in this file's history an expectation was written from what the code looked like
 /// it should do and passed against output that was wrong in a different way.
 /// </remarks>
-public class ScenarioTests {
-
-    private static ServiceSpecModel Parse(string yaml) {
+public class ScenarioTests
+{
+    private static ServiceSpecModel Parse(string yaml)
+    {
         var model = OpenApiSpecParser.Parse(yaml, "spec", CancellationToken.None);
 
         Assert.NotNull(model);
@@ -26,7 +27,8 @@ public class ScenarioTests {
         return model!;
     }
 
-    private static PropertyModel Property(ServiceSpecModel model, string schema, string property) {
+    private static PropertyModel Property(ServiceSpecModel model, string schema, string property)
+    {
         var found = Assert.Single(model.Schemas, candidate => candidate.Name == schema);
 
         return Assert.Single(found.Properties, candidate => candidate.Name == property);
@@ -44,7 +46,8 @@ public class ScenarioTests {
     /// ones.
     /// </remarks>
     [Fact]
-    public void ATypeArrayEndingInNullIsANullablePropertyRatherThanAChoice() {
+    public void ATypeArrayEndingInNullIsANullablePropertyRatherThanAChoice()
+    {
         var model = Parse(ScenarioSpecs.NullableByTypeArray);
 
         Assert.Equal("string", TypeOf(model, "Thing", "name"));
@@ -63,7 +66,8 @@ public class ScenarioTests {
     /// put a pinned value in the model.
     /// </remarks>
     [Fact]
-    public void AConstIsReadAsTheSingleValueItPermits() {
+    public void AConstIsReadAsTheSingleValueItPermits()
+    {
         var model = Parse(ScenarioSpecs.ConstProperty);
 
         var kind = Property(model, "Thing", "kind");
@@ -80,7 +84,8 @@ public class ScenarioTests {
     /// overflows on a payload the description calls valid.
     /// </remarks>
     [Fact]
-    public void ABoundTooWideForIntWidensTheTypeThatCarriesIt() {
+    public void ABoundTooWideForIntWidensTheTypeThatCarriesIt()
+    {
         var model = Parse(ScenarioSpecs.BoundsWiderThanInt);
 
         Assert.Equal("int", TypeOf(model, "Thing", "small"));
@@ -96,17 +101,24 @@ public class ScenarioTests {
     /// sanitize to one name. Each produced a member with no identifier, or two with the same one.
     /// </remarks>
     [Fact]
-    public void EveryEnumValueBecomesADistinctName() {
+    public void EveryEnumValueBecomesADistinctName()
+    {
         var model = Parse(ScenarioSpecs.AwkwardEnumValues);
 
         var reaction = Assert.Single(model.Schemas, schema => schema.Name == "Reaction");
 
         Assert.Equal(
-            new[] {
-                "Plus1", "Minus1", "Empty", "BucketsCount", "ReactionBucketsCount",
-                "StartTimeGreaterThan"
+            new[]
+            {
+                "Plus1",
+                "Minus1",
+                "Empty",
+                "BucketsCount",
+                "ReactionBucketsCount",
+                "StartTimeGreaterThan",
             },
-            reaction.EnumMembers);
+            reaction.EnumMembers
+        );
 
         // The wire values are untouched - only the C# member moved.
         Assert.Contains("+1", reaction.EnumValues);
@@ -114,7 +126,8 @@ public class ScenarioTests {
     }
 
     [Fact]
-    public void BinaryAndDateFormatsMapToTheTypesThatHoldThem() {
+    public void BinaryAndDateFormatsMapToTheTypesThatHoldThem()
+    {
         var model = Parse(ScenarioSpecs.BinaryFormats);
 
         Assert.Equal("byte[]", TypeOf(model, "Thing", "avatar"));
@@ -131,7 +144,8 @@ public class ScenarioTests {
     /// here to record what happens rather than to approve of it - see the assertion.
     /// </remarks>
     [Fact]
-    public void ARecursiveSchemaParsesAndAnInlineObjectIsLifted() {
+    public void ARecursiveSchemaParsesAndAnInlineObjectIsLifted()
+    {
         var model = Parse(ScenarioSpecs.RecursiveAndNested);
 
         Assert.Equal("Thing", TypeOf(model, "Thing", "self"));
@@ -147,7 +161,8 @@ public class ScenarioTests {
 
     /// <summary>A body that is not JSON is still a body.</summary>
     [Fact]
-    public void AMultipartBodyIsReadRatherThanSkipped() {
+    public void AMultipartBodyIsReadRatherThanSkipped()
+    {
         var model = Parse(ScenarioSpecs.MultipartBody);
 
         var operation = Assert.Single(model.Services[0].Operations);
@@ -164,7 +179,8 @@ public class ScenarioTests {
     /// change someone makes on purpose and this test is what tells them what moved.
     /// </remarks>
     [Fact]
-    public void WebhooksAreIgnoredWithoutDisturbingTheRestOfTheDocument() {
+    public void WebhooksAreIgnoredWithoutDisturbingTheRestOfTheDocument()
+    {
         var model = Parse(ScenarioSpecs.Webhooks);
 
         var operation = Assert.Single(model.Services[0].Operations);
@@ -183,21 +199,31 @@ public class ScenarioTests {
     /// </remarks>
     [Theory]
     [MemberData(nameof(EveryScenario))]
-    public void EveryScenarioParses(string name, string yaml) {
+    public void EveryScenarioParses(string name, string yaml)
+    {
         var diagnostics = new List<string>();
 
         var model = OpenApiSpecParser.Parse(
-            yaml, "spec", CancellationToken.None, diagnostics: diagnostics);
+            yaml,
+            "spec",
+            CancellationToken.None,
+            diagnostics: diagnostics
+        );
 
         Assert.True(model != null, $"{name} did not parse: {string.Join("; ", diagnostics)}");
         Assert.Empty(diagnostics);
     }
 
-    public static IEnumerable<object[]> EveryScenario() {
-        foreach (var field in typeof(ScenarioSpecs).GetFields(
-                     System.Reflection.BindingFlags.Public |
-                     System.Reflection.BindingFlags.Static)) {
-            if (field.GetRawConstantValue() is string yaml) {
+    public static IEnumerable<object[]> EveryScenario()
+    {
+        foreach (
+            var field in typeof(ScenarioSpecs).GetFields(
+                System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static
+            )
+        )
+        {
+            if (field.GetRawConstantValue() is string yaml)
+            {
                 yield return new object[] { field.Name, yaml };
             }
         }

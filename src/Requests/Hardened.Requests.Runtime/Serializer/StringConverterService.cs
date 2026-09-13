@@ -31,57 +31,69 @@ namespace Hardened.Requests.Runtime.Serializer;
 /// </para>
 /// </remarks>
 [SingletonService(Using = RegistrationType.Try)]
-public class StringConverterService : IStringConverterService {
-
+public class StringConverterService : IStringConverterService
+{
     private readonly Dictionary<Type, IStringConverter> _converters;
 
-    public StringConverterService(IEnumerable<IStringConverter> converters) {
+    public StringConverterService(IEnumerable<IStringConverter> converters)
+    {
         _converters = new Dictionary<Type, IStringConverter>();
 
-        foreach (var converter in converters) {
+        foreach (var converter in converters)
+        {
             _converters[converter.ConvertType] = converter;
         }
     }
 
-    public T ParseRequired<T>(string value, string valueName) {
-        if (string.IsNullOrEmpty(value)) {
+    public T ParseRequired<T>(string value, string valueName)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
             throw Failure(valueName, ValidationCodes.Required, $"{valueName} is required.");
         }
 
         return Parse<T>(value, valueName);
     }
 
-    public T ParseWithDefault<T>(string value, string valueName, T defaultValue) {
+    public T ParseWithDefault<T>(string value, string valueName, T defaultValue)
+    {
         // Absent takes the default; malformed does not. "Fall back when nothing was sent" and
         // "ignore what was sent because it made no sense" are different, and only the first is what
         // a default is for.
-        if (string.IsNullOrEmpty(value)) {
+        if (string.IsNullOrEmpty(value))
+        {
             return defaultValue;
         }
 
         return Parse<T>(value, valueName);
     }
 
-    public T? ParseOptional<T>(string value, string valueName) {
-        if (string.IsNullOrEmpty(value)) {
+    public T? ParseOptional<T>(string value, string valueName)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
             return default;
         }
 
         return Parse<T>(value, valueName);
     }
 
-    public List<TItem> ParseRequiredMany<TItem>(StringValues values, string valueName) {
+    public List<TItem> ParseRequiredMany<TItem>(StringValues values, string valueName)
+    {
         var items = Items<TItem>(values, valueName);
 
-        if (items.Count == 0) {
+        if (items.Count == 0)
+        {
             throw Failure(valueName, ValidationCodes.Required, $"{valueName} is required.");
         }
 
         return items;
     }
 
-    public List<TItem>? ParseOptionalMany<TItem>(StringValues values, string valueName) {
-        if (values.Count == 0) {
+    public List<TItem>? ParseOptionalMany<TItem>(StringValues values, string valueName)
+    {
+        if (values.Count == 0)
+        {
             return null;
         }
 
@@ -97,18 +109,23 @@ public class StringConverterService : IStringConverterService {
     /// rather than converted: <c>?ids=1&amp;ids=&amp;ids=3</c> is two items, not a list with a hole in
     /// it, and a lone <c>?ids=</c> is the empty list rather than a malformed one.
     /// </remarks>
-    private List<TItem> Items<TItem>(StringValues values, string valueName) {
+    private List<TItem> Items<TItem>(StringValues values, string valueName)
+    {
         var items = new List<TItem>(values.Count);
 
-        foreach (var value in values) {
-            if (string.IsNullOrEmpty(value)) {
+        foreach (var value in values)
+        {
+            if (string.IsNullOrEmpty(value))
+            {
                 continue;
             }
 
-            foreach (var item in value!.Split(',')) {
+            foreach (var item in value!.Split(','))
+            {
                 var trimmed = item.Trim();
 
-                if (trimmed.Length == 0) {
+                if (trimmed.Length == 0)
+                {
                     continue;
                 }
 
@@ -119,29 +136,45 @@ public class StringConverterService : IStringConverterService {
         return items;
     }
 
-    private T Parse<T>(string value, string valueName) {
-        try {
+    private T Parse<T>(string value, string valueName)
+    {
+        try
+        {
             return InternalParseRequired<T>(value);
         }
-        catch (Exception exception) when (exception is not Validation.ValidationException) {
+        catch (Exception exception) when (exception is not Validation.ValidationException)
+        {
             var type = Nullable.GetUnderlyingType(typeof(T)) ?? typeof(T);
 
             throw Failure(
-                valueName, ValidationCodes.Invalid, $"{valueName} is not a valid {type.Name}.", exception);
+                valueName,
+                ValidationCodes.Invalid,
+                $"{valueName} is not a valid {type.Name}.",
+                exception
+            );
         }
     }
 
     private static Validation.ValidationException Failure(
-        string field, string code, string message, Exception? inner = null) {
-        var result = ValidationResult.FromErrors(new[] { new ValidationError(field, code, message) });
+        string field,
+        string code,
+        string message,
+        Exception? inner = null
+    )
+    {
+        var result = ValidationResult.FromErrors(
+            new[] { new ValidationError(field, code, message) }
+        );
 
         return inner == null
             ? new Validation.ValidationException(result)
             : new Validation.ValidationException(result, inner);
     }
 
-    protected virtual T InternalParseRequired<T>(string value) {
-        if (_converters.TryGetValue(typeof(T), out var stringConverter)) {
+    protected virtual T InternalParseRequired<T>(string value)
+    {
+        if (_converters.TryGetValue(typeof(T), out var stringConverter))
+        {
             return stringConverter.Convert<T>(value);
         }
 
@@ -151,7 +184,8 @@ public class StringConverterService : IStringConverterService {
         // answers to a different set of values.
         var underlying = Nullable.GetUnderlyingType(typeof(T));
 
-        if (underlying != null && _converters.TryGetValue(underlying, out stringConverter)) {
+        if (underlying != null && _converters.TryGetValue(underlying, out stringConverter))
+        {
             return stringConverter.Convert<T>(value);
         }
 
@@ -173,8 +207,10 @@ public class StringConverterService : IStringConverterService {
     /// non-nullable case is there for the nullable one rather than the two lists drifting.
     /// </para>
     /// </remarks>
-    protected virtual T StandardConverter<T>(string value) {
-        if (TryStandardValue<T>(value, out var converted)) {
+    protected virtual T StandardConverter<T>(string value)
+    {
+        if (TryStandardValue<T>(value, out var converted))
+        {
             return converted;
         }
 
@@ -219,14 +255,17 @@ public class StringConverterService : IStringConverterService {
     /// one is two lines, and leaving one out costs what it cost before.
     /// </para>
     /// </remarks>
-    private static bool TryStandardValue<T>(string value, out T converted) {
-        if (typeof(T) == typeof(string)) {
+    private static bool TryStandardValue<T>(string value, out T converted)
+    {
+        if (typeof(T) == typeof(string))
+        {
             converted = (T)(object)value;
 
             return true;
         }
 
-        if (typeof(T) == typeof(int)) {
+        if (typeof(T) == typeof(int))
+        {
             var parsed = int.Parse(value, CultureInfo.InvariantCulture);
 
             converted = Unsafe.As<int, T>(ref parsed);
@@ -234,7 +273,8 @@ public class StringConverterService : IStringConverterService {
             return true;
         }
 
-        if (typeof(T) == typeof(int?)) {
+        if (typeof(T) == typeof(int?))
+        {
             int? parsed = int.Parse(value, CultureInfo.InvariantCulture);
 
             converted = Unsafe.As<int?, T>(ref parsed);
@@ -242,7 +282,8 @@ public class StringConverterService : IStringConverterService {
             return true;
         }
 
-        if (typeof(T) == typeof(long)) {
+        if (typeof(T) == typeof(long))
+        {
             var parsed = long.Parse(value, CultureInfo.InvariantCulture);
 
             converted = Unsafe.As<long, T>(ref parsed);
@@ -250,7 +291,8 @@ public class StringConverterService : IStringConverterService {
             return true;
         }
 
-        if (typeof(T) == typeof(long?)) {
+        if (typeof(T) == typeof(long?))
+        {
             long? parsed = long.Parse(value, CultureInfo.InvariantCulture);
 
             converted = Unsafe.As<long?, T>(ref parsed);
@@ -258,7 +300,8 @@ public class StringConverterService : IStringConverterService {
             return true;
         }
 
-        if (typeof(T) == typeof(Guid)) {
+        if (typeof(T) == typeof(Guid))
+        {
             var parsed = Guid.Parse(value);
 
             converted = Unsafe.As<Guid, T>(ref parsed);
@@ -266,7 +309,8 @@ public class StringConverterService : IStringConverterService {
             return true;
         }
 
-        if (typeof(T) == typeof(Guid?)) {
+        if (typeof(T) == typeof(Guid?))
+        {
             Guid? parsed = Guid.Parse(value);
 
             converted = Unsafe.As<Guid?, T>(ref parsed);
@@ -274,7 +318,8 @@ public class StringConverterService : IStringConverterService {
             return true;
         }
 
-        if (typeof(T) == typeof(bool)) {
+        if (typeof(T) == typeof(bool))
+        {
             var parsed = bool.Parse(value);
 
             converted = Unsafe.As<bool, T>(ref parsed);
@@ -282,7 +327,8 @@ public class StringConverterService : IStringConverterService {
             return true;
         }
 
-        if (typeof(T) == typeof(bool?)) {
+        if (typeof(T) == typeof(bool?))
+        {
             bool? parsed = bool.Parse(value);
 
             converted = Unsafe.As<bool?, T>(ref parsed);
@@ -290,7 +336,8 @@ public class StringConverterService : IStringConverterService {
             return true;
         }
 
-        if (typeof(T) == typeof(DateTime)) {
+        if (typeof(T) == typeof(DateTime))
+        {
             var parsed = DateTime.Parse(value, CultureInfo.InvariantCulture);
 
             converted = Unsafe.As<DateTime, T>(ref parsed);
@@ -298,7 +345,8 @@ public class StringConverterService : IStringConverterService {
             return true;
         }
 
-        if (typeof(T) == typeof(DateTime?)) {
+        if (typeof(T) == typeof(DateTime?))
+        {
             DateTime? parsed = DateTime.Parse(value, CultureInfo.InvariantCulture);
 
             converted = Unsafe.As<DateTime?, T>(ref parsed);
@@ -320,16 +368,20 @@ public class StringConverterService : IStringConverterService {
     /// recently optional parsing swallowed that - so it is worth being complete rather than adding
     /// types as they are missed.
     /// </remarks>
-    private static object Convert(Type type, string value) {
-        if (type == typeof(string)) {
+    private static object Convert(Type type, string value)
+    {
+        if (type == typeof(string))
+        {
             return value;
         }
 
-        if (type.IsEnum) {
+        if (type.IsEnum)
+        {
             return Enum.Parse(type, value, ignoreCase: true);
         }
 
-        return Type.GetTypeCode(type) switch {
+        return Type.GetTypeCode(type) switch
+        {
             TypeCode.Boolean => bool.Parse(value),
             TypeCode.Byte => byte.Parse(value, CultureInfo.InvariantCulture),
             TypeCode.SByte => sbyte.Parse(value, CultureInfo.InvariantCulture),
@@ -349,34 +401,42 @@ public class StringConverterService : IStringConverterService {
     }
 
     /// <summary>The types <see cref="TypeCode"/> has nothing to say about.</summary>
-    private static object ConvertOther(Type type, string value) {
-        if (type == typeof(Guid)) {
+    private static object ConvertOther(Type type, string value)
+    {
+        if (type == typeof(Guid))
+        {
             return Guid.Parse(value);
         }
 
-        if (type == typeof(DateOnly)) {
+        if (type == typeof(DateOnly))
+        {
             return DateOnly.Parse(value, CultureInfo.InvariantCulture);
         }
 
-        if (type == typeof(TimeOnly)) {
+        if (type == typeof(TimeOnly))
+        {
             return TimeOnly.Parse(value, CultureInfo.InvariantCulture);
         }
 
-        if (type == typeof(DateTimeOffset)) {
+        if (type == typeof(DateTimeOffset))
+        {
             return DateTimeOffset.Parse(value, CultureInfo.InvariantCulture);
         }
 
-        if (type == typeof(TimeSpan)) {
+        if (type == typeof(TimeSpan))
+        {
             return TimeSpan.Parse(value, CultureInfo.InvariantCulture);
         }
 
-        if (type == typeof(Uri)) {
+        if (type == typeof(Uri))
+        {
             return new Uri(value, UriKind.RelativeOrAbsolute);
         }
 
         // format: byte and format: binary both map to byte[], and base64 is how a spec carries one
         // in a string position.
-        if (type == typeof(byte[])) {
+        if (type == typeof(byte[]))
+        {
             return System.Convert.FromBase64String(value);
         }
 

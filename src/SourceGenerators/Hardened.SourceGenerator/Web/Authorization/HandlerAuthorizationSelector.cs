@@ -26,12 +26,14 @@ public record HandlerAuthorizationModel(
     string ControllerName,
     string MethodName,
     bool SaysSomethingAboutAuthorization,
-    LocationInfo? DeclaredAt) {
-
+    LocationInfo? DeclaredAt
+)
+{
     public string Handler => ControllerName + "." + MethodName;
 }
 
-public static class HandlerAuthorizationSelector {
+public static class HandlerAuthorizationSelector
+{
     private const string AuthorizeInterface =
         "Hardened.Requests.Abstract.Authorization.IAuthorizeAttribute";
 
@@ -47,14 +49,18 @@ public static class HandlerAuthorizationSelector {
     /// to silence this for every handler in it.
     /// </remarks>
     public static HandlerAuthorizationModel Transform(
-        GeneratorSyntaxContext context, CancellationToken cancellationToken) {
+        GeneratorSyntaxContext context,
+        CancellationToken cancellationToken
+    )
+    {
         var method = (MethodDeclarationSyntax)context.Node;
         var controller = method.Ancestors().OfType<ClassDeclarationSyntax>().FirstOrDefault();
 
         var declared =
-            Speaks(context, method.AttributeLists, cancellationToken) ||
-            (controller != null &&
-                Speaks(context, controller.AttributeLists, cancellationToken));
+            Speaks(context, method.AttributeLists, cancellationToken)
+            || (
+                controller != null && Speaks(context, controller.AttributeLists, cancellationToken)
+            );
 
         return new HandlerAuthorizationModel(
             controller?.Identifier.Text ?? "",
@@ -62,7 +68,8 @@ public static class HandlerAuthorizationSelector {
             declared,
             // The identifier rather than the whole declaration, so the squiggle lands on the name
             // instead of underlining the entire method body.
-            LocationInfo.From(method.Identifier));
+            LocationInfo.From(method.Identifier)
+        );
     }
 
     /// <summary>
@@ -92,26 +99,34 @@ public static class HandlerAuthorizationSelector {
     private static bool Speaks(
         GeneratorSyntaxContext context,
         SyntaxList<AttributeListSyntax> attributeLists,
-        CancellationToken cancellationToken) {
-        foreach (var attributeList in attributeLists) {
-            foreach (var attribute in attributeList.Attributes) {
+        CancellationToken cancellationToken
+    )
+    {
+        foreach (var attributeList in attributeLists)
+        {
+            foreach (var attribute in attributeList.Attributes)
+            {
                 cancellationToken.ThrowIfCancellationRequested();
 
                 var type = context.SemanticModel.GetTypeInfo(attribute, cancellationToken).Type;
 
-                if (type == null) {
+                if (type == null)
+                {
                     continue;
                 }
 
-                if (type.ToDisplayString() == AllowAnonymous) {
+                if (type.ToDisplayString() == AllowAnonymous)
+                {
                     return true;
                 }
 
                 // AllInterfaces rather than Interfaces, so an attribute that derives from one
                 // implementing it - which is the whole point of the base attribute not being
                 // sealed - is recognised as well as one implementing it directly.
-                foreach (var contract in type.AllInterfaces) {
-                    if (contract.ToDisplayString() == AuthorizeInterface) {
+                foreach (var contract in type.AllInterfaces)
+                {
+                    if (contract.ToDisplayString() == AuthorizeInterface)
+                    {
                         return true;
                     }
                 }

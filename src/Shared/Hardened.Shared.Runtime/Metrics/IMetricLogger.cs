@@ -1,6 +1,7 @@
 ﻿namespace Hardened.Shared.Runtime.Metrics;
 
-public interface IMetricLogger : IDisposable {
+public interface IMetricLogger : IDisposable
+{
     Task Flush();
 
     void Record(IMetricDefinition metric, double value);

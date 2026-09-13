@@ -14,17 +14,28 @@ var host = new HostBuilder()
 
 host.Run();
 
-internal sealed class ObservedProjection : IOrderProjection {
+internal sealed class ObservedProjection : IOrderProjection
+{
     private const string Marker = "HARDENED-OBSERVED ";
 
     public void Apply(Order order) => Print("orders", order);
 
     public void Audit(Order order) => Print("audit", order);
 
-    private static void Print(string container, Order order) {
+    private static void Print(string container, Order order)
+    {
         Console.Out.WriteLine(
-            Marker + JsonSerializer.Serialize(
-                new { kind = "change", container, id = order.Id, quantity = order.Quantity }));
+            Marker
+                + JsonSerializer.Serialize(
+                    new
+                    {
+                        kind = "change",
+                        container,
+                        id = order.Id,
+                        quantity = order.Quantity,
+                    }
+                )
+        );
         Console.Out.Flush();
     }
 }

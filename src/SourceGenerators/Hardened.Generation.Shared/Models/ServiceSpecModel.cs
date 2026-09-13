@@ -1,6 +1,7 @@
 namespace Hardened.Generation.Models;
 
-internal class ServiceSpecModel : IEquatable<ServiceSpecModel> {
+internal class ServiceSpecModel : IEquatable<ServiceSpecModel>
+{
     public string FileName { get; set; } = "";
     public List<SchemaModel> Schemas { get; set; } = new();
     public List<ServiceModel> Services { get; set; } = new();
@@ -184,59 +185,94 @@ internal class ServiceSpecModel : IEquatable<ServiceSpecModel> {
     /// </remarks>
     public List<DanglingReferenceModel> DanglingReferences { get; set; } = new();
 
-    public bool Equals(ServiceSpecModel? other) {
-        if (other is not null && ContentNegotiation != other.ContentNegotiation) return false;
-        if (other is not null && ErrorBodies != other.ErrorBodies) return false;
-        if (other is not null && ResponseModel != other.ResponseModel) return false;
-        if (other is not null && Serializer != other.Serializer) return false;
-        if (other is not null && BindCancellationToken != other.BindCancellationToken) return false;
+    public bool Equals(ServiceSpecModel? other)
+    {
+        if (other is not null && ContentNegotiation != other.ContentNegotiation)
+            return false;
+        if (other is not null && ErrorBodies != other.ErrorBodies)
+            return false;
+        if (other is not null && ResponseModel != other.ResponseModel)
+            return false;
+        if (other is not null && Serializer != other.Serializer)
+            return false;
+        if (other is not null && BindCancellationToken != other.BindCancellationToken)
+            return false;
 
-        if (other is null) return false;
-        if (ReferenceEquals(this, other)) return true;
-        if (FileName != other.FileName) return false;
-        if (JsonTypeInfoResolverName != other.JsonTypeInfoResolverName) return false;
-        if (PublishUrl != other.PublishUrl) return false;
-        if (UiUrl != other.UiUrl) return false;
-        if (SourceUrl != other.SourceUrl) return false;
-        if (UiEnvironments != other.UiEnvironments) return false;
+        if (other is null)
+            return false;
+        if (ReferenceEquals(this, other))
+            return true;
+        if (FileName != other.FileName)
+            return false;
+        if (JsonTypeInfoResolverName != other.JsonTypeInfoResolverName)
+            return false;
+        if (PublishUrl != other.PublishUrl)
+            return false;
+        if (UiUrl != other.UiUrl)
+            return false;
+        if (SourceUrl != other.SourceUrl)
+            return false;
+        if (UiEnvironments != other.UiEnvironments)
+            return false;
 
         // The identity the contract declares about itself. Absent here, a contract that only
         // renamed itself or only changed where it is served produced a model this compared equal,
         // and the provider carrying it downstream never recomputed - so the published document
         // kept the previous title, or published no servers after they were added.
-        if (Title != other.Title) return false;
-        if (Version != other.Version) return false;
-        if (InfoDescription != other.InfoDescription) return false;
-        if (SecuritySchemes.Count != other.SecuritySchemes.Count) return false;
-        if (Servers.Count != other.Servers.Count) return false;
+        if (Title != other.Title)
+            return false;
+        if (Version != other.Version)
+            return false;
+        if (InfoDescription != other.InfoDescription)
+            return false;
+        if (SecuritySchemes.Count != other.SecuritySchemes.Count)
+            return false;
+        if (Servers.Count != other.Servers.Count)
+            return false;
 
-        for (var i = 0; i < SecuritySchemes.Count; i++) {
-            if (!SecuritySchemes[i].Equals(other.SecuritySchemes[i])) return false;
+        for (var i = 0; i < SecuritySchemes.Count; i++)
+        {
+            if (!SecuritySchemes[i].Equals(other.SecuritySchemes[i]))
+                return false;
         }
 
-        for (var i = 0; i < Servers.Count; i++) {
-            if (!Servers[i].Equals(other.Servers[i])) return false;
+        for (var i = 0; i < Servers.Count; i++)
+        {
+            if (!Servers[i].Equals(other.Servers[i]))
+                return false;
         }
 
-        if (Schemas.Count != other.Schemas.Count) return false;
-        if (Services.Count != other.Services.Count) return false;
-        if (FilterTypes.Count != other.FilterTypes.Count) return false;
-        if (ValidatedOperations.Count != other.ValidatedOperations.Count) return false;
+        if (Schemas.Count != other.Schemas.Count)
+            return false;
+        if (Services.Count != other.Services.Count)
+            return false;
+        if (FilterTypes.Count != other.FilterTypes.Count)
+            return false;
+        if (ValidatedOperations.Count != other.ValidatedOperations.Count)
+            return false;
 
-        for (var i = 0; i < ValidatedOperations.Count; i++) {
-            if (!ValidatedOperations[i].Equals(other.ValidatedOperations[i])) return false;
+        for (var i = 0; i < ValidatedOperations.Count; i++)
+        {
+            if (!ValidatedOperations[i].Equals(other.ValidatedOperations[i]))
+                return false;
         }
 
-        for (var i = 0; i < Schemas.Count; i++) {
-            if (!Schemas[i].Equals(other.Schemas[i])) return false;
+        for (var i = 0; i < Schemas.Count; i++)
+        {
+            if (!Schemas[i].Equals(other.Schemas[i]))
+                return false;
         }
 
-        for (var i = 0; i < Services.Count; i++) {
-            if (!Services[i].Equals(other.Services[i])) return false;
+        for (var i = 0; i < Services.Count; i++)
+        {
+            if (!Services[i].Equals(other.Services[i]))
+                return false;
         }
 
-        for (var i = 0; i < FilterTypes.Count; i++) {
-            if (!FilterTypes[i].Equals(other.FilterTypes[i])) return false;
+        for (var i = 0; i < FilterTypes.Count; i++)
+        {
+            if (!FilterTypes[i].Equals(other.FilterTypes[i]))
+                return false;
         }
 
         return true;
@@ -244,15 +280,21 @@ internal class ServiceSpecModel : IEquatable<ServiceSpecModel> {
 
     public override bool Equals(object? obj) => Equals(obj as ServiceSpecModel);
 
-    public override int GetHashCode() {
-        unchecked {
+    public override int GetHashCode()
+    {
+        unchecked
+        {
             var hash = FileName.GetHashCode();
             hash = (hash * 397) ^ (Title?.GetHashCode() ?? 0);
             hash = (hash * 397) ^ (Version?.GetHashCode() ?? 0);
-            foreach (var s in Servers) hash = (hash * 397) ^ s.GetHashCode();
-            foreach (var s in Schemas) hash = (hash * 397) ^ s.GetHashCode();
-            foreach (var s in Services) hash = (hash * 397) ^ s.GetHashCode();
-            foreach (var f in FilterTypes) hash = (hash * 397) ^ f.GetHashCode();
+            foreach (var s in Servers)
+                hash = (hash * 397) ^ s.GetHashCode();
+            foreach (var s in Schemas)
+                hash = (hash * 397) ^ s.GetHashCode();
+            foreach (var s in Services)
+                hash = (hash * 397) ^ s.GetHashCode();
+            foreach (var f in FilterTypes)
+                hash = (hash * 397) ^ f.GetHashCode();
             return hash;
         }
     }

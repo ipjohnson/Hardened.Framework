@@ -2,10 +2,10 @@ using System.Net;
 using System.Text;
 using Hardened.Kiota.Testing;
 using Hardened.Requests.Abstract.Responses;
+using Hardened.Web.Runtime.Responses;
 using Hardened.Web.Testing;
 using Microsoft.Kiota.Abstractions;
 using Xunit;
-using Hardened.Web.Runtime.Responses;
 
 // The route under test, named the way a test project names it, so Returns reads through it.
 [assembly: KiotaTesting]
@@ -22,21 +22,24 @@ namespace Hardened.Kiota.Testing.Tests;
 /// generated methods complete with, so each test is about one reading rule; the route and the
 /// real client are driven through the Web integration application's suite.
 /// </remarks>
-public class KiotaReaderTests {
-
+public class KiotaReaderTests
+{
     /// <summary>What Kiota throws for a status the document declares a body for: the model itself.</summary>
-    private sealed class Problem : ApiException {
+    private sealed class Problem : ApiException
+    {
         public string? Detail { get; init; }
     }
 
-    private sealed class Todo {
+    private sealed class Todo
+    {
         public int Id { get; init; }
     }
 
     #region refusals, read off the thrown model
 
     [Fact]
-    public async Task ARefusalIsTheThrownModelAtTheDeclaredStatus() {
+    public async Task ARefusalIsTheThrownModelAtTheDeclaredStatus()
+    {
         var thrown = new Problem { ResponseStatusCode = 404, Detail = "No todo has id 9999." };
 
         var refused = await Task.FromException<Todo>(thrown).Returns<NotFound<Problem>>();
@@ -46,11 +49,13 @@ public class KiotaReaderTests {
     }
 
     [Fact]
-    public async Task ARefusalAtAnotherStatusFailsNamingBoth() {
+    public async Task ARefusalAtAnotherStatusFailsNamingBoth()
+    {
         var thrown = new Problem { ResponseStatusCode = 409 };
 
-        var failure = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => Task.FromException<Todo>(thrown).Returns<NotFound<Problem>>());
+        var failure = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            Task.FromException<Todo>(thrown).Returns<NotFound<Problem>>()
+        );
 
         Assert.Contains("Expected 404 (NotFound<Problem>)", failure.Message);
         Assert.Contains("answered 409 carrying a Problem", failure.Message);
@@ -62,29 +67,34 @@ public class KiotaReaderTests {
     /// missing.
     /// </summary>
     [Fact]
-    public async Task AnUntypedRefusalSaysWhyThereIsNoBody() {
+    public async Task AnUntypedRefusalSaysWhyThereIsNoBody()
+    {
         var thrown = new ApiException("refused") { ResponseStatusCode = 404 };
 
-        var failure = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => Task.FromException<Todo>(thrown).Returns<NotFound<Problem>>());
+        var failure = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            Task.FromException<Todo>(thrown).Returns<NotFound<Problem>>()
+        );
 
         Assert.Contains("carried none", failure.Message);
         Assert.Contains("bare ApiException", failure.Message);
     }
 
     [Fact]
-    public async Task AnUntypedRefusalStillAnswersItsStatus() {
+    public async Task AnUntypedRefusalStillAnswersItsStatus()
+    {
         var thrown = new ApiException("refused") { ResponseStatusCode = 404 };
 
         await Task.FromException<Todo>(thrown).ReturnsStatus<NotFound>();
     }
 
     [Fact]
-    public async Task AStatusMismatchOnReturnsStatusNamesBothAndTheAbsentBody() {
+    public async Task AStatusMismatchOnReturnsStatusNamesBothAndTheAbsentBody()
+    {
         var thrown = new ApiException("refused") { ResponseStatusCode = 409 };
 
-        var failure = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => Task.FromException<Todo>(thrown).ReturnsStatus<NotFound>());
+        var failure = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            Task.FromException<Todo>(thrown).ReturnsStatus<NotFound>()
+        );
 
         Assert.Contains("Expected 404 (NotFound)", failure.Message);
         Assert.Contains("answered 409 with no body", failure.Message);
@@ -95,7 +105,8 @@ public class KiotaReaderTests {
     /// client surfaced - a client that dropped them fails here, whatever the transport saw.
     /// </summary>
     [Fact]
-    public async Task ARefusalReadsItsHeadersOffTheThrownModel() {
+    public async Task ARefusalReadsItsHeadersOffTheThrownModel()
+    {
         var thrown = new Problem { ResponseStatusCode = 429 };
         thrown.ResponseHeaders["Retry-After"] = ["30"];
 
@@ -105,7 +116,8 @@ public class KiotaReaderTests {
     }
 
     [Fact]
-    public async Task AMultiValuedHeaderIsReadAsOneLine() {
+    public async Task AMultiValuedHeaderIsReadAsOneLine()
+    {
         var thrown = new Problem { ResponseStatusCode = 405 };
         thrown.ResponseHeaders["Allow"] = ["GET", "HEAD"];
 
@@ -116,9 +128,11 @@ public class KiotaReaderTests {
 
     /// <summary>A failure that is not the client refusing is not an answer, and is not caught.</summary>
     [Fact]
-    public async Task AnExceptionThatIsNotARefusalPropagates() {
-        await Assert.ThrowsAsync<TimeoutException>(
-            () => Task.FromException<Todo>(new TimeoutException()).Returns<NotFound<Problem>>());
+    public async Task AnExceptionThatIsNotARefusalPropagates()
+    {
+        await Assert.ThrowsAsync<TimeoutException>(() =>
+            Task.FromException<Todo>(new TimeoutException()).Returns<NotFound<Problem>>()
+        );
     }
 
     #endregion
@@ -126,7 +140,8 @@ public class KiotaReaderTests {
     #region successes, read off what the client received
 
     [Fact]
-    public async Task ASuccessReadsItsStatusAndHeadersFromWhatTheClientReceived() {
+    public async Task ASuccessReadsItsStatusAndHeadersFromWhatTheClientReceived()
+    {
         await Receive(201, ("Location", "/todos/7"));
 
         var created = await Task.FromResult(new Todo { Id = 7 }).Returns<Created<Todo>>();
@@ -137,18 +152,21 @@ public class KiotaReaderTests {
 
     /// <summary>A generated delete completes with no value, which is not a body of nothing.</summary>
     [Fact]
-    public async Task AMethodReturningNothingIsNotABody() {
+    public async Task AMethodReturningNothingIsNotABody()
+    {
         await Receive(204);
 
         await Deleted().Returns<NoContent>();
     }
 
     [Fact]
-    public async Task ASuccessAtAnotherStatusFailsNamingBoth() {
+    public async Task ASuccessAtAnotherStatusFailsNamingBoth()
+    {
         await Receive(200);
 
-        var failure = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => Task.FromResult(new Todo()).Returns<Created<Todo>>());
+        var failure = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            Task.FromResult(new Todo()).Returns<Created<Todo>>()
+        );
 
         Assert.Contains("Expected 201 (Created<Todo>)", failure.Message);
         Assert.Contains("answered 200 carrying a Todo", failure.Message);
@@ -156,7 +174,8 @@ public class KiotaReaderTests {
 
     /// <summary>Content headers are headers too; only the transport draws the line between them.</summary>
     [Fact]
-    public async Task ContentHeadersAreReadWithTheRest() {
+    public async Task ContentHeadersAreReadWithTheRest()
+    {
         await Receive(200, ("ETag", "\"abc\""));
 
         var answer = await Task.FromResult(new Todo()).Returns<Ok<Todo>>();
@@ -170,16 +189,19 @@ public class KiotaReaderTests {
     /// recorded client is.
     /// </summary>
     [Fact]
-    public async Task WithNothingReceivedASuccessCannotBeRead() {
-        var failure = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => Task.FromResult(new Todo()).Returns<Ok<Todo>>());
+    public async Task WithNothingReceivedASuccessCannotBeRead()
+    {
+        var failure = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            Task.FromResult(new Todo()).Returns<Ok<Todo>>()
+        );
 
         Assert.Contains("no route that read this call, which returned a Todo", failure.Message);
         Assert.Contains("[assembly: KiotaTesting]", failure.Message);
     }
 
     [Fact]
-    public async Task ReturnsStatusReadsASuccessTheSameWay() {
+    public async Task ReturnsStatusReadsASuccessTheSameWay()
+    {
         await Receive(204);
 
         await Deleted().ReturnsStatus<NoContent>();
@@ -187,7 +209,8 @@ public class KiotaReaderTests {
 
     /// <summary>Within one test the recording is the most recent call, which is the one being asserted.</summary>
     [Fact]
-    public async Task TheMostRecentCallIsTheOneRead() {
+    public async Task TheMostRecentCallIsTheOneRead()
+    {
         await Receive(201, ("Location", "/todos/1"));
         await Receive(204);
 
@@ -200,22 +223,36 @@ public class KiotaReaderTests {
     /// A call through the handler the route puts in a client's chain, so the response is recorded
     /// for this test the way a generated client's would be.
     /// </summary>
-    private static async Task Receive(int status, params (string Name, string Value)[] headers) {
-        using var http = new HttpClient(new RecordingHandler { InnerHandler = new Answering(status, headers) }) {
-            BaseAddress = new Uri("http://harness/")
+    private static async Task Receive(int status, params (string Name, string Value)[] headers)
+    {
+        using var http = new HttpClient(
+            new RecordingHandler { InnerHandler = new Answering(status, headers) }
+        )
+        {
+            BaseAddress = new Uri("http://harness/"),
         };
 
-        using var response = await http.GetAsync("/anything", TestContext.Current.CancellationToken);
+        using var response = await http.GetAsync(
+            "/anything",
+            TestContext.Current.CancellationToken
+        );
     }
 
-    private sealed class Answering(int status, (string Name, string Value)[] headers) : HttpMessageHandler {
+    private sealed class Answering(int status, (string Name, string Value)[] headers)
+        : HttpMessageHandler
+    {
         protected override Task<HttpResponseMessage> SendAsync(
-            HttpRequestMessage request, CancellationToken cancellationToken) {
-            var response = new HttpResponseMessage((HttpStatusCode)status) {
-                Content = new StringContent("{}", Encoding.UTF8, "application/json")
+            HttpRequestMessage request,
+            CancellationToken cancellationToken
+        )
+        {
+            var response = new HttpResponseMessage((HttpStatusCode)status)
+            {
+                Content = new StringContent("{}", Encoding.UTF8, "application/json"),
             };
 
-            foreach (var (name, value) in headers) {
+            foreach (var (name, value) in headers)
+            {
                 response.Headers.TryAddWithoutValidation(name, value);
             }
 

@@ -5,13 +5,16 @@ using Microsoft.CodeAnalysis;
 
 namespace Hardened.Idl.SourceGenerator;
 
-internal class HandlerInfo : IEquatable<HandlerInfo> {
+internal class HandlerInfo : IEquatable<HandlerInfo>
+{
     public HandlerInfo(
         ITypeDefinition implementationType,
         IReadOnlyList<ITypeDefinition> interfaceCandidates,
         IReadOnlyList<AttributeModel> classFilters,
         IReadOnlyList<HandlerMethodFilterInfo> methodFilters,
-        Location? location = null) {
+        Location? location = null
+    )
+    {
         ImplementationType = implementationType;
         InterfaceCandidates = interfaceCandidates;
         ClassFilters = classFilters;
@@ -27,8 +30,10 @@ internal class HandlerInfo : IEquatable<HandlerInfo> {
         ITypeDefinition interfaceType,
         IReadOnlyList<AttributeModel> classFilters,
         IReadOnlyList<HandlerMethodFilterInfo> methodFilters,
-        Location? location = null)
-        : this(implementationType, new[] { interfaceType }, classFilters, methodFilters, location) { }
+        Location? location = null
+    )
+        : this(implementationType, new[] { interfaceType }, classFilters, methodFilters, location)
+    { }
 
     public ITypeDefinition ImplementationType { get; }
 
@@ -69,9 +74,12 @@ internal class HandlerInfo : IEquatable<HandlerInfo> {
     /// compare - the generated interface's namespace is the emitting project's and a handler may
     /// spell it unqualified.
     /// </remarks>
-    public ITypeDefinition? ServiceInterface(ICollection<string> declaredServiceNames) {
-        foreach (var candidate in InterfaceCandidates) {
-            if (declaredServiceNames.Contains(candidate.Name)) {
+    public ITypeDefinition? ServiceInterface(ICollection<string> declaredServiceNames)
+    {
+        foreach (var candidate in InterfaceCandidates)
+        {
+            if (declaredServiceNames.Contains(candidate.Name))
+            {
                 return candidate;
             }
         }
@@ -79,21 +87,32 @@ internal class HandlerInfo : IEquatable<HandlerInfo> {
         return null;
     }
 
-    public bool Equals(HandlerInfo? other) {
-        if (other is null) return false;
-        if (ReferenceEquals(this, other)) return true;
-        if (!ImplementationType.Equals(other.ImplementationType)) return false;
-        if (InterfaceCandidates.Count != other.InterfaceCandidates.Count) return false;
+    public bool Equals(HandlerInfo? other)
+    {
+        if (other is null)
+            return false;
+        if (ReferenceEquals(this, other))
+            return true;
+        if (!ImplementationType.Equals(other.ImplementationType))
+            return false;
+        if (InterfaceCandidates.Count != other.InterfaceCandidates.Count)
+            return false;
 
-        for (var i = 0; i < InterfaceCandidates.Count; i++) {
-            if (!InterfaceCandidates[i].Equals(other.InterfaceCandidates[i])) return false;
+        for (var i = 0; i < InterfaceCandidates.Count; i++)
+        {
+            if (!InterfaceCandidates[i].Equals(other.InterfaceCandidates[i]))
+                return false;
         }
 
-        if (!ClassFilters.DeepEquals(other.ClassFilters)) return false;
-        if (MethodFilters.Count != other.MethodFilters.Count) return false;
+        if (!ClassFilters.DeepEquals(other.ClassFilters))
+            return false;
+        if (MethodFilters.Count != other.MethodFilters.Count)
+            return false;
 
-        for (var i = 0; i < MethodFilters.Count; i++) {
-            if (!MethodFilters[i].Equals(other.MethodFilters[i])) return false;
+        for (var i = 0; i < MethodFilters.Count; i++)
+        {
+            if (!MethodFilters[i].Equals(other.MethodFilters[i]))
+                return false;
         }
 
         return true;
@@ -101,8 +120,10 @@ internal class HandlerInfo : IEquatable<HandlerInfo> {
 
     public override bool Equals(object? obj) => Equals(obj as HandlerInfo);
 
-    public override int GetHashCode() {
-        unchecked {
+    public override int GetHashCode()
+    {
+        unchecked
+        {
             var hash = ImplementationType.GetHashCode();
             hash = (hash * 397) ^ InterfaceCandidates.GetHashCodeAggregation();
             hash = (hash * 397) ^ ClassFilters.GetHashCodeAggregation();
@@ -112,12 +133,15 @@ internal class HandlerInfo : IEquatable<HandlerInfo> {
     }
 }
 
-internal class HandlerMethodFilterInfo : IEquatable<HandlerMethodFilterInfo> {
+internal class HandlerMethodFilterInfo : IEquatable<HandlerMethodFilterInfo>
+{
     public HandlerMethodFilterInfo(
         string methodName,
         IReadOnlyList<AttributeModel> filters,
         ITypeDefinition? outputType = null,
-        DeclaredOperationFacts? declared = null) {
+        DeclaredOperationFacts? declared = null
+    )
+    {
         MethodName = methodName;
         Filters = filters;
         OutputType = outputType;
@@ -159,19 +183,24 @@ internal class HandlerMethodFilterInfo : IEquatable<HandlerMethodFilterInfo> {
     /// </remarks>
     public ITypeDefinition? OutputType { get; }
 
-    public bool Equals(HandlerMethodFilterInfo? other) {
-        if (other is null) return false;
-        if (ReferenceEquals(this, other)) return true;
-        return MethodName == other.MethodName &&
-               Equals(OutputType, other.OutputType) &&
-               Filters.DeepEquals(other.Filters) &&
-               Declared.Equals(other.Declared);
+    public bool Equals(HandlerMethodFilterInfo? other)
+    {
+        if (other is null)
+            return false;
+        if (ReferenceEquals(this, other))
+            return true;
+        return MethodName == other.MethodName
+            && Equals(OutputType, other.OutputType)
+            && Filters.DeepEquals(other.Filters)
+            && Declared.Equals(other.Declared);
     }
 
     public override bool Equals(object? obj) => Equals(obj as HandlerMethodFilterInfo);
 
-    public override int GetHashCode() {
-        unchecked {
+    public override int GetHashCode()
+    {
+        unchecked
+        {
             var hash = MethodName.GetHashCode();
 
             hash = (hash * 397) ^ Filters.GetHashCodeAggregation();

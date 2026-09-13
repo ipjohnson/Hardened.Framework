@@ -20,7 +20,8 @@ namespace Hardened.Gcp.CloudRun.Runtime.Envelopes;
 /// asks about the attributes it needs after reading them.
 /// </para>
 /// </remarks>
-public static class PubSubPushBody {
+public static class PubSubPushBody
+{
     /// <summary>The subscription's full resource name.</summary>
     public const string SubscriptionHeader = "x-goog-pubsub-subscription-name";
 
@@ -50,15 +51,19 @@ public static class PubSubPushBody {
     /// Whether <paramref name="root"/> is a push body: an object with a <c>message</c> object and
     /// a <c>subscription</c> string.
     /// </summary>
-    public static bool TryRead(JsonElement root, out JsonElement message, out string subscription) {
+    public static bool TryRead(JsonElement root, out JsonElement message, out string subscription)
+    {
         message = default;
         subscription = "";
 
-        if (root.ValueKind != JsonValueKind.Object ||
-            !root.TryGetProperty(Message, out message) ||
-            message.ValueKind != JsonValueKind.Object ||
-            !root.TryGetProperty(Subscription, out var element) ||
-            element.ValueKind != JsonValueKind.String) {
+        if (
+            root.ValueKind != JsonValueKind.Object
+            || !root.TryGetProperty(Message, out message)
+            || message.ValueKind != JsonValueKind.Object
+            || !root.TryGetProperty(Subscription, out var element)
+            || element.ValueKind != JsonValueKind.String
+        )
+        {
             return false;
         }
 
@@ -84,38 +89,65 @@ public static class PubSubPushBody {
     /// handler's fault.
     /// </exception>
     public static Stream Read(
-        JsonElement message, string subscription, JsonElement root, IDictionary<string, StringValues> headers) {
-        if (message.TryGetProperty(Attributes, out var attributes) && attributes.ValueKind == JsonValueKind.Object) {
-            foreach (var attribute in attributes.EnumerateObject()) {
-                if (attribute.Value.ValueKind == JsonValueKind.String) {
+        JsonElement message,
+        string subscription,
+        JsonElement root,
+        IDictionary<string, StringValues> headers
+    )
+    {
+        if (
+            message.TryGetProperty(Attributes, out var attributes)
+            && attributes.ValueKind == JsonValueKind.Object
+        )
+        {
+            foreach (var attribute in attributes.EnumerateObject())
+            {
+                if (attribute.Value.ValueKind == JsonValueKind.String)
+                {
                     headers[attribute.Name] = attribute.Value.GetString();
                 }
             }
         }
 
-        Set(headers, MessageIdHeader, String(message, "messageId") ?? String(message, "message_id"));
-        Set(headers, PublishTimeHeader, String(message, "publishTime") ?? String(message, "publish_time"));
+        Set(
+            headers,
+            MessageIdHeader,
+            String(message, "messageId") ?? String(message, "message_id")
+        );
+        Set(
+            headers,
+            PublishTimeHeader,
+            String(message, "publishTime") ?? String(message, "publish_time")
+        );
         Set(headers, OrderingKeyHeader, String(message, "orderingKey"));
         Set(headers, SubscriptionHeader, subscription);
 
-        if (root.ValueKind == JsonValueKind.Object &&
-            root.TryGetProperty(DeliveryAttempt, out var attempt) &&
-            attempt.ValueKind == JsonValueKind.Number) {
+        if (
+            root.ValueKind == JsonValueKind.Object
+            && root.TryGetProperty(DeliveryAttempt, out var attempt)
+            && attempt.ValueKind == JsonValueKind.Number
+        )
+        {
             headers[DeliveryAttemptHeader] = attempt.GetRawText();
         }
 
         var data = String(message, Data);
 
-        if (string.IsNullOrEmpty(data)) {
+        if (string.IsNullOrEmpty(data))
+        {
             return Stream.Null;
         }
 
-        try {
+        try
+        {
             return new MemoryStream(Convert.FromBase64String(data!), writable: false);
         }
-        catch (FormatException exception) {
+        catch (FormatException exception)
+        {
             throw new InvalidOperationException(
-                "The Pub/Sub message carried data that is not base64, which every message is.", exception);
+                "The Pub/Sub message carried data that is not base64, which every message is.",
+                exception
+            );
         }
     }
 
@@ -128,7 +160,8 @@ public static class PubSubPushBody {
     /// gives an empty name - both produce a route no handler declared, which dispatch reports with
     /// the value in hand rather than failing inside the envelope.
     /// </remarks>
-    public static string SubscriptionName(string subscription) {
+    public static string SubscriptionName(string subscription)
+    {
         var slash = subscription.LastIndexOf('/');
 
         return slash > -1 ? subscription.Substring(slash + 1) : subscription;
@@ -136,14 +169,16 @@ public static class PubSubPushBody {
 
     /// <summary>A string property of a JSON object, or null when absent or not a string.</summary>
     private static string? String(JsonElement element, string property) =>
-        element.ValueKind == JsonValueKind.Object &&
-        element.TryGetProperty(property, out var value) &&
-        value.ValueKind == JsonValueKind.String
+        element.ValueKind == JsonValueKind.Object
+        && element.TryGetProperty(property, out var value)
+        && value.ValueKind == JsonValueKind.String
             ? value.GetString()
             : null;
 
-    private static void Set(IDictionary<string, StringValues> headers, string name, string? value) {
-        if (!string.IsNullOrEmpty(value)) {
+    private static void Set(IDictionary<string, StringValues> headers, string name, string? value)
+    {
+        if (!string.IsNullOrEmpty(value))
+        {
             headers[name] = value;
         }
     }

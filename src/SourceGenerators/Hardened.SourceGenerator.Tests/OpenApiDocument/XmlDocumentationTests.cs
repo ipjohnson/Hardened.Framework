@@ -1,10 +1,10 @@
 using System.Linq;
 using Hardened.SourceGenerator.OpenApiDocument;
+using Hardened.Web.Runtime.Responses;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Xunit;
-using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.SourceGenerator.Tests.OpenApiDocument;
 
@@ -25,8 +25,8 @@ namespace Hardened.SourceGenerator.Tests.OpenApiDocument;
 /// producing nothing, and it is the mode a project gets by default.
 /// </para>
 /// </remarks>
-public class XmlDocumentationTests {
-
+public class XmlDocumentationTests
+{
     private const string Source = """
         class C {
             /// <summary>Echoes a path token back.</summary>
@@ -38,17 +38,18 @@ public class XmlDocumentationTests {
 
     private static MethodDeclarationSyntax Method(DocumentationMode mode) =>
         CSharpSyntaxTree
-            .ParseText(Source, new CSharpParseOptions(documentationMode: mode),
-                cancellationToken: TestContext.Current.CancellationToken)
+            .ParseText(
+                Source,
+                new CSharpParseOptions(documentationMode: mode),
+                cancellationToken: TestContext.Current.CancellationToken
+            )
             .GetRoot(TestContext.Current.CancellationToken)
             .DescendantNodes()
             .OfType<MethodDeclarationSyntax>()
             .Single();
 
-    public static TheoryData<DocumentationMode> Modes => new() {
-        DocumentationMode.Parse,
-        DocumentationMode.None,
-    };
+    public static TheoryData<DocumentationMode> Modes =>
+        new() { DocumentationMode.Parse, DocumentationMode.None };
 
     [Theory]
     [MemberData(nameof(Modes))]
@@ -72,12 +73,18 @@ public class XmlDocumentationTests {
 
     [Theory]
     [MemberData(nameof(Modes))]
-    public void AMemberWithNoCommentReadsAsNothing(DocumentationMode mode) {
+    public void AMemberWithNoCommentReadsAsNothing(DocumentationMode mode)
+    {
         var method = CSharpSyntaxTree
-            .ParseText("class C { public string M() => \"\"; }",
+            .ParseText(
+                "class C { public string M() => \"\"; }",
                 new CSharpParseOptions(documentationMode: mode),
-                cancellationToken: TestContext.Current.CancellationToken)
-            .GetRoot(TestContext.Current.CancellationToken).DescendantNodes().OfType<MethodDeclarationSyntax>().Single();
+                cancellationToken: TestContext.Current.CancellationToken
+            )
+            .GetRoot(TestContext.Current.CancellationToken)
+            .DescendantNodes()
+            .OfType<MethodDeclarationSyntax>()
+            .Single();
 
         var (summary, description) = XmlDocumentation.Read(method);
 
@@ -96,8 +103,11 @@ public class XmlDocumentationTests {
 
     private static MethodDeclarationSyntax Entity(DocumentationMode mode) =>
         CSharpSyntaxTree
-            .ParseText(Entities, new CSharpParseOptions(documentationMode: mode),
-                cancellationToken: TestContext.Current.CancellationToken)
+            .ParseText(
+                Entities,
+                new CSharpParseOptions(documentationMode: mode),
+                cancellationToken: TestContext.Current.CancellationToken
+            )
             .GetRoot(TestContext.Current.CancellationToken)
             .DescendantNodes()
             .OfType<MethodDeclarationSyntax>()
@@ -112,12 +122,14 @@ public class XmlDocumentationTests {
     public void AnEntityIsTheCharacterItStandsFor(DocumentationMode mode) =>
         Assert.Equal(
             "Created<T> carries the body & the Location, \"both\".",
-            XmlDocumentation.Read(Entity(mode)).Summary);
+            XmlDocumentation.Read(Entity(mode)).Summary
+        );
 
     [Theory]
     [MemberData(nameof(Modes))]
     public void ANumericEntityIsDecodedAndAStrayAmpersandIsKept(DocumentationMode mode) =>
         Assert.Equal(
             "Copyright \u00a9 and \u263a are characters too; a stray & is prose.",
-            XmlDocumentation.Read(Entity(mode)).Description);
+            XmlDocumentation.Read(Entity(mode)).Description
+        );
 }

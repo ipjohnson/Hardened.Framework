@@ -36,11 +36,11 @@ namespace Hardened.Requests.Runtime.Serializer;
 /// </remarks>
 [RequiresUnreferencedCode(Reason)]
 [RequiresDynamicCode(Reason)]
-public class SystemTextJsonResponseSerializer : IResponseSerializer {
-
+public class SystemTextJsonResponseSerializer : IResponseSerializer
+{
     private const string Reason =
-        "Reads the model's shape by reflection. Import AotSerializerModule for a trimmed or " +
-        "AOT-published application, which registers the source-generated serializers instead.";
+        "Reads the model's shape by reflection. Import AotSerializerModule for a trimmed or "
+        + "AOT-published application, which registers the source-generated serializers instead.";
 
     private readonly JsonSerializerOptions _serializerOptions;
 
@@ -54,27 +54,35 @@ public class SystemTextJsonResponseSerializer : IResponseSerializer {
     /// - do nothing at all on a JIT host. Nothing reported it: the registration succeeded, the
     /// context was simply never asked.
     /// </remarks>
-    public SystemTextJsonResponseSerializer(IOptions<IJsonSerializerConfiguration> configuration,
-        IEnumerable<IJsonTypeInfoResolver> resolvers) {
-        _serializerOptions =
-            Hardened.Shared.Runtime.Json.JsonTypeInfoLookup.WithResolvers(
-                configuration.Value.SerializeOptions ??
-                new JsonSerializerOptions(JsonSerializerDefaults.Web),
-                resolvers);
+    public SystemTextJsonResponseSerializer(
+        IOptions<IJsonSerializerConfiguration> configuration,
+        IEnumerable<IJsonTypeInfoResolver> resolvers
+    )
+    {
+        _serializerOptions = Hardened.Shared.Runtime.Json.JsonTypeInfoLookup.WithResolvers(
+            configuration.Value.SerializeOptions
+                ?? new JsonSerializerOptions(JsonSerializerDefaults.Web),
+            resolvers
+        );
     }
 
     public bool IsDefaultSerializer => true;
 
     public string ContentType => KnownContentType.Json;
 
-    public async Task SerializeResponse(IExecutionContext context) {
+    public async Task SerializeResponse(IExecutionContext context)
+    {
         context.Response.ContentType = "application/json";
 
-        if (context.Response.ResponseValue == null) {
+        if (context.Response.ResponseValue == null)
+        {
             return;
         }
 
-        await System.Text.Json.JsonSerializer.SerializeAsync(context.Response.Body, context.Response.ResponseValue,
-            _serializerOptions);
+        await System.Text.Json.JsonSerializer.SerializeAsync(
+            context.Response.Body,
+            context.Response.ResponseValue,
+            _serializerOptions
+        );
     }
 }

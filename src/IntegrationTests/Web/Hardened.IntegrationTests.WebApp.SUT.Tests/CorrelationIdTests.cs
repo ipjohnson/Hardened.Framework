@@ -8,12 +8,13 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests;
 /// the request logger and returned by a filter the middleware service seeds itself. So what is under
 /// test is largely that none of those need wiring up per host.
 /// </remarks>
-public class CorrelationIdTests {
-
+public class CorrelationIdTests
+{
     private const string Header = "X-Correlation-Id";
 
     [HardenedTest]
-    public async Task EveryResponseCarriesACorrelationId(ITestWebApp testWebApp) {
+    public async Task EveryResponseCarriesACorrelationId(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Request("GET", null, "/binding/path/42");
 
         Assert.False(string.IsNullOrEmpty(response.Headers[Header].ToString()));
@@ -24,7 +25,8 @@ public class CorrelationIdTests {
     /// id to borrow. A traced deployment returns the 32-character trace id here instead.
     /// </summary>
     [HardenedTest]
-    public async Task TheIdIsThirteenBase64Characters(ITestWebApp testWebApp) {
+    public async Task TheIdIsThirteenBase64Characters(ITestWebApp testWebApp)
+    {
         const string digits = "-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz";
 
         var response = await testWebApp.Request("GET", null, "/binding/path/42");
@@ -37,7 +39,8 @@ public class CorrelationIdTests {
 
     /// <summary>Two requests are two ids, or it would group unrelated work together.</summary>
     [HardenedTest]
-    public async Task TwoRequestsGetTwoIds(ITestWebApp testWebApp) {
+    public async Task TwoRequestsGetTwoIds(ITestWebApp testWebApp)
+    {
         var first = await testWebApp.Request("GET", null, "/binding/path/42");
         var second = await testWebApp.Request("GET", null, "/binding/path/42");
 
@@ -49,7 +52,8 @@ public class CorrelationIdTests {
     /// only appears on successful responses is missing from every interesting case.
     /// </summary>
     [HardenedTest]
-    public async Task AnUnroutedRequestStillCarriesAnId(ITestWebApp testWebApp) {
+    public async Task AnUnroutedRequestStillCarriesAnId(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Request("GET", null, "/nothing/is/here");
 
         Assert.Equal(404, response.StatusCode);
@@ -61,7 +65,8 @@ public class CorrelationIdTests {
     /// produced without reaching a handler still carries it.
     /// </summary>
     [HardenedTest]
-    public async Task A405StillCarriesAnId(ITestWebApp testWebApp) {
+    public async Task A405StillCarriesAnId(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Request("PUT", null, "/binding/path/42");
 
         Assert.Equal(405, response.StatusCode);

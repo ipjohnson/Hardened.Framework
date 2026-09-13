@@ -1,4 +1,5 @@
 using Hardened.Web.Runtime.Responses;
+
 namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 
 /// <summary>
@@ -9,10 +10,11 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 /// derive from Attribute - so the README documented two route attributes no project could apply.
 /// These tests fail to compile if that regresses, and fail to pass if the verb stops routing.
 /// </summary>
-public class HttpMethodTests {
-
+public class HttpMethodTests
+{
     [HardenedTest]
-    public async Task DeleteBindsAPathToken(ITestWebApp testWebApp) {
+    public async Task DeleteBindsAPathToken(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Delete("/verbs/item/abc123");
 
         response.Assert.Ok();
@@ -20,7 +22,8 @@ public class HttpMethodTests {
     }
 
     [HardenedTest]
-    public async Task DeleteBindsAQueryString(ITestWebApp testWebApp) {
+    public async Task DeleteBindsAQueryString(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Delete("/verbs/item?name=widget");
 
         response.Assert.Ok();
@@ -28,8 +31,12 @@ public class HttpMethodTests {
     }
 
     [HardenedTest]
-    public async Task PatchBindsABodyAndAPathToken(ITestWebApp testWebApp) {
-        var model = new MathAddModel { Values = new List<int> { 1, 2, 3 } };
+    public async Task PatchBindsABodyAndAPathToken(ITestWebApp testWebApp)
+    {
+        var model = new MathAddModel
+        {
+            Values = new List<int> { 1, 2, 3 },
+        };
 
         var response = await testWebApp.Patch(model, "/verbs/item/totals");
 
@@ -42,7 +49,8 @@ public class HttpMethodTests {
     /// would make whichever registered first answer both.
     /// </summary>
     [HardenedTest]
-    public async Task VerbsOnTheSamePathStayApart(ITestWebApp testWebApp) {
+    public async Task VerbsOnTheSamePathStayApart(ITestWebApp testWebApp)
+    {
         var get = await testWebApp.Get("/verbs/item/abc123");
         var delete = await testWebApp.Delete("/verbs/item/abc123");
 
@@ -62,7 +70,8 @@ public class HttpMethodTests {
     /// wires only the described side cannot pass.
     /// </remarks>
     [HardenedTest]
-    public async Task ADeclaredSuccessStatusIsAnswered(ITestWebApp testWebApp) {
+    public async Task ADeclaredSuccessStatusIsAnswered(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Post(null!, "/verbs/created");
 
         Assert.Equal(201, response.StatusCode);
@@ -72,7 +81,8 @@ public class HttpMethodTests {
     /// A declared 204 answers 204 and writes nothing, whatever the handler returned.
     /// </summary>
     [HardenedTest]
-    public async Task ADeclaredNoContentStatusWritesNoBody(ITestWebApp testWebApp) {
+    public async Task ADeclaredNoContentStatusWritesNoBody(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Delete("/verbs/emptied");
 
         Assert.Equal(204, response.StatusCode);
@@ -86,7 +96,8 @@ public class HttpMethodTests {
 
     /// <summary>A handler declaring nothing still answers 200.</summary>
     [HardenedTest]
-    public async Task AHandlerDeclaringNoStatusStillAnswers200(ITestWebApp testWebApp) {
+    public async Task AHandlerDeclaringNoStatusStillAnswers200(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/verbs/item/abc123");
 
         Assert.Equal(200, response.StatusCode);

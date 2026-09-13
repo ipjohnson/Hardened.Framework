@@ -3,10 +3,11 @@ using Xunit;
 
 namespace Hardened.Shared.Runtime.Tests.Collections;
 
-public class CollectionExtensionsTests {
-
+public class CollectionExtensionsTests
+{
     [Fact]
-    public void ForeachVisitsEveryValueInOrder() {
+    public void ForeachVisitsEveryValueInOrder()
+    {
         var visited = new List<int>();
 
         new[] { 1, 2, 3 }.Foreach(visited.Add);
@@ -15,7 +16,8 @@ public class CollectionExtensionsTests {
     }
 
     [Fact]
-    public void ForeachOverNothingDoesNothing() {
+    public void ForeachOverNothingDoesNothing()
+    {
         var visited = 0;
 
         Array.Empty<int>().Foreach(_ => visited++);
@@ -24,14 +26,16 @@ public class CollectionExtensionsTests {
     }
 
     [Fact]
-    public void GetOrDefaultReturnsTheValueForAKeyThatIsPresent() {
+    public void GetOrDefaultReturnsTheValueForAKeyThatIsPresent()
+    {
         var dictionary = new Dictionary<string, int> { ["present"] = 7 };
 
         Assert.Equal(7, dictionary.GetOrDefault("present"));
     }
 
     [Fact]
-    public void GetOrDefaultReturnsTheGivenDefaultForAMissingKey() {
+    public void GetOrDefaultReturnsTheGivenDefaultForAMissingKey()
+    {
         var dictionary = new Dictionary<string, int> { ["present"] = 7 };
 
         Assert.Equal(-1, dictionary.GetOrDefault("absent", -1));
@@ -41,7 +45,8 @@ public class CollectionExtensionsTests {
     /// With no default given, a missing key reads as the type's own default rather than throwing.
     /// </summary>
     [Fact]
-    public void GetOrDefaultWithNoDefaultReturnsTheTypesDefault() {
+    public void GetOrDefaultWithNoDefaultReturnsTheTypesDefault()
+    {
         Assert.Equal(0, new Dictionary<string, int>().GetOrDefault("absent"));
         Assert.Null(new Dictionary<string, string?>().GetOrDefault("absent"));
     }
@@ -51,7 +56,8 @@ public class CollectionExtensionsTests {
     /// "absent" from "present and false" makes every flag unreadable.
     /// </summary>
     [Fact]
-    public void GetOrDefaultDistinguishesAPresentDefaultValueFromAMissingKey() {
+    public void GetOrDefaultDistinguishesAPresentDefaultValueFromAMissingKey()
+    {
         var dictionary = new Dictionary<string, bool> { ["explicitlyFalse"] = false };
 
         Assert.False(dictionary.GetOrDefault("explicitlyFalse", true));

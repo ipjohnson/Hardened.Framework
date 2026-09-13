@@ -15,11 +15,13 @@ namespace Hardened.IntegrationTests.LambdaHttp.SUT.Tests;
 /// <c>ServerSentEventsResponseModeStartupServiceTests</c> - and neither says the two meet. A
 /// manifest that is generated and never registered would pass both and warn about nothing.
 /// </remarks>
-public class ServerSentEventManifestTests {
-
+public class ServerSentEventManifestTests
+{
     [HardenedTest]
-    public void TheEventStreamHandlerIsInTheManifest(IServiceProvider provider) {
-        var handlers = provider.GetServices<IServerSentEventManifest>()
+    public void TheEventStreamHandlerIsInTheManifest(IServiceProvider provider)
+    {
+        var handlers = provider
+            .GetServices<IServerSentEventManifest>()
             .SelectMany(manifest => manifest.Handlers)
             .ToArray();
 
@@ -33,8 +35,10 @@ public class ServerSentEventManifestTests {
     /// <c>{deviceId:spec_p_588343bc}</c> - which appears in nobody's source.
     /// </summary>
     [HardenedTest]
-    public void AConstrainedRouteIsListedWithoutItsConstraint(IServiceProvider provider) {
-        var handlers = provider.GetServices<IServerSentEventManifest>()
+    public void AConstrainedRouteIsListedWithoutItsConstraint(IServiceProvider provider)
+    {
+        var handlers = provider
+            .GetServices<IServerSentEventManifest>()
             .SelectMany(manifest => manifest.Handlers)
             .ToArray();
 
@@ -47,8 +51,10 @@ public class ServerSentEventManifestTests {
     /// a manifest naming every route would have the host warn about all of them.
     /// </summary>
     [HardenedTest]
-    public void OrdinaryHandlersAreNotListed(IServiceProvider provider) {
-        var handlers = provider.GetServices<IServerSentEventManifest>()
+    public void OrdinaryHandlersAreNotListed(IServiceProvider provider)
+    {
+        var handlers = provider
+            .GetServices<IServerSentEventManifest>()
             .SelectMany(manifest => manifest.Handlers)
             .ToArray();
 

@@ -36,8 +36,8 @@ namespace Hardened.Web.AspNetCore.Runtime;
 /// </summary>
 [DependencyModule]
 [HardenedWebModule]
-public partial class AspNetCoreRuntime : IServiceCollectionConfiguration {
-
+public partial class AspNetCoreRuntime : IServiceCollectionConfiguration
+{
     /// <summary>
     /// Replaces the terminal not-found handler with one that leaves the request unanswered.
     /// </summary>
@@ -46,7 +46,8 @@ public partial class AspNetCoreRuntime : IServiceCollectionConfiguration {
     /// framework registered, add the host's own. See <see cref="AspNetResourceNotFoundHandler"/>
     /// for why this host wants a different answer than every other one.
     /// </remarks>
-    public void ConfigureServices(IServiceCollection services) {
+    public void ConfigureServices(IServiceCollection services)
+    {
         services.RemoveAll<IResourceNotFoundHandler>();
         services.AddSingleton<IResourceNotFoundHandler, AspNetResourceNotFoundHandler>();
     }

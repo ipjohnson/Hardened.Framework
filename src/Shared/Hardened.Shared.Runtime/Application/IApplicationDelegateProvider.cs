@@ -10,6 +10,10 @@ public record ApplicationDelegate(Func<Task<int>> Delegate, bool ShouldStartApp)
 /// <summary>
 /// Provides application delegate based on environment and provider
 /// </summary>
-public interface IApplicationDelegateProvider {
-    Task<ApplicationDelegate> ProvideDelegate(IHardenedEnvironment environment, IServiceProvider serviceProvider);
+public interface IApplicationDelegateProvider
+{
+    Task<ApplicationDelegate> ProvideDelegate(
+        IHardenedEnvironment environment,
+        IServiceProvider serviceProvider
+    );
 }

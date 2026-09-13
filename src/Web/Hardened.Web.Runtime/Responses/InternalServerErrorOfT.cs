@@ -25,8 +25,10 @@ namespace Hardened.Web.Runtime.Responses;
 /// </remarks>
 [HttpStatus(500)]
 public sealed record InternalServerError<T>(T Body)
-    : IHttpStatusResponse, ICarriesResponseBody, IResponseExpectation<InternalServerError<T>> {
-
+    : IHttpStatusResponse,
+        ICarriesResponseBody,
+        IResponseExpectation<InternalServerError<T>>
+{
     public string Type => ProblemTypes.InternalServerError;
 
     public string Title => "Internal Server Error";
@@ -38,6 +40,7 @@ public sealed record InternalServerError<T>(T Body)
     object? ICarriesResponseBody.Body => Body;
 
     public static InternalServerError<T> FromResponse(
-        object? body, IReadOnlyDictionary<string, string> headers) =>
-        new(ResponseExpectation.Body<T>(body));
+        object? body,
+        IReadOnlyDictionary<string, string> headers
+    ) => new(ResponseExpectation.Body<T>(body));
 }

@@ -34,7 +34,8 @@ namespace Hardened.SourceGenerator.Web.Routing;
 /// answered for the layout that split it.
 /// </para>
 /// </remarks>
-public static class ResponseCacheStoreDiagnostics {
+public static class ResponseCacheStoreDiagnostics
+{
     public const string DiagnosticId = "HRDW005";
 
     private const string AttributeNamespace = "Hardened.Requests.Runtime.Caching";
@@ -46,8 +47,9 @@ public static class ResponseCacheStoreDiagnostics {
     /// the compilation for an <c>IResponseCacheStore</c> implementation would answer for a type a
     /// reference merely contains, which is not the same as one this application registered.
     /// </summary>
-    private static readonly string[] StoreModuleAttributes = {
-        "HardenedMemoryResponseCacheAttribute"
+    private static readonly string[] StoreModuleAttributes =
+    {
+        "HardenedMemoryResponseCacheAttribute",
     };
 
     /// <summary>
@@ -55,10 +57,11 @@ public static class ResponseCacheStoreDiagnostics {
     /// repository ships, and the Lambda web runtime Hardened.Amz ships. Named for the reason the
     /// store attributes are.
     /// </summary>
-    private static readonly string[] WebRuntimeModuleAttributes = {
+    private static readonly string[] WebRuntimeModuleAttributes =
+    {
         "KestrelRuntimeAttribute",
         "AspNetCoreRuntimeAttribute",
-        "LambdaWebModuleAttribute"
+        "LambdaWebModuleAttribute",
     };
 
     /// <summary>
@@ -66,17 +69,20 @@ public static class ResponseCacheStoreDiagnostics {
     /// <c>AmbiguousRouteDiagnostics.Descriptor</c> is: RS2008 looks for the field, and these
     /// projects set <c>EnforceExtendedAnalyzerRules</c>.
     /// </summary>
-    private static DiagnosticDescriptor Descriptor() => new(
-        id: DiagnosticId,
-        title: "Response caching is declared and no store is registered",
-        messageFormat:
-        "'{0}' declares [CacheResponse] and this application registers no response cache store, " +
-        "so every request to it answers an error. Add the Hardened.Requests.Caching.Memory " +
-        "package and [HardenedMemoryResponseCache] to the module, or register an " +
-        "IResponseCacheStore yourself and suppress " + DiagnosticId + ".",
-        category: "Hardened.Web",
-        defaultSeverity: DiagnosticSeverity.Warning,
-        isEnabledByDefault: true);
+    private static DiagnosticDescriptor Descriptor() =>
+        new(
+            id: DiagnosticId,
+            title: "Response caching is declared and no store is registered",
+            messageFormat: "'{0}' declares [CacheResponse] and this application registers no response cache store, "
+                + "so every request to it answers an error. Add the Hardened.Requests.Caching.Memory "
+                + "package and [HardenedMemoryResponseCache] to the module, or register an "
+                + "IResponseCacheStore yourself and suppress "
+                + DiagnosticId
+                + ".",
+            category: "Hardened.Web",
+            defaultSeverity: DiagnosticSeverity.Warning,
+            isEnabledByDefault: true
+        );
 
     /// <summary>Whether a handler asks for its response to be cached.</summary>
     /// <remarks>
@@ -97,17 +103,23 @@ public static class ResponseCacheStoreDiagnostics {
     /// it for whoever imports the library.
     /// </remarks>
     public static bool RegistersAStore(EntryPointSelector.Model applicationModel) =>
-        applicationModel.ImportsAStore ||
-        (applicationModel.AttributeModels?.Any(
-            attribute => StoreModuleAttributes.Contains(attribute.TypeDefinition.Name)) ?? false);
+        applicationModel.ImportsAStore
+        || (
+            applicationModel.AttributeModels?.Any(attribute =>
+                StoreModuleAttributes.Contains(attribute.TypeDefinition.Name)
+            )
+            ?? false
+        );
 
     /// <summary>
     /// Whether the entry point applies a web runtime, and so is the application rather than a
     /// library some other compilation hosts.
     /// </summary>
     public static bool IsApplication(EntryPointSelector.Model applicationModel) =>
-        applicationModel.AttributeModels?.Any(
-            attribute => WebRuntimeModuleAttributes.Contains(attribute.TypeDefinition.Name)) ?? false;
+        applicationModel.AttributeModels?.Any(attribute =>
+            WebRuntimeModuleAttributes.Contains(attribute.TypeDefinition.Name)
+        )
+        ?? false;
 
     /// <summary>
     /// One report per assembly, naming every handler that would fail.
@@ -120,8 +132,11 @@ public static class ResponseCacheStoreDiagnostics {
     public static void Report(
         SourceProductionContext context,
         EntryPointSelector.Model applicationModel,
-        IReadOnlyList<RequestHandlerModel> handlers) {
-        if (!IsApplication(applicationModel) || RegistersAStore(applicationModel)) {
+        IReadOnlyList<RequestHandlerModel> handlers
+    )
+    {
+        if (!IsApplication(applicationModel) || RegistersAStore(applicationModel))
+        {
             return;
         }
 
@@ -132,12 +147,14 @@ public static class ResponseCacheStoreDiagnostics {
             .Distinct()
             .ToList();
 
-        if (declaring.Count == 0) {
+        if (declaring.Count == 0)
+        {
             return;
         }
 
         context.ReportDiagnostic(
-            Diagnostic.Create(Descriptor(), Location.None, string.Join(", ", declaring)));
+            Diagnostic.Create(Descriptor(), Location.None, string.Join(", ", declaring))
+        );
     }
 
     private static bool IsCacheResponse(ITypeDefinition type) =>

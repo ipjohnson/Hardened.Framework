@@ -18,16 +18,20 @@ namespace Hardened.IntegrationTests.Sqs.SUT.Tests;
 /// resolvable fact rather than a guess, and that is what the first test asserts.
 /// </remarks>
 [PipelineDelivery]
-public class PipelineDeliveryTests {
-
+public class PipelineDeliveryTests
+{
     [HardenedTest]
-    public void TheClassAttributeWinsOverTheAssemblyAttribute(IServiceProvider provider) {
+    public void TheClassAttributeWinsOverTheAssemblyAttribute(IServiceProvider provider)
+    {
         Assert.IsType<PipelineDelivery>(provider.GetRequiredService<ITriggerDelivery>());
     }
 
     [HardenedTest]
     public async Task AQueueMessageReachesTheHandlerThroughThePipelineAlone(
-        SqsTestApp.Queues queues, [Mock] IOrderStore store) {
+        SqsTestApp.Queues queues,
+        [Mock] IOrderStore store
+    )
+    {
         await queues.OrdersNew(new Order { Id = "p-1", Quantity = 5 });
 
         store.Received().Place(Arg.Is<Order>(order => order.Id == "p-1" && order.Quantity == 5));

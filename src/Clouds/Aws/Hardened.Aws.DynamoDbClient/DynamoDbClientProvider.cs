@@ -18,32 +18,41 @@ namespace Hardened.Aws.DynamoDbClient;
 [SingletonService(As = typeof(IDynamoDbClientProvider))]
 public sealed class DynamoDbClientProvider(
     IOptions<IDynamoDbOptions> options,
-    IServiceProvider serviceProvider) : IDynamoDbClientProvider, IDisposable {
-
-    private readonly ConcurrentDictionary<string, IAmazonDynamoDB> _clients = new(StringComparer.Ordinal);
+    IServiceProvider serviceProvider
+) : IDynamoDbClientProvider, IDisposable
+{
+    private readonly ConcurrentDictionary<string, IAmazonDynamoDB> _clients = new(
+        StringComparer.Ordinal
+    );
 
     public IAmazonDynamoDB GetClient(string clientName = "") =>
         _clients.GetOrAdd(clientName, Build);
 
-    private IAmazonDynamoDB Build(string clientName) {
-        if (!string.IsNullOrEmpty(clientName)) {
-            if (!options.Value.Clients.TryGetValue(clientName, out var factory)) {
+    private IAmazonDynamoDB Build(string clientName)
+    {
+        if (!string.IsNullOrEmpty(clientName))
+        {
+            if (!options.Value.Clients.TryGetValue(clientName, out var factory))
+            {
                 throw new InvalidOperationException(
-                    $"No DynamoDB client is configured under the name '{clientName}'. " +
-                    $"Configured names: {Describe(options.Value.Clients.Keys)}.");
+                    $"No DynamoDB client is configured under the name '{clientName}'. "
+                        + $"Configured names: {Describe(options.Value.Clients.Keys)}."
+                );
             }
 
             return factory(serviceProvider);
         }
 
-        if (options.Value.DefaultClient is { } defaultFactory) {
+        if (options.Value.DefaultClient is { } defaultFactory)
+        {
             return defaultFactory(serviceProvider);
         }
 
         return BuildFromOptions();
     }
 
-    private IAmazonDynamoDB BuildFromOptions() {
+    private IAmazonDynamoDB BuildFromOptions()
+    {
         var (config, credentials) = DefaultClientSettings(options.Value);
 
         return credentials is null
@@ -64,15 +73,20 @@ public sealed class DynamoDbClientProvider(
     /// The configuration, and the credentials to build with — <c>null</c> meaning the SDK should
     /// resolve them itself from the environment and the role.
     /// </returns>
-    internal static (AmazonDynamoDBConfig Config, AWSCredentials? Credentials) DefaultClientSettings(
-        IDynamoDbOptions options) {
+    internal static (
+        AmazonDynamoDBConfig Config,
+        AWSCredentials? Credentials
+    ) DefaultClientSettings(IDynamoDbOptions options)
+    {
         var config = new AmazonDynamoDBConfig();
         var hasRegion = !string.IsNullOrWhiteSpace(options.Region);
 
-        if (string.IsNullOrWhiteSpace(options.ServiceUrl)) {
+        if (string.IsNullOrWhiteSpace(options.ServiceUrl))
+        {
             // Deployed: the SDK resolves credentials from the role, and the region for itself when
             // nothing here has said which one.
-            if (hasRegion) {
+            if (hasRegion)
+            {
                 config.RegionEndpoint = RegionEndpoint.GetBySystemName(options.Region);
             }
 
@@ -86,7 +100,8 @@ public sealed class DynamoDbClientProvider(
         // the signing region or it is silently dropped. Which is what happened: a process with
         // both AWS_REGION and DYNAMODB_SERVICE_URL set, the ordinary local-development shape,
         // signed as us-east-1 whatever its region said.
-        if (hasRegion) {
+        if (hasRegion)
+        {
             config.AuthenticationRegion = options.Region;
         }
 
@@ -95,14 +110,17 @@ public sealed class DynamoDbClientProvider(
         return (config, new BasicAWSCredentials("local", "local"));
     }
 
-    private static string Describe(IEnumerable<string> names) {
+    private static string Describe(IEnumerable<string> names)
+    {
         var listed = string.Join(", ", names.Select(n => $"'{n}'"));
 
         return listed.Length == 0 ? "none" : listed;
     }
 
-    public void Dispose() {
-        foreach (var client in _clients.Values) {
+    public void Dispose()
+    {
+        foreach (var client in _clients.Values)
+        {
             client.Dispose();
         }
 

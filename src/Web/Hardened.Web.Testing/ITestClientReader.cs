@@ -17,8 +17,8 @@ namespace Hardened.Web.Testing;
 /// already ignores it.
 /// </para>
 /// </remarks>
-public interface ITestClientReader {
-
+public interface ITestClientReader
+{
     /// <summary>The answer, or null when the call is not one this reader recognises.</summary>
     /// <param name="result">The value the call completed with, or null where it completed with none or threw.</param>
     /// <param name="thrown">What the call threw, or null where it completed.</param>

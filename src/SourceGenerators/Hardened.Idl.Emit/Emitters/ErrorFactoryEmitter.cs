@@ -1,9 +1,9 @@
 ﻿using System.Collections.Generic;
 using System.Text;
 using CSharpAuthor;
+using Hardened.Generation;
 using Hardened.Generation.Models;
 using Hardened.Idl;
-using Hardened.Generation;
 
 namespace Hardened.Idl.Emitters;
 
@@ -32,8 +32,8 @@ namespace Hardened.Idl.Emitters;
 /// because <c>@error</c> and <c>@httpError</c> live on the shape.
 /// </para>
 /// </remarks>
-internal static class ErrorFactoryEmitter {
-
+internal static class ErrorFactoryEmitter
+{
     /// <summary>The holder's name, which is the file's plus a suffix.</summary>
     /// <remarks>
     /// Reserved by <c>NameAllocator</c> beside <c>{file}Patterns</c> and
@@ -50,12 +50,18 @@ internal static class ErrorFactoryEmitter {
     /// generic extension, and one with no declared body is already thrown by naming its type once.
     /// </param>
     public static ClassDefinition? Emit(
-        IConstructContainer container, IReadOnlyList<ErrorResponseModel> errors,
-        string modelsNamespace, string specFileName) {
+        IConstructContainer container,
+        IReadOnlyList<ErrorResponseModel> errors,
+        string modelsNamespace,
+        string specFileName
+    )
+    {
         var byPayload = new Dictionary<string, ErrorResponseModel?>(System.StringComparer.Ordinal);
 
-        foreach (var error in errors) {
-            if (error.Ref == null || error.ExceptionTypeName == null) {
+        foreach (var error in errors)
+        {
+            if (error.Ref == null || error.ExceptionTypeName == null)
+            {
                 continue;
             }
 
@@ -74,10 +80,12 @@ internal static class ErrorFactoryEmitter {
 
         payloads.Sort(System.StringComparer.Ordinal);
 
-        foreach (var payload in payloads) {
+        foreach (var payload in payloads)
+        {
             var error = byPayload[payload];
 
-            if (error == null) {
+            if (error == null)
+            {
                 continue;
             }
 
@@ -89,28 +97,33 @@ internal static class ErrorFactoryEmitter {
         return holder;
     }
 
-    private static ClassDefinition CreateHolder(
-        IConstructContainer container, string specFileName) {
+    private static ClassDefinition CreateHolder(IConstructContainer container, string specFileName)
+    {
         var holder = container.AddClass(HolderName(specFileName));
 
         holder.Modifiers |= ComponentModifier.Public | ComponentModifier.Static;
         holder.Comment = DocComment.Format(
-            "Throwing shorthand for the errors this description declares a type for. One method " +
-            "per payload that names a single error, so the exception is inferred rather than " +
-            "written out beside the body it carries.");
+            "Throwing shorthand for the errors this description declares a type for. One method "
+                + "per payload that names a single error, so the exception is inferred rather than "
+                + "written out beside the body it carries."
+        );
 
         return holder;
     }
 
     private static void EmitFactory(
-        ClassDefinition holder, ErrorResponseModel error, string payload, string modelsNamespace) {
+        ClassDefinition holder,
+        ErrorResponseModel error,
+        string payload,
+        string modelsNamespace
+    )
+    {
         var method = holder.AddMethod("AsException");
 
         method.Modifiers |= ComponentModifier.Public | ComponentModifier.Static;
         method.SetReturnType(TypeDefinition.Get(modelsNamespace, error.ExceptionTypeName!));
 
-        var parameter = method.AddParameter(
-            TypeDefinition.Get(modelsNamespace, payload), "body");
+        var parameter = method.AddParameter(TypeDefinition.Get(modelsNamespace, payload), "body");
 
         parameter.This = true;
 
@@ -118,7 +131,8 @@ internal static class ErrorFactoryEmitter {
 
         // A header the error declares is a value only the thrower knows, so it travels the same way
         // the body does rather than being invented here.
-        foreach (var header in error.Headers) {
+        foreach (var header in error.Headers)
+        {
             var name = NamingHelper.ToParameterName(header.ParameterName);
 
             method.AddParameter(TypeDefinition.Get(typeof(string)), name);
@@ -130,7 +144,8 @@ internal static class ErrorFactoryEmitter {
         method.AddCode($"new({arguments});");
 
         method.Comment = DocComment.Format(
-            $"The declared {error.StatusCode} carrying this body, as the exception that produces " +
-            "it.");
+            $"The declared {error.StatusCode} carrying this body, as the exception that produces "
+                + "it."
+        );
     }
 }

@@ -18,8 +18,10 @@ namespace Hardened.Gcp.CloudRun.Storage;
 /// </remarks>
 [DependencyModule]
 [CloudRunRuntime]
-public partial class StorageModule : IServiceCollectionConfiguration {
-    public void ConfigureServices(IServiceCollection services) {
+public partial class StorageModule : IServiceCollectionConfiguration
+{
+    public void ConfigureServices(IServiceCollection services)
+    {
         services.AddSingleton<ITriggerEnvelope, StorageEnvelope>();
 
         services.AddBatchExecutionFilter();

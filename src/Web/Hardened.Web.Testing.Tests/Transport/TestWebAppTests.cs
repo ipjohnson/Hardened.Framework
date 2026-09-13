@@ -1,8 +1,8 @@
 using Hardened.Shared.Testing.Impl;
+using Hardened.Web.Runtime.Responses;
 using Hardened.Web.Testing.Tests.Conformance;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
-using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.Testing.Tests.Transport;
 
@@ -10,16 +10,23 @@ namespace Hardened.Web.Testing.Tests.Transport;
 /// <see cref="TestWebApp"/> built by hand from a root provider, the way a test with no runner
 /// attribute would build it, over the same substitute pipeline the handler tests use.
 /// </summary>
-public class TestWebAppTests {
-
-    private static (SubstitutePipeline Host, TestWebApp App) Build(Func<Requests.Abstract.Execution.IExecutionContext, Task>? handler = null) {
+public class TestWebAppTests
+{
+    private static (SubstitutePipeline Host, TestWebApp App) Build(
+        Func<Requests.Abstract.Execution.IExecutionContext, Task>? handler = null
+    )
+    {
         var host = new SubstitutePipeline(handler);
 
-        return (host, new TestWebApp(new ServiceProviderApplicationRoot(host.Provider), NullLogger.Instance));
+        return (
+            host,
+            new TestWebApp(new ServiceProviderApplicationRoot(host.Provider), NullLogger.Instance)
+        );
     }
 
     [Fact]
-    public async Task PutSendsThePutMethod() {
+    public async Task PutSendsThePutMethod()
+    {
         var (host, app) = Build();
 
         var response = await app.Put("body", "/things/1");
@@ -29,7 +36,8 @@ public class TestWebAppTests {
     }
 
     [Fact]
-    public async Task ABodyGivenAsMemoryGoesOnTheWireAsItsBytes() {
+    public async Task ABodyGivenAsMemoryGoesOnTheWireAsItsBytes()
+    {
         var (host, app) = Build();
         var bytes = "raw"u8.ToArray();
 
@@ -41,7 +49,10 @@ public class TestWebAppTests {
 
         using var reader = new StreamReader(body);
 
-        Assert.Equal("raw", await reader.ReadToEndAsync(Xunit.TestContext.Current.CancellationToken));
+        Assert.Equal(
+            "raw",
+            await reader.ReadToEndAsync(Xunit.TestContext.Current.CancellationToken)
+        );
     }
 
     /// <summary>
@@ -49,7 +60,8 @@ public class TestWebAppTests {
     /// that is calling - this one, which declares <see cref="AdaptedClientFactory"/>.
     /// </summary>
     [Fact]
-    public void AClientBuiltByHandFindsTheFactoryInTheCallingAssembly() {
+    public void AClientBuiltByHandFindsTheFactoryInTheCallingAssembly()
+    {
         var (_, app) = Build();
 
         var client = app.CreateClient<AdaptedClient>(new TestCredential(new[] { "x" }));

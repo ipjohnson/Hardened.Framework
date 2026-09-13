@@ -32,8 +32,8 @@ namespace Hardened.Generation;
 /// derivation of this is a switch arm naming a type nothing emitted.
 /// </para>
 /// </remarks>
-internal static class ShippedResponses {
-
+internal static class ShippedResponses
+{
     /// <summary>Where every shipped response record and status marker lives.</summary>
     /// <remarks>
     /// <c>Hardened.Web.Runtime</c> since the HTTP extraction, not <c>Hardened.Requests.Abstract</c>.
@@ -64,9 +64,16 @@ internal static class ShippedResponses {
     /// <summary>
     /// One shipped response the build binds a declared error to.
     /// </summary>
-    internal readonly struct Binding {
-
-        public Binding(string typeName, string? marker, bool takesBody, bool hasBody, bool appliesHeaders) {
+    internal readonly struct Binding
+    {
+        public Binding(
+            string typeName,
+            string? marker,
+            bool takesBody,
+            bool hasBody,
+            bool appliesHeaders
+        )
+        {
             TypeName = typeName;
             Marker = marker;
             TakesBody = takesBody;
@@ -102,36 +109,43 @@ internal static class ShippedResponses {
     /// The one decision, asked by every caller rather than restated by any of them. A null answer
     /// is what <see cref="GeneratedName"/> then names.
     /// </remarks>
-    public static Binding? For(ErrorResponseModel error) {
+    public static Binding? For(ErrorResponseModel error)
+    {
         // A name the description gave the error is the thing worth keeping, and no shipped record
         // can carry it. Smithy names every error; OpenAPI names one only through
         // components/responses.
-        if (!string.IsNullOrEmpty(error.Name)) {
+        if (!string.IsNullOrEmpty(error.Name))
+        {
             return null;
         }
 
         // A declared header has nowhere to go on a shipped wrapper. NotFound<T> cannot carry a
         // Retry-After the way a generated case type can, and a header the document declares and
         // nothing sends is worse than an extra type.
-        if (error.Headers.Count > 0) {
+        if (error.Headers.Count > 0)
+        {
             return null;
         }
 
-        return error.Ref == null
-            ? Bodyless(error.StatusCode)
-            : Carrying(error.StatusCode);
+        return error.Ref == null ? Bodyless(error.StatusCode) : Carrying(error.StatusCode);
     }
 
     /// <summary>
     /// A declared error with a body, as the shipped generic form or a closed <c>Status&lt;&gt;</c>.
     /// </summary>
-    private static Binding? Carrying(int statusCode) {
+    private static Binding? Carrying(int statusCode)
+    {
         var generic = GenericForm(statusCode);
 
-        if (generic != null) {
+        if (generic != null)
+        {
             return new Binding(
-                generic, marker: null, takesBody: true, hasBody: true,
-                appliesHeaders: CarriesHeaders(statusCode));
+                generic,
+                marker: null,
+                takesBody: true,
+                hasBody: true,
+                appliesHeaders: CarriesHeaders(statusCode)
+            );
         }
 
         var marker = Marker(statusCode);
@@ -139,20 +153,31 @@ internal static class ShippedResponses {
         return marker == null
             ? null
             : new Binding(
-                StatusTypeName, marker, takesBody: true, hasBody: true, appliesHeaders: false);
+                StatusTypeName,
+                marker,
+                takesBody: true,
+                hasBody: true,
+                appliesHeaders: false
+            );
     }
 
     /// <summary>
     /// A declared error with no content, as the shipped bare form or a bodyless
     /// <c>Status&lt;&gt;</c>.
     /// </summary>
-    private static Binding? Bodyless(int statusCode) {
+    private static Binding? Bodyless(int statusCode)
+    {
         var bare = BareForm(statusCode);
 
-        if (bare != null) {
+        if (bare != null)
+        {
             return new Binding(
-                bare, marker: null, takesBody: false, hasBody: SendsABody(statusCode),
-                appliesHeaders: CarriesHeaders(statusCode));
+                bare,
+                marker: null,
+                takesBody: false,
+                hasBody: SendsABody(statusCode),
+                appliesHeaders: CarriesHeaders(statusCode)
+            );
         }
 
         var marker = Marker(statusCode);
@@ -160,7 +185,12 @@ internal static class ShippedResponses {
         return marker == null
             ? null
             : new Binding(
-                StatusTypeName, marker, takesBody: false, hasBody: false, appliesHeaders: false);
+                StatusTypeName,
+                marker,
+                takesBody: false,
+                hasBody: false,
+                appliesHeaders: false
+            );
     }
 
     /// <summary>
@@ -172,29 +202,52 @@ internal static class ShippedResponses {
     /// absent from this and present in <see cref="BareForm"/> is one the framework refuses to put a
     /// body on: 304 and 406 both, and for stated reasons rather than by omission.
     /// </remarks>
-    public static string? GenericForm(int statusCode) {
-        switch (statusCode) {
-            case 400: return "BadRequest";
-            case 401: return "Unauthorized";
-            case 402: return "PaymentRequired";
-            case 403: return "Forbidden";
-            case 404: return "NotFound";
-            case 405: return "MethodNotAllowed";
-            case 408: return "RequestTimeout";
-            case 409: return "Conflict";
-            case 410: return "Gone";
-            case 412: return "PreconditionFailed";
-            case 413: return "ContentTooLarge";
-            case 415: return "UnsupportedMediaType";
-            case 422: return "UnprocessableContent";
-            case 428: return "PreconditionRequired";
-            case 429: return "RateLimited";
-            case 500: return "InternalServerError";
-            case 501: return "NotImplemented";
-            case 502: return "BadGateway";
-            case 503: return "ServiceUnavailable";
-            case 504: return "GatewayTimeout";
-            default: return null;
+    public static string? GenericForm(int statusCode)
+    {
+        switch (statusCode)
+        {
+            case 400:
+                return "BadRequest";
+            case 401:
+                return "Unauthorized";
+            case 402:
+                return "PaymentRequired";
+            case 403:
+                return "Forbidden";
+            case 404:
+                return "NotFound";
+            case 405:
+                return "MethodNotAllowed";
+            case 408:
+                return "RequestTimeout";
+            case 409:
+                return "Conflict";
+            case 410:
+                return "Gone";
+            case 412:
+                return "PreconditionFailed";
+            case 413:
+                return "ContentTooLarge";
+            case 415:
+                return "UnsupportedMediaType";
+            case 422:
+                return "UnprocessableContent";
+            case 428:
+                return "PreconditionRequired";
+            case 429:
+                return "RateLimited";
+            case 500:
+                return "InternalServerError";
+            case 501:
+                return "NotImplemented";
+            case 502:
+                return "BadGateway";
+            case 503:
+                return "ServiceUnavailable";
+            case 504:
+                return "GatewayTimeout";
+            default:
+                return null;
         }
     }
 
@@ -228,20 +281,27 @@ internal static class ShippedResponses {
     /// the record itself. Four records carry a header the generic form takes beside the body, in
     /// the order that form declares.
     /// </summary>
-    public static string GenericArguments(int statusCode, string body, string record) {
-        switch (statusCode) {
-            case 401: return body + ", " + record + ".Challenge";
-            case 405: return body + ", " + record + ".Allow";
-            case 429: return record + ".RetryAfter, " + body;
-            case 503: return body + ", " + record + ".After";
-            default: return body;
+    public static string GenericArguments(int statusCode, string body, string record)
+    {
+        switch (statusCode)
+        {
+            case 401:
+                return body + ", " + record + ".Challenge";
+            case 405:
+                return body + ", " + record + ".Allow";
+            case 429:
+                return record + ".RetryAfter, " + body;
+            case 503:
+                return body + ", " + record + ".After";
+            default:
+                return body;
         }
     }
 
     public static string? BareForm(int statusCode) =>
         statusCode == 304 ? "NotModified"
-            : statusCode == 406 ? "NotAcceptable"
-                : GenericForm(statusCode);
+        : statusCode == 406 ? "NotAcceptable"
+        : GenericForm(statusCode);
 
     /// <summary>Whether the shipped record for a status serializes anything.</summary>
     private static bool SendsABody(int statusCode) =>
@@ -269,41 +329,76 @@ internal static class ShippedResponses {
     /// marker beside them. Null is left for the codes nobody registered: 529 is the case, and it is
     /// why the escape hatch is a type argument rather than this list.
     /// </remarks>
-    public static string? Marker(int statusCode) {
-        switch (statusCode) {
-            case 203: return "NonAuthoritativeInformation";
-            case 205: return "ResetContent";
-            case 206: return "PartialContent";
-            case 207: return "MultiStatus";
-            case 208: return "AlreadyReported";
-            case 226: return "IMUsed";
-            case 300: return "MultipleChoices";
-            case 301: return "MovedPermanently";
-            case 302: return "Found";
-            case 303: return "SeeOther";
-            case 305: return "UseProxy";
-            case 307: return "TemporaryRedirect";
-            case 308: return "PermanentRedirect";
-            case 407: return "ProxyAuthenticationRequired";
-            case 411: return "LengthRequired";
-            case 414: return "UriTooLong";
-            case 416: return "RangeNotSatisfiable";
-            case 417: return "ExpectationFailed";
-            case 418: return "ImATeapot";
-            case 421: return "MisdirectedRequest";
-            case 423: return "Locked";
-            case 424: return "FailedDependency";
-            case 425: return "TooEarly";
-            case 426: return "UpgradeRequired";
-            case 431: return "RequestHeaderFieldsTooLarge";
-            case 451: return "UnavailableForLegalReasons";
-            case 505: return "HttpVersionNotSupported";
-            case 506: return "VariantAlsoNegotiates";
-            case 507: return "InsufficientStorage";
-            case 508: return "LoopDetected";
-            case 510: return "NotExtended";
-            case 511: return "NetworkAuthenticationRequired";
-            default: return null;
+    public static string? Marker(int statusCode)
+    {
+        switch (statusCode)
+        {
+            case 203:
+                return "NonAuthoritativeInformation";
+            case 205:
+                return "ResetContent";
+            case 206:
+                return "PartialContent";
+            case 207:
+                return "MultiStatus";
+            case 208:
+                return "AlreadyReported";
+            case 226:
+                return "IMUsed";
+            case 300:
+                return "MultipleChoices";
+            case 301:
+                return "MovedPermanently";
+            case 302:
+                return "Found";
+            case 303:
+                return "SeeOther";
+            case 305:
+                return "UseProxy";
+            case 307:
+                return "TemporaryRedirect";
+            case 308:
+                return "PermanentRedirect";
+            case 407:
+                return "ProxyAuthenticationRequired";
+            case 411:
+                return "LengthRequired";
+            case 414:
+                return "UriTooLong";
+            case 416:
+                return "RangeNotSatisfiable";
+            case 417:
+                return "ExpectationFailed";
+            case 418:
+                return "ImATeapot";
+            case 421:
+                return "MisdirectedRequest";
+            case 423:
+                return "Locked";
+            case 424:
+                return "FailedDependency";
+            case 425:
+                return "TooEarly";
+            case 426:
+                return "UpgradeRequired";
+            case 431:
+                return "RequestHeaderFieldsTooLarge";
+            case 451:
+                return "UnavailableForLegalReasons";
+            case 505:
+                return "HttpVersionNotSupported";
+            case 506:
+                return "VariantAlsoNegotiates";
+            case 507:
+                return "InsufficientStorage";
+            case 508:
+                return "LoopDetected";
+            case 510:
+                return "NotExtended";
+            case 511:
+                return "NetworkAuthenticationRequired";
+            default:
+                return null;
         }
     }
 
@@ -324,8 +419,10 @@ internal static class ShippedResponses {
     /// made them two.
     /// </para>
     /// </remarks>
-    public static string GeneratedName(ErrorResponseModel error) {
-        if (!string.IsNullOrEmpty(error.Name)) {
+    public static string GeneratedName(ErrorResponseModel error)
+    {
+        if (!string.IsNullOrEmpty(error.Name))
+        {
             return NamingHelper.ToPascalCase(error.Name!);
         }
 
@@ -345,12 +442,17 @@ internal static class ShippedResponses {
     /// declared headers are in the key for the same reason - a 429 with a <c>Retry-After</c> and one
     /// without are different constructors.
     /// </remarks>
-    public static string GeneratedKey(ErrorResponseModel error) {
-        var key = GeneratedName(error) + "|" +
-                  error.StatusCode.ToString(CultureInfo.InvariantCulture) + "|" +
-                  (error.Ref ?? "");
+    public static string GeneratedKey(ErrorResponseModel error)
+    {
+        var key =
+            GeneratedName(error)
+            + "|"
+            + error.StatusCode.ToString(CultureInfo.InvariantCulture)
+            + "|"
+            + (error.Ref ?? "");
 
-        foreach (var header in error.Headers) {
+        foreach (var header in error.Headers)
+        {
             key += "|" + header.Name;
         }
 
@@ -380,27 +482,36 @@ internal static class ShippedResponses {
     /// a description using 529 deserves a type as much as one using 404.
     /// </para>
     /// </remarks>
-    public static string StatusName(int statusCode) {
+    public static string StatusName(int statusCode)
+    {
         var shipped = BareForm(statusCode);
 
-        if (shipped != null) {
+        if (shipped != null)
+        {
             return shipped;
         }
 
         var marker = Marker(statusCode);
 
-        if (marker != null) {
+        if (marker != null)
+        {
             return marker;
         }
 
-        switch (statusCode) {
+        switch (statusCode)
+        {
             // The 2xx names a success case type takes. Not in the marker table, because these are
             // the statuses the framework does ship a record for.
-            case 200: return "Ok";
-            case 201: return "Created";
-            case 202: return "Accepted";
-            case 204: return "NoContent";
-            default: return "Status" + statusCode.ToString(CultureInfo.InvariantCulture);
+            case 200:
+                return "Ok";
+            case 201:
+                return "Created";
+            case 202:
+                return "Accepted";
+            case 204:
+                return "NoContent";
+            default:
+                return "Status" + statusCode.ToString(CultureInfo.InvariantCulture);
         }
     }
 }

@@ -15,8 +15,10 @@ namespace Hardened.Functions.Runtime.Attributes;
 /// reach a handler's signature.
 /// </para>
 /// </remarks>
-public class EventAttribute : Attribute {
-    public EventAttribute(string source, string detailType) {
+public class EventAttribute : Attribute
+{
+    public EventAttribute(string source, string detailType)
+    {
         Source = source;
         DetailType = detailType;
     }

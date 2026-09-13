@@ -19,8 +19,8 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Controllers;
 /// </remarks>
 [BasePath("/conditional")]
 [ConditionalGet]
-public class ConditionalController {
-
+public class ConditionalController
+{
     /// <summary>The version the document is at, as the entity-tag a client is given.</summary>
     public const string Version = "\"v7\"";
 
@@ -29,12 +29,14 @@ public class ConditionalController {
 
     private readonly HandlerCallCounter _counter;
 
-    public ConditionalController(HandlerCallCounter counter) {
+    public ConditionalController(HandlerCallCounter counter)
+    {
         _counter = counter;
     }
 
     [Get("/document")]
-    public Document Read(IExecutionContext context) {
+    public Document Read(IExecutionContext context)
+    {
         var headers = context.Response.Headers;
 
         headers[KnownHeaders.ETag] = Version;
@@ -50,7 +52,8 @@ public class ConditionalController {
     [Get("/generated")]
     public string Generated([FromQueryString] string culture) => "generated-" + culture;
 
-    public class Document {
+    public class Document
+    {
         public string Version { get; set; } = "";
 
         /// <summary>Advances only when the handler runs, so a 304 that ran it is visible.</summary>

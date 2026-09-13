@@ -11,7 +11,8 @@ namespace Hardened.Azure.Functions.Runtime.Execution;
 /// contradiction. The generator knows whether a shim is the HTTP catch-all or a trigger, so it says
 /// which here and the invocation handler selects the dispatch per invocation.
 /// </remarks>
-public enum FunctionsDispatch {
+public enum FunctionsDispatch
+{
     /// <summary>
     /// A trigger: the name switch behind <c>IFunctionHandlerProvider</c>, which is
     /// <c>FunctionDispatchFilter</c>.
@@ -22,7 +23,7 @@ public enum FunctionsDispatch {
     /// The HTTP catch-all: the routing table behind <c>IWebExecutionHandlerService</c>, which
     /// the HTTP adapter package registers.
     /// </summary>
-    Web
+    Web,
 }
 
 /// <summary>
@@ -45,9 +46,15 @@ public enum FunctionsDispatch {
 /// here.
 /// </para>
 /// </remarks>
-public sealed class FunctionsTrigger {
+public sealed class FunctionsTrigger
+{
     public FunctionsTrigger(
-        string scheme, string path, object data, FunctionsDispatch dispatch = FunctionsDispatch.Trigger) {
+        string scheme,
+        string path,
+        object data,
+        FunctionsDispatch dispatch = FunctionsDispatch.Trigger
+    )
+    {
         Scheme = scheme;
         Path = path;
         Data = data;

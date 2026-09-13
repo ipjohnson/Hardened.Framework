@@ -45,11 +45,12 @@ namespace Hardened.Requests.Testing.Conformance;
 /// those arguments are supplied. Implementations currently diverge on it, and tightening
 /// that is a separate change from establishing the contract.
 /// </summary>
-public abstract class PayloadExecutionRequestConformanceTests {
-
+public abstract class PayloadExecutionRequestConformanceTests
+{
     protected abstract IExecutionRequestConformanceAdapter Adapter { get; }
 
-    protected IExecutionRequest Create(Action<ConformanceRequestSpec>? configure = null) {
+    protected IExecutionRequest Create(Action<ConformanceRequestSpec>? configure = null)
+    {
         var spec = new ConformanceRequestSpec();
         configure?.Invoke(spec);
         return Adapter.CreateRequest(spec);
@@ -60,31 +61,39 @@ public abstract class PayloadExecutionRequestConformanceTests {
     // ---------------------------------------------------------------- request surface
 
     [Fact]
-    public void MethodIsSurfaced() {
+    public void MethodIsSurfaced()
+    {
         var request = Create(s => s.Method = "POST");
 
-        Assert.True("POST".Equals(request.Method, StringComparison.OrdinalIgnoreCase),
-            Because($"expected Method 'POST' but got '{request.Method}'"));
+        Assert.True(
+            "POST".Equals(request.Method, StringComparison.OrdinalIgnoreCase),
+            Because($"expected Method 'POST' but got '{request.Method}'")
+        );
     }
 
     [Fact]
-    public void PathIsSurfaced() {
+    public void PathIsSurfaced()
+    {
         var request = Create(s => s.Path = "/orders/42");
 
         Assert.Equal("/orders/42", request.Path);
     }
 
     [Fact]
-    public void HeadersAreSurfaced() {
+    public void HeadersAreSurfaced()
+    {
         var request = Create(s => s.Headers["X-Correlation-Id"] = "abc-123");
 
-        Assert.True(request.Headers.TryGetValue("X-Correlation-Id", out var value),
-            Because("expected header 'X-Correlation-Id' to be present"));
+        Assert.True(
+            request.Headers.TryGetValue("X-Correlation-Id", out var value),
+            Because("expected header 'X-Correlation-Id' to be present")
+        );
         Assert.Equal("abc-123", value.ToString());
     }
 
     [Fact]
-    public void ContentTypeComesFromTheContentTypeHeader() {
+    public void ContentTypeComesFromTheContentTypeHeader()
+    {
         var request = Create(s => s.Headers["Content-Type"] = "application/json");
 
         Assert.Equal("application/json", request.ContentType);
@@ -96,7 +105,8 @@ public abstract class PayloadExecutionRequestConformanceTests {
     /// that fails to surface it silently disables content negotiation.
     /// </summary>
     [Fact]
-    public void AcceptComesFromTheAcceptHeader() {
+    public void AcceptComesFromTheAcceptHeader()
+    {
         var request = Create(s => s.Headers["Accept"] = "application/json");
 
         Assert.NotNull(request.Accept);
@@ -104,7 +114,8 @@ public abstract class PayloadExecutionRequestConformanceTests {
     }
 
     [Fact]
-    public void AcceptReflectsANonJsonValue() {
+    public void AcceptReflectsANonJsonValue()
+    {
         var request = Create(s => s.Headers["Accept"] = "text/html");
 
         Assert.NotNull(request.Accept);
@@ -133,11 +144,14 @@ public abstract class PayloadExecutionRequestConformanceTests {
     [InlineData("content-type", "Content-Type")]
     [InlineData("Content-Type", "content-type")]
     [InlineData("CONTENT-TYPE", "Content-Type")]
-    public void AHeaderIsFoundUnderAnySpelling(string written, string read) {
+    public void AHeaderIsFoundUnderAnySpelling(string written, string read)
+    {
         var request = Create(s => s.Headers[written] = "text/csv");
 
-        Assert.True(request.Headers.TryGetValue(read, out var value),
-            Because($"a header written as '{written}' has to answer to '{read}'"));
+        Assert.True(
+            request.Headers.TryGetValue(read, out var value),
+            Because($"a header written as '{written}' has to answer to '{read}'")
+        );
         Assert.Equal("text/csv", value.ToString());
     }
 
@@ -145,8 +159,10 @@ public abstract class PayloadExecutionRequestConformanceTests {
     /// And the derived properties have to agree, because they are what the pipeline actually reads.
     /// </summary>
     [Fact]
-    public void ContentTypeAndAcceptIgnoreTheCaseTheyArriveIn() {
-        var request = Create(s => {
+    public void ContentTypeAndAcceptIgnoreTheCaseTheyArriveIn()
+    {
+        var request = Create(s =>
+        {
             s.Headers["content-type"] = "text/csv";
             s.Headers["accept"] = "text/html";
         });
@@ -172,7 +188,8 @@ public abstract class PayloadExecutionRequestConformanceTests {
     /// </para>
     /// </remarks>
     [Fact]
-    public void TransportInfoIsNeverNull() {
+    public void TransportInfoIsNeverNull()
+    {
         var request = Adapter.CreateRequest(new ConformanceRequestSpec());
 
         Assert.NotNull(request.Transport);
@@ -187,7 +204,8 @@ public abstract class PayloadExecutionRequestConformanceTests {
     /// than properties - so asking has to be safe on every one of them.
     /// </remarks>
     [Fact]
-    public void AnUnansweredTransportKeyIsNull() {
+    public void AnUnansweredTransportKeyIsNull()
+    {
         var request = Adapter.CreateRequest(new ConformanceRequestSpec());
 
         Assert.Null(request.Transport.Get("a.key.no.transport.publishes"));
@@ -202,7 +220,8 @@ public abstract class PayloadExecutionRequestConformanceTests {
     /// decision depend on whether a filter happened to fork the chain.
     /// </remarks>
     [Fact]
-    public void CloneKeepsTheTransport() {
+    public void CloneKeepsTheTransport()
+    {
         var request = Adapter.CreateRequest(new ConformanceRequestSpec());
 
         var clone = request.Clone(method: "DELETE");
@@ -211,7 +230,8 @@ public abstract class PayloadExecutionRequestConformanceTests {
     }
 
     [Fact]
-    public void CookiesAreEmptyRatherThanNullWhenNoneWereSent() {
+    public void CookiesAreEmptyRatherThanNullWhenNoneWereSent()
+    {
         var request = Create();
 
         Assert.NotNull(request.Cookies);
@@ -219,7 +239,8 @@ public abstract class PayloadExecutionRequestConformanceTests {
     }
 
     [Fact]
-    public void BodyIsReadable() {
+    public void BodyIsReadable()
+    {
         var payload = "{\"name\":\"conformance\"}"u8.ToArray();
         var request = Create(s => s.Body = payload);
 
@@ -234,7 +255,8 @@ public abstract class PayloadExecutionRequestConformanceTests {
     /// yield an empty collection rather than null.
     /// </summary>
     [Fact]
-    public void PathTokensAreEmptyRatherThanNullBeforeRouting() {
+    public void PathTokensAreEmptyRatherThanNullBeforeRouting()
+    {
         var request = Create();
 
         Assert.NotNull(request.PathTokens);
@@ -246,27 +268,34 @@ public abstract class PayloadExecutionRequestConformanceTests {
     // a null argument keeps the current value, a non-null argument replaces it.
 
     [Fact]
-    public void ClonePreservesMethodWhenMethodIsNull() {
+    public void ClonePreservesMethodWhenMethodIsNull()
+    {
         var request = Create(s => s.Method = "PATCH");
 
         var clone = request.Clone(method: null, path: "/somewhere-else");
 
-        Assert.True("PATCH".Equals(clone.Method, StringComparison.OrdinalIgnoreCase),
-            Because($"Clone(method: null) must keep 'PATCH' but got '{clone.Method}'"));
+        Assert.True(
+            "PATCH".Equals(clone.Method, StringComparison.OrdinalIgnoreCase),
+            Because($"Clone(method: null) must keep 'PATCH' but got '{clone.Method}'")
+        );
     }
 
     [Fact]
-    public void CloneReplacesMethodWhenMethodIsProvided() {
+    public void CloneReplacesMethodWhenMethodIsProvided()
+    {
         var request = Create(s => s.Method = "GET");
 
         var clone = request.Clone(method: "DELETE");
 
-        Assert.True("DELETE".Equals(clone.Method, StringComparison.OrdinalIgnoreCase),
-            Because($"Clone(method: \"DELETE\") must replace the method but got '{clone.Method}'"));
+        Assert.True(
+            "DELETE".Equals(clone.Method, StringComparison.OrdinalIgnoreCase),
+            Because($"Clone(method: \"DELETE\") must replace the method but got '{clone.Method}'")
+        );
     }
 
     [Fact]
-    public void ClonePreservesPathWhenPathIsNull() {
+    public void ClonePreservesPathWhenPathIsNull()
+    {
         var request = Create(s => s.Path = "/original");
 
         var clone = request.Clone(method: "PUT", path: null);
@@ -275,7 +304,8 @@ public abstract class PayloadExecutionRequestConformanceTests {
     }
 
     [Fact]
-    public void CloneReplacesPathWhenPathIsProvided() {
+    public void CloneReplacesPathWhenPathIsProvided()
+    {
         var request = Create(s => s.Path = "/original");
 
         var clone = request.Clone(path: "/replaced");
@@ -284,22 +314,27 @@ public abstract class PayloadExecutionRequestConformanceTests {
     }
 
     [Fact]
-    public void CloneReplacesHeadersWhenHeadersAreProvided() {
+    public void CloneReplacesHeadersWhenHeadersAreProvided()
+    {
         var request = Create(s => s.Headers["X-Original"] = "yes");
 
-        var replacement = new Dictionary<string, StringValues> {
-            { "X-Replaced", new StringValues("also-yes") }
+        var replacement = new Dictionary<string, StringValues>
+        {
+            { "X-Replaced", new StringValues("also-yes") },
         };
 
         var clone = request.Clone(headers: replacement);
 
-        Assert.True(clone.Headers.TryGetValue("X-Replaced", out var value),
-            Because("Clone(headers: ...) must expose the supplied headers"));
+        Assert.True(
+            clone.Headers.TryGetValue("X-Replaced", out var value),
+            Because("Clone(headers: ...) must expose the supplied headers")
+        );
         Assert.Equal("also-yes", value.ToString());
     }
 
     [Fact]
-    public void ClonePreservesBody() {
+    public void ClonePreservesBody()
+    {
         var payload = "conformance-body"u8.ToArray();
         var request = Create(s => s.Body = payload);
 
@@ -324,7 +359,8 @@ public abstract class PayloadExecutionRequestConformanceTests {
     /// </para>
     /// </summary>
     [Fact]
-    public void CloneGivesTheCloneItsOwnParameters() {
+    public void CloneGivesTheCloneItsOwnParameters()
+    {
         var request = Create();
 
         request.Parameters = new ConformanceParameters();
@@ -347,7 +383,8 @@ public abstract class PayloadExecutionRequestConformanceTests {
 
     /// <summary>A clone of a request that never bound parameters still has none.</summary>
     [Fact]
-    public void CloneLeavesNullParametersNull() {
+    public void CloneLeavesNullParametersNull()
+    {
         var request = Create();
 
         request.Parameters = null;
@@ -360,30 +397,35 @@ public abstract class PayloadExecutionRequestConformanceTests {
     /// <see cref="ExecutionRequestParameters"/> exactly as a generated bag does, so it inherits
     /// the same <c>Clone</c> the real ones use rather than a hand-written stand-in.
     /// </summary>
-    private class ConformanceParameters : ExecutionRequestParameters {
+    private class ConformanceParameters : ExecutionRequestParameters
+    {
         private object? _value;
 
-        public override object this[int index] {
+        public override object this[int index]
+        {
             get => _value!;
             set => _value = value;
         }
 
-        public override IReadOnlyList<IExecutionRequestParameter> Info { get; } = [
-            new ExecutionRequestParameter("value", 0, typeof(string))
-        ];
+        public override IReadOnlyList<IExecutionRequestParameter> Info { get; } =
+        [new ExecutionRequestParameter("value", 0, typeof(string))];
     }
 
     [Fact]
-    public void CloneDoesNotMutateTheOriginal() {
-        var request = Create(s => {
+    public void CloneDoesNotMutateTheOriginal()
+    {
+        var request = Create(s =>
+        {
             s.Method = "GET";
             s.Path = "/original";
         });
 
         request.Clone(method: "DELETE", path: "/replaced");
 
-        Assert.True("GET".Equals(request.Method, StringComparison.OrdinalIgnoreCase),
-            Because($"Clone must not mutate the original, but Method became '{request.Method}'"));
+        Assert.True(
+            "GET".Equals(request.Method, StringComparison.OrdinalIgnoreCase),
+            Because($"Clone must not mutate the original, but Method became '{request.Method}'")
+        );
         Assert.Equal("/original", request.Path);
     }
 }

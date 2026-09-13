@@ -1,7 +1,7 @@
 using Hardened.Requests.Abstract.Authorization;
 using Hardened.Requests.Abstract.Responses;
-using Microsoft.Extensions.Primitives;
 using Hardened.Web.Runtime.Responses;
+using Microsoft.Extensions.Primitives;
 using Xunit;
 
 namespace Hardened.Web.Runtime.Tests.Responses;
@@ -16,8 +16,8 @@ namespace Hardened.Web.Runtime.Tests.Responses;
 /// actually remained, and three of them are nowhere near the response types the release is named
 /// for.
 /// </remarks>
-public class RemainingBranchTests {
-
+public class RemainingBranchTests
+{
     /// <summary>
     /// The generic 503 with no retry hint sets no Retry-After.
     /// </summary>
@@ -27,7 +27,8 @@ public class RemainingBranchTests {
     /// like coverage.
     /// </remarks>
     [Fact]
-    public void AGenericServiceUnavailableWithoutARetryHintSetsNoHeader() {
+    public void AGenericServiceUnavailableWithoutARetryHintSetsNoHeader()
+    {
         var headers = new Dictionary<string, StringValues>();
 
         ((IProvidesResponseHeaders)new ServiceUnavailable<string>("down")).ApplyHeaders(headers);
@@ -37,11 +38,14 @@ public class RemainingBranchTests {
 
     /// <summary>And with one, it does - the side that was already covered, kept beside it.</summary>
     [Fact]
-    public void AGenericServiceUnavailableWithARetryHintSetsIt() {
+    public void AGenericServiceUnavailableWithARetryHintSetsIt()
+    {
         var headers = new Dictionary<string, StringValues>();
 
-        ((IProvidesResponseHeaders)new ServiceUnavailable<string>("down", TimeSpan.FromSeconds(30)))
-            .ApplyHeaders(headers);
+        (
+            (IProvidesResponseHeaders)
+                new ServiceUnavailable<string>("down", TimeSpan.FromSeconds(30))
+        ).ApplyHeaders(headers);
 
         Assert.Equal("30", headers["Retry-After"]);
     }
@@ -54,14 +58,16 @@ public class RemainingBranchTests {
     /// which is the common case and the one nobody asserts.
     /// </remarks>
     [Fact]
-    public void AnUndescribedPredicateRendersAsPredicate() {
+    public void AnUndescribedPredicateRendersAsPredicate()
+    {
         var requirement = Requirement.Predicate((_, _) => true);
 
         Assert.Equal("predicate", requirement.ToString());
     }
 
     [Fact]
-    public void ADescribedPredicateRendersItsDescription() {
+    public void ADescribedPredicateRendersItsDescription()
+    {
         var requirement = Requirement.Predicate((_, _) => true, "owns the record");
 
         Assert.Equal("owns the record", requirement.ToString());
@@ -76,14 +82,16 @@ public class RemainingBranchTests {
     /// the bug is the two disagreeing rather than either alone being wrong.
     /// </remarks>
     [Fact]
-    public void AnAllOfRendersWithAmpersand() {
+    public void AnAllOfRendersWithAmpersand()
+    {
         var requirement = Requirement.AllOf(Requirement.Grant("read"), Requirement.Grant("write"));
 
         Assert.Equal("(read & write)", requirement.ToString());
     }
 
     [Fact]
-    public void AnAnyOfRendersWithPipe() {
+    public void AnAnyOfRendersWithPipe()
+    {
         var requirement = Requirement.AnyOf(Requirement.Grant("read"), Requirement.Grant("write"));
 
         Assert.Equal("(read | write)", requirement.ToString());

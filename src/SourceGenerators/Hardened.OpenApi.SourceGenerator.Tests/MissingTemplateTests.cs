@@ -15,68 +15,12 @@ namespace Hardened.OpenApi.SourceGenerator.Tests;
 /// through to JSON or to no serializer at all.
 /// </para>
 /// </remarks>
-public class MissingTemplateTests {
+public class MissingTemplateTests
+{
     private const string DiagnosticId = "HOAG020";
 
     private static string MarkupFor(string schema) =>
         $$"""
-        openapi: "3.0.0"
-        info: { title: Views, version: "1.0" }
-        paths:
-          /fortunes:
-            get:
-              tags: [Fortune]
-              operationId: fortunes
-              responses:
-                '200':
-                  description: The fortunes table
-                  content:
-                    text/html:
-                      schema: {{schema}}
-        components:
-          schemas:
-            FortunePage:
-              type: object
-              properties:
-                message: { type: string }
-        """;
-
-    private static bool Reports(string spec) =>
-        OpenApiGenerator.Run(spec).GeneratorDiagnostics.Any(diagnostic => diagnostic.Id == DiagnosticId);
-
-    /// <summary>
-    /// An operation answering markup with a model needs a view, and the implementation here names
-    /// none - it is not written at all, so nothing could have named one.
-    /// </summary>
-    [Fact]
-    public void MarkupForAModelWithNoViewIsAnError() {
-        Assert.True(Reports(MarkupFor("{ $ref: '#/components/schemas/FortunePage' }")));
-    }
-
-    /// <summary>
-    /// A list of models is the same case. Serializing one as markup is no more possible than
-    /// serializing a single one.
-    /// </summary>
-    [Fact]
-    public void MarkupForAListOfModelsIsAlsoAnError() {
-        Assert.True(Reports(MarkupFor(
-            "{ type: array, items: { $ref: '#/components/schemas/FortunePage' } }")));
-    }
-
-    /// <summary>
-    /// A handler returning a string builds its own markup, which is a legitimate thing to write and
-    /// needs no view. Reporting it would make the diagnostic something to work around.
-    /// </summary>
-    [Fact]
-    public void MarkupForAStringIsNotReported() {
-        Assert.False(Reports(MarkupFor("{ type: string }")));
-    }
-
-    /// <summary>And JSON for a model is the ordinary case.</summary>
-    [Fact]
-    public void JsonForAModelIsNotReported() {
-        Assert.False(Reports(
-            """
             openapi: "3.0.0"
             info: { title: Views, version: "1.0" }
             paths:
@@ -88,14 +32,83 @@ public class MissingTemplateTests {
                     '200':
                       description: The fortunes table
                       content:
-                        application/json:
-                          schema: { $ref: '#/components/schemas/FortunePage' }
+                        text/html:
+                          schema: {{schema}}
             components:
               schemas:
                 FortunePage:
                   type: object
                   properties:
                     message: { type: string }
-            """));
+            """;
+
+    private static bool Reports(string spec) =>
+        OpenApiGenerator
+            .Run(spec)
+            .GeneratorDiagnostics.Any(diagnostic => diagnostic.Id == DiagnosticId);
+
+    /// <summary>
+    /// An operation answering markup with a model needs a view, and the implementation here names
+    /// none - it is not written at all, so nothing could have named one.
+    /// </summary>
+    [Fact]
+    public void MarkupForAModelWithNoViewIsAnError()
+    {
+        Assert.True(Reports(MarkupFor("{ $ref: '#/components/schemas/FortunePage' }")));
+    }
+
+    /// <summary>
+    /// A list of models is the same case. Serializing one as markup is no more possible than
+    /// serializing a single one.
+    /// </summary>
+    [Fact]
+    public void MarkupForAListOfModelsIsAlsoAnError()
+    {
+        Assert.True(
+            Reports(
+                MarkupFor("{ type: array, items: { $ref: '#/components/schemas/FortunePage' } }")
+            )
+        );
+    }
+
+    /// <summary>
+    /// A handler returning a string builds its own markup, which is a legitimate thing to write and
+    /// needs no view. Reporting it would make the diagnostic something to work around.
+    /// </summary>
+    [Fact]
+    public void MarkupForAStringIsNotReported()
+    {
+        Assert.False(Reports(MarkupFor("{ type: string }")));
+    }
+
+    /// <summary>And JSON for a model is the ordinary case.</summary>
+    [Fact]
+    public void JsonForAModelIsNotReported()
+    {
+        Assert.False(
+            Reports(
+                """
+                openapi: "3.0.0"
+                info: { title: Views, version: "1.0" }
+                paths:
+                  /fortunes:
+                    get:
+                      tags: [Fortune]
+                      operationId: fortunes
+                      responses:
+                        '200':
+                          description: The fortunes table
+                          content:
+                            application/json:
+                              schema: { $ref: '#/components/schemas/FortunePage' }
+                components:
+                  schemas:
+                    FortunePage:
+                      type: object
+                      properties:
+                        message: { type: string }
+                """
+            )
+        );
     }
 }

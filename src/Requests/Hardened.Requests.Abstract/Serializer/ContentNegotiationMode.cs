@@ -3,7 +3,8 @@ namespace Hardened.Requests.Abstract.Serializer;
 /// <summary>
 /// What a service answers when a client asks for a media type the operation does not produce.
 /// </summary>
-public enum ContentNegotiationMode {
+public enum ContentNegotiationMode
+{
     /// <summary>
     /// Answer <c>406 Not Acceptable</c>. The default.
     /// </summary>
@@ -24,5 +25,5 @@ public enum ContentNegotiationMode {
     /// clients send <c>Accept: application/json</c> at operations that never produced JSON and were
     /// answered with the declared string wrapped in quotes.
     /// </remarks>
-    Lenient = 1
+    Lenient = 1,
 }

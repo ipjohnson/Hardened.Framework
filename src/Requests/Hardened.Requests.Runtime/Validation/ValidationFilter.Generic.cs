@@ -22,14 +22,18 @@ namespace Hardened.Requests.Runtime.Validation;
 /// container work per request.
 /// </para>
 /// </remarks>
-public sealed class ValidationFilter<TValidated> : IExecutionFilter where TValidated : class {
+public sealed class ValidationFilter<TValidated> : IExecutionFilter
+    where TValidated : class
+{
     private readonly IReadOnlyList<IValidatorFor<TValidated>> _validators;
 
-    public ValidationFilter(IReadOnlyList<IValidatorFor<TValidated>> validators) {
+    public ValidationFilter(IReadOnlyList<IValidatorFor<TValidated>> validators)
+    {
         _validators = validators ?? throw new ArgumentNullException(nameof(validators));
     }
 
-    public async Task Execute(IExecutionChain chain) {
+    public async Task Execute(IExecutionChain chain)
+    {
         var context = chain.Context;
 
         // Not a guard - an assertion. This filter is in the chain because something declared
@@ -39,12 +43,14 @@ public sealed class ValidationFilter<TValidated> : IExecutionFilter where TValid
         // silent, indistinguishable from a request that passed. Whoever attached the filter and
         // whoever bound the parameters disagree, and that is a build-time defect wearing a
         // runtime disguise.
-        if (context.Request.Parameters is not TValidated target) {
+        if (context.Request.Parameters is not TValidated target)
+        {
             throw new InvalidOperationException(
-                $"The request's parameters are {Describe(context.Request.Parameters)}, but this " +
-                $"handler is attached to a validation filter for {typeof(TValidated).FullName}. " +
-                "Nothing would have been validated. A generator emits the filter and the parameters " +
-                "class together, so this means the two came from different builds.");
+                $"The request's parameters are {Describe(context.Request.Parameters)}, but this "
+                    + $"handler is attached to a validation filter for {typeof(TValidated).FullName}. "
+                    + "Nothing would have been validated. A generator emits the filter and the parameters "
+                    + "class together, so this means the two came from different builds."
+            );
         }
 
         var collector = new ValidationErrorCollector();
@@ -52,20 +58,23 @@ public sealed class ValidationFilter<TValidated> : IExecutionFilter where TValid
         // Every validator for the type runs into one collector, so results merge rather than one
         // replacing another - plan §8. A hand-written validator adds to the structural checks; it
         // cannot suppress them.
-        foreach (var validator in _validators) {
+        foreach (var validator in _validators)
+        {
             validator.ValidateInto(collector, target);
         }
 
         // Structural first, and async only if it passed: an async rule is there to ask a question of
         // something outside the process - is this SKU taken - and asking it about a field that is
         // null or malformed is a round trip for an answer nobody needs.
-        if (collector.HasErrors) {
+        if (collector.HasErrors)
+        {
             throw new ValidationException(collector.ToResult());
         }
 
         await RunAsyncValidators(context, collector, target);
 
-        if (collector.HasErrors) {
+        if (collector.HasErrors)
+        {
             throw new ValidationException(collector.ToResult());
         }
 
@@ -85,10 +94,15 @@ public sealed class ValidationFilter<TValidated> : IExecutionFilter where TValid
     /// The lookup returns nothing in the common case and costs a dictionary hit.
     /// </remarks>
     private static async Task RunAsyncValidators(
-        IExecutionContext context, ValidationErrorCollector collector, TValidated target) {
+        IExecutionContext context,
+        ValidationErrorCollector collector,
+        TValidated target
+    )
+    {
         var validators = context.RequestServices.GetServices<IAsyncValidatorFor<TValidated>>();
 
-        foreach (var validator in validators) {
+        foreach (var validator in validators)
+        {
             var validationContext = new ValidationContext(collector);
 
             await validator.ValidateAsync(validationContext, target, context.CancellationToken);

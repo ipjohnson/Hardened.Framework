@@ -26,12 +26,17 @@ namespace Hardened.Generation.Document;
 internal abstract class JsonNode { }
 
 /// <summary>An object, as an ordered list of members.</summary>
-internal sealed class JsonObject : JsonNode {
-    public List<KeyValuePair<string, JsonNode>> Members { get; } = new List<KeyValuePair<string, JsonNode>>();
+internal sealed class JsonObject : JsonNode
+{
+    public List<KeyValuePair<string, JsonNode>> Members { get; } =
+        new List<KeyValuePair<string, JsonNode>>();
 
-    public JsonNode? Get(string key) {
-        foreach (var member in Members) {
-            if (string.Equals(member.Key, key, StringComparison.Ordinal)) {
+    public JsonNode? Get(string key)
+    {
+        foreach (var member in Members)
+        {
+            if (string.Equals(member.Key, key, StringComparison.Ordinal))
+            {
                 return member.Value;
             }
         }
@@ -40,9 +45,12 @@ internal sealed class JsonObject : JsonNode {
     }
 
     /// <summary>Replaces the member in place, or appends it when absent.</summary>
-    public void Set(string key, JsonNode value) {
-        for (var index = 0; index < Members.Count; index++) {
-            if (string.Equals(Members[index].Key, key, StringComparison.Ordinal)) {
+    public void Set(string key, JsonNode value)
+    {
+        for (var index = 0; index < Members.Count; index++)
+        {
+            if (string.Equals(Members[index].Key, key, StringComparison.Ordinal))
+            {
                 Members[index] = new KeyValuePair<string, JsonNode>(key, value);
 
                 return;
@@ -52,9 +60,12 @@ internal sealed class JsonObject : JsonNode {
         Members.Add(new KeyValuePair<string, JsonNode>(key, value));
     }
 
-    public bool Remove(string key) {
-        for (var index = 0; index < Members.Count; index++) {
-            if (string.Equals(Members[index].Key, key, StringComparison.Ordinal)) {
+    public bool Remove(string key)
+    {
+        for (var index = 0; index < Members.Count; index++)
+        {
+            if (string.Equals(Members[index].Key, key, StringComparison.Ordinal))
+            {
                 Members.RemoveAt(index);
 
                 return true;
@@ -65,12 +76,15 @@ internal sealed class JsonObject : JsonNode {
     }
 }
 
-internal sealed class JsonArray : JsonNode {
+internal sealed class JsonArray : JsonNode
+{
     public List<JsonNode> Items { get; } = new List<JsonNode>();
 }
 
-internal sealed class JsonString : JsonNode {
-    public JsonString(string value) {
+internal sealed class JsonString : JsonNode
+{
+    public JsonString(string value)
+    {
         Value = value;
     }
 
@@ -78,31 +92,35 @@ internal sealed class JsonString : JsonNode {
 }
 
 /// <summary>A number, as the text it was written as.</summary>
-internal sealed class JsonNumber : JsonNode {
-    public JsonNumber(string text) {
+internal sealed class JsonNumber : JsonNode
+{
+    public JsonNumber(string text)
+    {
         Text = text;
     }
 
     public string Text { get; }
 }
 
-internal sealed class JsonBoolean : JsonNode {
+internal sealed class JsonBoolean : JsonNode
+{
     public static readonly JsonBoolean True = new JsonBoolean(true);
 
     public static readonly JsonBoolean False = new JsonBoolean(false);
 
-    private JsonBoolean(bool value) {
+    private JsonBoolean(bool value)
+    {
         Value = value;
     }
 
     public bool Value { get; }
 }
 
-internal sealed class JsonNull : JsonNode {
+internal sealed class JsonNull : JsonNode
+{
     public static readonly JsonNull Instance = new JsonNull();
 
-    private JsonNull() {
-    }
+    private JsonNull() { }
 }
 
 /// <summary>
@@ -115,26 +133,30 @@ internal sealed class JsonNull : JsonNode {
 /// comments, no trailing commas, no unquoted keys. A defect in the input is a
 /// <see cref="FormatException"/> naming the offset.
 /// </remarks>
-internal static class JsonTree {
-
-    public static JsonNode Parse(string text) {
+internal static class JsonTree
+{
+    public static JsonNode Parse(string text)
+    {
         var reader = new Reader(text);
         var value = reader.ReadValue();
 
         reader.SkipWhitespace();
 
-        if (!reader.AtEnd) {
+        if (!reader.AtEnd)
+        {
             throw reader.Error("unexpected content after the document");
         }
 
         return value;
     }
 
-    private struct Reader {
+    private struct Reader
+    {
         private readonly string _text;
         private int _position;
 
-        public Reader(string text) {
+        public Reader(string text)
+        {
             _text = text;
             _position = 0;
         }
@@ -142,31 +164,44 @@ internal static class JsonTree {
         public bool AtEnd => _position >= _text.Length;
 
         public FormatException Error(string what) =>
-            new FormatException("Invalid JSON at offset " + _position.ToString(CultureInfo.InvariantCulture) + ": " + what + ".");
+            new FormatException(
+                "Invalid JSON at offset "
+                    + _position.ToString(CultureInfo.InvariantCulture)
+                    + ": "
+                    + what
+                    + "."
+            );
 
-        public void SkipWhitespace() {
-            while (_position < _text.Length) {
+        public void SkipWhitespace()
+        {
+            while (_position < _text.Length)
+            {
                 var ch = _text[_position];
 
-                if (ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r') {
+                if (ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r')
+                {
                     _position++;
                 }
-                else {
+                else
+                {
                     break;
                 }
             }
         }
 
-        public JsonNode ReadValue() {
+        public JsonNode ReadValue()
+        {
             SkipWhitespace();
 
-            if (AtEnd) {
+            if (AtEnd)
+            {
                 throw Error("expected a value");
             }
 
             var ch = _text[_position];
 
-            switch (ch) {
+            switch (ch)
+            {
                 case '{':
                     return ReadObject();
                 case '[':
@@ -183,7 +218,8 @@ internal static class JsonTree {
                     ReadLiteral("null");
                     return JsonNull.Instance;
                 default:
-                    if (ch == '-' || (ch >= '0' && ch <= '9')) {
+                    if (ch == '-' || (ch >= '0' && ch <= '9'))
+                    {
                         return ReadNumber();
                     }
 
@@ -191,22 +227,26 @@ internal static class JsonTree {
             }
         }
 
-        private JsonObject ReadObject() {
+        private JsonObject ReadObject()
+        {
             var result = new JsonObject();
 
             _position++;
             SkipWhitespace();
 
-            if (Peek() == '}') {
+            if (Peek() == '}')
+            {
                 _position++;
 
                 return result;
             }
 
-            while (true) {
+            while (true)
+            {
                 SkipWhitespace();
 
-                if (Peek() != '"') {
+                if (Peek() != '"')
+                {
                     throw Error("expected a member name");
                 }
 
@@ -214,7 +254,8 @@ internal static class JsonTree {
 
                 SkipWhitespace();
 
-                if (Peek() != ':') {
+                if (Peek() != ':')
+                {
                     throw Error("expected ':' after a member name");
                 }
 
@@ -228,13 +269,15 @@ internal static class JsonTree {
 
                 var next = Peek();
 
-                if (next == ',') {
+                if (next == ',')
+                {
                     _position++;
 
                     continue;
                 }
 
-                if (next == '}') {
+                if (next == '}')
+                {
                     _position++;
 
                     return result;
@@ -244,32 +287,37 @@ internal static class JsonTree {
             }
         }
 
-        private JsonArray ReadArray() {
+        private JsonArray ReadArray()
+        {
             var result = new JsonArray();
 
             _position++;
             SkipWhitespace();
 
-            if (Peek() == ']') {
+            if (Peek() == ']')
+            {
                 _position++;
 
                 return result;
             }
 
-            while (true) {
+            while (true)
+            {
                 result.Items.Add(ReadValue());
 
                 SkipWhitespace();
 
                 var next = Peek();
 
-                if (next == ',') {
+                if (next == ',')
+                {
                     _position++;
 
                     continue;
                 }
 
-                if (next == ']') {
+                if (next == ']')
+                {
                     _position++;
 
                     return result;
@@ -281,49 +329,61 @@ internal static class JsonTree {
 
         private char Peek() => _position < _text.Length ? _text[_position] : '\0';
 
-        private void ReadLiteral(string literal) {
-            if (string.CompareOrdinal(_text, _position, literal, 0, literal.Length) != 0) {
+        private void ReadLiteral(string literal)
+        {
+            if (string.CompareOrdinal(_text, _position, literal, 0, literal.Length) != 0)
+            {
                 throw Error("expected '" + literal + "'");
             }
 
             _position += literal.Length;
         }
 
-        private JsonNumber ReadNumber() {
+        private JsonNumber ReadNumber()
+        {
             var start = _position;
 
-            if (Peek() == '-') {
+            if (Peek() == '-')
+            {
                 _position++;
             }
 
-            if (Peek() == '0') {
+            if (Peek() == '0')
+            {
                 _position++;
             }
-            else if (Peek() >= '1' && Peek() <= '9') {
+            else if (Peek() >= '1' && Peek() <= '9')
+            {
                 ReadDigits();
             }
-            else {
+            else
+            {
                 throw Error("expected a digit");
             }
 
-            if (Peek() == '.') {
+            if (Peek() == '.')
+            {
                 _position++;
 
-                if (!(Peek() >= '0' && Peek() <= '9')) {
+                if (!(Peek() >= '0' && Peek() <= '9'))
+                {
                     throw Error("expected a digit after '.'");
                 }
 
                 ReadDigits();
             }
 
-            if (Peek() == 'e' || Peek() == 'E') {
+            if (Peek() == 'e' || Peek() == 'E')
+            {
                 _position++;
 
-                if (Peek() == '+' || Peek() == '-') {
+                if (Peek() == '+' || Peek() == '-')
+                {
                     _position++;
                 }
 
-                if (!(Peek() >= '0' && Peek() <= '9')) {
+                if (!(Peek() >= '0' && Peek() <= '9'))
+                {
                     throw Error("expected a digit in the exponent");
                 }
 
@@ -333,32 +393,39 @@ internal static class JsonTree {
             return new JsonNumber(_text.Substring(start, _position - start));
         }
 
-        private void ReadDigits() {
-            while (Peek() >= '0' && Peek() <= '9') {
+        private void ReadDigits()
+        {
+            while (Peek() >= '0' && Peek() <= '9')
+            {
                 _position++;
             }
         }
 
-        private string ReadString() {
+        private string ReadString()
+        {
             // Past the opening quote.
             _position++;
 
             StringBuilder? builder = null;
             var runStart = _position;
 
-            while (true) {
-                if (AtEnd) {
+            while (true)
+            {
+                if (AtEnd)
+                {
                     throw Error("unterminated string");
                 }
 
                 var ch = _text[_position];
 
-                if (ch == '"') {
+                if (ch == '"')
+                {
                     var run = _text.Substring(runStart, _position - runStart);
 
                     _position++;
 
-                    if (builder == null) {
+                    if (builder == null)
+                    {
                         return run;
                     }
 
@@ -367,11 +434,13 @@ internal static class JsonTree {
                     return builder.ToString();
                 }
 
-                if (ch < ' ') {
+                if (ch < ' ')
+                {
                     throw Error("a control character must be escaped inside a string");
                 }
 
-                if (ch != '\\') {
+                if (ch != '\\')
+                {
                     _position++;
 
                     continue;
@@ -382,7 +451,8 @@ internal static class JsonTree {
 
                 _position++;
 
-                if (AtEnd) {
+                if (AtEnd)
+                {
                     throw Error("unterminated escape");
                 }
 
@@ -390,15 +460,32 @@ internal static class JsonTree {
 
                 _position++;
 
-                switch (escaped) {
-                    case '"': builder.Append('"'); break;
-                    case '\\': builder.Append('\\'); break;
-                    case '/': builder.Append('/'); break;
-                    case 'b': builder.Append('\b'); break;
-                    case 'f': builder.Append('\f'); break;
-                    case 'n': builder.Append('\n'); break;
-                    case 'r': builder.Append('\r'); break;
-                    case 't': builder.Append('\t'); break;
+                switch (escaped)
+                {
+                    case '"':
+                        builder.Append('"');
+                        break;
+                    case '\\':
+                        builder.Append('\\');
+                        break;
+                    case '/':
+                        builder.Append('/');
+                        break;
+                    case 'b':
+                        builder.Append('\b');
+                        break;
+                    case 'f':
+                        builder.Append('\f');
+                        break;
+                    case 'n':
+                        builder.Append('\n');
+                        break;
+                    case 'r':
+                        builder.Append('\r');
+                        break;
+                    case 't':
+                        builder.Append('\t');
+                        break;
                     case 'u':
                         builder.Append(ReadHexCharacter());
                         break;
@@ -414,27 +501,34 @@ internal static class JsonTree {
         /// The four hex digits after <c>\u</c>. A surrogate pair arrives as two escapes and
         /// appends as two UTF-16 units, which is what a .NET string holds anyway.
         /// </summary>
-        private char ReadHexCharacter() {
-            if (_position + 4 > _text.Length) {
+        private char ReadHexCharacter()
+        {
+            if (_position + 4 > _text.Length)
+            {
                 throw Error("expected four hex digits after '\\u'");
             }
 
             var value = 0;
 
-            for (var index = 0; index < 4; index++) {
+            for (var index = 0; index < 4; index++)
+            {
                 var ch = _text[_position + index];
                 int digit;
 
-                if (ch >= '0' && ch <= '9') {
+                if (ch >= '0' && ch <= '9')
+                {
                     digit = ch - '0';
                 }
-                else if (ch >= 'a' && ch <= 'f') {
+                else if (ch >= 'a' && ch <= 'f')
+                {
                     digit = ch - 'a' + 10;
                 }
-                else if (ch >= 'A' && ch <= 'F') {
+                else if (ch >= 'A' && ch <= 'F')
+                {
                     digit = ch - 'A' + 10;
                 }
-                else {
+                else
+                {
                     throw Error("expected four hex digits after '\\u'");
                 }
 

@@ -27,17 +27,21 @@ namespace Hardened.Requests.Runtime.Authorization;
 /// instead, once, after everything has registered into it.
 /// </para>
 /// </remarks>
-internal class AuthenticationStartupService : IStartupService {
+internal class AuthenticationStartupService : IStartupService
+{
     private readonly IServiceCollection _services;
 
-    public AuthenticationStartupService(IServiceCollection services) {
+    public AuthenticationStartupService(IServiceCollection services)
+    {
         _services = services;
     }
 
-    public Task<bool> Startup(IServiceProvider rootProvider) {
+    public Task<bool> Startup(IServiceProvider rootProvider)
+    {
         var sources = Sources(rootProvider);
 
-        if (sources.Count > 0) {
+        if (sources.Count > 0)
+        {
             var middleware = new AuthenticationMiddleware(sources);
 
             rootProvider.GetRequiredService<IMiddlewareService>().Use(_ => middleware);
@@ -54,18 +58,25 @@ internal class AuthenticationStartupService : IStartupService {
     /// until one answers, and asking the same instance twice would only cost the request a second
     /// read of a credential it already declined.
     /// </remarks>
-    [UnconditionalSuppressMessage("AOT", "IL3050:RequiresDynamicCode",
-        Justification = "Every service type read here is an interface, so the IEnumerable<T> the " +
-                        "container builds shares the canonical reference-type instantiation and " +
-                        "needs no native code of its own. The closed types are not constructed - " +
-                        "they are read from registrations the application already made.")]
-    private List<IPrincipalSource> Sources(IServiceProvider rootProvider) {
+    [UnconditionalSuppressMessage(
+        "AOT",
+        "IL3050:RequiresDynamicCode",
+        Justification = "Every service type read here is an interface, so the IEnumerable<T> the "
+            + "container builds shares the canonical reference-type instantiation and "
+            + "needs no native code of its own. The closed types are not constructed - "
+            + "they are read from registrations the application already made."
+    )]
+    private List<IPrincipalSource> Sources(IServiceProvider rootProvider)
+    {
         var sources = new List<IPrincipalSource>();
         var seen = new HashSet<object>(ReferenceEqualityComparer.Instance);
 
-        foreach (var serviceType in SourceServiceTypes()) {
-            foreach (var resolved in rootProvider.GetServices(serviceType)) {
-                if (resolved is IPrincipalSource source && seen.Add(source)) {
+        foreach (var serviceType in SourceServiceTypes())
+        {
+            foreach (var resolved in rootProvider.GetServices(serviceType))
+            {
+                if (resolved is IPrincipalSource source && seen.Add(source))
+                {
                     sources.Add(source);
                 }
             }
@@ -84,23 +95,32 @@ internal class AuthenticationStartupService : IStartupService {
     /// <c>IPrincipalSource&lt;TScheme&gt;</c> for every scheme, and asking the container for an
     /// unbound type throws.
     /// </remarks>
-    private IEnumerable<Type> SourceServiceTypes() {
+    private IEnumerable<Type> SourceServiceTypes()
+    {
         var seen = new HashSet<Type>();
 
-        foreach (var descriptor in _services) {
+        foreach (var descriptor in _services)
+        {
             var serviceType = descriptor.ServiceType;
 
-            if (serviceType.ContainsGenericParameters) {
+            if (serviceType.ContainsGenericParameters)
+            {
                 continue;
             }
 
-            if (serviceType != typeof(IPrincipalSource) &&
-                !(serviceType.IsGenericType &&
-                  serviceType.GetGenericTypeDefinition() == typeof(IPrincipalSource<>))) {
+            if (
+                serviceType != typeof(IPrincipalSource)
+                && !(
+                    serviceType.IsGenericType
+                    && serviceType.GetGenericTypeDefinition() == typeof(IPrincipalSource<>)
+                )
+            )
+            {
                 continue;
             }
 
-            if (seen.Add(serviceType)) {
+            if (seen.Add(serviceType))
+            {
                 yield return serviceType;
             }
         }

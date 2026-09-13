@@ -2,6 +2,7 @@
 
 namespace Hardened.Requests.Abstract.Errors;
 
-public interface IExceptionToModelConverter {
+public interface IExceptionToModelConverter
+{
     (int, object) ConvertExceptionToModel(IExecutionContext context, Exception exp);
 }

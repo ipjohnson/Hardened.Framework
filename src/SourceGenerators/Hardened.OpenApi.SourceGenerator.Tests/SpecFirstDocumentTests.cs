@@ -3,8 +3,8 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Hardened.SourceGeneration.Testing;
-using Xunit;
 using Hardened.Web.Runtime.Responses;
+using Xunit;
 
 namespace Hardened.OpenApi.SourceGenerator.Tests;
 
@@ -25,14 +25,13 @@ namespace Hardened.OpenApi.SourceGenerator.Tests;
 /// hold the multi-line-description guarantee end to end.
 /// </para>
 /// </remarks>
-public class SpecFirstDocumentTests {
-
+public class SpecFirstDocumentTests
+{
     /// <summary>
     /// The shapes the trial found missing: a bounded integer with a default, an enum vocabulary,
     /// and a pattern - declared on parameters, where only body schemas kept their facts.
     /// </summary>
-    private const string ConstrainedParameters =
-        """
+    private const string ConstrainedParameters = """
         openapi: "3.0.0"
         info: { title: Pets, version: "1.0" }
         paths:
@@ -72,7 +71,8 @@ public class SpecFirstDocumentTests {
 
     private static JsonElement PublishedDocumentFor(string spec) => PublishedDocument(spec);
 
-    private static JsonElement PublishedDocument(string spec) {
+    private static JsonElement PublishedDocument(string spec)
+    {
         var result = OpenApiGenerator.Run(spec);
 
         Assert.Empty(result.Errors);
@@ -80,17 +80,22 @@ public class SpecFirstDocumentTests {
         return PublishedDocumentFrom(result);
     }
 
-    private static JsonElement PublishedDocumentFrom(GeneratorResult result) {
-        var source = result.GeneratedSources
-            .First(pair => pair.Key.Contains("OpenApiDocument")).Value;
+    private static JsonElement PublishedDocumentFrom(GeneratorResult result)
+    {
+        var source = result
+            .GeneratedSources.First(pair => pair.Key.Contains("OpenApiDocument"))
+            .Value;
 
-        var match = Regex.Match(
-            source, @"new byte\[\]\s*\{(.*?)\}\s*;", RegexOptions.Singleline);
+        var match = Regex.Match(source, @"new byte\[\]\s*\{(.*?)\}\s*;", RegexOptions.Singleline);
 
         Assert.True(match.Success, "No document byte array in the generated source.");
 
-        var bytes = match.Groups[1].Value
-            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        var bytes = match
+            .Groups[1]
+            .Value.Split(
+                ',',
+                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries
+            )
             .Select(byte.Parse)
             .ToArray();
 
@@ -103,11 +108,19 @@ public class SpecFirstDocumentTests {
         return JsonDocument.Parse(Encoding.UTF8.GetString(inflated.ToArray())).RootElement;
     }
 
-    private static JsonElement Parameter(JsonElement document, string name) {
-        foreach (var parameter in document
-                     .GetProperty("paths").GetProperty("/pets/{petId}").GetProperty("get")
-                     .GetProperty("parameters").EnumerateArray()) {
-            if (parameter.GetProperty("name").GetString() == name) {
+    private static JsonElement Parameter(JsonElement document, string name)
+    {
+        foreach (
+            var parameter in document
+                .GetProperty("paths")
+                .GetProperty("/pets/{petId}")
+                .GetProperty("get")
+                .GetProperty("parameters")
+                .EnumerateArray()
+        )
+        {
+            if (parameter.GetProperty("name").GetString() == name)
+            {
                 return parameter;
             }
         }
@@ -116,7 +129,8 @@ public class SpecFirstDocumentTests {
     }
 
     [Fact]
-    public void ABoundedIntegerParameterKeepsItsTypeBoundsAndDefault() {
+    public void ABoundedIntegerParameterKeepsItsTypeBoundsAndDefault()
+    {
         var schema = Parameter(PublishedDocument(ConstrainedParameters), "limit")
             .GetProperty("schema");
 
@@ -128,18 +142,21 @@ public class SpecFirstDocumentTests {
     }
 
     [Fact]
-    public void AnEnumParameterPublishesItsVocabulary() {
+    public void AnEnumParameterPublishesItsVocabulary()
+    {
         var schema = Parameter(PublishedDocument(ConstrainedParameters), "status")
             .GetProperty("schema");
 
         Assert.Equal("string", schema.GetProperty("type").GetString());
         Assert.Equal(
             new[] { "available", "pending", "sold-out" },
-            schema.GetProperty("enum").EnumerateArray().Select(value => value.GetString()));
+            schema.GetProperty("enum").EnumerateArray().Select(value => value.GetString())
+        );
     }
 
     [Fact]
-    public void APatternedPathParameterPublishesItsPattern() {
+    public void APatternedPathParameterPublishesItsPattern()
+    {
         var schema = Parameter(PublishedDocument(ConstrainedParameters), "petId")
             .GetProperty("schema");
 
@@ -152,8 +169,7 @@ public class SpecFirstDocumentTests {
     /// module class name, "1.0.0", and no security at all - so a client generated from it renamed
     /// the API and sent unauthenticated requests to operations the service refuses them on.
     /// </summary>
-    private const string SecuredContract =
-        """
+    private const string SecuredContract = """
         openapi: "3.0.0"
         info: { title: Pet Store, version: "2.4.0", description: The pets. }
         security:
@@ -195,7 +211,8 @@ public class SpecFirstDocumentTests {
         """;
 
     [Fact]
-    public void TheContractsInfoBlockIsTheDocuments() {
+    public void TheContractsInfoBlockIsTheDocuments()
+    {
         var info = PublishedDocumentFor(SecuredContract).GetProperty("info");
 
         Assert.Equal("Pet Store", info.GetProperty("title").GetString());
@@ -204,9 +221,12 @@ public class SpecFirstDocumentTests {
     }
 
     [Fact]
-    public void TheDeclaredSchemeIsPublished() {
+    public void TheDeclaredSchemeIsPublished()
+    {
         var scheme = PublishedDocumentFor(SecuredContract)
-            .GetProperty("components").GetProperty("securitySchemes").GetProperty("BearerAuth");
+            .GetProperty("components")
+            .GetProperty("securitySchemes")
+            .GetProperty("BearerAuth");
 
         Assert.Equal("http", scheme.GetProperty("type").GetString());
         Assert.Equal("bearer", scheme.GetProperty("scheme").GetString());
@@ -217,14 +237,14 @@ public class SpecFirstDocumentTests {
     /// security list declares none.
     /// </summary>
     [Fact]
-    public void OperationsCarryTheirDeclaredSecurity() {
+    public void OperationsCarryTheirDeclaredSecurity()
+    {
         var paths = PublishedDocumentFor(SecuredContract).GetProperty("paths").GetProperty("/pets");
 
         var post = paths.GetProperty("post");
         var requirement = Assert.Single(post.GetProperty("security").EnumerateArray());
 
-        Assert.Equal(
-            0, requirement.GetProperty("BearerAuth").GetArrayLength());
+        Assert.Equal(0, requirement.GetProperty("BearerAuth").GetArrayLength());
 
         Assert.False(paths.GetProperty("get").TryGetProperty("security", out _));
     }
@@ -235,12 +255,14 @@ public class SpecFirstDocumentTests {
     /// one.
     /// </summary>
     [Fact]
-    public void AMultiLineDescriptionSurvivesToTheDocument() {
+    public void AMultiLineDescriptionSurvivesToTheDocument()
+    {
         var operation = PublishedDocument(ConstrainedParameters)
-            .GetProperty("paths").GetProperty("/pets/{petId}").GetProperty("get");
+            .GetProperty("paths")
+            .GetProperty("/pets/{petId}")
+            .GetProperty("get");
 
-        Assert.Contains(
-            "Second line", operation.GetProperty("description").GetString());
+        Assert.Contains("Second line", operation.GetProperty("description").GetString());
     }
 
     #region response metadata
@@ -249,8 +271,7 @@ public class SpecFirstDocumentTests {
     /// The three response facts the served document dropped: a declared header, a non-JSON
     /// success, and the validation 400 the generated filter answers.
     /// </summary>
-    private const string ResponseMetadataContract =
-        """
+    private const string ResponseMetadataContract = """
         openapi: "3.0.0"
         info: { title: Labels, version: "1.0" }
         paths:
@@ -305,10 +326,14 @@ public class SpecFirstDocumentTests {
         """;
 
     [Fact]
-    public void ADeclaredHeaderReachesTheDocument() {
+    public void ADeclaredHeaderReachesTheDocument()
+    {
         var created = PublishedDocument(ResponseMetadataContract)
-            .GetProperty("paths").GetProperty("/labels").GetProperty("post")
-            .GetProperty("responses").GetProperty("201");
+            .GetProperty("paths")
+            .GetProperty("/labels")
+            .GetProperty("post")
+            .GetProperty("responses")
+            .GetProperty("201");
 
         var location = created.GetProperty("headers").GetProperty("Location");
 
@@ -321,10 +346,14 @@ public class SpecFirstDocumentTests {
     /// generated client read nothing from a response that carries the body.
     /// </summary>
     [Fact]
-    public void ANonJsonSuccessCarriesItsContent() {
+    public void ANonJsonSuccessCarriesItsContent()
+    {
         var ok = PublishedDocument(ResponseMetadataContract)
-            .GetProperty("paths").GetProperty("/labels/{id}/text").GetProperty("get")
-            .GetProperty("responses").GetProperty("200");
+            .GetProperty("paths")
+            .GetProperty("/labels/{id}/text")
+            .GetProperty("get")
+            .GetProperty("responses")
+            .GetProperty("200");
 
         var text = ok.GetProperty("content").GetProperty("text/plain");
 
@@ -336,19 +365,30 @@ public class SpecFirstDocumentTests {
     /// constraint failure was a status the document never mentioned.
     /// </summary>
     [Fact]
-    public void AValidatedOperationDeclaresTheValidationResponse() {
+    public void AValidatedOperationDeclaresTheValidationResponse()
+    {
         var document = PublishedDocument(ResponseMetadataContract);
 
         var badRequest = document
-            .GetProperty("paths").GetProperty("/labels").GetProperty("post")
-            .GetProperty("responses").GetProperty("400");
+            .GetProperty("paths")
+            .GetProperty("/labels")
+            .GetProperty("post")
+            .GetProperty("responses")
+            .GetProperty("400");
 
         Assert.Equal(
             "#/components/schemas/RequestValidationError",
-            badRequest.GetProperty("content").GetProperty("application/json")
-                .GetProperty("schema").GetProperty("$ref").GetString());
+            badRequest
+                .GetProperty("content")
+                .GetProperty("application/json")
+                .GetProperty("schema")
+                .GetProperty("$ref")
+                .GetString()
+        );
 
-        var schema = document.GetProperty("components").GetProperty("schemas")
+        var schema = document
+            .GetProperty("components")
+            .GetProperty("schemas")
             .GetProperty("RequestValidationError");
 
         Assert.Equal("object", schema.GetProperty("type").GetString());
@@ -361,8 +401,7 @@ public class SpecFirstDocumentTests {
     /// <summary>
     /// An entry point that also declares <c>[OpenApiInfo]</c>, with a comma in its description.
     /// </summary>
-    private const string EntryPointDeclaringInfo =
-        """
+    private const string EntryPointDeclaringInfo = """
         using Hardened.Shared.Runtime.Attributes;
         using Hardened.Web.Runtime.Attributes;
 
@@ -374,7 +413,8 @@ public class SpecFirstDocumentTests {
         }
         """;
 
-    private static JsonElement Info(string spec, string source) {
+    private static JsonElement Info(string spec, string source)
+    {
         var result = OpenApiGenerator.Run(spec, source);
 
         Assert.Empty(result.Errors);
@@ -387,7 +427,8 @@ public class SpecFirstDocumentTests {
     /// and what nothing was driving.
     /// </summary>
     [Fact]
-    public void TheContractsInfoWinsOverTheAttribute() {
+    public void TheContractsInfoWinsOverTheAttribute()
+    {
         var info = Info(ConstrainedParameters, EntryPointDeclaringInfo);
 
         Assert.Equal("Pets", info.GetProperty("title").GetString());
@@ -399,7 +440,8 @@ public class SpecFirstDocumentTests {
     /// reading is the same on both front ends, so H-16's truncation would have shown here too.
     /// </summary>
     [Fact]
-    public void ADescriptionTheContractOmitsComesFromTheAttributeWhole() {
+    public void ADescriptionTheContractOmitsComesFromTheAttributeWhole()
+    {
         var info = Info(ConstrainedParameters, EntryPointDeclaringInfo);
 
         Assert.True(info.TryGetProperty("description", out var description));
@@ -418,8 +460,7 @@ public class SpecFirstDocumentTests {
     /// that is where a described one is written; the other two are on the implementation, because
     /// a generated signature has nowhere to put them.
     /// </remarks>
-    private const string GuardedOperation =
-        """
+    private const string GuardedOperation = """
         openapi: "3.0.0"
         info: { title: Dispatch, version: "1.0" }
         paths:
@@ -456,24 +497,31 @@ public class SpecFirstDocumentTests {
             [ReadsHeader("X-Quote-Currency", Description = "The currency to price in.")]
             public Task<string> GetQuote() => Task.FromResult("40.00");
         }
-        """);
+        """
+    );
 
-    private static JsonElement GuardedOperationElement() {
+    private static JsonElement GuardedOperationElement()
+    {
         var result = OpenApiGenerator.Run(GuardedOperation, GuardedHandler);
 
         Assert.Empty(result.Errors);
 
         return PublishedDocumentFrom(result)
-            .GetProperty("paths").GetProperty("/quotes").GetProperty("get");
+            .GetProperty("paths")
+            .GetProperty("/quotes")
+            .GetProperty("get");
     }
 
-    private static JsonElement GuardedResponses() {
+    private static JsonElement GuardedResponses()
+    {
         var result = OpenApiGenerator.Run(GuardedOperation, GuardedHandler);
 
         Assert.Empty(result.Errors);
 
         return PublishedDocumentFrom(result)
-            .GetProperty("paths").GetProperty("/quotes").GetProperty("get")
+            .GetProperty("paths")
+            .GetProperty("/quotes")
+            .GetProperty("get")
             .GetProperty("responses");
     }
 
@@ -486,14 +534,20 @@ public class SpecFirstDocumentTests {
     /// and a generated client had no branch for it.
     /// </remarks>
     [Fact]
-    public void ARateLimitOnTheImplementationPublishesItsRefusal() {
+    public void ARateLimitOnTheImplementationPublishesItsRefusal()
+    {
         var refusal = GuardedResponses().GetProperty("429");
 
         Assert.Contains("allowance", refusal.GetProperty("description").GetString());
         Assert.Equal(
             "#/components/schemas/ErrorModel",
-            refusal.GetProperty("content").GetProperty("application/json")
-                .GetProperty("schema").GetProperty("$ref").GetString());
+            refusal
+                .GetProperty("content")
+                .GetProperty("application/json")
+                .GetProperty("schema")
+                .GetProperty("$ref")
+                .GetString()
+        );
     }
 
     /// <summary>An authorization attribute on the implementation, on the same terms.</summary>
@@ -501,21 +555,32 @@ public class SpecFirstDocumentTests {
     public void AnAuthorizationAttributeOnTheImplementationPublishesItsRefusal() =>
         Assert.Contains(
             "does not hold",
-            GuardedResponses().GetProperty("403").GetProperty("description").GetString());
+            GuardedResponses().GetProperty("403").GetProperty("description").GetString()
+        );
 
     /// <summary>
     /// The contract's own deadline, whose status nothing published while
     /// <c>x-hardened-timeout</c> published the budget beside it.
     /// </summary>
     [Fact]
-    public void ADescribedDeadlinePublishesTheStatusItAnswers() {
+    public void ADescribedDeadlinePublishesTheStatusItAnswers()
+    {
         var responses = GuardedResponses();
 
-        Assert.Contains("budget", responses.GetProperty("504").GetProperty("description").GetString());
+        Assert.Contains(
+            "budget",
+            responses.GetProperty("504").GetProperty("description").GetString()
+        );
         Assert.Equal(
             "#/components/schemas/ErrorModel",
-            responses.GetProperty("504").GetProperty("content").GetProperty("application/json")
-                .GetProperty("schema").GetProperty("$ref").GetString());
+            responses
+                .GetProperty("504")
+                .GetProperty("content")
+                .GetProperty("application/json")
+                .GetProperty("schema")
+                .GetProperty("$ref")
+                .GetString()
+        );
     }
 
     /// <summary>
@@ -523,19 +588,23 @@ public class SpecFirstDocumentTests {
     /// scalar writer's <c>string</c> default while the wire carried an object.
     /// </summary>
     [Fact]
-    public void AMapInTheContractIsPublishedAsAMap() {
+    public void AMapInTheContractIsPublishedAsAMap()
+    {
         var byStatus = PublishedDocument(MappedBody)
-            .GetProperty("components").GetProperty("schemas").GetProperty("Report")
-            .GetProperty("properties").GetProperty("byStatus");
+            .GetProperty("components")
+            .GetProperty("schemas")
+            .GetProperty("Report")
+            .GetProperty("properties")
+            .GetProperty("byStatus");
 
         Assert.Equal("object", byStatus.GetProperty("type").GetString());
         Assert.Equal(
             "integer",
-            byStatus.GetProperty("additionalProperties").GetProperty("type").GetString());
+            byStatus.GetProperty("additionalProperties").GetProperty("type").GetString()
+        );
     }
 
-    private const string MappedBody =
-        """
+    private const string MappedBody = """
         openapi: "3.0.0"
         info: { title: Dispatch, version: "1.0" }
         paths:
@@ -571,16 +640,23 @@ public class SpecFirstDocumentTests {
     public void AHeaderDeclaredOnADescribedHandlerReachesItsDocument() =>
         Assert.Equal(
             "Which book priced it.",
-            GuardedOperationElement().GetProperty("responses").GetProperty("200")
-                .GetProperty("headers").GetProperty("X-Quote-Source")
-                .GetProperty("description").GetString());
+            GuardedOperationElement()
+                .GetProperty("responses")
+                .GetProperty("200")
+                .GetProperty("headers")
+                .GetProperty("X-Quote-Source")
+                .GetProperty("description")
+                .GetString()
+        );
 
     /// <summary>And a header it says it reads becomes a parameter a generated client can send.</summary>
     [Fact]
-    public void AHeaderADescribedHandlerReadsBecomesAParameter() {
+    public void AHeaderADescribedHandlerReadsBecomesAParameter()
+    {
         var parameters = GuardedOperationElement().GetProperty("parameters");
 
-        var declared = parameters.EnumerateArray()
+        var declared = parameters
+            .EnumerateArray()
             .Single(parameter => parameter.GetProperty("name").GetString() == "X-Quote-Currency");
 
         Assert.Equal("header", declared.GetProperty("in").GetString());
@@ -595,14 +671,22 @@ public class SpecFirstDocumentTests {
     [Fact]
     public void ARateLimitPublishesTheHeaderItWrites() =>
         Assert.True(
-            GuardedOperationElement().GetProperty("responses").GetProperty("429")
-                .GetProperty("headers").TryGetProperty("Retry-After", out _));
+            GuardedOperationElement()
+                .GetProperty("responses")
+                .GetProperty("429")
+                .GetProperty("headers")
+                .TryGetProperty("Retry-After", out _)
+        );
 
     /// <summary>Described responses are in status order too, synthesized ones included.</summary>
     [Fact]
-    public void DescribedResponsesAreInStatusOrder() {
-        var statuses = GuardedOperationElement().GetProperty("responses").EnumerateObject()
-            .Select(status => int.Parse(status.Name)).ToList();
+    public void DescribedResponsesAreInStatusOrder()
+    {
+        var statuses = GuardedOperationElement()
+            .GetProperty("responses")
+            .EnumerateObject()
+            .Select(status => int.Parse(status.Name))
+            .ToList();
 
         Assert.True(statuses.Count > 2);
         Assert.Equal(statuses.OrderBy(status => status).ToList(), statuses);
@@ -615,8 +699,7 @@ public class SpecFirstDocumentTests {
     /// <summary>
     /// A contract offering two representations of one response.
     /// </summary>
-    private const string TwoMediaTypes =
-        """
+    private const string TwoMediaTypes = """
         openapi: "3.0.0"
         info: { title: Pets, version: "1.0" }
         paths:
@@ -655,19 +738,24 @@ public class SpecFirstDocumentTests {
     /// mistake for a code-first-only one.
     /// </summary>
     [Fact]
-    public void BothDeclaredMediaTypesReachThePublishedDocument() {
+    public void BothDeclaredMediaTypesReachThePublishedDocument()
+    {
         var content = PublishedDocument(TwoMediaTypes)
-            .GetProperty("paths").GetProperty("/pets/{petId}").GetProperty("get")
-            .GetProperty("responses").GetProperty("200").GetProperty("content");
+            .GetProperty("paths")
+            .GetProperty("/pets/{petId}")
+            .GetProperty("get")
+            .GetProperty("responses")
+            .GetProperty("200")
+            .GetProperty("content");
 
         Assert.Equal(
             ["application/json", "application/x-msgpack"],
-            content.EnumerateObject().Select(media => media.Name));
+            content.EnumerateObject().Select(media => media.Name)
+        );
     }
 
     /// <summary>The same contract, leading with MessagePack.</summary>
-    private const string MsgpackFirst =
-        """
+    private const string MsgpackFirst = """
         openapi: "3.0.0"
         info: { title: Pets, version: "1.0" }
         paths:
@@ -705,14 +793,20 @@ public class SpecFirstDocumentTests {
     /// document negotiates the set the original contract declared, in the order it declared it.
     /// </summary>
     [Fact]
-    public void TheKeysAreInTheOrderTheContractDeclaredThem() {
+    public void TheKeysAreInTheOrderTheContractDeclaredThem()
+    {
         var content = PublishedDocument(MsgpackFirst)
-            .GetProperty("paths").GetProperty("/pets/{petId}").GetProperty("get")
-            .GetProperty("responses").GetProperty("200").GetProperty("content");
+            .GetProperty("paths")
+            .GetProperty("/pets/{petId}")
+            .GetProperty("get")
+            .GetProperty("responses")
+            .GetProperty("200")
+            .GetProperty("content");
 
         Assert.Equal(
             ["application/x-msgpack", "application/json"],
-            content.EnumerateObject().Select(media => media.Name));
+            content.EnumerateObject().Select(media => media.Name)
+        );
     }
 
     #endregion

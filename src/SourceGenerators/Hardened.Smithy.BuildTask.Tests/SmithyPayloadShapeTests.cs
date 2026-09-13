@@ -32,12 +32,13 @@ namespace Hardened.Smithy.BuildTask.Tests;
 /// the map case below asserts one now.
 /// </para>
 /// </remarks>
-public class SmithyPayloadShapeTests {
-
+public class SmithyPayloadShapeTests
+{
     private static string Fixture() =>
         File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "payload-shapes.json"));
 
-    private static ServiceSpecModel Model(List<string> diagnostics) {
+    private static ServiceSpecModel Model(List<string> diagnostics)
+    {
         var model = SmithySpecParser.Parse(Fixture(), "payload-shapes", diagnostics);
 
         Assert.NotNull(model);
@@ -46,15 +47,16 @@ public class SmithyPayloadShapeTests {
     }
 
     private static OperationModel Operation(string operationId) =>
-        Model(new List<string>()).Services
-            .SelectMany(service => service.Operations)
+        Model(new List<string>())
+            .Services.SelectMany(service => service.Operations)
             .Single(operation => operation.OperationId == operationId);
 
     /// <summary>
     /// A list of a structure is an array of that structure, not a type named after the list.
     /// </summary>
     [Fact]
-    public void AListPayloadIsAnArrayOfItsMember() {
+    public void AListPayloadIsAnArrayOfItsMember()
+    {
         var operation = Operation("ListPets");
 
         Assert.True(operation.ResponseIsArray);
@@ -71,9 +73,12 @@ public class SmithyPayloadShapeTests {
     /// from the same shape used as a structure member, <c>List&lt;Pet&gt;</c>.
     /// </remarks>
     [Fact]
-    public void AListPayloadWritesNoSchemaOfItsOwn() {
+    public void AListPayloadWritesNoSchemaOfItsOwn()
+    {
         Assert.DoesNotContain(
-            Model(new List<string>()).Schemas, schema => schema.Name == "PetList");
+            Model(new List<string>()).Schemas,
+            schema => schema.Name == "PetList"
+        );
     }
 
     /// <summary>
@@ -81,7 +86,8 @@ public class SmithyPayloadShapeTests {
     /// <c>List&lt;string&gt;</c> is generated from.
     /// </summary>
     [Fact]
-    public void AListPayloadOfPrimitivesNamesTheItemType() {
+    public void AListPayloadOfPrimitivesNamesTheItemType()
+    {
         var operation = Operation("ListNames");
 
         Assert.True(operation.ResponseIsArray);
@@ -94,7 +100,8 @@ public class SmithyPayloadShapeTests {
     /// defect went unnoticed.
     /// </summary>
     [Fact]
-    public void AStructurePayloadIsStillAReference() {
+    public void AStructurePayloadIsStillAReference()
+    {
         var operation = Operation("GetPet");
 
         Assert.Equal("#/components/schemas/Pet", operation.ResponseRef);
@@ -110,7 +117,8 @@ public class SmithyPayloadShapeTests {
     /// holding a reference to a type that was never written.
     /// </remarks>
     [Fact]
-    public void APreludePayloadIsTheTypeItMapsTo() {
+    public void APreludePayloadIsTheTypeItMapsTo()
+    {
         var operation = Operation("GetName");
 
         Assert.Equal("string", operation.ResponseType);
@@ -127,19 +135,22 @@ public class SmithyPayloadShapeTests {
     /// used to be silent.
     /// </remarks>
     [Fact]
-    public void AMapPayloadIsReported() {
+    public void AMapPayloadIsReported()
+    {
         var diagnostics = new List<string>();
 
         Model(diagnostics);
 
         Assert.Contains(
             diagnostics,
-            diagnostic => diagnostic.Contains("GetTags") && diagnostic.Contains("@httpPayload"));
+            diagnostic => diagnostic.Contains("GetTags") && diagnostic.Contains("@httpPayload")
+        );
     }
 
     /// <summary>And leaves nothing behind that would name a body it cannot describe.</summary>
     [Fact]
-    public void AMapPayloadNamesNoResponseShape() {
+    public void AMapPayloadNamesNoResponseShape()
+    {
         var operation = Operation("GetTags");
 
         Assert.Null(operation.ResponseRef);

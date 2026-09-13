@@ -28,6 +28,7 @@ namespace Hardened.IntegrationTests.OpenApi.SUT;
 /// </remarks>
 [Handler]
 [AuthorizeGrants("guarded:enter")]
-public class GuardedServiceImpl : IGuardedService {
+public class GuardedServiceImpl : IGuardedService
+{
     public Task<string> GuardedByAttribute() => Task.FromResult("reached");
 }

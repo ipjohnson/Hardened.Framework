@@ -12,14 +12,13 @@ namespace Hardened.Smithy.BuildTask.Tests;
 /// recognise must yield no findings, because the caller's fallback is to pass the text through
 /// whole rather than lose it.
 /// </remarks>
-public class SmithyValidationReportTests {
-
+public class SmithyValidationReportTests
+{
     /// <summary>
     /// <c>smithy ast</c> over a service naming an operation that does not exist: one ERROR with a
     /// shape, one DANGER without, and the FAILURE count line.
     /// </summary>
-    private const string FailureReport =
-        """
+    private const string FailureReport = """
 
         ──  ERROR  ────────────────────────────────────────────── Target.UnresolvedShape
         Shape: probe#Svc
@@ -48,12 +47,14 @@ public class SmithyValidationReportTests {
         """;
 
     [Fact]
-    public void EveryBannerBecomesOneFinding() {
+    public void EveryBannerBecomesOneFinding()
+    {
         Assert.Equal(2, SmithyValidationReport.Parse(FailureReport).Count);
     }
 
     [Fact]
-    public void TheSeverityAndEventIdComeFromTheBannerLine() {
+    public void TheSeverityAndEventIdComeFromTheBannerLine()
+    {
         var findings = SmithyValidationReport.Parse(FailureReport);
 
         Assert.Equal("ERROR", findings[0].Severity);
@@ -64,14 +65,17 @@ public class SmithyValidationReportTests {
 
     /// <summary>ERROR and DANGER are the two severities the CLI fails validation on.</summary>
     [Fact]
-    public void BothFailingSeveritiesSaySo() {
+    public void BothFailingSeveritiesSaySo()
+    {
         Assert.All(
             SmithyValidationReport.Parse(FailureReport),
-            finding => Assert.True(finding.FailedValidation));
+            finding => Assert.True(finding.FailedValidation)
+        );
     }
 
     [Fact]
-    public void TheLocationComesFromTheFileLine() {
+    public void TheLocationComesFromTheFileLine()
+    {
         var finding = SmithyValidationReport.Parse(FailureReport)[1];
 
         Assert.Equal("bad.smithy", finding.File);
@@ -81,7 +85,8 @@ public class SmithyValidationReportTests {
 
     /// <summary>The Shape line is optional - the DANGER banner above has none.</summary>
     [Fact]
-    public void TheShapeIsCarriedWhenNamedAndNullWhenNot() {
+    public void TheShapeIsCarriedWhenNamedAndNullWhenNot()
+    {
         var findings = SmithyValidationReport.Parse(FailureReport);
 
         Assert.Equal("probe#Svc", findings[0].Shape);
@@ -93,33 +98,41 @@ public class SmithyValidationReportTests {
     /// without the source excerpt, whose content the file and line already point an editor at.
     /// </summary>
     [Fact]
-    public void TheMessageIsReassembledWithoutTheExcerpt() {
+    public void TheMessageIsReassembledWithoutTheExcerpt()
+    {
         var finding = SmithyValidationReport.Parse(FailureReport)[1];
 
         Assert.Equal(
-            "Syntactic shape ID `MissingOp` does not resolve to a valid shape ID: " +
-            "`probe#MissingOp`. Did you mean to quote this string? Are you missing a model file?",
-            finding.Message);
+            "Syntactic shape ID `MissingOp` does not resolve to a valid shape ID: "
+                + "`probe#MissingOp`. Did you mean to quote this string? Are you missing a model file?",
+            finding.Message
+        );
     }
 
     /// <summary>Its content is the finding count, which the findings already carry.</summary>
     [Fact]
-    public void TheSummaryLineIsNotPartOfAnyMessage() {
+    public void TheSummaryLineIsNotPartOfAnyMessage()
+    {
         Assert.All(
             SmithyValidationReport.Parse(FailureReport),
-            finding => Assert.DoesNotContain("FAILURE", finding.Message));
+            finding => Assert.DoesNotContain("FAILURE", finding.Message)
+        );
     }
 
     /// <summary>
     /// A Windows path carries a colon of its own, so the line and column are read from the right.
     /// </summary>
     [Fact]
-    public void AWindowsPathKeepsItsDriveColon() {
-        var finding = SmithyValidationReport.Parse(
-            "──  ERROR  ──── Model.Broken\n" +
-            "File:  C:\\models\\bad.smithy:12:3\n" +
-            "\n" +
-            "the message\n").Single();
+    public void AWindowsPathKeepsItsDriveColon()
+    {
+        var finding = SmithyValidationReport
+            .Parse(
+                "──  ERROR  ──── Model.Broken\n"
+                    + "File:  C:\\models\\bad.smithy:12:3\n"
+                    + "\n"
+                    + "the message\n"
+            )
+            .Single();
 
         Assert.Equal("C:\\models\\bad.smithy", finding.File);
         Assert.Equal(12, finding.Line);
@@ -128,9 +141,11 @@ public class SmithyValidationReportTests {
 
     /// <summary>A banner with no File line still parses; the caller falls back to the model.</summary>
     [Fact]
-    public void ABannerWithoutAFileLineYieldsAnEmptyFile() {
-        var finding = SmithyValidationReport.Parse(
-            "──  WARNING  ──── SomethingGeneral\n\nthe whole model is suspect\n").Single();
+    public void ABannerWithoutAFileLineYieldsAnEmptyFile()
+    {
+        var finding = SmithyValidationReport
+            .Parse("──  WARNING  ──── SomethingGeneral\n\nthe whole model is suspect\n")
+            .Single();
 
         Assert.Equal("", finding.File);
         Assert.Equal(0, finding.Line);
@@ -142,18 +157,24 @@ public class SmithyValidationReportTests {
     /// nothing, so the caller passes it through whole instead of losing it.
     /// </summary>
     [Fact]
-    public void TextThatIsNotTheReportYieldsNoFindings() {
-        Assert.Empty(SmithyValidationReport.Parse(
-            "Exception in thread \"main\" java.lang.OutOfMemoryError: Java heap space\n" +
-            "\tat software.amazon.smithy.cli.SmithyCli.run(SmithyCli.java:80)\n"));
+    public void TextThatIsNotTheReportYieldsNoFindings()
+    {
+        Assert.Empty(
+            SmithyValidationReport.Parse(
+                "Exception in thread \"main\" java.lang.OutOfMemoryError: Java heap space\n"
+                    + "\tat software.amazon.smithy.cli.SmithyCli.run(SmithyCli.java:80)\n"
+            )
+        );
         Assert.Empty(SmithyValidationReport.Parse(""));
     }
 
     /// <summary>Carriage returns are the launcher's on Windows, not content.</summary>
     [Fact]
-    public void CarriageReturnsAreTolerated() {
-        var finding = SmithyValidationReport.Parse(
-            "──  ERROR  ──── Model.Broken\r\nFile:  bad.smithy:2:1\r\n\r\nthe message\r\n").Single();
+    public void CarriageReturnsAreTolerated()
+    {
+        var finding = SmithyValidationReport
+            .Parse("──  ERROR  ──── Model.Broken\r\nFile:  bad.smithy:2:1\r\n\r\nthe message\r\n")
+            .Single();
 
         Assert.Equal("bad.smithy", finding.File);
         Assert.Equal("the message", finding.Message);

@@ -17,12 +17,13 @@ namespace Hardened.Smithy.BuildTask.Tests;
 /// model and the payload was read as a single JSON object: a <c>Task&lt;PetEventStream&gt;</c>
 /// on the interface and one document where the model promised many.
 /// </remarks>
-public class SmithyEventStreamTests {
-
+public class SmithyEventStreamTests
+{
     private static string Fixture() =>
         File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "event-stream.json"));
 
-    private static ServiceSpecModel Model(List<string> diagnostics) {
+    private static ServiceSpecModel Model(List<string> diagnostics)
+    {
         var model = SmithySpecParser.Parse(Fixture(), "event-stream", diagnostics);
 
         Assert.NotNull(model);
@@ -31,12 +32,13 @@ public class SmithyEventStreamTests {
     }
 
     private static OperationModel Operation(string operationId) =>
-        Model(new List<string>()).Services
-            .SelectMany(service => service.Operations)
+        Model(new List<string>())
+            .Services.SelectMany(service => service.Operations)
             .Single(operation => operation.OperationId == operationId);
 
     [Fact]
-    public void AStreamingUnionPayloadIsTheItemOfAStream() {
+    public void AStreamingUnionPayloadIsTheItemOfAStream()
+    {
         var operation = Operation("PetEvents");
 
         Assert.Equal("#/components/schemas/PetEventStream", operation.ItemSchemaRef);
@@ -48,7 +50,8 @@ public class SmithyEventStreamTests {
     }
 
     [Fact]
-    public void AnUnstreamedOperationIsUntouched() {
+    public void AnUnstreamedOperationIsUntouched()
+    {
         var operation = Operation("GetPet");
 
         Assert.Null(operation.ItemSchemaRef);
@@ -60,17 +63,25 @@ public class SmithyEventStreamTests {
     /// field; <c>@jsonName</c> renames it the way it renames a property.
     /// </summary>
     [Fact]
-    public void TheUnionsMembersKeepTheirNames() {
-        var union = Model(new List<string>()).Schemas.Single(schema => schema.Name == "PetEventStream");
+    public void TheUnionsMembersKeepTheirNames()
+    {
+        var union = Model(new List<string>())
+            .Schemas.Single(schema => schema.Name == "PetEventStream");
 
         Assert.Equal(SchemaKind.OneOf, union.Kind);
         Assert.Equal(
-            new[] { "#/components/schemas/PetAdopted as adopted", "#/components/schemas/PetWeighed as weighed-in" },
-            union.OneOf.Select(branch => branch.Ref + " as " + branch.Name));
+            new[]
+            {
+                "#/components/schemas/PetAdopted as adopted",
+                "#/components/schemas/PetWeighed as weighed-in",
+            },
+            union.OneOf.Select(branch => branch.Ref + " as " + branch.Name)
+        );
     }
 
     [Fact]
-    public void StreamingIsAModelledTrait() {
+    public void StreamingIsAModelledTrait()
+    {
         var diagnostics = new List<string>();
 
         Model(diagnostics);

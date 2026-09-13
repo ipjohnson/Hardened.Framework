@@ -38,8 +38,8 @@ namespace Hardened.Requests.Abstract.Timeouts;
 /// most handlers and costs nothing.
 /// </para>
 /// </remarks>
-public interface IRequestTimeoutConvention {
-
+public interface IRequestTimeoutConvention
+{
     /// <summary>
     /// The budget this convention would put on <paramref name="handlerInfo"/>, or null if it has
     /// nothing to say about it.

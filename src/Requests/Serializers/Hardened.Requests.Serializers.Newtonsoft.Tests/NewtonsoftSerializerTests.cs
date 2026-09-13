@@ -1,5 +1,5 @@
-using Hardened.Requests.Abstract.Serializer;
 using Hardened.Requests.Abstract.Headers;
+using Hardened.Requests.Abstract.Serializer;
 using Hardened.Requests.Serializers.Newtonsoft.Tests.Support;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
@@ -16,10 +16,11 @@ namespace Hardened.Requests.Serializers.Newtonsoft.Tests;
 /// serializer writes into a pooled stream and copies to the response only once the whole value has
 /// been written, so a serializer that throws part-way leaves nothing half-written on the wire.
 /// </remarks>
-public class NewtonsoftSerializerTests {
-
+public class NewtonsoftSerializerTests
+{
     [Fact]
-    public async Task AValueIsWrittenAsJson() {
+    public async Task AValueIsWrittenAsJson()
+    {
         var context = Pipeline.Context();
 
         context.Response.ResponseValue = new Pipeline.Payload("first", 2);
@@ -30,7 +31,8 @@ public class NewtonsoftSerializerTests {
     }
 
     [Fact]
-    public async Task ANullValueIsWrittenAsJsonNull() {
+    public async Task ANullValueIsWrittenAsJsonNull()
+    {
         var context = Pipeline.Context();
 
         context.Response.ResponseValue = null;
@@ -41,12 +43,17 @@ public class NewtonsoftSerializerTests {
     }
 
     [Fact]
-    public async Task TheConfiguredNamingStrategyIsHonoured() {
-        var serializer = JsonSerializer.CreateDefault(new JsonSerializerSettings {
-            ContractResolver = new DefaultContractResolver {
-                NamingStrategy = new SnakeCaseNamingStrategy()
+    public async Task TheConfiguredNamingStrategyIsHonoured()
+    {
+        var serializer = JsonSerializer.CreateDefault(
+            new JsonSerializerSettings
+            {
+                ContractResolver = new DefaultContractResolver
+                {
+                    NamingStrategy = new SnakeCaseNamingStrategy(),
+                },
             }
-        });
+        );
 
         var context = Pipeline.Context();
 
@@ -61,10 +68,11 @@ public class NewtonsoftSerializerTests {
     /// The setting that most often motivates reaching for this package at all.
     /// </summary>
     [Fact]
-    public async Task ConfiguredNullHandlingIsHonoured() {
-        var serializer = JsonSerializer.CreateDefault(new JsonSerializerSettings {
-            NullValueHandling = NullValueHandling.Ignore
-        });
+    public async Task ConfiguredNullHandlingIsHonoured()
+    {
+        var serializer = JsonSerializer.CreateDefault(
+            new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore }
+        );
 
         var context = Pipeline.Context();
 
@@ -76,7 +84,8 @@ public class NewtonsoftSerializerTests {
     }
 
     [Fact]
-    public async Task ThePooledBufferIsReturnedAfterUse() {
+    public async Task ThePooledBufferIsReturnedAfterUse()
+    {
         var pool = Pipeline.Pool();
         var context = Pipeline.Context();
 
@@ -93,7 +102,8 @@ public class NewtonsoftSerializerTests {
     /// The response body belongs to the transport, which writes headers and closes it afterwards.
     /// </summary>
     [Fact]
-    public async Task TheResponseBodyIsLeftOpen() {
+    public async Task TheResponseBodyIsLeftOpen()
+    {
         var context = Pipeline.Context();
 
         context.Response.ResponseValue = new Pipeline.Payload("first", 2);
@@ -104,7 +114,8 @@ public class NewtonsoftSerializerTests {
     }
 
     [Fact]
-    public async Task TwoResponsesOnOneInstanceDoNotBleedIntoEachOther() {
+    public async Task TwoResponsesOnOneInstanceDoNotBleedIntoEachOther()
+    {
         var serializer = Pipeline.ResponseSerializer(Pipeline.Pool());
 
         var first = Pipeline.Context();
@@ -123,7 +134,8 @@ public class NewtonsoftSerializerTests {
     #region media type
 
     [Fact]
-    public void ItDeclaresApplicationJson() {
+    public void ItDeclaresApplicationJson()
+    {
         Assert.Equal("application/json", Pipeline.ResponseSerializer(Pipeline.Pool()).ContentType);
     }
 
@@ -131,7 +143,8 @@ public class NewtonsoftSerializerTests {
     [InlineData("application/json")]
     [InlineData("*/*")]
     [InlineData("application/*")]
-    public void JsonMediaTypesAreClaimed(string mediaType) {
+    public void JsonMediaTypesAreClaimed(string mediaType)
+    {
         IResponseSerializer serializer = Pipeline.ResponseSerializer(Pipeline.Pool());
 
         Assert.True(serializer.CanProduce(mediaType, Pipeline.Context()));
@@ -141,14 +154,16 @@ public class NewtonsoftSerializerTests {
     [InlineData("text/plain")]
     [InlineData("text/html")]
     [InlineData("application/xml")]
-    public void OtherMediaTypesAreNotClaimed(string mediaType) {
+    public void OtherMediaTypesAreNotClaimed(string mediaType)
+    {
         IResponseSerializer serializer = Pipeline.ResponseSerializer(Pipeline.Pool());
 
         Assert.False(serializer.CanProduce(mediaType, Pipeline.Context()));
     }
 
     [Fact]
-    public void ItOffersItselfAsTheDefault() {
+    public void ItOffersItselfAsTheDefault()
+    {
         Assert.True(Pipeline.ResponseSerializer(Pipeline.Pool()).IsDefaultSerializer);
     }
 

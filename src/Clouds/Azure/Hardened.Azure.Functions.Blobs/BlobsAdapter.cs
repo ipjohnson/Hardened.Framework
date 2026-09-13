@@ -37,7 +37,8 @@ namespace Hardened.Azure.Functions.Blobs;
 /// minutes to notice a blob.
 /// </para>
 /// </remarks>
-public sealed class BlobsAdapter : ITriggerAdapter {
+public sealed class BlobsAdapter : ITriggerAdapter
+{
     /// <summary>The scheme a blob container routes under, which <c>[Blob]</c> declares.</summary>
     public const string BlobScheme = "BLOB";
 
@@ -63,29 +64,34 @@ public sealed class BlobsAdapter : ITriggerAdapter {
     /// <summary>Whether the shim was generated for this family, which is a type check.</summary>
     public bool Handles(FunctionsTrigger trigger) => trigger.Data is BlobClient;
 
-    public IExecutionRequest CreateRequest(FunctionsTrigger trigger, FunctionContext context) {
+    public IExecutionRequest CreateRequest(FunctionsTrigger trigger, FunctionContext context)
+    {
         var blob = (BlobClient)trigger.Data;
         var properties = Properties(context);
 
-        var headers = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase) {
+        var headers = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase)
+        {
             ["Content-Type"] = "application/json",
             [ContainerHeader] = blob.BlobContainerName,
             [NameHeader] = blob.Name,
-            [UriHeader] = blob.Uri.ToString()
+            [UriHeader] = blob.Uri.ToString(),
         };
 
-        if (properties.Size is { } size) {
+        if (properties.Size is { } size)
+        {
             headers[SizeHeader] = size.ToString(CultureInfo.InvariantCulture);
         }
 
         var body = new MemoryStream();
 
-        using (var writer = new Utf8JsonWriter(body)) {
+        using (var writer = new Utf8JsonWriter(body))
+        {
             writer.WriteStartObject();
             writer.WriteString("container", blob.BlobContainerName);
             writer.WriteString("name", blob.Name);
 
-            if (properties.Size is { } written) {
+            if (properties.Size is { } written)
+            {
                 writer.WriteNumber("size", written);
             }
 
@@ -110,15 +116,22 @@ public sealed class BlobsAdapter : ITriggerAdapter {
     /// metadata. The names are the WebJobs SDK's - <c>Length</c> for the size, and
     /// <c>ContentLength</c> on older hosts - and both are read.
     /// </remarks>
-    internal static BlobProperties Properties(FunctionContext context) {
-        if (!context.BindingContext.BindingData.TryGetValue("Properties", out var raw) || raw is not string json) {
+    internal static BlobProperties Properties(FunctionContext context)
+    {
+        if (
+            !context.BindingContext.BindingData.TryGetValue("Properties", out var raw)
+            || raw is not string json
+        )
+        {
             return BlobProperties.Unknown;
         }
 
-        try {
+        try
+        {
             using var document = JsonDocument.Parse(json);
 
-            if (document.RootElement.ValueKind != JsonValueKind.Object) {
+            if (document.RootElement.ValueKind != JsonValueKind.Object)
+            {
                 return BlobProperties.Unknown;
             }
 
@@ -126,22 +139,36 @@ public sealed class BlobsAdapter : ITriggerAdapter {
             string? contentType = null;
             string? eTag = null;
 
-            foreach (var property in document.RootElement.EnumerateObject()) {
-                if (property.Name is "Length" or "ContentLength" && property.Value.ValueKind == JsonValueKind.Number &&
-                    property.Value.TryGetInt64(out var length)) {
+            foreach (var property in document.RootElement.EnumerateObject())
+            {
+                if (
+                    property.Name is "Length" or "ContentLength"
+                    && property.Value.ValueKind == JsonValueKind.Number
+                    && property.Value.TryGetInt64(out var length)
+                )
+                {
                     size ??= length;
                 }
-                else if (property.Name == "ContentType" && property.Value.ValueKind == JsonValueKind.String) {
+                else if (
+                    property.Name == "ContentType"
+                    && property.Value.ValueKind == JsonValueKind.String
+                )
+                {
                     contentType = property.Value.GetString();
                 }
-                else if (property.Name == "ETag" && property.Value.ValueKind == JsonValueKind.String) {
+                else if (
+                    property.Name == "ETag"
+                    && property.Value.ValueKind == JsonValueKind.String
+                )
+                {
                     eTag = property.Value.GetString();
                 }
             }
 
             return new BlobProperties(size, contentType, eTag);
         }
-        catch (JsonException) {
+        catch (JsonException)
+        {
             return BlobProperties.Unknown;
         }
     }
@@ -152,11 +179,14 @@ public sealed class BlobsAdapter : ITriggerAdapter {
     public HostFailurePolicy FailurePolicy => HostFailurePolicy.Rethrow;
 
     /// <summary>Nothing. A blob trigger reads no response.</summary>
-    public ValueTask<object?> WriteResponse(IExecutionContext context, FunctionContext functionContext) =>
-        new((object?)null);
+    public ValueTask<object?> WriteResponse(
+        IExecutionContext context,
+        FunctionContext functionContext
+    ) => new((object?)null);
 
     /// <summary>What the host said about the blob, or nothing.</summary>
-    public sealed record BlobProperties(long? Size, string? ContentType, string? ETag) {
+    public sealed record BlobProperties(long? Size, string? ContentType, string? ETag)
+    {
         public static readonly BlobProperties Unknown = new(null, null, null);
     }
 }

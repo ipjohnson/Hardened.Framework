@@ -14,30 +14,40 @@ namespace Hardened.Web.StaticContent.BuildTask.Tests;
 /// whose absence surfaced as an exception on every unknown path forever.
 /// </para>
 /// </summary>
-public class StaticContentScanTests : IDisposable {
-
+public class StaticContentScanTests : IDisposable
+{
     private readonly string _root;
 
-    public StaticContentScanTests() {
+    public StaticContentScanTests()
+    {
         _root = Path.Combine(Path.GetTempPath(), "hardened-scan-" + Guid.NewGuid().ToString("N"));
 
         Directory.CreateDirectory(_root);
     }
 
-    public void Dispose() {
-        try { Directory.Delete(_root, true); } catch { /* best effort */ }
+    public void Dispose()
+    {
+        try
+        {
+            Directory.Delete(_root, true);
+        }
+        catch
+        { /* best effort */
+        }
 
         GC.SuppressFinalize(this);
     }
 
-    private void Write(string relative, string content) {
+    private void Write(string relative, string content)
+    {
         var path = Path.Combine(_root, relative);
 
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         File.WriteAllText(path, content);
     }
 
-    private void WriteGZip(string relative, string content) {
+    private void WriteGZip(string relative, string content)
+    {
         using var file = File.Create(Path.Combine(_root, relative));
         using var gzip = new GZipStream(file, CompressionLevel.Fastest);
 
@@ -46,7 +56,8 @@ public class StaticContentScanTests : IDisposable {
         gzip.Write(bytes, 0, bytes.Length);
     }
 
-    private void WriteBrotli(string relative, string content) {
+    private void WriteBrotli(string relative, string content)
+    {
         using var file = File.Create(Path.Combine(_root, relative));
         using var brotli = new BrotliStream(file, CompressionLevel.Fastest);
 
@@ -55,8 +66,11 @@ public class StaticContentScanTests : IDisposable {
         brotli.Write(bytes, 0, bytes.Length);
     }
 
-    private ScanResult Scan(string prefix = "/", string? fallBack = null, long embed = 1024 * 1024) =>
-        StaticContentScan.Scan(_root, prefix, fallBack, embed);
+    private ScanResult Scan(
+        string prefix = "/",
+        string? fallBack = null,
+        long embed = 1024 * 1024
+    ) => StaticContentScan.Scan(_root, prefix, fallBack, embed);
 
     private static ScannedFile Route(ScanResult scan, string route) =>
         scan.Files.Single(file => file.RoutePath == route);
@@ -64,7 +78,8 @@ public class StaticContentScanTests : IDisposable {
     #region what a file becomes
 
     [Fact]
-    public void AFileBecomesARouteUnderThePrefix() {
+    public void AFileBecomesARouteUnderThePrefix()
+    {
         Write("app.js", "console.log('hi');");
 
         Assert.Equal("/app.js", Route(Scan(), "/app.js").RoutePath);
@@ -74,7 +89,8 @@ public class StaticContentScanTests : IDisposable {
 
     /// <summary>Nested directories become nested routes, with forward slashes on every platform.</summary>
     [Fact]
-    public void ANestedFileKeepsItsPath() {
+    public void ANestedFileKeepsItsPath()
+    {
         Write(Path.Combine("assets", "css", "site.css"), "body{}");
 
         var file = Route(Scan(), "/assets/css/site.css");
@@ -88,7 +104,8 @@ public class StaticContentScanTests : IDisposable {
     /// SHA-256 rather than MD5, so a FIPS-enforcing host cannot take the static path down.
     /// </summary>
     [Fact]
-    public void TheHashIsOfTheContent() {
+    public void TheHashIsOfTheContent()
+    {
         Write("a.txt", "same");
         Write("b.txt", "same");
         Write("c.txt", "different");
@@ -103,7 +120,8 @@ public class StaticContentScanTests : IDisposable {
     }
 
     [Fact]
-    public void AFileCarriesItsLengthAndWriteTime() {
+    public void AFileCarriesItsLengthAndWriteTime()
+    {
         Write("a.txt", "0123456789");
 
         var file = Route(Scan(), "/a.txt");
@@ -117,7 +135,8 @@ public class StaticContentScanTests : IDisposable {
     #region embedding and compression
 
     [Fact]
-    public void AFileUnderTheThresholdIsEmbedded() {
+    public void AFileUnderTheThresholdIsEmbedded()
+    {
         Write("small.txt", "small");
 
         var file = Route(Scan(embed: 1024), "/small.txt");
@@ -131,7 +150,8 @@ public class StaticContentScanTests : IDisposable {
     /// assembly size a function of asset size, which is the wrong trade for anything large.
     /// </summary>
     [Fact]
-    public void AFileOverTheThresholdIsLeftOnDisk() {
+    public void AFileOverTheThresholdIsLeftOnDisk()
+    {
         Write("big.bin", new string('a', 5000));
 
         var file = Route(Scan(embed: 1024), "/big.bin");
@@ -146,7 +166,8 @@ public class StaticContentScanTests : IDisposable {
     /// and pay again for every concurrent request that arrived before the first one finished.
     /// </summary>
     [Fact]
-    public void CompressibleContentIsCompressedAtBuild() {
+    public void CompressibleContentIsCompressedAtBuild()
+    {
         Write("big.txt", new string('a', 5000));
 
         var file = Route(Scan(), "/big.txt");
@@ -168,7 +189,8 @@ public class StaticContentScanTests : IDisposable {
     /// shipping that costs assembly size to make the response bigger.
     /// </summary>
     [Fact]
-    public void ContentThatDoesNotCompressCarriesNoCompressedCopy() {
+    public void ContentThatDoesNotCompressCarriesNoCompressedCopy()
+    {
         // Random bytes stand in for a PNG or a woff2: nothing for gzip to find.
         var random = new byte[4096];
         new Random(20260818).NextBytes(random);
@@ -188,7 +210,8 @@ public class StaticContentScanTests : IDisposable {
     /// answered every unknown path too.
     /// </summary>
     [Fact]
-    public void AnIndexAnswersForItsDirectory() {
+    public void AnIndexAnswersForItsDirectory()
+    {
         Write("index.html", "<html>root</html>");
         Write(Path.Combine("assets", "index.html"), "<html>assets</html>");
 
@@ -201,7 +224,8 @@ public class StaticContentScanTests : IDisposable {
 
     /// <summary>An alias shares the file's bytes rather than emitting a second copy of them.</summary>
     [Fact]
-    public void AnAliasSharesTheFileItPointsAt() {
+    public void AnAliasSharesTheFileItPointsAt()
+    {
         Write("index.html", "<html>root</html>");
 
         var scan = Scan();
@@ -215,7 +239,8 @@ public class StaticContentScanTests : IDisposable {
     /// means.
     /// </summary>
     [Fact]
-    public void ADirectoryWithTwoDefaultDocumentsPrefersTheHtmlOne() {
+    public void ADirectoryWithTwoDefaultDocumentsPrefersTheHtmlOne()
+    {
         Write("index.html", "<html>preferred</html>");
         Write("index.htm", "<html>also here</html>");
 
@@ -226,7 +251,8 @@ public class StaticContentScanTests : IDisposable {
     /// A real file at the aliased route wins. Nothing invents a route over one that exists.
     /// </summary>
     [Fact]
-    public void AFileAtTheDirectoryRouteIsNotOverwritten() {
+    public void AFileAtTheDirectoryRouteIsNotOverwritten()
+    {
         Write(Path.Combine("assets", "index.html"), "<html>nested</html>");
 
         var scan = Scan();
@@ -243,9 +269,14 @@ public class StaticContentScanTests : IDisposable {
     #region what the build refuses
 
     [Fact]
-    public void AMissingDirectoryIsAnError() {
+    public void AMissingDirectoryIsAnError()
+    {
         var scan = StaticContentScan.Scan(
-            Path.Combine(_root, "no-such-directory"), "/", null, 1024);
+            Path.Combine(_root, "no-such-directory"),
+            "/",
+            null,
+            1024
+        );
 
         var diagnostic = Assert.Single(scan.Diagnostics);
 
@@ -258,19 +289,26 @@ public class StaticContentScanTests : IDisposable {
     /// <c>Path.GetFullPath</c> does not follow links - so at run time it is simply served.
     /// </summary>
     [Fact]
-    public void ALinkOutOfTheRootIsAnError() {
-        var outside = Path.Combine(Path.GetTempPath(), "hardened-outside-" + Guid.NewGuid().ToString("N"));
+    public void ALinkOutOfTheRootIsAnError()
+    {
+        var outside = Path.Combine(
+            Path.GetTempPath(),
+            "hardened-outside-" + Guid.NewGuid().ToString("N")
+        );
 
         File.WriteAllText(outside, "SECRET");
 
-        try {
+        try
+        {
             File.CreateSymbolicLink(Path.Combine(_root, "link.txt"), outside);
         }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) {
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
             return; // No permission to create links here; nothing to assert.
         }
 
-        try {
+        try
+        {
             var scan = Scan();
 
             var diagnostic = Assert.Single(scan.Diagnostics, d => d.Code == "HSTATIC002");
@@ -278,21 +316,27 @@ public class StaticContentScanTests : IDisposable {
             Assert.True(diagnostic.IsError);
             Assert.Empty(scan.Files);
         }
-        finally {
+        finally
+        {
             File.Delete(outside);
         }
     }
 
     /// <summary>A link that stays inside is fine - it is escaping that is the problem.</summary>
     [Fact]
-    public void ALinkThatStaysInsideTheRootIsAccepted() {
+    public void ALinkThatStaysInsideTheRootIsAccepted()
+    {
         Write("real.txt", "content");
 
-        try {
+        try
+        {
             File.CreateSymbolicLink(
-                Path.Combine(_root, "link.txt"), Path.Combine(_root, "real.txt"));
+                Path.Combine(_root, "link.txt"),
+                Path.Combine(_root, "real.txt")
+            );
         }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) {
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
             return;
         }
 
@@ -311,7 +355,8 @@ public class StaticContentScanTests : IDisposable {
     [InlineData("server.pem")]
     [InlineData("cert.pfx")]
     [InlineData("id_rsa")]
-    public void ASecretLookingFileIsAWarning(string name) {
+    public void ASecretLookingFileIsAWarning(string name)
+    {
         Write(name, "secret");
 
         var diagnostic = Assert.Single(Scan().Diagnostics, d => d.Code == "HSTATIC003");
@@ -327,7 +372,8 @@ public class StaticContentScanTests : IDisposable {
     [Theory]
     [InlineData(".env")]
     [InlineData("server.pem")]
-    public void ASecretLookingFileIsNotInTheManifest(string name) {
+    public void ASecretLookingFileIsNotInTheManifest(string name)
+    {
         Write(name, "secret");
         Write("app.js", "console.log('hi');");
 
@@ -338,12 +384,15 @@ public class StaticContentScanTests : IDisposable {
     [Theory]
     [InlineData(".git/config")]
     [InlineData(".npmrc")]
-    public void AHiddenPathIsNotInTheManifest(string relative) {
+    public void AHiddenPathIsNotInTheManifest(string relative)
+    {
         Write(relative.Replace('/', Path.DirectorySeparatorChar), "hidden");
         Write("app.js", "console.log('hi');");
 
-        Assert.DoesNotContain(Scan().Files, file => file.RoutePath.Contains(".git") ||
-                                                     file.RoutePath.Contains(".npmrc"));
+        Assert.DoesNotContain(
+            Scan().Files,
+            file => file.RoutePath.Contains(".git") || file.RoutePath.Contains(".npmrc")
+        );
     }
 
     /// <summary>
@@ -351,11 +400,14 @@ public class StaticContentScanTests : IDisposable {
     /// excluding it breaks certificate renewal in a way nobody connects back to a content setting.
     /// </summary>
     [Fact]
-    public void WellKnownIsInTheManifestDespiteBeingHidden() {
+    public void WellKnownIsInTheManifestDespiteBeingHidden()
+    {
         Write(Path.Combine(".well-known", "security.txt"), "Contact: mailto:x@example.com");
 
         Assert.Equal(
-            "/.well-known/security.txt", Route(Scan(), "/.well-known/security.txt").RoutePath);
+            "/.well-known/security.txt",
+            Route(Scan(), "/.well-known/security.txt").RoutePath
+        );
     }
 
     #endregion
@@ -368,7 +420,8 @@ public class StaticContentScanTests : IDisposable {
     /// asked for that path and leave <c>/app.js</c> answering nothing.
     /// </summary>
     [Fact]
-    public void ASiblingOnItsOwnBecomesTheResourceItCompresses() {
+    public void ASiblingOnItsOwnBecomesTheResourceItCompresses()
+    {
         WriteGZip("app.js.gz", "console.log('hi');");
 
         var scan = Scan();
@@ -382,7 +435,8 @@ public class StaticContentScanTests : IDisposable {
 
     /// <summary>Brotli too, which is why the sibling is decompressed rather than carried.</summary>
     [Fact]
-    public void ABrotliSiblingIsRecoveredTheSameWay() {
+    public void ABrotliSiblingIsRecoveredTheSameWay()
+    {
         WriteBrotli("styles.css.br", "body{color:red}");
 
         var file = Route(Scan(), "/styles.css");
@@ -395,7 +449,8 @@ public class StaticContentScanTests : IDisposable {
     /// here anyway.
     /// </summary>
     [Fact]
-    public void ASiblingBesideItsPlainTwinIsDropped() {
+    public void ASiblingBesideItsPlainTwinIsDropped()
+    {
         Write("app.js", "the real one");
         WriteGZip("app.js.gz", "a stale copy");
 
@@ -407,7 +462,8 @@ public class StaticContentScanTests : IDisposable {
 
     /// <summary>A file that only looks compressed is an error rather than a silent omission.</summary>
     [Fact]
-    public void ASiblingThatDoesNotDecompressIsAnError() {
+    public void ASiblingThatDoesNotDecompressIsAnError()
+    {
         Write("broken.js.gz", "this is not gzip");
 
         var diagnostic = Assert.Single(Scan().Diagnostics, d => d.Code == "HSTATIC008");
@@ -416,7 +472,8 @@ public class StaticContentScanTests : IDisposable {
     }
 
     [Fact]
-    public void AnEmptyDirectoryIsAWarning() {
+    public void AnEmptyDirectoryIsAWarning()
+    {
         var diagnostic = Assert.Single(Scan().Diagnostics);
 
         Assert.Equal("HSTATIC004", diagnostic.Code);
@@ -428,7 +485,8 @@ public class StaticContentScanTests : IDisposable {
     #region the fall back file
 
     [Fact]
-    public void AFallBackFileResolvesToItsRoute() {
+    public void AFallBackFileResolvesToItsRoute()
+    {
         Write("index.html", "<html>shell</html>");
 
         Assert.Equal("/index.html", Scan(fallBack: "index.html").FallBackRoute);
@@ -441,7 +499,8 @@ public class StaticContentScanTests : IDisposable {
     /// on every unknown path, forever - so a typo turned every 404 into a 500 in production.
     /// </summary>
     [Fact]
-    public void AMissingFallBackFileIsAnError() {
+    public void AMissingFallBackFileIsAnError()
+    {
         Write("app.js", "console.log('hi');");
 
         var scan = Scan(fallBack: "index.html");
@@ -453,7 +512,8 @@ public class StaticContentScanTests : IDisposable {
     }
 
     [Fact]
-    public void NoFallBackConfiguredIsNoFallBackRoute() {
+    public void NoFallBackConfiguredIsNoFallBackRoute()
+    {
         Write("app.js", "console.log('hi');");
 
         Assert.Null(Scan().FallBackRoute);
@@ -470,7 +530,8 @@ public class StaticContentScanTests : IDisposable {
     /// while still producing a valid file.
     /// </summary>
     [Fact]
-    public void TwoScansOfOneTreeAgree() {
+    public void TwoScansOfOneTreeAgree()
+    {
         Write("a.txt", "first");
         Write(Path.Combine("nested", "b.txt"), new string('b', 3000));
         Write("index.html", "<html/>");
@@ -480,11 +541,13 @@ public class StaticContentScanTests : IDisposable {
 
         Assert.Equal(
             first.Files.Select(file => file.RoutePath),
-            second.Files.Select(file => file.RoutePath));
+            second.Files.Select(file => file.RoutePath)
+        );
 
         Assert.Equal(first.FallBackRoute, second.FallBackRoute);
 
-        foreach (var (left, right) in first.Files.Zip(second.Files)) {
+        foreach (var (left, right) in first.Files.Zip(second.Files))
+        {
             Assert.Equal(left.Hash, right.Hash);
             Assert.Equal(left.GZipContent, right.GZipContent);
         }

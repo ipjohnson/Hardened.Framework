@@ -26,16 +26,18 @@ namespace Hardened.IntegrationTests.Authorization.SUT;
 [HardenedModule]
 [RequireAuthorization]
 [AspNetCoreRuntime]
-public partial class Application : IServiceCollectionConfiguration {
-
-    public void ConfigureServices(IServiceCollection services) {
+public partial class Application : IServiceCollectionConfiguration
+{
+    public void ConfigureServices(IServiceCollection services)
+    {
         // The supported testing source, through the same seam and middleware a production
         // authentication source uses - this fixture carried its own copy of both until they
         // shipped.
         services.AddSingleton<IPrincipalSource, TestGrantsPrincipalSource>();
     }
 
-    public static WebApplicationBuilder CreateBuilder(string[] args) {
+    public static WebApplicationBuilder CreateBuilder(string[] args)
+    {
         var hardenedApp = new Application();
         var environment = new EnvironmentImpl(arguments: args);
         var builder = WebApplication.CreateBuilder(args);

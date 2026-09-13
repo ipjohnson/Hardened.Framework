@@ -10,10 +10,12 @@ namespace Hardened.Shared.Testing.Tests.Attributes;
 /// startup hooks — is found through it, so the rules below are the ones a consumer sees when they
 /// move an attribute from a class up to an assembly.
 /// </summary>
-public class AttributeCollectionTests {
-
-    private sealed class Marker : Attribute {
-        public Marker(string scope) {
+public class AttributeCollectionTests
+{
+    private sealed class Marker : Attribute
+    {
+        public Marker(string scope)
+        {
             Scope = scope;
         }
 
@@ -22,8 +24,10 @@ public class AttributeCollectionTests {
 
     private sealed class Unrelated : Attribute;
 
-    private sealed class OrderedMarker : Attribute, IHardenedOrderedAttribute {
-        public OrderedMarker(string scope, int order) {
+    private sealed class OrderedMarker : Attribute, IHardenedOrderedAttribute
+    {
+        public OrderedMarker(string scope, int order)
+        {
             Scope = scope;
             Order = order;
         }
@@ -34,60 +38,73 @@ public class AttributeCollectionTests {
     }
 
     private static AttributeCollection Collection(
-        object[]? method = null, object[]? @class = null, object[]? assembly = null) =>
-        new(method ?? [], @class ?? [], assembly ?? []);
+        object[]? method = null,
+        object[]? @class = null,
+        object[]? assembly = null
+    ) => new(method ?? [], @class ?? [], assembly ?? []);
 
     [Fact]
-    public void MethodLevelDeclarationBeatsClassAndAssembly() {
+    public void MethodLevelDeclarationBeatsClassAndAssembly()
+    {
         var collection = Collection(
             method: [new Marker("method")],
             @class: [new Marker("class")],
-            assembly: [new Marker("assembly")]);
+            assembly: [new Marker("assembly")]
+        );
 
         Assert.Equal("method", collection.GetAttribute<Marker>()?.Scope);
     }
 
     [Fact]
-    public void ClassLevelDeclarationBeatsAssemblyWhenTheMethodDeclaresNone() {
+    public void ClassLevelDeclarationBeatsAssemblyWhenTheMethodDeclaresNone()
+    {
         var collection = Collection(
             @class: [new Marker("class")],
-            assembly: [new Marker("assembly")]);
+            assembly: [new Marker("assembly")]
+        );
 
         Assert.Equal("class", collection.GetAttribute<Marker>()?.Scope);
     }
 
     [Fact]
-    public void AssemblyLevelDeclarationIsUsedWhenNothingNarrowerDeclaresOne() {
+    public void AssemblyLevelDeclarationIsUsedWhenNothingNarrowerDeclaresOne()
+    {
         var collection = Collection(assembly: [new Marker("assembly")]);
 
         Assert.Equal("assembly", collection.GetAttribute<Marker>()?.Scope);
     }
 
     [Fact]
-    public void MissingAttributeIsNullRatherThanAnError() {
+    public void MissingAttributeIsNullRatherThanAnError()
+    {
         var collection = Collection(method: [new Unrelated()]);
 
         Assert.Null(collection.GetAttribute<Marker>());
     }
 
     [Fact]
-    public void EnumerationRunsNarrowestScopeFirst() {
+    public void EnumerationRunsNarrowestScopeFirst()
+    {
         var collection = Collection(
             method: [new Marker("method")],
             @class: [new Marker("class")],
-            assembly: [new Marker("assembly")]);
+            assembly: [new Marker("assembly")]
+        );
 
         Assert.Equal(
             new[] { "method", "class", "assembly" },
-            collection.OfType<Marker>().Select(marker => marker.Scope));
+            collection.OfType<Marker>().Select(marker => marker.Scope)
+        );
     }
 
     [Fact]
-    public void GetAttributesCollectsEveryScopeRatherThanStoppingAtTheFirst() {
+    public void GetAttributesCollectsEveryScopeRatherThanStoppingAtTheFirst()
+    {
         var collection = Collection(
             method: [new Marker("method")],
             @class: [new Marker("class")],
-            assembly: [new Marker("assembly"), new Unrelated()]);
+            assembly: [new Marker("assembly"), new Unrelated()]
+        );
 
         Assert.Equal(3, collection.GetAttributes<Marker>().Count);
     }
@@ -98,27 +115,33 @@ public class AttributeCollectionTests {
     /// itself in front of the tests that consume it.
     /// </summary>
     [Fact]
-    public void DeclaredOrderOutranksScopeForOrderedAttributes() {
+    public void DeclaredOrderOutranksScopeForOrderedAttributes()
+    {
         var collection = Collection(
             method: [new OrderedMarker("method", 30)],
             @class: [new OrderedMarker("class", 10)],
-            assembly: [new OrderedMarker("assembly", 20)]);
+            assembly: [new OrderedMarker("assembly", 20)]
+        );
 
         Assert.Equal(
             new[] { "class", "assembly", "method" },
-            collection.GetAttributes<OrderedMarker>().Select(marker => marker.Scope));
+            collection.GetAttributes<OrderedMarker>().Select(marker => marker.Scope)
+        );
     }
 
     [Fact]
-    public void UnorderedAttributesKeepScopeOrder() {
+    public void UnorderedAttributesKeepScopeOrder()
+    {
         var collection = Collection(
             method: [new Marker("method")],
             @class: [new Marker("class")],
-            assembly: [new Marker("assembly")]);
+            assembly: [new Marker("assembly")]
+        );
 
         Assert.Equal(
             new[] { "method", "class", "assembly" },
-            collection.GetAttributes<Marker>().Select(marker => marker.Scope));
+            collection.GetAttributes<Marker>().Select(marker => marker.Scope)
+        );
     }
 
     /// <summary>
@@ -126,18 +149,25 @@ public class AttributeCollectionTests {
     /// <c>Attribute</c> that happens to be ordered leaves the list in scope order.
     /// </summary>
     [Fact]
-    public void OrderingIsDecidedByTheRequestedTypeNotTheInstances() {
+    public void OrderingIsDecidedByTheRequestedTypeNotTheInstances()
+    {
         var collection = Collection(
             method: [new OrderedMarker("method", 30)],
-            @class: [new OrderedMarker("class", 10)]);
+            @class: [new OrderedMarker("class", 10)]
+        );
 
         Assert.Equal(
             new[] { "method", "class" },
-            collection.GetAttributes<Attribute>().OfType<OrderedMarker>().Select(marker => marker.Scope));
+            collection
+                .GetAttributes<Attribute>()
+                .OfType<OrderedMarker>()
+                .Select(marker => marker.Scope)
+        );
     }
 
     [RecordingRegistration("class")]
-    private class DeclaresAttributesAtEveryLevel {
+    private class DeclaresAttributesAtEveryLevel
+    {
         [RecordingRegistration("method")]
         public void Method() { }
     }
@@ -148,15 +178,29 @@ public class AttributeCollectionTests {
     /// attribute, including the assembly — see Bootstrap.cs.
     /// </summary>
     [Fact]
-    public void FromMethodInfoFillsAllThreeScopesFromReflection() {
-        var method = typeof(DeclaresAttributesAtEveryLevel).GetMethod(nameof(DeclaresAttributesAtEveryLevel.Method))!;
+    public void FromMethodInfoFillsAllThreeScopesFromReflection()
+    {
+        var method = typeof(DeclaresAttributesAtEveryLevel).GetMethod(
+            nameof(DeclaresAttributesAtEveryLevel.Method)
+        )!;
 
         var collection = AttributeCollection.FromMethodInfo(method);
 
-        Assert.Equal("method",
-            Assert.IsType<RecordingRegistrationAttribute>(Assert.Single(collection.MethodAttributes)).Name);
-        Assert.Equal("class",
-            Assert.IsType<RecordingRegistrationAttribute>(Assert.Single(collection.ClassAttributes)).Name);
-        Assert.Contains(collection.AssemblyAttributes, attribute => attribute is EnvironmentNameAttribute);
+        Assert.Equal(
+            "method",
+            Assert
+                .IsType<RecordingRegistrationAttribute>(Assert.Single(collection.MethodAttributes))
+                .Name
+        );
+        Assert.Equal(
+            "class",
+            Assert
+                .IsType<RecordingRegistrationAttribute>(Assert.Single(collection.ClassAttributes))
+                .Name
+        );
+        Assert.Contains(
+            collection.AssemblyAttributes,
+            attribute => attribute is EnvironmentNameAttribute
+        );
     }
 }

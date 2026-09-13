@@ -11,10 +11,11 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests;
 /// module gets these paths without asking, and that only holds if the provider really is in the
 /// chain the host builds.
 /// </remarks>
-public class HealthCheckTests {
-
+public class HealthCheckTests
+{
     [HardenedTest]
-    public async Task LivenessAnswers200(ITestWebApp testWebApp) {
+    public async Task LivenessAnswers200(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Request("GET", null, "/health/live");
 
         Assert.Equal(200, response.StatusCode);
@@ -25,19 +26,24 @@ public class HealthCheckTests {
     /// has nothing to verify, not that something is wrong.
     /// </summary>
     [HardenedTest]
-    public async Task ReadinessAnswers200WithNoChecksRegistered(ITestWebApp testWebApp) {
+    public async Task ReadinessAnswers200WithNoChecksRegistered(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Request("GET", null, "/health/ready");
 
         Assert.Equal(200, response.StatusCode);
     }
 
     [HardenedTest]
-    public async Task TheBodyIsJsonNamingTheStatus(ITestWebApp testWebApp) {
+    public async Task TheBodyIsJsonNamingTheStatus(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Request("GET", null, "/health/ready");
 
         // Through the decoded accessor: this fixture compresses every JSON response, the probe's
         // included, for a client that says it accepts it.
-        var status = JsonDocument.Parse(await response.ReadTextAsync()).RootElement.GetProperty("status").GetString();
+        var status = JsonDocument
+            .Parse(await response.ReadTextAsync())
+            .RootElement.GetProperty("status")
+            .GetString();
 
         Assert.Equal("Healthy", status);
     }
@@ -47,7 +53,8 @@ public class HealthCheckTests {
     /// balancer deciding now, which is worse than no answer.
     /// </summary>
     [HardenedTest]
-    public async Task TheResponseIsNotCacheable(ITestWebApp testWebApp) {
+    public async Task TheResponseIsNotCacheable(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Request("GET", null, "/health/ready");
 
         Assert.Equal("no-store", response.Headers["Cache-Control"].ToString());
@@ -57,7 +64,8 @@ public class HealthCheckTests {
     /// Health is not a write endpoint, and declining rather than answering leaves the path free.
     /// </summary>
     [HardenedTest]
-    public async Task AWriteVerbIsNotAHealthProbe(ITestWebApp testWebApp) {
+    public async Task AWriteVerbIsNotAHealthProbe(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Request("POST", null, "/health/live");
 
         Assert.NotEqual(200, response.StatusCode);

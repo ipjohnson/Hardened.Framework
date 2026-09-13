@@ -36,14 +36,22 @@ namespace Hardened.Azure.Functions.SourceGenerator;
 /// everything to one function and the pipeline routes from the event or the request.
 /// </para>
 /// </remarks>
-public static class AzureFunctionsGenerator {
-
+public static class AzureFunctionsGenerator
+{
     /// <summary>One trigger handler, reduced to what a shim needs to know about it.</summary>
     public sealed record Handler(string Scheme, string Path, string Owner);
 
     /// <summary>One function the generator will write.</summary>
-    internal sealed class Function {
-        public Function(string name, string source, AzureBinding binding, ModuleSettings settings, Handler? handler) {
+    internal sealed class Function
+    {
+        public Function(
+            string name,
+            string source,
+            AzureBinding binding,
+            ModuleSettings settings,
+            Handler? handler
+        )
+        {
             Name = name;
             Source = source;
             Binding = binding;
@@ -70,8 +78,10 @@ public static class AzureFunctionsGenerator {
     }
 
     /// <summary>One family this generator knows: the property that binds it and the scheme it routes under.</summary>
-    private sealed class Family {
-        public Family(string name, string property, string scheme) {
+    private sealed class Family
+    {
+        public Family(string name, string property, string scheme)
+        {
             Name = name;
             Property = property;
             Scheme = scheme;
@@ -92,11 +102,14 @@ public static class AzureFunctionsGenerator {
     /// </remarks>
     private static readonly IReadOnlyList<Family> Families = BuildFamilies();
 
-    private static IReadOnlyList<Family> BuildFamilies() {
+    private static IReadOnlyList<Family> BuildFamilies()
+    {
         var families = new List<Family>();
 
-        foreach (var trigger in TriggerModuleGenerator.Triggers) {
-            if (trigger.IsFunctionHandler && trigger.NamesItsOwnRoute) {
+        foreach (var trigger in TriggerModuleGenerator.Triggers)
+        {
+            if (trigger.IsFunctionHandler && trigger.NamesItsOwnRoute)
+            {
                 families.Add(new Family(trigger.Name, trigger.Property, trigger.Scheme));
             }
         }
@@ -109,31 +122,33 @@ public static class AzureFunctionsGenerator {
     }
 
     /// <summary>Every spelling of a web verb attribute, for the syntax scan that finds them.</summary>
-    private static readonly IReadOnlyList<string> WebVerbSpellings = TriggerModuleGenerator.Triggers
-        .Where(trigger => !trigger.IsFunctionHandler)
+    private static readonly IReadOnlyList<string> WebVerbSpellings = TriggerModuleGenerator
+        .Triggers.Where(trigger => !trigger.IsFunctionHandler)
         .SelectMany(trigger => trigger.Spellings)
         .ToList();
 
     private static DiagnosticDescriptor NoAzureBinding() =>
-        new(id: "HRDAZ001",
+        new(
+            id: "HRDAZ001",
             title: "No Azure Functions binding exists for this trigger",
-            messageFormat:
-            "Handlers in this project use [{0}] and <{1}> is bound, but " +
-            "Hardened.Azure.Functions.SourceGenerator has no Azure binding for {0} triggers, so no " +
-            "function is generated for them and the host will never invoke them.",
+            messageFormat: "Handlers in this project use [{0}] and <{1}> is bound, but "
+                + "Hardened.Azure.Functions.SourceGenerator has no Azure binding for {0} triggers, so no "
+                + "function is generated for them and the host will never invoke them.",
             category: "Hardened.Azure",
             defaultSeverity: DiagnosticSeverity.Error,
-            isEnabledByDefault: true);
+            isEnabledByDefault: true
+        );
 
     private static DiagnosticDescriptor CollidingFunctionName() =>
-        new(id: "HRDAZ002",
+        new(
+            id: "HRDAZ002",
             title: "Two handlers produce the same function name",
-            messageFormat:
-            "The handlers {0} and {1} both produce the Azure function '{2}', which the host would " +
-            "refuse as a duplicate. Rename one of their sources.",
+            messageFormat: "The handlers {0} and {1} both produce the Azure function '{2}', which the host would "
+                + "refuse as a duplicate. Rename one of their sources.",
             category: "Hardened.Azure",
             defaultSeverity: DiagnosticSeverity.Error,
-            isEnabledByDefault: true);
+            isEnabledByDefault: true
+        );
 
     /// <summary>
     /// A binding that needs a setting the module did not supply.
@@ -145,14 +160,15 @@ public static class AzureFunctionsGenerator {
     /// described to the host without them.
     /// </remarks>
     private static DiagnosticDescriptor MissingSetting() =>
-        new(id: "HRDAZ003",
+        new(
+            id: "HRDAZ003",
             title: "A binding needs a setting the module did not supply",
-            messageFormat:
-            "The [{0}] handlers need {1} on [{2}], and this application does not set it. Write " +
-            "[{2}({1} = \"...\")] on the application, beside [HardenedModule].",
+            messageFormat: "The [{0}] handlers need {1} on [{2}], and this application does not set it. Write "
+                + "[{2}({1} = \"...\")] on the application, beside [HardenedModule].",
             category: "Hardened.Azure",
             defaultSeverity: DiagnosticSeverity.Error,
-            isEnabledByDefault: true);
+            isEnabledByDefault: true
+        );
 
     /// <summary>
     /// A setting the metadata carries, written as something other than a literal.
@@ -163,20 +179,23 @@ public static class AzureFunctionsGenerator {
     /// concatenation has no value at that point.
     /// </remarks>
     private static DiagnosticDescriptor SettingNotALiteral() =>
-        new(id: "HRDAZ004",
+        new(
+            id: "HRDAZ004",
             title: "A module setting has to be a literal",
-            messageFormat:
-            "{0} on [{1}] is written as {2}, and the function metadata the host indexes needs its " +
-            "value at build. Write it as a string literal, an integer literal, or true or false.",
+            messageFormat: "{0} on [{1}] is written as {2}, and the function metadata the host indexes needs its "
+                + "value at build. Write it as a string literal, an integer literal, or true or false.",
             category: "Hardened.Azure",
             defaultSeverity: DiagnosticSeverity.Error,
-            isEnabledByDefault: true);
+            isEnabledByDefault: true
+        );
 
     public static void Setup(
         IncrementalGeneratorInitializationContext context,
-        IncrementalValuesProvider<EntryPointSelector.Model> entryPointProvider) {
-        var selectors = TriggerModuleGenerator.Triggers
-            .Where(trigger => trigger.IsFunctionHandler && trigger.NamesItsOwnRoute)
+        IncrementalValuesProvider<EntryPointSelector.Model> entryPointProvider
+    )
+    {
+        var selectors = TriggerModuleGenerator
+            .Triggers.Where(trigger => trigger.IsFunctionHandler && trigger.NamesItsOwnRoute)
             .Select(trigger => new SyntaxSelector<MethodDeclarationSyntax>(trigger.Type))
             .ToArray();
 
@@ -185,26 +204,30 @@ public static class AzureFunctionsGenerator {
         // The function generator's own model, reduced to the route and an owner for diagnostics
         // before it enters the pipeline. The full model carries symbols and schemas that cannot
         // compare by value, and a shim depends on none of them.
-        var handlers = context.SyntaxProvider
-            .CreateSyntaxProvider(
+        var handlers = context
+            .SyntaxProvider.CreateSyntaxProvider(
                 (node, token) => selectors.Any(selector => selector.Where(node, token)),
-                (syntaxContext, token) => {
+                (syntaxContext, token) =>
+                {
                     var model = modelGenerator.GenerateRequestModel(syntaxContext, token);
 
                     return new Handler(
                         model.Name.Method,
                         model.Name.Path,
-                        model.ControllerType.Name + "." + model.HandlerMethod);
-                })
+                        model.ControllerType.Name + "." + model.HandlerMethod
+                    );
+                }
+            )
             .Collect()
             .Select((all, _) => new Handlers(all));
 
         // Whether any web verb is written, which is all the HTTP family needs to know: the web
         // generator routes the verbs and one catch-all function serves them.
-        var usesWeb = context.SyntaxProvider
-            .CreateSyntaxProvider(
+        var usesWeb = context
+            .SyntaxProvider.CreateSyntaxProvider(
                 (node, _) => node is MethodDeclarationSyntax { AttributeLists.Count: > 0 },
-                (syntaxContext, _) => UsesWebVerb(syntaxContext.Node))
+                (syntaxContext, _) => UsesWebVerb(syntaxContext.Node)
+            )
             .Where(uses => uses)
             .Collect()
             .Select((all, _) => all.Length > 0);
@@ -213,18 +236,35 @@ public static class AzureFunctionsGenerator {
         // TriggerModuleGenerator gives: the options provider is a new instance every run.
         var modules = context.AnalyzerConfigOptionsProvider.Select(ReadModules);
 
-        var assemblyName = context.CompilationProvider.Select((compilation, _) => compilation.AssemblyName ?? "");
+        var assemblyName = context.CompilationProvider.Select(
+            (compilation, _) => compilation.AssemblyName ?? ""
+        );
 
         context.RegisterSourceOutput(
-            entryPointProvider.Combine(handlers).Combine(modules).Combine(assemblyName).Combine(usesWeb),
-            SourceGeneratorWrapper.Wrap<
-                ((((EntryPointSelector.Model Entry, Handlers Handlers) Left, Modules Modules) Left,
-                  string AssemblyName) Left, bool UsesWeb)>(Generate));
+            entryPointProvider
+                .Combine(handlers)
+                .Combine(modules)
+                .Combine(assemblyName)
+                .Combine(usesWeb),
+            SourceGeneratorWrapper.Wrap<(
+                (
+                    (
+                        (EntryPointSelector.Model Entry, Handlers Handlers) Left,
+                        Modules Modules
+                    ) Left,
+                    string AssemblyName
+                ) Left,
+                bool UsesWeb
+            )>(Generate)
+        );
     }
 
-    private static bool UsesWebVerb(SyntaxNode node) {
-        foreach (var attribute in node.DescendantNodes().OfType<AttributeSyntax>()) {
-            if (WebVerbSpellings.Contains(attribute.Name.ToString())) {
+    private static bool UsesWebVerb(SyntaxNode node)
+    {
+        foreach (var attribute in node.DescendantNodes().OfType<AttributeSyntax>())
+        {
+            if (WebVerbSpellings.Contains(attribute.Name.ToString()))
+            {
                 return true;
             }
         }
@@ -236,17 +276,34 @@ public static class AzureFunctionsGenerator {
     /// The module bound for each family in <see cref="Families"/> order, or null where the
     /// property is unset.
     /// </summary>
-    private static Modules ReadModules(AnalyzerConfigOptionsProvider provider, CancellationToken token) =>
-        new(Families.Select(family =>
-            provider.GlobalOptions.TryGetValue("build_property." + family.Property, out var value) &&
-            !string.IsNullOrWhiteSpace(value)
-                ? value.Trim()
-                : null).ToImmutableArray());
+    private static Modules ReadModules(
+        AnalyzerConfigOptionsProvider provider,
+        CancellationToken token
+    ) =>
+        new(
+            Families
+                .Select(family =>
+                    provider.GlobalOptions.TryGetValue(
+                        "build_property." + family.Property,
+                        out var value
+                    ) && !string.IsNullOrWhiteSpace(value)
+                        ? value.Trim()
+                        : null
+                )
+                .ToImmutableArray()
+        );
 
     private static void Generate(
         SourceProductionContext context,
-        ((((EntryPointSelector.Model Entry, Handlers Handlers) Left, Modules Modules) Left,
-          string AssemblyName) Left, bool UsesWeb) models) {
+        (
+            (
+                ((EntryPointSelector.Model Entry, Handlers Handlers) Left, Modules Modules) Left,
+                string AssemblyName
+            ) Left,
+            bool UsesWeb
+        ) models
+    )
+    {
         var entryPoint = models.Left.Left.Left.Entry;
         var handlers = models.Left.Left.Left.Handlers.All;
         var modules = models.Left.Left.Modules.All;
@@ -256,20 +313,23 @@ public static class AzureFunctionsGenerator {
         // No property set at all means no Azure runtime package is referenced, which is the state
         // of a handler library, of an application on another cloud, and of every compilation under
         // a generator test that names no runtime. Nothing to write.
-        if (modules.All(module => module == null)) {
+        if (modules.All(module => module == null))
+        {
             return;
         }
 
         var functions = new List<Function>();
         var taken = new Dictionary<string, Function>(StringComparer.OrdinalIgnoreCase);
 
-        for (var index = 0; index < Families.Count; index++) {
+        for (var index = 0; index < Families.Count; index++)
+        {
             context.CancellationToken.ThrowIfCancellationRequested();
 
             var family = Families[index];
             var module = modules[index];
 
-            if (module == null) {
+            if (module == null)
+            {
                 // Unbound: TriggerModuleGenerator reports HRDF001 for it, once, with the property.
                 continue;
             }
@@ -280,34 +340,47 @@ public static class AzureFunctionsGenerator {
             // written on the application: a host project whose routes live in a library names
             // [HttpModule] the way a Lambda host names [LambdaHttpModule], because a generator
             // sees only the compilation it runs in.
-            var declared = family.Scheme == "HTTP"
-                ? usesWeb || settings.Written
-                : handlers.Any(handler => handler.Scheme == family.Scheme);
+            var declared =
+                family.Scheme == "HTTP"
+                    ? usesWeb || settings.Written
+                    : handlers.Any(handler => handler.Scheme == family.Scheme);
 
-            if (!declared) {
+            if (!declared)
+            {
                 continue;
             }
 
             var binding = AzureBinding.For(family.Scheme);
 
-            if (binding == null) {
-                context.ReportDiagnostic(Diagnostic.Create(
-                    NoAzureBinding(), Location.None, family.Name, family.Property));
+            if (binding == null)
+            {
+                context.ReportDiagnostic(
+                    Diagnostic.Create(NoAzureBinding(), Location.None, family.Name, family.Property)
+                );
 
                 continue;
             }
 
-            if (!SettingsAreUsable(context, family, module, binding, settings)) {
+            if (!SettingsAreUsable(context, family, module, binding, settings))
+            {
                 continue;
             }
 
-            if (!binding.PerSource) {
+            if (!binding.PerSource)
+            {
                 var family1 = new Function(binding.FunctionPrefix, "", binding, settings, null);
 
-                if (taken.TryGetValue(family1.Name, out var owner)) {
-                    context.ReportDiagnostic(Diagnostic.Create(
-                        CollidingFunctionName(), Location.None, owner.Handler?.Owner ?? owner.Name,
-                        family.Name, family1.Name));
+                if (taken.TryGetValue(family1.Name, out var owner))
+                {
+                    context.ReportDiagnostic(
+                        Diagnostic.Create(
+                            CollidingFunctionName(),
+                            Location.None,
+                            owner.Handler?.Owner ?? owner.Name,
+                            family.Name,
+                            family1.Name
+                        )
+                    );
 
                     continue;
                 }
@@ -320,19 +393,37 @@ public static class AzureFunctionsGenerator {
 
             // Ordered, so the generated file and the metadata read the same way whatever order
             // the handlers were found in - which is what keeps the incremental output stable.
-            foreach (var handler in handlers.Where(one => one.Scheme == family.Scheme)
-                         .OrderBy(one => one.Path, StringComparer.Ordinal)
-                         .ThenBy(one => one.Owner, StringComparer.Ordinal)) {
+            foreach (
+                var handler in handlers
+                    .Where(one => one.Scheme == family.Scheme)
+                    .OrderBy(one => one.Path, StringComparer.Ordinal)
+                    .ThenBy(one => one.Owner, StringComparer.Ordinal)
+            )
+            {
                 var name = FunctionName(binding.FunctionPrefix, handler.Path);
 
-                if (taken.TryGetValue(name, out var owner)) {
-                    context.ReportDiagnostic(Diagnostic.Create(
-                        CollidingFunctionName(), Location.None, owner.Handler?.Owner ?? owner.Name, handler.Owner, name));
+                if (taken.TryGetValue(name, out var owner))
+                {
+                    context.ReportDiagnostic(
+                        Diagnostic.Create(
+                            CollidingFunctionName(),
+                            Location.None,
+                            owner.Handler?.Owner ?? owner.Name,
+                            handler.Owner,
+                            name
+                        )
+                    );
 
                     continue;
                 }
 
-                var function = new Function(name, handler.Path.TrimStart('/'), binding, settings, handler);
+                var function = new Function(
+                    name,
+                    handler.Path.TrimStart('/'),
+                    binding,
+                    settings,
+                    handler
+                );
 
                 taken.Add(name, function);
                 functions.Add(function);
@@ -346,34 +437,53 @@ public static class AzureFunctionsGenerator {
 
         context.AddSource(
             entryPoint.EntryPointType.Name + ".AzureFunctions.cs",
-            GeneratedSource.Header(emitted.Functions));
+            GeneratedSource.Header(emitted.Functions)
+        );
 
         context.AddSource(
             entryPoint.EntryPointType.Name + ".AzureFunctionsWorker.cs",
-            GeneratedSource.Header(emitted.Worker));
+            GeneratedSource.Header(emitted.Worker)
+        );
     }
 
     /// <summary>
     /// Whether the module supplies what the family's binding needs, reporting what it does not.
     /// </summary>
     private static bool SettingsAreUsable(
-        SourceProductionContext context, Family family, string module, AzureBinding binding, ModuleSettings settings) {
+        SourceProductionContext context,
+        Family family,
+        string module,
+        AzureBinding binding,
+        ModuleSettings settings
+    )
+    {
         var attribute = module.Substring(module.LastIndexOf('.') + 1);
         var usable = true;
 
-        foreach (var required in binding.MissingSettings(settings)) {
-            context.ReportDiagnostic(Diagnostic.Create(
-                MissingSetting(), Location.None, family.Name, required, attribute));
+        foreach (var required in binding.MissingSettings(settings))
+        {
+            context.ReportDiagnostic(
+                Diagnostic.Create(MissingSetting(), Location.None, family.Name, required, attribute)
+            );
 
             usable = false;
         }
 
-        foreach (var read in binding.ReadSettings) {
+        foreach (var read in binding.ReadSettings)
+        {
             var setting = settings.Get(read);
 
-            if (setting != null && !setting.IsLiteral) {
-                context.ReportDiagnostic(Diagnostic.Create(
-                    SettingNotALiteral(), Location.None, read, attribute, setting.Text));
+            if (setting != null && !setting.IsLiteral)
+            {
+                context.ReportDiagnostic(
+                    Diagnostic.Create(
+                        SettingNotALiteral(),
+                        Location.None,
+                        read,
+                        attribute,
+                        setting.Text
+                    )
+                );
 
                 usable = false;
             }
@@ -391,10 +501,12 @@ public static class AzureFunctionsGenerator {
     /// everything outside letters, digits and underscores becomes an underscore - which is why two
     /// sources can collide, and why HRDAZ002 exists.
     /// </remarks>
-    internal static string FunctionName(string prefix, string path) {
+    internal static string FunctionName(string prefix, string path)
+    {
         var builder = new StringBuilder(prefix).Append('_');
 
-        foreach (var character in path.TrimStart('/')) {
+        foreach (var character in path.TrimStart('/'))
+        {
             builder.Append(char.IsLetterOrDigit(character) ? character : '_');
         }
 
@@ -405,22 +517,25 @@ public static class AzureFunctionsGenerator {
     /// The handlers as a value, so the pipeline compares what was found rather than the array it
     /// was found in.
     /// </summary>
-    public sealed class Handlers : IEquatable<Handlers> {
-        public Handlers(ImmutableArray<Handler> all) {
+    public sealed class Handlers : IEquatable<Handlers>
+    {
+        public Handlers(ImmutableArray<Handler> all)
+        {
             All = all;
         }
 
         public ImmutableArray<Handler> All { get; }
 
-        public bool Equals(Handlers? other) =>
-            other != null && All.SequenceEqual(other.All);
+        public bool Equals(Handlers? other) => other != null && All.SequenceEqual(other.All);
 
         public override bool Equals(object? obj) => Equals(obj as Handlers);
 
-        public override int GetHashCode() {
+        public override int GetHashCode()
+        {
             var hash = 17;
 
-            foreach (var handler in All) {
+            foreach (var handler in All)
+            {
                 hash = unchecked(hash * 31 + handler.GetHashCode());
             }
 
@@ -429,8 +544,10 @@ public static class AzureFunctionsGenerator {
     }
 
     /// <summary>The bound modules as a value, for the same reason.</summary>
-    public sealed class Modules : IEquatable<Modules> {
-        public Modules(ImmutableArray<string?> all) {
+    public sealed class Modules : IEquatable<Modules>
+    {
+        public Modules(ImmutableArray<string?> all)
+        {
             All = all;
         }
 
@@ -441,10 +558,12 @@ public static class AzureFunctionsGenerator {
 
         public override bool Equals(object? obj) => Equals(obj as Modules);
 
-        public override int GetHashCode() {
+        public override int GetHashCode()
+        {
             var hash = 17;
 
-            foreach (var module in All) {
+            foreach (var module in All)
+            {
                 hash = unchecked(hash * 31 + (module?.GetHashCode() ?? 0));
             }
 

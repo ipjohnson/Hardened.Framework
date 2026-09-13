@@ -22,8 +22,10 @@ namespace Hardened.Functions.Runtime.Attributes;
 /// the sequencer on each is what compares them.
 /// </para>
 /// </remarks>
-public class BlobAttribute : Attribute {
-    public BlobAttribute(string name) {
+public class BlobAttribute : Attribute
+{
+    public BlobAttribute(string name)
+    {
         Name = name;
     }
 

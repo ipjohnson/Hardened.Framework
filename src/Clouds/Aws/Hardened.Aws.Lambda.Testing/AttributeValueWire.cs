@@ -21,28 +21,34 @@ namespace Hardened.Aws.Lambda.Testing;
 /// reading <c>[NewImage]</c> rather than a bound parameter anyway.
 /// </para>
 /// </remarks>
-internal static class AttributeValueWire {
+internal static class AttributeValueWire
+{
     /// <summary>The item as DynamoDB would carry it, ready to drop into an image.</summary>
-    public static string Item(string json) {
+    public static string Item(string json)
+    {
         using var document = JsonDocument.Parse(json);
 
         var buffer = new MemoryStream();
 
-        using (var writer = new Utf8JsonWriter(buffer)) {
+        using (var writer = new Utf8JsonWriter(buffer))
+        {
             WriteItem(writer, document.RootElement);
         }
 
         return Encoding.UTF8.GetString(buffer.ToArray());
     }
 
-    private static void WriteItem(Utf8JsonWriter writer, JsonElement element) {
+    private static void WriteItem(Utf8JsonWriter writer, JsonElement element)
+    {
         writer.WriteStartObject();
 
         // A message that is not an object has no attributes to name. DynamoDB has no such item, so
         // this writes an empty image rather than inventing a key for it - and the handler binding
         // an empty object is a clearer failure than one binding a made-up shape.
-        if (element.ValueKind == JsonValueKind.Object) {
-            foreach (var property in element.EnumerateObject()) {
+        if (element.ValueKind == JsonValueKind.Object)
+        {
+            foreach (var property in element.EnumerateObject())
+            {
                 writer.WritePropertyName(property.Name);
                 WriteValue(writer, property.Value);
             }
@@ -51,10 +57,12 @@ internal static class AttributeValueWire {
         writer.WriteEndObject();
     }
 
-    private static void WriteValue(Utf8JsonWriter writer, JsonElement value) {
+    private static void WriteValue(Utf8JsonWriter writer, JsonElement value)
+    {
         writer.WriteStartObject();
 
-        switch (value.ValueKind) {
+        switch (value.ValueKind)
+        {
             case JsonValueKind.String:
                 writer.WriteString("S", value.GetString());
 
@@ -88,7 +96,8 @@ internal static class AttributeValueWire {
                 writer.WritePropertyName("L");
                 writer.WriteStartArray();
 
-                foreach (var item in value.EnumerateArray()) {
+                foreach (var item in value.EnumerateArray())
+                {
                     WriteValue(writer, item);
                 }
 

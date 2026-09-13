@@ -28,7 +28,8 @@ namespace Hardened.Web.Runtime.Compression;
 /// predicate is a type rather than a name resolved at run time.
 /// </para>
 /// </summary>
-public interface ICompressionPredicate {
+public interface ICompressionPredicate
+{
     /// <summary>
     /// Builds the predicate from the attribute's positional arguments.
     /// </summary>

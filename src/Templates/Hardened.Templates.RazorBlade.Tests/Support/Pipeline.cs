@@ -12,15 +12,21 @@ namespace Hardened.Templates.RazorBlade.Tests.Support;
 /// A real context over a MemoryStream body, so a render can be read back as the bytes a client
 /// would have received rather than as a string the test handed itself.
 /// </summary>
-public static class Pipeline {
-    public static IExecutionContext Context(out MemoryStream body, string? accept = "text/html") {
+public static class Pipeline
+{
+    public static IExecutionContext Context(out MemoryStream body, string? accept = "text/html")
+    {
         var buffer = new MemoryStream();
         body = buffer;
 
         var services = new ServiceCollection().BuildServiceProvider();
 
         var request = new TestExecutionRequest(
-            "GET", "/", accept, new SimpleQueryStringCollection(new Dictionary<string, string>()));
+            "GET",
+            "/",
+            accept,
+            new SimpleQueryStringCollection(new Dictionary<string, string>())
+        );
 
         return new TestExecutionContext(
             services,
@@ -28,7 +34,8 @@ public static class Pipeline {
             Substitute.For<IKnownServices>(),
             request,
             new TestExecutionResponse(buffer),
-            CancellationToken.None);
+            CancellationToken.None
+        );
     }
 
     /// <summary>
@@ -41,20 +48,27 @@ public static class Pipeline {
     public static IExecutionContext ServerLikeContext(
         out SynchronousWritesRejectedStream body,
         string? accept = "text/html",
-        bool withPool = true) {
+        bool withPool = true
+    )
+    {
         var buffer = new SynchronousWritesRejectedStream();
         body = buffer;
 
         var collection = new ServiceCollection();
 
-        if (withPool) {
+        if (withPool)
+        {
             collection.AddSingleton<IMemoryStreamPool, MemoryStreamPool>();
         }
 
         var services = collection.BuildServiceProvider();
 
         var request = new TestExecutionRequest(
-            "GET", "/", accept, new SimpleQueryStringCollection(new Dictionary<string, string>()));
+            "GET",
+            "/",
+            accept,
+            new SimpleQueryStringCollection(new Dictionary<string, string>())
+        );
 
         return new TestExecutionContext(
             services,
@@ -62,7 +76,8 @@ public static class Pipeline {
             Substitute.For<IKnownServices>(),
             request,
             new TestExecutionResponse(buffer),
-            CancellationToken.None);
+            CancellationToken.None
+        );
     }
 
     /// <summary>

@@ -32,7 +32,8 @@ namespace Hardened.Web.Kestrel.Runtime.Impl;
 /// </list>
 /// </summary>
 [SingletonService]
-public class HardenedHttpApplication : IHttpApplication<HardenedHttpApplication.RequestContext> {
+public class HardenedHttpApplication : IHttpApplication<HardenedHttpApplication.RequestContext>
+{
     private readonly IServiceProvider _rootServiceProvider;
     private readonly IRequestExecutor _executor;
     private readonly IMetricLoggerProvider _metricLoggerProvider;
@@ -40,7 +41,9 @@ public class HardenedHttpApplication : IHttpApplication<HardenedHttpApplication.
     public HardenedHttpApplication(
         IServiceProvider rootServiceProvider,
         IRequestExecutor executor,
-        IMetricLoggerProvider metricLoggerProvider) {
+        IMetricLoggerProvider metricLoggerProvider
+    )
+    {
         _rootServiceProvider = rootServiceProvider;
         _executor = executor;
         _metricLoggerProvider = metricLoggerProvider;
@@ -50,20 +53,23 @@ public class HardenedHttpApplication : IHttpApplication<HardenedHttpApplication.
     /// Per-request state the server hands back on each callback. It exists to keep the DI scope
     /// paired with the execution context so the scope can be disposed at the right moment.
     /// </summary>
-    public sealed class RequestContext {
+    public sealed class RequestContext
+    {
         public required IServiceScope Scope { get; init; }
 
         public required FeatureExecutionContext Execution { get; init; }
     }
 
-    public RequestContext CreateContext(IFeatureCollection contextFeatures) {
+    public RequestContext CreateContext(IFeatureCollection contextFeatures)
+    {
         var scope = _rootServiceProvider.CreateScope();
 
         var execution = new FeatureExecutionContext(
             _rootServiceProvider,
             scope.ServiceProvider,
             contextFeatures,
-            _metricLoggerProvider.CreateLogger("kestrel-session"));
+            _metricLoggerProvider.CreateLogger("kestrel-session")
+        );
 
         _executor.Begin(execution);
 
@@ -78,13 +84,16 @@ public class HardenedHttpApplication : IHttpApplication<HardenedHttpApplication.
     /// failed: it logs against the server rather than the application's own logger, and once the
     /// response has started it aborts the connection.
     /// </summary>
-    public async Task ProcessRequestAsync(RequestContext context) {
+    public async Task ProcessRequestAsync(RequestContext context)
+    {
         var execution = context.Execution;
 
-        try {
+        try
+        {
             await _executor.RunChain(execution, HostFailurePolicy.Answer500);
         }
-        finally {
+        finally
+        {
             // Required by Kestrel. A response that wrote no body — a 204, or the 500 the failure
             // policy sets — never sends its headers otherwise, leaving the connection waiting on a
             // request the application already considers finished.
@@ -97,7 +106,8 @@ public class HardenedHttpApplication : IHttpApplication<HardenedHttpApplication.
     /// including one that threw, which is the guarantee <see cref="IRequestExecutor.End"/> would
     /// otherwise want a <c>finally</c> for.
     /// </summary>
-    public void DisposeContext(RequestContext context, Exception? exception) {
+    public void DisposeContext(RequestContext context, Exception? exception)
+    {
         _executor.End(context.Execution);
 
         context.Scope.Dispose();

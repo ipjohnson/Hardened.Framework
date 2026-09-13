@@ -2,7 +2,8 @@
 
 namespace Hardened.SourceGenerator.Models.Request;
 
-public record ResponseInformationModel {
+public record ResponseInformationModel
+{
     public bool IsAsync { get; set; }
 
     public bool IsAsyncEnumerable { get; set; }
@@ -297,15 +298,16 @@ public record ResponseInformationModel {
     /// caching at all.
     /// </para>
     /// </remarks>
-    public override string ToString() {
-        return $"{IsAsync}:{OutputType}:{RawResponseContentType}:{WritesRawBytes}" +
-               $":{ReturnsBytesOrText}" +
-               $":{StreamFraming}:{ReturnType}" +
-               $":{DefaultStatusCode}:{NullResponseBodyExpression}:{DeclaredErrorBodiesExpression}" +
-               $":{ProducedContentTypes}:{SuccessContentTypes}:{ErrorContentTypes}" +
-               $":{UnionCases}:{DeclaredResponse}:{UnionDiagnostic}:{ThrowsDiagnostic}" +
-               $":{ValidationErrorStatus}" +
-               $":{StreamFramingDiagnostic}" +
-               $":{MissingContentTypeDiagnostic}:{UnproducibleContentTypeDiagnostic}";
+    public override string ToString()
+    {
+        return $"{IsAsync}:{OutputType}:{RawResponseContentType}:{WritesRawBytes}"
+            + $":{ReturnsBytesOrText}"
+            + $":{StreamFraming}:{ReturnType}"
+            + $":{DefaultStatusCode}:{NullResponseBodyExpression}:{DeclaredErrorBodiesExpression}"
+            + $":{ProducedContentTypes}:{SuccessContentTypes}:{ErrorContentTypes}"
+            + $":{UnionCases}:{DeclaredResponse}:{UnionDiagnostic}:{ThrowsDiagnostic}"
+            + $":{ValidationErrorStatus}"
+            + $":{StreamFramingDiagnostic}"
+            + $":{MissingContentTypeDiagnostic}:{UnproducibleContentTypeDiagnostic}";
     }
 }

@@ -13,7 +13,8 @@ namespace Hardened.Aws.Lambda.Runtime.Streaming;
 /// the hosts open every stream through it, and tests capture the prelude and the bytes through it.
 /// </para>
 /// </remarks>
-public interface IResponseStreamFactory {
+public interface IResponseStreamFactory
+{
     /// <summary>
     /// A stream with no prelude, for a function invoked through the Lambda API.
     /// </summary>
@@ -30,7 +31,8 @@ public interface IResponseStreamFactory {
 /// <c>Amazon.Lambda.RuntimeSupport</c> is running; anywhere else the factory reports itself
 /// uninitialised.
 /// </summary>
-public sealed class RuntimeResponseStreamFactory : IResponseStreamFactory {
+public sealed class RuntimeResponseStreamFactory : IResponseStreamFactory
+{
     public Stream CreateStream() => LambdaResponseStreamFactory.CreateStream();
 
     public Stream CreateHttpStream(HttpResponseStreamPrelude prelude) =>

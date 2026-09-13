@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using CSharpAuthor;
-using Hardened.Idl;
 using Hardened.Generation;
 using Hardened.Generation.Models;
+using Hardened.Idl;
 
 namespace Hardened.Idl.Emitters;
 
@@ -58,14 +58,19 @@ namespace Hardened.Idl.Emitters;
 /// so the discriminator and shape work is what carries over.
 /// </para>
 /// </remarks>
-internal static class OneOfEmitter {
-
+internal static class OneOfEmitter
+{
     /// <summary>The converter's type name, which the allocator reserves alongside the type.</summary>
     public static string ConverterName(string schemaName) =>
         NamingHelper.ToPascalCase(schemaName) + "Converter";
 
     public static ClassDefinition Emit(
-        IConstructContainer container, SchemaModel schema, string modelsNamespace, bool streamed = false) {
+        IConstructContainer container,
+        SchemaModel schema,
+        string modelsNamespace,
+        bool streamed = false
+    )
+    {
         var name = NamingHelper.ToPascalCase(schema.Name);
         var branches = Branches(schema, modelsNamespace);
         var readable = Readable(branches);
@@ -84,7 +89,8 @@ internal static class OneOfEmitter {
         EmitConversions(type, name, branches);
         EmitToString(type);
 
-        if (streamed) {
+        if (streamed)
+        {
             EmitSseEvent(type, NamedBranches(schema, modelsNamespace));
         }
 
@@ -108,22 +114,31 @@ internal static class OneOfEmitter {
     /// the same thing under a name that belongs to the framing.
     /// </para>
     /// </remarks>
-    private static void EmitSseEvent(ClassDefinition type, List<KeyValuePair<string, string?>> branches) {
+    private static void EmitSseEvent(
+        ClassDefinition type,
+        List<KeyValuePair<string, string?>> branches
+    )
+    {
         type.AddBaseType(TypeDefinition.Get(SseEventNamespace, "ISseEvent"));
 
         var sseEvent = "global::" + SseEventNamespace + ".ISseEvent";
 
         type.AddComponent(
-            new CodeOutputComponent($"object? {sseEvent}.Data => Value;") { Indented = true });
+            new CodeOutputComponent($"object? {sseEvent}.Data => Value;") { Indented = true }
+        );
         type.AddComponent(
-            new CodeOutputComponent($"string? {sseEvent}.Id => null;") { Indented = true });
+            new CodeOutputComponent($"string? {sseEvent}.Id => null;") { Indented = true }
+        );
         type.AddComponent(
-            new CodeOutputComponent($"int? {sseEvent}.Retry => null;") { Indented = true });
+            new CodeOutputComponent($"int? {sseEvent}.Retry => null;") { Indented = true }
+        );
 
         var arms = new List<string>();
 
-        foreach (var branch in branches) {
-            if (branch.Value != null) {
+        foreach (var branch in branches)
+        {
+            if (branch.Value != null)
+            {
                 arms.Add($"{branch.Key} _ => \"{branch.Value}\"");
             }
         }
@@ -132,9 +147,12 @@ internal static class OneOfEmitter {
 
         type.AddComponent(
             new CodeOutputComponent(
-                $"string? {sseEvent}.Event => Value switch {{ {string.Join(", ", arms)} }};") {
-                Indented = true
-            });
+                $"string? {sseEvent}.Event => Value switch {{ {string.Join(", ", arms)} }};"
+            )
+            {
+                Indented = true,
+            }
+        );
     }
 
     private const string SseEventNamespace = "Hardened.Requests.Abstract.Serializer";
@@ -147,28 +165,40 @@ internal static class OneOfEmitter {
     /// told apart by the value alone, and the wrapper already cannot hold them - the implicit
     /// conversions would collide - so the first name a type was given is the one written.
     /// </remarks>
-    public static List<KeyValuePair<string, string?>> NamedBranches(SchemaModel schema, string modelsNamespace) {
+    public static List<KeyValuePair<string, string?>> NamedBranches(
+        SchemaModel schema,
+        string modelsNamespace
+    )
+    {
         var branches = new List<KeyValuePair<string, string?>>();
 
-        foreach (var described in schema.OneOf) {
+        foreach (var described in schema.OneOf)
+        {
             var branch = TypeMapper.QualifiedName(
-                modelsNamespace, ChoiceResolution.CSharpType(described), false);
+                modelsNamespace,
+                ChoiceResolution.CSharpType(described),
+                false
+            );
 
-            if (branch.EndsWith("JsonElement", System.StringComparison.Ordinal)) {
+            if (branch.EndsWith("JsonElement", System.StringComparison.Ordinal))
+            {
                 continue;
             }
 
             var known = false;
 
-            foreach (var existing in branches) {
-                if (existing.Key == branch) {
+            foreach (var existing in branches)
+            {
+                if (existing.Key == branch)
+                {
                     known = true;
 
                     break;
                 }
             }
 
-            if (!known) {
+            if (!known)
+            {
                 branches.Add(new KeyValuePair<string, string?>(branch, described.Name));
             }
         }
@@ -181,7 +211,8 @@ internal static class OneOfEmitter {
     /// caller who writes it gets a value that matches no branch in a <c>switch</c> rather than a
     /// null reference at some later point.
     /// </summary>
-    private static void EmitValue(ClassDefinition type) {
+    private static void EmitValue(ClassDefinition type)
+    {
         var value = type.AddProperty(TypeDefinition.Get(typeof(object)).MakeNullable(), "Value");
 
         value.Modifiers |= ComponentModifier.Public;
@@ -219,12 +250,16 @@ internal static class OneOfEmitter {
     /// ever disagreeing about the branch set.
     /// </para>
     /// </remarks>
-    private static void EmitConstructors(ClassDefinition type, string name, List<string> branches) {
-        foreach (var branch in branches) {
+    private static void EmitConstructors(ClassDefinition type, string name, List<string> branches)
+    {
+        foreach (var branch in branches)
+        {
             type.AddComponent(
-                new CodeOutputComponent($"public {name}({branch} value) => Value = value;") {
-                    Indented = true
-                });
+                new CodeOutputComponent($"public {name}({branch} value) => Value = value;")
+                {
+                    Indented = true,
+                }
+            );
         }
     }
 
@@ -232,17 +267,23 @@ internal static class OneOfEmitter {
     /// One conversion per branch, so assigning a <c>Cat</c> where the payload goes is checked by the
     /// compiler rather than by the constructor at run time.
     /// </summary>
-    private static void EmitConversions(ClassDefinition type, string name, List<string> branches) {
-        foreach (var branch in branches) {
+    private static void EmitConversions(ClassDefinition type, string name, List<string> branches)
+    {
+        foreach (var branch in branches)
+        {
             type.AddComponent(
                 new CodeOutputComponent(
-                    $"public static implicit operator {name}({branch} value) => new(value);") {
-                    Indented = true
-                });
+                    $"public static implicit operator {name}({branch} value) => new(value);"
+                )
+                {
+                    Indented = true,
+                }
+            );
         }
     }
 
-    private static void EmitToString(ClassDefinition type) {
+    private static void EmitToString(ClassDefinition type)
+    {
         var method = type.AddMethod("ToString");
 
         method.Modifiers |= ComponentModifier.Public | ComponentModifier.Override;
@@ -251,20 +292,27 @@ internal static class OneOfEmitter {
     }
 
     /// <summary>The branch types, qualified, in the order the document declares them.</summary>
-    public static List<string> Branches(SchemaModel schema, string modelsNamespace) {
+    public static List<string> Branches(SchemaModel schema, string modelsNamespace)
+    {
         var branches = new List<string>();
 
-        foreach (var described in schema.OneOf) {
+        foreach (var described in schema.OneOf)
+        {
             var branch = TypeMapper.QualifiedName(
-                modelsNamespace, ChoiceResolution.CSharpType(described), false);
+                modelsNamespace,
+                ChoiceResolution.CSharpType(described),
+                false
+            );
 
             // A branch this parser could not type reads as JsonElement, which every other branch
             // would also accept - so it is not one of the types the wrapper distinguishes.
-            if (branch.EndsWith("JsonElement", System.StringComparison.Ordinal)) {
+            if (branch.EndsWith("JsonElement", System.StringComparison.Ordinal))
+            {
                 continue;
             }
 
-            if (!branches.Contains(branch)) {
+            if (!branches.Contains(branch))
+            {
                 branches.Add(branch);
             }
         }
@@ -273,19 +321,24 @@ internal static class OneOfEmitter {
     }
 
     /// <summary>The branch list as prose, for a message a person reads.</summary>
-    private static string Readable(List<string> branches) {
+    private static string Readable(List<string> branches)
+    {
         var names = new List<string>();
 
-        foreach (var branch in branches) {
+        foreach (var branch in branches)
+        {
             var lastDot = branch.LastIndexOf('.');
 
             names.Add(lastDot >= 0 ? branch.Substring(lastDot + 1) : branch);
         }
 
-        return names.Count switch {
+        return names.Count switch
+        {
             0 => "nothing",
             1 => names[0],
-            _ => string.Join(", ", names.GetRange(0, names.Count - 1)) + " or " + names[names.Count - 1]
+            _ => string.Join(", ", names.GetRange(0, names.Count - 1))
+                + " or "
+                + names[names.Count - 1],
         };
     }
 }

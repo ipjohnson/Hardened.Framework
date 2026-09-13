@@ -22,8 +22,10 @@ namespace Hardened.Functions.Runtime.Attributes;
 /// envelope the handler has to know about.
 /// </para>
 /// </remarks>
-public class StreamAttribute : Attribute {
-    public StreamAttribute(string name) {
+public class StreamAttribute : Attribute
+{
+    public StreamAttribute(string name)
+    {
         Name = name;
     }
 

@@ -20,16 +20,19 @@ namespace Hardened.Idl.Emitters;
 /// that arrives with paragraphs in it keeps them - which is most of what makes a long one readable.
 /// </para>
 /// </remarks>
-internal static class DocComment {
-
-    public static string? Format(string? description) {
-        if (string.IsNullOrWhiteSpace(description)) {
+internal static class DocComment
+{
+    public static string? Format(string? description)
+    {
+        if (string.IsNullOrWhiteSpace(description))
+        {
             return null;
         }
 
         var lines = new List<string>();
 
-        foreach (var line in description!.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n')) {
+        foreach (var line in description!.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n'))
+        {
             lines.Add(line.TrimEnd());
         }
 
@@ -38,22 +41,27 @@ internal static class DocComment {
         var first = 0;
         var last = lines.Count - 1;
 
-        while (first <= last && lines[first].Length == 0) {
+        while (first <= last && lines[first].Length == 0)
+        {
             first++;
         }
 
-        while (last >= first && lines[last].Length == 0) {
+        while (last >= first && lines[last].Length == 0)
+        {
             last--;
         }
 
-        if (first > last) {
+        if (first > last)
+        {
             return null;
         }
 
         var builder = new StringBuilder();
 
-        for (var i = first; i <= last; i++) {
-            if (i > first) {
+        for (var i = first; i <= last; i++)
+        {
+            if (i > first)
+            {
                 builder.Append('\n');
             }
 

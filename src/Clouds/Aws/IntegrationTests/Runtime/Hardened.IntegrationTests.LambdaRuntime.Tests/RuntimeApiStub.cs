@@ -20,13 +20,15 @@ namespace Hardened.IntegrationTests.LambdaRuntime.Tests;
 /// routes and this project should not need a server to test a client.
 /// </para>
 /// </remarks>
-public sealed class RuntimeApiStub : IDisposable {
+public sealed class RuntimeApiStub : IDisposable
+{
     private readonly HttpListener _listener = new();
     private readonly TaskCompletionSource<Answer> _answered = new();
     private readonly string _payload;
     private readonly CancellationTokenSource _stopping = new();
 
-    public RuntimeApiStub(string payload) {
+    public RuntimeApiStub(string payload)
+    {
         _payload = payload;
         Address = "127.0.0.1:" + FreePort();
 
@@ -51,32 +53,45 @@ public sealed class RuntimeApiStub : IDisposable {
     /// </param>
     public record Answer(bool Failed, string Body);
 
-    private async Task Serve() {
-        while (!_stopping.IsCancellationRequested) {
+    private async Task Serve()
+    {
+        while (!_stopping.IsCancellationRequested)
+        {
             HttpListenerContext context;
 
-            try {
+            try
+            {
                 context = await _listener.GetContextAsync();
             }
-            catch (Exception) {
+            catch (Exception)
+            {
                 return;
             }
 
             var path = context.Request.Url!.AbsolutePath;
 
-            if (path.EndsWith("/invocation/next", StringComparison.Ordinal)) {
+            if (path.EndsWith("/invocation/next", StringComparison.Ordinal))
+            {
                 Next(context.Response);
             }
-            else if (path.EndsWith("/response", StringComparison.Ordinal) ||
-                     path.EndsWith("/error", StringComparison.Ordinal)) {
+            else if (
+                path.EndsWith("/response", StringComparison.Ordinal)
+                || path.EndsWith("/error", StringComparison.Ordinal)
+            )
+            {
                 using var reader = new StreamReader(context.Request.InputStream);
 
                 _answered.TrySetResult(
-                    new Answer(path.EndsWith("/error", StringComparison.Ordinal), await reader.ReadToEndAsync()));
+                    new Answer(
+                        path.EndsWith("/error", StringComparison.Ordinal),
+                        await reader.ReadToEndAsync()
+                    )
+                );
 
                 Accepted(context.Response);
             }
-            else {
+            else
+            {
                 Accepted(context.Response);
             }
         }
@@ -87,14 +102,16 @@ public sealed class RuntimeApiStub : IDisposable {
     /// host turns into a cancellation token, so serving it wrong would make every invocation look
     /// out of time.
     /// </remarks>
-    private void Next(HttpListenerResponse response) {
+    private void Next(HttpListenerResponse response)
+    {
         var deadline = DateTimeOffset.UtcNow.AddSeconds(30).ToUnixTimeMilliseconds();
 
         response.Headers.Add("Lambda-Runtime-Aws-Request-Id", RequestId);
         response.Headers.Add("Lambda-Runtime-Deadline-Ms", deadline.ToString());
         response.Headers.Add(
             "Lambda-Runtime-Invoked-Function-Arn",
-            "arn:aws:lambda:us-east-1:123456789012:function:orders-function");
+            "arn:aws:lambda:us-east-1:123456789012:function:orders-function"
+        );
 
         Write(response, _payload);
     }
@@ -104,14 +121,16 @@ public sealed class RuntimeApiStub : IDisposable {
     /// which looks like a perfectly good "accepted" - fails with "could not deserialize the
     /// response body" and takes down the invocation that had just been reported as failed.
     /// </remarks>
-    private static void Accepted(HttpListenerResponse response) {
+    private static void Accepted(HttpListenerResponse response)
+    {
         response.StatusCode = 202;
         response.ContentType = "application/json";
 
         Write(response, """{"status":"OK"}""");
     }
 
-    private static void Write(HttpListenerResponse response, string body) {
+    private static void Write(HttpListenerResponse response, string body)
+    {
         var bytes = Encoding.UTF8.GetBytes(body);
 
         response.ContentLength64 = bytes.Length;
@@ -124,7 +143,8 @@ public sealed class RuntimeApiStub : IDisposable {
     /// go again. Racy in principle and reliable in practice, which is the usual trade for a test
     /// that needs a real socket.
     /// </summary>
-    private static int FreePort() {
+    private static int FreePort()
+    {
         var probe = new TcpListener(IPAddress.Loopback, 0);
 
         probe.Start();
@@ -136,7 +156,8 @@ public sealed class RuntimeApiStub : IDisposable {
         return port;
     }
 
-    public void Dispose() {
+    public void Dispose()
+    {
         _stopping.Cancel();
         _listener.Close();
         _stopping.Dispose();

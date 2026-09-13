@@ -16,7 +16,8 @@ var host = new HostBuilder()
     // Registered ahead of the application, so what AotSerializerModule resolves models through is
     // in place before the serializers are. Without it they throw rather than falling back to
     // reflection, which is the difference this project exists to hold.
-    .ConfigureServices(services => {
+    .ConfigureServices(services =>
+    {
         services.AddSingleton<IJsonTypeInfoResolver>(AotContext.Default);
         services.AddSingleton<IOrderSink, OrderSink>();
     })

@@ -3,7 +3,8 @@ namespace Hardened.Requests.Runtime.Authorization;
 /// <summary>
 /// The application's default posture.
 /// </summary>
-public interface IAuthorizationConfiguration {
+public interface IAuthorizationConfiguration
+{
     /// <summary>
     /// Whether a handler carrying no authorization attribute is denied rather than public.
     /// </summary>
@@ -11,7 +12,8 @@ public interface IAuthorizationConfiguration {
 }
 
 /// <inheritdoc cref="IAuthorizationConfiguration" />
-public class AuthorizationConfiguration : IAuthorizationConfiguration {
+public class AuthorizationConfiguration : IAuthorizationConfiguration
+{
     /// <summary>
     /// False, so existing applications are unaffected: every handler stays public until somebody
     /// opts in.

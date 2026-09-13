@@ -1,4 +1,5 @@
 using Hardened.Web.Runtime.Responses;
+
 namespace Hardened.Web.Testing;
 
 /// <summary>
@@ -16,12 +17,13 @@ namespace Hardened.Web.Testing;
 /// The credential is applied to whichever client is used, so a route never handles one.
 /// </para>
 /// </remarks>
-public sealed class TestClientContext {
-
+public sealed class TestClientContext
+{
     private readonly ITestHost _host;
     private readonly TestCredential? _credential;
 
-    internal TestClientContext(ITestHost host, TestCredential? credential, HttpClient http) {
+    internal TestClientContext(ITestHost host, TestCredential? credential, HttpClient http)
+    {
         _host = host;
         _credential = credential;
         Http = http;
@@ -45,12 +47,14 @@ public sealed class TestClientContext {
     /// fails: an <see cref="HttpRequestMessage"/> is marked sent on its way down the first chain,
     /// and the second refuses it.
     /// </remarks>
-    public HttpClient CreateHttpClient(params DelegatingHandler[] handlers) {
+    public HttpClient CreateHttpClient(params DelegatingHandler[] handlers)
+    {
         ArgumentNullException.ThrowIfNull(handlers);
 
         var chain = _host.CreateHandler(_credential);
 
-        for (var index = handlers.Length - 1; index >= 0; index--) {
+        for (var index = handlers.Length - 1; index >= 0; index--)
+        {
             handlers[index].InnerHandler = chain;
             chain = handlers[index];
         }

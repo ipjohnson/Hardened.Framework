@@ -3,15 +3,19 @@ using Hardened.SourceGenerator.Models.Request;
 
 namespace Hardened.SourceGenerator.Web.Routing;
 
-public class RouteTreeGenerator<T> {
+public class RouteTreeGenerator<T>
+{
     private CancellationToken _cancellationToken;
 
-    public RouteTreeGenerator(CancellationToken? cancellationToken = null) {
+    public RouteTreeGenerator(CancellationToken? cancellationToken = null)
+    {
         _cancellationToken = cancellationToken ?? CancellationToken.None;
     }
 
-    public class Entry {
-        public Entry(string pathTemplate, string method, T value, bool caseInsensitive = false) {
+    public class Entry
+    {
+        public Entry(string pathTemplate, string method, T value, bool caseInsensitive = false)
+        {
             (PathTemplate, WildCardTokens) = StandardizeToken(pathTemplate, caseInsensitive);
             Method = method.ToUpperInvariant();
             Value = value;
@@ -32,28 +36,46 @@ public class RouteTreeGenerator<T> {
         public T Value { get; }
     }
 
-    public RouteTreeNode<T> GenerateTree(List<Entry> entries) {
-        foreach (var entry in entries) {
+    public RouteTreeNode<T> GenerateTree(List<Entry> entries)
+    {
+        foreach (var entry in entries)
+        {
             var firstChar = entry.PathTemplate.FirstOrDefault();
 
-            if (firstChar != '/') {
-                throw new Exception($"All paths must start with '/' but started with '{firstChar}'  entry {entry.PathTemplate} {entry.Method}");
+            if (firstChar != '/')
+            {
+                throw new Exception(
+                    $"All paths must start with '/' but started with '{firstChar}'  entry {entry.PathTemplate} {entry.Method}"
+                );
             }
         }
 
-        entries.Sort(((x, y) => string.Compare(x.PathTemplate, y.PathTemplate, StringComparison.Ordinal)));
+        entries.Sort(
+            ((x, y) => string.Compare(x.PathTemplate, y.PathTemplate, StringComparison.Ordinal))
+        );
 
         return ProcessEntries("/", entries, 1, 0);
     }
 
-    private RouteTreeNode<T> ProcessEntries(string path, List<Entry> entries, int stringIndex, int wildCardDepth) {
+    private RouteTreeNode<T> ProcessEntries(
+        string path,
+        List<Entry> entries,
+        int stringIndex,
+        int wildCardDepth
+    )
+    {
         _cancellationToken.ThrowIfCancellationRequested();
 
         var longestMatch = LongestCharacterMatch(entries, stringIndex);
 
-        if (longestMatch > 0) {
-            return new RouteTreeNode<T>(path,
-                new[] { ProcessLongMatchingNodes(entries, stringIndex, longestMatch, wildCardDepth) },
+        if (longestMatch > 0)
+        {
+            return new RouteTreeNode<T>(
+                path,
+                new[]
+                {
+                    ProcessLongMatchingNodes(entries, stringIndex, longestMatch, wildCardDepth),
+                },
                 Array.Empty<RouteTreeNode<T>>(),
                 Array.Empty<RouteTreeLeafNode<T>>(),
                 wildCardDepth
@@ -63,8 +85,13 @@ public class RouteTreeGenerator<T> {
         return ProcessSingleCharacterNodes(path, entries, stringIndex, wildCardDepth);
     }
 
-    private RouteTreeNode<T> ProcessSingleCharacterNodes(string path, List<Entry> entries, int stringIndex,
-        int wildCardDepth) {
+    private RouteTreeNode<T> ProcessSingleCharacterNodes(
+        string path,
+        List<Entry> entries,
+        int stringIndex,
+        int wildCardDepth
+    )
+    {
         _cancellationToken.ThrowIfCancellationRequested();
 
         IReadOnlyList<RouteTreeLeafNode<T>> leafNodes = Array.Empty<RouteTreeLeafNode<T>>();
@@ -73,57 +100,81 @@ public class RouteTreeGenerator<T> {
 
         var groupings = GroupByLetter(entries, stringIndex);
 
-        foreach (var grouping in groupings) {
-            switch (grouping.Key) {
+        foreach (var grouping in groupings)
+        {
+            switch (grouping.Key)
+            {
                 case '\0':
                     leafNodes = CreateLeafNodes(grouping.Value, stringIndex);
                     break;
 
                 case '{':
-                    wildCardNodes = ProcessWildCardNodes(grouping.Value, stringIndex, wildCardDepth + 1);
+                    wildCardNodes = ProcessWildCardNodes(
+                        grouping.Value,
+                        stringIndex,
+                        wildCardDepth + 1
+                    );
                     break;
 
                 default:
-                    childNodes.Add(ProcessEntries(grouping.Key.ToString(), grouping.Value, stringIndex + 1,
-                        wildCardDepth));
+                    childNodes.Add(
+                        ProcessEntries(
+                            grouping.Key.ToString(),
+                            grouping.Value,
+                            stringIndex + 1,
+                            wildCardDepth
+                        )
+                    );
                     break;
             }
         }
 
         childNodes.Sort((a, b) => string.CompareOrdinal(a.Path, b.Path));
 
-        return new RouteTreeNode<T>(path,
-            childNodes,
-            wildCardNodes,
-            leafNodes,
-            wildCardDepth
-        );
+        return new RouteTreeNode<T>(path, childNodes, wildCardNodes, leafNodes, wildCardDepth);
     }
 
-    private RouteTreeNode<T> ProcessLongMatchingNodes(List<Entry> entries, int stringIndex, int longestMatch,
-        int wildCardDepth) {
+    private RouteTreeNode<T> ProcessLongMatchingNodes(
+        List<Entry> entries,
+        int stringIndex,
+        int longestMatch,
+        int wildCardDepth
+    )
+    {
         var matchPath = entries[0].PathTemplate.Substring(stringIndex, longestMatch);
 
         return ProcessEntries(matchPath, entries, stringIndex + longestMatch, wildCardDepth);
     }
 
-    private IReadOnlyList<RouteTreeNode<T>> ProcessWildCardNodes(List<Entry> keyValuePair, int stringIndex,
-        int wildCardDepth) {
+    private IReadOnlyList<RouteTreeNode<T>> ProcessWildCardNodes(
+        List<Entry> keyValuePair,
+        int stringIndex,
+        int wildCardDepth
+    )
+    {
         var token = keyValuePair.First().WildCardTokens[wildCardDepth - 1];
 
         // Taken across every route through this position rather than from the first, because the
         // node is shared and they may not agree. See RouteTreeNode.WildCardIsCatchAll.
-        var catchAll = keyValuePair.Any(entry => RouteTokens.IsCatchAll(entry.WildCardTokens, wildCardDepth));
+        var catchAll = keyValuePair.Any(entry =>
+            RouteTokens.IsCatchAll(entry.WildCardTokens, wildCardDepth)
+        );
 
         stringIndex += "{TOKEN}".Length;
 
         var returnList = new List<RouteTreeNode<T>>();
         var grouping = GroupByLetter(keyValuePair, stringIndex);
 
-        foreach (var group in grouping) {
+        foreach (var group in grouping)
+        {
             _cancellationToken.ThrowIfCancellationRequested();
 
-            var node = ProcessEntries(group.Key.ToString(), group.Value, stringIndex + 1, wildCardDepth);
+            var node = ProcessEntries(
+                group.Key.ToString(),
+                group.Value,
+                stringIndex + 1,
+                wildCardDepth
+            );
 
             node.WildCardToken = token;
             node.WildCardIsCatchAll = catchAll;
@@ -157,9 +208,12 @@ public class RouteTreeGenerator<T> {
     /// applying it only where every route agrees, would let a document loosen a declared constraint
     /// by describing the same parameter twice and leaving it off the second time.
     /// </remarks>
-    private static string? Constraint(List<Entry> entries, int wildCardDepth) {
-        foreach (var entry in entries) {
-            if (RouteTokens.Constraint(entry.WildCardTokens, wildCardDepth) is { } constraint) {
+    private static string? Constraint(List<Entry> entries, int wildCardDepth)
+    {
+        foreach (var entry in entries)
+        {
+            if (RouteTokens.Constraint(entry.WildCardTokens, wildCardDepth) is { } constraint)
+            {
                 return constraint;
             }
         }
@@ -167,43 +221,59 @@ public class RouteTreeGenerator<T> {
         return null;
     }
 
-    private IReadOnlyList<RouteTreeLeafNode<T>> CreateLeafNodes(List<Entry> entries, int stringIndex) {
+    private IReadOnlyList<RouteTreeLeafNode<T>> CreateLeafNodes(
+        List<Entry> entries,
+        int stringIndex
+    )
+    {
         var leafNodes = new List<RouteTreeLeafNode<T>>();
 
-        foreach (var entry in entries) {
+        foreach (var entry in entries)
+        {
             _cancellationToken.ThrowIfCancellationRequested();
 
-            leafNodes.Add(new RouteTreeLeafNode<T>(entry.Method, entry.Value, entry.WildCardTokens));
+            leafNodes.Add(
+                new RouteTreeLeafNode<T>(entry.Method, entry.Value, entry.WildCardTokens)
+            );
         }
 
         return leafNodes;
     }
 
-    private int LongestCharacterMatch(List<Entry> entries, int stringIndex) {
-        if (entries.Count == 0) {
+    private int LongestCharacterMatch(List<Entry> entries, int stringIndex)
+    {
+        if (entries.Count == 0)
+        {
             return 0;
         }
 
         int matchLength = 0;
         char currentChar = '\0';
 
-        do {
+        do
+        {
             _cancellationToken.ThrowIfCancellationRequested();
 
-            foreach (var entry in entries) {
-                if (entry.PathTemplate.Length > (stringIndex + matchLength)) {
-                    if (currentChar == '\0') {
-                        if (entry.PathTemplate[stringIndex + matchLength] == '{') {
+            foreach (var entry in entries)
+            {
+                if (entry.PathTemplate.Length > (stringIndex + matchLength))
+                {
+                    if (currentChar == '\0')
+                    {
+                        if (entry.PathTemplate[stringIndex + matchLength] == '{')
+                        {
                             return matchLength;
                         }
 
                         currentChar = entry.PathTemplate[stringIndex + matchLength];
                     }
-                    else if (currentChar != entry.PathTemplate[stringIndex + matchLength]) {
+                    else if (currentChar != entry.PathTemplate[stringIndex + matchLength])
+                    {
                         return matchLength;
                     }
                 }
-                else {
+                else
+                {
                     return matchLength;
                 }
             }
@@ -213,19 +283,23 @@ public class RouteTreeGenerator<T> {
         } while (true);
     }
 
-    private Dictionary<char, List<Entry>> GroupByLetter(List<Entry> entries, int stringIndex) {
+    private Dictionary<char, List<Entry>> GroupByLetter(List<Entry> entries, int stringIndex)
+    {
         var returnValue = new Dictionary<char, List<Entry>>();
 
-        foreach (var entry in entries) {
+        foreach (var entry in entries)
+        {
             _cancellationToken.ThrowIfCancellationRequested();
 
             char charEntry = '\0';
 
-            if (entry.PathTemplate.Length > stringIndex) {
+            if (entry.PathTemplate.Length > stringIndex)
+            {
                 charEntry = entry.PathTemplate[stringIndex];
             }
 
-            if (!returnValue.TryGetValue(charEntry, out var groupedEntries)) {
+            if (!returnValue.TryGetValue(charEntry, out var groupedEntries))
+            {
                 groupedEntries = new List<Entry>();
                 returnValue[charEntry] = groupedEntries;
             }
@@ -253,19 +327,27 @@ public class RouteTreeGenerator<T> {
     /// </para>
     /// </remarks>
     public static (string, IReadOnlyList<string>) StandardizeToken(
-        string pathTemplate, bool caseInsensitive = false) {
+        string pathTemplate,
+        bool caseInsensitive = false
+    )
+    {
         var tokenIndex = pathTemplate.IndexOf('{');
         var tokenList = new List<string>();
 
-        if (tokenIndex > 0) {
+        if (tokenIndex > 0)
+        {
             var stringBuilder = new StringBuilder();
             var currentIndex = 0;
-            while (tokenIndex > 0) {
+            while (tokenIndex > 0)
+            {
                 var tokenEnd = pathTemplate.IndexOf('}', tokenIndex);
 
-                if (tokenEnd > 0) {
+                if (tokenEnd > 0)
+                {
                     var length = tokenIndex - currentIndex;
-                    stringBuilder.Append(Literal(pathTemplate.Substring(currentIndex, length), caseInsensitive));
+                    stringBuilder.Append(
+                        Literal(pathTemplate.Substring(currentIndex, length), caseInsensitive)
+                    );
                     stringBuilder.Append("{TOKEN}");
 
                     var startIndex = tokenIndex + 1;
@@ -277,8 +359,11 @@ public class RouteTreeGenerator<T> {
                 tokenIndex = pathTemplate.IndexOf('{', tokenIndex + 1);
             }
 
-            if (currentIndex < pathTemplate.Length) {
-                stringBuilder.Append(Literal(pathTemplate.Substring(currentIndex), caseInsensitive));
+            if (currentIndex < pathTemplate.Length)
+            {
+                stringBuilder.Append(
+                    Literal(pathTemplate.Substring(currentIndex), caseInsensitive)
+                );
             }
 
             return (stringBuilder.ToString(), tokenList);

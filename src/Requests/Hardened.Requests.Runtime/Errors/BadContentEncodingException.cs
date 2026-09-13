@@ -18,14 +18,17 @@ namespace Hardened.Requests.Runtime.Errors;
 /// status is not well-formed without the header and that base is the one that can write one.
 /// </para>
 /// </remarks>
-public class BadContentEncodingException : StatusCodeException {
+public class BadContentEncodingException : StatusCodeException
+{
     /// <summary>What a client may send instead. The request filter decodes exactly these.</summary>
     public const string SupportedEncodings = KnownEncoding.GZip + ", " + KnownEncoding.Br;
 
-    public BadContentEncodingException(string contentEncoding) : base(
-        415, value: null, message: $"{contentEncoding} is not a supported Content-Encoding") { }
+    public BadContentEncodingException(string contentEncoding)
+        : base(415, value: null, message: $"{contentEncoding} is not a supported Content-Encoding")
+    { }
 
-    public override void ApplyHeaders(IDictionary<string, StringValues> headers) {
+    public override void ApplyHeaders(IDictionary<string, StringValues> headers)
+    {
         headers[KnownHeaders.AcceptEncoding] = SupportedEncodings;
     }
 }

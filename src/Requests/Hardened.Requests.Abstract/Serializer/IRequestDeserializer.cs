@@ -23,7 +23,8 @@ namespace Hardened.Requests.Abstract.Serializer;
 /// Values are spaced so a deserializer can be slotted between two of them without renumbering.
 /// </para>
 /// </remarks>
-public enum RequestDeserializerOrder {
+public enum RequestDeserializerOrder
+{
     /// <summary>
     /// A deserializer for one specific content type, or one an application installed to replace the
     /// default. Ahead of the general-purpose ones.
@@ -37,10 +38,11 @@ public enum RequestDeserializerOrder {
     /// Behind the general-purpose deserializers. One here reads a body only when nothing else
     /// claimed the content type.
     /// </summary>
-    Deferred = 1000
+    Deferred = 1000,
 }
 
-public interface IRequestDeserializer {
+public interface IRequestDeserializer
+{
     bool IsDefaultSerializer { get; }
 
     /// <summary>

@@ -1,6 +1,6 @@
 using System.Collections.Generic;
-using Hardened.Idl.Emitters;
 using Hardened.Generation.Models;
+using Hardened.Idl.Emitters;
 using Xunit;
 
 namespace Hardened.OpenApi.BuildTask.Tests;
@@ -20,29 +20,45 @@ namespace Hardened.OpenApi.BuildTask.Tests;
 /// and fix.
 /// </para>
 /// </remarks>
-public class ErrorFactoryEmitterTests {
-
+public class ErrorFactoryEmitterTests
+{
     private const string SpecFileName = "bank";
 
     private static ErrorResponseModel Error(
-        int statusCode, string? bodyRef, string exceptionTypeName) =>
-        new() {
+        int statusCode,
+        string? bodyRef,
+        string exceptionTypeName
+    ) =>
+        new()
+        {
             StatusCode = statusCode,
             Ref = bodyRef,
-            ExceptionTypeName = exceptionTypeName
+            ExceptionTypeName = exceptionTypeName,
         };
 
     private static string Emit(params ErrorResponseModel[] errors) =>
-        EmitterHarness.Write(ns => ErrorFactoryEmitter.Emit(
-            ns, new List<ErrorResponseModel>(errors), EmitterHarness.ModelsNamespace,
-            SpecFileName));
+        EmitterHarness.Write(ns =>
+            ErrorFactoryEmitter.Emit(
+                ns,
+                new List<ErrorResponseModel>(errors),
+                EmitterHarness.ModelsNamespace,
+                SpecFileName
+            )
+        );
 
-    private static bool Emitted(params ErrorResponseModel[] errors) {
+    private static bool Emitted(params ErrorResponseModel[] errors)
+    {
         var any = false;
 
-        EmitterHarness.Write(ns => any = ErrorFactoryEmitter.Emit(
-            ns, new List<ErrorResponseModel>(errors), EmitterHarness.ModelsNamespace,
-            SpecFileName) != null);
+        EmitterHarness.Write(ns =>
+            any =
+                ErrorFactoryEmitter.Emit(
+                    ns,
+                    new List<ErrorResponseModel>(errors),
+                    EmitterHarness.ModelsNamespace,
+                    SpecFileName
+                ) != null
+        );
 
         return any;
     }
@@ -55,13 +71,16 @@ public class ErrorFactoryEmitterTests {
     /// and the same verb.
     /// </summary>
     [Fact]
-    public void ThePayloadGetsAnAsExceptionExtension() {
-        var output = Emit(Error(
-            400, "#/components/schemas/AccountNotFound", "AccountNotFoundException"));
+    public void ThePayloadGetsAnAsExceptionExtension()
+    {
+        var output = Emit(
+            Error(400, "#/components/schemas/AccountNotFound", "AccountNotFoundException")
+        );
 
         Assert.Contains(
             "AccountNotFoundException AsException(this AccountNotFound body) => new(body);",
-            output);
+            output
+        );
     }
 
     /// <summary>
@@ -69,19 +88,23 @@ public class ErrorFactoryEmitterTests {
     /// file so <c>NameAllocator</c> can reserve it against a schema of the same name.
     /// </summary>
     [Fact]
-    public void TheHolderIsAStaticClassNamedForTheFile() {
-        var output = Emit(Error(
-            400, "#/components/schemas/AccountNotFound", "AccountNotFoundException"));
+    public void TheHolderIsAStaticClassNamedForTheFile()
+    {
+        var output = Emit(
+            Error(400, "#/components/schemas/AccountNotFound", "AccountNotFoundException")
+        );
 
         Assert.Contains("public static class BankErrors", output);
         Assert.Equal("BankErrors", ErrorFactoryEmitter.HolderName(SpecFileName));
     }
 
     [Fact]
-    public void OnePerDeclaredErrorThatHasAPayload() {
+    public void OnePerDeclaredErrorThatHasAPayload()
+    {
         var output = Emit(
             Error(404, "#/components/schemas/PetNotFound", "PetNotFoundException"),
-            Error(429, "#/components/schemas/Throttled", "ThrottledException"));
+            Error(429, "#/components/schemas/Throttled", "ThrottledException")
+        );
 
         Assert.Contains("AsException(this PetNotFound body)", output);
         Assert.Contains("AsException(this Throttled body)", output);
@@ -97,10 +120,14 @@ public class ErrorFactoryEmitterTests {
     /// <c>ApiError</c> - and there is no single exception an <c>ApiError</c> means.
     /// </summary>
     [Fact]
-    public void APayloadTwoErrorsShareGetsNothing() {
-        Assert.False(Emitted(
-            Error(404, "#/components/schemas/ApiError", "PetMissingException"),
-            Error(409, "#/components/schemas/ApiError", "PetLockedException")));
+    public void APayloadTwoErrorsShareGetsNothing()
+    {
+        Assert.False(
+            Emitted(
+                Error(404, "#/components/schemas/ApiError", "PetMissingException"),
+                Error(409, "#/components/schemas/ApiError", "PetLockedException")
+            )
+        );
     }
 
     /// <summary>
@@ -108,22 +135,28 @@ public class ErrorFactoryEmitterTests {
     /// marked would do.
     /// </summary>
     [Fact]
-    public void AThirdErrorOverThatPayloadDoesNotPutItBack() {
-        Assert.False(Emitted(
-            Error(404, "#/components/schemas/ApiError", "PetMissingException"),
-            Error(409, "#/components/schemas/ApiError", "PetLockedException"),
-            Error(410, "#/components/schemas/ApiError", "PetGoneException")));
+    public void AThirdErrorOverThatPayloadDoesNotPutItBack()
+    {
+        Assert.False(
+            Emitted(
+                Error(404, "#/components/schemas/ApiError", "PetMissingException"),
+                Error(409, "#/components/schemas/ApiError", "PetLockedException"),
+                Error(410, "#/components/schemas/ApiError", "PetGoneException")
+            )
+        );
     }
 
     /// <summary>
     /// The unambiguous ones in the same document still get theirs.
     /// </summary>
     [Fact]
-    public void OnlyTheSharedPayloadIsSkipped() {
+    public void OnlyTheSharedPayloadIsSkipped()
+    {
         var output = Emit(
             Error(404, "#/components/schemas/ApiError", "PetMissingException"),
             Error(409, "#/components/schemas/ApiError", "PetLockedException"),
-            Error(429, "#/components/schemas/Throttled", "ThrottledException"));
+            Error(429, "#/components/schemas/Throttled", "ThrottledException")
+        );
 
         Assert.Contains("AsException(this Throttled body)", output);
         Assert.DoesNotContain("ApiError body", output);
@@ -134,12 +167,14 @@ public class ErrorFactoryEmitterTests {
     /// <c>new DrainingException()</c> already names its type once.
     /// </summary>
     [Fact]
-    public void AnErrorWithNoBodyGetsNothing() {
+    public void AnErrorWithNoBodyGetsNothing()
+    {
         Assert.False(Emitted(Error(503, null, "DrainingException")));
     }
 
     [Fact]
-    public void AnEmptySetEmitsNoHolder() {
+    public void AnEmptySetEmitsNoHolder()
+    {
         Assert.False(Emitted());
     }
 

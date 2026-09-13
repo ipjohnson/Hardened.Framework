@@ -30,9 +30,11 @@ namespace Hardened.Web.Runtime.Responses;
 /// <param name="name">The header's name, as it goes on the wire.</param>
 [AttributeUsage(
     AttributeTargets.Class | AttributeTargets.Interface | AttributeTargets.Method,
-    AllowMultiple = true, Inherited = true)]
-public sealed class ReadsHeaderAttribute(string name) : Attribute {
-
+    AllowMultiple = true,
+    Inherited = true
+)]
+public sealed class ReadsHeaderAttribute(string name) : Attribute
+{
     /// <summary>The header's name, as it goes on the wire.</summary>
     public string Name { get; } = name;
 

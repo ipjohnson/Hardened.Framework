@@ -14,20 +14,23 @@ namespace Hardened.Requests.Runtime.Tests.Filters;
 /// reaches: one applies a filter to every handler, the other is asked per handler and can
 /// decline.
 /// </summary>
-public class GlobalFilterRegistryTests {
-
+public class GlobalFilterRegistryTests
+{
     private static GlobalFilterRegistry Registry(params IRequestFilterProvider[] providers) =>
         new(providers);
 
-    private static IExecutionRequestHandlerInfo Handler(string path = "/orders", string method = "GET") =>
-        new ExecutionRequestHandlerInfo(path, method, typeof(GlobalFilterRegistryTests), "Invoke");
+    private static IExecutionRequestHandlerInfo Handler(
+        string path = "/orders",
+        string method = "GET"
+    ) => new ExecutionRequestHandlerInfo(path, method, typeof(GlobalFilterRegistryTests), "Invoke");
 
     /// <summary>
     /// An application that registers nothing gets nothing, rather than a null the caller has
     /// to guard.
     /// </summary>
     [Fact]
-    public void AnEmptyRegistryReturnsAnEmptyFilterList() {
+    public void AnEmptyRegistryReturnsAnEmptyFilterList()
+    {
         Assert.Empty(Registry().GetFilters(Handler()));
     }
 
@@ -38,7 +41,8 @@ public class GlobalFilterRegistryTests {
     [InlineData("/orders", "GET")]
     [InlineData("/orders/{id}", "DELETE")]
     [InlineData("/", "POST")]
-    public void AFilterRegisteredByInstanceAppliesToEveryHandler(string path, string method) {
+    public void AFilterRegisteredByInstanceAppliesToEveryHandler(string path, string method)
+    {
         var filter = Substitute.For<IExecutionFilter>();
         var registry = Registry();
 
@@ -54,7 +58,8 @@ public class GlobalFilterRegistryTests {
     /// the filter after serialization and before the handler.
     /// </summary>
     [Fact]
-    public void AFilterRegisteredWithoutAnOrderTakesTheDefaultOrder() {
+    public void AFilterRegisteredWithoutAnOrderTakesTheDefaultOrder()
+    {
         var registry = Registry();
 
         registry.RegisterFilter(Substitute.For<IExecutionFilter>());
@@ -69,7 +74,8 @@ public class GlobalFilterRegistryTests {
     [InlineData(FilterOrder.Validation)]
     [InlineData(FilterOrder.Before + FilterOrder.Serialization)]
     [InlineData(FilterOrder.DefaultValue)]
-    public void AnExplicitOrderIsCarriedThroughToTheFilterInfo(int order) {
+    public void AnExplicitOrderIsCarriedThroughToTheFilterInfo(int order)
+    {
         var registry = Registry();
 
         registry.RegisterFilter(Substitute.For<IExecutionFilter>(), order);
@@ -83,7 +89,8 @@ public class GlobalFilterRegistryTests {
     /// instance per request - would make per-request state look safe.
     /// </summary>
     [Fact]
-    public void AFilterRegisteredByInstanceIsSharedAcrossRequests() {
+    public void AFilterRegisteredByInstanceIsSharedAcrossRequests()
+    {
         var filter = Substitute.For<IExecutionFilter>();
         var registry = Registry();
 
@@ -99,11 +106,13 @@ public class GlobalFilterRegistryTests {
     /// info, which is what lets it decide by route, verb or metadata.
     /// </summary>
     [Fact]
-    public void ThePerHandlerOverloadSeesTheHandlerItIsBeingAskedAbout() {
+    public void ThePerHandlerOverloadSeesTheHandlerItIsBeingAskedAbout()
+    {
         var seen = new List<string>();
         var registry = Registry();
 
-        registry.RegisterFilter(info => {
+        registry.RegisterFilter(info =>
+        {
             seen.Add($"{info.Method} {info.Path}");
 
             return null;
@@ -120,7 +129,8 @@ public class GlobalFilterRegistryTests {
     /// all rather than a filter that has to check whether it applies on every request.
     /// </summary>
     [Fact]
-    public void ThePerHandlerOverloadDeclinesByReturningNull() {
+    public void ThePerHandlerOverloadDeclinesByReturningNull()
+    {
         var registry = Registry();
 
         registry.RegisterFilter(_ => null);
@@ -134,12 +144,14 @@ public class GlobalFilterRegistryTests {
     /// construction for every handler that opted out.
     /// </summary>
     [Fact]
-    public void ThePerHandlerOverloadCanFilterOneHandlerAndSkipAnother() {
+    public void ThePerHandlerOverloadCanFilterOneHandlerAndSkipAnother()
+    {
         var filter = Substitute.For<IExecutionFilter>();
         var registry = Registry();
 
         registry.RegisterFilter(info =>
-            info.Method == "POST" ? new RequestFilterInfo(_ => filter) : null);
+            info.Method == "POST" ? new RequestFilterInfo(_ => filter) : null
+        );
 
         Assert.Single(registry.GetFilters(Handler("/orders", "POST")));
         Assert.Empty(registry.GetFilters(Handler("/orders", "GET")));
@@ -150,12 +162,16 @@ public class GlobalFilterRegistryTests {
     /// first.
     /// </summary>
     [Fact]
-    public void EveryRegistrationContributesItsOwnFilter() {
+    public void EveryRegistrationContributesItsOwnFilter()
+    {
         var registry = Registry();
 
         registry.RegisterFilter(Substitute.For<IExecutionFilter>(), 1);
         registry.RegisterFilter(Substitute.For<IExecutionFilter>(), 2);
-        registry.RegisterFilter(_ => new RequestFilterInfo(_ => Substitute.For<IExecutionFilter>(), 3));
+        registry.RegisterFilter(_ => new RequestFilterInfo(
+            _ => Substitute.For<IExecutionFilter>(),
+            3
+        ));
 
         Assert.Equal(3, registry.GetFilters(Handler()).Count);
     }
@@ -166,9 +182,11 @@ public class GlobalFilterRegistryTests {
     /// registered afterwards.
     /// </summary>
     [Fact]
-    public void ProvidersSuppliedAtConstructionAreQueriedToo() {
+    public void ProvidersSuppliedAtConstructionAreQueriedToo()
+    {
         var constructed = Substitute.For<IRequestFilterProvider>();
-        constructed.GetFilters(Arg.Any<IExecutionRequestHandlerInfo>())
+        constructed
+            .GetFilters(Arg.Any<IExecutionRequestHandlerInfo>())
             .Returns(new[] { new RequestFilterInfo(_ => Substitute.For<IExecutionFilter>(), 1) });
 
         var registry = Registry(constructed);
@@ -182,14 +200,19 @@ public class GlobalFilterRegistryTests {
     /// A provider may contribute several filters for one handler, and all of them are kept.
     /// </summary>
     [Fact]
-    public void AProviderContributingSeveralFiltersHasAllOfThemKept() {
+    public void AProviderContributingSeveralFiltersHasAllOfThemKept()
+    {
         var provider = Substitute.For<IRequestFilterProvider>();
-        provider.GetFilters(Arg.Any<IExecutionRequestHandlerInfo>())
-            .Returns(new[] {
-                new RequestFilterInfo(_ => Substitute.For<IExecutionFilter>(), 1),
-                new RequestFilterInfo(_ => Substitute.For<IExecutionFilter>(), 2),
-                new RequestFilterInfo(_ => Substitute.For<IExecutionFilter>(), 3)
-            });
+        provider
+            .GetFilters(Arg.Any<IExecutionRequestHandlerInfo>())
+            .Returns(
+                new[]
+                {
+                    new RequestFilterInfo(_ => Substitute.For<IExecutionFilter>(), 1),
+                    new RequestFilterInfo(_ => Substitute.For<IExecutionFilter>(), 2),
+                    new RequestFilterInfo(_ => Substitute.For<IExecutionFilter>(), 3),
+                }
+            );
 
         Assert.Equal(3, Registry(provider).GetFilters(Handler()).Count);
     }
@@ -200,7 +223,8 @@ public class GlobalFilterRegistryTests {
     /// in the application.
     /// </summary>
     [Fact]
-    public void EachCallReturnsAFreshListTheCallerCanAddTo() {
+    public void EachCallReturnsAFreshListTheCallerCanAddTo()
+    {
         var registry = Registry();
 
         registry.RegisterFilter(Substitute.For<IExecutionFilter>());
@@ -217,11 +241,13 @@ public class GlobalFilterRegistryTests {
     /// memoised, so a registration that decides on mutable application state stays live.
     /// </summary>
     [Fact]
-    public void ThePerHandlerFunctionIsConsultedEveryTime() {
+    public void ThePerHandlerFunctionIsConsultedEveryTime()
+    {
         var calls = 0;
         var registry = Registry();
 
-        registry.RegisterFilter(_ => {
+        registry.RegisterFilter(_ =>
+        {
             calls++;
 
             return null;

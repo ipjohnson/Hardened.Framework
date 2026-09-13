@@ -20,14 +20,16 @@ namespace Hardened.Web.SourceGenerator.Tests.Validation;
 /// filter is attached against a validator nobody emitted and every constrained operation answers a
 /// 500.
 /// </remarks>
-public class NoValidationGeneratorTests {
+public class NoValidationGeneratorTests
+{
     private const string DiagnosticId = "HRDV006";
 
-    private static readonly Type[] Anchors = [
-        typeof(GetAttribute),                     // Hardened.Web.Runtime
-        typeof(FromBodyAttribute),                // Hardened.Requests.Abstract
+    private static readonly Type[] Anchors =
+    [
+        typeof(GetAttribute), // Hardened.Web.Runtime
+        typeof(FromBodyAttribute), // Hardened.Requests.Abstract
         typeof(ValidationFilterProvider<object>), // Hardened.Requests.Runtime
-        typeof(IValidatorFor<object>)             // ValidationModules.Runtime
+        typeof(IValidatorFor<object>), // ValidationModules.Runtime
     ];
 
     /// <summary>The web generator alone, which is the shape of a consumer who referenced only it.</summary>
@@ -37,10 +39,13 @@ public class NoValidationGeneratorTests {
     private static GeneratorResult WithTheValidationGenerator(string source) =>
         GeneratorTestHarness.Run(
             new Dictionary<string, string> { ["Test.cs"] = source },
-            new IIncrementalGenerator[] {
-                new WebLibrarySourceGenerator(), new HardenedValidationGenerator()
+            new IIncrementalGenerator[]
+            {
+                new WebLibrarySourceGenerator(),
+                new HardenedValidationGenerator(),
             },
-            Anchors);
+            Anchors
+        );
 
     private static IEnumerable<Diagnostic> Reported(GeneratorResult result) =>
         result.GeneratorDiagnostics.Where(diagnostic => diagnostic.Id == DiagnosticId);
@@ -64,7 +69,8 @@ public class NoValidationGeneratorTests {
         """;
 
     [Fact]
-    public void ConstraintsWithNoValidationGeneratorAreHRDV006() {
+    public void ConstraintsWithNoValidationGeneratorAreHRDV006()
+    {
         var diagnostic = Assert.Single(Reported(WithoutTheValidationGenerator(ConstrainedModel)));
 
         Assert.Equal(DiagnosticSeverity.Warning, diagnostic.Severity);
@@ -77,57 +83,77 @@ public class NoValidationGeneratorTests {
     /// arrangement - it just must not be a surprise.
     /// </summary>
     [Fact]
-    public void TheReportIsAWarning() {
+    public void TheReportIsAWarning()
+    {
         Assert.All(
             Reported(WithoutTheValidationGenerator(ConstrainedModel)),
-            diagnostic => Assert.Equal(DiagnosticSeverity.Warning, diagnostic.Severity));
+            diagnostic => Assert.Equal(DiagnosticSeverity.Warning, diagnostic.Severity)
+        );
     }
 
     [Fact]
-    public void TheMessageNamesTheGeneratorToReference() {
-        var message = Assert.Single(Reported(WithoutTheValidationGenerator(ConstrainedModel))).GetMessage();
+    public void TheMessageNamesTheGeneratorToReference()
+    {
+        var message = Assert
+            .Single(Reported(WithoutTheValidationGenerator(ConstrainedModel)))
+            .GetMessage();
 
         Assert.Contains("Hardened.Validation.SourceGenerator", message);
     }
 
     [Fact]
-    public void ConstraintsWithTheValidationGeneratorReportNothing() {
+    public void ConstraintsWithTheValidationGeneratorReportNothing()
+    {
         Assert.Empty(Reported(WithTheValidationGenerator(ConstrainedModel)));
     }
 
     /// <summary>A project that declared no constraints never asked for validation.</summary>
     [Fact]
-    public void NoConstraintsReportsNothing() {
-        Assert.Empty(Reported(WithoutTheValidationGenerator("""
-            using Hardened.Web.Runtime.Attributes;
+    public void NoConstraintsReportsNothing()
+    {
+        Assert.Empty(
+            Reported(
+                WithoutTheValidationGenerator(
+                    """
+                    using Hardened.Web.Runtime.Attributes;
 
-            namespace TestApp;
+                    namespace TestApp;
 
-            public class Order {
-                public string? Reference { get; set; }
-            }
+                    public class Order {
+                        public string? Reference { get; set; }
+                    }
 
-            public class OrderController {
-                [Post("/orders")]
-                public string Create(Order order) => order.Reference ?? "";
-            }
-            """)));
+                    public class OrderController {
+                        [Post("/orders")]
+                        public string Create(Order order) => order.Reference ?? "";
+                    }
+                    """
+                )
+            )
+        );
     }
 
     /// <summary>A constraint on the parameter itself, which is read through the same front end.</summary>
     [Fact]
-    public void AConstraintOnAParameterIsReportedToo() {
-        Assert.Single(Reported(WithoutTheValidationGenerator("""
-            using ValidationModules.Constraints;
-            using Hardened.Web.Runtime.Attributes;
+    public void AConstraintOnAParameterIsReportedToo()
+    {
+        Assert.Single(
+            Reported(
+                WithoutTheValidationGenerator(
+                    """
+                    using ValidationModules.Constraints;
+                    using Hardened.Web.Runtime.Attributes;
 
-            namespace TestApp;
+                    namespace TestApp;
 
-            public class ItemController {
-                [Get("/items/{id}")]
-                public string ItemById([StringLength(3, 3)] string id) => id;
-            }
-            """)));
+                    public class ItemController {
+                        [Get("/items/{id}")]
+                        public string ItemById([StringLength(3, 3)] string id) => id;
+                    }
+                    """
+                )
+            )
+        );
     }
 
     /// <summary>
@@ -135,21 +161,28 @@ public class NoValidationGeneratorTests {
     /// constrained handlers would otherwise produce forty copies of the same sentence.
     /// </summary>
     [Fact]
-    public void SeveralConstrainedHandlersAreOneReport() {
-        Assert.Single(Reported(WithoutTheValidationGenerator("""
-            using ValidationModules.Constraints;
-            using Hardened.Web.Runtime.Attributes;
+    public void SeveralConstrainedHandlersAreOneReport()
+    {
+        Assert.Single(
+            Reported(
+                WithoutTheValidationGenerator(
+                    """
+                    using ValidationModules.Constraints;
+                    using Hardened.Web.Runtime.Attributes;
 
-            namespace TestApp;
+                    namespace TestApp;
 
-            public class ItemController {
-                [Get("/items/{id}")]
-                public string ItemById([StringLength(3, 3)] string id) => id;
+                    public class ItemController {
+                        [Get("/items/{id}")]
+                        public string ItemById([StringLength(3, 3)] string id) => id;
 
-                [Get("/items/by-code/{code}")]
-                public string ByCode([StringLength(4, 4)] string code) => code;
-            }
-            """)));
+                        [Get("/items/by-code/{code}")]
+                        public string ByCode([StringLength(4, 4)] string code) => code;
+                    }
+                    """
+                )
+            )
+        );
     }
 
     /// <summary>
@@ -158,11 +191,13 @@ public class NoValidationGeneratorTests {
     /// generator refused to do before it could say why.
     /// </summary>
     [Fact]
-    public void NothingIsAttachedEitherWay() {
+    public void NothingIsAttachedEitherWay()
+    {
         var result = WithoutTheValidationGenerator(ConstrainedModel).AssertNoErrors();
 
-        var handler = result.GeneratedSources
-            .Single(pair => pair.Key.Contains("OrderController_Create")).Value;
+        var handler = result
+            .GeneratedSources.Single(pair => pair.Key.Contains("OrderController_Create"))
+            .Value;
 
         Assert.DoesNotContain("ValidationFilterProvider", handler);
     }

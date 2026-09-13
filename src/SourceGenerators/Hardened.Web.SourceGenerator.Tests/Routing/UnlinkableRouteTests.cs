@@ -15,11 +15,12 @@ namespace Hardened.Web.SourceGenerator.Tests.Routing;
 /// and buried it under a dozen CS1003s instead. Twelve syntax errors ahead of the one line that
 /// said what was wrong, in the 0.20 trial.
 /// </remarks>
-public class UnlinkableRouteTests {
-
-    private static readonly Type[] Anchors = [
-        typeof(GetAttribute),       // Hardened.Web.Runtime
-        typeof(FromBodyAttribute)   // Hardened.Requests.Abstract
+public class UnlinkableRouteTests
+{
+    private static readonly Type[] Anchors =
+    [
+        typeof(GetAttribute), // Hardened.Web.Runtime
+        typeof(FromBodyAttribute), // Hardened.Requests.Abstract
     ];
 
     private static GeneratorResult Generate(string route) =>
@@ -42,22 +43,28 @@ public class UnlinkableRouteTests {
             }
             """,
             new WebLibrarySourceGenerator(),
-            Anchors);
+            Anchors
+        );
 
     [Theory]
     [InlineData("/items/{id?}")]
     [InlineData("/items/{id=5}")]
     [InlineData("/items/{id}/x/{id}")]
-    public void ARefusedRouteIsReportedOnceAndCompiles(string route) {
+    public void ARefusedRouteIsReportedOnceAndCompiles(string route)
+    {
         var result = Generate(route);
 
         Assert.Contains(result.GeneratorDiagnostics, diagnostic => diagnostic.Id == "HRDR002");
-        Assert.DoesNotContain(result.Errors, diagnostic => diagnostic.Id.StartsWith("CS", StringComparison.Ordinal));
+        Assert.DoesNotContain(
+            result.Errors,
+            diagnostic => diagnostic.Id.StartsWith("CS", StringComparison.Ordinal)
+        );
     }
 
     /// <summary>The routes beside it keep their links.</summary>
     [Fact]
-    public void TheOtherRoutesAreStillLinkable() {
+    public void TheOtherRoutesAreStillLinkable()
+    {
         var links = Generate("/items/{id?}").SourceContaining("TestApplication.Links");
 
         Assert.Contains("Name(", links);

@@ -1,15 +1,15 @@
 using System.Text;
 using Hardened.Requests.Abstract.Execution;
-using Hardened.Web.Runtime.CacheControl;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Shared.Runtime.Collections;
 using Hardened.Shared.Runtime.Utilities;
+using Hardened.Web.Runtime.CacheControl;
+using Hardened.Web.Runtime.Responses;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 using NSubstitute;
 using Xunit;
-using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.StaticContent.Tests;
 
@@ -22,16 +22,20 @@ namespace Hardened.Web.StaticContent.Tests;
 /// <c>Last-Modified</c>, so a cache with no validator had nothing at all to revalidate against.
 /// </para>
 /// </summary>
-public class StaticContentRangeTests : IDisposable {
-
+public class StaticContentRangeTests : IDisposable
+{
     private readonly string _tempRoot;
     private readonly string _staticRoot;
 
     /// <summary>Distinguishable bytes, so a slice can be checked against where it came from.</summary>
     private const string Body = "0123456789";
 
-    public StaticContentRangeTests() {
-        _tempRoot = Path.Combine(Path.GetTempPath(), "hardened-range-" + Guid.NewGuid().ToString("N"));
+    public StaticContentRangeTests()
+    {
+        _tempRoot = Path.Combine(
+            Path.GetTempPath(),
+            "hardened-range-" + Guid.NewGuid().ToString("N")
+        );
         _staticRoot = Path.Combine(_tempRoot, "wwwroot");
 
         Directory.CreateDirectory(_staticRoot);
@@ -39,20 +43,29 @@ public class StaticContentRangeTests : IDisposable {
         File.WriteAllText(Path.Combine(_staticRoot, "clip.bin"), Body);
     }
 
-    public void Dispose() {
-        try { Directory.Delete(_tempRoot, true); } catch { /* best effort */ }
+    public void Dispose()
+    {
+        try
+        {
+            Directory.Delete(_tempRoot, true);
+        }
+        catch
+        { /* best effort */
+        }
 
         GC.SuppressFinalize(this);
     }
 
     private StaticContentPipeline Handler(
-        Action<IStaticContentConfiguration>? configure = null, bool text = false) {
+        Action<IStaticContentConfiguration>? configure = null,
+        bool text = false
+    )
+    {
         var configuration = Substitute.For<IStaticContentConfiguration>();
 
         configuration.Path.Returns(_staticRoot);
         configuration.CacheContent.Returns(true);
-        configuration.CacheControlType.Returns(
-            CacheControlEnum.MaxAge | CacheControlEnum.Public);
+        configuration.CacheControlType.Returns(CacheControlEnum.MaxAge | CacheControlEnum.Public);
         configuration.EnableRangeRequests.Returns(true);
         configuration.EnableETag.Returns(true);
         configuration.CompressTextContent.Returns(false);
@@ -63,21 +76,29 @@ public class StaticContentRangeTests : IDisposable {
 
         var mimeHelper = Substitute.For<IFileExtToMimeTypeHelper>();
 
-        mimeHelper.GetMimeTypeInfo(Arg.Any<string>())
+        mimeHelper
+            .GetMimeTypeInfo(Arg.Any<string>())
             .Returns(text ? ("text/plain", false) : ("application/octet-stream", true));
 
         return new StaticContentPipeline(
             new FileSystemContentSource(
-                Options.Create(configuration), mimeHelper,
+                Options.Create(configuration),
+                mimeHelper,
                 new GZipStaticContentCompressor(new MemoryStreamPool()),
                 new ETagProvider(new TestHashPool()),
-                NullLogger<FileSystemContentSource>.Instance),
-            configuration);
+                NullLogger<FileSystemContentSource>.Instance
+            ),
+            configuration
+        );
     }
 
-    private static (IExecutionContext context, MemoryStream body, IExecutionResponse response,
-        IDictionary<string, StringValues> headers)
-        Context(string path, params (string Name, string Value)[] requestHeaders) {
+    private static (
+        IExecutionContext context,
+        MemoryStream body,
+        IExecutionResponse response,
+        IDictionary<string, StringValues> headers
+    ) Context(string path, params (string Name, string Value)[] requestHeaders)
+    {
         var context = Substitute.For<IExecutionContext>();
         var request = Substitute.For<IExecutionRequest>();
         var response = Substitute.For<IExecutionResponse>();
@@ -85,7 +106,8 @@ public class StaticContentRangeTests : IDisposable {
 
         var headers = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var (name, value) in requestHeaders) {
+        foreach (var (name, value) in requestHeaders)
+        {
             headers[name] = value;
         }
 
@@ -111,7 +133,8 @@ public class StaticContentRangeTests : IDisposable {
     /// video served by the old handler played from the start and could not be scrubbed.
     /// </summary>
     [Fact]
-    public async Task AServedFileAdvertisesThatRangesWork() {
+    public async Task AServedFileAdvertisesThatRangesWork()
+    {
         var (context, _, _, headers) = Context("/clip.bin");
 
         Assert.True(await Handler().Handle(context));
@@ -125,9 +148,12 @@ public class StaticContentRangeTests : IDisposable {
     [InlineData("bytes=-3", "789", "bytes 7-9/10")]
     [InlineData("bytes=0-0", "0", "bytes 0-0/10")]
     public async Task ARangeIsAnsweredWith206AndOnlyThoseBytes(
-        string range, string expected, string contentRange) {
-        var (context, body, response, headers) = Context(
-            "/clip.bin", (KnownHeaders.Range, range));
+        string range,
+        string expected,
+        string contentRange
+    )
+    {
+        var (context, body, response, headers) = Context("/clip.bin", (KnownHeaders.Range, range));
 
         Assert.True(await Handler().Handle(context));
 
@@ -145,9 +171,12 @@ public class StaticContentRangeTests : IDisposable {
     /// that guessed wrong learns what to ask for without a second round trip.
     /// </summary>
     [Fact]
-    public async Task ARangePastTheEndIs416WithTheLength() {
+    public async Task ARangePastTheEndIs416WithTheLength()
+    {
         var (context, body, response, headers) = Context(
-            "/clip.bin", (KnownHeaders.Range, "bytes=50-60"));
+            "/clip.bin",
+            (KnownHeaders.Range, "bytes=50-60")
+        );
 
         Assert.True(await Handler().Handle(context));
 
@@ -164,9 +193,9 @@ public class StaticContentRangeTests : IDisposable {
     [InlineData("items=0-4")]
     [InlineData("bytes=nonsense")]
     [InlineData("bytes=0-4,6-9")]
-    public async Task AnUnparseableOrMultipleRangeGetsTheWholeEntity(string range) {
-        var (context, body, response, headers) = Context(
-            "/clip.bin", (KnownHeaders.Range, range));
+    public async Task AnUnparseableOrMultipleRangeGetsTheWholeEntity(string range)
+    {
+        var (context, body, response, headers) = Context("/clip.bin", (KnownHeaders.Range, range));
 
         Assert.True(await Handler().Handle(context));
 
@@ -180,11 +209,14 @@ public class StaticContentRangeTests : IDisposable {
     /// nothing seekable and not wanting a second code path exercised.
     /// </summary>
     [Fact]
-    public async Task AMountWithRangesOffNeitherAdvertisesNorHonoursThem() {
+    public async Task AMountWithRangesOffNeitherAdvertisesNorHonoursThem()
+    {
         var handler = Handler(configuration => configuration.EnableRangeRequests.Returns(false));
 
         var (context, body, response, headers) = Context(
-            "/clip.bin", (KnownHeaders.Range, "bytes=0-4"));
+            "/clip.bin",
+            (KnownHeaders.Range, "bytes=0-4")
+        );
 
         Assert.True(await handler.Handle(context));
 
@@ -198,16 +230,20 @@ public class StaticContentRangeTests : IDisposable {
     /// offset into the resource, and <c>Content-Range</c> cannot say which one it meant.
     /// </summary>
     [Fact]
-    public async Task ACompressedRepresentationIsNotRangeable() {
+    public async Task ACompressedRepresentationIsNotRangeable()
+    {
         File.WriteAllText(Path.Combine(_staticRoot, "big.txt"), new string('a', 4000));
 
         var handler = Handler(
-            configuration => configuration.CompressTextContent.Returns(true), text: true);
+            configuration => configuration.CompressTextContent.Returns(true),
+            text: true
+        );
 
         var (context, _, response, headers) = Context(
             "/big.txt",
             (KnownHeaders.AcceptEncoding, "gzip, deflate, br"),
-            (KnownHeaders.Range, "bytes=0-99"));
+            (KnownHeaders.Range, "bytes=0-99")
+        );
 
         Assert.True(await handler.Handle(context));
 
@@ -224,7 +260,8 @@ public class StaticContentRangeTests : IDisposable {
     /// it: the range holds only while the client's copy is still current.
     /// </summary>
     [Fact]
-    public async Task AnIfRangeThatStillMatchesHonoursTheRange() {
+    public async Task AnIfRangeThatStillMatchesHonoursTheRange()
+    {
         var handler = Handler();
 
         var (warm, _, _, warmHeaders) = Context("/clip.bin");
@@ -234,7 +271,10 @@ public class StaticContentRangeTests : IDisposable {
         var etag = warmHeaders[KnownHeaders.ETag].ToString();
 
         var (context, body, response, _) = Context(
-            "/clip.bin", (KnownHeaders.Range, "bytes=0-4"), (KnownHeaders.IfRange, etag));
+            "/clip.bin",
+            (KnownHeaders.Range, "bytes=0-4"),
+            (KnownHeaders.IfRange, etag)
+        );
 
         Assert.True(await handler.Handle(context));
 
@@ -247,11 +287,13 @@ public class StaticContentRangeTests : IDisposable {
     /// the resource either way, and has just learned its copy is stale.
     /// </summary>
     [Fact]
-    public async Task AnIfRangeThatNoLongerMatchesSendsTheWholeEntity() {
+    public async Task AnIfRangeThatNoLongerMatchesSendsTheWholeEntity()
+    {
         var (context, body, response, _) = Context(
             "/clip.bin",
             (KnownHeaders.Range, "bytes=0-4"),
-            (KnownHeaders.IfRange, "\"a-tag-from-a-previous-deploy\""));
+            (KnownHeaders.IfRange, "\"a-tag-from-a-previous-deploy\"")
+        );
 
         Assert.True(await Handler().Handle(context));
 
@@ -268,7 +310,8 @@ public class StaticContentRangeTests : IDisposable {
     /// was no way to get one at all before.
     /// </summary>
     [Fact]
-    public async Task AServedFileSaysWhenItLastChanged() {
+    public async Task AServedFileSaysWhenItLastChanged()
+    {
         var (context, _, _, headers) = Context("/clip.bin");
 
         Assert.True(await Handler().Handle(context));
@@ -279,14 +322,21 @@ public class StaticContentRangeTests : IDisposable {
 
         // The one date format HTTP has. A client echoes this back verbatim.
         Assert.EndsWith("GMT", lastModified);
-        Assert.True(DateTimeOffset.TryParseExact(
-            lastModified, "R", System.Globalization.CultureInfo.InvariantCulture,
-            System.Globalization.DateTimeStyles.AssumeUniversal, out _));
+        Assert.True(
+            DateTimeOffset.TryParseExact(
+                lastModified,
+                "R",
+                System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.AssumeUniversal,
+                out _
+            )
+        );
     }
 
     /// <summary>A client holding the current copy, asking by date, is told nothing changed.</summary>
     [Fact]
-    public async Task AnIfModifiedSinceAtOrAfterTheFileIsNotModified() {
+    public async Task AnIfModifiedSinceAtOrAfterTheFileIsNotModified()
+    {
         var handler = Handler();
 
         var (warm, _, _, warmHeaders) = Context("/clip.bin");
@@ -296,7 +346,9 @@ public class StaticContentRangeTests : IDisposable {
         var lastModified = warmHeaders[KnownHeaders.LastModified].ToString();
 
         var (context, body, response, _) = Context(
-            "/clip.bin", (KnownHeaders.IfModifiedSince, lastModified));
+            "/clip.bin",
+            (KnownHeaders.IfModifiedSince, lastModified)
+        );
 
         Assert.True(await handler.Handle(context));
 
@@ -306,11 +358,18 @@ public class StaticContentRangeTests : IDisposable {
 
     /// <summary>And one holding an older copy gets the file.</summary>
     [Fact]
-    public async Task AnIfModifiedSinceBeforeTheFileGetsTheFile() {
+    public async Task AnIfModifiedSinceBeforeTheFileGetsTheFile()
+    {
         var (context, body, response, _) = Context(
             "/clip.bin",
-            (KnownHeaders.IfModifiedSince, new DateTimeOffset(2001, 1, 1, 0, 0, 0, TimeSpan.Zero)
-                .ToString("R", System.Globalization.CultureInfo.InvariantCulture)));
+            (
+                KnownHeaders.IfModifiedSince,
+                new DateTimeOffset(2001, 1, 1, 0, 0, 0, TimeSpan.Zero).ToString(
+                    "R",
+                    System.Globalization.CultureInfo.InvariantCulture
+                )
+            )
+        );
 
         Assert.True(await Handler().Handle(context));
 
@@ -324,7 +383,8 @@ public class StaticContentRangeTests : IDisposable {
     /// statement than a timestamp, and a client that sent both meant the validator.
     /// </summary>
     [Fact]
-    public async Task AnEntityTagOutranksTheDateEvenWhenItDoesNotMatch() {
+    public async Task AnEntityTagOutranksTheDateEvenWhenItDoesNotMatch()
+    {
         var handler = Handler();
 
         var (warm, _, _, warmHeaders) = Context("/clip.bin");
@@ -337,7 +397,8 @@ public class StaticContentRangeTests : IDisposable {
         var (context, body, response, _) = Context(
             "/clip.bin",
             (KnownHeaders.IfNoneMatch, "\"from-another-deploy\""),
-            (KnownHeaders.IfModifiedSince, lastModified));
+            (KnownHeaders.IfModifiedSince, lastModified)
+        );
 
         Assert.True(await handler.Handle(context));
 
@@ -347,9 +408,12 @@ public class StaticContentRangeTests : IDisposable {
 
     /// <summary>A date nothing can parse is ignored rather than refused.</summary>
     [Fact]
-    public async Task AnUnparseableIfModifiedSinceIsIgnored() {
+    public async Task AnUnparseableIfModifiedSinceIsIgnored()
+    {
         var (context, body, response, _) = Context(
-            "/clip.bin", (KnownHeaders.IfModifiedSince, "not a date"));
+            "/clip.bin",
+            (KnownHeaders.IfModifiedSince, "not a date")
+        );
 
         Assert.True(await Handler().Handle(context));
 
@@ -362,7 +426,8 @@ public class StaticContentRangeTests : IDisposable {
     /// <c>Last-Modified</c> has nothing else to send, and the range still has to hold.
     /// </summary>
     [Fact]
-    public async Task AnIfRangeDateThatStillMatchesHonoursTheRange() {
+    public async Task AnIfRangeDateThatStillMatchesHonoursTheRange()
+    {
         var handler = Handler();
 
         var (warm, _, _, warmHeaders) = Context("/clip.bin");
@@ -372,7 +437,10 @@ public class StaticContentRangeTests : IDisposable {
         var lastModified = warmHeaders[KnownHeaders.LastModified].ToString();
 
         var (context, body, response, _) = Context(
-            "/clip.bin", (KnownHeaders.Range, "bytes=0-4"), (KnownHeaders.IfRange, lastModified));
+            "/clip.bin",
+            (KnownHeaders.Range, "bytes=0-4"),
+            (KnownHeaders.IfRange, lastModified)
+        );
 
         Assert.True(await handler.Handle(context));
 
@@ -382,12 +450,19 @@ public class StaticContentRangeTests : IDisposable {
 
     /// <summary>And a date from before the file changed sends the whole entity.</summary>
     [Fact]
-    public async Task AnIfRangeDateThatNoLongerMatchesSendsTheWholeEntity() {
+    public async Task AnIfRangeDateThatNoLongerMatchesSendsTheWholeEntity()
+    {
         var (context, body, response, _) = Context(
             "/clip.bin",
             (KnownHeaders.Range, "bytes=0-4"),
-            (KnownHeaders.IfRange, new DateTimeOffset(2001, 1, 1, 0, 0, 0, TimeSpan.Zero)
-                .ToString("R", System.Globalization.CultureInfo.InvariantCulture)));
+            (
+                KnownHeaders.IfRange,
+                new DateTimeOffset(2001, 1, 1, 0, 0, 0, TimeSpan.Zero).ToString(
+                    "R",
+                    System.Globalization.CultureInfo.InvariantCulture
+                )
+            )
+        );
 
         Assert.True(await Handler().Handle(context));
 
@@ -401,7 +476,8 @@ public class StaticContentRangeTests : IDisposable {
     /// requires - so this is the one place the comparison is strong.
     /// </summary>
     [Fact]
-    public async Task AWeakIfRangeDoesNotHonourTheRange() {
+    public async Task AWeakIfRangeDoesNotHonourTheRange()
+    {
         var handler = Handler();
 
         var (warm, _, _, warmHeaders) = Context("/clip.bin");
@@ -411,7 +487,8 @@ public class StaticContentRangeTests : IDisposable {
         var (context, body, response, _) = Context(
             "/clip.bin",
             (KnownHeaders.Range, "bytes=0-4"),
-            (KnownHeaders.IfRange, "W/" + warmHeaders[KnownHeaders.ETag]));
+            (KnownHeaders.IfRange, "W/" + warmHeaders[KnownHeaders.ETag])
+        );
 
         Assert.True(await handler.Handle(context));
 
@@ -421,9 +498,13 @@ public class StaticContentRangeTests : IDisposable {
 
     /// <summary>An empty If-Range says nothing, so the range stands.</summary>
     [Fact]
-    public async Task AnEmptyIfRangeLeavesTheRangeAlone() {
+    public async Task AnEmptyIfRangeLeavesTheRangeAlone()
+    {
         var (context, _, response, _) = Context(
-            "/clip.bin", (KnownHeaders.Range, "bytes=0-4"), (KnownHeaders.IfRange, "   "));
+            "/clip.bin",
+            (KnownHeaders.Range, "bytes=0-4"),
+            (KnownHeaders.IfRange, "   ")
+        );
 
         Assert.True(await Handler().Handle(context));
 
@@ -439,7 +520,8 @@ public class StaticContentRangeTests : IDisposable {
     /// development story - no watcher, no change token, no invalidation.
     /// </summary>
     [Fact]
-    public async Task WithCachingOffAnEditIsVisibleOnTheNextRequest() {
+    public async Task WithCachingOffAnEditIsVisibleOnTheNextRequest()
+    {
         var handler = Handler(configuration => configuration.CacheContent.Returns(false));
 
         var (first, firstBody, _, _) = Context("/clip.bin");
@@ -460,7 +542,8 @@ public class StaticContentRangeTests : IDisposable {
     /// current. Serving fresh bytes under a stale ETag would make not caching worse than caching.
     /// </summary>
     [Fact]
-    public async Task WithCachingOffTheValidatorMovesWithTheFile() {
+    public async Task WithCachingOffTheValidatorMovesWithTheFile()
+    {
         var handler = Handler(configuration => configuration.CacheContent.Returns(false));
 
         var (first, _, _, firstHeaders) = Context("/clip.bin");
@@ -475,7 +558,8 @@ public class StaticContentRangeTests : IDisposable {
 
         Assert.NotEqual(
             firstHeaders[KnownHeaders.ETag].ToString(),
-            secondHeaders[KnownHeaders.ETag].ToString());
+            secondHeaders[KnownHeaders.ETag].ToString()
+        );
     }
 
     /// <summary>
@@ -484,16 +568,20 @@ public class StaticContentRangeTests : IDisposable {
     /// slowest thing on the path and buys a browser on localhost nothing.
     /// </summary>
     [Fact]
-    public async Task WithCachingOffTextIsNotCompressed() {
+    public async Task WithCachingOffTextIsNotCompressed()
+    {
         File.WriteAllText(Path.Combine(_staticRoot, "big.txt"), new string('a', 4000));
 
-        var handler = Handler(configuration => {
+        var handler = Handler(configuration =>
+        {
             configuration.CacheContent.Returns(false);
             configuration.CompressTextContent.Returns(true);
         });
 
         var (context, body, _, headers) = Context(
-            "/big.txt", (KnownHeaders.AcceptEncoding, "gzip, deflate, br"));
+            "/big.txt",
+            (KnownHeaders.AcceptEncoding, "gzip, deflate, br")
+        );
 
         Assert.True(await handler.Handle(context));
 

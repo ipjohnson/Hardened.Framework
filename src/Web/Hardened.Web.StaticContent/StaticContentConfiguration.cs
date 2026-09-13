@@ -4,7 +4,8 @@ using Hardened.Web.Runtime.CacheControl;
 
 namespace Hardened.Web.StaticContent;
 
-public interface IStaticContentConfiguration {
+public interface IStaticContentConfiguration
+{
     string Path { get; }
 
     CacheControlEnum CacheControlType { get; }
@@ -100,10 +101,12 @@ public interface IStaticContentConfiguration {
     bool ServeHiddenFiles { get; }
 }
 
-public class StaticContentConfiguration : IStaticContentConfiguration {
+public class StaticContentConfiguration : IStaticContentConfiguration
+{
     public string Path { get; set; } = "wwwroot";
 
-    public CacheControlEnum CacheControlType { get; set; } = CacheControlEnum.MaxAge | CacheControlEnum.Public;
+    public CacheControlEnum CacheControlType { get; set; } =
+        CacheControlEnum.MaxAge | CacheControlEnum.Public;
 
     public int? CacheMaxAge { get; set; } = 0;
 

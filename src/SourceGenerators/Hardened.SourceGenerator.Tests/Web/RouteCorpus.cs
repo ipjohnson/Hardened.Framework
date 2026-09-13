@@ -13,8 +13,10 @@ namespace Hardened.SourceGenerator.Tests.Web;
 /// verb sets, and the two entry-point attributes that change matching.
 /// </para>
 /// </summary>
-public static class RouteCorpus {
-    public static readonly string[] Scenarios = [
+public static class RouteCorpus
+{
+    public static readonly string[] Scenarios =
+    [
         "literal-paths",
         "single-token",
         "typed-constraints",
@@ -24,77 +26,100 @@ public static class RouteCorpus {
         "verb-set-on-one-path",
         "case-insensitive",
         "base-path",
-        "header-dispatch"
+        "header-dispatch",
     ];
 
-    public static (EntryPointSelector.Model, IReadOnlyList<RequestHandlerModel>) Build(string scenario) =>
-        scenario switch {
-            "literal-paths" => (App(), [
-                Handler("/pets", "GET", "ListPets"),
-                Handler("/pets/featured", "GET", "Featured"),
-                Handler("/store", "GET", "Store")
-            ]),
+    public static (EntryPointSelector.Model, IReadOnlyList<RequestHandlerModel>) Build(
+        string scenario
+    ) =>
+        scenario switch
+        {
+            "literal-paths" => (
+                App(),
+                [
+                    Handler("/pets", "GET", "ListPets"),
+                    Handler("/pets/featured", "GET", "Featured"),
+                    Handler("/store", "GET", "Store"),
+                ]
+            ),
 
-            "single-token" => (App(), [
-                Handler("/pets/{petId}", "GET", "GetPet")
-            ]),
+            "single-token" => (App(), [Handler("/pets/{petId}", "GET", "GetPet")]),
 
-            "typed-constraints" => (App(), [
-                Handler("/items/{id:int}", "GET", "GetItem"),
-                Handler("/price/{value:decimal}", "GET", "GetPrice"),
-                Handler("/key/{key:guid}", "GET", "GetByKey"),
-                Handler("/flag/{on:bool}", "GET", "GetFlag")
-            ]),
+            "typed-constraints" => (
+                App(),
+                [
+                    Handler("/items/{id:int}", "GET", "GetItem"),
+                    Handler("/price/{value:decimal}", "GET", "GetPrice"),
+                    Handler("/key/{key:guid}", "GET", "GetByKey"),
+                    Handler("/flag/{on:bool}", "GET", "GetFlag"),
+                ]
+            ),
 
-            "nested-wildcards" => (App(), [
-                Handler("/a/{x}/b/{y}", "GET", "TwoTokens"),
-                Handler("/a/{x}/b/{y}/c/{z}", "GET", "ThreeTokens")
-            ]),
+            "nested-wildcards" => (
+                App(),
+                [
+                    Handler("/a/{x}/b/{y}", "GET", "TwoTokens"),
+                    Handler("/a/{x}/b/{y}/c/{z}", "GET", "ThreeTokens"),
+                ]
+            ),
 
             // Catch-all is attribute-routed only today. It is in the corpus because the spec path
             // gains it in this work, and the fixture is what proves the web path did not change
             // while that happened.
-            "catch-all" => (App(), [
-                Handler("/files/{*path}", "GET", "GetFile")
-            ]),
+            "catch-all" => (App(), [Handler("/files/{*path}", "GET", "GetFile")]),
 
-            "overlapping-literal-and-token" => (App(), [
-                Handler("/pets/{petId}", "GET", "GetPet"),
-                Handler("/pets/special", "GET", "Special")
-            ]),
+            "overlapping-literal-and-token" => (
+                App(),
+                [
+                    Handler("/pets/{petId}", "GET", "GetPet"),
+                    Handler("/pets/special", "GET", "Special"),
+                ]
+            ),
 
-            "verb-set-on-one-path" => (App(), [
-                Handler("/pets/{petId}", "GET", "GetPet"),
-                Handler("/pets/{petId}", "PUT", "UpdatePet"),
-                Handler("/pets/{petId}", "DELETE", "DeletePet")
-            ]),
+            "verb-set-on-one-path" => (
+                App(),
+                [
+                    Handler("/pets/{petId}", "GET", "GetPet"),
+                    Handler("/pets/{petId}", "PUT", "UpdatePet"),
+                    Handler("/pets/{petId}", "DELETE", "DeletePet"),
+                ]
+            ),
 
-            "case-insensitive" => (App(Attribute("CaseInsensitiveRoutesAttribute")), [
-                Handler("/Pets/{PetId}", "GET", "GetPet")
-            ]),
+            "case-insensitive" => (
+                App(Attribute("CaseInsensitiveRoutesAttribute")),
+                [Handler("/Pets/{PetId}", "GET", "GetPet")]
+            ),
 
-            "base-path" => (App(Attribute("BasePathAttribute", "\"/api\"")), [
-                Handler("/pets", "GET", "ListPets"),
-                Handler("/pets/{petId}", "GET", "GetPet")
-            ]),
+            "base-path" => (
+                App(Attribute("BasePathAttribute", "\"/api\"")),
+                [Handler("/pets", "GET", "ListPets"), Handler("/pets/{petId}", "GET", "GetPet")]
+            ),
 
             // The AWS JSON protocol shape: the operation is selected by header value, not by path.
             // Emitted only by the spec table today; the port brings it here.
-            "header-dispatch" => (App(), [
-                Dispatched("X-Amz-Target", "Bank.GetBalance", "GetBalance"),
-                Dispatched("X-Amz-Target", "Bank.Transfer", "Transfer"),
-                Handler("/health", "GET", "Health")
-            ]),
+            "header-dispatch" => (
+                App(),
+                [
+                    Dispatched("X-Amz-Target", "Bank.GetBalance", "GetBalance"),
+                    Dispatched("X-Amz-Target", "Bank.Transfer", "Transfer"),
+                    Handler("/health", "GET", "Health"),
+                ]
+            ),
 
-            _ => throw new ArgumentOutOfRangeException(nameof(scenario), scenario, "Unknown scenario.")
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(scenario),
+                scenario,
+                "Unknown scenario."
+            ),
         };
 
     private static EntryPointSelector.Model App(params AttributeModel[] attributes) =>
-        new() {
+        new()
+        {
             EntryPointType = TypeDefinition.Get("Test.Api", "TestApp"),
             AttributeModels = attributes,
             RootEntryPoint = true,
-            MethodDefinitions = Array.Empty<HardenedMethodDefinition>()
+            MethodDefinitions = Array.Empty<HardenedMethodDefinition>(),
         };
 
     private static AttributeModel Attribute(string name, string arguments = "") =>
@@ -107,11 +132,13 @@ public static class RouteCorpus {
         Build(new RequestHandlerNameModel("/", "POST", header, key), handlerName);
 
     private static RequestHandlerModel Build(RequestHandlerNameModel name, string handlerName) =>
-        new(name,
+        new(
+            name,
             TypeDefinition.Get("Test.Api.Services", "IPetService"),
             handlerName,
             TypeDefinition.Get("Test.Api.Generated", "PetController_" + handlerName),
             Array.Empty<RequestParameterInformation>(),
             new ResponseInformationModel { IsAsync = true },
-            Array.Empty<AttributeModel>());
+            Array.Empty<AttributeModel>()
+        );
 }

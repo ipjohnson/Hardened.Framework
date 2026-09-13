@@ -42,7 +42,8 @@ namespace Hardened.Requests.Runtime.Filters;
 /// filter that writes to the body itself and then fails.
 /// </para>
 /// </remarks>
-public class RetryFilter : IExecutionFilter {
+public class RetryFilter : IExecutionFilter
+{
     private readonly int _attempts;
     private readonly int _baseDelayMilliseconds;
     private readonly int _totalBudgetMilliseconds;
@@ -56,15 +57,26 @@ public class RetryFilter : IExecutionFilter {
     /// RFC 9110 §9.2.2. <c>POST</c> and <c>PATCH</c> are absent because replaying one is a second
     /// side effect, and the framework has no way to know whether that is acceptable.
     /// </remarks>
-    private static readonly HashSet<string> IdempotentMethods =
-        new(StringComparer.OrdinalIgnoreCase) { "GET", "HEAD", "PUT", "DELETE", "OPTIONS", "TRACE" };
+    private static readonly HashSet<string> IdempotentMethods = new(
+        StringComparer.OrdinalIgnoreCase
+    )
+    {
+        "GET",
+        "HEAD",
+        "PUT",
+        "DELETE",
+        "OPTIONS",
+        "TRACE",
+    };
 
     public RetryFilter(
         int attempts,
         int baseDelayMilliseconds,
         int totalBudgetMilliseconds,
         bool allowNonIdempotent,
-        Func<Exception, bool>? shouldRetry = null) {
+        Func<Exception, bool>? shouldRetry = null
+    )
+    {
         _attempts = attempts;
         _baseDelayMilliseconds = baseDelayMilliseconds;
         _totalBudgetMilliseconds = totalBudgetMilliseconds;
@@ -81,18 +93,21 @@ public class RetryFilter : IExecutionFilter {
     /// without having to derive from anything in particular.
     /// </remarks>
     public static bool IsTransient(Exception exception) =>
-        exception switch {
+        exception switch
+        {
             OperationCanceledException => false,
             BadRequestException => false,
             FormatException => false,
             IStatusCodeException { StatusCode: >= 400 and < 500 } => false,
-            _ => true
+            _ => true,
         };
 
-    public async Task Execute(IExecutionChain chain) {
+    public async Task Execute(IExecutionChain chain)
+    {
         var context = chain.Context;
 
-        if (_attempts <= 1 || !MayRetry(context)) {
+        if (_attempts <= 1 || !MayRetry(context))
+        {
             await chain.Next();
 
             return;
@@ -107,15 +122,18 @@ public class RetryFilter : IExecutionFilter {
 
         var start = MachineTimestamp.Now;
 
-        for (var attempt = 1;; attempt++) {
-            if (attempt > 1) {
+        for (var attempt = 1; ; attempt++)
+        {
+            if (attempt > 1)
+            {
                 response.Status = status;
                 response.ResponseValue = responseValue;
 
                 // A handler reading the body directly rather than through bound parameters needs it
                 // back at the start. Parameters themselves are already bound and cached by the time
                 // this filter runs, so nothing re-reads the stream on their behalf.
-                if (context.Request.Body.CanSeek) {
+                if (context.Request.Body.CanSeek)
+                {
                     context.Request.Body.Position = 0;
                 }
             }
@@ -124,26 +142,32 @@ public class RetryFilter : IExecutionFilter {
 
             Exception? failure;
 
-            try {
+            try
+            {
                 await chain.Fork(context).Next();
 
                 failure = response.ExceptionValue;
             }
-            catch (Exception exception) {
+            catch (Exception exception)
+            {
                 failure = exception;
             }
 
-            if (failure == null) {
+            if (failure == null)
+            {
                 return;
             }
 
             // A response with bytes on the wire is treated like an exhausted budget: the failure
             // is still the failure, and only the remedy is gone.
-            if (attempt >= _attempts ||
-                response.ResponseStarted ||
-                !_shouldRetry(failure) ||
-                context.CancellationToken.IsCancellationRequested ||
-                Exhausted(start)) {
+            if (
+                attempt >= _attempts
+                || response.ResponseStarted
+                || !_shouldRetry(failure)
+                || context.CancellationToken.IsCancellationRequested
+                || Exhausted(start)
+            )
+            {
                 // Back onto the response rather than rethrown: the filter at
                 // FilterOrder.Serialization is what turns a failure into a body, and it reads it
                 // from here. Rethrowing would skip it and hand the exception to the transport.
@@ -173,8 +197,10 @@ public class RetryFilter : IExecutionFilter {
     /// slow dependency backs off by the same fixed amount and returns together, which is the
     /// dependency's second outage. A delay drawn from <c>[0, window)</c> spreads them instead.
     /// </remarks>
-    private Task Delay(int attempt, CancellationToken cancellationToken) {
-        if (_baseDelayMilliseconds <= 0) {
+    private Task Delay(int attempt, CancellationToken cancellationToken)
+    {
+        if (_baseDelayMilliseconds <= 0)
+        {
             return Task.CompletedTask;
         }
 
@@ -183,10 +209,14 @@ public class RetryFilter : IExecutionFilter {
         var exponent = Math.Min(attempt - 1, 20);
         var window = (long)_baseDelayMilliseconds << exponent;
 
-        if (_totalBudgetMilliseconds > 0) {
+        if (_totalBudgetMilliseconds > 0)
+        {
             window = Math.Min(window, _totalBudgetMilliseconds);
         }
 
-        return Task.Delay(Random.Shared.Next((int)Math.Min(window, int.MaxValue) + 1), cancellationToken);
+        return Task.Delay(
+            Random.Shared.Next((int)Math.Min(window, int.MaxValue) + 1),
+            cancellationToken
+        );
     }
 }

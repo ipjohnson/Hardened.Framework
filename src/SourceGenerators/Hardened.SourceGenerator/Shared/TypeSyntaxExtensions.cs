@@ -3,88 +3,114 @@ using Microsoft.CodeAnalysis;
 
 namespace Hardened.SourceGenerator.Shared;
 
-public static class TypeSyntaxExtensions {
-    public static ITypeDefinition? GetTypeDefinition(this SyntaxNode typeSyntax,
-        GeneratorSyntaxContext generatorSyntaxContext) {
+public static class TypeSyntaxExtensions
+{
+    public static ITypeDefinition? GetTypeDefinition(
+        this SyntaxNode typeSyntax,
+        GeneratorSyntaxContext generatorSyntaxContext
+    )
+    {
         var symbolInfo = generatorSyntaxContext.SemanticModel.GetSymbolInfo(typeSyntax);
 
         var type = GetTypeDefinitionFromSymbolInfo(symbolInfo);
 
-        if (typeSyntax.ToString().EndsWith("?")) {
+        if (typeSyntax.ToString().EndsWith("?"))
+        {
             return type?.MakeNullable();
         }
 
         return type;
     }
 
-    public static string GetFullName(this INamespaceSymbol? namespaceSymbol) {
-        if (namespaceSymbol == null) {
+    public static string GetFullName(this INamespaceSymbol? namespaceSymbol)
+    {
+        if (namespaceSymbol == null)
+        {
             return "";
         }
 
         var baseString = namespaceSymbol.ContainingNamespace?.GetFullName();
 
-        if (string.IsNullOrEmpty(baseString)) {
+        if (string.IsNullOrEmpty(baseString))
+        {
             return namespaceSymbol.Name;
         }
 
         return baseString + "." + namespaceSymbol.Name;
     }
 
-    public static ITypeDefinition GetTypeDefinition(this ITypeSymbol typeSymbol) {
+    public static ITypeDefinition GetTypeDefinition(this ITypeSymbol typeSymbol)
+    {
         var typeEnum = GetTypeSymbolKind(typeSymbol);
 
-        return TypeDefinition.Get(typeEnum, typeSymbol.ContainingNamespace.GetFullName(), GetTypeName(typeSymbol));
+        return TypeDefinition.Get(
+            typeEnum,
+            typeSymbol.ContainingNamespace.GetFullName(),
+            GetTypeName(typeSymbol)
+        );
     }
 
-    private static TypeDefinitionEnum GetTypeSymbolKind(ITypeSymbol typeSymbol) {
+    private static TypeDefinitionEnum GetTypeSymbolKind(ITypeSymbol typeSymbol)
+    {
         var typeEnum = TypeDefinitionEnum.ClassDefinition;
 
-        if (typeSymbol.TypeKind == TypeKind.Enum) {
+        if (typeSymbol.TypeKind == TypeKind.Enum)
+        {
             typeEnum = TypeDefinitionEnum.EnumDefinition;
         }
-        else if (typeSymbol.TypeKind == TypeKind.Interface) {
+        else if (typeSymbol.TypeKind == TypeKind.Interface)
+        {
             typeEnum = TypeDefinitionEnum.InterfaceDefinition;
         }
 
         return typeEnum;
     }
 
-    private static string GetTypeName(ITypeSymbol typeSymbol) {
-        if (typeSymbol.ContainingType != null) {
+    private static string GetTypeName(ITypeSymbol typeSymbol)
+    {
+        if (typeSymbol.ContainingType != null)
+        {
             return GetTypeName(typeSymbol.ContainingType) + "." + typeSymbol.Name;
         }
 
         return typeSymbol.Name;
     }
 
-    public static ITypeDefinition? GetTypeDefinitionFromSymbolInfo(SymbolInfo symbolInfo) {
-        if (symbolInfo.Symbol is INamedTypeSymbol namedTypeSymbol) {
+    public static ITypeDefinition? GetTypeDefinitionFromSymbolInfo(SymbolInfo symbolInfo)
+    {
+        if (symbolInfo.Symbol is INamedTypeSymbol namedTypeSymbol)
+        {
             return GetTypeDefinitionFromNamedSymbol(namedTypeSymbol);
         }
 
-        if (symbolInfo.Symbol is IArrayTypeSymbol arrayTypeSymbol) {
+        if (symbolInfo.Symbol is IArrayTypeSymbol arrayTypeSymbol)
+        {
             return GetTypeDefinitionFromType(arrayTypeSymbol.ElementType).MakeArray();
         }
 
         return null;
     }
 
-    private static ITypeDefinition? GetTypeDefinitionFromNamedSymbol(INamedTypeSymbol namedTypeSymbol) {
-        
-        if (namedTypeSymbol.IsGenericType) {
-            if (namedTypeSymbol.Name == "Nullable") {
+    private static ITypeDefinition? GetTypeDefinitionFromNamedSymbol(
+        INamedTypeSymbol namedTypeSymbol
+    )
+    {
+        if (namedTypeSymbol.IsGenericType)
+        {
+            if (namedTypeSymbol.Name == "Nullable")
+            {
                 var baseType = namedTypeSymbol.TypeArguments.First();
                 return GetTypeDefinitionFromType(baseType).MakeNullable();
             }
 
             var closingTypeSymbols = namedTypeSymbol.TypeArguments;
-            
+
             var closingTypes = new List<ITypeDefinition>();
 
-            foreach (var typeSymbol in closingTypeSymbols) {
+            foreach (var typeSymbol in closingTypeSymbols)
+            {
                 var finalType = GetTypeDefinitionFromType(typeSymbol);
-                
+
                 closingTypes.Add(finalType);
             }
 
@@ -94,8 +120,9 @@ public static class TypeSyntaxExtensions {
                 GetTypeName(namedTypeSymbol),
                 closingTypes
             );
-            
-            if (namedTypeSymbol.NullableAnnotation == NullableAnnotation.Annotated) {
+
+            if (namedTypeSymbol.NullableAnnotation == NullableAnnotation.Annotated)
+            {
                 return genericType.MakeNullable();
             }
 
@@ -108,17 +135,22 @@ public static class TypeSyntaxExtensions {
 
         var typeDef = TypeDefinition.Get(
             GetTypeSymbolKind(namedTypeSymbol),
-            namedTypeSymbol.ContainingNamespace.GetFullName(), GetTypeName(namedTypeSymbol));
+            namedTypeSymbol.ContainingNamespace.GetFullName(),
+            GetTypeName(namedTypeSymbol)
+        );
 
-        if (namedTypeSymbol.NullableAnnotation == NullableAnnotation.Annotated) {
+        if (namedTypeSymbol.NullableAnnotation == NullableAnnotation.Annotated)
+        {
             return typeDef.MakeNullable();
         }
 
         return typeDef;
     }
 
-    private static ITypeDefinition GetTypeDefinitionFromType(ITypeSymbol typeSymbol) {
-        switch (typeSymbol.SpecialType) {
+    private static ITypeDefinition GetTypeDefinitionFromType(ITypeSymbol typeSymbol)
+    {
+        switch (typeSymbol.SpecialType)
+        {
             case SpecialType.System_Int16:
                 return TypeDefinition.Get(typeof(short));
 
@@ -141,24 +173,28 @@ public static class TypeSyntaxExtensions {
                 return TypeDefinition.Get(typeof(string));
         }
 
-        if (typeSymbol is ITypeParameterSymbol typeParameterSymbol) {
+        if (typeSymbol is ITypeParameterSymbol typeParameterSymbol)
+        {
             // A TypeParameterDefinition, not TypeDefinition.Get("", name): an empty namespace now
             // means the global namespace, which Global mode qualifies - and global::T is not a type.
             return new TypeParameterDefinition(typeParameterSymbol.Name);
         }
 
-        if (typeSymbol is IArrayTypeSymbol arrayTypeSymbol) {
+        if (typeSymbol is IArrayTypeSymbol arrayTypeSymbol)
+        {
             return GetTypeDefinitionFromType(arrayTypeSymbol.ElementType).MakeArray();
         }
 
-        if (typeSymbol is INamedTypeSymbol namedTypeSymbol) {
+        if (typeSymbol is INamedTypeSymbol namedTypeSymbol)
+        {
             return GetTypeDefinitionFromNamedSymbol(namedTypeSymbol)!;
         }
 
         return TypeDefinition.Get(typeSymbol.ContainingNamespace.GetFullName(), typeSymbol.Name);
     }
 
-    private static bool IsKnownType(string name) {
+    private static bool IsKnownType(string name)
+    {
         return false;
     }
 }

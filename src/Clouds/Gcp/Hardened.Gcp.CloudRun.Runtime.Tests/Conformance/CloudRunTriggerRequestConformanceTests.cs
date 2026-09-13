@@ -25,33 +25,47 @@ namespace Hardened.Gcp.CloudRun.Runtime.Tests.Conformance;
 /// uses and the same concession the SQS enrolment makes.
 /// </para>
 /// </remarks>
-public class CloudRunTriggerRequestConformanceTests : PayloadExecutionRequestConformanceTests {
+public class CloudRunTriggerRequestConformanceTests : PayloadExecutionRequestConformanceTests
+{
     protected override IExecutionRequestConformanceAdapter Adapter { get; } = new PushAdapter();
 
-    private sealed class PushAdapter : IExecutionRequestConformanceAdapter {
+    private sealed class PushAdapter : IExecutionRequestConformanceAdapter
+    {
         private readonly PubSubPushEnvelope _envelope = new();
 
         public string TransportName => "Cloud Run Pub/Sub push";
 
-        public IExecutionRequest CreateRequest(ConformanceRequestSpec spec) {
+        public IExecutionRequest CreateRequest(ConformanceRequestSpec spec)
+        {
             var push = PubSubPush.Body(
                 CloudRunEnvelopeDelivery.Subscription("conformance"),
                 spec.Body ?? Array.Empty<byte>(),
                 attributes: new Dictionary<string, string>(spec.Headers),
                 messageId: "conformance",
-                publishTime: CloudRunEnvelopeDelivery.PublishTime);
+                publishTime: CloudRunEnvelopeDelivery.PublishTime
+            );
 
-            var delivery = new TestExecutionRequest("POST", "/", null, EmptyQueryStringCollection.Instance) {
-                Headers = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase) {
-                    ["Content-Type"] = "application/json"
+            var delivery = new TestExecutionRequest(
+                "POST",
+                "/",
+                null,
+                EmptyQueryStringCollection.Instance
+            )
+            {
+                Headers = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["Content-Type"] = "application/json",
                 },
-                Body = new MemoryStream(push, writable: false)
+                Body = new MemoryStream(push, writable: false),
             };
 
             using var payload = new TriggerPayload(push);
 
-            var trigger = _envelope.Unwrap(delivery, payload)
-                          ?? throw new InvalidOperationException("The envelope declined the push built for it.");
+            var trigger =
+                _envelope.Unwrap(delivery, payload)
+                ?? throw new InvalidOperationException(
+                    "The envelope declined the push built for it."
+                );
 
             return trigger.Clone(method: spec.Method, path: spec.Path);
         }

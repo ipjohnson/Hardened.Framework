@@ -30,15 +30,17 @@ namespace Hardened.SourceGenerator.OpenApiDocument;
 /// already produces and the raw one by hand.
 /// </para>
 /// </remarks>
-internal static class XmlDocumentation {
-
-    public static (string? Summary, string? Description) Read(SyntaxNode node) {
+internal static class XmlDocumentation
+{
+    public static (string? Summary, string? Description) Read(SyntaxNode node)
+    {
         var comment = node.GetLeadingTrivia()
             .Select(trivia => trivia.GetStructure())
             .OfType<DocumentationCommentTriviaSyntax>()
             .FirstOrDefault();
 
-        if (comment == null) {
+        if (comment == null)
+        {
             return FromRawTrivia(node);
         }
 
@@ -53,23 +55,29 @@ internal static class XmlDocumentation {
     /// means, and an OpenAPI parameter has a <c>description</c> for exactly that. Read through the
     /// same two paths as the summary, for the same reason.
     /// </remarks>
-    public static string? ReadParameter(SyntaxNode node, string parameterName) {
+    public static string? ReadParameter(SyntaxNode node, string parameterName)
+    {
         var comment = node.GetLeadingTrivia()
             .Select(trivia => trivia.GetStructure())
             .OfType<DocumentationCommentTriviaSyntax>()
             .FirstOrDefault();
 
-        if (comment == null) {
+        if (comment == null)
+        {
             return RawParameter(node, parameterName);
         }
 
-        foreach (var element in comment.ChildNodes().OfType<XmlElementSyntax>()) {
-            if (element.StartTag.Name.LocalName.ValueText != "param") {
+        foreach (var element in comment.ChildNodes().OfType<XmlElementSyntax>())
+        {
+            if (element.StartTag.Name.LocalName.ValueText != "param")
+            {
                 continue;
             }
 
-            foreach (var attribute in element.StartTag.Attributes.OfType<XmlNameAttributeSyntax>()) {
-                if (attribute.Identifier.Identifier.ValueText != parameterName) {
+            foreach (var attribute in element.StartTag.Attributes.OfType<XmlNameAttributeSyntax>())
+            {
+                if (attribute.Identifier.Identifier.ValueText != parameterName)
+                {
                     continue;
                 }
 
@@ -82,23 +90,30 @@ internal static class XmlDocumentation {
         return null;
     }
 
-    private static string? RawParameter(SyntaxNode node, string parameterName) {
+    private static string? RawParameter(SyntaxNode node, string parameterName)
+    {
         var text = RawText(node);
 
-        if (text == null) {
+        if (text == null)
+        {
             return null;
         }
 
-        var open = text.IndexOf("<param name=\"" + parameterName + "\">", System.StringComparison.Ordinal);
+        var open = text.IndexOf(
+            "<param name=\"" + parameterName + "\">",
+            System.StringComparison.Ordinal
+        );
 
-        if (open < 0) {
+        if (open < 0)
+        {
             return null;
         }
 
         var start = text.IndexOf('>', open) + 1;
         var close = text.IndexOf("</param>", start, System.StringComparison.Ordinal);
 
-        if (close < 0) {
+        if (close < 0)
+        {
             return null;
         }
 
@@ -116,7 +131,8 @@ internal static class XmlDocumentation {
     /// content is prose that may not be well-formed, and a doc comment that fails to parse should
     /// contribute nothing rather than fail a build that was otherwise fine.
     /// </remarks>
-    private static (string? Summary, string? Description) FromRawTrivia(SyntaxNode node) {
+    private static (string? Summary, string? Description) FromRawTrivia(SyntaxNode node)
+    {
         var text = RawText(node);
 
         return text == null
@@ -125,17 +141,21 @@ internal static class XmlDocumentation {
     }
 
     /// <summary>The <c>///</c> lines above a node, joined, with the slashes removed.</summary>
-    private static string? RawText(SyntaxNode node) {
+    private static string? RawText(SyntaxNode node)
+    {
         var builder = new StringBuilder();
 
-        foreach (var trivia in node.GetLeadingTrivia()) {
-            if (!trivia.IsKind(SyntaxKind.SingleLineCommentTrivia)) {
+        foreach (var trivia in node.GetLeadingTrivia())
+        {
+            if (!trivia.IsKind(SyntaxKind.SingleLineCommentTrivia))
+            {
                 continue;
             }
 
             var line = trivia.ToString().TrimStart();
 
-            if (!line.StartsWith("///", System.StringComparison.Ordinal)) {
+            if (!line.StartsWith("///", System.StringComparison.Ordinal))
+            {
                 continue;
             }
 
@@ -145,17 +165,20 @@ internal static class XmlDocumentation {
         return builder.Length == 0 ? null : builder.ToString();
     }
 
-    private static string? RawElement(string text, string name) {
+    private static string? RawElement(string text, string name)
+    {
         var open = text.IndexOf("<" + name + ">", System.StringComparison.Ordinal);
 
-        if (open < 0) {
+        if (open < 0)
+        {
             return null;
         }
 
         var start = open + name.Length + 2;
         var close = text.IndexOf("</" + name + ">", start, System.StringComparison.Ordinal);
 
-        if (close < 0) {
+        if (close < 0)
+        {
             return null;
         }
 
@@ -165,20 +188,26 @@ internal static class XmlDocumentation {
     }
 
     /// <summary>The prose inside an element, with any nested markup removed.</summary>
-    private static string StripTags(string text) {
+    private static string StripTags(string text)
+    {
         var builder = new StringBuilder(text.Length);
         var depth = 0;
 
-        foreach (var character in text) {
-            if (character == '<') {
+        foreach (var character in text)
+        {
+            if (character == '<')
+            {
                 depth++;
             }
-            else if (character == '>') {
-                if (depth > 0) {
+            else if (character == '>')
+            {
+                if (depth > 0)
+                {
                     depth--;
                 }
             }
-            else if (depth == 0) {
+            else if (depth == 0)
+            {
                 builder.Append(character);
             }
         }
@@ -190,18 +219,22 @@ internal static class XmlDocumentation {
     /// The five named entities XML defines and the numeric forms, as their characters. Anything
     /// else is left as written: a stray <c>&amp;</c> in prose is prose.
     /// </summary>
-    private static string DecodeEntities(string text) {
-        if (text.IndexOf('&') < 0) {
+    private static string DecodeEntities(string text)
+    {
+        if (text.IndexOf('&') < 0)
+        {
             return text;
         }
 
         var builder = new StringBuilder(text.Length);
         var index = 0;
 
-        while (index < text.Length) {
+        while (index < text.Length)
+        {
             var ampersand = text.IndexOf('&', index);
 
-            if (ampersand < 0) {
+            if (ampersand < 0)
+            {
                 builder.Append(text, index, text.Length - index);
 
                 break;
@@ -211,11 +244,16 @@ internal static class XmlDocumentation {
 
             var semicolon = text.IndexOf(';', ampersand);
 
-            if (semicolon > ampersand && Decode(text.Substring(ampersand + 1, semicolon - ampersand - 1)) is { } decoded) {
+            if (
+                semicolon > ampersand
+                && Decode(text.Substring(ampersand + 1, semicolon - ampersand - 1)) is { } decoded
+            )
+            {
                 builder.Append(decoded);
                 index = semicolon + 1;
             }
-            else {
+            else
+            {
                 builder.Append('&');
                 index = ampersand + 1;
             }
@@ -224,34 +262,51 @@ internal static class XmlDocumentation {
         return builder.ToString();
     }
 
-    private static string? Decode(string entity) {
-        switch (entity) {
-            case "lt": return "<";
-            case "gt": return ">";
-            case "amp": return "&";
-            case "quot": return "\"";
-            case "apos": return "'";
+    private static string? Decode(string entity)
+    {
+        switch (entity)
+        {
+            case "lt":
+                return "<";
+            case "gt":
+                return ">";
+            case "amp":
+                return "&";
+            case "quot":
+                return "\"";
+            case "apos":
+                return "'";
         }
 
-        if (entity.Length < 2 || entity[0] != '#') {
+        if (entity.Length < 2 || entity[0] != '#')
+        {
             return null;
         }
 
         var hex = entity[1] == 'x' || entity[1] == 'X';
         var digits = entity.Substring(hex ? 2 : 1);
 
-        return int.TryParse(
-            digits,
-            hex ? System.Globalization.NumberStyles.HexNumber : System.Globalization.NumberStyles.Integer,
-            System.Globalization.CultureInfo.InvariantCulture,
-            out var codePoint) && codePoint > 0 && codePoint <= 0x10FFFF
+        return
+            int.TryParse(
+                digits,
+                hex
+                    ? System.Globalization.NumberStyles.HexNumber
+                    : System.Globalization.NumberStyles.Integer,
+                System.Globalization.CultureInfo.InvariantCulture,
+                out var codePoint
+            )
+            && codePoint > 0
+            && codePoint <= 0x10FFFF
             ? char.ConvertFromUtf32(codePoint)
             : null;
     }
 
-    private static string? Element(DocumentationCommentTriviaSyntax comment, string name) {
-        foreach (var element in comment.ChildNodes().OfType<XmlElementSyntax>()) {
-            if (element.StartTag.Name.LocalName.ValueText != name) {
+    private static string? Element(DocumentationCommentTriviaSyntax comment, string name)
+    {
+        foreach (var element in comment.ChildNodes().OfType<XmlElementSyntax>())
+        {
+            if (element.StartTag.Name.LocalName.ValueText != name)
+            {
                 continue;
             }
 
@@ -271,11 +326,14 @@ internal static class XmlDocumentation {
     /// A <c>&lt;see cref="Thing"/&gt;</c> contributes the name it points at, since dropping it
     /// silently would turn "see <c>Thing</c> for the ordering" into "see for the ordering".
     /// </remarks>
-    private static string Flatten(XmlElementSyntax element) {
+    private static string Flatten(XmlElementSyntax element)
+    {
         var builder = new StringBuilder();
 
-        foreach (var token in element.Content.SelectMany(node => node.DescendantTokens())) {
-            switch (token.Kind()) {
+        foreach (var token in element.Content.SelectMany(node => node.DescendantTokens()))
+        {
+            switch (token.Kind())
+            {
                 case SyntaxKind.XmlTextLiteralToken:
                 case SyntaxKind.XmlEntityLiteralToken:
                     builder.Append(token.ValueText);
@@ -287,9 +345,12 @@ internal static class XmlDocumentation {
             }
         }
 
-        foreach (var reference in element.Content
-                     .SelectMany(node => node.DescendantNodes())
-                     .OfType<XmlCrefAttributeSyntax>()) {
+        foreach (
+            var reference in element
+                .Content.SelectMany(node => node.DescendantNodes())
+                .OfType<XmlCrefAttributeSyntax>()
+        )
+        {
             builder.Append(' ').Append(SimpleName(reference.Cref.ToString()));
         }
 
@@ -297,24 +358,29 @@ internal static class XmlDocumentation {
     }
 
     /// <summary>The last segment of a cref, which is how the type reads in prose.</summary>
-    private static string SimpleName(string cref) {
+    private static string SimpleName(string cref)
+    {
         var lastDot = cref.LastIndexOf('.');
 
         return lastDot >= 0 && lastDot < cref.Length - 1 ? cref.Substring(lastDot + 1) : cref;
     }
 
-    private static string Collapse(string text) {
+    private static string Collapse(string text)
+    {
         var builder = new StringBuilder(text.Length);
         var pendingSpace = false;
 
-        foreach (var character in text) {
-            if (char.IsWhiteSpace(character)) {
+        foreach (var character in text)
+        {
+            if (char.IsWhiteSpace(character))
+            {
                 pendingSpace = builder.Length > 0;
 
                 continue;
             }
 
-            if (pendingSpace) {
+            if (pendingSpace)
+            {
                 builder.Append(' ');
                 pendingSpace = false;
             }

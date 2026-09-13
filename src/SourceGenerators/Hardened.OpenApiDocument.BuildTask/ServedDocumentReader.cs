@@ -35,8 +35,8 @@ namespace Hardened.OpenApiDocument.BuildTask;
 /// why fixtures for this reader are built from a real document rather than a stub.
 /// </para>
 /// </remarks>
-internal static class ServedDocumentReader {
-
+internal static class ServedDocumentReader
+{
     public const string DocumentTypeName = "OpenApiDocument";
 
     public const string PropertyName = "GZip";
@@ -49,8 +49,10 @@ internal static class ServedDocumentReader {
     /// <summary>
     /// One served document: the entry point it belongs to and its bytes as the assembly holds them.
     /// </summary>
-    internal sealed class ServedDocument {
-        public ServedDocument(string entryPoint, byte[] compressed, string lowering) {
+    internal sealed class ServedDocument
+    {
+        public ServedDocument(string entryPoint, byte[] compressed, string lowering)
+        {
             EntryPoint = entryPoint;
             Compressed = compressed;
             Lowering = lowering;
@@ -71,26 +73,34 @@ internal static class ServedDocumentReader {
     /// <exception cref="ServedDocumentException">
     /// A getter was found whose body is not in a shape this reader knows.
     /// </exception>
-    public static IReadOnlyList<ServedDocument> Read(string assemblyPath) {
+    public static IReadOnlyList<ServedDocument> Read(string assemblyPath)
+    {
         using var stream = OpenShared(assemblyPath);
         using var reader = new PEReader(stream);
 
         var metadata = reader.GetMetadataReader();
         var documents = new List<ServedDocument>();
 
-        foreach (var handle in metadata.TypeDefinitions) {
+        foreach (var handle in metadata.TypeDefinitions)
+        {
             var type = metadata.GetTypeDefinition(handle);
 
-            if (!type.IsNested || metadata.GetString(type.Name) != DocumentTypeName) {
+            if (!type.IsNested || metadata.GetString(type.Name) != DocumentTypeName)
+            {
                 continue;
             }
 
-            var entryPoint = FullName(metadata, metadata.GetTypeDefinition(type.GetDeclaringType()));
+            var entryPoint = FullName(
+                metadata,
+                metadata.GetTypeDefinition(type.GetDeclaringType())
+            );
 
-            foreach (var methodHandle in type.GetMethods()) {
+            foreach (var methodHandle in type.GetMethods())
+            {
                 var method = metadata.GetMethodDefinition(methodHandle);
 
-                if (metadata.GetString(method.Name) != GetterName) {
+                if (metadata.GetString(method.Name) != GetterName)
+                {
                     continue;
                 }
 
@@ -102,7 +112,8 @@ internal static class ServedDocumentReader {
     }
 
     /// <summary>Inflates what <see cref="Read"/> returned.</summary>
-    public static byte[] Inflate(byte[] compressed) {
+    public static byte[] Inflate(byte[] compressed)
+    {
         using var source = new MemoryStream(compressed, writable: false);
         using var gzip = new GZipStream(source, CompressionMode.Decompress);
         using var inflated = new MemoryStream();
@@ -117,56 +128,87 @@ internal static class ServedDocumentReader {
     /// the compiler closes it, which the SDK's own Copy task answers with a short retry; a build
     /// task that failed on that would fail one build in fifty and never the next.
     /// </summary>
-    private static FileStream OpenShared(string path) {
+    private static FileStream OpenShared(string path)
+    {
         const int attempts = 10;
 
-        for (var attempt = 1; ; attempt++) {
-            try {
-                return new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                return new FileStream(
+                    path,
+                    FileMode.Open,
+                    FileAccess.Read,
+                    FileShare.ReadWrite | FileShare.Delete
+                );
             }
-            catch (IOException) when (attempt < attempts) {
+            catch (IOException) when (attempt < attempts)
+            {
                 Thread.Sleep(100);
             }
         }
     }
 
     private static ServedDocument ReadLiteral(
-        PEReader reader, MetadataReader metadata, MethodDefinition getter, string entryPoint) {
-        if (getter.RelativeVirtualAddress == 0) {
+        PEReader reader,
+        MetadataReader metadata,
+        MethodDefinition getter,
+        string entryPoint
+    )
+    {
+        if (getter.RelativeVirtualAddress == 0)
+        {
             throw new ServedDocumentException(entryPoint, "the getter has no body");
         }
 
         var body = reader.GetMethodBody(getter.RelativeVirtualAddress);
         var scan = IlScanner.Scan(body.GetILBytes() ?? Array.Empty<byte>(), metadata);
 
-        if (scan.Field == null) {
-            throw new ServedDocumentException(entryPoint, "the getter's body references no data field");
+        if (scan.Field == null)
+        {
+            throw new ServedDocumentException(
+                entryPoint,
+                "the getter's body references no data field"
+            );
         }
 
         var field = metadata.GetFieldDefinition(scan.Field.Value);
         var rva = field.GetRelativeVirtualAddress();
 
-        if (rva == 0) {
+        if (rva == 0)
+        {
             throw new ServedDocumentException(
-                entryPoint, "the field the getter references carries no data of its own");
+                entryPoint,
+                "the field the getter references carries no data of its own"
+            );
         }
 
         var size = FieldSize(metadata, field);
 
-        if (scan.DeclaredLength.HasValue && scan.DeclaredLength.Value != size) {
+        if (scan.DeclaredLength.HasValue && scan.DeclaredLength.Value != size)
+        {
             throw new ServedDocumentException(
                 entryPoint,
-                $"the getter declares a length of {scan.DeclaredLength.Value} bytes and the data field is {size} bytes");
+                $"the getter declares a length of {scan.DeclaredLength.Value} bytes and the data field is {size} bytes"
+            );
         }
 
         var block = reader.GetSectionData(rva);
 
-        if (block.Length < size) {
+        if (block.Length < size)
+        {
             throw new ServedDocumentException(
-                entryPoint, $"the data field claims {size} bytes and its section holds {block.Length}");
+                entryPoint,
+                $"the data field claims {size} bytes and its section holds {block.Length}"
+            );
         }
 
-        return new ServedDocument(entryPoint, block.GetContent(0, size).ToArray(), scan.Lowering.ToString());
+        return new ServedDocument(
+            entryPoint,
+            block.GetContent(0, size).ToArray(),
+            scan.Lowering.ToString()
+        );
     }
 
     /// <summary>
@@ -174,14 +216,16 @@ internal static class ServedDocumentReader {
     /// <c>__StaticArrayInitTypeSize=N</c> struct, or the width of a primitive where the compiler
     /// used one.
     /// </summary>
-    private static int FieldSize(MetadataReader metadata, FieldDefinition field) {
+    private static int FieldSize(MetadataReader metadata, FieldDefinition field)
+    {
         var signature = metadata.GetBlobReader(field.Signature);
 
         signature.ReadSignatureHeader();
 
         var typeCode = signature.ReadSignatureTypeCode();
 
-        switch (typeCode) {
+        switch (typeCode)
+        {
             case SignatureTypeCode.SByte:
             case SignatureTypeCode.Byte:
             case SignatureTypeCode.Boolean:
@@ -201,25 +245,35 @@ internal static class ServedDocumentReader {
             case SignatureTypeCode.TypeHandle:
                 var typeHandle = signature.ReadTypeHandle();
 
-                if (typeHandle.Kind == HandleKind.TypeDefinition) {
-                    var layout = metadata.GetTypeDefinition((TypeDefinitionHandle)typeHandle).GetLayout();
+                if (typeHandle.Kind == HandleKind.TypeDefinition)
+                {
+                    var layout = metadata
+                        .GetTypeDefinition((TypeDefinitionHandle)typeHandle)
+                        .GetLayout();
 
-                    if (layout.Size > 0) {
+                    if (layout.Size > 0)
+                    {
                         return layout.Size;
                     }
                 }
 
                 throw new InvalidOperationException("The data field's type declares no size.");
             default:
-                throw new InvalidOperationException($"The data field has a type this reader does not size: {typeCode}.");
+                throw new InvalidOperationException(
+                    $"The data field has a type this reader does not size: {typeCode}."
+                );
         }
     }
 
-    private static string FullName(MetadataReader metadata, TypeDefinition type) {
+    private static string FullName(MetadataReader metadata, TypeDefinition type)
+    {
         var name = metadata.GetString(type.Name);
 
-        if (type.IsNested) {
-            return FullName(metadata, metadata.GetTypeDefinition(type.GetDeclaringType())) + "." + name;
+        if (type.IsNested)
+        {
+            return FullName(metadata, metadata.GetTypeDefinition(type.GetDeclaringType()))
+                + "."
+                + name;
         }
 
         var ns = metadata.GetString(type.Namespace);
@@ -236,10 +290,12 @@ internal static class ServedDocumentReader {
     /// token or a constant is never mistaken for an opcode; the table is ECMA-335's, which is small
     /// and does not change.
     /// </remarks>
-    private static class IlScanner {
-
-        public readonly struct Result {
-            public Result(FieldDefinitionHandle? field, int? declaredLength, Lowering lowering) {
+    private static class IlScanner
+    {
+        public readonly struct Result
+        {
+            public Result(FieldDefinitionHandle? field, int? declaredLength, Lowering lowering)
+            {
                 Field = field;
                 DeclaredLength = declaredLength;
                 Lowering = lowering;
@@ -253,27 +309,32 @@ internal static class ServedDocumentReader {
         }
 
         /// <summary>Which of the two shapes the getter's body was found in.</summary>
-        public enum Lowering {
+        public enum Lowering
+        {
             None,
 
             /// <summary><c>ldsflda</c> of the field, <c>ldc.i4</c> of its length, <c>newobj</c> of the span.</summary>
             FieldAddress,
 
             /// <summary><c>ldtoken</c> of the field, then <c>RuntimeHelpers.CreateSpan</c>.</summary>
-            FieldToken
+            FieldToken,
         }
 
-        public static Result Scan(byte[] il, MetadataReader metadata) {
+        public static Result Scan(byte[] il, MetadataReader metadata)
+        {
             FieldDefinitionHandle? field = null;
             int? length = null;
             var lowering = Lowering.None;
             var offset = 0;
 
-            while (offset < il.Length) {
+            while (offset < il.Length)
+            {
                 int opcode = il[offset++];
 
-                if (opcode == 0xFE) {
-                    if (offset >= il.Length) {
+                if (opcode == 0xFE)
+                {
+                    if (offset >= il.Length)
+                    {
                         break;
                     }
 
@@ -282,9 +343,17 @@ internal static class ServedDocumentReader {
 
                 var operandSize = OperandSize(opcode, il, offset);
 
-                switch (opcode) {
-                    case 0x16: case 0x17: case 0x18: case 0x19: case 0x1A:
-                    case 0x1B: case 0x1C: case 0x1D: case 0x1E:
+                switch (opcode)
+                {
+                    case 0x16:
+                    case 0x17:
+                    case 0x18:
+                    case 0x19:
+                    case 0x1A:
+                    case 0x1B:
+                    case 0x1C:
+                    case 0x1D:
+                    case 0x1E:
                         // ldc.i4.0 through ldc.i4.8
                         length = opcode - 0x16;
                         break;
@@ -299,13 +368,16 @@ internal static class ServedDocumentReader {
                     case 0x7F:
                     case 0xD0:
                         // ldsflda and ldtoken, the two ways Roslyn has referenced the data field.
-                        if (field == null) {
+                        if (field == null)
+                        {
                             var token = ReadInt32(il, offset);
                             var handle = MetadataTokens.EntityHandle(token);
 
-                            if (handle.Kind == HandleKind.FieldDefinition) {
+                            if (handle.Kind == HandleKind.FieldDefinition)
+                            {
                                 field = (FieldDefinitionHandle)handle;
-                                lowering = opcode == 0x7F ? Lowering.FieldAddress : Lowering.FieldToken;
+                                lowering =
+                                    opcode == 0x7F ? Lowering.FieldAddress : Lowering.FieldToken;
                             }
                         }
 
@@ -325,9 +397,12 @@ internal static class ServedDocumentReader {
             il[offset] | (il[offset + 1] << 8) | (il[offset + 2] << 16) | (il[offset + 3] << 24);
 
         /// <summary>The operand width of an opcode, per ECMA-335 partition III.</summary>
-        private static int OperandSize(int opcode, byte[] il, int offset) {
-            if (opcode >= 0x100) {
-                switch (opcode & 0xFF) {
+        private static int OperandSize(int opcode, byte[] il, int offset)
+        {
+            if (opcode >= 0x100)
+            {
+                switch (opcode & 0xFF)
+                {
                     case 0x06: // ldftn
                     case 0x07: // ldvirtftn
                     case 0x15: // initobj
@@ -348,23 +423,71 @@ internal static class ServedDocumentReader {
                 }
             }
 
-            switch (opcode) {
-                case 0x0E: case 0x0F: case 0x10: case 0x11: case 0x12: case 0x13: // ldarg.s .. stloc.s
+            switch (opcode)
+            {
+                case 0x0E:
+                case 0x0F:
+                case 0x10:
+                case 0x11:
+                case 0x12:
+                case 0x13: // ldarg.s .. stloc.s
                 case 0x1F: // ldc.i4.s
-                case 0x2B: case 0x2C: case 0x2D: case 0x2E: case 0x2F: case 0x30: // br.s .. bge.s
-                case 0x31: case 0x32: case 0x33: case 0x34: case 0x35: case 0x36: case 0x37: // bgt.s .. blt.un.s
+                case 0x2B:
+                case 0x2C:
+                case 0x2D:
+                case 0x2E:
+                case 0x2F:
+                case 0x30: // br.s .. bge.s
+                case 0x31:
+                case 0x32:
+                case 0x33:
+                case 0x34:
+                case 0x35:
+                case 0x36:
+                case 0x37: // bgt.s .. blt.un.s
                 case 0xDE: // leave.s
                     return 1;
                 case 0x20: // ldc.i4
                 case 0x22: // ldc.r4
-                case 0x27: case 0x28: case 0x29: // jmp, call, calli
-                case 0x38: case 0x39: case 0x3A: case 0x3B: case 0x3C: case 0x3D: // br .. bge
-                case 0x3E: case 0x3F: case 0x40: case 0x41: case 0x42: case 0x43: case 0x44: // bgt .. blt.un
-                case 0x6F: case 0x70: case 0x71: case 0x72: case 0x73: case 0x74: case 0x75: // callvirt .. isinst
-                case 0x79: case 0x7B: case 0x7C: case 0x7D: case 0x7E: case 0x7F: case 0x80: case 0x81: // unbox .. stsfld
-                case 0x8C: case 0x8D: case 0x8F: // box, newarr, ldelema
-                case 0xA3: case 0xA4: case 0xA5: // ldelem, stelem, unbox.any
-                case 0xC2: case 0xC6: // refanyval, mkrefany
+                case 0x27:
+                case 0x28:
+                case 0x29: // jmp, call, calli
+                case 0x38:
+                case 0x39:
+                case 0x3A:
+                case 0x3B:
+                case 0x3C:
+                case 0x3D: // br .. bge
+                case 0x3E:
+                case 0x3F:
+                case 0x40:
+                case 0x41:
+                case 0x42:
+                case 0x43:
+                case 0x44: // bgt .. blt.un
+                case 0x6F:
+                case 0x70:
+                case 0x71:
+                case 0x72:
+                case 0x73:
+                case 0x74:
+                case 0x75: // callvirt .. isinst
+                case 0x79:
+                case 0x7B:
+                case 0x7C:
+                case 0x7D:
+                case 0x7E:
+                case 0x7F:
+                case 0x80:
+                case 0x81: // unbox .. stsfld
+                case 0x8C:
+                case 0x8D:
+                case 0x8F: // box, newarr, ldelema
+                case 0xA3:
+                case 0xA4:
+                case 0xA5: // ldelem, stelem, unbox.any
+                case 0xC2:
+                case 0xC6: // refanyval, mkrefany
                 case 0xD0: // ldtoken
                 case 0xDD: // leave
                     return 4;
@@ -384,9 +507,11 @@ internal static class ServedDocumentReader {
 /// A getter was found under the documented name, and its body is not something this reader can
 /// take a document out of.
 /// </summary>
-internal sealed class ServedDocumentException : Exception {
+internal sealed class ServedDocumentException : Exception
+{
     public ServedDocumentException(string entryPoint, string detail)
-        : base(detail) {
+        : base(detail)
+    {
         EntryPoint = entryPoint;
     }
 

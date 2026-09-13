@@ -3,8 +3,8 @@ namespace Hardened.Requests.Caching.Memory;
 /// <summary>
 /// What the in-process store will hold.
 /// </summary>
-public interface IMemoryResponseCacheConfiguration {
-
+public interface IMemoryResponseCacheConfiguration
+{
     /// <summary>
     /// The most the store will hold, in bytes.
     /// </summary>
@@ -32,8 +32,8 @@ public interface IMemoryResponseCacheConfiguration {
 }
 
 /// <inheritdoc />
-public class MemoryResponseCacheConfiguration : IMemoryResponseCacheConfiguration {
-
+public class MemoryResponseCacheConfiguration : IMemoryResponseCacheConfiguration
+{
     public const long DefaultSizeLimit = 100L * 1024 * 1024;
 
     public const long DefaultMaximumBodySize = 64L * 1024 * 1024;

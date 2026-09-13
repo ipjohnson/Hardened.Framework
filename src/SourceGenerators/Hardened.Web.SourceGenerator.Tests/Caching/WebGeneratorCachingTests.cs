@@ -13,8 +13,8 @@ namespace Hardened.Web.SourceGenerator.Tests.Caching;
 /// These tests make that observable: the driver is created with step tracking enabled, run
 /// twice, and the reasons recorded on the second run are asserted.
 /// </summary>
-public class WebGeneratorCachingTests {
-
+public class WebGeneratorCachingTests
+{
     private const string ControllerSource = """
         using Hardened.Web.Runtime.Attributes;
 
@@ -33,12 +33,16 @@ public class WebGeneratorCachingTests {
     private static WebLibrarySourceGenerator Generator() => new();
 
     [Fact]
-    public void GeneratorProducesOutputForAController() {
+    public void GeneratorProducesOutputForAController()
+    {
         var compilation = GeneratorTestHarness.CreateCompilation(ControllerSource);
-        var driver = GeneratorTestHarness.CreateDriver(Generator()).RunGenerators(compilation, TestContext.Current.CancellationToken);
+        var driver = GeneratorTestHarness
+            .CreateDriver(Generator())
+            .RunGenerators(compilation, TestContext.Current.CancellationToken);
 
-        var diagnostics = driver.GetRunResult().Diagnostics
-            .Where(d => d.Severity == DiagnosticSeverity.Error)
+        var diagnostics = driver
+            .GetRunResult()
+            .Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error)
             .ToList();
 
         Assert.Empty(diagnostics);
@@ -51,7 +55,8 @@ public class WebGeneratorCachingTests {
     /// unequal to itself.
     /// </summary>
     [Fact]
-    public void SecondRunOverAnUnchangedCompilationIsFullyCached() {
+    public void SecondRunOverAnUnchangedCompilationIsFullyCached()
+    {
         var compilation = GeneratorTestHarness.CreateCompilation(ControllerSource);
 
         var driver = GeneratorTestHarness.CreateDriver(Generator());
@@ -62,11 +67,15 @@ public class WebGeneratorCachingTests {
 
         var reasons = GeneratorTestHarness.OutputStepReasons(driver);
 
-        Assert.All(reasons, reason =>
-            Assert.True(
-                reason is IncrementalStepRunReason.Cached or IncrementalStepRunReason.Unchanged,
-                $"expected every output step to be Cached or Unchanged on an unchanged re-run, " +
-                $"but one was {reason}. The generator is re-running its pipeline on every edit."));
+        Assert.All(
+            reasons,
+            reason =>
+                Assert.True(
+                    reason is IncrementalStepRunReason.Cached or IncrementalStepRunReason.Unchanged,
+                    $"expected every output step to be Cached or Unchanged on an unchanged re-run, "
+                        + $"but one was {reason}. The generator is re-running its pipeline on every edit."
+                )
+        );
     }
 
     /// <summary>
@@ -75,12 +84,14 @@ public class WebGeneratorCachingTests {
     /// about changed, so its output should still come from cache.
     /// </summary>
     [Fact]
-    public void EditingAnUnrelatedDeclarationStillCachesGeneratorOutput() {
+    public void EditingAnUnrelatedDeclarationStillCachesGeneratorOutput()
+    {
         var first = GeneratorTestHarness.CreateCompilation(ControllerSource);
 
         var edited = ControllerSource.Replace(
             "public class OrderController {",
-            "public class OrderController {\n    private int _unrelatedField;");
+            "public class OrderController {\n    private int _unrelatedField;"
+        );
 
         var second = GeneratorTestHarness.CreateCompilation(edited);
 
@@ -99,7 +110,8 @@ public class WebGeneratorCachingTests {
     /// is missed. Adding a route has to change the generated output.
     /// </summary>
     [Fact]
-    public void AddingARouteChangesGeneratedOutput() {
+    public void AddingARouteChangesGeneratedOutput()
+    {
         var withExtraRoute = ControllerSource.Replace(
             "    [Post(\"/\")]",
             """
@@ -107,14 +119,21 @@ public class WebGeneratorCachingTests {
                 public string DeleteOrder(string id) => id;
 
                 [Post("/")]
-            """);
+            """
+        );
 
         var driver = GeneratorTestHarness.CreateDriver(Generator());
 
-        driver = driver.RunGenerators(GeneratorTestHarness.CreateCompilation(ControllerSource), TestContext.Current.CancellationToken);
+        driver = driver.RunGenerators(
+            GeneratorTestHarness.CreateCompilation(ControllerSource),
+            TestContext.Current.CancellationToken
+        );
         var before = GeneratorTestHarness.GeneratedSources(driver);
 
-        driver = driver.RunGenerators(GeneratorTestHarness.CreateCompilation(withExtraRoute), TestContext.Current.CancellationToken);
+        driver = driver.RunGenerators(
+            GeneratorTestHarness.CreateCompilation(withExtraRoute),
+            TestContext.Current.CancellationToken
+        );
         var after = GeneratorTestHarness.GeneratedSources(driver);
 
         Assert.NotEqual(before, after);
@@ -126,29 +145,46 @@ public class WebGeneratorCachingTests {
     /// spurious rebuilds and unstable diffs in committed generated output.
     /// </summary>
     [Fact]
-    public void GenerationIsDeterministicAcrossIndependentDrivers() {
-        var one = GeneratorTestHarness.CreateDriver(Generator())
-            .RunGenerators(GeneratorTestHarness.CreateCompilation(ControllerSource), TestContext.Current.CancellationToken);
+    public void GenerationIsDeterministicAcrossIndependentDrivers()
+    {
+        var one = GeneratorTestHarness
+            .CreateDriver(Generator())
+            .RunGenerators(
+                GeneratorTestHarness.CreateCompilation(ControllerSource),
+                TestContext.Current.CancellationToken
+            );
 
-        var two = GeneratorTestHarness.CreateDriver(Generator())
-            .RunGenerators(GeneratorTestHarness.CreateCompilation(ControllerSource), TestContext.Current.CancellationToken);
+        var two = GeneratorTestHarness
+            .CreateDriver(Generator())
+            .RunGenerators(
+                GeneratorTestHarness.CreateCompilation(ControllerSource),
+                TestContext.Current.CancellationToken
+            );
 
         Assert.Equal(
             GeneratorTestHarness.GeneratedSources(one),
-            GeneratorTestHarness.GeneratedSources(two));
+            GeneratorTestHarness.GeneratedSources(two)
+        );
 
         Assert.Equal(
             GeneratorTestHarness.GeneratedHintNames(one),
-            GeneratorTestHarness.GeneratedHintNames(two));
+            GeneratorTestHarness.GeneratedHintNames(two)
+        );
     }
 
     [Fact]
-    public void GeneratorDoesNotThrowOnAFileWithNoControllers() {
+    public void GeneratorDoesNotThrowOnAFileWithNoControllers()
+    {
         var compilation = GeneratorTestHarness.CreateCompilation(
-            "namespace TestApp; public class NotAController { public int Value { get; set; } }");
+            "namespace TestApp; public class NotAController { public int Value { get; set; } }"
+        );
 
-        var driver = GeneratorTestHarness.CreateDriver(Generator()).RunGenerators(compilation, TestContext.Current.CancellationToken);
+        var driver = GeneratorTestHarness
+            .CreateDriver(Generator())
+            .RunGenerators(compilation, TestContext.Current.CancellationToken);
 
-        Assert.Empty(driver.GetRunResult().Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error));
+        Assert.Empty(
+            driver.GetRunResult().Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error)
+        );
     }
 }

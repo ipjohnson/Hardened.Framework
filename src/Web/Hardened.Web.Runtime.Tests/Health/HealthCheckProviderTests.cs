@@ -8,10 +8,10 @@ using Hardened.Requests.Runtime.Filters;
 using Hardened.Requests.Runtime.QueryString;
 using Hardened.Requests.Testing;
 using Hardened.Web.Runtime.Health;
+using Hardened.Web.Runtime.Responses;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using Xunit;
-using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.Runtime.Tests.Health;
 
@@ -21,12 +21,14 @@ namespace Hardened.Web.Runtime.Tests.Health;
 /// them is how a dependency outage becomes a restart loop across every replica at once, so most of
 /// what is asserted here is the separation.
 /// </summary>
-public class HealthCheckProviderTests {
-
-    private sealed class Stub : IHealthCheck {
+public class HealthCheckProviderTests
+{
+    private sealed class Stub : IHealthCheck
+    {
         private readonly Func<CancellationToken, Task<HealthCheckResult>> _check;
 
-        public Stub(string name, Func<CancellationToken, Task<HealthCheckResult>> check) {
+        public Stub(string name, Func<CancellationToken, Task<HealthCheckResult>> check)
+        {
             Name = name;
             _check = check;
         }
@@ -38,16 +40,19 @@ public class HealthCheckProviderTests {
 
         public int Calls { get; private set; }
 
-        public Task<HealthCheckResult> Check(CancellationToken cancellationToken) {
+        public Task<HealthCheckResult> Check(CancellationToken cancellationToken)
+        {
             Calls++;
 
             return _check(cancellationToken);
         }
     }
 
-    private static (HealthCheckProvider Provider, HealthCheckConfiguration Config,
-        ServiceProvider Services) Build(params IHealthCheck[] checks) =>
-        Build(new HealthCheckConfiguration(), checks);
+    private static (
+        HealthCheckProvider Provider,
+        HealthCheckConfiguration Config,
+        ServiceProvider Services
+    ) Build(params IHealthCheck[] checks) => Build(new HealthCheckConfiguration(), checks);
 
     /// <summary>
     /// A pass-through, standing in for the serialization filter.
@@ -57,7 +62,8 @@ public class HealthCheckProviderTests {
     /// nothing to do here - and constructing one would drag a serializer and a content negotiator
     /// into tests about liveness.
     /// </remarks>
-    private sealed class PassThrough : IExecutionFilter {
+    private sealed class PassThrough : IExecutionFilter
+    {
         public Task Execute(IExecutionChain chain) => chain.Next();
     }
 
@@ -70,24 +76,31 @@ public class HealthCheckProviderTests {
     /// that these tests need the container a real application has.
     /// </remarks>
     private static ServiceProvider Services(
-        HealthCheckConfiguration config, IHealthCheck[] checks,
-        Action<IServiceCollection>? configure = null) {
+        HealthCheckConfiguration config,
+        IHealthCheck[] checks,
+        Action<IServiceCollection>? configure = null
+    )
+    {
         var services = new ServiceCollection();
 
-        foreach (var check in checks) {
+        foreach (var check in checks)
+        {
             services.AddSingleton(check);
         }
 
         var ioProvider = Substitute.For<IIOFilterProvider>();
-        ioProvider.ProvideFilter(
+        ioProvider
+            .ProvideFilter(
                 Arg.Any<IExecutionRequestHandlerInfo>(),
-                Arg.Any<Func<IExecutionContext, Task<IExecutionRequestParameters>>>())
+                Arg.Any<Func<IExecutionContext, Task<IExecutionRequestParameters>>>()
+            )
             .Returns(new PassThrough());
 
         services.AddSingleton(ioProvider);
         services.AddSingleton<IInstanceFilterProvider, InstanceFilterProvider>();
         services.AddSingleton<IGlobalFilterRegistry>(
-            new GlobalFilterRegistry(Array.Empty<IRequestFilterProvider>()));
+            new GlobalFilterRegistry(Array.Empty<IRequestFilterProvider>())
+        );
         services.AddSingleton(config);
         services.AddSingleton<HealthCheckController>();
 
@@ -97,7 +110,10 @@ public class HealthCheckProviderTests {
     }
 
     private static (HealthCheckProvider, HealthCheckConfiguration, ServiceProvider) Build(
-        HealthCheckConfiguration config, params IHealthCheck[] checks) {
+        HealthCheckConfiguration config,
+        params IHealthCheck[] checks
+    )
+    {
         var services = Services(config, checks);
 
         // The same container for the provider and the context. The controller is resolved from the
@@ -107,21 +123,37 @@ public class HealthCheckProviderTests {
     }
 
     private static IExecutionContext Context(
-        string path, string method = "GET", IServiceProvider? services = null) {
+        string path,
+        string method = "GET",
+        IServiceProvider? services = null
+    )
+    {
         var request = new TestExecutionRequest(
-            method, path, "application/json",
-            new SimpleQueryStringCollection(new Dictionary<string, string>()));
+            method,
+            path,
+            "application/json",
+            new SimpleQueryStringCollection(new Dictionary<string, string>())
+        );
 
         services ??= Services(new HealthCheckConfiguration(), Array.Empty<IHealthCheck>());
 
         return new TestExecutionContext(
-            services, services, Substitute.For<IKnownServices>(), request,
-            new TestExecutionResponse(new MemoryStream()), CancellationToken.None);
+            services,
+            services,
+            Substitute.For<IKnownServices>(),
+            request,
+            new TestExecutionResponse(new MemoryStream()),
+            CancellationToken.None
+        );
     }
 
     private static async Task<(int? Status, JsonElement Body)> Probe(
-        HealthCheckProvider provider, IServiceProvider services, string path,
-        string method = "GET") {
+        HealthCheckProvider provider,
+        IServiceProvider services,
+        string path,
+        string method = "GET"
+    )
+    {
         var context = Context(path, method, services);
         var match = provider.GetExecutionRequestHandler(context);
 
@@ -138,7 +170,8 @@ public class HealthCheckProviderTests {
     // ------------------------------------------------------- governable at last
 
     /// <summary>Requires a grant of everything under a path prefix.</summary>
-    private sealed class PrefixConvention : IAuthorizationConvention {
+    private sealed class PrefixConvention : IAuthorizationConvention
+    {
         public Requirement? Apply(IExecutionRequestHandlerInfo handlerInfo) =>
             handlerInfo.Path.StartsWith("/health", StringComparison.Ordinal)
                 ? Requirement.Grant("ops:probe")
@@ -146,7 +179,11 @@ public class HealthCheckProviderTests {
     }
 
     private static IExecutionRequestHandlerInfo HandlerInfoFor(
-        HealthCheckProvider provider, IServiceProvider services, string path) {
+        HealthCheckProvider provider,
+        IServiceProvider services,
+        string path
+    )
+    {
         var match = provider.GetExecutionRequestHandler(Context(path, services: services));
 
         Assert.NotNull(match);
@@ -166,13 +203,16 @@ public class HealthCheckProviderTests {
     [Theory]
     [InlineData("/health/live")]
     [InlineData("/health/ready")]
-    public void AConventionReachesAProbe(string path) {
+    public void AConventionReachesAProbe(string path)
+    {
         var config = new HealthCheckConfiguration();
-        var services = Services(config, Array.Empty<IHealthCheck>(),
-            collection => collection.AddSingleton<IAuthorizationConvention>(new PrefixConvention()));
+        var services = Services(
+            config,
+            Array.Empty<IHealthCheck>(),
+            collection => collection.AddSingleton<IAuthorizationConvention>(new PrefixConvention())
+        );
 
-        var handlerInfo = HandlerInfoFor(
-            new HealthCheckProvider(config, services), services, path);
+        var handlerInfo = HandlerInfoFor(new HealthCheckProvider(config, services), services, path);
 
         Assert.Contains("ops:probe", handlerInfo.Requirement!.RequiredGrants);
     }
@@ -181,12 +221,16 @@ public class HealthCheckProviderTests {
     /// A deployment that wants its probes guarded states it on the configuration.
     /// </summary>
     [Fact]
-    public void ADeclaredRequirementReachesAProbe() {
+    public void ADeclaredRequirementReachesAProbe()
+    {
         var config = new HealthCheckConfiguration { Requirement = Requirement.Grant("ops:probe") };
         var services = Services(config, Array.Empty<IHealthCheck>());
 
         var handlerInfo = HandlerInfoFor(
-            new HealthCheckProvider(config, services), services, "/health/ready");
+            new HealthCheckProvider(config, services),
+            services,
+            "/health/ready"
+        );
 
         Assert.Contains("ops:probe", handlerInfo.Requirement!.RequiredGrants);
     }
@@ -197,13 +241,18 @@ public class HealthCheckProviderTests {
     /// the identity provider is down, which is the opposite of what it is for.
     /// </summary>
     [Fact]
-    public void NothingConfiguredLeavesAProbeUnguarded() {
+    public void NothingConfiguredLeavesAProbeUnguarded()
+    {
         var config = new HealthCheckConfiguration();
         var services = Services(config, Array.Empty<IHealthCheck>());
 
         Assert.Null(
-            HandlerInfoFor(new HealthCheckProvider(config, services), services, "/health/live")
-                .Requirement);
+            HandlerInfoFor(
+                new HealthCheckProvider(config, services),
+                services,
+                "/health/live"
+            ).Requirement
+        );
     }
 
     // ------------------------------------------------------------- liveness
@@ -214,7 +263,8 @@ public class HealthCheckProviderTests {
     /// every replica the moment that dependency blinks.
     /// </summary>
     [Fact]
-    public async Task Live_AnswersHealthyWithoutRunningAnyCheck() {
+    public async Task Live_AnswersHealthyWithoutRunningAnyCheck()
+    {
         var unhealthy = new Stub("db", HealthCheckResult.Unhealthy("down"));
         var (provider, _, services) = Build(unhealthy);
 
@@ -232,7 +282,8 @@ public class HealthCheckProviderTests {
     /// unhealthy, it has said it has nothing to verify.
     /// </summary>
     [Fact]
-    public async Task Ready_AnswersHealthyWhenNoChecksAreRegistered() {
+    public async Task Ready_AnswersHealthyWhenNoChecksAreRegistered()
+    {
         var (provider, _, services) = Build();
 
         var (status, body) = await Probe(provider, services, "/health/ready");
@@ -242,7 +293,8 @@ public class HealthCheckProviderTests {
     }
 
     [Fact]
-    public async Task Ready_RunsEveryRegisteredCheck() {
+    public async Task Ready_RunsEveryRegisteredCheck()
+    {
         var first = new Stub("a", HealthCheckResult.Healthy());
         var second = new Stub("b", HealthCheckResult.Healthy());
 
@@ -263,7 +315,8 @@ public class HealthCheckProviderTests {
     [InlineData(HealthStatus.Healthy, 200)]
     [InlineData(HealthStatus.Degraded, 200)]
     [InlineData(HealthStatus.Unhealthy, 503)]
-    public async Task Ready_MapsStatusToCode(HealthStatus status, int expected) {
+    public async Task Ready_MapsStatusToCode(HealthStatus status, int expected)
+    {
         var (provider, _, services) = Build(new Stub("only", new HealthCheckResult(status)));
 
         var (code, body) = await Probe(provider, services, "/health/ready");
@@ -274,11 +327,13 @@ public class HealthCheckProviderTests {
 
     /// <summary>The worst check decides the overall answer.</summary>
     [Fact]
-    public async Task Ready_ReportsTheWorstOfTheChecks() {
+    public async Task Ready_ReportsTheWorstOfTheChecks()
+    {
         var (provider, _, services) = Build(
             new Stub("fine", HealthCheckResult.Healthy()),
             new Stub("slow", HealthCheckResult.Degraded()),
-            new Stub("down", HealthCheckResult.Unhealthy()));
+            new Stub("down", HealthCheckResult.Unhealthy())
+        );
 
         var (status, body) = await Probe(provider, services, "/health/ready");
 
@@ -292,9 +347,11 @@ public class HealthCheckProviderTests {
     /// orchestrator far less than a 503.
     /// </summary>
     [Fact]
-    public async Task Ready_TreatsAThrowingCheckAsUnhealthyRatherThanFailing() {
+    public async Task Ready_TreatsAThrowingCheckAsUnhealthyRatherThanFailing()
+    {
         var (provider, _, services) = Build(
-            new Stub("explodes", _ => throw new InvalidOperationException("boom")));
+            new Stub("explodes", _ => throw new InvalidOperationException("boom"))
+        );
 
         var (status, body) = await Probe(provider, services, "/health/ready");
 
@@ -308,19 +365,26 @@ public class HealthCheckProviderTests {
     /// timeout decides instead - and it decides to restart.
     /// </summary>
     [Fact]
-    public async Task Ready_BoundsACheckThatWouldHang() {
-        var config = new HealthCheckConfiguration {
+    public async Task Ready_BoundsACheckThatWouldHang()
+    {
+        var config = new HealthCheckConfiguration
+        {
             CheckTimeout = TimeSpan.FromMilliseconds(50),
-            TotalTimeout = TimeSpan.FromSeconds(5)
+            TotalTimeout = TimeSpan.FromSeconds(5),
         };
 
         var (provider, _, services) = Build(
             config,
-            new Stub("hangs", async token => {
-                await Task.Delay(TimeSpan.FromSeconds(30), token);
+            new Stub(
+                "hangs",
+                async token =>
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(30), token);
 
-                return HealthCheckResult.Healthy();
-            }));
+                    return HealthCheckResult.Healthy();
+                }
+            )
+        );
 
         var (status, _) = await Probe(provider, services, "/health/ready");
 
@@ -329,17 +393,23 @@ public class HealthCheckProviderTests {
 
     /// <summary>The check is handed a token that will actually be cancelled.</summary>
     [Fact]
-    public async Task Ready_PassesACancellableTokenToTheCheck() {
+    public async Task Ready_PassesACancellableTokenToTheCheck()
+    {
         var config = new HealthCheckConfiguration { CheckTimeout = TimeSpan.FromMilliseconds(50) };
         var observed = CancellationToken.None;
 
         var (provider, _, services) = Build(
             config,
-            new Stub("watches", token => {
-                observed = token;
+            new Stub(
+                "watches",
+                token =>
+                {
+                    observed = token;
 
-                return Task.FromResult(HealthCheckResult.Healthy());
-            }));
+                    return Task.FromResult(HealthCheckResult.Healthy());
+                }
+            )
+        );
 
         await Probe(provider, services, "/health/ready");
 
@@ -353,9 +423,11 @@ public class HealthCheckProviderTests {
     /// dependency names and error strings hands an anonymous caller a map of the system.
     /// </summary>
     [Fact]
-    public async Task Ready_ReportsNoDetailByDefault() {
+    public async Task Ready_ReportsNoDetailByDefault()
+    {
         var (provider, _, services) = Build(
-            new Stub("internal-billing-db", HealthCheckResult.Unhealthy("connection refused")));
+            new Stub("internal-billing-db", HealthCheckResult.Unhealthy("connection refused"))
+        );
 
         var (_, body) = await Probe(provider, services, "/health/ready");
 
@@ -363,13 +435,15 @@ public class HealthCheckProviderTests {
     }
 
     [Fact]
-    public async Task Ready_ReportsPerCheckDetailWhenAsked() {
+    public async Task Ready_ReportsPerCheckDetailWhenAsked()
+    {
         var config = new HealthCheckConfiguration { IncludeDetail = true };
 
         var (provider, _, services) = Build(
             config,
             new Stub("db", HealthCheckResult.Unhealthy("connection refused")),
-            new Stub("cache", HealthCheckResult.Healthy()));
+            new Stub("cache", HealthCheckResult.Healthy())
+        );
 
         var (_, body) = await Probe(provider, services, "/health/ready");
 
@@ -377,7 +451,9 @@ public class HealthCheckProviderTests {
 
         Assert.Equal("Unhealthy", checks.GetProperty("db").GetProperty("status").GetString());
         Assert.Equal(
-            "connection refused", checks.GetProperty("db").GetProperty("description").GetString());
+            "connection refused",
+            checks.GetProperty("db").GetProperty("description").GetString()
+        );
         Assert.Equal("Healthy", checks.GetProperty("cache").GetProperty("status").GetString());
     }
 
@@ -386,7 +462,8 @@ public class HealthCheckProviderTests {
     [Theory]
     [InlineData("/health/live")]
     [InlineData("/health/ready")]
-    public void GetExecutionRequestHandler_AnswersBothPaths(string path) {
+    public void GetExecutionRequestHandler_AnswersBothPaths(string path)
+    {
         var (provider, _, services) = Build();
 
         Assert.NotNull(provider.GetExecutionRequestHandler(Context(path)));
@@ -394,7 +471,8 @@ public class HealthCheckProviderTests {
 
     /// <summary>A probe issuing HEAD is asking the same question.</summary>
     [Fact]
-    public void GetExecutionRequestHandler_AnswersHeadAsWellAsGet() {
+    public void GetExecutionRequestHandler_AnswersHeadAsWellAsGet()
+    {
         var (provider, _, services) = Build();
 
         Assert.NotNull(provider.GetExecutionRequestHandler(Context("/health/live", "HEAD")));
@@ -407,14 +485,16 @@ public class HealthCheckProviderTests {
     [Theory]
     [InlineData("POST")]
     [InlineData("DELETE")]
-    public void GetExecutionRequestHandler_DeclinesWriteVerbs(string method) {
+    public void GetExecutionRequestHandler_DeclinesWriteVerbs(string method)
+    {
         var (provider, _, services) = Build();
 
         Assert.Null(provider.GetExecutionRequestHandler(Context("/health/live", method)));
     }
 
     [Fact]
-    public void GetExecutionRequestHandler_DeclinesEverythingElse() {
+    public void GetExecutionRequestHandler_DeclinesEverythingElse()
+    {
         var (provider, _, services) = Build();
 
         Assert.Null(provider.GetExecutionRequestHandler(Context("/orders")));
@@ -422,10 +502,9 @@ public class HealthCheckProviderTests {
     }
 
     [Fact]
-    public void GetExecutionRequestHandler_HonoursConfiguredPaths() {
-        var config = new HealthCheckConfiguration {
-            LivePath = "/_alive", ReadyPath = "/_ready"
-        };
+    public void GetExecutionRequestHandler_HonoursConfiguredPaths()
+    {
+        var config = new HealthCheckConfiguration { LivePath = "/_alive", ReadyPath = "/_ready" };
 
         var (provider, _, services) = Build(config);
 
@@ -441,7 +520,8 @@ public class HealthCheckProviderTests {
     /// instance at some earlier moment, to a load balancer making a decision now.
     /// </summary>
     [Fact]
-    public async Task Ready_IsNotCacheable() {
+    public async Task Ready_IsNotCacheable()
+    {
         var (provider, _, services) = Build();
         var context = Context("/health/ready");
 
@@ -458,7 +538,8 @@ public class HealthCheckProviderTests {
     /// stack is itself what is broken - and nothing negotiates a representation for it.
     /// </summary>
     [Fact]
-    public async Task Ready_DoesNotGoThroughSerialization() {
+    public async Task Ready_DoesNotGoThroughSerialization()
+    {
         var (provider, _, services) = Build();
         var context = Context("/health/ready");
 

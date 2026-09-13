@@ -13,8 +13,10 @@ namespace Hardened.Functions.Runtime.Attributes;
 /// Routes as <c>TOPIC /order-events</c>.
 /// </para>
 /// </remarks>
-public class TopicAttribute : Attribute {
-    public TopicAttribute(string name) {
+public class TopicAttribute : Attribute
+{
+    public TopicAttribute(string name)
+    {
         Name = name;
     }
 

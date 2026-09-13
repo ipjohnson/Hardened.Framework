@@ -20,20 +20,25 @@ namespace Hardened.Web.Testing;
 /// expectation as a body.
 /// </para>
 /// </remarks>
-internal static class TaskResult {
-
+internal static class TaskResult
+{
     private static readonly ConcurrentDictionary<Type, PropertyInfo?> Results = new();
 
-    private static readonly Type? VoidResult =
-        typeof(Task).Assembly.GetType("System.Threading.Tasks.VoidTaskResult");
+    private static readonly Type? VoidResult = typeof(Task).Assembly.GetType(
+        "System.Threading.Tasks.VoidTaskResult"
+    );
 
-    public static object? Of(Task completed) {
-        for (var type = completed.GetType(); type != null; type = type.BaseType) {
-            if (!type.IsGenericType || type.GetGenericTypeDefinition() != typeof(Task<>)) {
+    public static object? Of(Task completed)
+    {
+        for (var type = completed.GetType(); type != null; type = type.BaseType)
+        {
+            if (!type.IsGenericType || type.GetGenericTypeDefinition() != typeof(Task<>))
+            {
                 continue;
             }
 
-            if (type.GetGenericArguments()[0] == VoidResult) {
+            if (type.GetGenericArguments()[0] == VoidResult)
+            {
                 return null;
             }
 

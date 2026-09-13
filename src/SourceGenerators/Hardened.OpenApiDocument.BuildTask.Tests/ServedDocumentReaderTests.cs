@@ -1,6 +1,6 @@
 using System.Text;
-using Xunit;
 using Hardened.Web.Runtime.Responses;
+using Xunit;
 
 namespace Hardened.OpenApiDocument.BuildTask.Tests;
 
@@ -8,13 +8,14 @@ namespace Hardened.OpenApiDocument.BuildTask.Tests;
 /// Reading the served document out of a compiled assembly, over both lowerings and over what the
 /// pinned SDK actually built.
 /// </summary>
-public class ServedDocumentReaderTests : IDisposable {
-
+public class ServedDocumentReaderTests : IDisposable
+{
     private readonly TaskHarness _harness = new();
 
     public void Dispose() => _harness.Dispose();
 
-    private string Fixture(string name, params PeFixture.Document[] documents) {
+    private string Fixture(string name, params PeFixture.Document[] documents)
+    {
         var path = _harness.Under(name + ".dll");
 
         PeFixture.Write(path, documents);
@@ -25,7 +26,8 @@ public class ServedDocumentReaderTests : IDisposable {
     [Theory]
     [InlineData(PeFixture.Lowering.FieldAddress, "FieldAddress")]
     [InlineData(PeFixture.Lowering.FieldToken, "FieldToken")]
-    public void ReadsEitherLowering(PeFixture.Lowering lowering, string expected) {
+    public void ReadsEitherLowering(PeFixture.Lowering lowering, string expected)
+    {
         var compressed = DocumentFixture.Compressed();
         var path = Fixture("either", new PeFixture.Document("Application", compressed, lowering));
 
@@ -34,7 +36,10 @@ public class ServedDocumentReaderTests : IDisposable {
         Assert.Equal("Fixture.Application", document.EntryPoint);
         Assert.Equal(expected, document.Lowering);
         Assert.Equal(compressed, document.Compressed);
-        Assert.Equal(DocumentFixture.Compact, Encoding.UTF8.GetString(ServedDocumentReader.Inflate(document.Compressed)));
+        Assert.Equal(
+            DocumentFixture.Compact,
+            Encoding.UTF8.GetString(ServedDocumentReader.Inflate(document.Compressed))
+        );
     }
 
     /// <summary>
@@ -45,7 +50,8 @@ public class ServedDocumentReaderTests : IDisposable {
     [InlineData(TaskHarness.WebApp)]
     [InlineData(TaskHarness.OpenApiApp)]
     [InlineData(TaskHarness.SmithyApp)]
-    public void ReadsWhatThePinnedSdkBuilt(string assembly) {
+    public void ReadsWhatThePinnedSdkBuilt(string assembly)
+    {
         var document = Assert.Single(ServedDocumentReader.Read(TaskHarness.Fixture(assembly)));
 
         Assert.NotEqual("None", document.Lowering);
@@ -56,24 +62,47 @@ public class ServedDocumentReaderTests : IDisposable {
     }
 
     [Fact]
-    public void AnAssemblyWithoutTheGetterCarriesNothing() {
+    public void AnAssemblyWithoutTheGetterCarriesNothing()
+    {
         Assert.Empty(ServedDocumentReader.Read(Fixture("empty")));
     }
 
     [Fact]
-    public void TwoEntryPointsAreTwoDocuments() {
-        var path = Fixture("two",
-            new PeFixture.Document("First", DocumentFixture.Compressed(), PeFixture.Lowering.FieldAddress),
-            new PeFixture.Document("Second", DocumentFixture.Compressed("{\"openapi\":\"3.2.0\",\"paths\":{}}"), PeFixture.Lowering.FieldToken));
+    public void TwoEntryPointsAreTwoDocuments()
+    {
+        var path = Fixture(
+            "two",
+            new PeFixture.Document(
+                "First",
+                DocumentFixture.Compressed(),
+                PeFixture.Lowering.FieldAddress
+            ),
+            new PeFixture.Document(
+                "Second",
+                DocumentFixture.Compressed("{\"openapi\":\"3.2.0\",\"paths\":{}}"),
+                PeFixture.Lowering.FieldToken
+            )
+        );
 
         var documents = ServedDocumentReader.Read(path);
 
-        Assert.Equal(new[] { "Fixture.First", "Fixture.Second" }, documents.Select(document => document.EntryPoint));
+        Assert.Equal(
+            new[] { "Fixture.First", "Fixture.Second" },
+            documents.Select(document => document.EntryPoint)
+        );
     }
 
     [Fact]
-    public void AGetterWithNoDataFieldFailsNamingTheEntryPoint() {
-        var path = Fixture("nofield", new PeFixture.Document("Application", DocumentFixture.Compressed(), PeFixture.Lowering.NoField));
+    public void AGetterWithNoDataFieldFailsNamingTheEntryPoint()
+    {
+        var path = Fixture(
+            "nofield",
+            new PeFixture.Document(
+                "Application",
+                DocumentFixture.Compressed(),
+                PeFixture.Lowering.NoField
+            )
+        );
 
         var failure = Assert.Throws<ServedDocumentException>(() => ServedDocumentReader.Read(path));
 
@@ -82,10 +111,18 @@ public class ServedDocumentReaderTests : IDisposable {
     }
 
     [Fact]
-    public void ADeclaredLengthThatDisagreesWithTheFieldFails() {
+    public void ADeclaredLengthThatDisagreesWithTheFieldFails()
+    {
         var compressed = DocumentFixture.Compressed();
-        var path = Fixture("short",
-            new PeFixture.Document("Application", compressed, PeFixture.Lowering.FieldAddress, compressed.Length - 1));
+        var path = Fixture(
+            "short",
+            new PeFixture.Document(
+                "Application",
+                compressed,
+                PeFixture.Lowering.FieldAddress,
+                compressed.Length - 1
+            )
+        );
 
         var failure = Assert.Throws<ServedDocumentException>(() => ServedDocumentReader.Read(path));
 

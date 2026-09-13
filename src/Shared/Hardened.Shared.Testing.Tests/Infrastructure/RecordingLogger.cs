@@ -14,14 +14,18 @@ internal sealed record RecordedLog(
     LogLevel Level,
     string Message,
     Exception? Exception,
-    IReadOnlyList<KeyValuePair<string, object?>> State) {
-
+    IReadOnlyList<KeyValuePair<string, object?>> State
+)
+{
     /// <summary>
     /// The value logged under <paramref name="name"/>, or null if the template did not carry it.
     /// </summary>
-    public object? Value(string name) {
-        foreach (var pair in State) {
-            if (pair.Key == name) {
+    public object? Value(string name)
+    {
+        foreach (var pair in State)
+        {
+            if (pair.Key == name)
+            {
                 return pair.Value;
             }
         }
@@ -33,28 +37,41 @@ internal sealed record RecordedLog(
 /// <summary>
 /// An <see cref="ILogger"/> that keeps what it was told, so a test can assert on it.
 /// </summary>
-internal sealed class RecordingLogger : ILogger {
+internal sealed class RecordingLogger : ILogger
+{
     private readonly List<RecordedLog> _entries = new();
 
-    public IReadOnlyList<RecordedLog> Entries {
-        get {
-            lock (_entries) {
+    public IReadOnlyList<RecordedLog> Entries
+    {
+        get
+        {
+            lock (_entries)
+            {
                 return _entries.ToArray();
             }
         }
     }
 
-    public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
-        Func<TState, Exception?, string> formatter) {
-        var values = state as IReadOnlyList<KeyValuePair<string, object?>> ??
-                     Array.Empty<KeyValuePair<string, object?>>();
+    public void Log<TState>(
+        LogLevel logLevel,
+        EventId eventId,
+        TState state,
+        Exception? exception,
+        Func<TState, Exception?, string> formatter
+    )
+    {
+        var values =
+            state as IReadOnlyList<KeyValuePair<string, object?>>
+            ?? Array.Empty<KeyValuePair<string, object?>>();
 
-        lock (_entries) {
+        lock (_entries)
+        {
             _entries.Add(new RecordedLog(logLevel, formatter(state, exception), exception, values));
         }
     }
 
     public bool IsEnabled(LogLevel logLevel) => true;
 
-    public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+    public IDisposable? BeginScope<TState>(TState state)
+        where TState : notnull => null;
 }

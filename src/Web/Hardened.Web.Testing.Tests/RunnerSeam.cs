@@ -8,8 +8,8 @@ namespace Hardened.Web.Testing.Tests;
 /// <c>[HardenedTest]</c> gets it from that attribute's assembly; this one drives the harness
 /// directly, so nothing else would load the runner package.
 /// </summary>
-internal static class RunnerSeam {
-
+internal static class RunnerSeam
+{
     [ModuleInitializer]
     internal static void Install() => XunitCurrentTestProvider.Install();
 }

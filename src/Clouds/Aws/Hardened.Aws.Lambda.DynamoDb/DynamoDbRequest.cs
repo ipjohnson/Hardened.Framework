@@ -20,7 +20,8 @@ namespace Hardened.Aws.Lambda.DynamoDb;
 /// redeliver. See <see cref="FailureMode"/>.
 /// </para>
 /// </remarks>
-public class DynamoDbRequest : LambdaPayloadRequest, IBatchRequest {
+public class DynamoDbRequest : LambdaPayloadRequest, IBatchRequest
+{
     private readonly List<int> _failed = [];
 
     public DynamoDbRequest(
@@ -28,8 +29,10 @@ public class DynamoDbRequest : LambdaPayloadRequest, IBatchRequest {
         Stream body,
         IDictionary<string, StringValues> headers,
         IReadOnlyList<DynamoDBEvent.DynamodbStreamRecord> records,
-        bool reportsItemFailures = false)
-        : base(ChangeScheme, "/" + tableName, body, headers) {
+        bool reportsItemFailures = false
+    )
+        : base(ChangeScheme, "/" + tableName, body, headers)
+    {
         Records = records;
         ReportsItemFailures = reportsItemFailures;
     }
@@ -95,7 +98,8 @@ public class DynamoDbRequest : LambdaPayloadRequest, IBatchRequest {
     /// reporting exists to avoid, while looking like it worked.
     /// </remarks>
     public IEnumerable<string> FailedSequenceNumbers =>
-        _failed.Select(index => Records[index].Dynamodb?.SequenceNumber)
+        _failed
+            .Select(index => Records[index].Dynamodb?.SequenceNumber)
             .Where(number => !string.IsNullOrEmpty(number))!;
 
     /// <summary>
@@ -115,7 +119,8 @@ public class DynamoDbRequest : LambdaPayloadRequest, IBatchRequest {
     /// two.
     /// </para>
     /// </remarks>
-    public IExecutionRequest ForRecord(DynamoDBEvent.DynamodbStreamRecord record) {
+    public IExecutionRequest ForRecord(DynamoDBEvent.DynamodbStreamRecord record)
+    {
         var headers = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase);
 
         Set(headers, EventNameHeader, record.EventName);
@@ -127,7 +132,8 @@ public class DynamoDbRequest : LambdaPayloadRequest, IBatchRequest {
 
         var body = new MemoryStream();
 
-        using (var writer = new Utf8JsonWriter(body)) {
+        using (var writer = new Utf8JsonWriter(body))
+        {
             AttributeValueJson.WriteItem(writer, image);
         }
 
@@ -136,9 +142,10 @@ public class DynamoDbRequest : LambdaPayloadRequest, IBatchRequest {
         return new DynamoDbChange(Method, Path, body, headers, record);
     }
 
-    private static void Set(
-        IDictionary<string, StringValues> headers, string name, string? value) {
-        if (!string.IsNullOrEmpty(value)) {
+    private static void Set(IDictionary<string, StringValues> headers, string name, string? value)
+    {
+        if (!string.IsNullOrEmpty(value))
+        {
             headers[name] = value;
         }
     }

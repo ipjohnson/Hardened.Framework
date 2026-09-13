@@ -29,13 +29,15 @@ namespace Hardened.Aws.Lambda.Kinesis;
 /// opaque blob. The EventBridge adapter reached the same conclusion about its own envelope.
 /// </para>
 /// </remarks>
-public sealed class KinesisAdapter : IPayloadAdapter {
+public sealed class KinesisAdapter : IPayloadAdapter
+{
     private readonly bool _reportsItemFailures;
 
     /// <param name="reportsItemFailures">
     /// Whether the event source mapping was deployed with <c>ReportBatchItemFailures</c>.
     /// </param>
-    public KinesisAdapter(bool reportsItemFailures = false) {
+    public KinesisAdapter(bool reportsItemFailures = false)
+    {
         _reportsItemFailures = reportsItemFailures;
     }
 
@@ -51,43 +53,52 @@ public sealed class KinesisAdapter : IPayloadAdapter {
     /// for why the array alone recognises nothing.
     /// </remarks>
     public bool Handles(JsonElement payload) =>
-        LambdaPayload.FirstRecord(payload) is { } record &&
-        record.TryGetProperty(EventSource, out var source) &&
-        source.ValueKind == JsonValueKind.String &&
-        source.ValueEquals(EventSourceValue);
+        LambdaPayload.FirstRecord(payload) is { } record
+        && record.TryGetProperty(EventSource, out var source)
+        && source.ValueKind == JsonValueKind.String
+        && source.ValueEquals(EventSourceValue);
 
     /// <remarks>
     /// Read off the parsed document rather than deserialized into a model. The peek has already
     /// paid for the parse, and every field wanted here is a string on it.
     /// </remarks>
-    public IExecutionRequest CreateRequest(LambdaPayload payload, ILambdaContext context) {
+    public IExecutionRequest CreateRequest(LambdaPayload payload, ILambdaContext context)
+    {
         var root = payload.Json;
 
         var records = new List<KinesisRecord>();
         string? arn = null;
 
-        if (root.TryGetProperty(Records, out var array) &&
-            array.ValueKind == JsonValueKind.Array) {
-            foreach (var element in array.EnumerateArray()) {
+        if (root.TryGetProperty(Records, out var array) && array.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var element in array.EnumerateArray())
+            {
                 arn ??= String(element, "eventSourceARN");
 
-                if (!element.TryGetProperty(Kinesis, out var inner) ||
-                    inner.ValueKind != JsonValueKind.Object) {
+                if (
+                    !element.TryGetProperty(Kinesis, out var inner)
+                    || inner.ValueKind != JsonValueKind.Object
+                )
+                {
                     continue;
                 }
 
-                records.Add(new KinesisRecord(
-                    Data(inner),
-                    String(inner, "sequenceNumber") ?? "",
-                    String(inner, "partitionKey") ?? "",
-                    String(element, "eventID") ?? "",
-                    Number(inner, "approximateArrivalTimestamp")));
+                records.Add(
+                    new KinesisRecord(
+                        Data(inner),
+                        String(inner, "sequenceNumber") ?? "",
+                        String(inner, "partitionKey") ?? "",
+                        String(element, "eventID") ?? "",
+                        Number(inner, "approximateArrivalTimestamp")
+                    )
+                );
             }
         }
 
         var headers = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase);
 
-        if (!string.IsNullOrEmpty(arn)) {
+        if (!string.IsNullOrEmpty(arn))
+        {
             headers[KinesisRequest.StreamArnHeader] = arn;
         }
 
@@ -96,7 +107,8 @@ public sealed class KinesisAdapter : IPayloadAdapter {
             new MemoryStream(payload.Raw.ToArray(), writable: false),
             headers,
             records,
-            _reportsItemFailures);
+            _reportsItemFailures
+        );
     }
 
     /// <summary>
@@ -108,15 +120,14 @@ public sealed class KinesisAdapter : IPayloadAdapter {
     /// rather than failing the batch: Kinesis will not produce one, and a malformed record is the
     /// handler's to reject with the rest of the batch still reported.
     /// </remarks>
-    private static ReadOnlyMemory<byte> Data(JsonElement kinesis) {
-        if (!kinesis.TryGetProperty("data", out var data) ||
-            data.ValueKind != JsonValueKind.String) {
+    private static ReadOnlyMemory<byte> Data(JsonElement kinesis)
+    {
+        if (!kinesis.TryGetProperty("data", out var data) || data.ValueKind != JsonValueKind.String)
+        {
             return ReadOnlyMemory<byte>.Empty;
         }
 
-        return data.TryGetBytesFromBase64(out var bytes)
-            ? bytes
-            : ReadOnlyMemory<byte>.Empty;
+        return data.TryGetBytesFromBase64(out var bytes) ? bytes : ReadOnlyMemory<byte>.Empty;
     }
 
     /// <summary>
@@ -128,8 +139,10 @@ public sealed class KinesisAdapter : IPayloadAdapter {
     /// produce a route no handler declared, which the not-found handler reports with the value in
     /// hand rather than failing inside the adapter.
     /// </remarks>
-    internal static string StreamName(string? eventSourceArn) {
-        if (string.IsNullOrEmpty(eventSourceArn)) {
+    internal static string StreamName(string? eventSourceArn)
+    {
+        if (string.IsNullOrEmpty(eventSourceArn))
+        {
             return "";
         }
 
@@ -170,14 +183,17 @@ public sealed class KinesisAdapter : IPayloadAdapter {
     /// <c>BatchFailureMode.Checkpoint</c> the batch stops at the first failure, so this names at
     /// most one - which is the point: Lambda rewinds to it and redelivers from there.
     /// </remarks>
-    public async ValueTask WriteResponse(IExecutionContext context, Stream output) {
+    public async ValueTask WriteResponse(IExecutionContext context, Stream output)
+    {
         await using var writer = new Utf8JsonWriter(output);
 
         writer.WriteStartObject();
         writer.WriteStartArray("batchItemFailures");
 
-        if (context.Request is KinesisRequest batch) {
-            foreach (var sequenceNumber in batch.FailedSequenceNumbers) {
+        if (context.Request is KinesisRequest batch)
+        {
+            foreach (var sequenceNumber in batch.FailedSequenceNumbers)
+            {
                 writer.WriteStartObject();
                 writer.WriteString("itemIdentifier", sequenceNumber);
                 writer.WriteEndObject();

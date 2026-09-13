@@ -40,7 +40,8 @@ namespace Hardened.Gcp.CloudRun.Testing;
 /// acknowledgement the source would have seen over a socket, where only the status does.
 /// </para>
 /// </remarks>
-public sealed class CloudRunEnvelopeDelivery : ITriggerDelivery {
+public sealed class CloudRunEnvelopeDelivery : ITriggerDelivery
+{
     private readonly IServiceProvider _provider;
 
     /// <summary>The project every resource this delivery names belongs to.</summary>
@@ -52,46 +53,57 @@ public sealed class CloudRunEnvelopeDelivery : ITriggerDelivery {
     /// <summary>
     /// camelCase, which is what a publisher sends and what the handler's binder is set up to read.
     /// </summary>
-    private static readonly JsonSerializerOptions Wire =
-        new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+    private static readonly JsonSerializerOptions Wire = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+    };
 
-    public CloudRunEnvelopeDelivery(IServiceProvider provider) {
+    public CloudRunEnvelopeDelivery(IServiceProvider provider)
+    {
         _provider = provider;
     }
 
     /// <summary>The resource name of the subscription serving <paramref name="queue"/>.</summary>
-    public static string Subscription(string queue) => "projects/" + Project + "/subscriptions/" + queue;
+    public static string Subscription(string queue) =>
+        "projects/" + Project + "/subscriptions/" + queue;
 
     /// <summary>The resource name of <paramref name="topic"/>, as <c>ce-source</c> carries it.</summary>
-    public static string TopicSource(string topic) => "//pubsub.googleapis.com/projects/" + Project + "/topics/" + topic;
+    public static string TopicSource(string topic) =>
+        "//pubsub.googleapis.com/projects/" + Project + "/topics/" + topic;
 
     /// <summary>The resource name of <paramref name="bucket"/>, as <c>ce-source</c> carries it.</summary>
-    public static string BucketSource(string bucket) => "//storage.googleapis.com/projects/_/buckets/" + bucket;
+    public static string BucketSource(string bucket) =>
+        "//storage.googleapis.com/projects/_/buckets/" + bucket;
 
     /// <summary>The database every document lives in, as <c>ce-source</c> carries it.</summary>
-    public static string DatabaseSource => "//firestore.googleapis.com/projects/" + Project + "/databases/(default)";
+    public static string DatabaseSource =>
+        "//firestore.googleapis.com/projects/" + Project + "/databases/(default)";
 
     /// <summary>Whether a source reads <paramref name="status"/> as an acknowledgement: every one on Cloud Run reads a 2xx as one, and Pub/Sub 102 too.</summary>
     public static bool Acknowledged(int status) => status is 102 or >= 200 and < 300;
 
-    public async Task Deliver(IReadOnlyList<object> messages, string scheme, string path) {
+    public async Task Deliver(IReadOnlyList<object> messages, string scheme, string path)
+    {
         var host = Host();
         var name = path.TrimStart('/');
         var token = Token();
 
         Exception? failure = null;
 
-        foreach (var request in Requests(messages, scheme, name, path)) {
+        foreach (var request in Requests(messages, scheme, name, path))
+        {
             var response = await host.SendAsync(request, token);
 
-            if (Acknowledged(response.StatusCode)) {
+            if (Acknowledged(response.StatusCode))
+            {
                 continue;
             }
 
             failure ??= response.Failure ?? await NotAcknowledged(scheme, path, response);
         }
 
-        if (failure != null) {
+        if (failure != null)
+        {
             ExceptionDispatchInfo.Capture(failure).Throw();
         }
     }
@@ -100,22 +112,30 @@ public sealed class CloudRunEnvelopeDelivery : ITriggerDelivery {
     /// One direct invocation: a POST to the invoke route, and the handler's answer read back out
     /// of the response the way a caller would read it.
     /// </summary>
-    public async Task<object?> Call(object message, string scheme, string path, Type? responseType) {
-        if (scheme != InvokeEnvelope.InvokeScheme) {
-            throw new NotSupportedException($"A call is a direct invocation, and {scheme} is not one.");
+    public async Task<object?> Call(object message, string scheme, string path, Type? responseType)
+    {
+        if (scheme != InvokeEnvelope.InvokeScheme)
+        {
+            throw new NotSupportedException(
+                $"A call is a direct invocation, and {scheme} is not one."
+            );
         }
 
         var operation = path.TrimStart('/');
         var body = JsonSerializer.SerializeToUtf8Bytes(message, Wire);
 
-        var response = await Host().SendAsync(
-            Post(InvokeEnvelope.DefaultPrefix + operation, body, Json()), Token());
+        var response = await Host()
+            .SendAsync(Post(InvokeEnvelope.DefaultPrefix + operation, body, Json()), Token());
 
-        if (!Acknowledged(response.StatusCode)) {
-            ExceptionDispatchInfo.Capture(response.Failure ?? await NotAcknowledged(scheme, path, response)).Throw();
+        if (!Acknowledged(response.StatusCode))
+        {
+            ExceptionDispatchInfo
+                .Capture(response.Failure ?? await NotAcknowledged(scheme, path, response))
+                .Throw();
         }
 
-        if (responseType == null) {
+        if (responseType == null)
+        {
             return null;
         }
 
@@ -125,23 +145,51 @@ public sealed class CloudRunEnvelopeDelivery : ITriggerDelivery {
     }
 
     private static IEnumerable<TestHostRequest> Requests(
-        IReadOnlyList<object> messages, string scheme, string name, string path) {
-        switch (scheme) {
+        IReadOnlyList<object> messages,
+        string scheme,
+        string name,
+        string path
+    )
+    {
+        switch (scheme)
+        {
             case PubSubPushEnvelope.QueueScheme:
-                for (var index = 0; index < messages.Count; index++) {
-                    yield return Post("/", PubSubPush.Body(
-                        Subscription(name), Serialize(messages[index]), messageId: name + "-" + index, publishTime: PublishTime), Json());
+                for (var index = 0; index < messages.Count; index++)
+                {
+                    yield return Post(
+                        "/",
+                        PubSubPush.Body(
+                            Subscription(name),
+                            Serialize(messages[index]),
+                            messageId: name + "-" + index,
+                            publishTime: PublishTime
+                        ),
+                        Json()
+                    );
                 }
 
                 break;
 
             case PubSubTopicEnvelope.TopicScheme:
-                for (var index = 0; index < messages.Count; index++) {
+                for (var index = 0; index < messages.Count; index++)
+                {
                     var push = PubSubPush.Body(
-                        Subscription("eventarc-" + name), Serialize(messages[index]), messageId: name + "-" + index, publishTime: PublishTime);
+                        Subscription("eventarc-" + name),
+                        Serialize(messages[index]),
+                        messageId: name + "-" + index,
+                        publishTime: PublishTime
+                    );
 
-                    yield return Post("/", push, CloudEvent(
-                        PubSubTopicEnvelope.MessagePublishedType, TopicSource(name), subject: null, name + "-" + index));
+                    yield return Post(
+                        "/",
+                        push,
+                        CloudEvent(
+                            PubSubTopicEnvelope.MessagePublishedType,
+                            TopicSource(name),
+                            subject: null,
+                            name + "-" + index
+                        )
+                    );
                 }
 
                 break;
@@ -149,50 +197,84 @@ public sealed class CloudRunEnvelopeDelivery : ITriggerDelivery {
             case SchedulerEnvelope.TimerScheme:
                 // A schedule carries no message and the façade sends none; a test that sent some
                 // gets one run per message with that message as the body a job was configured with.
-                if (messages.Count == 0) {
+                if (messages.Count == 0)
+                {
                     yield return new TestHostRequest(
-                        "POST", SchedulerEnvelope.DefaultPrefix + name, Scheduler(name), Stream.Null, null);
+                        "POST",
+                        SchedulerEnvelope.DefaultPrefix + name,
+                        Scheduler(name),
+                        Stream.Null,
+                        null
+                    );
                 }
 
-                foreach (var message in messages) {
+                foreach (var message in messages)
+                {
                     var headers = Scheduler(name);
 
                     headers[KnownHeaders.ContentType] = "application/json";
 
                     yield return new TestHostRequest(
-                        "POST", SchedulerEnvelope.DefaultPrefix + name, headers,
-                        new MemoryStream(Serialize(message), writable: false), null);
+                        "POST",
+                        SchedulerEnvelope.DefaultPrefix + name,
+                        headers,
+                        new MemoryStream(Serialize(message), writable: false),
+                        null
+                    );
                 }
 
                 break;
 
             case StorageEnvelope.BlobScheme:
-                for (var index = 0; index < messages.Count; index++) {
+                for (var index = 0; index < messages.Count; index++)
+                {
                     var objectName = ObjectName(messages[index], index);
 
-                    yield return Post("/", StorageObject(name, objectName, messages[index]), CloudEvent(
-                        StorageEnvelope.ObjectTypePrefix + "finalized", BucketSource(name), "objects/" + objectName, name + "-" + index));
+                    yield return Post(
+                        "/",
+                        StorageObject(name, objectName, messages[index]),
+                        CloudEvent(
+                            StorageEnvelope.ObjectTypePrefix + "finalized",
+                            BucketSource(name),
+                            "objects/" + objectName,
+                            name + "-" + index
+                        )
+                    );
                 }
 
                 break;
 
             case FirestoreEnvelope.ChangeScheme:
-                for (var index = 0; index < messages.Count; index++) {
+                for (var index = 0; index < messages.Count; index++)
+                {
                     var id = DocumentId(messages[index], index);
                     var document = FirestoreDocument(name, id, messages[index]);
 
                     // The same document as both values, because a test that wanted a create or a
                     // delete is asserting on the event type, and this delivery exists to exercise
                     // the envelope rather than to model a collection's history.
-                    var data = new DocumentEventData { Value = document, OldValue = document }.ToByteArray();
+                    var data = new DocumentEventData
+                    {
+                        Value = document,
+                        OldValue = document,
+                    }.ToByteArray();
 
                     var headers = CloudEvent(
-                        FirestoreEnvelope.DocumentTypePrefix + "updated", DatabaseSource,
-                        "documents/" + name + "/" + id, name + "-" + index);
+                        FirestoreEnvelope.DocumentTypePrefix + "updated",
+                        DatabaseSource,
+                        "documents/" + name + "/" + id,
+                        name + "-" + index
+                    );
 
                     headers[KnownHeaders.ContentType] = "application/protobuf";
 
-                    yield return new TestHostRequest("POST", "/", headers, new MemoryStream(data, writable: false), null);
+                    yield return new TestHostRequest(
+                        "POST",
+                        "/",
+                        headers,
+                        new MemoryStream(data, writable: false),
+                        null
+                    );
                 }
 
                 break;
@@ -204,29 +286,45 @@ public sealed class CloudRunEnvelopeDelivery : ITriggerDelivery {
                 var source = path.Substring(1, Math.Max(split - 1, 0));
                 var type = path.Substring(split + 1);
 
-                for (var index = 0; index < messages.Count; index++) {
-                    yield return Post("/", Serialize(messages[index]), CloudEvent(type, source, null, type + "-" + index));
+                for (var index = 0; index < messages.Count; index++)
+                {
+                    yield return Post(
+                        "/",
+                        Serialize(messages[index]),
+                        CloudEvent(type, source, null, type + "-" + index)
+                    );
                 }
 
                 break;
 
             default:
                 throw new NotSupportedException(
-                    $"No Cloud Run envelope is built for the {scheme} scheme. Queues, topics, timers, " +
-                    "changes, blobs and events have one; a stream is not bound on Google.");
+                    $"No Cloud Run envelope is built for the {scheme} scheme. Queues, topics, timers, "
+                        + "changes, blobs and events have one; a stream is not bound on Google."
+                );
         }
     }
 
-    private static byte[] Serialize(object message) => JsonSerializer.SerializeToUtf8Bytes(message, Wire);
+    private static byte[] Serialize(object message) =>
+        JsonSerializer.SerializeToUtf8Bytes(message, Wire);
 
-    private static TestHostRequest Post(string path, byte[] body, Dictionary<string, StringValues> headers) =>
-        new("POST", path, headers, new MemoryStream(body, writable: false), null);
+    private static TestHostRequest Post(
+        string path,
+        byte[] body,
+        Dictionary<string, StringValues> headers
+    ) => new("POST", path, headers, new MemoryStream(body, writable: false), null);
 
     private static Dictionary<string, StringValues> Json() =>
         new(StringComparer.OrdinalIgnoreCase) { [KnownHeaders.ContentType] = "application/json" };
 
     /// <summary>The binary-mode headers of one CloudEvent, with a JSON body's content type.</summary>
-    private static Dictionary<string, StringValues> CloudEvent(string type, string source, string? subject, string id) {
+    private static Dictionary<string, StringValues> CloudEvent(
+        string type,
+        string source,
+        string? subject,
+        string id
+    )
+    {
         var headers = Json();
 
         headers[CloudEventHeaders.SpecVersion] = "1.0";
@@ -235,7 +333,8 @@ public sealed class CloudRunEnvelopeDelivery : ITriggerDelivery {
         headers[CloudEventHeaders.Type] = type;
         headers[CloudEventHeaders.Time] = PublishTime;
 
-        if (subject != null) {
+        if (subject != null)
+        {
             headers[CloudEventHeaders.Subject] = subject;
         }
 
@@ -244,11 +343,12 @@ public sealed class CloudRunEnvelopeDelivery : ITriggerDelivery {
 
     /// <summary>The headers Cloud Scheduler adds to a job's request.</summary>
     private static Dictionary<string, StringValues> Scheduler(string job) =>
-        new(StringComparer.OrdinalIgnoreCase) {
+        new(StringComparer.OrdinalIgnoreCase)
+        {
             [SchedulerEnvelope.MarkerHeader] = "true",
             [SchedulerEnvelope.JobNameHeader] = job,
             [SchedulerEnvelope.ScheduleTimeHeader] = PublishTime,
-            ["User-Agent"] = "Google-Cloud-Scheduler"
+            ["User-Agent"] = "Google-Cloud-Scheduler",
         };
 
     /// <summary>
@@ -260,20 +360,25 @@ public sealed class CloudRunEnvelopeDelivery : ITriggerDelivery {
     /// would say about an object. <c>size</c> and <c>generation</c> are written as strings, which
     /// is how proto JSON carries an int64 and what Eventarc actually sends.
     /// </remarks>
-    private static byte[] StorageObject(string bucket, string name, object message) {
+    private static byte[] StorageObject(string bucket, string name, object message)
+    {
         using var document = JsonDocument.Parse(Serialize(message));
 
         var root = document.RootElement;
         var buffer = new MemoryStream();
 
-        using (var writer = new Utf8JsonWriter(buffer)) {
+        using (var writer = new Utf8JsonWriter(buffer))
+        {
             writer.WriteStartObject();
             writer.WriteString("kind", "storage#object");
             writer.WriteString("id", bucket + "/" + name + "/1");
             writer.WriteString("bucket", bucket);
             writer.WriteString("name", name);
             writer.WriteString("size", Number(root, "size") ?? "0");
-            writer.WriteString("contentType", String(root, "contentType") ?? "application/octet-stream");
+            writer.WriteString(
+                "contentType",
+                String(root, "contentType") ?? "application/octet-stream"
+            );
             writer.WriteString("generation", "1");
             writer.WriteString("metageneration", "1");
             writer.WriteString("etag", "CAE=");
@@ -285,24 +390,31 @@ public sealed class CloudRunEnvelopeDelivery : ITriggerDelivery {
         return buffer.ToArray();
     }
 
-    private static string ObjectName(object message, int index) {
+    private static string ObjectName(object message, int index)
+    {
         using var document = JsonDocument.Parse(Serialize(message));
 
-        return String(document.RootElement, "name") ?? String(document.RootElement, "key") ?? "object-" + index;
+        return String(document.RootElement, "name")
+            ?? String(document.RootElement, "key")
+            ?? "object-" + index;
     }
 
-    private static string DocumentId(object message, int index) {
+    private static string DocumentId(object message, int index)
+    {
         using var document = JsonDocument.Parse(Serialize(message));
 
         return String(document.RootElement, "id") ?? "document-" + index;
     }
 
     /// <summary>The message as a Firestore document, in the typed form a document event carries.</summary>
-    private static Document FirestoreDocument(string collection, string id, object message) {
+    private static Document FirestoreDocument(string collection, string id, object message)
+    {
         using var document = JsonDocument.Parse(Serialize(message));
 
-        var firestore = new Document {
-            Name = "projects/" + Project + "/databases/(default)/documents/" + collection + "/" + id
+        var firestore = new Document
+        {
+            Name =
+                "projects/" + Project + "/databases/(default)/documents/" + collection + "/" + id,
         };
 
         FirestoreValueWire.WriteFields(firestore.Fields, document.RootElement);
@@ -311,33 +423,40 @@ public sealed class CloudRunEnvelopeDelivery : ITriggerDelivery {
     }
 
     private static string? String(JsonElement element, string name) =>
-        element.ValueKind == JsonValueKind.Object &&
-        element.TryGetProperty(name, out var value) &&
-        value.ValueKind == JsonValueKind.String
+        element.ValueKind == JsonValueKind.Object
+        && element.TryGetProperty(name, out var value)
+        && value.ValueKind == JsonValueKind.String
             ? value.GetString()
             : null;
 
     private static string? Number(JsonElement element, string name) =>
-        element.ValueKind == JsonValueKind.Object &&
-        element.TryGetProperty(name, out var value) &&
-        value.ValueKind == JsonValueKind.Number
+        element.ValueKind == JsonValueKind.Object
+        && element.TryGetProperty(name, out var value)
+        && value.ValueKind == JsonValueKind.Number
             ? value.GetRawText()
             : null;
 
-    private static async Task<Exception> NotAcknowledged(string scheme, string path, TestWebResponse response) {
+    private static async Task<Exception> NotAcknowledged(
+        string scheme,
+        string path,
+        TestWebResponse response
+    )
+    {
         var answer = await response.ReadTextAsync();
 
         return new InvalidOperationException(
-            $"The source would not read the answer to {scheme} {path} as an acknowledgement: the " +
-            $"service answered {response.StatusCode}. It said: {answer}");
+            $"The source would not read the answer to {scheme} {path} as an acknowledgement: the "
+                + $"service answered {response.StatusCode}. It said: {answer}"
+        );
     }
 
     private ITestHost Host() =>
         _provider.GetService<ITestHost>()
         ?? throw new InvalidOperationException(
-            "[CloudRunTesting] delivers through the web test host, and none is registered. Add " +
-            "[assembly: WebTesting] beside it; [KestrelRuntime] on a class under " +
-            "[assembly: KestrelTesting] then runs that class over a socket.");
+            "[CloudRunTesting] delivers through the web test host, and none is registered. Add "
+                + "[assembly: WebTesting] beside it; [KestrelRuntime] on a class under "
+                + "[assembly: KestrelTesting] then runs that class over a socket."
+        );
 
     private CancellationToken Token() =>
         _provider.GetService<TestCancellationToken>()?.Token ?? CancellationToken.None;

@@ -16,10 +16,11 @@ namespace Hardened.Requests.Abstract.Tests;
 /// <b>Delete this file</b> once real tests land. It is a placeholder, not coverage.
 /// </para>
 /// </summary>
-public class ScaffoldTests {
-
+public class ScaffoldTests
+{
     [Fact]
-    public void TheAssemblyUnderTestIsReferencedAndLoadable() {
+    public void TheAssemblyUnderTestIsReferencedAndLoadable()
+    {
         var assembly = Assembly.Load("Hardened.Requests.Abstract");
 
         Assert.NotEmpty(assembly.GetExportedTypes());

@@ -20,8 +20,8 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Controllers;
 /// </para>
 /// </remarks>
 [BasePath("/msgpack")]
-public class MessagePackController {
-
+public class MessagePackController
+{
     /// <summary>
     /// A reading, annotated the way MessagePack requires.
     /// </summary>
@@ -71,8 +71,10 @@ public class MessagePackController {
     /// </remarks>
     [Get("/declared/{id}")]
     [Produces(KnownContentType.Json, MessagePackContentType.Value)]
-    public Response<Reading, NotFound> Declared(int id) {
-        if (id > 100) {
+    public Response<Reading, NotFound> Declared(int id)
+    {
+        if (id > 100)
+        {
             return new NotFound("reading", $"No reading has id {id}.");
         }
 

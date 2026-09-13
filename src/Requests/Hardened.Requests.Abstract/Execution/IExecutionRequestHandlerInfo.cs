@@ -3,7 +3,8 @@ using Hardened.Requests.Abstract.Timeouts;
 
 namespace Hardened.Requests.Abstract.Execution;
 
-public interface IExecutionRequestHandlerInfo {
+public interface IExecutionRequestHandlerInfo
+{
     string Path { get; }
 
     string Method { get; }
@@ -233,16 +234,19 @@ public interface IExecutionRequestHandlerInfo {
     /// Shared with implementations that precompute, so both spellings mean the same thing rather
     /// than agreeing by inspection.
     /// </remarks>
-    static Requirement? RequirementFrom(IReadOnlyList<object> metadata) {
+    static Requirement? RequirementFrom(IReadOnlyList<object> metadata)
+    {
         List<Requirement>? requirements = null;
 
-        foreach (var item in metadata) {
-            if (item is IAuthorizeAttribute authorize) {
+        foreach (var item in metadata)
+        {
+            if (item is IAuthorizeAttribute authorize)
+            {
                 (requirements ??= []).Add(authorize.Requirement);
             }
         }
 
-        return requirements == null ? null : Authorization.Requirement.AllOf([..requirements]);
+        return requirements == null ? null : Authorization.Requirement.AllOf([.. requirements]);
     }
 
     /// <summary>
@@ -292,9 +296,12 @@ public interface IExecutionRequestHandlerInfo {
     /// than agreeing by inspection.
     /// </para>
     /// </remarks>
-    static TimeoutPolicy? TimeoutFrom(IReadOnlyList<object> metadata) {
-        foreach (var item in metadata) {
-            if (item is IDeclaresTimeout declares) {
+    static TimeoutPolicy? TimeoutFrom(IReadOnlyList<object> metadata)
+    {
+        foreach (var item in metadata)
+        {
+            if (item is IDeclaresTimeout declares)
+            {
                 return declares.Timeout;
             }
         }

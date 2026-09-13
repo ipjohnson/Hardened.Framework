@@ -2,6 +2,7 @@
 
 namespace Hardened.Requests.Abstract.RequestFilter;
 
-public interface IInstanceFilterProvider {
+public interface IInstanceFilterProvider
+{
     IExecutionFilter ProvideFilter<T>(IServiceProvider rootProvider);
 }

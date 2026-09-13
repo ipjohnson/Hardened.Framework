@@ -19,7 +19,8 @@ namespace Hardened.Benchmarks.Pipeline;
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory(BenchmarkCategories.Pipeline)]
-public class PipelineBenchmarks {
+public class PipelineBenchmarks
+{
     private HardenedNativeHarness _native = null!;
     private HardenedFeatureHarness _features = null!;
     private HardenedAspNetHarness _aspNet = null!;
@@ -31,7 +32,8 @@ public class PipelineBenchmarks {
     public RequestScenario Scenario { get; set; } = null!;
 
     [GlobalSetup]
-    public void Setup() {
+    public void Setup()
+    {
         _native = new HardenedNativeHarness();
         _features = new HardenedFeatureHarness();
         _aspNet = new HardenedAspNetHarness();
@@ -42,21 +44,28 @@ public class PipelineBenchmarks {
         // attractive number for producing a 404.
         AssertHandled(_native.Execute(Scenario, _responseBody).GetAwaiter().GetResult(), "native");
         _responseBody.SetLength(0);
-        AssertHandled(_features.Execute(Scenario, _responseBody).GetAwaiter().GetResult(), "features");
+        AssertHandled(
+            _features.Execute(Scenario, _responseBody).GetAwaiter().GetResult(),
+            "features"
+        );
         _responseBody.SetLength(0);
         AssertHandled(_aspNet.Execute(Scenario, _responseBody).GetAwaiter().GetResult(), "asp.net");
     }
 
-    private void AssertHandled(int status, string pipeline) {
-        if (status != 200 || _responseBody.Length == 0) {
+    private void AssertHandled(int status, string pipeline)
+    {
+        if (status != 200 || _responseBody.Length == 0)
+        {
             throw new InvalidOperationException(
-                $"{pipeline} returned {status} with a {_responseBody.Length} byte body for " +
-                $"{Scenario.Name}. The route is not being handled, so any timing would be noise.");
+                $"{pipeline} returned {status} with a {_responseBody.Length} byte body for "
+                    + $"{Scenario.Name}. The route is not being handled, so any timing would be noise."
+            );
         }
     }
 
     [Benchmark(Baseline = true)]
-    public async Task<int> HardenedNative() {
+    public async Task<int> HardenedNative()
+    {
         _responseBody.SetLength(0);
 
         return await _native.Execute(Scenario, _responseBody);
@@ -68,21 +77,24 @@ public class PipelineBenchmarks {
     /// <see cref="HardenedHttpApplication"/>.
     /// </summary>
     [Benchmark]
-    public async Task<int> HardenedOnServerFeatures() {
+    public async Task<int> HardenedOnServerFeatures()
+    {
         _responseBody.SetLength(0);
 
         return await _features.Execute(Scenario, _responseBody);
     }
 
     [Benchmark]
-    public async Task<int> HardenedOnAspNet() {
+    public async Task<int> HardenedOnAspNet()
+    {
         _responseBody.SetLength(0);
 
         return await _aspNet.Execute(Scenario, _responseBody);
     }
 
     [GlobalCleanup]
-    public void Cleanup() {
+    public void Cleanup()
+    {
         _native.Dispose();
         _features.Dispose();
         _aspNet.Dispose();

@@ -32,7 +32,8 @@ namespace Hardened.Azure.Functions.Runtime.Hosting;
 /// start with the name of what was missing rather than on the first message of the day.
 /// </para>
 /// </remarks>
-public static class HardenedFunctionsWorkerBuilderExtensions {
+public static class HardenedFunctionsWorkerBuilderExtensions
+{
     /// <summary>
     /// Registers <typeparamref name="TApplication"/>, its modules and its generated function
     /// shims with the worker.
@@ -49,8 +50,11 @@ public static class HardenedFunctionsWorkerBuilderExtensions {
     /// as HRDF001, before this is reached.
     /// </remarks>
     public static IFunctionsWorkerApplicationBuilder UseHardened<TApplication>(
-        this IFunctionsWorkerApplicationBuilder builder, IHardenedEnvironment? environment = null)
-        where TApplication : class, IDependencyModule, IHardenedFunctionsApplication, new() {
+        this IFunctionsWorkerApplicationBuilder builder,
+        IHardenedEnvironment? environment = null
+    )
+        where TApplication : class, IDependencyModule, IHardenedFunctionsApplication, new()
+    {
         var application = new TApplication();
 
         // The generic host has already added logging by the time ConfigureFunctionsWorkerDefaults
@@ -59,7 +63,8 @@ public static class HardenedFunctionsWorkerBuilderExtensions {
         builder.Services.AddLogging();
 
         builder.Services.AddHardenedEnvironment(
-            environment ?? new EnvironmentImpl(arguments: Environment.GetCommandLineArgs()));
+            environment ?? new EnvironmentImpl(arguments: Environment.GetCommandLineArgs())
+        );
 
         application.PopulateServiceCollection(builder.Services);
         application.ConfigureFunctionsWorker(builder.Services);

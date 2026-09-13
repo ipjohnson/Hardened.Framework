@@ -28,27 +28,38 @@ namespace Hardened.Gcp.CloudRun.Firestore;
 /// </para>
 /// </remarks>
 [AttributeUsage(AttributeTargets.Parameter)]
-public sealed class OldValueAttribute : Attribute, ICustomBindingAttribute {
-    public async ValueTask<T> BindValue<T>(IExecutionContext context, IExecutionRequestParameter parameter) {
-        if (context.Request is not FirestoreChange change) {
+public sealed class OldValueAttribute : Attribute, ICustomBindingAttribute
+{
+    public async ValueTask<T> BindValue<T>(
+        IExecutionContext context,
+        IExecutionRequestParameter parameter
+    )
+    {
+        if (context.Request is not FirestoreChange change)
+        {
             throw new InvalidOperationException(
-                "[OldValue] was bound on a handler that is not serving a Firestore change. It reads " +
-                "the document event off the request, so it only works under [Change].");
+                "[OldValue] was bound on a handler that is not serving a Firestore change. It reads "
+                    + "the document event off the request, so it only works under [Change]."
+            );
         }
 
         var previous = change.OldValue;
 
-        if (previous == null) {
-            if (default(T) is null) {
+        if (previous == null)
+        {
+            if (default(T) is null)
+            {
                 return default!;
             }
 
             throw new InvalidCastException(
-                $"[OldValue] has no previous document on this {change.Headers["ce-type"]} event, and " +
-                $"{typeof(T).Name} cannot hold null.");
+                $"[OldValue] has no previous document on this {change.Headers["ce-type"]} event, and "
+                    + $"{typeof(T).Name} cannot hold null."
+            );
         }
 
-        if (previous is T document) {
+        if (previous is T document)
+        {
             return document;
         }
 
@@ -56,10 +67,18 @@ public sealed class OldValueAttribute : Attribute, ICustomBindingAttribute {
         // carries the previous document as JSON, through the pipeline's deserializer, so an AOT
         // application binds it through the same context its body binds through.
         var request = new FirestoreChange(
-            change.Method, change.Path, FirestoreValueJson.Body(previous), change.Headers, change.Delivery, change.Event);
+            change.Method,
+            change.Path,
+            FirestoreValueJson.Body(previous),
+            change.Headers,
+            change.Delivery,
+            change.Event
+        );
 
-        var bound = await context.KnownServices.ContextSerializationService
-            .DeserializeRequestBody<T>(context.Clone(request: request));
+        var bound =
+            await context.KnownServices.ContextSerializationService.DeserializeRequestBody<T>(
+                context.Clone(request: request)
+            );
 
         return bound!;
     }

@@ -6,8 +6,8 @@ using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.OpenApiDocument;
 using Hardened.SourceGenerator.Requests;
 using Hardened.SourceGenerator.Shared;
-using Xunit;
 using Hardened.Web.Runtime.Responses;
+using Xunit;
 
 namespace Hardened.SourceGenerator.Tests.OpenApiDocument;
 
@@ -25,25 +25,29 @@ namespace Hardened.SourceGenerator.Tests.OpenApiDocument;
 /// the identity - exist in every copy and are otherwise exercised only by the IDL suite's.
 /// </para>
 /// </remarks>
-public class DocumentWriterTests {
-
+public class DocumentWriterTests
+{
     private static ITypeDefinition Type(string name) => TypeDefinition.Get("TestApp", name);
 
     private static EntryPointSelector.Model EntryPoint() =>
-        new() {
+        new()
+        {
             EntryPointType = Type("Application"),
-            AttributeModels = System.Array.Empty<AttributeModel>()
+            AttributeModels = System.Array.Empty<AttributeModel>(),
         };
 
     private static HandlerSchema Schema(string name) =>
-        new($"{{\"$ref\":\"#/components/schemas/{name}\"}}",
-            new[] { new SchemaComponent(name, "{\"type\":\"object\"}") });
+        new(
+            $"{{\"$ref\":\"#/components/schemas/{name}\"}}",
+            new[] { new SchemaComponent(name, "{\"type\":\"object\"}") }
+        );
 
     private static RequestHandlerModel Handler(
         RequestParameterInformation? parameter = null,
         IReadOnlyList<ResponseSchemaModel>? responses = null,
         IReadOnlyList<string>? security = null,
-        string path = "/todos/{id}") =>
+        string path = "/todos/{id}"
+    ) =>
         new(
             new RequestHandlerNameModel(path, "GET"),
             Type("TodoController"),
@@ -51,47 +55,75 @@ public class DocumentWriterTests {
             TypeDefinition.Get("TestApp.Generated", "TodoController_GetTodo"),
             parameter == null ? [] : [parameter],
             new ResponseInformationModel { ReturnType = Type("Todo") },
-            []) {
+            []
+        )
+        {
             ResponseSchema = Schema("Todo"),
             ResponseSchemas = responses ?? System.Array.Empty<ResponseSchemaModel>(),
-            SecurityRequirements = security ?? System.Array.Empty<string>()
+            SecurityRequirements = security ?? System.Array.Empty<string>(),
         };
 
     private static JsonElement Write(
         RequestHandlerModel handler,
         OpenApiVersion version = OpenApiVersionFacts.Default,
-        DocumentIdentity? identity = null) =>
-        JsonDocument.Parse(
-            OpenApiDocumentGenerator.Write(EntryPoint(), [handler], "", version, identity))
+        DocumentIdentity? identity = null
+    ) =>
+        JsonDocument
+            .Parse(OpenApiDocumentGenerator.Write(EntryPoint(), [handler], "", version, identity))
             .RootElement;
 
     /// <summary>The same, over an entry point carrying <c>[Server]</c> arguments as source text.</summary>
-    private static JsonElement WriteWithServerAttribute(string arguments, DocumentIdentity? identity = null) {
-        var appModel = new EntryPointSelector.Model {
+    private static JsonElement WriteWithServerAttribute(
+        string arguments,
+        DocumentIdentity? identity = null
+    )
+    {
+        var appModel = new EntryPointSelector.Model
+        {
             EntryPointType = Type("Application"),
-            AttributeModels = [new AttributeModel(Type("ServerAttribute"), arguments, "")]
+            AttributeModels = [new AttributeModel(Type("ServerAttribute"), arguments, "")],
         };
 
-        return JsonDocument.Parse(
-            OpenApiDocumentGenerator.Write(
-                appModel, [Handler()], "", OpenApiVersionFacts.Default, identity))
+        return JsonDocument
+            .Parse(
+                OpenApiDocumentGenerator.Write(
+                    appModel,
+                    [Handler()],
+                    "",
+                    OpenApiVersionFacts.Default,
+                    identity
+                )
+            )
             .RootElement;
     }
 
     private static (string Url, string? Description)[] Servers(JsonElement document) =>
-        document.GetProperty("servers").EnumerateArray()
-            .Select(server => (
-                server.GetProperty("url").GetString()!,
-                server.TryGetProperty("description", out var description)
-                    ? description.GetString()
-                    : null))
+        document
+            .GetProperty("servers")
+            .EnumerateArray()
+            .Select(server =>
+                (
+                    server.GetProperty("url").GetString()!,
+                    server.TryGetProperty("description", out var description)
+                        ? description.GetString()
+                        : null
+                )
+            )
             .ToArray();
 
-    private static JsonElement LimitSchema(JsonElement document) {
-        foreach (var parameter in document
-                     .GetProperty("paths").GetProperty("/todos/{id}").GetProperty("get")
-                     .GetProperty("parameters").EnumerateArray()) {
-            if (parameter.GetProperty("name").GetString() == "limit") {
+    private static JsonElement LimitSchema(JsonElement document)
+    {
+        foreach (
+            var parameter in document
+                .GetProperty("paths")
+                .GetProperty("/todos/{id}")
+                .GetProperty("get")
+                .GetProperty("parameters")
+                .EnumerateArray()
+        )
+        {
+            if (parameter.GetProperty("name").GetString() == "limit")
+            {
                 return parameter.GetProperty("schema");
             }
         }
@@ -101,20 +133,44 @@ public class DocumentWriterTests {
 
     private static RequestParameterInformation Bound(ParameterModel spec) =>
         new(
-            TypeDefinition.Get("System", "String"), "limit", false, null,
-            ParameterBindType.QueryString, "limit", 0) {
-            SpecParameter = spec
+            TypeDefinition.Get("System", "String"),
+            "limit",
+            false,
+            null,
+            ParameterBindType.QueryString,
+            "limit",
+            0
+        )
+        {
+            SpecParameter = spec,
         };
 
     #region declared parameter facts
 
     [Fact]
-    public void TheDeclaredFacetsWinOverTheCSharpType() {
-        var schema = LimitSchema(Write(Handler(Bound(new ParameterModel {
-            Name = "limit", In = "query", Type = "integer", Format = "int32",
-            Minimum = 1, Maximum = 100, Default = "20",
-            MinLength = 1, MaxLength = 10, Pattern = "^[0-9]+$"
-        }))));
+    public void TheDeclaredFacetsWinOverTheCSharpType()
+    {
+        var schema = LimitSchema(
+            Write(
+                Handler(
+                    Bound(
+                        new ParameterModel
+                        {
+                            Name = "limit",
+                            In = "query",
+                            Type = "integer",
+                            Format = "int32",
+                            Minimum = 1,
+                            Maximum = 100,
+                            Default = "20",
+                            MinLength = 1,
+                            MaxLength = 10,
+                            Pattern = "^[0-9]+$",
+                        }
+                    )
+                )
+            )
+        );
 
         Assert.Equal("integer", schema.GetProperty("type").GetString());
         Assert.Equal(1, schema.GetProperty("minimum").GetDecimal());
@@ -124,10 +180,17 @@ public class DocumentWriterTests {
     }
 
     [Fact]
-    public void ExclusiveBoundsSpellPerVersion() {
-        var spec = new ParameterModel {
-            Name = "limit", In = "query", Type = "number",
-            Minimum = 0, ExclusiveMinimum = true, Maximum = 1, ExclusiveMaximum = true
+    public void ExclusiveBoundsSpellPerVersion()
+    {
+        var spec = new ParameterModel
+        {
+            Name = "limit",
+            In = "query",
+            Type = "number",
+            Minimum = 0,
+            ExclusiveMinimum = true,
+            Maximum = 1,
+            ExclusiveMaximum = true,
         };
 
         var modern = LimitSchema(Write(Handler(Bound(spec))));
@@ -143,11 +206,25 @@ public class DocumentWriterTests {
     }
 
     [Fact]
-    public void ADeclaredArrayKeepsItsItemAndBounds() {
-        var schema = LimitSchema(Write(Handler(Bound(new ParameterModel {
-            Name = "limit", In = "query",
-            IsArray = true, ArrayItemsType = "string", MinItems = 1, MaxItems = 5
-        }))));
+    public void ADeclaredArrayKeepsItsItemAndBounds()
+    {
+        var schema = LimitSchema(
+            Write(
+                Handler(
+                    Bound(
+                        new ParameterModel
+                        {
+                            Name = "limit",
+                            In = "query",
+                            IsArray = true,
+                            ArrayItemsType = "string",
+                            MinItems = 1,
+                            MaxItems = 5,
+                        }
+                    )
+                )
+            )
+        );
 
         Assert.Equal("array", schema.GetProperty("type").GetString());
         Assert.Equal("string", schema.GetProperty("items").GetProperty("type").GetString());
@@ -157,24 +234,61 @@ public class DocumentWriterTests {
 
     /// <summary>The non-numeric default spellings: booleans stay bare, prose stays quoted.</summary>
     [Fact]
-    public void DefaultsAreTypedByTheirSchema() {
-        var flag = LimitSchema(Write(Handler(Bound(new ParameterModel {
-            Name = "limit", In = "query", Type = "boolean", Default = "true"
-        }))));
+    public void DefaultsAreTypedByTheirSchema()
+    {
+        var flag = LimitSchema(
+            Write(
+                Handler(
+                    Bound(
+                        new ParameterModel
+                        {
+                            Name = "limit",
+                            In = "query",
+                            Type = "boolean",
+                            Default = "true",
+                        }
+                    )
+                )
+            )
+        );
 
         Assert.True(flag.GetProperty("default").GetBoolean());
 
-        var text = LimitSchema(Write(Handler(Bound(new ParameterModel {
-            Name = "limit", In = "query", Type = "string", Default = "compact"
-        }))));
+        var text = LimitSchema(
+            Write(
+                Handler(
+                    Bound(
+                        new ParameterModel
+                        {
+                            Name = "limit",
+                            In = "query",
+                            Type = "string",
+                            Default = "compact",
+                        }
+                    )
+                )
+            )
+        );
 
         Assert.Equal("compact", text.GetProperty("default").GetString());
 
         // A default that does not parse as its declared type is a string rather than an invalid
         // document.
-        var odd = LimitSchema(Write(Handler(Bound(new ParameterModel {
-            Name = "limit", In = "query", Type = "integer", Default = "lots"
-        }))));
+        var odd = LimitSchema(
+            Write(
+                Handler(
+                    Bound(
+                        new ParameterModel
+                        {
+                            Name = "limit",
+                            In = "query",
+                            Type = "integer",
+                            Default = "lots",
+                        }
+                    )
+                )
+            )
+        );
 
         Assert.Equal("lots", odd.GetProperty("default").GetString());
     }
@@ -184,12 +298,17 @@ public class DocumentWriterTests {
     #region identity, security, headers, validation
 
     [Fact]
-    public void TheIdentityIsWrittenAndTheSchemesDeclared() {
+    public void TheIdentityIsWrittenAndTheSchemesDeclared()
+    {
         var document = Write(
             Handler(security: ["{\"BearerAuth\":[]}"]),
             identity: new DocumentIdentity(
-                "Todos API", "2.0.0", "The todos.",
-                [("BearerAuth", "{\"type\":\"http\",\"scheme\":\"bearer\"}")]));
+                "Todos API",
+                "2.0.0",
+                "The todos.",
+                [("BearerAuth", "{\"type\":\"http\",\"scheme\":\"bearer\"}")]
+            )
+        );
 
         var info = document.GetProperty("info");
 
@@ -199,11 +318,15 @@ public class DocumentWriterTests {
 
         Assert.Equal(
             "bearer",
-            document.GetProperty("components").GetProperty("securitySchemes")
-                .GetProperty("BearerAuth").GetProperty("scheme").GetString());
+            document
+                .GetProperty("components")
+                .GetProperty("securitySchemes")
+                .GetProperty("BearerAuth")
+                .GetProperty("scheme")
+                .GetString()
+        );
 
-        var operation = document
-            .GetProperty("paths").GetProperty("/todos/{id}").GetProperty("get");
+        var operation = document.GetProperty("paths").GetProperty("/todos/{id}").GetProperty("get");
         var requirement = Assert.Single(operation.GetProperty("security").EnumerateArray());
 
         Assert.Equal(0, requirement.GetProperty("BearerAuth").GetArrayLength());
@@ -217,21 +340,29 @@ public class DocumentWriterTests {
     /// dropping it left a generated client with every path and no host to send one to.
     /// </remarks>
     [Fact]
-    public void TheContractsServersArePublishedInTheOrderItWroteThem() {
+    public void TheContractsServersArePublishedInTheOrderItWroteThem()
+    {
         var document = Write(
             Handler(),
             identity: new DocumentIdentity(
-                null, null, null, [],
-                [("https://api.example.com", "production"), ("https://staging.example.com", null)]));
+                null,
+                null,
+                null,
+                [],
+                [("https://api.example.com", "production"), ("https://staging.example.com", null)]
+            )
+        );
 
         Assert.Equal(
             [("https://api.example.com", "production"), ("https://staging.example.com", null)],
-            Servers(document));
+            Servers(document)
+        );
     }
 
     /// <summary>The attribute still answers for an application whose contract says nothing.</summary>
     [Fact]
-    public void AServerAttributeIsPublishedWhenNoContractDeclaresOne() {
+    public void AServerAttributeIsPublishedWhenNoContractDeclaresOne()
+    {
         var document = WriteWithServerAttribute("\"https://api.example.com\", \"production\"");
 
         Assert.Equal([("https://api.example.com", "production")], Servers(document));
@@ -245,10 +376,12 @@ public class DocumentWriterTests {
     /// them would put the same deployment in the list two ways.
     /// </remarks>
     [Fact]
-    public void TheContractsServersWinOverTheAttribute() {
+    public void TheContractsServersWinOverTheAttribute()
+    {
         var document = WriteWithServerAttribute(
             "\"https://attribute.example.com\"",
-            new DocumentIdentity(null, null, null, [], [("https://contract.example.com", null)]));
+            new DocumentIdentity(null, null, null, [], [("https://contract.example.com", null)])
+        );
 
         Assert.Equal([("https://contract.example.com", null)], Servers(document));
     }
@@ -261,28 +394,43 @@ public class DocumentWriterTests {
     /// absent case as the document's own location and the empty one as served from nowhere.
     /// </remarks>
     [Fact]
-    public void AnApplicationThatDeclaresNoServerWritesNoServersKey() {
+    public void AnApplicationThatDeclaresNoServerWritesNoServersKey()
+    {
         Assert.False(Write(Handler()).TryGetProperty("servers", out _));
 
         Assert.False(
             Write(Handler(), identity: new DocumentIdentity(null, null, null, [], []))
-                .TryGetProperty("servers", out _));
+                .TryGetProperty("servers", out _)
+        );
     }
 
     [Fact]
-    public void DeclaredHeadersAreMergedByWireName() {
-        var headers = new[] {
-            new ResponseHeaderModel { Name = "Location", ParameterName = "Location", Description = "Where." },
-            new ResponseHeaderModel { Name = "location", ParameterName = "Location2" }
+    public void DeclaredHeadersAreMergedByWireName()
+    {
+        var headers = new[]
+        {
+            new ResponseHeaderModel
+            {
+                Name = "Location",
+                ParameterName = "Location",
+                Description = "Where.",
+            },
+            new ResponseHeaderModel { Name = "location", ParameterName = "Location2" },
         };
 
-        var handler = Handler(responses: [
-            new ResponseSchemaModel(201, "Created.", Schema("Todo")) { Headers = headers }
-        ]);
+        var handler = Handler(
+            responses:
+            [
+                new ResponseSchemaModel(201, "Created.", Schema("Todo")) { Headers = headers },
+            ]
+        );
 
         var created = Write(handler)
-            .GetProperty("paths").GetProperty("/todos/{id}").GetProperty("get")
-            .GetProperty("responses").GetProperty("201");
+            .GetProperty("paths")
+            .GetProperty("/todos/{id}")
+            .GetProperty("get")
+            .GetProperty("responses")
+            .GetProperty("201");
 
         var location = Assert.Single(created.GetProperty("headers").EnumerateObject());
 
@@ -291,36 +439,50 @@ public class DocumentWriterTests {
     }
 
     [Fact]
-    public void AValidatedHandlerDeclaresTheFourHundred() {
+    public void AValidatedHandlerDeclaresTheFourHundred()
+    {
         var handler = Handler();
 
         handler.HasGeneratedValidation = true;
 
         var responses = Write(handler)
-            .GetProperty("paths").GetProperty("/todos/{id}").GetProperty("get")
+            .GetProperty("paths")
+            .GetProperty("/todos/{id}")
+            .GetProperty("get")
             .GetProperty("responses");
 
         Assert.Equal(
             "#/components/schemas/RequestValidationError",
-            responses.GetProperty("400").GetProperty("content")
-                .GetProperty("application/json").GetProperty("schema")
-                .GetProperty("$ref").GetString());
+            responses
+                .GetProperty("400")
+                .GetProperty("content")
+                .GetProperty("application/json")
+                .GetProperty("schema")
+                .GetProperty("$ref")
+                .GetString()
+        );
     }
 
     /// <summary>A handler that declared its own 400 keeps it; the generated one yields.</summary>
     [Fact]
-    public void ADeclaredFourHundredWins() {
-        var handler = Handler(responses: [
-            new ResponseSchemaModel(400, "My own.", Schema("Problem"))
-        ]);
+    public void ADeclaredFourHundredWins()
+    {
+        var handler = Handler(
+            responses: [new ResponseSchemaModel(400, "My own.", Schema("Problem"))]
+        );
 
         handler.HasGeneratedValidation = true;
 
         var responses = Write(handler)
-            .GetProperty("paths").GetProperty("/todos/{id}").GetProperty("get")
+            .GetProperty("paths")
+            .GetProperty("/todos/{id}")
+            .GetProperty("get")
             .GetProperty("responses");
 
-        Assert.Equal("My own.", responses.GetProperty("400").GetProperty("description").GetString());
+        Assert.Equal(
+            "My own.",
+            responses.GetProperty("400").GetProperty("description").GetString()
+        );
     }
 
     #endregion
@@ -332,7 +494,9 @@ public class DocumentWriterTests {
 
     private static JsonElement Responses(RequestHandlerModel handler) =>
         Write(handler)
-            .GetProperty("paths").GetProperty("/todos/{id}").GetProperty("get")
+            .GetProperty("paths")
+            .GetProperty("/todos/{id}")
+            .GetProperty("get")
             .GetProperty("responses");
 
     /// <summary>
@@ -341,7 +505,8 @@ public class DocumentWriterTests {
     /// 400 claimed one the same operation could not produce.
     /// </summary>
     [Fact]
-    public void AConstrainedTokenGuaranteeingTheConversionDeclaresNoFourHundred() {
+    public void AConstrainedTokenGuaranteeingTheConversionDeclaresNoFourHundred()
+    {
         var responses = Responses(Handler(PathToken(), path: "/todos/{id:int}"));
 
         Assert.False(responses.TryGetProperty("400", out _));
@@ -350,7 +515,8 @@ public class DocumentWriterTests {
 
     /// <summary>The same handler with nothing guarding the token: the 400 is real.</summary>
     [Fact]
-    public void AnUnconstrainedTokenStillDeclaresTheFourHundred() {
+    public void AnUnconstrainedTokenStillDeclaresTheFourHundred()
+    {
         Assert.True(Responses(Handler(PathToken())).TryGetProperty("400", out _));
     }
 
@@ -359,9 +525,11 @@ public class DocumentWriterTests {
     /// 99999999999, which an <c>int</c> parameter refuses - so the 400 stays.
     /// </summary>
     [Fact]
-    public void AConstraintWiderThanTheTypeStillDeclaresTheFourHundred() {
+    public void AConstraintWiderThanTheTypeStillDeclaresTheFourHundred()
+    {
         Assert.True(
-            Responses(Handler(PathToken(), path: "/todos/{id:long}")).TryGetProperty("400", out _));
+            Responses(Handler(PathToken(), path: "/todos/{id:long}")).TryGetProperty("400", out _)
+        );
     }
 
     /// <summary>
@@ -370,24 +538,32 @@ public class DocumentWriterTests {
     /// empty body they will also be sent.
     /// </summary>
     [Fact]
-    public void ADeclaredNotFoundSaysARouteConstraintAnswersItToo() {
+    public void ADeclaredNotFoundSaysARouteConstraintAnswersItToo()
+    {
         var handler = Handler(
             responses: [new ResponseSchemaModel(404, "No such todo", Schema("Problem"))],
-            path: "/todos/{id:int}");
+            path: "/todos/{id:int}"
+        );
 
         Assert.Equal(
-            "No such todo. A token that fails its route constraint answers this status too, " +
-            "before the handler and with no body.",
-            Responses(handler).GetProperty("404").GetProperty("description").GetString());
+            "No such todo. A token that fails its route constraint answers this status too, "
+                + "before the handler and with no body.",
+            Responses(handler).GetProperty("404").GetProperty("description").GetString()
+        );
     }
 
     /// <summary>The note is for the operations a route constraint can refuse, and no others.</summary>
     [Fact]
-    public void ADeclaredNotFoundOnAnUnconstrainedRouteIsLeftAlone() {
-        var handler = Handler(responses: [new ResponseSchemaModel(404, "No such todo", Schema("Problem"))]);
+    public void ADeclaredNotFoundOnAnUnconstrainedRouteIsLeftAlone()
+    {
+        var handler = Handler(
+            responses: [new ResponseSchemaModel(404, "No such todo", Schema("Problem"))]
+        );
 
         Assert.Equal(
-            "No such todo", Responses(handler).GetProperty("404").GetProperty("description").GetString());
+            "No such todo",
+            Responses(handler).GetProperty("404").GetProperty("description").GetString()
+        );
     }
 
     #endregion

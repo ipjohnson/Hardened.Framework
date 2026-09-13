@@ -10,8 +10,8 @@ namespace Hardened.IntegrationTests.StaticContent.SUT.Controllers;
 /// so this must win. There is a <c>wwwroot/app.js</c> and this answers <c>/app.js</c>; nothing but
 /// a fixture with both can tell the ordering apart from luck.
 /// </remarks>
-public class RouteWinsController {
-
+public class RouteWinsController
+{
     [Get("/app.js")]
     public string Declared() => "// declared by a route, not served from disk";
 }

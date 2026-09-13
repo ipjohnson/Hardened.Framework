@@ -29,31 +29,35 @@ namespace Hardened.Requests.Runtime.Tests.Filters;
 /// is a real assembly to hang an attribute on.
 /// </para>
 /// </remarks>
-public class TimeoutCascadeTests {
-
+public class TimeoutCascadeTests
+{
     private class Controller;
 
-    private sealed class IoStandIn : IExecutionFilter {
+    private sealed class IoStandIn : IExecutionFilter
+    {
         public Task Execute(IExecutionChain chain) => chain.Next();
     }
 
-    private sealed class InstanceStandIn : IExecutionFilter {
+    private sealed class InstanceStandIn : IExecutionFilter
+    {
         public Task Execute(IExecutionChain chain) => chain.Next();
     }
 
     /// <summary>Bounds everything, so a handler that declared nothing still gets a budget.</summary>
-    private sealed class EverythingIsFast : IRequestTimeoutConvention {
+    private sealed class EverythingIsFast : IRequestTimeoutConvention
+    {
         private readonly int _milliseconds;
 
-        public EverythingIsFast(int milliseconds) {
+        public EverythingIsFast(int milliseconds)
+        {
             _milliseconds = milliseconds;
         }
 
-        public TimeoutPolicy? Apply(IExecutionRequestHandlerInfo handlerInfo) =>
-            new(_milliseconds);
+        public TimeoutPolicy? Apply(IExecutionRequestHandlerInfo handlerInfo) => new(_milliseconds);
     }
 
-    private sealed class SaysNothing : IRequestTimeoutConvention {
+    private sealed class SaysNothing : IRequestTimeoutConvention
+    {
         public TimeoutPolicy? Apply(IExecutionRequestHandlerInfo handlerInfo) => null;
     }
 
@@ -62,20 +66,27 @@ public class TimeoutCascadeTests {
     /// </summary>
     private static ExecutionHandlerSetup Compose(
         object[]? metadata = null,
-        Action<ServiceCollection>? configureServices = null) {
+        Action<ServiceCollection>? configureServices = null
+    )
+    {
         var ioProvider = Substitute.For<IIOFilterProvider>();
-        ioProvider.ProvideFilter(
+        ioProvider
+            .ProvideFilter(
                 Arg.Any<IExecutionRequestHandlerInfo>(),
-                Arg.Any<Func<IExecutionContext, Task<IExecutionRequestParameters>>>())
+                Arg.Any<Func<IExecutionContext, Task<IExecutionRequestParameters>>>()
+            )
             .Returns(new IoStandIn());
 
         var instanceProvider = Substitute.For<IInstanceFilterProvider>();
-        instanceProvider.ProvideFilter<Controller>(Arg.Any<IServiceProvider>())
+        instanceProvider
+            .ProvideFilter<Controller>(Arg.Any<IServiceProvider>())
             .Returns(new InstanceStandIn());
 
-        var context = Pipeline.Context(configureServices: services => {
+        var context = Pipeline.Context(configureServices: services =>
+        {
             services.AddSingleton<IGlobalFilterRegistry>(
-                new GlobalFilterRegistry(Array.Empty<IRequestFilterProvider>()));
+                new GlobalFilterRegistry(Array.Empty<IRequestFilterProvider>())
+            );
             services.AddSingleton(ioProvider);
             services.AddSingleton(instanceProvider);
 
@@ -83,13 +94,23 @@ public class TimeoutCascadeTests {
         });
 
         var handlerInfo = new ExecutionRequestHandlerInfo(
-            "/orders", "GET", typeof(Controller), "Read", metadata: metadata);
+            "/orders",
+            "GET",
+            typeof(Controller),
+            "Read",
+            metadata: metadata
+        );
 
         return ExecutionHelper.StandardFilterEmptyParameters<Controller>(
-            context.RequestServices, handlerInfo, (_, _) => { }, []);
+            context.RequestServices,
+            handlerInfo,
+            (_, _) => { },
+            []
+        );
     }
 
-    private static int? Budget(ExecutionHandlerSetup setup) => setup.HandlerInfo.Timeout?.Milliseconds;
+    private static int? Budget(ExecutionHandlerSetup setup) =>
+        setup.HandlerInfo.Timeout?.Milliseconds;
 
     // ------------------------------------------------------------------ nothing declared
 
@@ -98,7 +119,8 @@ public class TimeoutCascadeTests {
     /// the rule the whole feature is opt-in for.
     /// </summary>
     [Fact]
-    public void AHandlerNothingDeclaresIsNotBounded() {
+    public void AHandlerNothingDeclaresIsNotBounded()
+    {
         var setup = Compose();
 
         Assert.Null(setup.HandlerInfo.Timeout);
@@ -106,7 +128,8 @@ public class TimeoutCascadeTests {
     }
 
     [Fact]
-    public void ADeclaredBudgetInstallsExactlyOneFilter() {
+    public void ADeclaredBudgetInstallsExactlyOneFilter()
+    {
         var setup = Compose([new TimeoutAttribute { Milliseconds = 2000 }]);
 
         Assert.Single(setup.Filters, filter => filter(null!) is TimeoutFilter);
@@ -115,7 +138,8 @@ public class TimeoutCascadeTests {
     // ------------------------------------------------------------------ the rungs
 
     [Fact]
-    public void TheOperationsOwnDeclarationIsTheBudget() {
+    public void TheOperationsOwnDeclarationIsTheBudget()
+    {
         Assert.Equal(2000, Budget(Compose([new TimeoutAttribute { Milliseconds = 2000 }])));
     }
 
@@ -128,10 +152,11 @@ public class TimeoutCascadeTests {
     /// this file and quietly make this one impossible to express.
     /// </remarks>
     [Fact]
-    public void AnOperationBeatsItsClassEvenWhenItLoosens() {
+    public void AnOperationBeatsItsClassEvenWhenItLoosens()
+    {
         var setup = Compose([
-            new TimeoutAttribute { Milliseconds = 60_000 },  // the method
-            new TimeoutAttribute { Milliseconds = 100 }      // its class
+            new TimeoutAttribute { Milliseconds = 60_000 }, // the method
+            new TimeoutAttribute { Milliseconds = 100 }, // its class
         ]);
 
         Assert.Equal(60_000, Budget(setup));
@@ -141,18 +166,22 @@ public class TimeoutCascadeTests {
     /// The entry point's default is the outermost rung, so anything the handler carries beats it.
     /// </summary>
     [Fact]
-    public void ADeclarationBeatsTheEntryPointsDefault() {
+    public void ADeclarationBeatsTheEntryPointsDefault()
+    {
         var setup = Compose(
             [new TimeoutAttribute { Milliseconds = 2000 }],
-            services => new RequestTimeouts(30_000).ConfigureServices(services));
+            services => new RequestTimeouts(30_000).ConfigureServices(services)
+        );
 
         Assert.Equal(2000, Budget(setup));
     }
 
     [Fact]
-    public void TheEntryPointsDefaultBoundsAHandlerThatDeclaredNothing() {
-        var setup = Compose(
-            configureServices: services => new RequestTimeouts(5000).ConfigureServices(services));
+    public void TheEntryPointsDefaultBoundsAHandlerThatDeclaredNothing()
+    {
+        var setup = Compose(configureServices: services =>
+            new RequestTimeouts(5000).ConfigureServices(services)
+        );
 
         Assert.Equal(5000, Budget(setup));
     }
@@ -165,8 +194,10 @@ public class TimeoutCascadeTests {
     /// last.
     /// </summary>
     [Fact]
-    public void TwoEntryPointDefaultsResolveToTheTighter() {
-        var setup = Compose(configureServices: services => {
+    public void TwoEntryPointDefaultsResolveToTheTighter()
+    {
+        var setup = Compose(configureServices: services =>
+        {
             new RequestTimeouts().ConfigureServices(services);
             new RequestTimeouts(5000).ConfigureServices(services);
         });
@@ -177,18 +208,22 @@ public class TimeoutCascadeTests {
     // ------------------------------------------------------------------ conventions
 
     [Fact]
-    public void AConventionBoundsAHandlerThatDeclaredNothing() {
+    public void AConventionBoundsAHandlerThatDeclaredNothing()
+    {
         var setup = Compose(configureServices: services =>
-            services.AddSingleton<IRequestTimeoutConvention>(new EverythingIsFast(2000)));
+            services.AddSingleton<IRequestTimeoutConvention>(new EverythingIsFast(2000))
+        );
 
         Assert.Equal(2000, Budget(setup));
     }
 
     [Fact]
-    public void AConventionTightensADeclarationThatWasTooLoose() {
+    public void AConventionTightensADeclarationThatWasTooLoose()
+    {
         var setup = Compose(
             [new TimeoutAttribute { Milliseconds = 60_000 }],
-            services => services.AddSingleton<IRequestTimeoutConvention>(new EverythingIsFast(2000)));
+            services => services.AddSingleton<IRequestTimeoutConvention>(new EverythingIsFast(2000))
+        );
 
         Assert.Equal(2000, Budget(setup));
     }
@@ -199,28 +234,34 @@ public class TimeoutCascadeTests {
     /// operation that asked for two seconds cannot be handed a minute by something it cannot see.
     /// </summary>
     [Fact]
-    public void AConventionCannotLoosenADeclaration() {
+    public void AConventionCannotLoosenADeclaration()
+    {
         var setup = Compose(
             [new TimeoutAttribute { Milliseconds = 2000 }],
-            services => services.AddSingleton<IRequestTimeoutConvention>(new EverythingIsFast(60_000)));
+            services =>
+                services.AddSingleton<IRequestTimeoutConvention>(new EverythingIsFast(60_000))
+        );
 
         Assert.Equal(2000, Budget(setup));
     }
 
     [Fact]
-    public void AConventionWithNothingToSayLeavesTheBudgetAlone() {
+    public void AConventionWithNothingToSayLeavesTheBudgetAlone()
+    {
         var setup = Compose(
             [new TimeoutAttribute { Milliseconds = 2000 }],
-            services => services.AddSingleton<IRequestTimeoutConvention>(new SaysNothing()));
+            services => services.AddSingleton<IRequestTimeoutConvention>(new SaysNothing())
+        );
 
         Assert.Equal(2000, Budget(setup));
     }
 
     [Fact]
-    public void AConventionThatSaysNothingAboutAnUnboundedHandlerLeavesItUnbounded() {
-        var setup = Compose(
-            configureServices: services =>
-                services.AddSingleton<IRequestTimeoutConvention>(new SaysNothing()));
+    public void AConventionThatSaysNothingAboutAnUnboundedHandlerLeavesItUnbounded()
+    {
+        var setup = Compose(configureServices: services =>
+            services.AddSingleton<IRequestTimeoutConvention>(new SaysNothing())
+        );
 
         Assert.Null(setup.HandlerInfo.Timeout);
     }
@@ -235,20 +276,24 @@ public class TimeoutCascadeTests {
     [Theory]
     [InlineData(0)]
     [InlineData(-1)]
-    public void ABudgetThatCannotMeanAnythingFailsNamingItsHandler(int milliseconds) {
-        var failure = Assert.Throws<InvalidOperationException>(
-            () => Compose([new TimeoutAttribute { Milliseconds = milliseconds }]));
+    public void ABudgetThatCannotMeanAnythingFailsNamingItsHandler(int milliseconds)
+    {
+        var failure = Assert.Throws<InvalidOperationException>(() =>
+            Compose([new TimeoutAttribute { Milliseconds = milliseconds }])
+        );
 
         Assert.Contains("GET /orders", failure.Message);
         Assert.Contains("operation or its class", failure.Message);
     }
 
     [Fact]
-    public void ABadBudgetFromAConventionNamesTheConvention() {
-        var failure = Assert.Throws<InvalidOperationException>(
-            () => Compose(
-                configureServices: services =>
-                    services.AddSingleton<IRequestTimeoutConvention>(new EverythingIsFast(0))));
+    public void ABadBudgetFromAConventionNamesTheConvention()
+    {
+        var failure = Assert.Throws<InvalidOperationException>(() =>
+            Compose(configureServices: services =>
+                services.AddSingleton<IRequestTimeoutConvention>(new EverythingIsFast(0))
+            )
+        );
 
         Assert.Contains(nameof(EverythingIsFast), failure.Message);
     }
@@ -262,7 +307,8 @@ public class TimeoutCascadeTests {
     /// ride.
     /// </summary>
     [Fact]
-    public void EnableInstallsTheDefaultBudget() {
+    public void EnableInstallsTheDefaultBudget()
+    {
         Assert.Equal(TimeoutPolicy.DefaultMilliseconds, new RequestTimeouts().Milliseconds);
     }
 
@@ -278,21 +324,27 @@ public class TimeoutCascadeTests {
     /// </para>
     /// </summary>
     [Fact]
-    public void TheGeneratedAttributeCarriesTheNumberToTheModule() {
+    public void TheGeneratedAttributeCarriesTheNumberToTheModule()
+    {
         var module = new RequestTimeoutsAttribute(5000).GetModule();
 
         Assert.Equal(5000, Assert.IsType<RequestTimeouts>(module).Milliseconds);
     }
 
     [Fact]
-    public void TheGeneratedAttributeIsAModuleProvider() {
+    public void TheGeneratedAttributeIsAModuleProvider()
+    {
         Assert.IsAssignableFrom<IDependencyModuleProvider>(new RequestTimeoutsAttribute(5000));
     }
 
     [Fact]
-    public void TwoInstallsOfTheSameBudgetAreOneInstall() {
+    public void TwoInstallsOfTheSameBudgetAreOneInstall()
+    {
         Assert.Equal(new RequestTimeouts(5000), new RequestTimeouts(5000));
-        Assert.Equal(new RequestTimeouts(5000).GetHashCode(), new RequestTimeouts(5000).GetHashCode());
+        Assert.Equal(
+            new RequestTimeouts(5000).GetHashCode(),
+            new RequestTimeouts(5000).GetHashCode()
+        );
         Assert.NotEqual(new RequestTimeouts(5000), new RequestTimeouts(2000));
         Assert.NotEqual<object>(new RequestTimeouts(5000), new object());
     }
@@ -303,7 +355,8 @@ public class TimeoutCascadeTests {
     /// for a handler that declared its own.
     /// </summary>
     [Fact]
-    public void TheModuleRegistersAPolicyRatherThanAGlobalFilter() {
+    public void TheModuleRegistersAPolicyRatherThanAGlobalFilter()
+    {
         var services = new ServiceCollection();
 
         new RequestTimeouts(5000).ConfigureServices(services);
@@ -319,7 +372,8 @@ public class TimeoutCascadeTests {
     /// declares nothing is bounded by nothing.
     /// </summary>
     [Fact]
-    public void TheRequestModuleBoundsNothingWithoutADeclaration() {
+    public void TheRequestModuleBoundsNothingWithoutADeclaration()
+    {
         var services = new ServiceCollection();
 
         new HardenedRequestModule().ConfigureServices(services);

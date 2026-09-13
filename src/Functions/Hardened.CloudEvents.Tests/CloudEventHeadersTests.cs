@@ -6,10 +6,11 @@ namespace Hardened.CloudEvents.Tests;
 /// <summary>
 /// An event's attributes as headers, under the binary form's names whichever form it arrived in.
 /// </summary>
-public class CloudEventHeadersTests {
-
+public class CloudEventHeadersTests
+{
     [Fact]
-    public void TheRequiredAttributesAreAlwaysWritten() {
+    public void TheRequiredAttributesAreAlwaysWritten()
+    {
         var headers = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase);
 
         CloudEventHeaders.Write(headers, new CloudEvent("1.0", "1", "/s", "t"));
@@ -23,15 +24,20 @@ public class CloudEventHeadersTests {
     }
 
     [Fact]
-    public void TheOptionalAttributesAndExtensionsAreWrittenWhenSet() {
+    public void TheOptionalAttributesAndExtensionsAreWrittenWhenSet()
+    {
         var headers = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase);
 
-        CloudEventHeaders.Write(headers, new CloudEvent("1.0", "1", "/s", "t") {
-            Subject = "orders/1",
-            Time = "2026-09-07T10:00:00Z",
-            DataSchema = "https://example.test/schema",
-            Extensions = new Dictionary<string, string> { ["traceparent"] = "00-abc-def-01" }
-        });
+        CloudEventHeaders.Write(
+            headers,
+            new CloudEvent("1.0", "1", "/s", "t")
+            {
+                Subject = "orders/1",
+                Time = "2026-09-07T10:00:00Z",
+                DataSchema = "https://example.test/schema",
+                Extensions = new Dictionary<string, string> { ["traceparent"] = "00-abc-def-01" },
+            }
+        );
 
         Assert.Equal("orders/1", headers["ce-subject"].ToString());
         Assert.Equal("2026-09-07T10:00:00Z", headers["ce-time"].ToString());
@@ -41,8 +47,13 @@ public class CloudEventHeadersTests {
 
     /// <summary>Written and read back through the binary reader, the event is the same.</summary>
     [Fact]
-    public void WhatIsWrittenIsWhatTheBinaryReaderReads() {
-        var original = new CloudEvent("1.0", "1", "/s", "t") { Subject = "orders/1", Extensions = new Dictionary<string, string> { ["bucket"] = "b" } };
+    public void WhatIsWrittenIsWhatTheBinaryReaderReads()
+    {
+        var original = new CloudEvent("1.0", "1", "/s", "t")
+        {
+            Subject = "orders/1",
+            Extensions = new Dictionary<string, string> { ["bucket"] = "b" },
+        };
         var headers = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase);
 
         CloudEventHeaders.Write(headers, original);

@@ -28,13 +28,19 @@ namespace Hardened.Aws.Lambda.DynamoDb;
 /// <c>double</c> as the target asks.
 /// </para>
 /// </remarks>
-internal static class AttributeValueJson {
+internal static class AttributeValueJson
+{
     public static void WriteItem(
-        Utf8JsonWriter writer, IDictionary<string, DynamoDBEvent.AttributeValue>? item) {
+        Utf8JsonWriter writer,
+        IDictionary<string, DynamoDBEvent.AttributeValue>? item
+    )
+    {
         writer.WriteStartObject();
 
-        if (item != null) {
-            foreach (var pair in item) {
+        if (item != null)
+        {
+            foreach (var pair in item)
+            {
                 writer.WritePropertyName(pair.Key);
                 WriteValue(writer, pair.Value);
             }
@@ -47,54 +53,68 @@ internal static class AttributeValueJson {
     /// The order of these tests is the order of the shapes' likelihood, and nothing rests on it -
     /// exactly one field of an DynamoDBEvent.AttributeValue is ever set.
     /// </remarks>
-    private static void WriteValue(Utf8JsonWriter writer, DynamoDBEvent.AttributeValue? value) {
-        if (value == null) {
+    private static void WriteValue(Utf8JsonWriter writer, DynamoDBEvent.AttributeValue? value)
+    {
+        if (value == null)
+        {
             writer.WriteNullValue();
 
             return;
         }
 
-        if (value.S != null) {
+        if (value.S != null)
+        {
             writer.WriteStringValue(value.S);
         }
-        else if (value.N != null) {
+        else if (value.N != null)
+        {
             // Raw, so the decimal text DynamoDB stored is the number the binder reads. Writing it
             // through a double first would round a 38-digit value on the way past.
             writer.WriteRawValue(value.N);
         }
-        else if (value.BOOL is { } boolean) {
+        else if (value.BOOL is { } boolean)
+        {
             writer.WriteBooleanValue(boolean);
         }
-        else if (value.NULL is true) {
+        else if (value.NULL is true)
+        {
             writer.WriteNullValue();
         }
-        else if (value.M != null) {
+        else if (value.M != null)
+        {
             WriteItem(writer, value.M);
         }
-        else if (value.L != null) {
+        else if (value.L != null)
+        {
             writer.WriteStartArray();
 
-            foreach (var item in value.L) {
+            foreach (var item in value.L)
+            {
                 WriteValue(writer, item);
             }
 
             writer.WriteEndArray();
         }
-        else if (value.SS != null) {
+        else if (value.SS != null)
+        {
             WriteArray(writer, value.SS, (w, item) => w.WriteStringValue(item));
         }
-        else if (value.NS != null) {
+        else if (value.NS != null)
+        {
             WriteArray(writer, value.NS, (w, item) => w.WriteRawValue(item));
         }
-        else if (value.B != null) {
+        else if (value.B != null)
+        {
             // Base64, which is what a byte[] binds from and what the wire form already held. The
             // package models a binary attribute as a MemoryStream rather than bytes.
             writer.WriteBase64StringValue(value.B.ToArray());
         }
-        else if (value.BS != null) {
+        else if (value.BS != null)
+        {
             WriteArray(writer, value.BS, (w, item) => w.WriteBase64StringValue(item.ToArray()));
         }
-        else {
+        else
+        {
             // An DynamoDBEvent.AttributeValue with nothing set. DynamoDB does not produce one, and guessing a
             // value for it would be worse than a null the handler can see.
             writer.WriteNullValue();
@@ -102,10 +122,15 @@ internal static class AttributeValueJson {
     }
 
     private static void WriteArray<T>(
-        Utf8JsonWriter writer, IEnumerable<T> items, Action<Utf8JsonWriter, T> write) {
+        Utf8JsonWriter writer,
+        IEnumerable<T> items,
+        Action<Utf8JsonWriter, T> write
+    )
+    {
         writer.WriteStartArray();
 
-        foreach (var item in items) {
+        foreach (var item in items)
+        {
             write(writer, item);
         }
 

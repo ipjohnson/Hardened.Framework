@@ -8,7 +8,8 @@ namespace Hardened.Aws.Lambda.Http;
 // that judgement right per package is not worth the one line this saves.
 [JsonSourceGenerationOptions(
     PropertyNameCaseInsensitive = true,
-    GenerationMode = JsonSourceGenerationMode.Metadata)]
+    GenerationMode = JsonSourceGenerationMode.Metadata
+)]
 // The request only. The response is written field by field with a Utf8JsonWriter, because
 // APIGatewayHttpApiV2ProxyResponse.Body is a string and binding one would copy a six-megabyte
 // body through UTF-16 on its way back out to UTF-8.

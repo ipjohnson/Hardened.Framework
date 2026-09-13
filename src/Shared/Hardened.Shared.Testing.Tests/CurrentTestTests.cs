@@ -27,12 +27,13 @@ namespace Hardened.Shared.Testing.Tests;
 /// </para>
 /// </remarks>
 [Collection(SeamCollection.Name)]
-public class CurrentTestTests {
-
+public class CurrentTestTests
+{
     static CurrentTestTests() => XunitCurrentTestProvider.Install();
 
     [Fact]
-    public void InsideATestTheXunitProviderNamesIt() {
+    public void InsideATestTheXunitProviderNamesIt()
+    {
         Assert.IsType<XunitCurrentTestProvider>(CurrentTest.Provider);
         Assert.NotNull(CurrentTest.Key);
         Assert.Same(typeof(CurrentTestTests).Assembly, CurrentTest.Assembly);
@@ -40,18 +41,21 @@ public class CurrentTestTests {
     }
 
     [Fact]
-    public void WhatTheInstalledProviderAnswersIsWhatTheSeamAnswers() {
+    public void WhatTheInstalledProviderAnswersIsWhatTheSeamAnswers()
+    {
         var installed = CurrentTest.Provider;
         var fake = new FakeProvider();
 
         CurrentTest.Provider = fake;
 
-        try {
+        try
+        {
             Assert.Same(fake.Key, CurrentTest.Key);
             Assert.Same(fake.Assembly, CurrentTest.Assembly);
             Assert.Equal("a test", CurrentTest.DisplayName);
         }
-        finally {
+        finally
+        {
             CurrentTest.Provider = installed;
         }
     }
@@ -62,45 +66,63 @@ public class CurrentTestTests {
     /// console one nobody reads.
     /// </summary>
     [Fact]
-    public void WithNoProviderTheSeamIsEmptyAndNoLoggerProviderIsRegistered() {
+    public void WithNoProviderTheSeamIsEmptyAndNoLoggerProviderIsRegistered()
+    {
         var installed = CurrentTest.Provider;
 
         CurrentTest.Provider = null;
 
-        try {
+        try
+        {
             Assert.Null(CurrentTest.Key);
             Assert.Null(CurrentTest.Assembly);
             Assert.Null(CurrentTest.DisplayName);
 
             var collection = new ServiceCollection();
 
-            new HardenedTestEntryPointAttribute(typeof(AssemblyEntryPointModule))
-                .SetupServiceCollection(FakeTestMethodContext.For<Target>(nameof(Target.Method)), collection);
+            new HardenedTestEntryPointAttribute(
+                typeof(AssemblyEntryPointModule)
+            ).SetupServiceCollection(
+                FakeTestMethodContext.For<Target>(nameof(Target.Method)),
+                collection
+            );
 
-            Assert.DoesNotContain(collection, descriptor => descriptor.ServiceType == typeof(ILoggerProvider));
+            Assert.DoesNotContain(
+                collection,
+                descriptor => descriptor.ServiceType == typeof(ILoggerProvider)
+            );
         }
-        finally {
+        finally
+        {
             CurrentTest.Provider = installed;
         }
     }
 
     [Fact]
-    public void WithTheProviderInstalledTheEntryPointRegistersItsLoggerProvider() {
+    public void WithTheProviderInstalledTheEntryPointRegistersItsLoggerProvider()
+    {
         var collection = new ServiceCollection();
 
         XunitCurrentTestProvider.Install();
 
-        new HardenedTestEntryPointAttribute(typeof(AssemblyEntryPointModule))
-            .SetupServiceCollection(FakeTestMethodContext.For<Target>(nameof(Target.Method)), collection);
+        new HardenedTestEntryPointAttribute(
+            typeof(AssemblyEntryPointModule)
+        ).SetupServiceCollection(
+            FakeTestMethodContext.For<Target>(nameof(Target.Method)),
+            collection
+        );
 
         var provider = collection.BuildServiceProvider();
 
-        Assert.IsType<Logging.XunitLoggerProvider>(Assert.Single(provider.GetServices<ILoggerProvider>()));
+        Assert.IsType<Logging.XunitLoggerProvider>(
+            Assert.Single(provider.GetServices<ILoggerProvider>())
+        );
     }
 
     /// <summary>Installing again never replaces what is there.</summary>
     [Fact]
-    public void InstallIsIdempotent() {
+    public void InstallIsIdempotent()
+    {
         var installed = CurrentTest.Provider;
 
         XunitCurrentTestProvider.Install();
@@ -108,11 +130,13 @@ public class CurrentTestTests {
         Assert.Same(installed, CurrentTest.Provider);
     }
 
-    private class Target {
+    private class Target
+    {
         public void Method() { }
     }
 
-    private sealed class FakeProvider : ICurrentTestProvider {
+    private sealed class FakeProvider : ICurrentTestProvider
+    {
         public object? Key { get; } = new();
 
         public Assembly? Assembly { get; } = typeof(string).Assembly;
@@ -125,6 +149,7 @@ public class CurrentTestTests {
 
 /// <summary>Runs alone: nothing else in the assembly runs while a test in it holds the seam.</summary>
 [CollectionDefinition(Name, DisableParallelization = true)]
-public sealed class SeamCollection {
+public sealed class SeamCollection
+{
     public const string Name = "the running-test seam";
 }

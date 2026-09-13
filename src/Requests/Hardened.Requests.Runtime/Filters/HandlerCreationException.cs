@@ -18,11 +18,14 @@ namespace Hardened.Requests.Runtime.Filters;
 /// logs it with its stack, as it does for a handler that threw.
 /// </para>
 /// </remarks>
-public class HandlerCreationException : InvalidOperationException {
-
+public class HandlerCreationException : InvalidOperationException
+{
     public HandlerCreationException(string handler, Type handlerType, Exception inner)
-        : base($"{handler} could not construct its handler {handlerType.FullName}: {inner.Message}",
-            inner) {
+        : base(
+            $"{handler} could not construct its handler {handlerType.FullName}: {inner.Message}",
+            inner
+        )
+    {
         Handler = handler;
         HandlerType = handlerType;
     }

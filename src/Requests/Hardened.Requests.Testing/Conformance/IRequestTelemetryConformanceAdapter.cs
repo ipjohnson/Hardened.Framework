@@ -6,7 +6,8 @@ namespace Hardened.Requests.Testing.Conformance;
 /// <summary>
 /// One request, as the suite wants it dispatched.
 /// </summary>
-public sealed class TelemetryConformanceRequest {
+public sealed class TelemetryConformanceRequest
+{
     public required string Method { get; init; }
 
     public required string Path { get; init; }
@@ -39,7 +40,8 @@ public sealed class TelemetryConformanceRequest {
 /// shows up.
 /// </para>
 /// </remarks>
-public interface IRequestTelemetryConformanceAdapter {
+public interface IRequestTelemetryConformanceAdapter
+{
     /// <summary>
     /// Name used in assertion messages so a failure identifies the host.
     /// </summary>

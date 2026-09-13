@@ -17,29 +17,43 @@ namespace Hardened.Azure.Functions.Runtime.Tests.Conformance;
 /// arrive as the event's properties, which is the only header-like channel an event has, and the
 /// body as the event body.
 /// </remarks>
-public class EventHubsRequestConformanceTests : PayloadExecutionRequestConformanceTests {
-    protected override IExecutionRequestConformanceAdapter Adapter { get; } = new EventHubsAdapter_();
+public class EventHubsRequestConformanceTests : PayloadExecutionRequestConformanceTests
+{
+    protected override IExecutionRequestConformanceAdapter Adapter { get; } =
+        new EventHubsAdapter_();
 
-    private sealed class EventHubsAdapter_ : IExecutionRequestConformanceAdapter {
+    private sealed class EventHubsAdapter_ : IExecutionRequestConformanceAdapter
+    {
         private readonly EventHubsAdapter _adapter = new();
 
         public string TransportName => "Azure Functions Event Hubs";
 
-        public IExecutionRequest CreateRequest(ConformanceRequestSpec spec) {
+        public IExecutionRequest CreateRequest(ConformanceRequestSpec spec)
+        {
             var eventData = EventHubsModelFactory.EventData(
-                eventBody: spec.Body == null ? new BinaryData(Array.Empty<byte>()) : BinaryData.FromBytes(spec.Body),
-                properties: spec.Headers.ToDictionary(header => header.Key, header => (object)header.Value),
+                eventBody: spec.Body == null
+                    ? new BinaryData(Array.Empty<byte>())
+                    : BinaryData.FromBytes(spec.Body),
+                properties: spec.Headers.ToDictionary(
+                    header => header.Key,
+                    header => (object)header.Value
+                ),
                 sequenceNumber: 1,
                 offset: 64,
-                enqueuedTime: DateTimeOffset.UtcNow);
+                enqueuedTime: DateTimeOffset.UtcNow
+            );
 
             var context = new TestFunctionContext(
                 "Stream_conformance",
                 new Dictionary<string, object?>(),
-                new ServiceCollection().BuildServiceProvider());
+                new ServiceCollection().BuildServiceProvider()
+            );
 
-            var batch = (EventHubsRequest)_adapter.CreateRequest(
-                new FunctionsTrigger("STREAM", "/conformance", new[] { eventData }), context);
+            var batch = (EventHubsRequest)
+                _adapter.CreateRequest(
+                    new FunctionsTrigger("STREAM", "/conformance", new[] { eventData }),
+                    context
+                );
 
             // Method and path come off the shim rather than the spec - STREAM and the hub's name -
             // so the spec's are applied through Clone, the same door a filter uses.

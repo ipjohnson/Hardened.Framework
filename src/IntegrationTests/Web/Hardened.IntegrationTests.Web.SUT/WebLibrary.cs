@@ -17,6 +17,7 @@ namespace Hardened.IntegrationTests.Web.SUT;
 [BasePath("/web-library")]
 [HardenedWebModule]
 [ConditionalGet]
-public partial class WebLibrary {
+public partial class WebLibrary
+{
     public string Test { get; set; } = "Default";
 }

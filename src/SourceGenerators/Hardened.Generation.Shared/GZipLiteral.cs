@@ -28,8 +28,8 @@ namespace Hardened.Generation;
 /// a valid document. <c>GZipStream</c> writes MTIME as zero, which is what makes this safe.
 /// </para>
 /// </remarks>
-internal static class GZipLiteral {
-
+internal static class GZipLiteral
+{
     /// <summary>
     /// Bytes per emitted line. Long enough that the array is not thousands of lines, short enough
     /// that an editor opening the file under <c>EmitCompilerGeneratedFiles</c> is not asked to render
@@ -46,14 +46,16 @@ internal static class GZipLiteral {
     /// <c>Optimal</c> rather than <c>SmallestSize</c>, which netstandard2.0 does not have. On a
     /// document of this shape the two are within a few percent, and this runs inside the build.
     /// </remarks>
-    public static byte[] Compress(string document) {
+    public static byte[] Compress(string document)
+    {
         var bytes = Encoding.UTF8.GetBytes(document);
 
         using var output = new MemoryStream();
 
         // Disposed before the buffer is read: GZipStream writes its footer on dispose, so a buffer
         // taken while it is still open holds a truncated member that inflates to nothing.
-        using (var gzip = new GZipStream(output, CompressionLevel.Optimal, leaveOpen: true)) {
+        using (var gzip = new GZipStream(output, CompressionLevel.Optimal, leaveOpen: true))
+        {
             gzip.Write(bytes, 0, bytes.Length);
         }
 
@@ -64,15 +66,19 @@ internal static class GZipLiteral {
     /// The array initializer, wrapped. Decimal rather than hexadecimal because it is shorter for most
     /// byte values, and this is the largest thing either generator emits.
     /// </summary>
-    public static string ArrayLiteral(byte[] bytes) {
+    public static string ArrayLiteral(byte[] bytes)
+    {
         var builder = new StringBuilder("new byte[] {");
 
-        for (var index = 0; index < bytes.Length; index++) {
-            if (index > 0) {
+        for (var index = 0; index < bytes.Length; index++)
+        {
+            if (index > 0)
+            {
                 builder.Append(',');
             }
 
-            if (index % BytesPerLine == 0) {
+            if (index % BytesPerLine == 0)
+            {
                 builder.Append("\n    ");
             }
 

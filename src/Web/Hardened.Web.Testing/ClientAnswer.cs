@@ -1,4 +1,5 @@
 using Hardened.Web.Runtime.Responses;
+
 namespace Hardened.Web.Testing;
 
 /// <summary>
@@ -20,4 +21,5 @@ public sealed record ClientAnswer(
     int Status,
     object? Body,
     IReadOnlyDictionary<string, string> Headers,
-    string? Caveat = null);
+    string? Caveat = null
+);

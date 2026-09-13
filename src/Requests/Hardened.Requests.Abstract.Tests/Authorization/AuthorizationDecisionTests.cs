@@ -13,8 +13,8 @@ namespace Hardened.Requests.Abstract.Tests.Authorization;
 /// composes fails a test rather than quietly taking whatever the last branch returns.
 /// </para>
 /// </summary>
-public class AuthorizationDecisionTests {
-
+public class AuthorizationDecisionTests
+{
     private static readonly AuthorizationDecision[] AllDecisions =
         Enum.GetValues<AuthorizationDecision>();
 
@@ -23,7 +23,8 @@ public class AuthorizationDecisionTests {
     /// field, an array slot or an uninitialised local all land on the safe answer.
     /// </summary>
     [Fact]
-    public void Default_IsAbstain() {
+    public void Default_IsAbstain()
+    {
         Assert.Equal(AuthorizationDecision.Abstain, default);
         Assert.Equal(0, (int)AuthorizationDecision.Abstain);
     }
@@ -34,7 +35,8 @@ public class AuthorizationDecisionTests {
     /// Only allow permits. Abstain is not a quiet yes, and neither kind of deny is.
     /// </summary>
     [Fact]
-    public void Permits_IsTrueForAllowAndNothingElse() {
+    public void Permits_IsTrueForAllowAndNothingElse()
+    {
         Assert.True(AuthorizationDecision.Allow.Permits());
 
         Assert.False(AuthorizationDecision.Abstain.Permits());
@@ -47,10 +49,12 @@ public class AuthorizationDecisionTests {
     /// defaults to not permitting unless someone says otherwise here.
     /// </summary>
     [Fact]
-    public void Permits_IsFalseForEveryMemberExceptAllow() {
+    public void Permits_IsFalseForEveryMemberExceptAllow()
+    {
         Assert.All(
             AllDecisions.Where(d => d != AuthorizationDecision.Allow),
-            d => Assert.False(d.Permits()));
+            d => Assert.False(d.Permits())
+        );
     }
 
     #endregion
@@ -64,20 +68,60 @@ public class AuthorizationDecisionTests {
     /// </summary>
     [Theory]
     // abstain yields to anything with an opinion
-    [InlineData(AuthorizationDecision.Abstain, AuthorizationDecision.Abstain, AuthorizationDecision.Abstain)]
-    [InlineData(AuthorizationDecision.Abstain, AuthorizationDecision.Allow, AuthorizationDecision.Allow)]
-    [InlineData(AuthorizationDecision.Abstain, AuthorizationDecision.DenyInsufficientAuthentication, AuthorizationDecision.DenyInsufficientAuthentication)]
-    [InlineData(AuthorizationDecision.Abstain, AuthorizationDecision.Deny, AuthorizationDecision.Deny)]
+    [InlineData(
+        AuthorizationDecision.Abstain,
+        AuthorizationDecision.Abstain,
+        AuthorizationDecision.Abstain
+    )]
+    [InlineData(
+        AuthorizationDecision.Abstain,
+        AuthorizationDecision.Allow,
+        AuthorizationDecision.Allow
+    )]
+    [InlineData(
+        AuthorizationDecision.Abstain,
+        AuthorizationDecision.DenyInsufficientAuthentication,
+        AuthorizationDecision.DenyInsufficientAuthentication
+    )]
+    [InlineData(
+        AuthorizationDecision.Abstain,
+        AuthorizationDecision.Deny,
+        AuthorizationDecision.Deny
+    )]
     // allow is overridden by either refusal
-    [InlineData(AuthorizationDecision.Allow, AuthorizationDecision.Allow, AuthorizationDecision.Allow)]
-    [InlineData(AuthorizationDecision.Allow, AuthorizationDecision.DenyInsufficientAuthentication, AuthorizationDecision.DenyInsufficientAuthentication)]
-    [InlineData(AuthorizationDecision.Allow, AuthorizationDecision.Deny, AuthorizationDecision.Deny)]
+    [InlineData(
+        AuthorizationDecision.Allow,
+        AuthorizationDecision.Allow,
+        AuthorizationDecision.Allow
+    )]
+    [InlineData(
+        AuthorizationDecision.Allow,
+        AuthorizationDecision.DenyInsufficientAuthentication,
+        AuthorizationDecision.DenyInsufficientAuthentication
+    )]
+    [InlineData(
+        AuthorizationDecision.Allow,
+        AuthorizationDecision.Deny,
+        AuthorizationDecision.Deny
+    )]
     // a plain deny outranks a step-up: a better credential would not help
-    [InlineData(AuthorizationDecision.DenyInsufficientAuthentication, AuthorizationDecision.DenyInsufficientAuthentication, AuthorizationDecision.DenyInsufficientAuthentication)]
-    [InlineData(AuthorizationDecision.DenyInsufficientAuthentication, AuthorizationDecision.Deny, AuthorizationDecision.Deny)]
+    [InlineData(
+        AuthorizationDecision.DenyInsufficientAuthentication,
+        AuthorizationDecision.DenyInsufficientAuthentication,
+        AuthorizationDecision.DenyInsufficientAuthentication
+    )]
+    [InlineData(
+        AuthorizationDecision.DenyInsufficientAuthentication,
+        AuthorizationDecision.Deny,
+        AuthorizationDecision.Deny
+    )]
     [InlineData(AuthorizationDecision.Deny, AuthorizationDecision.Deny, AuthorizationDecision.Deny)]
     public void Combine_FollowsTheStatedTableInEitherOrder(
-        AuthorizationDecision left, AuthorizationDecision right, AuthorizationDecision expected) {
+        AuthorizationDecision left,
+        AuthorizationDecision right,
+        AuthorizationDecision expected
+    )
+    {
         Assert.Equal(expected, AuthorizationDecisions.Combine(left, right));
         Assert.Equal(expected, AuthorizationDecisions.Combine(right, left));
     }
@@ -88,7 +132,8 @@ public class AuthorizationDecisionTests {
     /// exists to stop anyone making by accident.
     /// </summary>
     [Fact]
-    public void Combine_TableCoversEveryMember() {
+    public void Combine_TableCoversEveryMember()
+    {
         Assert.Equal(4, AllDecisions.Length);
 
         Assert.Equal(
@@ -98,7 +143,8 @@ public class AuthorizationDecisionTests {
                 AuthorizationDecision.DenyInsufficientAuthentication,
                 AuthorizationDecision.Deny,
             ],
-            AllDecisions);
+            AllDecisions
+        );
     }
 
     /// <summary>
@@ -106,20 +152,26 @@ public class AuthorizationDecisionTests {
     /// consult handlers in any order, in parallel, or short-circuit partway and still agree.
     /// </summary>
     [Fact]
-    public void Combine_IsAssociativeOverEveryTriple() {
-        foreach (var a in AllDecisions) {
-            foreach (var b in AllDecisions) {
-                foreach (var c in AllDecisions) {
+    public void Combine_IsAssociativeOverEveryTriple()
+    {
+        foreach (var a in AllDecisions)
+        {
+            foreach (var b in AllDecisions)
+            {
+                foreach (var c in AllDecisions)
+                {
                     Assert.Equal(
                         AuthorizationDecisions.Combine(AuthorizationDecisions.Combine(a, b), c),
-                        AuthorizationDecisions.Combine(a, AuthorizationDecisions.Combine(b, c)));
+                        AuthorizationDecisions.Combine(a, AuthorizationDecisions.Combine(b, c))
+                    );
                 }
             }
         }
     }
 
     [Fact]
-    public void Combine_IsIdempotent() {
+    public void Combine_IsIdempotent()
+    {
         Assert.All(AllDecisions, d => Assert.Equal(d, AuthorizationDecisions.Combine(d, d)));
     }
 
@@ -134,7 +186,8 @@ public class AuthorizationDecisionTests {
     /// mode available to it.
     /// </summary>
     [Fact]
-    public void Combine_OfNothingIsAbstainAndDoesNotPermit() {
+    public void Combine_OfNothingIsAbstainAndDoesNotPermit()
+    {
         var decision = AuthorizationDecisions.Combine([]);
 
         Assert.Equal(AuthorizationDecision.Abstain, decision);
@@ -142,7 +195,8 @@ public class AuthorizationDecisionTests {
     }
 
     [Fact]
-    public void Combine_OfAllAbstentionsDoesNotPermit() {
+    public void Combine_OfAllAbstentionsDoesNotPermit()
+    {
         var decision = AuthorizationDecisions.Combine([
             AuthorizationDecision.Abstain,
             AuthorizationDecision.Abstain,
@@ -153,7 +207,8 @@ public class AuthorizationDecisionTests {
     }
 
     [Fact]
-    public void Combine_OneAllowAmongAbstentionsPermits() {
+    public void Combine_OneAllowAmongAbstentionsPermits()
+    {
         var decision = AuthorizationDecisions.Combine([
             AuthorizationDecision.Abstain,
             AuthorizationDecision.Allow,
@@ -167,7 +222,8 @@ public class AuthorizationDecisionTests {
     /// One refusal is enough, however many contributors permitted.
     /// </summary>
     [Fact]
-    public void Combine_OneDenyAmongManyAllowsDenies() {
+    public void Combine_OneDenyAmongManyAllowsDenies()
+    {
         var decision = AuthorizationDecisions.Combine([
             AuthorizationDecision.Allow,
             AuthorizationDecision.Allow,
@@ -183,8 +239,10 @@ public class AuthorizationDecisionTests {
     /// differently because a module happened to register one first.
     /// </summary>
     [Fact]
-    public void Combine_DoesNotDependOnTheOrderContributorsAreConsulted() {
-        AuthorizationDecision[] decisions = [
+    public void Combine_DoesNotDependOnTheOrderContributorsAreConsulted()
+    {
+        AuthorizationDecision[] decisions =
+        [
             AuthorizationDecision.Allow,
             AuthorizationDecision.Abstain,
             AuthorizationDecision.DenyInsufficientAuthentication,
@@ -192,7 +250,8 @@ public class AuthorizationDecisionTests {
 
         Assert.Equal(
             AuthorizationDecisions.Combine(decisions),
-            AuthorizationDecisions.Combine(decisions.Reverse()));
+            AuthorizationDecisions.Combine(decisions.Reverse())
+        );
     }
 
     /// <summary>
@@ -201,10 +260,12 @@ public class AuthorizationDecisionTests {
     /// call, and there is no answer it could give that would change the result.
     /// </summary>
     [Fact]
-    public void Combine_StopsConsultingContributorsOnceDenied() {
+    public void Combine_StopsConsultingContributorsOnceDenied()
+    {
         var consulted = 0;
 
-        IEnumerable<AuthorizationDecision> Contributors() {
+        IEnumerable<AuthorizationDecision> Contributors()
+        {
             consulted++;
             yield return AuthorizationDecision.Deny;
 
@@ -221,7 +282,8 @@ public class AuthorizationDecisionTests {
     /// contributor may yet produce one.
     /// </summary>
     [Fact]
-    public void Combine_KeepsConsultingAfterAStepUpBecauseADenyStillOutranksIt() {
+    public void Combine_KeepsConsultingAfterAStepUpBecauseADenyStillOutranksIt()
+    {
         var decision = AuthorizationDecisions.Combine([
             AuthorizationDecision.DenyInsufficientAuthentication,
             AuthorizationDecision.Deny,
@@ -231,7 +293,8 @@ public class AuthorizationDecisionTests {
     }
 
     [Fact]
-    public void Combine_RejectsANullSequence() {
+    public void Combine_RejectsANullSequence()
+    {
         Assert.Throws<ArgumentNullException>(() => AuthorizationDecisions.Combine(null!));
     }
 

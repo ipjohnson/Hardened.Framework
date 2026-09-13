@@ -13,8 +13,8 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Controllers;
 /// able to serve these anyway.
 /// </remarks>
 [BasePath("/static")]
-public static class StaticHandlerController {
-
+public static class StaticHandlerController
+{
     [Get("/echo/{value}")]
     public static string Echo(string value) => value;
 
@@ -34,11 +34,12 @@ public static class StaticHandlerController {
 /// One controller holding both kinds, which is what keeps its registration alive.
 /// </summary>
 [BasePath("/mixed")]
-public class MixedHandlerController {
-
+public class MixedHandlerController
+{
     private readonly IMathService<int> _mathService;
 
-    public MixedHandlerController(IMathService<int> mathService) {
+    public MixedHandlerController(IMathService<int> mathService)
+    {
         _mathService = mathService;
     }
 

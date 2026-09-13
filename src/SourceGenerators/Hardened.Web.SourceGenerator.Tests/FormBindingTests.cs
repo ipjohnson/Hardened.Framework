@@ -10,36 +10,35 @@ namespace Hardened.Web.SourceGenerator.Tests;
 /// <summary>
 /// What the generator does with <c>[FromForm]</c>.
 /// </summary>
-public class FormBindingTests {
-
-    private static readonly Type[] Anchors = [
-        typeof(GetAttribute),
-        typeof(FromBodyAttribute)
-    ];
+public class FormBindingTests
+{
+    private static readonly Type[] Anchors = [typeof(GetAttribute), typeof(FromBodyAttribute)];
 
     private static GeneratorResult Generate(string handlers) =>
         GeneratorTestHarness.Run(
-            new Dictionary<string, string> {
+            new Dictionary<string, string>
+            {
                 ["Test.cs"] = $$"""
-                    using Hardened.Shared.Runtime.Attributes;
-                    using Hardened.Web.Runtime.Attributes;
+                using Hardened.Shared.Runtime.Attributes;
+                using Hardened.Web.Runtime.Attributes;
 
-                    namespace TestApp;
+                namespace TestApp;
 
-                    [HardenedModule]
-                    public partial class TestApplication { }
+                [HardenedModule]
+                public partial class TestApplication { }
 
-                    public class Credentials {
-                        public string Username { get; set; } = "";
-                    }
+                public class Credentials {
+                    public string Username { get; set; } = "";
+                }
 
-                    public class SignInController {
-                    {{handlers}}
-                    }
-                    """
+                public class SignInController {
+                {{handlers}}
+                }
+                """,
             },
             new IIncrementalGenerator[] { new WebLibrarySourceGenerator() },
-            Anchors);
+            Anchors
+        );
 
     /// <summary>
     /// The form is read once, whatever the number of fields bound from it.
@@ -50,14 +49,16 @@ public class FormBindingTests {
     /// cache against a request it is a singleton relative to.
     /// </remarks>
     [Fact]
-    public void TheFormIsReadOncePerHandler() {
+    public void TheFormIsReadOncePerHandler()
+    {
         var result = Generate(
             """
                 [Post("/sign-in")]
                 public string SignIn(
                     [FromForm] string username, [FromForm] string password, [FromForm] string totp)
                     => username;
-            """);
+            """
+        );
 
         result.AssertNoErrors();
 
@@ -72,12 +73,14 @@ public class FormBindingTests {
 
     /// <summary>A handler with no form parameter never reads one.</summary>
     [Fact]
-    public void AHandlerWithNoFormParameterDoesNotReadOne() {
+    public void AHandlerWithNoFormParameterDoesNotReadOne()
+    {
         var result = Generate(
             """
                 [Get("/whoami")]
                 public string WhoAmI([FromQueryString] string id) => id;
-            """);
+            """
+        );
 
         result.AssertNoErrors();
 
@@ -86,12 +89,14 @@ public class FormBindingTests {
 
     /// <summary>The wire name comes from the attribute when it carries one.</summary>
     [Fact]
-    public void AnAttributeNameOverridesTheParameterName() {
+    public void AnAttributeNameOverridesTheParameterName()
+    {
         var result = Generate(
             """
                 [Post("/sign-in")]
                 public string SignIn([FromForm("user_name")] string userName) => userName;
-            """);
+            """
+        );
 
         result.AssertNoErrors();
 
@@ -107,17 +112,20 @@ public class FormBindingTests {
     /// a handler that compiles and routes correctly.
     /// </remarks>
     [Fact]
-    public void AFormAndABodyTogetherIsABuildError() {
+    public void AFormAndABodyTogetherIsABuildError()
+    {
         var result = Generate(
             """
                 [Post("/sign-in")]
                 public string SignIn([FromForm] string username, Credentials credentials)
                     => username;
-            """);
+            """
+        );
 
         var reported = Assert.Single(
             result.GeneratorDiagnostics,
-            diagnostic => diagnostic.Id == FormAndBodyDiagnostics.DiagnosticId);
+            diagnostic => diagnostic.Id == FormAndBodyDiagnostics.DiagnosticId
+        );
 
         Assert.Equal(DiagnosticSeverity.Error, reported.Severity);
         Assert.Contains("username", reported.GetMessage());
@@ -128,15 +136,18 @@ public class FormBindingTests {
     [Theory]
     [InlineData("[FromForm] string username")]
     [InlineData("Credentials credentials")]
-    public void OneOrTheOtherIsFine(string parameter) {
+    public void OneOrTheOtherIsFine(string parameter)
+    {
         var result = Generate(
             $$"""
                 [Post("/sign-in")]
                 public string SignIn({{parameter}}) => "";
-            """);
+            """
+        );
 
         Assert.DoesNotContain(
             result.GeneratorDiagnostics,
-            diagnostic => diagnostic.Id == FormAndBodyDiagnostics.DiagnosticId);
+            diagnostic => diagnostic.Id == FormAndBodyDiagnostics.DiagnosticId
+        );
     }
 }

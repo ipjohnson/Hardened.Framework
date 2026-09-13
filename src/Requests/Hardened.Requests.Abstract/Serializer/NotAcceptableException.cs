@@ -17,17 +17,21 @@ namespace Hardened.Requests.Abstract.Serializer;
 /// <c>NotAcceptable</c> used to write.
 /// </para>
 /// </remarks>
-public class NotAcceptableException : StatusCodeException {
+public class NotAcceptableException : StatusCodeException
+{
     public NotAcceptableException(IReadOnlyList<string> produced)
-        : base(406,
-            new ErrorModel {
+        : base(
+            406,
+            new ErrorModel
+            {
                 Type = "NotAcceptable",
                 Message = Describe(produced),
-                Details = string.Join(", ", produced)
+                Details = string.Join(", ", produced),
             },
             // The same sentence as the body, because this reaches a log as well as a client and an
             // operator reading "The request produced status 406." learns nothing from it.
-            Describe(produced)) { }
+            Describe(produced)
+        ) { }
 
     private static string Describe(IReadOnlyList<string> produced) =>
         "This operation produces " + string.Join(", ", produced) + ".";

@@ -1,6 +1,6 @@
 using System.Collections.Generic;
-using Hardened.Idl.Emitters;
 using Hardened.Generation.Models;
+using Hardened.Idl.Emitters;
 using Xunit;
 
 namespace Hardened.OpenApi.BuildTask.Tests;
@@ -27,8 +27,8 @@ namespace Hardened.OpenApi.BuildTask.Tests;
 /// and writes it.
 /// </para>
 /// </remarks>
-public class ErrorResponseEmitterTests {
-
+public class ErrorResponseEmitterTests
+{
     /// <summary>
     /// One error, with the name the allocator would have put on it already there.
     /// </summary>
@@ -38,27 +38,44 @@ public class ErrorResponseEmitterTests {
     /// a named type out — is in <see cref="NameAllocatorTests"/>.
     /// </remarks>
     private static ErrorResponseModel Error(
-        int statusCode = 404, string? bodyRef = null, string? description = null,
-        string? name = null, string exceptionTypeName = "NotFoundException") =>
-        new() {
+        int statusCode = 404,
+        string? bodyRef = null,
+        string? description = null,
+        string? name = null,
+        string exceptionTypeName = "NotFoundException"
+    ) =>
+        new()
+        {
             StatusCode = statusCode,
             Ref = bodyRef,
             Description = description,
             Name = name,
-            ExceptionTypeName = exceptionTypeName
+            ExceptionTypeName = exceptionTypeName,
         };
 
     private static string Emit(params ErrorResponseModel[] errors) =>
-        EmitterHarness.Write(ns => ErrorResponseEmitter.Emit(
-            ns, new List<ErrorResponseModel>(errors), EmitterHarness.ModelsNamespace));
+        EmitterHarness.Write(ns =>
+            ErrorResponseEmitter.Emit(
+                ns,
+                new List<ErrorResponseModel>(errors),
+                EmitterHarness.ModelsNamespace
+            )
+        );
 
-    private static IReadOnlyList<string> Names(params ErrorResponseModel[] errors) {
+    private static IReadOnlyList<string> Names(params ErrorResponseModel[] errors)
+    {
         var emitted = new List<string>();
 
-        EmitterHarness.Write(ns => {
-            foreach (var definition in ErrorResponseEmitter.Emit(
-                         ns, new List<ErrorResponseModel>(errors),
-                         EmitterHarness.ModelsNamespace)) {
+        EmitterHarness.Write(ns =>
+        {
+            foreach (
+                var definition in ErrorResponseEmitter.Emit(
+                    ns,
+                    new List<ErrorResponseModel>(errors),
+                    EmitterHarness.ModelsNamespace
+                )
+            )
+            {
                 emitted.Add(definition.Name);
             }
         });
@@ -75,23 +92,29 @@ public class ErrorResponseEmitterTests {
     /// class.
     /// </summary>
     [Fact]
-    public void AnExceptionTakesTheNameOnTheModel() {
+    public void AnExceptionTakesTheNameOnTheModel()
+    {
         Assert.Equal(
             ["AccountNotFoundException"],
-            Names(Error(name: "AccountNotFound", exceptionTypeName: "AccountNotFoundException")));
+            Names(Error(name: "AccountNotFound", exceptionTypeName: "AccountNotFoundException"))
+        );
     }
 
     [Fact]
-    public void EveryErrorInTheSetGetsAType() {
+    public void EveryErrorInTheSetGetsAType()
+    {
         Assert.Equal(
             ["NotFoundProblemException", "ConflictProblemException"],
             Names(
                 Error(404, exceptionTypeName: "NotFoundProblemException"),
-                Error(409, exceptionTypeName: "ConflictProblemException")));
+                Error(409, exceptionTypeName: "ConflictProblemException")
+            )
+        );
     }
 
     [Fact]
-    public void AnEmptySetEmitsNothing() {
+    public void AnEmptySetEmitsNothing()
+    {
         Assert.Empty(Names());
     }
 
@@ -104,7 +127,8 @@ public class ErrorResponseEmitterTests {
     /// the pipeline turns it into a response rather than a 500.
     /// </summary>
     [Fact]
-    public void TheExceptionIsAPublicPartialStatusCodeException() {
+    public void TheExceptionIsAPublicPartialStatusCodeException()
+    {
         var output = Emit(Error());
 
         Assert.Contains("public partial class NotFoundException", output);
@@ -116,7 +140,8 @@ public class ErrorResponseEmitterTests {
     /// <c>Body</c>.
     /// </summary>
     [Fact]
-    public void AResponseWithNoBodyTakesNoConstructorArgument() {
+    public void AResponseWithNoBodyTakesNoConstructorArgument()
+    {
         var output = Emit(Error());
 
         Assert.Contains("base(404)", output);
@@ -124,7 +149,8 @@ public class ErrorResponseEmitterTests {
     }
 
     [Fact]
-    public void AResponseWithABodyPassesItToTheBase() {
+    public void AResponseWithABodyPassesItToTheBase()
+    {
         var output = Emit(Error(bodyRef: "#/components/schemas/Error"));
 
         Assert.Contains("base(404, value)", output);
@@ -134,7 +160,8 @@ public class ErrorResponseEmitterTests {
     /// Typed access to the body, which the base can only offer as <c>object</c>.
     /// </summary>
     [Fact]
-    public void AResponseWithABodyExposesItTyped() {
+    public void AResponseWithABodyExposesItTyped()
+    {
         var output = Emit(Error(bodyRef: "#/components/schemas/Error"));
 
         Assert.Contains("Error Body", output);
@@ -146,7 +173,8 @@ public class ErrorResponseEmitterTests {
     /// about.
     /// </summary>
     [Fact]
-    public void TheTypedAccessorDoesNotHideTheBasesValue() {
+    public void TheTypedAccessorDoesNotHideTheBasesValue()
+    {
         var output = Emit(Error(bodyRef: "#/components/schemas/Error"));
 
         Assert.DoesNotContain("new ", output);
@@ -159,16 +187,23 @@ public class ErrorResponseEmitterTests {
     /// consumer type of the same name.
     /// </summary>
     [Fact]
-    public void TheBodyCastIsGlobalQualified() {
+    public void TheBodyCastIsGlobalQualified()
+    {
         var output = Emit(Error(bodyRef: "#/components/schemas/Error"));
 
         Assert.Contains($"(global::{EmitterHarness.ModelsNamespace}.Error)Value!", output);
     }
 
     [Fact]
-    public void ARefIsPascalCasedIntoATypeName() {
-        var output = Emit(Error(409, "#/components/schemas/conflict_detail",
-            exceptionTypeName: "ConflictConflictDetailException"));
+    public void ARefIsPascalCasedIntoATypeName()
+    {
+        var output = Emit(
+            Error(
+                409,
+                "#/components/schemas/conflict_detail",
+                exceptionTypeName: "ConflictConflictDetailException"
+            )
+        );
 
         Assert.Contains("ConflictDetail Body", output);
     }
@@ -178,7 +213,8 @@ public class ErrorResponseEmitterTests {
     #region documentation
 
     [Fact]
-    public void TheDeclaredDescriptionBecomesTheDocComment() {
+    public void TheDeclaredDescriptionBecomesTheDocComment()
+    {
         var output = Emit(Error(description: "No pet with that identifier."));
 
         Assert.Contains("No pet with that identifier.", output);
@@ -192,17 +228,18 @@ public class ErrorResponseEmitterTests {
     /// declares the error, which is the whole reason it is emitted once.
     /// </remarks>
     [Fact]
-    public void AResponseWithNoDescriptionGetsAGeneratedOne() {
-        Assert.Contains(
-            "The 404 response the description declares.", Emit(Error()));
+    public void AResponseWithNoDescriptionGetsAGeneratedOne()
+    {
+        Assert.Contains("The 404 response the description declares.", Emit(Error()));
     }
 
     [Fact]
-    public void ANamedErrorWithNoDescriptionSaysWhatItWasCalled() {
+    public void ANamedErrorWithNoDescriptionSaysWhatItWasCalled()
+    {
         Assert.Contains(
             "The 400 response the description declares as 'AccountNotFound'.",
-            Emit(Error(400, name: "AccountNotFound",
-                exceptionTypeName: "AccountNotFoundException")));
+            Emit(Error(400, name: "AccountNotFound", exceptionTypeName: "AccountNotFoundException"))
+        );
     }
 
     #endregion

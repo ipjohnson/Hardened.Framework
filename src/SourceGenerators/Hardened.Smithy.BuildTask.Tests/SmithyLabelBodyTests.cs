@@ -14,10 +14,9 @@ namespace Hardened.Smithy.BuildTask.Tests;
 /// <c>{"field":"body.id","code":"required"}</c> and the published document agreed with the wrong
 /// behaviour. The body is now a derived schema of the unbound members alone.
 /// </remarks>
-public class SmithyLabelBodyTests {
-
-    private const string Model =
-        """
+public class SmithyLabelBodyTests
+{
+    private const string Model = """
         { "smithy": "2.0", "shapes": {
             "com.example#Svc": {
               "type": "service", "version": "1",
@@ -36,7 +35,8 @@ public class SmithyLabelBodyTests {
                 "note": { "target": "smithy.api#String" } } } } }
         """;
 
-    private static ServiceSpecModel Parse() {
+    private static ServiceSpecModel Parse()
+    {
         var diagnostics = new List<string>();
         var model = SmithySpecParser.Parse(Model, "labelbody", diagnostics);
 
@@ -46,7 +46,8 @@ public class SmithyLabelBodyTests {
     }
 
     [Fact]
-    public void TheLabelIsAPathParameterAndNotInTheBody() {
+    public void TheLabelIsAPathParameterAndNotInTheBody()
+    {
         var model = Parse();
         var operation = Assert.Single(Assert.Single(model.Services).Operations);
 
@@ -61,14 +62,16 @@ public class SmithyLabelBodyTests {
     }
 
     [Fact]
-    public void TheDerivedBodySchemaCarriesOnlyTheUnboundMembers() {
+    public void TheDerivedBodySchemaCarriesOnlyTheUnboundMembers()
+    {
         var model = Parse();
         var body = model.Schemas.Find(schema => schema.Name == "ReplaceInputBody");
 
         Assert.NotNull(body);
         Assert.Equal(
             new[] { "name", "note" },
-            body!.Properties.Select(property => property.Name).OrderBy(name => name));
+            body!.Properties.Select(property => property.Name).OrderBy(name => name)
+        );
         Assert.Equal(new[] { "name" }, body.Required);
     }
 }

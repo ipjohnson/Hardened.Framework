@@ -11,8 +11,8 @@ namespace Hardened.Web.Runtime.Responses;
 /// the reference. Caches and crawlers act on the difference.
 /// </remarks>
 [HttpStatus(410)]
-public sealed record Gone(string? Detail = null) : IHttpStatusResponse, IDeclaresStatus {
-
+public sealed record Gone(string? Detail = null) : IHttpStatusResponse, IDeclaresStatus
+{
     /// <summary>
     /// The Gone with a generic message, for a handler with nothing more to say than the status.
     /// Shared, so returning it allocates nothing.

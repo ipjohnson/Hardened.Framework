@@ -25,11 +25,12 @@ namespace Hardened.Requests.Runtime.Tests.Errors;
 /// validator produces for a reference type. Which layer caught it is the framework's business.
 /// </para>
 /// </remarks>
-public class MissingRequiredMembersTests {
-
+public class MissingRequiredMembersTests
+{
     private static readonly ExceptionToModelConverter Converter = new();
 
-    private static IExecutionContext Context() {
+    private static IExecutionContext Context()
+    {
         var response = Substitute.For<IExecutionResponse>();
         response.Headers.Returns(new Dictionary<string, StringValues>());
 
@@ -40,7 +41,10 @@ public class MissingRequiredMembersTests {
     }
 
     private static RequestValidationError Convert(
-        JsonException exception, IExecutionContext? context = null) {
+        JsonException exception,
+        IExecutionContext? context = null
+    )
+    {
         var (status, model) = Converter.ConvertExceptionToModel(context ?? Context(), exception);
 
         Assert.Equal(400, status);
@@ -55,13 +59,18 @@ public class MissingRequiredMembersTests {
     /// production.
     /// </summary>
     private static JsonException Missing(string json) =>
-        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<Product>(
-            json, new JsonSerializerOptions(JsonSerializerDefaults.Web)));
+        Assert.Throws<JsonException>(() =>
+            JsonSerializer.Deserialize<Product>(
+                json,
+                new JsonSerializerOptions(JsonSerializerDefaults.Web)
+            )
+        );
 
     private record Product(
         [property: JsonPropertyName("sku")] string Sku,
         [property: JsonPropertyName("category")] [property: JsonRequired] int Category,
-        [property: JsonPropertyName("unitPriceCents")] [property: JsonRequired] int UnitPriceCents);
+        [property: JsonPropertyName("unitPriceCents")] [property: JsonRequired] int UnitPriceCents
+    );
 
     /// <summary>
     /// One missing member, reported as the validator would report it: same field spelling, same
@@ -74,9 +83,9 @@ public class MissingRequiredMembersTests {
     /// a member called <c>body.unitPriceCents</c>.
     /// </remarks>
     [Fact]
-    public void AMissingMemberIsReportedAsARequiredFieldError() {
-        var error = Assert.Single(
-            Convert(Missing("""{"sku":"A","category":1}""")).Errors!);
+    public void AMissingMemberIsReportedAsARequiredFieldError()
+    {
+        var error = Assert.Single(Convert(Missing("""{"sku":"A","category":1}""")).Errors!);
 
         Assert.Equal("body.unitPriceCents", error.Field);
         Assert.Equal("required", error.Code);
@@ -88,12 +97,14 @@ public class MissingRequiredMembersTests {
     /// their request in one pass rather than one round trip per field.
     /// </summary>
     [Fact]
-    public void EveryMissingMemberIsReported() {
+    public void EveryMissingMemberIsReported()
+    {
         var errors = Convert(Missing("""{"sku":"A"}""")).Errors!;
 
         Assert.Equal(
             new[] { "body.category", "body.unitPriceCents" },
-            errors.Select(error => error.Field));
+            errors.Select(error => error.Field)
+        );
 
         Assert.All(errors, error => Assert.Equal("required", error.Code));
     }
@@ -104,17 +115,26 @@ public class MissingRequiredMembersTests {
     /// the same member's path on any handler that named its parameter something else.
     /// </summary>
     [Fact]
-    public void TheFieldPrefixIsTheHandlersBodyParameter() {
+    public void TheFieldPrefixIsTheHandlersBodyParameter()
+    {
         var context = Context();
 
-        context.HandlerInfo.Returns(new Hardened.Requests.Runtime.Execution.ExecutionRequestHandlerInfo(
-            "/products", "POST", typeof(object), "Create", bodyParameterName: "request"));
+        context.HandlerInfo.Returns(
+            new Hardened.Requests.Runtime.Execution.ExecutionRequestHandlerInfo(
+                "/products",
+                "POST",
+                typeof(object),
+                "Create",
+                bodyParameterName: "request"
+            )
+        );
 
         var errors = Convert(Missing("""{"sku":"A"}"""), context).Errors!;
 
         Assert.Equal(
             new[] { "request.category", "request.unitPriceCents" },
-            errors.Select(error => error.Field));
+            errors.Select(error => error.Field)
+        );
     }
 
     /// <summary>
@@ -123,9 +143,14 @@ public class MissingRequiredMembersTests {
     /// only one a caller with fifty lines can act on - the exception's <c>Path</c> is that object.
     /// </summary>
     [Fact]
-    public void AMissingMemberOfANestedObjectIsReportedUnderItsOwnPath() {
-        var exception = Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<Order>(
-            """{"lines":[{"sku":"A"},{}]}""", new JsonSerializerOptions(JsonSerializerDefaults.Web)));
+    public void AMissingMemberOfANestedObjectIsReportedUnderItsOwnPath()
+    {
+        var exception = Assert.Throws<JsonException>(() =>
+            JsonSerializer.Deserialize<Order>(
+                """{"lines":[{"sku":"A"},{}]}""",
+                new JsonSerializerOptions(JsonSerializerDefaults.Web)
+            )
+        );
 
         var error = Assert.Single(Convert(exception).Errors!);
 
@@ -142,10 +167,13 @@ public class MissingRequiredMembersTests {
     /// missing member, and claiming otherwise would name fields the caller never wrote.
     /// </summary>
     [Theory]
-    [InlineData("The JSON value could not be converted to Category. Path: $.category | LineNumber: 0 | BytePositionInLine: 29.")]
+    [InlineData(
+        "The JSON value could not be converted to Category. Path: $.category | LineNumber: 0 | BytePositionInLine: 29."
+    )]
     [InlineData("'x' is an invalid start of a value.")]
     [InlineData("JSON deserialization for type 'Product' failed for some other reason")]
-    public void AnyOtherFailureKeepsTheGeneralAnswer(string message) {
+    public void AnyOtherFailureKeepsTheGeneralAnswer(string message)
+    {
         var error = Assert.Single(Convert(new JsonException(message)).Errors!);
 
         Assert.Equal("invalid", error.Code);
@@ -167,23 +195,29 @@ public class MissingRequiredMembersTests {
 /// the general body-read answer in production.
 /// </para>
 /// </remarks>
-public class MissingRequiredMembersMessageTests {
-
+public class MissingRequiredMembersMessageTests
+{
     private record Product(
         [property: JsonPropertyName("sku")] string Sku,
         [property: JsonPropertyName("category")] [property: JsonRequired] int Category,
         [property: JsonPropertyName("unitPriceCents")] [property: JsonRequired] int UnitPriceCents,
-        [property: JsonPropertyName("stock")] int? Stock = default);
+        [property: JsonPropertyName("stock")] int? Stock = default
+    );
 
     private static JsonException Deserialize(string json) =>
-        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<Product>(
-            json, new JsonSerializerOptions(JsonSerializerDefaults.Web)));
+        Assert.Throws<JsonException>(() =>
+            JsonSerializer.Deserialize<Product>(
+                json,
+                new JsonSerializerOptions(JsonSerializerDefaults.Web)
+            )
+        );
 
     /// <summary>
     /// The prefix and marker the converter matches on, and the ": " the member list follows.
     /// </summary>
     [Fact]
-    public void TheMessageStillCarriesThePrefixTheConverterMatches() {
+    public void TheMessageStillCarriesThePrefixTheConverterMatches()
+    {
         var message = Deserialize("""{"sku":"A"}""").Message;
 
         Assert.StartsWith("JSON deserialization for type ", message);
@@ -195,7 +229,8 @@ public class MissingRequiredMembersMessageTests {
     /// Still aggregated, and still by wire name rather than by C# member name.
     /// </summary>
     [Fact]
-    public void EveryMissingMemberIsStillNamedByItsWireName() {
+    public void EveryMissingMemberIsStillNamedByItsWireName()
+    {
         var message = Deserialize("""{"sku":"A"}""").Message;
 
         Assert.Contains("category", message);
@@ -208,7 +243,8 @@ public class MissingRequiredMembersMessageTests {
     /// <c>Path</c>.
     /// </summary>
     [Fact]
-    public void ThePathIsStillTheObject() {
+    public void ThePathIsStillTheObject()
+    {
         Assert.Equal("$", Deserialize("""{"sku":"A"}""").Path);
     }
 }

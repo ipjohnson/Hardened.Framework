@@ -1,6 +1,6 @@
 using Hardened.SourceGenerator.Requests;
-using Xunit;
 using Hardened.Web.Runtime.Responses;
+using Xunit;
 
 namespace Hardened.SourceGenerator.Tests.Requests;
 
@@ -21,10 +21,11 @@ namespace Hardened.SourceGenerator.Tests.Requests;
 /// public enum member is a wire-visible act that should have to be done twice deliberately.
 /// </para>
 /// </summary>
-public class ResponseModelParityTests {
-
+public class ResponseModelParityTests
+{
     [Fact]
-    public void TheTwoEnums_DeclareTheSameMembers() {
+    public void TheTwoEnums_DeclareTheSameMembers()
+    {
         var publicNames = Enum.GetNames(typeof(Hardened.Requests.Abstract.Responses.ResponseModel))
             .Where(n => n != "Standard");
         var generatorNames = Enum.GetNames(typeof(ResponseModelValue));
@@ -39,14 +40,17 @@ public class ResponseModelParityTests {
     /// removing either half at 1.0 is a deliberate act.
     /// </summary>
     [Fact]
-    public void TheRenamedStandardMember_IsAnObsoleteAliasOfThrows() {
+    public void TheRenamedStandardMember_IsAnObsoleteAliasOfThrows()
+    {
 #pragma warning disable CS0618
         Assert.Equal(
             Hardened.Requests.Abstract.Responses.ResponseModel.Throws,
-            Hardened.Requests.Abstract.Responses.ResponseModel.Standard);
+            Hardened.Requests.Abstract.Responses.ResponseModel.Standard
+        );
 
-        var member = typeof(Hardened.Requests.Abstract.Responses.ResponseModel)
-            .GetField(nameof(Hardened.Requests.Abstract.Responses.ResponseModel.Standard));
+        var member = typeof(Hardened.Requests.Abstract.Responses.ResponseModel).GetField(
+            nameof(Hardened.Requests.Abstract.Responses.ResponseModel.Standard)
+        );
 #pragma warning restore CS0618
 
         Assert.NotNull(member);
@@ -59,10 +63,12 @@ public class ResponseModelParityTests {
     /// upstream fails to supply a value.
     /// </summary>
     [Fact]
-    public void Throws_IsTheDefaultOnBothSides() {
+    public void Throws_IsTheDefaultOnBothSides()
+    {
         Assert.Equal(
             Hardened.Requests.Abstract.Responses.ResponseModel.Throws,
-            default(Hardened.Requests.Abstract.Responses.ResponseModel));
+            default(Hardened.Requests.Abstract.Responses.ResponseModel)
+        );
 
         Assert.Equal(ResponseModelValue.Throws, default(ResponseModelValue));
         Assert.Equal(ResponseModelValue.Throws, ResponseModelSelector.Default);

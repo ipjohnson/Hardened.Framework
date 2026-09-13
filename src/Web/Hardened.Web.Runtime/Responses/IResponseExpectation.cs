@@ -32,8 +32,9 @@ namespace Hardened.Web.Runtime.Responses;
 /// </para>
 /// </remarks>
 /// <typeparam name="TSelf">The implementing type, so the factory can return it.</typeparam>
-public interface IResponseExpectation<TSelf> : IDeclaresStatus where TSelf : IResponseExpectation<TSelf> {
-
+public interface IResponseExpectation<TSelf> : IDeclaresStatus
+    where TSelf : IResponseExpectation<TSelf>
+{
     /// <summary>
     /// The response type, from the body the client deserialised and the headers it received.
     /// </summary>

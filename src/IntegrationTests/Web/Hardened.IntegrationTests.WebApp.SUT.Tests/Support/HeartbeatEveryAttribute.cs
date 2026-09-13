@@ -15,10 +15,14 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Support;
 /// what the request module registered.
 /// </remarks>
 [AttributeUsage(AttributeTargets.Method)]
-public sealed class HeartbeatEveryAttribute : Attribute, IHardenedTestDependencyRegistrationAttribute {
+public sealed class HeartbeatEveryAttribute
+    : Attribute,
+        IHardenedTestDependencyRegistrationAttribute
+{
     private readonly int _milliseconds;
 
-    public HeartbeatEveryAttribute(int milliseconds) {
+    public HeartbeatEveryAttribute(int milliseconds)
+    {
         _milliseconds = milliseconds;
     }
 
@@ -26,8 +30,11 @@ public sealed class HeartbeatEveryAttribute : Attribute, IHardenedTestDependency
         AttributeCollection attributeCollection,
         MethodInfo methodInfo,
         IHardenedEnvironment environment,
-        IServiceCollection serviceCollection) {
-        serviceCollection.ConfigureStreaming(
-            streaming => streaming.HeartbeatInterval = TimeSpan.FromMilliseconds(_milliseconds));
+        IServiceCollection serviceCollection
+    )
+    {
+        serviceCollection.ConfigureStreaming(streaming =>
+            streaming.HeartbeatInterval = TimeSpan.FromMilliseconds(_milliseconds)
+        );
     }
 }

@@ -14,8 +14,8 @@ namespace Hardened.Web.Kestrel.Runtime.Tests.Conformance;
 /// does under a real server — including <c>CompleteAsync</c>, which is what sends the headers of a
 /// response that wrote no body.
 /// </remarks>
-public class FeatureExecutionResponseConformanceTests : ExecutionResponseConformanceTests {
-
+public class FeatureExecutionResponseConformanceTests : ExecutionResponseConformanceTests
+{
     protected override IExecutionResponseConformanceAdapter Adapter { get; } = new KestrelAdapter();
 
     /// <summary>
@@ -23,12 +23,14 @@ public class FeatureExecutionResponseConformanceTests : ExecutionResponseConform
     /// so a new adapter — per test method, and it is what lets a clone complete against the same
     /// response a fork would answer on.
     /// </summary>
-    private class KestrelAdapter : IExecutionResponseConformanceAdapter {
+    private class KestrelAdapter : IExecutionResponseConformanceAdapter
+    {
         private ServerFeatures? _features;
 
         public string TransportName => "Kestrel";
 
-        public IExecutionResponse CreateResponse() {
+        public IExecutionResponse CreateResponse()
+        {
             _features = new ServerFeatures();
 
             return new FeatureExecutionResponse(_features.Response, _features.ResponseBody);
@@ -39,7 +41,8 @@ public class FeatureExecutionResponseConformanceTests : ExecutionResponseConform
         /// ASP.NET host's defect: a response that wrote no body never sends its headers otherwise,
         /// leaving the connection waiting on a request the application already considers finished.
         /// </summary>
-        public async Task<ObservedResponse> Complete(IExecutionResponse response) {
+        public async Task<ObservedResponse> Complete(IExecutionResponse response)
+        {
             await ((FeatureExecutionResponse)response).CompleteAsync();
 
             var feature = _features!.Response;
@@ -47,7 +50,8 @@ public class FeatureExecutionResponseConformanceTests : ExecutionResponseConform
             var headers = feature.Headers.ToDictionary(
                 pair => pair.Key,
                 pair => (IReadOnlyList<string>)pair.Value.ToArray()!,
-                StringComparer.OrdinalIgnoreCase);
+                StringComparer.OrdinalIgnoreCase
+            );
 
             headers.TryGetValue("Set-Cookie", out var setCookies);
 
@@ -55,7 +59,8 @@ public class FeatureExecutionResponseConformanceTests : ExecutionResponseConform
                 feature.StatusCode,
                 headers,
                 setCookies ?? Array.Empty<string>(),
-                _features.Body.ToArray());
+                _features.Body.ToArray()
+            );
         }
     }
 }

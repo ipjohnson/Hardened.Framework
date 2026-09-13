@@ -9,23 +9,35 @@ namespace Hardened.Web.Testing.Tests.Conformance;
 /// The pipeline handler's half of <see cref="ExecutionResponseConformanceTests"/>: what an
 /// <see cref="HttpClient"/> receives once the handler has turned the response into a message.
 /// </summary>
-public class PipelineExecutionResponseConformanceTests : ExecutionResponseConformanceTests {
-    protected override IExecutionResponseConformanceAdapter Adapter { get; } = new PipelineAdapter();
+public class PipelineExecutionResponseConformanceTests : ExecutionResponseConformanceTests
+{
+    protected override IExecutionResponseConformanceAdapter Adapter { get; } =
+        new PipelineAdapter();
 
-    private sealed class PipelineAdapter : IExecutionResponseConformanceAdapter {
+    private sealed class PipelineAdapter : IExecutionResponseConformanceAdapter
+    {
         public string TransportName => "PipelineHttpMessageHandler";
 
         public IExecutionResponse CreateResponse() =>
-            new TestExecutionResponse(new MemoryStream()) {
-                Headers = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase)
+            new TestExecutionResponse(new MemoryStream())
+            {
+                Headers = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase),
             };
 
-        public async Task<ObservedResponse> Complete(IExecutionResponse response) {
-            var message = PipelineHttpMessageHandler.ToResponse(response, (MemoryStream)response.Body, null);
+        public async Task<ObservedResponse> Complete(IExecutionResponse response)
+        {
+            var message = PipelineHttpMessageHandler.ToResponse(
+                response,
+                (MemoryStream)response.Body,
+                null
+            );
 
-            var headers = new Dictionary<string, IReadOnlyList<string>>(StringComparer.OrdinalIgnoreCase);
+            var headers = new Dictionary<string, IReadOnlyList<string>>(
+                StringComparer.OrdinalIgnoreCase
+            );
 
-            foreach (var header in message.Headers.Concat(message.Content.Headers)) {
+            foreach (var header in message.Headers.Concat(message.Content.Headers))
+            {
                 headers[header.Key] = header.Value.ToList();
             }
 
@@ -37,7 +49,8 @@ public class PipelineExecutionResponseConformanceTests : ExecutionResponseConfor
                 (int)message.StatusCode,
                 headers,
                 cookies,
-                await message.Content.ReadAsByteArrayAsync());
+                await message.Content.ReadAsByteArrayAsync()
+            );
         }
     }
 }

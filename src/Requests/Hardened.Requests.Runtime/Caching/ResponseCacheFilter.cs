@@ -39,8 +39,8 @@ namespace Hardened.Requests.Runtime.Caching;
 /// <c>[CacheResponse]</c> reads the requirement.
 /// </para>
 /// </remarks>
-public sealed class ResponseCacheFilter : IExecutionFilter {
-
+public sealed class ResponseCacheFilter : IExecutionFilter
+{
     /// <summary>
     /// What an attribute that names no <c>Duration</c> gets: 60 seconds.
     /// </summary>
@@ -92,7 +92,8 @@ public sealed class ResponseCacheFilter : IExecutionFilter {
     /// nothing; the wrapper writes it again on a hit where it applies.
     /// </para>
     /// </remarks>
-    private static readonly FrozenSet<string> NotStored = new[] {
+    private static readonly FrozenSet<string> NotStored = new[]
+    {
         KnownHeaders.SetCookie,
         KnownHeaders.TransferEncoding,
         KnownHeaders.ContentLength,
@@ -105,7 +106,7 @@ public sealed class ResponseCacheFilter : IExecutionFilter {
         KnownHeaders.ProxyAuthenticate,
         KnownHeaders.ProxyAuthorization,
         KnownHeaders.Date,
-        KnownHeaders.Server
+        KnownHeaders.Server,
     }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 
     private readonly ICacheKeyProvider[] _keyProviders;
@@ -135,7 +136,9 @@ public sealed class ResponseCacheFilter : IExecutionFilter {
         string handlerKey,
         int duration,
         CacheScope scope = CacheScope.AllCallers,
-        string[]? tags = null) {
+        string[]? tags = null
+    )
+    {
         _keyProviders = keyProviders;
         _handlerKey = handlerKey;
         _duration = TimeSpan.FromSeconds(duration <= 0 ? DefaultDuration : duration);
@@ -154,58 +157,73 @@ public sealed class ResponseCacheFilter : IExecutionFilter {
     /// </remarks>
     public static ResponseCacheFilter Compose(
         IExecutionRequestHandlerInfo handlerInfo,
-        IReadOnlyList<ICacheResponseDeclaration> declarations) {
+        IReadOnlyList<ICacheResponseDeclaration> declarations
+    )
+    {
         var providers = new ICacheKeyProvider[declarations.Count];
         var duration = 0;
         var scope = CacheScope.Unstated;
         List<string>? tags = null;
 
-        for (var i = 0; i < declarations.Count; i++) {
+        for (var i = 0; i < declarations.Count; i++)
+        {
             var declaration = declarations[i];
 
-            try {
+            try
+            {
                 providers[i] = declaration.CreateKeyProvider();
             }
-            catch (Exception exception) {
+            catch (Exception exception)
+            {
                 throw new InvalidOperationException(
-                    $"[CacheResponse] on {handlerInfo.Method} {handlerInfo.Path} could not build its " +
-                    $"cache key strategy: {exception.Message}",
-                    exception);
+                    $"[CacheResponse] on {handlerInfo.Method} {handlerInfo.Path} could not build its "
+                        + $"cache key strategy: {exception.Message}",
+                    exception
+                );
             }
 
-            foreach (var tag in declaration.Tags) {
+            foreach (var tag in declaration.Tags)
+            {
                 // Deduped, because two composed declarations naming the same tag is one tag, and an
                 // index that held the key twice would have to be right about removing it twice.
-                if (!(tags ??= []).Contains(tag, StringComparer.Ordinal)) {
+                if (!(tags ??= []).Contains(tag, StringComparer.Ordinal))
+                {
                     tags.Add(tag);
                 }
             }
 
-            if (declaration.Scope != CacheScope.Unstated) {
-                if (scope != CacheScope.Unstated && scope != declaration.Scope) {
+            if (declaration.Scope != CacheScope.Unstated)
+            {
+                if (scope != CacheScope.Unstated && scope != declaration.Scope)
+                {
                     throw new InvalidOperationException(
-                        $"{handlerInfo.Method} {handlerInfo.Path} declares [CacheResponse] twice " +
-                        $"with different scopes, {scope} and {declaration.Scope}. Composed " +
-                        "attributes share one entry, so it has one audience.");
+                        $"{handlerInfo.Method} {handlerInfo.Path} declares [CacheResponse] twice "
+                            + $"with different scopes, {scope} and {declaration.Scope}. Composed "
+                            + "attributes share one entry, so it has one audience."
+                    );
                 }
 
                 scope = declaration.Scope;
             }
 
-            if (declaration.Duration == 0) {
+            if (declaration.Duration == 0)
+            {
                 continue;
             }
 
-            if (duration != 0 && duration != declaration.Duration) {
+            if (duration != 0 && duration != declaration.Duration)
+            {
                 throw new InvalidOperationException(
-                    $"{handlerInfo.Method} {handlerInfo.Path} declares [CacheResponse] twice with " +
-                    $"different durations, {duration} and {declaration.Duration}. Composed " +
-                    "attributes share one lifetime, so set Duration on one of them.");
+                    $"{handlerInfo.Method} {handlerInfo.Path} declares [CacheResponse] twice with "
+                        + $"different durations, {duration} and {declaration.Duration}. Composed "
+                        + "attributes share one lifetime, so set Duration on one of them."
+                );
             }
 
             // First one wins. The loop still runs to the end, so a later disagreement is found
             // rather than shadowed by the winner.
-            if (duration == 0) {
+            if (duration == 0)
+            {
                 duration = declaration.Duration;
             }
         }
@@ -213,10 +231,12 @@ public sealed class ResponseCacheFilter : IExecutionFilter {
         var handlerKey = handlerInfo.Method + " " + handlerInfo.Path;
         var requirement = handlerInfo.Requirement;
 
-        if (scope == CacheScope.Unstated) {
+        if (scope == CacheScope.Unstated)
+        {
             // A handler that requires nothing of its caller has one audience whatever it answers,
             // so there is nothing for an author to decide and nothing to interrupt them over.
-            if (requirement != null) {
+            if (requirement != null)
+            {
                 throw new CacheScopeUndeclaredException(handlerKey, requirement);
             }
 
@@ -226,7 +246,8 @@ public sealed class ResponseCacheFilter : IExecutionFilter {
         return new ResponseCacheFilter(providers, handlerKey, duration, scope, tags?.ToArray());
     }
 
-    public async Task Execute(IExecutionChain chain) {
+    public async Task Execute(IExecutionChain chain)
+    {
         var context = chain.Context;
 
         // A request already refused is not one the store may answer.
@@ -238,7 +259,8 @@ public sealed class ResponseCacheFilter : IExecutionFilter {
         // was turned away, from an entry a permitted caller filled. Both refusers sit ahead of this
         // stage precisely so they settle first; reading what they recorded is what makes that
         // ordering mean anything.
-        if (context.Response.Refused) {
+        if (context.Response.Refused)
+        {
             await chain.Next();
 
             return;
@@ -246,7 +268,8 @@ public sealed class ResponseCacheFilter : IExecutionFilter {
 
         var store = Store(context);
 
-        if (store == null) {
+        if (store == null)
+        {
             // Recorded and continued rather than thrown, which is the rule for everything ahead of
             // FilterOrder.Serialization and one this filter used to break: throwing here unwound
             // past the filter that writes a response, so the message naming the handler reached the
@@ -260,7 +283,8 @@ public sealed class ResponseCacheFilter : IExecutionFilter {
 
         var key = await Key(context);
 
-        if (key == null) {
+        if (key == null)
+        {
             await chain.Next();
 
             return;
@@ -268,7 +292,8 @@ public sealed class ResponseCacheFilter : IExecutionFilter {
 
         var cached = await store.Get(key, context.CancellationToken);
 
-        if (cached != null) {
+        if (cached != null)
+        {
             await Replay(context, cached);
 
             return;
@@ -293,20 +318,24 @@ public sealed class ResponseCacheFilter : IExecutionFilter {
     /// must not be shared.
     /// </para>
     /// </remarks>
-    private async ValueTask<string?> Key(IExecutionContext context) {
+    private async ValueTask<string?> Key(IExecutionContext context)
+    {
         string? caller = null;
 
-        if (_scope == CacheScope.PerCaller) {
+        if (_scope == CacheScope.PerCaller)
+        {
             caller = Caller(context.CallerPrincipal);
 
-            if (caller == null) {
+            if (caller == null)
+            {
                 return null;
             }
         }
 
         // One strategy and one audience is the ordinary case, and needs neither a builder nor a
         // separator.
-        if (_keyProviders.Length == 1 && caller == null) {
+        if (_keyProviders.Length == 1 && caller == null)
+        {
             var only = await _keyProviders[0].Key(context);
 
             return only == null ? null : _handlerKey + Separator + only;
@@ -314,14 +343,17 @@ public sealed class ResponseCacheFilter : IExecutionFilter {
 
         var key = new StringBuilder(_handlerKey);
 
-        if (caller != null) {
+        if (caller != null)
+        {
             key.Append(Separator).Append(caller);
         }
 
-        foreach (var provider in _keyProviders) {
+        foreach (var provider in _keyProviders)
+        {
             var part = await provider.Key(context);
 
-            if (part == null) {
+            if (part == null)
+            {
                 return null;
             }
 
@@ -346,7 +378,8 @@ public sealed class ResponseCacheFilter : IExecutionFilter {
     /// entry <see cref="CacheScope.PerCaller"/> exists to refuse.
     /// </para>
     /// </remarks>
-    private static string? Caller(ICallerPrincipal principal) {
+    private static string? Caller(ICallerPrincipal principal)
+    {
         var subject = principal.Subject;
 
         return string.IsNullOrEmpty(subject) ? null : principal.Issuer + Separator + subject;
@@ -360,7 +393,8 @@ public sealed class ResponseCacheFilter : IExecutionFilter {
     /// same way on every request rather than only on the requests a strategy was willing to key -
     /// and so a <c>ByPayload</c> handler does not hash a body on the way to failing.
     /// </remarks>
-    private IResponseCacheStore? Store(IExecutionContext context) {
+    private IResponseCacheStore? Store(IExecutionContext context)
+    {
         // Racy by construction and harmless: two requests may both resolve, and both are handed the
         // same singleton.
         return _store ??= context.RootServiceProvider.GetService<IResponseCacheStore>();
@@ -369,12 +403,14 @@ public sealed class ResponseCacheFilter : IExecutionFilter {
     /// <summary>
     /// Writes a stored response as though the handler had just produced it.
     /// </summary>
-    private static async Task Replay(IExecutionContext context, CachedResponse cached) {
+    private static async Task Replay(IExecutionContext context, CachedResponse cached)
+    {
         var response = context.Response;
 
         response.Status = cached.Status;
 
-        foreach (var header in cached.Headers) {
+        foreach (var header in cached.Headers)
+        {
             response.Headers[header.Key] = header.Value;
         }
 
@@ -382,7 +418,8 @@ public sealed class ResponseCacheFilter : IExecutionFilter {
         // the stored content type is the one that was actually sent. Only when there is one:
         // assigning null writes an empty Content-Type on a response backed by a plain dictionary,
         // which is not what "the handler set none" looked like the first time.
-        if (cached.ContentType != null) {
+        if (cached.ContentType != null)
+        {
             response.ContentType = cached.ContentType;
         }
 
@@ -410,7 +447,8 @@ public sealed class ResponseCacheFilter : IExecutionFilter {
     /// body. Only the storing half is conditional.
     /// </para>
     /// </remarks>
-    private async Task CaptureAndStore(IExecutionChain chain, IResponseCacheStore store, string key) {
+    private async Task CaptureAndStore(IExecutionChain chain, IResponseCacheStore store, string key)
+    {
         var context = chain.Context;
         var response = context.Response;
         var transportBody = response.Body;
@@ -425,18 +463,21 @@ public sealed class ResponseCacheFilter : IExecutionFilter {
 
         var storable = false;
 
-        try {
+        try
+        {
             await chain.Next();
 
             storable = IsStorable(response);
 
             // Tagged before the copy, which is the write that starts the response on every host,
             // so the tag goes out with the miss as well as into the entry.
-            if (storable) {
+            if (storable)
+            {
                 Tag(response, buffer);
             }
         }
-        finally {
+        finally
+        {
             response.Body = transportBody;
 
             buffer.Position = 0;
@@ -444,7 +485,8 @@ public sealed class ResponseCacheFilter : IExecutionFilter {
             await buffer.CopyToAsync(transportBody, context.CancellationToken);
         }
 
-        if (!storable) {
+        if (!storable)
+        {
             return;
         }
 
@@ -453,7 +495,8 @@ public sealed class ResponseCacheFilter : IExecutionFilter {
             response.ContentType,
             buffer.ToArray(),
             Replayable(response.Headers, carried),
-            _tags);
+            _tags
+        );
 
         await store.Set(key, entry, _duration, context.CancellationToken);
     }
@@ -494,13 +537,16 @@ public sealed class ResponseCacheFilter : IExecutionFilter {
     /// resource does, not when the serializer does - so an existing header is kept.
     /// </para>
     /// </remarks>
-    private static void Tag(IExecutionResponse response, MemoryStream buffer) {
-        if (response.Headers.ContainsKey(KnownHeaders.ETag)) {
+    private static void Tag(IExecutionResponse response, MemoryStream buffer)
+    {
+        if (response.Headers.ContainsKey(KnownHeaders.ETag))
+        {
             return;
         }
 
-        response.Headers[KnownHeaders.ETag] =
-            EntityTagHeader.ForContent(buffer.GetBuffer().AsSpan(0, (int)buffer.Length));
+        response.Headers[KnownHeaders.ETag] = EntityTagHeader.ForContent(
+            buffer.GetBuffer().AsSpan(0, (int)buffer.Length)
+        );
     }
 
     /// <summary>
@@ -510,11 +556,16 @@ public sealed class ResponseCacheFilter : IExecutionFilter {
     /// Allocated on the miss path only, next to a buffer holding the whole body.
     /// </remarks>
     private static Dictionary<string, StringValues> Carried(
-        IDictionary<string, StringValues> headers) {
+        IDictionary<string, StringValues> headers
+    )
+    {
         var carried = new Dictionary<string, StringValues>(
-            headers.Count, StringComparer.OrdinalIgnoreCase);
+            headers.Count,
+            StringComparer.OrdinalIgnoreCase
+        );
 
-        foreach (var header in headers) {
+        foreach (var header in headers)
+        {
             carried[header.Key] = header.Value;
         }
 
@@ -543,15 +594,20 @@ public sealed class ResponseCacheFilter : IExecutionFilter {
     /// </remarks>
     private static IReadOnlyList<KeyValuePair<string, StringValues>> Replayable(
         IDictionary<string, StringValues> headers,
-        Dictionary<string, StringValues> carried) {
+        Dictionary<string, StringValues> carried
+    )
+    {
         var replayable = new List<KeyValuePair<string, StringValues>>(headers.Count);
 
-        foreach (var header in headers) {
-            if (NotStored.Contains(header.Key)) {
+        foreach (var header in headers)
+        {
+            if (NotStored.Contains(header.Key))
+            {
                 continue;
             }
 
-            if (carried.TryGetValue(header.Key, out var before) && before.Equals(header.Value)) {
+            if (carried.TryGetValue(header.Key, out var before) && before.Equals(header.Value))
+            {
                 continue;
             }
 

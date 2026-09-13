@@ -24,10 +24,11 @@ namespace Hardened.Web.Kestrel.Runtime.Tests;
 /// Where a server is genuinely started it binds port 0, so the OS picks a free port and these
 /// cannot collide with each other or with anything already running.
 /// </summary>
-public class KestrelHostingTests {
-
+public class KestrelHostingTests
+{
     [Fact]
-    public void Constructor_ResolvesTheApplicationThroughItsInterface() {
+    public void Constructor_ResolvesTheApplicationThroughItsInterface()
+    {
         var harness = new Harness();
 
         // Resolution is by IHttpApplication<> rather than by the concrete type, because
@@ -39,7 +40,8 @@ public class KestrelHostingTests {
     }
 
     [Fact]
-    public async Task StartAsync_RunsTheRegisteredStartupServices() {
+    public async Task StartAsync_RunsTheRegisteredStartupServices()
+    {
         var harness = new Harness();
         await using var runner = harness.CreateRunner();
 
@@ -53,18 +55,21 @@ public class KestrelHostingTests {
     /// chain has no routing filter and every request falls through to nothing.
     /// </summary>
     [Fact]
-    public async Task StartAsync_AttachesTheRoutingFilterToTheMiddlewareChain() {
+    public async Task StartAsync_AttachesTheRoutingFilterToTheMiddlewareChain()
+    {
         var harness = new Harness();
         await using var runner = harness.CreateRunner();
 
         await runner.StartAsync(TestContext.Current.CancellationToken);
 
-        harness.MiddlewareService.Received(1)
+        harness
+            .MiddlewareService.Received(1)
             .Use(Arg.Any<Func<IExecutionContext, IExecutionFilter>>());
     }
 
     [Fact]
-    public async Task StartAsync_BindsAndReportsTheAddressItIsListeningOn() {
+    public async Task StartAsync_BindsAndReportsTheAddressItIsListeningOn()
+    {
         var harness = new Harness();
         await using var runner = harness.CreateRunner();
 
@@ -82,17 +87,21 @@ public class KestrelHostingTests {
     /// response that still looks correct while doing double the work.
     /// </summary>
     [Fact]
-    public async Task StartAsync_RefusesToStartTwice() {
+    public async Task StartAsync_RefusesToStartTwice()
+    {
         var harness = new Harness();
         await using var runner = harness.CreateRunner();
 
         await runner.StartAsync(TestContext.Current.CancellationToken);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => runner.StartAsync(TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            runner.StartAsync(TestContext.Current.CancellationToken)
+        );
     }
 
     [Fact]
-    public async Task StopAsync_DoesNothingWhenTheServerNeverStarted() {
+    public async Task StopAsync_DoesNothingWhenTheServerNeverStarted()
+    {
         var harness = new Harness();
         await using var runner = harness.CreateRunner();
 
@@ -102,7 +111,8 @@ public class KestrelHostingTests {
     }
 
     [Fact]
-    public async Task StopAsync_StopsAStartedServer() {
+    public async Task StopAsync_StopsAStartedServer()
+    {
         var harness = new Harness();
         await using var runner = harness.CreateRunner();
 
@@ -115,7 +125,8 @@ public class KestrelHostingTests {
     }
 
     [Fact]
-    public void AddHardenedKestrel_RegistersTheServerAsAHostedService() {
+    public void AddHardenedKestrel_RegistersTheServerAsAHostedService()
+    {
         var services = new ServiceCollection();
 
         services.AddHardenedKestrel(kestrel => kestrel.Listen(IPAddress.Loopback, 0));
@@ -125,12 +136,14 @@ public class KestrelHostingTests {
     }
 
     [Fact]
-    public void AddHardenedKestrel_CarriesTheConfigurationThrough() {
+    public void AddHardenedKestrel_CarriesTheConfigurationThrough()
+    {
         var services = new ServiceCollection();
 
         services.AddHardenedKestrel(
             kestrel => kestrel.Listen(IPAddress.Loopback, 0),
-            transport => transport.Backlog = 128);
+            transport => transport.Backlog = 128
+        );
 
         var options = services.BuildServiceProvider().GetRequiredService<HardenedKestrelOptions>();
 
@@ -139,10 +152,13 @@ public class KestrelHostingTests {
     }
 
     [Fact]
-    public async Task Application_StartsStopsAndReportsItsAddress() {
+    public async Task Application_StartsStopsAndReportsItsAddress()
+    {
         var harness = new Harness();
         await using var app = HardenedKestrelApplication.Create(
-            harness.CreateServices(), kestrel => kestrel.Listen(IPAddress.Loopback, 0));
+            harness.CreateServices(),
+            kestrel => kestrel.Listen(IPAddress.Loopback, 0)
+        );
 
         Assert.False(app.IsStarted);
 
@@ -161,10 +177,13 @@ public class KestrelHostingTests {
     /// hand over.
     /// </summary>
     [Fact]
-    public async Task Application_RunAsyncReturnsWhenItsTokenIsCancelledAndDoesNotRestart() {
+    public async Task Application_RunAsyncReturnsWhenItsTokenIsCancelledAndDoesNotRestart()
+    {
         var harness = new Harness();
         await using var app = HardenedKestrelApplication.Create(
-            harness.CreateServices(), kestrel => kestrel.Listen(IPAddress.Loopback, 0));
+            harness.CreateServices(),
+            kestrel => kestrel.Listen(IPAddress.Loopback, 0)
+        );
 
         await app.StartAsync(TestContext.Current.CancellationToken);
 
@@ -178,13 +197,16 @@ public class KestrelHostingTests {
     }
 
     [Fact]
-    public async Task HostedService_StartsAndStopsTheServer() {
+    public async Task HostedService_StartsAndStopsTheServer()
+    {
         var harness = new Harness();
         await using var hosted = new HardenedKestrelHostedService(
             harness.Provider,
-            new HardenedKestrelOptions {
-                ConfigureKestrel = kestrel => kestrel.Listen(IPAddress.Loopback, 0)
-            });
+            new HardenedKestrelOptions
+            {
+                ConfigureKestrel = kestrel => kestrel.Listen(IPAddress.Loopback, 0),
+            }
+        );
 
         await hosted.StartAsync(TestContext.Current.CancellationToken);
 
@@ -193,8 +215,10 @@ public class KestrelHostingTests {
         await hosted.StopAsync(TestContext.Current.CancellationToken);
     }
 
-    private class Harness {
-        public Harness() {
+    private class Harness
+    {
+        public Harness()
+        {
             StartupService = Substitute.For<IStartupService>();
             StartupService.Startup(Arg.Any<IServiceProvider>()).Returns(true);
 
@@ -207,13 +231,16 @@ public class KestrelHostingTests {
         /// The registrations a Hardened module would supply, standing in for one so these exercise
         /// the hosting code rather than the generator.
         /// </summary>
-        public IServiceCollection CreateServices() {
+        public IServiceCollection CreateServices()
+        {
             var services = new ServiceCollection();
 
             services.AddSingleton(StartupService);
             services.AddSingleton(MiddlewareService);
             services.AddSingleton(Substitute.For<IWebExecutionHandlerService>());
-            services.AddSingleton(Substitute.For<IHttpApplication<HardenedHttpApplication.RequestContext>>());
+            services.AddSingleton(
+                Substitute.For<IHttpApplication<HardenedHttpApplication.RequestContext>>()
+            );
 
             return services;
         }

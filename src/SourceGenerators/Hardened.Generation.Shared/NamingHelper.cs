@@ -5,18 +5,87 @@ using System.Text;
 
 namespace Hardened.Generation;
 
-internal static class NamingHelper {
-    private static readonly HashSet<string> CSharpKeywords = new() {
-        "abstract", "as", "base", "bool", "break", "byte", "case", "catch", "char",
-        "checked", "class", "const", "continue", "decimal", "default", "delegate", "do",
-        "double", "else", "enum", "event", "explicit", "extern", "false", "finally",
-        "fixed", "float", "for", "foreach", "goto", "if", "implicit", "in", "int",
-        "interface", "internal", "is", "lock", "long", "namespace", "new", "null",
-        "object", "operator", "out", "override", "params", "private", "protected",
-        "public", "readonly", "ref", "return", "sbyte", "sealed", "short", "sizeof",
-        "stackalloc", "static", "string", "struct", "switch", "this", "throw", "true",
-        "try", "typeof", "uint", "ulong", "unchecked", "unsafe", "ushort", "using",
-        "virtual", "void", "volatile", "while"
+internal static class NamingHelper
+{
+    private static readonly HashSet<string> CSharpKeywords = new()
+    {
+        "abstract",
+        "as",
+        "base",
+        "bool",
+        "break",
+        "byte",
+        "case",
+        "catch",
+        "char",
+        "checked",
+        "class",
+        "const",
+        "continue",
+        "decimal",
+        "default",
+        "delegate",
+        "do",
+        "double",
+        "else",
+        "enum",
+        "event",
+        "explicit",
+        "extern",
+        "false",
+        "finally",
+        "fixed",
+        "float",
+        "for",
+        "foreach",
+        "goto",
+        "if",
+        "implicit",
+        "in",
+        "int",
+        "interface",
+        "internal",
+        "is",
+        "lock",
+        "long",
+        "namespace",
+        "new",
+        "null",
+        "object",
+        "operator",
+        "out",
+        "override",
+        "params",
+        "private",
+        "protected",
+        "public",
+        "readonly",
+        "ref",
+        "return",
+        "sbyte",
+        "sealed",
+        "short",
+        "sizeof",
+        "stackalloc",
+        "static",
+        "string",
+        "struct",
+        "switch",
+        "this",
+        "throw",
+        "true",
+        "try",
+        "typeof",
+        "uint",
+        "ulong",
+        "unchecked",
+        "unsafe",
+        "ushort",
+        "using",
+        "virtual",
+        "void",
+        "volatile",
+        "while",
     };
 
     /// <summary>
@@ -42,28 +111,34 @@ internal static class NamingHelper {
     /// documents carry non-ASCII property names and emoji in enum values.
     /// </para>
     /// </remarks>
-    public static string ToPascalCase(string input) {
+    public static string ToPascalCase(string input)
+    {
         // A name can be absent and still be a name. Docker and Cloudflare both declare an enum
         // whose value set includes the empty string, and PagerDuty declares a property called it -
         // all of which reached C# as nothing at all, leaving `enum X { , Inactive }` and a record
         // parameter with a type and no identifier. The wire name stays empty either way; only the
         // member needs something to be called.
-        if (string.IsNullOrWhiteSpace(input)) return "Empty";
+        if (string.IsNullOrWhiteSpace(input))
+            return "Empty";
 
         var tokens = new List<string>();
         var current = new StringBuilder();
 
-        void Flush() {
-            if (current.Length > 0) {
+        void Flush()
+        {
+            if (current.Length > 0)
+            {
                 tokens.Add(current.ToString());
                 current.Length = 0;
             }
         }
 
-        for (var i = 0; i < input.Length; i++) {
+        for (var i = 0; i < input.Length; i++)
+        {
             var character = input[i];
 
-            if (char.IsLetterOrDigit(character)) {
+            if (char.IsLetterOrDigit(character))
+            {
                 current.Append(character);
                 continue;
             }
@@ -74,26 +149,34 @@ internal static class NamingHelper {
             var leadsToken = current.Length == 0 && tokens.Count == 0;
             var digitFollows = i + 1 < input.Length && char.IsDigit(input[i + 1]);
 
-            if (character == '-' && leadsToken && digitFollows) {
+            if (character == '-' && leadsToken && digitFollows)
+            {
                 tokens.Add("Minus");
                 continue;
             }
 
             var word = SymbolWord(character);
 
-            if (word != null) {
+            if (word != null)
+            {
                 Flush();
                 tokens.Add(word);
                 continue;
             }
 
-            if (IsDroppable(character)) {
+            if (IsDroppable(character))
+            {
                 // Inside a word: "Won't" is one token, not two.
                 continue;
             }
 
-            if (char.IsWhiteSpace(character) || char.IsPunctuation(character) ||
-                char.IsSeparator(character) || char.IsControl(character)) {
+            if (
+                char.IsWhiteSpace(character)
+                || char.IsPunctuation(character)
+                || char.IsSeparator(character)
+                || char.IsControl(character)
+            )
+            {
                 Flush();
                 continue;
             }
@@ -108,17 +191,21 @@ internal static class NamingHelper {
 
         var result = new StringBuilder();
 
-        foreach (var token in tokens) {
+        foreach (var token in tokens)
+        {
             result.Append(char.ToUpperInvariant(token[0]));
-            if (token.Length > 1) result.Append(token, 1, token.Length - 1);
+            if (token.Length > 1)
+                result.Append(token, 1, token.Length - 1);
         }
 
-        if (result.Length == 0) {
+        if (result.Length == 0)
+        {
             return "Item";
         }
 
         // An identifier cannot open with a digit, and "+1" already carries its sign as a word.
-        if (char.IsDigit(result[0])) {
+        if (char.IsDigit(result[0]))
+        {
             result.Insert(0, '_');
         }
 
@@ -128,24 +215,42 @@ internal static class NamingHelper {
     /// <summary>
     /// Symbols that carry meaning, as the word a reader would say aloud.
     /// </summary>
-    private static string? SymbolWord(char character) {
-        switch (character) {
-            case '+': return "Plus";
-            case '<': return "LessThan";
-            case '>': return "GreaterThan";
-            case '=': return "Equals";
-            case '&': return "And";
-            case '@': return "At";
-            case '#': return "Hash";
-            case '$': return "Dollar";
-            case '%': return "Percent";
-            case '*': return "Star";
-            case '!': return "Not";
-            case '?': return "Maybe";
-            case '~': return "Tilde";
-            case '^': return "Caret";
-            case '|': return "Or";
-            default: return null;
+    private static string? SymbolWord(char character)
+    {
+        switch (character)
+        {
+            case '+':
+                return "Plus";
+            case '<':
+                return "LessThan";
+            case '>':
+                return "GreaterThan";
+            case '=':
+                return "Equals";
+            case '&':
+                return "And";
+            case '@':
+                return "At";
+            case '#':
+                return "Hash";
+            case '$':
+                return "Dollar";
+            case '%':
+                return "Percent";
+            case '*':
+                return "Star";
+            case '!':
+                return "Not";
+            case '?':
+                return "Maybe";
+            case '~':
+                return "Tilde";
+            case '^':
+                return "Caret";
+            case '|':
+                return "Or";
+            default:
+                return null;
         }
     }
 
@@ -155,17 +260,21 @@ internal static class NamingHelper {
     private static bool IsDroppable(char character) =>
         character == '\'' || character == '"' || character == '`' || character == '’';
 
-    public static string ToCamelCase(string input) {
+    public static string ToCamelCase(string input)
+    {
         var pascal = ToPascalCase(input);
-        if (string.IsNullOrEmpty(pascal)) return pascal;
+        if (string.IsNullOrEmpty(pascal))
+            return pascal;
         return char.ToLowerInvariant(pascal[0]) + pascal.Substring(1);
     }
 
-    public static string EscapeIdentifier(string name) {
+    public static string EscapeIdentifier(string name)
+    {
         return CSharpKeywords.Contains(name) ? "@" + name : name;
     }
 
-    public static string ToMethodName(string operationId) {
+    public static string ToMethodName(string operationId)
+    {
         return ToPascalCase(operationId);
     }
 
@@ -178,20 +287,26 @@ internal static class NamingHelper {
     /// rather than in either of them because it reads nothing but a verb and a route, which is what
     /// any interface language with HTTP bindings has - not something particular to OpenAPI.
     /// </remarks>
-    public static string OperationIdFromRoute(string method, string route) {
+    public static string OperationIdFromRoute(string method, string route)
+    {
         var name = new StringBuilder(method.ToLowerInvariant());
 
-        foreach (var segment in route.Split('/')) {
-            if (segment.Length == 0) {
+        foreach (var segment in route.Split('/'))
+        {
+            if (segment.Length == 0)
+            {
                 continue;
             }
 
             // A parameter reads as what it selects by, so /pets/{petId} is getPetsByPetId rather
             // than getPetsPetId - which says the same thing twice and loses that it was a variable.
-            if (segment[0] == '{') {
+            if (segment[0] == '{')
+            {
                 name.Append("By");
                 name.Append(ToPascalCase(segment.Trim('{', '}')));
-            } else {
+            }
+            else
+            {
                 name.Append(ToPascalCase(segment));
             }
         }
@@ -210,19 +325,23 @@ internal static class NamingHelper {
     public static string SpecificationTypeName(string fileName) =>
         ToPascalCase(fileName) + "Specification";
 
-    public static string ToInterfaceName(string tag) {
+    public static string ToInterfaceName(string tag)
+    {
         var pascal = ToPascalCase(tag);
-        if (pascal.StartsWith("I") && pascal.Length > 1 && char.IsUpper(pascal[1])) {
+        if (pascal.StartsWith("I") && pascal.Length > 1 && char.IsUpper(pascal[1]))
+        {
             return pascal + "Service";
         }
         return "I" + pascal + "Service";
     }
 
-    public static string ToControllerName(string tag) {
+    public static string ToControllerName(string tag)
+    {
         return ToPascalCase(tag) + "Controller";
     }
 
-    public static string ToParameterName(string name) {
+    public static string ToParameterName(string name)
+    {
         var camel = ToCamelCase(name);
         return EscapeIdentifier(camel);
     }

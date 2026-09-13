@@ -12,7 +12,8 @@ namespace Hardened.Web.Kestrel.Runtime.Impl;
 /// An execution context built straight from a server's feature collection, with no
 /// <c>HttpContext</c> in between.
 /// </summary>
-public sealed class FeatureExecutionContext : IExecutionContext {
+public sealed class FeatureExecutionContext : IExecutionContext
+{
     /// <summary>
     /// Held concretely so the response can be completed at the end of the request.
     /// <see cref="Response"/> is typed as the interface and a fork may replace it, but completion
@@ -24,26 +25,37 @@ public sealed class FeatureExecutionContext : IExecutionContext {
         IServiceProvider rootServiceProvider,
         IServiceProvider requestServices,
         IFeatureCollection features,
-        IMetricLogger metricLogger) {
+        IMetricLogger metricLogger
+    )
+    {
         RootServiceProvider = rootServiceProvider;
         RequestServices = requestServices;
         KnownServices = requestServices.GetRequiredService<IKnownServices>();
 
-        var requestFeature = features.Get<IHttpRequestFeature>() ??
-            throw new InvalidOperationException(
-                "The server did not supply an IHttpRequestFeature.");
-        var responseFeature = features.Get<IHttpResponseFeature>() ??
-            throw new InvalidOperationException(
-                "The server did not supply an IHttpResponseFeature.");
-        var responseBodyFeature = features.Get<IHttpResponseBodyFeature>() ??
-            throw new InvalidOperationException(
-                "The server did not supply an IHttpResponseBodyFeature.");
+        var requestFeature =
+            features.Get<IHttpRequestFeature>()
+            ?? throw new InvalidOperationException(
+                "The server did not supply an IHttpRequestFeature."
+            );
+        var responseFeature =
+            features.Get<IHttpResponseFeature>()
+            ?? throw new InvalidOperationException(
+                "The server did not supply an IHttpResponseFeature."
+            );
+        var responseBodyFeature =
+            features.Get<IHttpResponseBodyFeature>()
+            ?? throw new InvalidOperationException(
+                "The server did not supply an IHttpResponseBodyFeature."
+            );
 
         _featureResponse = new FeatureExecutionResponse(responseFeature, responseBodyFeature);
 
         // Optional: a server that supplies no connection feature - and an in-process harness is
         // one - leaves the transport with nothing to answer rather than failing to start.
-        Request = new FeatureExecutionRequest(requestFeature, features.Get<IHttpConnectionFeature>());
+        Request = new FeatureExecutionRequest(
+            requestFeature,
+            features.Get<IHttpConnectionFeature>()
+        );
         Response = _featureResponse;
 
         // Without this a client disconnect never reaches the handler and the application keeps
@@ -61,7 +73,9 @@ public sealed class FeatureExecutionContext : IExecutionContext {
         IExecutionRequest request,
         IExecutionResponse response,
         IServiceProvider requestServices,
-        IMetricLogger metricLogger) {
+        IMetricLogger metricLogger
+    )
+    {
         RootServiceProvider = source.RootServiceProvider;
         RequestServices = requestServices;
         KnownServices = source.KnownServices;
@@ -77,19 +91,23 @@ public sealed class FeatureExecutionContext : IExecutionContext {
         IExecutionRequest? request,
         IExecutionResponse? response,
         IServiceProvider? serviceProvider,
-        IMetricLogger? metricLogger) {
+        IMetricLogger? metricLogger
+    )
+    {
         return new FeatureExecutionContext(
             this,
             request ?? Request,
             response ?? Response,
             serviceProvider ?? RequestServices,
-            metricLogger ?? RequestMetrics) {
+            metricLogger ?? RequestMetrics
+        )
+        {
             HandlerInstance = HandlerInstance,
             HandlerInfo = HandlerInfo,
             // The reference, not a copy: a fork is the same caller.
             CallerPrincipal = CallerPrincipal,
             // And the same request, so it reports one id rather than two.
-            CorrelationId = CorrelationId
+            CorrelationId = CorrelationId,
         };
     }
 
@@ -108,7 +126,8 @@ public sealed class FeatureExecutionContext : IExecutionContext {
     private string? _correlationId;
 
     /// <inheritdoc />
-    public string CorrelationId {
+    public string CorrelationId
+    {
         get => _correlationId ??= CorrelationIdentifier.ForCurrentTrace();
         init => _correlationId = value;
     }

@@ -29,14 +29,17 @@ namespace Hardened.Azure.Functions.Runtime.Execution;
 /// share conventions and not types, so neither can break the other's contract by changing its own.
 /// </para>
 /// </remarks>
-public class FunctionsPayloadRequest : IExecutionRequest {
+public class FunctionsPayloadRequest : IExecutionRequest
+{
     private IPathTokenCollection? _pathTokens;
 
     public FunctionsPayloadRequest(
         string method,
         string path,
         Stream body,
-        IDictionary<string, StringValues> headers) {
+        IDictionary<string, StringValues> headers
+    )
+    {
         Method = method;
         Path = path;
         Body = body;
@@ -65,7 +68,8 @@ public class FunctionsPayloadRequest : IExecutionRequest {
     /// <summary>Nothing. A queue message carries no query string.</summary>
     public IQueryStringCollection QueryString => EmptyQueryStringCollection.Instance;
 
-    public IPathTokenCollection PathTokens {
+    public IPathTokenCollection PathTokens
+    {
         get => _pathTokens ?? PathTokenCollection.Empty;
         set => _pathTokens = value;
     }
@@ -88,13 +92,15 @@ public class FunctionsPayloadRequest : IExecutionRequest {
         string? path = null,
         IDictionary<string, StringValues>? headers = null,
         IQueryStringCollection? queryString = null,
-        IReadOnlyList<string>? cookies = null) {
-        return new FunctionsPayloadRequest(
-            method ?? Method, path ?? Path, Body, headers ?? Headers) {
+        IReadOnlyList<string>? cookies = null
+    )
+    {
+        return new FunctionsPayloadRequest(method ?? Method, path ?? Path, Body, headers ?? Headers)
+        {
             // Clone(), not the same instance: a forked chain rebinds its own parameters, and
             // sharing them would let one message in a batch overwrite another's.
             Parameters = Parameters?.Clone(),
-            PathTokens = PathTokens
+            PathTokens = PathTokens,
         };
     }
 }

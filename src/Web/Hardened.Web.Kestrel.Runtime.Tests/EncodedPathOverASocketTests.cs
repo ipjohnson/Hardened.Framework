@@ -4,10 +4,10 @@ using System.Text;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Middleware;
 using Hardened.Shared.Runtime.Application;
+using Hardened.Web.Runtime.Responses;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Xunit;
-using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.Kestrel.Runtime.Tests;
 
@@ -29,8 +29,8 @@ namespace Hardened.Web.Kestrel.Runtime.Tests;
 /// terminal filter that echoes the path it was given.
 /// </para>
 /// </remarks>
-public class EncodedPathOverASocketTests {
-
+public class EncodedPathOverASocketTests
+{
     [Theory]
     [InlineData("/echo/path/%20", "/echo/path/ ")]
     [InlineData("/echo/path/caf%C3%A9", "/echo/path/café")]
@@ -43,7 +43,8 @@ public class EncodedPathOverASocketTests {
     [InlineData("/echo/path/a%zz", "/echo/path/a%zz")]
     [InlineData("/echo/path/a%", "/echo/path/a%")]
     [InlineData("/echo/path/a%2", "/echo/path/a%2")]
-    public async Task KestrelDecodesThePathByTheTableTheHarnessUses(string sent, string expected) {
+    public async Task KestrelDecodesThePathByTheTableTheHarnessUses(string sent, string expected)
+    {
         await using var harness = await Harness.Start(TestContext.Current.CancellationToken);
 
         Assert.Equal(expected, await harness.Probe(sent, TestContext.Current.CancellationToken));
@@ -52,14 +53,17 @@ public class EncodedPathOverASocketTests {
     /// <summary>
     /// Kestrel with one filter that answers the request path as the body, on a port the OS picked.
     /// </summary>
-    private sealed class Harness : IAsyncDisposable {
+    private sealed class Harness : IAsyncDisposable
+    {
         private readonly HardenedKestrelApplication _app;
 
-        private Harness(HardenedKestrelApplication app) {
+        private Harness(HardenedKestrelApplication app)
+        {
             _app = app;
         }
 
-        public static async Task<Harness> Start(CancellationToken cancellationToken) {
+        public static async Task<Harness> Start(CancellationToken cancellationToken)
+        {
             var services = new ServiceCollection();
 
             services.AddLogging(builder => builder.SetMinimumLevel(LogLevel.Warning));
@@ -67,7 +71,10 @@ public class EncodedPathOverASocketTests {
 
             new KestrelRuntime().PopulateServiceCollection(services);
 
-            var app = HardenedKestrelApplication.Create(services, kestrel => kestrel.Listen(IPAddress.Loopback, 0));
+            var app = HardenedKestrelApplication.Create(
+                services,
+                kestrel => kestrel.Listen(IPAddress.Loopback, 0)
+            );
 
             app.Services.GetRequiredService<IMiddlewareService>().Use(_ => new EchoPath());
 
@@ -79,7 +86,8 @@ public class EncodedPathOverASocketTests {
         /// <summary>
         /// One request line, written as-is, and the body of the answer.
         /// </summary>
-        public async Task<string> Probe(string path, CancellationToken cancellationToken) {
+        public async Task<string> Probe(string path, CancellationToken cancellationToken)
+        {
             var address = new Uri(_app.Addresses.First());
 
             using var socket = new TcpClient();
@@ -88,7 +96,9 @@ public class EncodedPathOverASocketTests {
 
             await using var stream = socket.GetStream();
 
-            var request = Encoding.ASCII.GetBytes($"GET {path} HTTP/1.1\r\nHost: {address.Host}\r\nConnection: close\r\n\r\n");
+            var request = Encoding.ASCII.GetBytes(
+                $"GET {path} HTTP/1.1\r\nHost: {address.Host}\r\nConnection: close\r\n\r\n"
+            );
 
             await stream.WriteAsync(request, cancellationToken);
 
@@ -110,17 +120,22 @@ public class EncodedPathOverASocketTests {
             // the decoded text - a multi-byte character is one character and more than one byte.
             var bodyStart = separator + 4;
 
-            if (!head.Contains("Transfer-Encoding: chunked", StringComparison.OrdinalIgnoreCase)) {
+            if (!head.Contains("Transfer-Encoding: chunked", StringComparison.OrdinalIgnoreCase))
+            {
                 return Encoding.UTF8.GetString(bytes, bodyStart, bytes.Length - bodyStart);
             }
 
             var sizeEnd = IndexOf(bytes, "\r\n"u8, bodyStart);
-            var size = Convert.ToInt32(Encoding.ASCII.GetString(bytes, bodyStart, sizeEnd - bodyStart), 16);
+            var size = Convert.ToInt32(
+                Encoding.ASCII.GetString(bytes, bodyStart, sizeEnd - bodyStart),
+                16
+            );
 
             return Encoding.UTF8.GetString(bytes, sizeEnd + 2, size);
         }
 
-        private static int IndexOf(byte[] haystack, ReadOnlySpan<byte> needle, int start) {
+        private static int IndexOf(byte[] haystack, ReadOnlySpan<byte> needle, int start)
+        {
             var index = haystack.AsSpan(start).IndexOf(needle);
 
             return index < 0 ? -1 : start + index;
@@ -128,8 +143,10 @@ public class EncodedPathOverASocketTests {
 
         public ValueTask DisposeAsync() => _app.DisposeAsync();
 
-        private sealed class EchoPath : IExecutionFilter {
-            public async Task Execute(IExecutionChain chain) {
+        private sealed class EchoPath : IExecutionFilter
+        {
+            public async Task Execute(IExecutionChain chain)
+            {
                 var response = chain.Context.Response;
 
                 response.Status = 200;
@@ -137,7 +154,9 @@ public class EncodedPathOverASocketTests {
                 response.ShouldSerialize = false;
 
                 await response.Body.WriteAsync(
-                    Encoding.UTF8.GetBytes(chain.Context.Request.Path), chain.Context.CancellationToken);
+                    Encoding.UTF8.GetBytes(chain.Context.Request.Path),
+                    chain.Context.CancellationToken
+                );
             }
         }
     }

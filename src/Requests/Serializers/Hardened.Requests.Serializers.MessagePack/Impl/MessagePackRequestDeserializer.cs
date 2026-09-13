@@ -18,12 +18,16 @@ namespace Hardened.Requests.Serializers.MessagePack.Impl;
 /// </para>
 /// </remarks>
 [TransientService]
-public class MessagePackRequestDeserializer : IRequestDeserializer {
+public class MessagePackRequestDeserializer : IRequestDeserializer
+{
     private readonly ISharedMessagePackOptions _options;
     private readonly IMemoryStreamPool _memoryStreamPool;
 
     public MessagePackRequestDeserializer(
-        ISharedMessagePackOptions options, IMemoryStreamPool memoryStreamPool) {
+        ISharedMessagePackOptions options,
+        IMemoryStreamPool memoryStreamPool
+    )
+    {
         _options = options;
         _memoryStreamPool = memoryStreamPool;
     }
@@ -58,7 +62,8 @@ public class MessagePackRequestDeserializer : IRequestDeserializer {
     /// <c>leaveOpen</c> does not arise: nothing wraps the buffer in a reader that would close it,
     /// which is the trap <c>NewtonsoftDeserializer</c> records.
     /// </remarks>
-    public async ValueTask<T?> DeserializeRequestBody<T>(IExecutionContext context) {
+    public async ValueTask<T?> DeserializeRequestBody<T>(IExecutionContext context)
+    {
         using var buffer = _memoryStreamPool.Get();
 
         await context.Request.Body.CopyToAsync(buffer.Item);
@@ -66,6 +71,9 @@ public class MessagePackRequestDeserializer : IRequestDeserializer {
         buffer.Item.Position = 0;
 
         return MessagePackSerializer.Deserialize<T>(
-            buffer.Item, _options.Options, context.CancellationToken);
+            buffer.Item,
+            _options.Options,
+            context.CancellationToken
+        );
     }
 }

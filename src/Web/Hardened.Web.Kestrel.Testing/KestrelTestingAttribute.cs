@@ -34,10 +34,12 @@ namespace Hardened.Web.Kestrel.Testing;
 /// on the assembly.
 /// </para>
 /// </remarks>
-public sealed class KestrelTestingAttribute : TestHostProviderAttribute {
-
+public sealed class KestrelTestingAttribute : TestHostProviderAttribute
+{
     public override Type RuntimeAttribute => typeof(KestrelRuntimeAttribute);
 
-    public override ITestHost CreateHost(ITestMethodContext testMethod, IServiceCollection services) =>
-        new KestrelTestHost();
+    public override ITestHost CreateHost(
+        ITestMethodContext testMethod,
+        IServiceCollection services
+    ) => new KestrelTestHost();
 }

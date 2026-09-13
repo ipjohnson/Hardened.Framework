@@ -1,6 +1,6 @@
 using Hardened.Requests.Abstract.Headers;
-using Microsoft.Extensions.Primitives;
 using Hardened.Web.Runtime.Headers;
+using Microsoft.Extensions.Primitives;
 using Xunit;
 
 namespace Hardened.Web.Runtime.Tests.Headers;
@@ -14,15 +14,15 @@ namespace Hardened.Web.Runtime.Tests.Headers;
 /// nothing here could read is a full body where a 304 was due.
 /// </para>
 /// </summary>
-public class HttpDateTests {
-
-    private static readonly DateTimeOffset Noon =
-        new(2026, 8, 18, 12, 0, 0, TimeSpan.Zero);
+public class HttpDateTests
+{
+    private static readonly DateTimeOffset Noon = new(2026, 8, 18, 12, 0, 0, TimeSpan.Zero);
 
     #region formatting
 
     [Fact]
-    public void FormatsTheFixedForm() {
+    public void FormatsTheFixedForm()
+    {
         Assert.Equal("Tue, 18 Aug 2026 12:00:00 GMT", HttpDate.Format(Noon));
     }
 
@@ -31,14 +31,16 @@ public class HttpDateTests {
     /// to match, so the value has to be converted first.
     /// </summary>
     [Fact]
-    public void FormatConvertsToUtcFirst() {
+    public void FormatConvertsToUtcFirst()
+    {
         var local = new DateTimeOffset(2026, 8, 18, 14, 0, 0, TimeSpan.FromHours(2));
 
         Assert.Equal("Tue, 18 Aug 2026 12:00:00 GMT", HttpDate.Format(local));
     }
 
     [Fact]
-    public void FormatDropsAnythingBelowASecond() {
+    public void FormatDropsAnythingBelowASecond()
+    {
         Assert.Equal("Tue, 18 Aug 2026 12:00:00 GMT", HttpDate.Format(Noon.AddMilliseconds(750)));
     }
 
@@ -47,13 +49,15 @@ public class HttpDateTests {
     #region truncating
 
     [Fact]
-    public void TruncateDropsAnythingBelowASecond() {
+    public void TruncateDropsAnythingBelowASecond()
+    {
         Assert.Equal(Noon, HttpDate.Truncate(Noon.AddMilliseconds(999)));
         Assert.Equal(Noon, HttpDate.Truncate(Noon.AddTicks(1)));
     }
 
     [Fact]
-    public void TruncateConvertsToUtc() {
+    public void TruncateConvertsToUtc()
+    {
         var local = new DateTimeOffset(2026, 8, 18, 14, 0, 0, 500, TimeSpan.FromHours(2));
 
         var truncated = HttpDate.Truncate(local);
@@ -67,8 +71,11 @@ public class HttpDateTests {
     #region parsing
 
     [Fact]
-    public void ParsesTheFixedForm() {
-        Assert.True(HttpDate.TryParse(new StringValues("Tue, 18 Aug 2026 12:00:00 GMT"), out var parsed));
+    public void ParsesTheFixedForm()
+    {
+        Assert.True(
+            HttpDate.TryParse(new StringValues("Tue, 18 Aug 2026 12:00:00 GMT"), out var parsed)
+        );
         Assert.Equal(Noon, parsed);
         Assert.Equal(TimeSpan.Zero, parsed.Offset);
     }
@@ -81,7 +88,8 @@ public class HttpDateTests {
     [InlineData("Tuesday, 18-Aug-26 12:00:00 GMT", 18)]
     [InlineData("Tue Aug 18 12:00:00 2026", 18)]
     [InlineData("Sat Aug  8 12:00:00 2026", 8)]
-    public void ParsesTheObsoleteForms(string header, int day) {
+    public void ParsesTheObsoleteForms(string header, int day)
+    {
         Assert.True(HttpDate.TryParse(new StringValues(header), out var parsed));
         Assert.Equal(new DateTimeOffset(2026, 8, day, 12, 0, 0, TimeSpan.Zero), parsed);
     }
@@ -91,7 +99,8 @@ public class HttpDateTests {
     /// read then is still read now.
     /// </summary>
     [Fact]
-    public void ParsesWhatTheInvariantCultureParses() {
+    public void ParsesWhatTheInvariantCultureParses()
+    {
         Assert.True(HttpDate.TryParse(new StringValues("2026-08-18T12:00:00Z"), out var parsed));
         Assert.Equal(Noon, parsed);
     }
@@ -101,7 +110,8 @@ public class HttpDateTests {
     /// round trip every conditional request makes.
     /// </summary>
     [Fact]
-    public void AFormattedDateReadsBackAsItself() {
+    public void AFormattedDateReadsBackAsItself()
+    {
         Assert.True(HttpDate.TryParse(new StringValues(HttpDate.Format(Noon)), out var parsed));
         Assert.Equal(Noon, parsed);
     }
@@ -111,8 +121,12 @@ public class HttpDateTests {
     /// §13.1.3.
     /// </summary>
     [Fact]
-    public void MoreThanOneMemberIsNotADate() {
-        var two = new StringValues(["Tue, 18 Aug 2026 12:00:00 GMT", "Tue, 18 Aug 2026 13:00:00 GMT"]);
+    public void MoreThanOneMemberIsNotADate()
+    {
+        var two = new StringValues([
+            "Tue, 18 Aug 2026 12:00:00 GMT",
+            "Tue, 18 Aug 2026 13:00:00 GMT",
+        ]);
 
         Assert.False(HttpDate.TryParse(two, out _));
     }
@@ -123,8 +137,11 @@ public class HttpDateTests {
     [InlineData("   ")]
     [InlineData("not a date")]
     [InlineData("\"OybX3FuqNfSKoSm+h1FJqQ==\"")]
-    public void AnythingElseIsNotADate(string? header) {
-        Assert.False(HttpDate.TryParse(header == null ? StringValues.Empty : new StringValues(header), out _));
+    public void AnythingElseIsNotADate(string? header)
+    {
+        Assert.False(
+            HttpDate.TryParse(header == null ? StringValues.Empty : new StringValues(header), out _)
+        );
     }
 
     #endregion

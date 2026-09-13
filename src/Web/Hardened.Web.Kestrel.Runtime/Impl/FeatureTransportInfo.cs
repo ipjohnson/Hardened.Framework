@@ -21,8 +21,10 @@ namespace Hardened.Web.Kestrel.Runtime.Impl;
 /// <see cref="KnownTransportKeys.NetworkPeerAddress"/>, where it stays true either way.
 /// </para>
 /// </remarks>
-public sealed class FeatureTransportInfo : ITransportInfo {
-    private static readonly string[] KeyList = [
+public sealed class FeatureTransportInfo : ITransportInfo
+{
+    private static readonly string[] KeyList =
+    [
         KnownTransportKeys.ClientAddress,
         KnownTransportKeys.ClientPort,
         KnownTransportKeys.NetworkPeerAddress,
@@ -30,13 +32,14 @@ public sealed class FeatureTransportInfo : ITransportInfo {
         KnownTransportKeys.ServerAddress,
         KnownTransportKeys.ServerPort,
         KnownTransportKeys.NetworkProtocolVersion,
-        KnownTransportKeys.UrlScheme
+        KnownTransportKeys.UrlScheme,
     ];
 
     private readonly IHttpConnectionFeature? _connection;
     private readonly IHttpRequestFeature _request;
 
-    public FeatureTransportInfo(IHttpConnectionFeature? connection, IHttpRequestFeature request) {
+    public FeatureTransportInfo(IHttpConnectionFeature? connection, IHttpRequestFeature request)
+    {
         _connection = connection;
         _request = request;
     }
@@ -44,12 +47,14 @@ public sealed class FeatureTransportInfo : ITransportInfo {
     public IReadOnlyList<string> Keys => KeyList;
 
     public string? Get(string key) =>
-        key switch {
+        key switch
+        {
             KnownTransportKeys.ClientAddress or KnownTransportKeys.NetworkPeerAddress =>
                 _connection?.RemoteIpAddress?.ToString(),
 
-            KnownTransportKeys.ClientPort or KnownTransportKeys.NetworkPeerPort =>
-                Port(_connection?.RemotePort),
+            KnownTransportKeys.ClientPort or KnownTransportKeys.NetworkPeerPort => Port(
+                _connection?.RemotePort
+            ),
 
             KnownTransportKeys.ServerAddress => _connection?.LocalIpAddress?.ToString(),
             KnownTransportKeys.ServerPort => Port(_connection?.LocalPort),
@@ -59,7 +64,7 @@ public sealed class FeatureTransportInfo : ITransportInfo {
 
             KnownTransportKeys.UrlScheme => _request.Scheme,
 
-            _ => null
+            _ => null,
         };
 
     /// <summary>
@@ -72,8 +77,10 @@ public sealed class FeatureTransportInfo : ITransportInfo {
     private static string? Port(int? port) =>
         port is null or 0 ? null : port.Value.ToString(CultureInfo.InvariantCulture);
 
-    private static string? Version(string? protocol) {
-        if (string.IsNullOrEmpty(protocol)) {
+    private static string? Version(string? protocol)
+    {
+        if (string.IsNullOrEmpty(protocol))
+        {
             return null;
         }
 

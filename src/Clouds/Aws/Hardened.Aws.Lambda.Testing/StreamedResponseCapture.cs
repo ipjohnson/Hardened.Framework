@@ -26,7 +26,8 @@ namespace Hardened.Aws.Lambda.Testing;
 /// Sequential sends - which is what <c>ITestWebApp</c> and a typed client both do - are unaffected.
 /// </para>
 /// </remarks>
-public sealed class StreamedResponseCapture : IResponseStreamFactory {
+public sealed class StreamedResponseCapture : IResponseStreamFactory
+{
     private MemoryStream _body = new();
 
     /// <summary>The prelude the stream opened with, or null where nothing opened one.</summary>
@@ -44,13 +45,15 @@ public sealed class StreamedResponseCapture : IResponseStreamFactory {
     /// <summary>Every byte written to the stream this invocation opened.</summary>
     public byte[] Body => _body.ToArray();
 
-    public Stream CreateStream() {
+    public Stream CreateStream()
+    {
         PlainStreams++;
 
         return _body;
     }
 
-    public Stream CreateHttpStream(HttpResponseStreamPrelude prelude) {
+    public Stream CreateHttpStream(HttpResponseStreamPrelude prelude)
+    {
         Prelude = prelude;
 
         return _body;
@@ -64,7 +67,8 @@ public sealed class StreamedResponseCapture : IResponseStreamFactory {
     /// keeps whatever it was handed for the life of the invocation and a test asserting on the
     /// previous body should not see it grow.
     /// </remarks>
-    internal void Reset() {
+    internal void Reset()
+    {
         _body = new MemoryStream();
         Prelude = null;
         PlainStreams = 0;

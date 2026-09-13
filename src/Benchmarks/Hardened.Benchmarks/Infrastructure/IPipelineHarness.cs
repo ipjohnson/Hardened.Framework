@@ -10,7 +10,8 @@ namespace Hardened.Benchmarks.Infrastructure;
 /// comparable — if one harness built its context in setup and another built it per request, the
 /// difference between them would be an artifact of the harness rather than of the framework.
 /// </summary>
-public interface IPipelineHarness : IDisposable {
+public interface IPipelineHarness : IDisposable
+{
     string Name { get; }
 
     Task<int> Execute(RequestScenario scenario, MemoryStream responseBody);

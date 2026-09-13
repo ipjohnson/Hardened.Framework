@@ -14,7 +14,8 @@ namespace Hardened.Benchmarks.Infrastructure;
 /// reality, and leaving it inside the measured region would add identical work to every pipeline
 /// while diluting the differences between them.
 /// </summary>
-public sealed class RequestScenario {
+public sealed class RequestScenario
+{
     public required string Name { get; init; }
 
     public required string Method { get; init; }
@@ -43,52 +44,62 @@ public sealed class RequestScenario {
     public override string ToString() => Name;
 }
 
-public static class Scenarios {
+public static class Scenarios
+{
     private static readonly byte[] SumBody = Encoding.UTF8.GetBytes(
-        JsonSerializer.Serialize(new SumRequest {
-            Id = 7,
-            Label = "benchmark",
-            Values = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-        }));
+        JsonSerializer.Serialize(
+            new SumRequest
+            {
+                Id = 7,
+                Label = "benchmark",
+                Values = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+            }
+        )
+    );
 
     /// <summary>Dispatch plus serialization, nothing bound.</summary>
-    public static readonly RequestScenario Item = new() {
+    public static readonly RequestScenario Item = new()
+    {
         Name = "GET item",
         Method = "GET",
-        Path = "/bench/item"
+        Path = "/bench/item",
     };
 
     /// <summary>One typed path token.</summary>
-    public static readonly RequestScenario ItemById = new() {
+    public static readonly RequestScenario ItemById = new()
+    {
         Name = "GET item/{id}",
         Method = "GET",
-        Path = "/bench/item/42"
+        Path = "/bench/item/42",
     };
 
     /// <summary>Two typed query string values.</summary>
-    public static readonly RequestScenario Query = new() {
+    public static readonly RequestScenario Query = new()
+    {
         Name = "GET query",
         Method = "GET",
         Path = "/bench/query",
-        QueryString = "page=2&size=10"
+        QueryString = "page=2&size=10",
     };
 
     /// <summary>JSON body in, different type out, one scoped service resolved.</summary>
-    public static readonly RequestScenario Sum = new() {
+    public static readonly RequestScenario Sum = new()
+    {
         Name = "POST sum",
         Method = "POST",
         Path = "/bench/sum",
         Body = SumBody,
-        ContentType = "application/json"
+        ContentType = "application/json",
     };
 
     /// <summary>Path token, query string and header in a single handler.</summary>
-    public static readonly RequestScenario Binding = new() {
+    public static readonly RequestScenario Binding = new()
+    {
         Name = "GET binding/{id}",
         Method = "GET",
         Path = "/bench/binding/abc",
         QueryString = "filter=active",
-        Headers = new Dictionary<string, string> { ["X-Tenant"] = "tenant-1" }
+        Headers = new Dictionary<string, string> { ["X-Tenant"] = "tenant-1" },
     };
 
     /// <summary>
@@ -100,11 +111,12 @@ public static class Scenarios {
     /// off the server's response object, which starts at 200, so <c>ResourceNotFoundHandler</c> —
     /// which only fills in a 404 when it finds the status unset — silently never fired.
     /// </summary>
-    public static readonly RequestScenario NotFound = new() {
+    public static readonly RequestScenario NotFound = new()
+    {
         Name = "GET not-found",
         Method = "GET",
         Path = "/bench/no-such-route",
-        ExpectedStatus = 404
+        ExpectedStatus = 404,
     };
 
     /// <summary>The scenarios benchmarks run. All are expected to succeed.</summary>

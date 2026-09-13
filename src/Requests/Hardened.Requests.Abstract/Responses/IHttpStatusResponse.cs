@@ -18,8 +18,8 @@ namespace Hardened.Requests.Abstract.Responses;
 /// to guess. It becomes <c>ShouldSerialize</c> on the execution response.
 /// </para>
 /// </remarks>
-public interface IHttpStatusResponse {
-
+public interface IHttpStatusResponse
+{
     /// <summary>The status this response is written with.</summary>
     int Status { get; }
 

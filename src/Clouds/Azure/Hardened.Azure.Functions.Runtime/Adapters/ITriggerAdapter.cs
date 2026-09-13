@@ -28,7 +28,8 @@ namespace Hardened.Azure.Functions.Runtime.Adapters;
 /// pipeline dispatches on, through the same table as <c>GET /orders/{id}</c>.
 /// </para>
 /// </remarks>
-public interface ITriggerAdapter {
+public interface ITriggerAdapter
+{
     /// <summary>Whether this adapter binds the trigger data the shim received.</summary>
     bool Handles(FunctionsTrigger trigger);
 

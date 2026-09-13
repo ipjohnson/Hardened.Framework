@@ -8,7 +8,8 @@
 /// publishes - so a single <c>IOpenApiUiConfiguration</c> in the container would be whichever module
 /// registered last. Each provider holds its own instead.
 /// </remarks>
-public interface IOpenApiUiConfiguration {
+public interface IOpenApiUiConfiguration
+{
     /// <summary>Where the page itself is served.</summary>
     string Path { get; }
 
@@ -34,10 +35,17 @@ public interface IOpenApiUiConfiguration {
 }
 
 /// <inheritdoc />
-public sealed class OpenApiUiConfiguration : IOpenApiUiConfiguration {
+public sealed class OpenApiUiConfiguration : IOpenApiUiConfiguration
+{
     public OpenApiUiConfiguration(
-        string path, string title, string documentPath, string scriptUrl, string? scriptIntegrity,
-        string? messagePackScriptUrl = null) {
+        string path,
+        string title,
+        string documentPath,
+        string scriptUrl,
+        string? scriptIntegrity,
+        string? messagePackScriptUrl = null
+    )
+    {
         Path = path;
         Title = title;
         DocumentPath = documentPath;

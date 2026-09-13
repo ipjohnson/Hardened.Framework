@@ -19,11 +19,12 @@ namespace Hardened.Smithy.BuildTask.Parsing;
 /// of the AST, because the AST is walked once and the thing being built is the IR.
 /// </para>
 /// </remarks>
-internal sealed class SmithyAst {
-
+internal sealed class SmithyAst
+{
     private readonly Dictionary<string, JsonElement> _shapes;
 
-    private SmithyAst(Dictionary<string, JsonElement> shapes, string version) {
+    private SmithyAst(Dictionary<string, JsonElement> shapes, string version)
+    {
         _shapes = shapes;
         Version = version;
     }
@@ -42,21 +43,27 @@ internal sealed class SmithyAst {
     /// so a redirect into a file leaves an empty file behind rather than no file. Treated as JSON it
     /// would report an unhelpful parse error at position 0.
     /// </remarks>
-    internal static SmithyAst? Load(string json, ICollection<string> diagnostics) {
-        if (string.IsNullOrWhiteSpace(json)) {
+    internal static SmithyAst? Load(string json, ICollection<string> diagnostics)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+        {
             diagnostics.Add(
-                "the AST is empty. 'smithy ast' writes the model to stdout and writes nothing when " +
-                "validation fails, so an empty file usually means the redirected command failed - " +
-                "its errors went to stderr.");
+                "the AST is empty. 'smithy ast' writes the model to stdout and writes nothing when "
+                    + "validation fails, so an empty file usually means the redirected command failed - "
+                    + "its errors went to stderr."
+            );
 
             return null;
         }
 
         JsonDocument document;
 
-        try {
+        try
+        {
             document = JsonDocument.Parse(json);
-        } catch (JsonException exception) {
+        }
+        catch (JsonException exception)
+        {
             diagnostics.Add("the AST is not valid JSON: " + exception.Message);
 
             return null;
@@ -64,26 +71,33 @@ internal sealed class SmithyAst {
 
         var root = document.RootElement;
 
-        if (root.ValueKind != JsonValueKind.Object) {
+        if (root.ValueKind != JsonValueKind.Object)
+        {
             diagnostics.Add("the AST's root is not an object.");
 
             return null;
         }
 
-        var version = root.TryGetProperty("smithy", out var versionElement) &&
-                      versionElement.ValueKind == JsonValueKind.String
-            ? versionElement.GetString() ?? ""
-            : "";
+        var version =
+            root.TryGetProperty("smithy", out var versionElement)
+            && versionElement.ValueKind == JsonValueKind.String
+                ? versionElement.GetString() ?? ""
+                : "";
 
         // Reported rather than refused. A later 2.x adds shapes and traits this does not know, and
         // the unknown-trait pass says so per trait - which is more useful than declining the file.
-        if (version.Length > 0 && !version.StartsWith("2.", StringComparison.Ordinal)) {
+        if (version.Length > 0 && !version.StartsWith("2.", StringComparison.Ordinal))
+        {
             diagnostics.Add(
-                $"the AST declares Smithy version '{version}'; this reader is written against 2.0.");
+                $"the AST declares Smithy version '{version}'; this reader is written against 2.0."
+            );
         }
 
-        if (!root.TryGetProperty("shapes", out var shapes) ||
-            shapes.ValueKind != JsonValueKind.Object) {
+        if (
+            !root.TryGetProperty("shapes", out var shapes)
+            || shapes.ValueKind != JsonValueKind.Object
+        )
+        {
             diagnostics.Add("the AST declares no 'shapes' object.");
 
             return null;
@@ -91,7 +105,8 @@ internal sealed class SmithyAst {
 
         var map = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
 
-        foreach (var shape in shapes.EnumerateObject()) {
+        foreach (var shape in shapes.EnumerateObject())
+        {
             map[shape.Name] = shape.Value;
         }
 
@@ -110,10 +125,14 @@ internal sealed class SmithyAst {
     internal static bool HasTrait(JsonElement shape, string traitId) =>
         TryGetTrait(shape, traitId, out _);
 
-    internal static bool TryGetTrait(JsonElement shape, string traitId, out JsonElement value) {
-        if (shape.TryGetProperty("traits", out var traits) &&
-            traits.ValueKind == JsonValueKind.Object &&
-            traits.TryGetProperty(traitId, out value)) {
+    internal static bool TryGetTrait(JsonElement shape, string traitId, out JsonElement value)
+    {
+        if (
+            shape.TryGetProperty("traits", out var traits)
+            && traits.ValueKind == JsonValueKind.Object
+            && traits.TryGetProperty(traitId, out value)
+        )
+        {
             return true;
         }
 
@@ -123,48 +142,61 @@ internal sealed class SmithyAst {
     }
 
     /// <summary>Every trait applied to a shape, by id.</summary>
-    internal static IEnumerable<KeyValuePair<string, JsonElement>> Traits(JsonElement shape) {
-        if (!shape.TryGetProperty("traits", out var traits) ||
-            traits.ValueKind != JsonValueKind.Object) {
+    internal static IEnumerable<KeyValuePair<string, JsonElement>> Traits(JsonElement shape)
+    {
+        if (
+            !shape.TryGetProperty("traits", out var traits)
+            || traits.ValueKind != JsonValueKind.Object
+        )
+        {
             yield break;
         }
 
-        foreach (var trait in traits.EnumerateObject()) {
+        foreach (var trait in traits.EnumerateObject())
+        {
             yield return new KeyValuePair<string, JsonElement>(trait.Name, trait.Value);
         }
     }
 
     /// <summary>The shape id a member, input, output or list element points at.</summary>
     internal static string? Target(JsonElement holder) =>
-        holder.ValueKind == JsonValueKind.Object &&
-        holder.TryGetProperty("target", out var target) &&
-        target.ValueKind == JsonValueKind.String
+        holder.ValueKind == JsonValueKind.Object
+        && holder.TryGetProperty("target", out var target)
+        && target.ValueKind == JsonValueKind.String
             ? target.GetString()
             : null;
 
     /// <summary>A shape's members, in declaration order.</summary>
-    internal static IEnumerable<KeyValuePair<string, JsonElement>> Members(JsonElement shape) {
-        if (!shape.TryGetProperty("members", out var members) ||
-            members.ValueKind != JsonValueKind.Object) {
+    internal static IEnumerable<KeyValuePair<string, JsonElement>> Members(JsonElement shape)
+    {
+        if (
+            !shape.TryGetProperty("members", out var members)
+            || members.ValueKind != JsonValueKind.Object
+        )
+        {
             yield break;
         }
 
-        foreach (var member in members.EnumerateObject()) {
+        foreach (var member in members.EnumerateObject())
+        {
             yield return new KeyValuePair<string, JsonElement>(member.Name, member.Value);
         }
     }
 
     /// <summary>The targets in a shape's array-valued property - a service's operations, an operation's errors.</summary>
-    internal static IEnumerable<string> TargetList(JsonElement shape, string property) {
-        if (!shape.TryGetProperty(property, out var list) ||
-            list.ValueKind != JsonValueKind.Array) {
+    internal static IEnumerable<string> TargetList(JsonElement shape, string property)
+    {
+        if (!shape.TryGetProperty(property, out var list) || list.ValueKind != JsonValueKind.Array)
+        {
             yield break;
         }
 
-        foreach (var entry in list.EnumerateArray()) {
+        foreach (var entry in list.EnumerateArray())
+        {
             var target = Target(entry);
 
-            if (target != null) {
+            if (target != null)
+            {
                 yield return target;
             }
         }
@@ -187,7 +219,8 @@ internal sealed class SmithyAst {
         shapeId.StartsWith(ns + "#", StringComparison.Ordinal);
 
     /// <summary>The namespace part of a shape id.</summary>
-    internal static string NamespaceOf(string shapeId) {
+    internal static string NamespaceOf(string shapeId)
+    {
         var hash = shapeId.IndexOf('#');
 
         return hash > 0 ? shapeId.Substring(0, hash) : "";

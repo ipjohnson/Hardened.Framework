@@ -12,18 +12,21 @@ namespace Hardened.IntegrationTests.CloudRunTopic.SUT;
 [CloudRunRuntime]
 public partial class CloudRunTopicApp;
 
-public class Order {
+public class Order
+{
     public string Id { get; set; } = "";
 
     public int Quantity { get; set; }
 }
 
 /// <summary>What a topic handler does with an order; injected so each test observes only its own.</summary>
-public interface IOrderStore {
+public interface IOrderStore
+{
     void Place(Order order);
 }
 
-public class OrderHandlers {
+public class OrderHandlers
+{
     /// <summary>
     /// Fan-out rather than a queue: every subscriber sees every message. On Google the message
     /// arrives through an Eventarc trigger on the topic, whose CloudEvent names the topic, which is

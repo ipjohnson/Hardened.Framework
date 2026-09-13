@@ -18,11 +18,12 @@ namespace Hardened.Benchmarks.Startup;
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory(BenchmarkCategories.Startup)]
-public class StartupBenchmarks {
-
+public class StartupBenchmarks
+{
     /// <summary>Service collection populated and provider built, nothing resolved yet.</summary>
     [Benchmark(Baseline = true)]
-    public object BuildProvider() {
+    public object BuildProvider()
+    {
         using var provider = HardenedAppFactory.BuildProvider(terminalHost: true);
 
         return provider;
@@ -30,7 +31,8 @@ public class StartupBenchmarks {
 
     /// <summary>Adds the startup services — the filter registry and CORS populate here.</summary>
     [Benchmark]
-    public object BuildAndStart() {
+    public object BuildAndStart()
+    {
         using var provider = HardenedAppFactory.BuildProvider(terminalHost: true);
 
         HardenedAppFactory.RunStartup(provider);
@@ -40,7 +42,8 @@ public class StartupBenchmarks {
 
     /// <summary>Construction through to a served response, which is what a cold start costs.</summary>
     [Benchmark]
-    public async Task<int> FirstRequest() {
+    public async Task<int> FirstRequest()
+    {
         using var harness = new HardenedNativeHarness();
         using var responseBody = new MemoryStream();
 
@@ -49,7 +52,8 @@ public class StartupBenchmarks {
 
     /// <summary>The same, behind ASP.NET's adapter.</summary>
     [Benchmark]
-    public async Task<int> FirstRequestOnAspNet() {
+    public async Task<int> FirstRequestOnAspNet()
+    {
         using var harness = new HardenedAspNetHarness();
         using var responseBody = new MemoryStream();
 

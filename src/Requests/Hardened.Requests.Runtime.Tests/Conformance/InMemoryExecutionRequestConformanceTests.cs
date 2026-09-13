@@ -11,17 +11,20 @@ namespace Hardened.Requests.Runtime.Tests.Conformance;
 /// test harness. This transport has no wire format of its own - values are supplied
 /// directly - so it acts as the reference implementation the real transports are held to.
 /// </summary>
-public class InMemoryExecutionRequestConformanceTests : ExecutionRequestConformanceTests {
-
+public class InMemoryExecutionRequestConformanceTests : ExecutionRequestConformanceTests
+{
     protected override IExecutionRequestConformanceAdapter Adapter { get; } = new InMemoryAdapter();
 
-    private class InMemoryAdapter : IExecutionRequestConformanceAdapter {
+    private class InMemoryAdapter : IExecutionRequestConformanceAdapter
+    {
         public string TransportName => "In-memory";
 
-        public IExecutionRequest CreateRequest(ConformanceRequestSpec spec) {
+        public IExecutionRequest CreateRequest(ConformanceRequestSpec spec)
+        {
             var headers = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase);
 
-            foreach (var header in spec.Headers) {
+            foreach (var header in spec.Headers)
+            {
                 headers[header.Key] = new StringValues(header.Value);
             }
 
@@ -30,12 +33,14 @@ public class InMemoryExecutionRequestConformanceTests : ExecutionRequestConforma
             spec.Headers.TryGetValue("Accept", out var accept);
 
             var queryString = new SimpleQueryStringCollection(
-                spec.QueryString.ToDictionary(q => q.Key, q => q.Value));
+                spec.QueryString.ToDictionary(q => q.Key, q => q.Value)
+            );
 
-            return new TestExecutionRequest(spec.Method, spec.Path, accept, queryString) {
+            return new TestExecutionRequest(spec.Method, spec.Path, accept, queryString)
+            {
                 Headers = headers,
                 Cookies = spec.Cookies.ToList(),
-                Body = spec.Body is null ? Stream.Null : new MemoryStream(spec.Body)
+                Body = spec.Body is null ? Stream.Null : new MemoryStream(spec.Body),
             };
         }
     }

@@ -15,8 +15,8 @@ namespace Hardened.Web.SourceGenerator.Tests.Routing;
 /// the route table and dispatches on method as well as path.
 /// </para>
 /// </summary>
-public class VerbRoutingTests {
-
+public class VerbRoutingTests
+{
     private const string FiveVerbController = """
         using Hardened.Shared.Runtime.Attributes;
         using Hardened.Web.Runtime.Attributes;
@@ -50,7 +50,8 @@ public class VerbRoutingTests {
     [InlineData("PUT", "PutItem")]
     [InlineData("DELETE", "DeleteItem")]
     [InlineData("PATCH", "PatchItem")]
-    public void EveryVerbRoutesToItsOwnHandler(string method, string expectedHandler) {
+    public void EveryVerbRoutesToItsOwnHandler(string method, string expectedHandler)
+    {
         var routing = GeneratedRoutingTable.For(FiveVerbController);
 
         var handler = routing.Handler(method, "/items/42");
@@ -64,7 +65,8 @@ public class VerbRoutingTests {
     /// emitted first answer all of them.
     /// </summary>
     [Fact]
-    public void TheSamePathUnderDifferentVerbsReachesDifferentHandlers() {
+    public void TheSamePathUnderDifferentVerbsReachesDifferentHandlers()
+    {
         var routing = GeneratedRoutingTable.For(FiveVerbController);
 
         var handlers = new[] { "GET", "POST", "PUT", "DELETE", "PATCH" }
@@ -85,8 +87,10 @@ public class VerbRoutingTests {
     /// here, because another provider may have this path under this verb.
     /// </remarks>
     [Fact]
-    public void AVerbWithNoRouteOnAKnownPathReportsWhatIsAllowed() {
-        var routing = GeneratedRoutingTable.For("""
+    public void AVerbWithNoRouteOnAKnownPathReportsWhatIsAllowed()
+    {
+        var routing = GeneratedRoutingTable.For(
+            """
             using Hardened.Shared.Runtime.Attributes;
             using Hardened.Web.Runtime.Attributes;
 
@@ -99,7 +103,8 @@ public class VerbRoutingTests {
                 [Get("/items/{id}")]
                 public string GetItem(string id) => id;
             }
-            """);
+            """
+        );
 
         Assert.NotNull(routing.Route("GET", "/items/42"));
 
@@ -125,8 +130,10 @@ public class VerbRoutingTests {
     /// from Hardened.Amz rather than from here.
     /// </remarks>
     [Fact]
-    public void AVerbWithNoRouteIsReportedOnAPathWhoseTokensAreNotAllTrailing() {
-        var routing = GeneratedRoutingTable.For("""
+    public void AVerbWithNoRouteIsReportedOnAPathWhoseTokensAreNotAllTrailing()
+    {
+        var routing = GeneratedRoutingTable.For(
+            """
             using Hardened.Shared.Runtime.Attributes;
             using Hardened.Web.Runtime.Attributes;
 
@@ -139,7 +146,8 @@ public class VerbRoutingTests {
                 [Get("/{author}/{name}")]
                 public string GetBook(string author, string name) => author + name;
             }
-            """);
+            """
+        );
 
         Assert.NotNull(routing.Route("GET", "/tolkien/the-hobbit"));
 
@@ -155,10 +163,14 @@ public class VerbRoutingTests {
     /// and the fall-through means it may call HEAD.
     /// </summary>
     [Fact]
-    public void TheAllowedVerbsIncludeTheHeadAGetLeafAnswers() {
+    public void TheAllowedVerbsIncludeTheHeadAGetLeafAnswers()
+    {
         var routing = GeneratedRoutingTable.For(FiveVerbController);
 
-        Assert.Equal("DELETE, GET, HEAD, PATCH, POST, PUT", routing.Route("OPTIONS", "/items/42")!.Allow);
+        Assert.Equal(
+            "DELETE, GET, HEAD, PATCH, POST, PUT",
+            routing.Route("OPTIONS", "/items/42")!.Allow
+        );
     }
 
     /// <summary>
@@ -166,8 +178,10 @@ public class VerbRoutingTests {
     /// so both have to report what they allow.
     /// </summary>
     [Fact]
-    public void ATokenlessRouteAlsoReportsWhatIsAllowed() {
-        var routing = GeneratedRoutingTable.For("""
+    public void ATokenlessRouteAlsoReportsWhatIsAllowed()
+    {
+        var routing = GeneratedRoutingTable.For(
+            """
             using Hardened.Shared.Runtime.Attributes;
             using Hardened.Web.Runtime.Attributes;
 
@@ -180,7 +194,8 @@ public class VerbRoutingTests {
                 [Post("/orders")]
                 public string Create() => "created";
             }
-            """);
+            """
+        );
 
         Assert.Equal("POST", routing.Route("GET", "/orders")!.Allow);
     }
@@ -190,7 +205,8 @@ public class VerbRoutingTests {
     /// "not with that verb" is the whole point of reporting the second.
     /// </summary>
     [Fact]
-    public void AnUnknownPathDoesNotMatch() {
+    public void AnUnknownPathDoesNotMatch()
+    {
         var routing = GeneratedRoutingTable.For(FiveVerbController);
 
         Assert.Null(routing.Route("GET", "/nothing/here"));
@@ -203,7 +219,8 @@ public class VerbRoutingTests {
     /// deliberately case-insensitive.
     /// </summary>
     [Fact]
-    public void TheRequestMethodIsMatchedCaseSensitively() {
+    public void TheRequestMethodIsMatchedCaseSensitively()
+    {
         var routing = GeneratedRoutingTable.For(FiveVerbController);
 
         Assert.NotNull(routing.Handler("GET", "/items/42"));
@@ -215,10 +232,12 @@ public class VerbRoutingTests {
     /// match or a handler binds its parameters from the wrong slot.
     /// </summary>
     [Fact]
-    public void APathTokenBindsItsValueOnEveryVerb() {
+    public void APathTokenBindsItsValueOnEveryVerb()
+    {
         var routing = GeneratedRoutingTable.For(FiveVerbController);
 
-        foreach (var method in new[] { "GET", "POST", "PUT", "DELETE", "PATCH" }) {
+        foreach (var method in new[] { "GET", "POST", "PUT", "DELETE", "PATCH" })
+        {
             var tokens = routing.PathTokens(method, "/items/abc123");
 
             Assert.Equal("abc123", Assert.Contains("id", tokens));
@@ -236,7 +255,8 @@ public class VerbRoutingTests {
     /// </para>
     /// </summary>
     [Fact]
-    public void HeadReachesTheGetHandler() {
+    public void HeadReachesTheGetHandler()
+    {
         var routing = GeneratedRoutingTable.For(FiveVerbController);
 
         var handler = routing.Handler("HEAD", "/items/42");
@@ -249,8 +269,10 @@ public class VerbRoutingTests {
     /// fetched cannot be probed either.
     /// </summary>
     [Fact]
-    public void HeadDoesNotMatchAPathWithNoGetRoute() {
-        var routing = GeneratedRoutingTable.For("""
+    public void HeadDoesNotMatchAPathWithNoGetRoute()
+    {
+        var routing = GeneratedRoutingTable.For(
+            """
             using Hardened.Shared.Runtime.Attributes;
             using Hardened.Web.Runtime.Attributes;
 
@@ -263,7 +285,8 @@ public class VerbRoutingTests {
                 [Post("/items/{id}")]
                 public string PostItem(string id) => id;
             }
-            """);
+            """
+        );
 
         Assert.Null(routing.Route("HEAD", "/items/42")?.Handler);
     }
@@ -274,8 +297,10 @@ public class VerbRoutingTests {
     /// the fall-through has to be in both.
     /// </summary>
     [Fact]
-    public void HeadReachesAGetHandlerOnATokenlessRoute() {
-        var routing = GeneratedRoutingTable.For("""
+    public void HeadReachesAGetHandlerOnATokenlessRoute()
+    {
+        var routing = GeneratedRoutingTable.For(
+            """
             using Hardened.Shared.Runtime.Attributes;
             using Hardened.Web.Runtime.Attributes;
 
@@ -288,7 +313,8 @@ public class VerbRoutingTests {
                 [Get("/orders")]
                 public string List() => "orders";
             }
-            """);
+            """
+        );
 
         Assert.Equal("List", routing.Handler("HEAD", "/orders").InvokeMethod);
     }
@@ -298,7 +324,8 @@ public class VerbRoutingTests {
     /// token has to receive it.
     /// </summary>
     [Fact]
-    public void HeadBindsThePathTokensOfTheGetRoute() {
+    public void HeadBindsThePathTokensOfTheGetRoute()
+    {
         var routing = GeneratedRoutingTable.For(FiveVerbController);
 
         var tokens = routing.PathTokens("HEAD", "/items/abc123");
@@ -311,8 +338,10 @@ public class VerbRoutingTests {
     /// invoke class, and the table has to reach all of them.
     /// </summary>
     [Fact]
-    public void RoutesFromSeparateControllersShareOneRouteTable() {
-        var routing = GeneratedRoutingTable.For("""
+    public void RoutesFromSeparateControllersShareOneRouteTable()
+    {
+        var routing = GeneratedRoutingTable.For(
+            """
             using Hardened.Shared.Runtime.Attributes;
             using Hardened.Web.Runtime.Attributes;
 
@@ -330,7 +359,8 @@ public class VerbRoutingTests {
                 [Get("/customers")]
                 public string List() => "customers";
             }
-            """);
+            """
+        );
 
         Assert.Equal("OrderController", routing.Handler("GET", "/orders").HandlerType.Name);
         Assert.Equal("CustomerController", routing.Handler("GET", "/customers").HandlerType.Name);

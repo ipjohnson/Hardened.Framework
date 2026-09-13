@@ -8,7 +8,8 @@ namespace Hardened.Web.Runtime.Compression;
 /// nullable enum. <see cref="Default"/> means the operation expresses no preference and the
 /// configured order decides.
 /// </remarks>
-public enum CompressionType {
+public enum CompressionType
+{
     /// <summary>Follow the configured preference order.</summary>
     Default = 0,
 
@@ -16,5 +17,5 @@ public enum CompressionType {
     GZip,
 
     /// <summary>Try Brotli first.</summary>
-    Br
+    Br,
 }

@@ -9,19 +9,24 @@ namespace Hardened.Aws.Lambda.Runtime.Tests.Streaming;
 /// invocation it says so rather than handing back a stream that goes nowhere - which is the
 /// reason the seam exists, and why tests substitute it.
 /// </summary>
-public class RuntimeResponseStreamFactoryTests {
-
+public class RuntimeResponseStreamFactoryTests
+{
     [Fact]
-    public void OutsideABootstrapInvocationAPlainStreamCannotBeOpened() {
-        var failure = Assert.Throws<InvalidOperationException>(() => new RuntimeResponseStreamFactory().CreateStream());
+    public void OutsideABootstrapInvocationAPlainStreamCannotBeOpened()
+    {
+        var failure = Assert.Throws<InvalidOperationException>(() =>
+            new RuntimeResponseStreamFactory().CreateStream()
+        );
 
         Assert.Contains("not initialized", failure.Message);
     }
 
     [Fact]
-    public void OutsideABootstrapInvocationAnHttpStreamCannotBeOpened() {
-        var failure = Assert.Throws<InvalidOperationException>(
-            () => new RuntimeResponseStreamFactory().CreateHttpStream(new HttpResponseStreamPrelude()));
+    public void OutsideABootstrapInvocationAnHttpStreamCannotBeOpened()
+    {
+        var failure = Assert.Throws<InvalidOperationException>(() =>
+            new RuntimeResponseStreamFactory().CreateHttpStream(new HttpResponseStreamPrelude())
+        );
 
         Assert.Contains("not initialized", failure.Message);
     }

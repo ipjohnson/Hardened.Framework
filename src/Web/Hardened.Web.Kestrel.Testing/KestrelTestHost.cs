@@ -15,13 +15,21 @@ namespace Hardened.Web.Kestrel.Testing;
 /// from the server after it started rather than computed, so two tests, two classes or two
 /// processes binding at once cannot collide.
 /// </remarks>
-internal sealed class KestrelTestHost : SocketHost {
+internal sealed class KestrelTestHost : SocketHost
+{
     private KestrelServerRunner? _runner;
 
     public override bool IsTerminal => true;
 
-    protected override async Task<Uri> Listen(IServiceProvider provider, CancellationToken cancellationToken) {
-        _runner = new KestrelServerRunner(provider, kestrel => kestrel.Listen(IPAddress.Loopback, 0));
+    protected override async Task<Uri> Listen(
+        IServiceProvider provider,
+        CancellationToken cancellationToken
+    )
+    {
+        _runner = new KestrelServerRunner(
+            provider,
+            kestrel => kestrel.Listen(IPAddress.Loopback, 0)
+        );
 
         await _runner.StartAsync(cancellationToken);
 
@@ -33,8 +41,10 @@ internal sealed class KestrelTestHost : SocketHost {
     /// which stops with <c>CancellationToken.None</c> and would wait on a hung handler for ever.
     /// Kestrel closes what is idle at once and aborts what is still running when the bound fires.
     /// </remarks>
-    protected override async Task StopAsync(CancellationToken bounded) {
-        if (_runner == null) {
+    protected override async Task StopAsync(CancellationToken bounded)
+    {
+        if (_runner == null)
+        {
             return;
         }
 

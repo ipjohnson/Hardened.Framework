@@ -49,8 +49,8 @@ namespace Hardened.Requests.Abstract.Timeouts;
 /// adjustment while a request is in flight. It is meaningful only on the machine that issued it.
 /// </para>
 /// </remarks>
-public interface IRequestDeadline {
-
+public interface IRequestDeadline
+{
     /// <summary>
     /// When this request's budget runs out, or null when nothing bounds it.
     /// </summary>

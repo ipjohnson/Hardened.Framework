@@ -19,8 +19,8 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests;
 /// while breaking every consumer.
 /// </para>
 /// </remarks>
-public class RequestTelemetryTests {
-
+public class RequestTelemetryTests
+{
     /// <summary>
     /// Runs one request and returns the span it produced.
     /// </summary>
@@ -31,17 +31,22 @@ public class RequestTelemetryTests {
     /// afterwards is what keeps a shared collection from being written while it is read — which is
     /// exactly how the first version of this file failed.
     /// </remarks>
-    private static async Task<Activity> SpanFor(ITestWebApp testWebApp, string path) {
+    private static async Task<Activity> SpanFor(ITestWebApp testWebApp, string path)
+    {
         Activity? captured = null;
 
-        using var listener = new ActivityListener {
+        using var listener = new ActivityListener
+        {
             ShouldListenTo = source => source.Name == "Hardened.Requests",
-            Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData,
-            ActivityStopped = span => {
-                if ((string?)span.GetTagItem("url.path") == path) {
+            Sample = (ref ActivityCreationOptions<ActivityContext> _) =>
+                ActivitySamplingResult.AllData,
+            ActivityStopped = span =>
+            {
+                if ((string?)span.GetTagItem("url.path") == path)
+                {
                     captured = span;
                 }
-            }
+            },
         };
 
         ActivitySource.AddActivityListener(listener);
@@ -54,7 +59,8 @@ public class RequestTelemetryTests {
     }
 
     [HardenedTest]
-    public async Task ARequestProducesOneServerSpanCarryingItsRouteTemplate(ITestWebApp testWebApp) {
+    public async Task ARequestProducesOneServerSpanCarryingItsRouteTemplate(ITestWebApp testWebApp)
+    {
         var span = await SpanFor(testWebApp, "/binding/path/telemetry-probe");
 
         Assert.Equal(ActivityKind.Server, span.Kind);
@@ -80,7 +86,8 @@ public class RequestTelemetryTests {
     /// the cardinality explosion the conventions exist to prevent.
     /// </summary>
     [HardenedTest]
-    public async Task AnUnmatchedRequestGetsASpanWithNoRoute(ITestWebApp testWebApp) {
+    public async Task AnUnmatchedRequestGetsASpanWithNoRoute(ITestWebApp testWebApp)
+    {
         var span = await SpanFor(testWebApp, "/telemetry-probe-no-such-route");
 
         Assert.Null(span.GetTagItem("http.route"));

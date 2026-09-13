@@ -20,8 +20,10 @@ namespace Hardened.Web.Runtime.Attributes;
 /// </para>
 /// </summary>
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
-public class OperationAttribute : Attribute {
-    public OperationAttribute(string id) {
+public class OperationAttribute : Attribute
+{
+    public OperationAttribute(string id)
+    {
         Id = id;
     }
 

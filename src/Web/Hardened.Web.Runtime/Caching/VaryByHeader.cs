@@ -2,8 +2,8 @@ using System.Text;
 using Hardened.Requests.Abstract.Caching;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
-using Microsoft.Extensions.Primitives;
 using Hardened.Web.Runtime.Headers;
+using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Web.Runtime.Caching;
 
@@ -29,44 +29,55 @@ namespace Hardened.Web.Runtime.Caching;
 /// hit and a name that reads as though it might.
 /// </para>
 /// </remarks>
-public sealed class VaryByHeader : ICacheKeyProvider {
-
+public sealed class VaryByHeader : ICacheKeyProvider
+{
     private readonly string[] _names;
 
-    private VaryByHeader(string[] names) {
+    private VaryByHeader(string[] names)
+    {
         _names = names;
     }
 
-    public static ICacheKeyProvider Create(string[] values) {
-        if (values.Length == 0) {
+    public static ICacheKeyProvider Create(string[] values)
+    {
+        if (values.Length == 0)
+        {
             throw new ArgumentException(
-                "VaryByHeader needs at least one header name to vary on.", nameof(values));
+                "VaryByHeader needs at least one header name to vary on.",
+                nameof(values)
+            );
         }
 
-        foreach (var name in values) {
-            if (string.Equals(name, KnownHeaders.Cookie, StringComparison.OrdinalIgnoreCase)) {
+        foreach (var name in values)
+        {
+            if (string.Equals(name, KnownHeaders.Cookie, StringComparison.OrdinalIgnoreCase))
+            {
                 throw new ArgumentException(
-                    "VaryByHeader will not vary on Cookie. A response keyed on a session has one " +
-                    "caller, so the entry is never hit. Write a key provider over the claim that " +
-                    "actually varies the answer.",
-                    nameof(values));
+                    "VaryByHeader will not vary on Cookie. A response keyed on a session has one "
+                        + "caller, so the entry is never hit. Write a key provider over the claim that "
+                        + "actually varies the answer.",
+                    nameof(values)
+                );
             }
         }
 
         return new VaryByHeader(values);
     }
 
-    public ValueTask<string?> Key(IExecutionContext context) {
+    public ValueTask<string?> Key(IExecutionContext context)
+    {
         // Merged rather than assigned, so a Vary the CORS filter already wrote survives and the
         // one the compression filter adds later joins it.
-        foreach (var name in _names) {
+        foreach (var name in _names)
+        {
             VaryHeader.Add(context.Response.Headers, name);
         }
 
         var key = new StringBuilder();
         var headers = context.Request.Headers;
 
-        foreach (var name in _names) {
+        foreach (var name in _names)
+        {
             // The name as well as the value. Without it, two headers whose values concatenate the
             // same way compose one key.
             key.Append(name).Append('=').Append(Read(headers, name).ToString()).Append('&');
@@ -85,13 +96,17 @@ public sealed class VaryByHeader : ICacheKeyProvider {
     /// it in a different case is one entry per casing, which is worse than a scan of a collection
     /// this small.
     /// </remarks>
-    private static StringValues Read(IDictionary<string, StringValues> headers, string name) {
-        if (headers.TryGetValue(name, out var value)) {
+    private static StringValues Read(IDictionary<string, StringValues> headers, string name)
+    {
+        if (headers.TryGetValue(name, out var value))
+        {
             return value;
         }
 
-        foreach (var header in headers) {
-            if (string.Equals(header.Key, name, StringComparison.OrdinalIgnoreCase)) {
+        foreach (var header in headers)
+        {
+            if (string.Equals(header.Key, name, StringComparison.OrdinalIgnoreCase))
+            {
                 return header.Value;
             }
         }

@@ -11,16 +11,20 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 /// the query-string tests. What these assert is the parts where the two genuinely differ, and the
 /// parts where the body being a stream matters.
 /// </remarks>
-public class FormBindingTests {
-
+public class FormBindingTests
+{
     private static Action<TestWebRequest> AsForm =>
-        request => request.Headers[KnownHeaders.ContentType] =
-            KnownContentType.FormUrlEncodedStringValues;
+        request =>
+            request.Headers[KnownHeaders.ContentType] = KnownContentType.FormUrlEncodedStringValues;
 
     [HardenedTest]
-    public async Task FieldsBindToParameters(ITestWebApp testWebApp) {
+    public async Task FieldsBindToParameters(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Post(
-            "username=ada&password=hunter2", "/form/sign-in", AsForm);
+            "username=ada&password=hunter2",
+            "/form/sign-in",
+            AsForm
+        );
 
         response.Assert.Ok();
         Assert.Equal("ada:hunter2", response.Deserialize<string>());
@@ -35,9 +39,13 @@ public class FormBindingTests {
     /// sends as <c>Ada Lovelace</c>. Silently, on every form post.
     /// </remarks>
     [HardenedTest]
-    public async Task APlusIsASpace(ITestWebApp testWebApp) {
+    public async Task APlusIsASpace(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Post(
-            "username=Ada+Lovelace&password=x", "/form/sign-in", AsForm);
+            "username=Ada+Lovelace&password=x",
+            "/form/sign-in",
+            AsForm
+        );
 
         response.Assert.Ok();
         Assert.Equal("Ada Lovelace:x", response.Deserialize<string>());
@@ -51,18 +59,22 @@ public class FormBindingTests {
     /// space, which is the one case escaping it exists to prevent.
     /// </remarks>
     [HardenedTest]
-    public async Task AnEscapedPlusStaysAPlus(ITestWebApp testWebApp) {
-        var response = await testWebApp.Post(
-            "username=a%2Bb&password=x", "/form/sign-in", AsForm);
+    public async Task AnEscapedPlusStaysAPlus(ITestWebApp testWebApp)
+    {
+        var response = await testWebApp.Post("username=a%2Bb&password=x", "/form/sign-in", AsForm);
 
         response.Assert.Ok();
         Assert.Equal("a+b:x", response.Deserialize<string>());
     }
 
     [HardenedTest]
-    public async Task PercentEncodingIsDecoded(ITestWebApp testWebApp) {
+    public async Task PercentEncodingIsDecoded(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Post(
-            "username=ada%40example.com&password=x", "/form/sign-in", AsForm);
+            "username=ada%40example.com&password=x",
+            "/form/sign-in",
+            AsForm
+        );
 
         response.Assert.Ok();
         Assert.Equal("ada@example.com:x", response.Deserialize<string>());
@@ -70,7 +82,8 @@ public class FormBindingTests {
 
     /// <summary>A field is converted the same way a query value is.</summary>
     [HardenedTest]
-    public async Task AFieldConvertsToTheParameterType(ITestWebApp testWebApp) {
+    public async Task AFieldConvertsToTheParameterType(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Post("count=21", "/form/quantity", AsForm);
 
         response.Assert.Ok();
@@ -79,7 +92,8 @@ public class FormBindingTests {
 
     /// <summary>The wire name and the parameter name can differ.</summary>
     [HardenedTest]
-    public async Task AFieldCanBeRenamed(ITestWebApp testWebApp) {
+    public async Task AFieldCanBeRenamed(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Post("user_name=ada", "/form/renamed", AsForm);
 
         response.Assert.Ok();
@@ -87,7 +101,8 @@ public class FormBindingTests {
     }
 
     [HardenedTest]
-    public async Task AnAbsentFieldTakesItsDefault(ITestWebApp testWebApp) {
+    public async Task AnAbsentFieldTakesItsDefault(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Post("present=here", "/form/optional", AsForm);
 
         response.Assert.Ok();
@@ -104,7 +119,8 @@ public class FormBindingTests {
     /// <c>EmptyFormCollection</c> rather than a null collection.
     /// </remarks>
     [HardenedTest]
-    public async Task AJsonBodyOnAFormHandlerBindsAnEmptyForm(ITestWebApp testWebApp) {
+    public async Task AJsonBodyOnAFormHandlerBindsAnEmptyForm(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Post(new { present = "ignored" }, "/form/optional");
 
         response.Assert.BadRequest();

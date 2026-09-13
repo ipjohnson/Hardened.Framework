@@ -1,6 +1,6 @@
 using Hardened.Azure.Functions.Runtime.Hosting;
-using Hardened.IntegrationTests.AzureQueue.SUT;
 using Hardened.IntegrationTests.AzureQueue.Settlement.SUT;
+using Hardened.IntegrationTests.AzureQueue.SUT;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 

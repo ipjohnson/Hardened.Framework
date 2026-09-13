@@ -14,10 +14,15 @@ namespace Hardened.OpenApi.SourceGenerator.Tests;
 /// fields rather than their own, because a schema is an object or an array and never both, so the
 /// two pairs cannot apply to one property.
 /// </remarks>
-public class PropertyCountTests {
-
-    private static PropertyModel Property(string name) {
-        var model = OpenApiSpecParser.Parse(Specs.PropertyCountBounds, "test", CancellationToken.None);
+public class PropertyCountTests
+{
+    private static PropertyModel Property(string name)
+    {
+        var model = OpenApiSpecParser.Parse(
+            Specs.PropertyCountBounds,
+            "test",
+            CancellationToken.None
+        );
 
         Assert.NotNull(model);
 
@@ -25,7 +30,8 @@ public class PropertyCountTests {
     }
 
     [Fact]
-    public void PropertyCountBoundsAreRead() {
+    public void PropertyCountBoundsAreRead()
+    {
         var labels = Property("labels");
 
         Assert.True(labels.IsDictionary);
@@ -35,7 +41,8 @@ public class PropertyCountTests {
 
     /// <summary>An array's own bounds are unaffected.</summary>
     [Fact]
-    public void ArrayBoundsStillWork() {
+    public void ArrayBoundsStillWork()
+    {
         var tags = Property("tags");
 
         Assert.True(tags.IsArray);
@@ -48,8 +55,11 @@ public class PropertyCountTests {
     /// enforces them.
     /// </summary>
     [Fact]
-    public void TheBoundsBecomeAnItemCountConstraint() {
-        var generated = OpenApiGenerator.Run(Specs.PropertyCountBounds).AssertNoErrors()
+    public void TheBoundsBecomeAnItemCountConstraint()
+    {
+        var generated = OpenApiGenerator
+            .Run(Specs.PropertyCountBounds)
+            .AssertNoErrors()
             .SourceContaining("petstore.g.cs");
 
         var record = generated.Split('\n').First(l => l.Contains("record Thing("));
@@ -63,9 +73,13 @@ public class PropertyCountTests {
     /// declared.
     /// </summary>
     [Fact]
-    public void AConstrainedDictionaryProducesAValidator() {
+    public void AConstrainedDictionaryProducesAValidator()
+    {
         var result = OpenApiGenerator.Run(Specs.PropertyCountBounds).AssertNoErrors();
 
-        Assert.Contains("ValidateAttribute<", result.SourceContaining("ThingController_CreateThing"));
+        Assert.Contains(
+            "ValidateAttribute<",
+            result.SourceContaining("ThingController_CreateThing")
+        );
     }
 }

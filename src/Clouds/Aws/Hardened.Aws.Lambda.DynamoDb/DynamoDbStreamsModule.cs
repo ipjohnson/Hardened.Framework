@@ -27,7 +27,8 @@ namespace Hardened.Aws.Lambda.DynamoDb;
 /// </remarks>
 [DependencyModule]
 [LambdaRuntimeModule]
-public partial class DynamoDbStreamsModule : IServiceCollectionConfiguration {
+public partial class DynamoDbStreamsModule : IServiceCollectionConfiguration
+{
     /// <summary>
     /// Whether the event source mapping was deployed with <c>ReportBatchItemFailures</c>.
     /// </summary>
@@ -38,9 +39,11 @@ public partial class DynamoDbStreamsModule : IServiceCollectionConfiguration {
     /// </remarks>
     public bool? ReportBatchItemFailures { get; set; }
 
-    public void ConfigureServices(IServiceCollection services) {
+    public void ConfigureServices(IServiceCollection services)
+    {
         services.AddSingleton<IPayloadAdapter>(
-            new DynamoDbAdapter(ReportBatchItemFailures ?? false));
+            new DynamoDbAdapter(ReportBatchItemFailures ?? false)
+        );
 
         services.AddBatchExecutionFilter();
     }

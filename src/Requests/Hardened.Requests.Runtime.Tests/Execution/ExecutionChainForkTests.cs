@@ -19,26 +19,30 @@ namespace Hardened.Requests.Runtime.Tests.Execution;
 /// context the caller supplies. The two chains must not interfere.
 /// </para>
 /// </summary>
-public class ExecutionChainForkTests {
-
+public class ExecutionChainForkTests
+{
     /// <summary>
     /// The fork picks up where the forking filter is, so filters that already ran are not
     /// replayed. Re-running them would double any side effect they had - a metrics filter
     /// would record the request twice.
     /// </summary>
     [Fact]
-    public async Task AForkResumesAtTheForkingFiltersPositionRatherThanTheStart() {
+    public async Task AForkResumesAtTheForkingFiltersPositionRatherThanTheStart()
+    {
         var log = new List<string>();
         var context = Pipeline.Context();
 
-        var chain = Pipeline.Chain(context,
+        var chain = Pipeline.Chain(
+            context,
             new Pipeline.Recording(log, "first"),
-            new Pipeline.Inline(async c => {
+            new Pipeline.Inline(async c =>
+            {
                 log.Add("forking");
                 await c.Fork(c.Context).Next();
                 await c.Next();
             }),
-            new Pipeline.Recording(log, "downstream"));
+            new Pipeline.Recording(log, "downstream")
+        );
 
         await chain.Next();
 
@@ -52,21 +56,27 @@ public class ExecutionChainForkTests {
     [InlineData(1)]
     [InlineData(2)]
     [InlineData(10)]
-    public async Task EachForkRunsTheRemainderOfTheChainAgain(int forks) {
+    public async Task EachForkRunsTheRemainderOfTheChainAgain(int forks)
+    {
         var runs = 0;
         var context = Pipeline.Context();
 
-        var chain = Pipeline.Chain(context,
-            new Pipeline.Inline(async c => {
-                for (var i = 0; i < forks; i++) {
+        var chain = Pipeline.Chain(
+            context,
+            new Pipeline.Inline(async c =>
+            {
+                for (var i = 0; i < forks; i++)
+                {
                     await c.Fork(c.Context).Next();
                 }
             }),
-            new Pipeline.Inline(_ => {
+            new Pipeline.Inline(_ =>
+            {
                 runs++;
 
                 return Task.CompletedTask;
-            }));
+            })
+        );
 
         await chain.Next();
 
@@ -78,12 +88,15 @@ public class ExecutionChainForkTests {
     /// forked and then called <c>Next</c> would skip its own successor.
     /// </summary>
     [Fact]
-    public async Task AdvancingAForkDoesNotAdvanceTheOriginalChain() {
+    public async Task AdvancingAForkDoesNotAdvanceTheOriginalChain()
+    {
         var log = new List<string>();
         var context = Pipeline.Context();
 
-        var chain = Pipeline.Chain(context,
-            new Pipeline.Inline(async c => {
+        var chain = Pipeline.Chain(
+            context,
+            new Pipeline.Inline(async c =>
+            {
                 var fork = c.Fork(c.Context);
 
                 await fork.Next();
@@ -93,7 +106,8 @@ public class ExecutionChainForkTests {
 
                 await c.Next();
             }),
-            new Pipeline.Recording(log, "tail"));
+            new Pipeline.Recording(log, "tail")
+        );
 
         await chain.Next();
 
@@ -105,23 +119,28 @@ public class ExecutionChainForkTests {
     /// use passes a cloned context precisely so the second run writes somewhere else.
     /// </summary>
     [Fact]
-    public async Task AForkCarriesTheSuppliedContextRatherThanTheOriginalOne() {
+    public async Task AForkCarriesTheSuppliedContextRatherThanTheOriginalOne()
+    {
         var original = Pipeline.Context(path: "/original");
         var replacement = original.Clone(request: original.Request.Clone(path: "/replacement"));
 
         var seen = new List<string>();
 
-        var chain = Pipeline.Chain(original,
-            new Pipeline.Inline(async c => {
+        var chain = Pipeline.Chain(
+            original,
+            new Pipeline.Inline(async c =>
+            {
                 seen.Add(c.Context.Request.Path);
 
                 await c.Fork(replacement).Next();
             }),
-            new Pipeline.Inline(c => {
+            new Pipeline.Inline(c =>
+            {
                 seen.Add(c.Context.Request.Path);
 
                 return Task.CompletedTask;
-            }));
+            })
+        );
 
         await chain.Next();
 
@@ -133,7 +152,8 @@ public class ExecutionChainForkTests {
     /// leave the status behind on the response the caller is going to send.
     /// </summary>
     [Fact]
-    public async Task WritingToAForksClonedResponseLeavesTheOriginalResponseAlone() {
+    public async Task WritingToAForksClonedResponseLeavesTheOriginalResponseAlone()
+    {
         var original = Pipeline.Context();
         original.Response.Status = 200;
         original.Response.ResponseValue = "original";
@@ -141,14 +161,17 @@ public class ExecutionChainForkTests {
         var forkResponse = new TestExecutionResponse(new MemoryStream());
         var forkContext = original.Clone(response: forkResponse);
 
-        var chain = Pipeline.Chain(original,
+        var chain = Pipeline.Chain(
+            original,
             new Pipeline.Inline(c => c.Fork(forkContext).Next()),
-            new Pipeline.Inline(c => {
+            new Pipeline.Inline(c =>
+            {
                 c.Context.Response.Status = 404;
                 c.Context.Response.ResponseValue = "fork";
 
                 return Task.CompletedTask;
-            }));
+            })
+        );
 
         await chain.Next();
 
@@ -163,19 +186,24 @@ public class ExecutionChainForkTests {
     /// one, and the original request has to survive it.
     /// </summary>
     [Fact]
-    public async Task AForksClonedRequestDoesNotMutateTheOriginalRequest() {
+    public async Task AForksClonedRequestDoesNotMutateTheOriginalRequest()
+    {
         var original = Pipeline.Context(method: "GET", path: "/orders");
 
         var forkContext = original.Clone(
-            request: original.Request.Clone(method: "POST", path: "/orders/audit"));
+            request: original.Request.Clone(method: "POST", path: "/orders/audit")
+        );
 
-        var chain = Pipeline.Chain(original,
+        var chain = Pipeline.Chain(
+            original,
             new Pipeline.Inline(c => c.Fork(forkContext).Next()),
-            new Pipeline.Inline(c => {
+            new Pipeline.Inline(c =>
+            {
                 c.Context.Request.Body = new MemoryStream("fork wrote here"u8.ToArray());
 
                 return Task.CompletedTask;
-            }));
+            })
+        );
 
         await chain.Next();
 
@@ -189,23 +217,29 @@ public class ExecutionChainForkTests {
     /// other's, which is what makes a fan-out over one request safe.
     /// </summary>
     [Fact]
-    public async Task SiblingForksDoNotSeeEachOthersResponses() {
+    public async Task SiblingForksDoNotSeeEachOthersResponses()
+    {
         var original = Pipeline.Context();
 
         var first = new TestExecutionResponse(new MemoryStream());
         var second = new TestExecutionResponse(new MemoryStream());
 
-        var chain = Pipeline.Chain(original,
-            new Pipeline.Inline(async c => {
+        var chain = Pipeline.Chain(
+            original,
+            new Pipeline.Inline(async c =>
+            {
                 await c.Fork(original.Clone(response: first)).Next();
                 await c.Fork(original.Clone(response: second)).Next();
             }),
-            new Pipeline.Inline(async c => {
+            new Pipeline.Inline(async c =>
+            {
                 var payload = Encoding.UTF8.GetBytes(
-                    ReferenceEquals(c.Context.Response, first) ? "first" : "second");
+                    ReferenceEquals(c.Context.Response, first) ? "first" : "second"
+                );
 
                 await c.Context.Response.Body.WriteAsync(payload);
-            }));
+            })
+        );
 
         await chain.Next();
 
@@ -218,20 +252,25 @@ public class ExecutionChainForkTests {
     /// so a nested re-invocation does not restart the enclosing one.
     /// </summary>
     [Fact]
-    public async Task ANestedForkResumesFromTheInnerForksPosition() {
+    public async Task ANestedForkResumesFromTheInnerForksPosition()
+    {
         var log = new List<string>();
         var context = Pipeline.Context();
 
-        var chain = Pipeline.Chain(context,
+        var chain = Pipeline.Chain(
+            context,
             new Pipeline.Inline(c => c.Fork(c.Context).Next()),
-            new Pipeline.Inline(async c => {
+            new Pipeline.Inline(async c =>
+            {
                 log.Add("middle");
 
-                if (log.Count(entry => entry == "middle") == 1) {
+                if (log.Count(entry => entry == "middle") == 1)
+                {
                     await c.Fork(c.Context).Next();
                 }
             }),
-            new Pipeline.Recording(log, "innermost"));
+            new Pipeline.Recording(log, "innermost")
+        );
 
         await chain.Next();
 
@@ -243,7 +282,8 @@ public class ExecutionChainForkTests {
     /// yields a chain with nothing left to do rather than one that replays the pipeline.
     /// </summary>
     [Fact]
-    public async Task ForkingAnExhaustedChainYieldsAChainWithNothingLeftToRun() {
+    public async Task ForkingAnExhaustedChainYieldsAChainWithNothingLeftToRun()
+    {
         var log = new List<string>();
         var context = Pipeline.Context();
 
@@ -267,7 +307,8 @@ public class ExecutionChainForkTests {
     /// index error. Transports call <c>Next</c> on chains they did not build.
     /// </summary>
     [Fact]
-    public async Task AnEmptyChainIsAlreadyOnItsLastFilter() {
+    public async Task AnEmptyChainIsAlreadyOnItsLastFilter()
+    {
         var chain = Pipeline.Chain(Pipeline.Context());
 
         Assert.True(chain.IsLastFilter);
@@ -282,21 +323,26 @@ public class ExecutionChainForkTests {
     /// streaming transports read it to decide whether they still own the response body.
     /// </summary>
     [Fact]
-    public async Task IsLastFilterBecomesTrueOnlyOnceTheFinalFilterHasBeenHandedOut() {
+    public async Task IsLastFilterBecomesTrueOnlyOnceTheFinalFilterHasBeenHandedOut()
+    {
         var context = Pipeline.Context();
         var observed = new List<bool>();
 
-        var chain = Pipeline.Chain(context,
-            new Pipeline.Inline(c => {
+        var chain = Pipeline.Chain(
+            context,
+            new Pipeline.Inline(c =>
+            {
                 observed.Add(c.IsLastFilter);
 
                 return c.Next();
             }),
-            new Pipeline.Inline(c => {
+            new Pipeline.Inline(c =>
+            {
                 observed.Add(c.IsLastFilter);
 
                 return c.Next();
-            }));
+            })
+        );
 
         await chain.Next();
 
@@ -309,7 +355,8 @@ public class ExecutionChainForkTests {
     /// scope depends on it.
     /// </summary>
     [Fact]
-    public async Task AForkedContextKeepsAReplacedServiceProvider() {
+    public async Task AForkedContextKeepsAReplacedServiceProvider()
+    {
         var original = Pipeline.Context();
 
         var replacementServices = Pipeline.Context().RequestServices;
@@ -317,13 +364,16 @@ public class ExecutionChainForkTests {
 
         IServiceProvider? seen = null;
 
-        var chain = Pipeline.Chain(original,
+        var chain = Pipeline.Chain(
+            original,
             new Pipeline.Inline(c => c.Fork(forkContext).Next()),
-            new Pipeline.Inline(c => {
+            new Pipeline.Inline(c =>
+            {
                 seen = c.Context.RequestServices;
 
                 return Task.CompletedTask;
-            }));
+            })
+        );
 
         await chain.Next();
 
@@ -336,11 +386,16 @@ public class ExecutionChainForkTests {
     /// so a re-invocation does not have to deserialize the body a second time.
     /// </summary>
     [Fact]
-    public void ACloneCarriesTheBoundParametersForward() {
+    public void ACloneCarriesTheBoundParametersForward()
+    {
         IExecutionRequest request = new TestExecutionRequest(
-            "POST", "/orders", "application/json",
-            new SimpleQueryStringCollection(new Dictionary<string, string>())) {
-            Parameters = EmptyParameters.Instance
+            "POST",
+            "/orders",
+            "application/json",
+            new SimpleQueryStringCollection(new Dictionary<string, string>())
+        )
+        {
+            Parameters = EmptyParameters.Instance,
         };
 
         var clone = request.Clone(path: "/orders/audit");

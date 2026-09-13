@@ -13,10 +13,12 @@ namespace Hardened.IntegrationTests.AzureEvents.Host.Tests;
 /// same trait: these need Docker and four pulled images, and fail rather than skip without them.
 /// </remarks>
 [Trait("Category", "Simulator")]
-public sealed class HostImageTests : IClassFixture<HostImageTests.FunctionApp> {
+public sealed class HostImageTests : IClassFixture<HostImageTests.FunctionApp>
+{
     private readonly FunctionApp _app;
 
-    public HostImageTests(FunctionApp app) {
+    public HostImageTests(FunctionApp app)
+    {
         _app = app;
     }
 
@@ -25,9 +27,12 @@ public sealed class HostImageTests : IClassFixture<HostImageTests.FunctionApp> {
     /// Event Grid function no emulator drives and the timer whose schedule is an app setting.
     /// </summary>
     [Fact]
-    public async Task TheHostIndexesEveryFunctionTheProviderDeclares() {
+    public async Task TheHostIndexesEveryFunctionTheProviderDeclares()
+    {
         var log = await _app.Simulator.HostLogContaining(
-            "Found the following functions:", cancellationToken: TestContext.Current.CancellationToken);
+            "Found the following functions:",
+            cancellationToken: TestContext.Current.CancellationToken
+        );
 
         const string prefix = "Host.Functions.";
 
@@ -36,13 +41,22 @@ public sealed class HostImageTests : IClassFixture<HostImageTests.FunctionApp> {
         var indexed = log.Split('\n')
             .Select(line => line.TrimEnd('\r'))
             .Where(line => line.Contains(prefix, StringComparison.Ordinal))
-            .Select(line => line.Substring(line.IndexOf(prefix, StringComparison.Ordinal) + prefix.Length).Trim())
-            .Where(name => name.Length > 0 && name.All(character => char.IsLetterOrDigit(character) || character == '_'))
+            .Select(line =>
+                line.Substring(line.IndexOf(prefix, StringComparison.Ordinal) + prefix.Length)
+                    .Trim()
+            )
+            .Where(name =>
+                name.Length > 0
+                && name.All(character => char.IsLetterOrDigit(character) || character == '_')
+            )
             .Distinct()
             .Order(StringComparer.Ordinal)
             .ToArray();
 
-        Assert.Equal(["Event", "Queue_orders_new", "Timer_nightly_rollup", "Topic_order_events"], indexed);
+        Assert.Equal(
+            ["Event", "Queue_orders_new", "Timer_nightly_rollup", "Topic_order_events"],
+            indexed
+        );
     }
 
     /// <summary>
@@ -53,57 +67,73 @@ public sealed class HostImageTests : IClassFixture<HostImageTests.FunctionApp> {
     /// output.
     /// </summary>
     [Fact]
-    public async Task AMessagePublishedToTheTopicReachesTheTopicHandler() {
+    public async Task AMessagePublishedToTheTopicReachesTheTopicHandler()
+    {
         await _app.Publish(EventsHostSimulator.Topic, """{"id":"host-t-1","quantity":2}""");
 
         var observed = await _app.Simulator.Observed.WaitFor(
-            one => one.Has("id", "host-t-1"), cancellationToken: TestContext.Current.CancellationToken);
+            one => one.Has("id", "host-t-1"),
+            cancellationToken: TestContext.Current.CancellationToken
+        );
 
         Assert.Equal("topic", observed.Get("kind"));
 
         await _app.Simulator.HostLogContaining(
-            "Executed 'Functions.Topic_order_events' (Succeeded", cancellationToken: TestContext.Current.CancellationToken);
+            "Executed 'Functions.Topic_order_events' (Succeeded",
+            cancellationToken: TestContext.Current.CancellationToken
+        );
     }
 
     /// <summary>
     /// The queue beside the topic, in the same function app, routing to its own handler.
     /// </summary>
     [Fact]
-    public async Task AMessagePublishedToTheQueueReachesTheQueueHandler() {
+    public async Task AMessagePublishedToTheQueueReachesTheQueueHandler()
+    {
         await _app.Publish(EventsHostSimulator.Queue, """{"id":"host-q-1","quantity":1}""");
 
         var observed = await _app.Simulator.Observed.WaitFor(
-            one => one.Has("id", "host-q-1"), cancellationToken: TestContext.Current.CancellationToken);
+            one => one.Has("id", "host-q-1"),
+            cancellationToken: TestContext.Current.CancellationToken
+        );
 
         Assert.Equal("queue", observed.Get("kind"));
 
         await _app.Simulator.HostLogContaining(
-            "Executed 'Functions.Queue_orders_new' (Succeeded", cancellationToken: TestContext.Current.CancellationToken);
+            "Executed 'Functions.Queue_orders_new' (Succeeded",
+            cancellationToken: TestContext.Current.CancellationToken
+        );
     }
 
-    public sealed class FunctionApp : IAsyncLifetime {
-        public EventsHostSimulator Simulator { get; } = new(
-            ApplicationOutput.Of("Hardened.IntegrationTests.AzureEvents.SUT"));
+    public sealed class FunctionApp : IAsyncLifetime
+    {
+        public EventsHostSimulator Simulator { get; } =
+            new(ApplicationOutput.Of("Hardened.IntegrationTests.AzureEvents.SUT"));
 
         private ServiceBusClient? _client;
 
-        public async ValueTask InitializeAsync() {
+        public async ValueTask InitializeAsync()
+        {
             await Simulator.StartAsync(TestContext.Current.CancellationToken);
 
             _client = new ServiceBusClient(Simulator.PublisherConnectionString);
         }
 
         /// <summary>Publishes one JSON message to a queue or a topic, as an application would.</summary>
-        public async Task Publish(string entity, string body) {
+        public async Task Publish(string entity, string body)
+        {
             await using var sender = _client!.CreateSender(entity);
 
             await sender.SendMessageAsync(
                 new ServiceBusMessage(body) { ContentType = "application/json" },
-                TestContext.Current.CancellationToken);
+                TestContext.Current.CancellationToken
+            );
         }
 
-        public async ValueTask DisposeAsync() {
-            if (_client != null) {
+        public async ValueTask DisposeAsync()
+        {
+            if (_client != null)
+            {
                 await _client.DisposeAsync();
             }
 

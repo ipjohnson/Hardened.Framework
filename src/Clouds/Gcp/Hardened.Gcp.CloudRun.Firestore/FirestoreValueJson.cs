@@ -22,12 +22,15 @@ namespace Hardened.Gcp.CloudRun.Firestore;
 /// the handler's own type would bind.
 /// </para>
 /// </remarks>
-public static class FirestoreValueJson {
+public static class FirestoreValueJson
+{
     /// <summary>The document's fields as one JSON object; an empty object for no document.</summary>
-    public static Stream Body(Document? document) {
+    public static Stream Body(Document? document)
+    {
         var body = new MemoryStream();
 
-        using (var writer = new Utf8JsonWriter(body)) {
+        using (var writer = new Utf8JsonWriter(body))
+        {
             WriteFields(writer, document?.Fields);
         }
 
@@ -36,11 +39,14 @@ public static class FirestoreValueJson {
         return body;
     }
 
-    public static void WriteFields(Utf8JsonWriter writer, MapField<string, Value>? fields) {
+    public static void WriteFields(Utf8JsonWriter writer, MapField<string, Value>? fields)
+    {
         writer.WriteStartObject();
 
-        if (fields != null) {
-            foreach (var pair in fields) {
+        if (fields != null)
+        {
+            foreach (var pair in fields)
+            {
                 writer.WritePropertyName(pair.Key);
                 WriteValue(writer, pair.Value);
             }
@@ -49,14 +55,17 @@ public static class FirestoreValueJson {
         writer.WriteEndObject();
     }
 
-    public static void WriteValue(Utf8JsonWriter writer, Value? value) {
-        if (value == null) {
+    public static void WriteValue(Utf8JsonWriter writer, Value? value)
+    {
+        if (value == null)
+        {
             writer.WriteNullValue();
 
             return;
         }
 
-        switch (value.ValueTypeCase) {
+        switch (value.ValueTypeCase)
+        {
             case Value.ValueTypeOneofCase.StringValue:
                 writer.WriteStringValue(value.StringValue);
 
@@ -103,7 +112,8 @@ public static class FirestoreValueJson {
             case Value.ValueTypeOneofCase.ArrayValue:
                 writer.WriteStartArray();
 
-                foreach (var item in value.ArrayValue.Values) {
+                foreach (var item in value.ArrayValue.Values)
+                {
                     WriteValue(writer, item);
                 }
 

@@ -23,7 +23,8 @@ namespace Hardened.Azure.Functions.ServiceBus;
 /// <see cref="Actions"/> once the chain has finished.
 /// </para>
 /// </remarks>
-public class ServiceBusRequest : FunctionsPayloadRequest, IBatchRequest {
+public class ServiceBusRequest : FunctionsPayloadRequest, IBatchRequest
+{
     private readonly List<int> _failed = [];
 
     public ServiceBusRequest(
@@ -33,8 +34,10 @@ public class ServiceBusRequest : FunctionsPayloadRequest, IBatchRequest {
         IDictionary<string, StringValues> headers,
         IReadOnlyList<ServiceBusReceivedMessage> messages,
         bool reportsItemFailures = false,
-        Microsoft.Azure.Functions.Worker.ServiceBusMessageActions? actions = null)
-        : base(scheme, path, body, headers) {
+        Microsoft.Azure.Functions.Worker.ServiceBusMessageActions? actions = null
+    )
+        : base(scheme, path, body, headers)
+    {
         Messages = messages;
         ReportsItemFailures = reportsItemFailures && actions != null;
         Actions = actions;
@@ -93,13 +96,16 @@ public class ServiceBusRequest : FunctionsPayloadRequest, IBatchRequest {
     /// is the one message property that already means what a header of that name means.
     /// </para>
     /// </remarks>
-    public IExecutionRequest ForMessage(ServiceBusReceivedMessage message) {
+    public IExecutionRequest ForMessage(ServiceBusReceivedMessage message)
+    {
         var headers = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var property in message.ApplicationProperties) {
+        foreach (var property in message.ApplicationProperties)
+        {
             var rendered = Render(property.Value);
 
-            if (rendered != null) {
+            if (rendered != null)
+            {
                 headers[property.Key] = rendered;
             }
         }
@@ -112,16 +118,19 @@ public class ServiceBusRequest : FunctionsPayloadRequest, IBatchRequest {
     }
 
     private static string? Render(object? value) =>
-        value switch {
+        value switch
+        {
             null => null,
             string text => text,
             byte[] => null,
             IFormattable formattable => formattable.ToString(null, CultureInfo.InvariantCulture),
-            _ => value.ToString()
+            _ => value.ToString(),
         };
 
-    private static void Set(IDictionary<string, StringValues> headers, string name, string? value) {
-        if (!string.IsNullOrEmpty(value)) {
+    private static void Set(IDictionary<string, StringValues> headers, string name, string? value)
+    {
+        if (!string.IsNullOrEmpty(value))
+        {
             headers[name] = value;
         }
     }
@@ -130,11 +139,10 @@ public class ServiceBusRequest : FunctionsPayloadRequest, IBatchRequest {
     /// The message body as a stream. Empty rather than null for an empty message, so a handler
     /// binding a body sees nothing to bind rather than a null reference.
     /// </summary>
-    private static Stream BodyStream(ServiceBusReceivedMessage message) {
+    private static Stream BodyStream(ServiceBusReceivedMessage message)
+    {
         var body = message.Body;
 
-        return body == null || body.ToMemory().IsEmpty
-            ? Stream.Null
-            : body.ToStream();
+        return body == null || body.ToMemory().IsEmpty ? Stream.Null : body.ToStream();
     }
 }

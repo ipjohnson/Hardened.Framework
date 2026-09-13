@@ -19,8 +19,10 @@ namespace Hardened.Gcp.CloudRun.Firestore;
 /// </remarks>
 [DependencyModule]
 [CloudRunRuntime]
-public partial class FirestoreModule : IServiceCollectionConfiguration {
-    public void ConfigureServices(IServiceCollection services) {
+public partial class FirestoreModule : IServiceCollectionConfiguration
+{
+    public void ConfigureServices(IServiceCollection services)
+    {
         services.AddSingleton<ITriggerEnvelope, FirestoreEnvelope>();
 
         services.AddBatchExecutionFilter();

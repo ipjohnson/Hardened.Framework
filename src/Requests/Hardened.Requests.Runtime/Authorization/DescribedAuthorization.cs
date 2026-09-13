@@ -26,8 +26,10 @@ namespace Hardened.Requests.Runtime.Authorization;
 /// whole point; that spelling would have inverted it.
 /// </para>
 /// </remarks>
-public sealed class DescribedAuthorization : IAuthorizeAttribute {
-    public DescribedAuthorization(Requirement requirement) {
+public sealed class DescribedAuthorization : IAuthorizeAttribute
+{
+    public DescribedAuthorization(Requirement requirement)
+    {
         Requirement = requirement;
     }
 

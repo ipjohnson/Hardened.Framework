@@ -30,19 +30,22 @@ namespace Hardened.Requests.Runtime.Middleware;
 /// up.
 /// </para>
 /// </remarks>
-public class ResponseFinalizerFilter : IExecutionFilter {
-
-    public async Task Execute(IExecutionChain chain) {
+public class ResponseFinalizerFilter : IExecutionFilter
+{
+    public async Task Execute(IExecutionChain chain)
+    {
         await chain.Next();
 
         var context = chain.Context;
         var response = context.Response;
 
-        if (!response.ShouldSerialize) {
+        if (!response.ShouldSerialize)
+        {
             return;
         }
 
-        if (response.ResponseValue == null && response.ExceptionValue == null) {
+        if (response.ResponseValue == null && response.ExceptionValue == null)
+        {
             return;
         }
 
@@ -51,7 +54,8 @@ public class ResponseFinalizerFilter : IExecutionFilter {
         // until it actually produces something needing serialization.
         var serialization = context.RequestServices.GetService<IContextSerializationService>();
 
-        if (serialization == null) {
+        if (serialization == null)
+        {
             return;
         }
 

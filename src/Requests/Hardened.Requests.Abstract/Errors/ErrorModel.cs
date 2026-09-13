@@ -11,7 +11,8 @@
 /// failure is per field, so <c>RequestValidationError</c> carries a field list instead. A reader
 /// switches on <c>type</c> and knows which members follow.
 /// </remarks>
-public class ErrorModel {
+public class ErrorModel
+{
     public string Type { get; set; } = "";
 
     public string Message { get; set; } = "";

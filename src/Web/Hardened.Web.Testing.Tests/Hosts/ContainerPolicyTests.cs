@@ -23,10 +23,11 @@ namespace Hardened.Web.Testing.Tests.Hosts;
 /// runs.
 /// </para>
 /// </remarks>
-public class ContainerPolicyTests {
-
+public class ContainerPolicyTests
+{
     /// <summary>A host that answers nothing, so the interface's own default is what it reports.</summary>
-    private sealed class BareHost : ITestHost {
+    private sealed class BareHost : ITestHost
+    {
         public bool IsTerminal => true;
 
         public Uri BaseAddress => new("http://bare/");
@@ -38,8 +39,9 @@ public class ContainerPolicyTests {
             throw new NotSupportedException();
 
         public Task<TestWebResponse> SendAsync(
-            TestHostRequest request, CancellationToken cancellationToken) =>
-            throw new NotSupportedException();
+            TestHostRequest request,
+            CancellationToken cancellationToken
+        ) => throw new NotSupportedException();
 
         public ValueTask DisposeAsync() => default;
     }
@@ -49,7 +51,8 @@ public class ContainerPolicyTests {
     /// container, which is what every host did before there was a choice to make.
     /// </summary>
     [Fact]
-    public void AHostThatSaysNothingReusesItsContainer() {
+    public void AHostThatSaysNothingReusesItsContainer()
+    {
         ITestHost host = new BareHost();
 
         Assert.Equal(TestContainerPolicy.Reused, host.ContainerPolicy);
@@ -60,7 +63,8 @@ public class ContainerPolicyTests {
     /// is what puts the strict reading where it costs least.
     /// </summary>
     [Fact]
-    public void ThePipelineHostBuildsAContainerPerInvocation() {
+    public void ThePipelineHostBuildsAContainerPerInvocation()
+    {
         ITestHost host = new PipelineHost(new ServiceCollection().BuildServiceProvider());
 
         Assert.Equal(TestContainerPolicy.PerInvocation, host.ContainerPolicy);
@@ -70,8 +74,8 @@ public class ContainerPolicyTests {
 /// <summary>
 /// What a host appends to a container it did not compose.
 /// </summary>
-public class PipelineHostCompositionTests {
-
+public class PipelineHostCompositionTests
+{
     /// <summary>
     /// A host over a container someone else built appends nothing to it.
     /// </summary>
@@ -81,7 +85,8 @@ public class PipelineHostCompositionTests {
     /// that would put a second terminal handler in a chain that has one.
     /// </remarks>
     [Fact]
-    public async Task AHostOverAnAlreadyComposedContainerAppendsNothing() {
+    public async Task AHostOverAnAlreadyComposedContainerAppendsNothing()
+    {
         var services = new ServiceCollection();
 
         services.AddSingleton<IMiddlewareService, RecordingMiddleware>();
@@ -94,11 +99,13 @@ public class PipelineHostCompositionTests {
 
         Assert.Equal(
             0,
-            ((RecordingMiddleware)provider.GetRequiredService<IMiddlewareService>()).Appended);
+            ((RecordingMiddleware)provider.GetRequiredService<IMiddlewareService>()).Appended
+        );
     }
 
     /// <summary>Counts what was appended, and does nothing else.</summary>
-    private sealed class RecordingMiddleware : IMiddlewareService {
+    private sealed class RecordingMiddleware : IMiddlewareService
+    {
         public int Appended { get; private set; }
 
         public void Use(Func<IExecutionContext, IExecutionFilter> middlewareFunc) => Appended++;

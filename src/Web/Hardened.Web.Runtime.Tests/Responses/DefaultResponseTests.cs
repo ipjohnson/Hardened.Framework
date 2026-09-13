@@ -2,8 +2,8 @@ using System.Globalization;
 using System.Linq;
 using Hardened.Requests.Abstract.Errors;
 using Hardened.Requests.Abstract.Responses;
-using Microsoft.Extensions.Primitives;
 using Hardened.Web.Runtime.Responses;
+using Microsoft.Extensions.Primitives;
 using Xunit;
 
 namespace Hardened.Web.Runtime.Tests.Responses;
@@ -25,24 +25,39 @@ namespace Hardened.Web.Runtime.Tests.Responses;
 /// what it renders is what lands in a log line when a handler returns one by accident.
 /// </para>
 /// </remarks>
-public class DefaultResponseTests {
-
+public class DefaultResponseTests
+{
     private static Type Closed(int arity) =>
-        typeof(Response<,>).Assembly
-            .GetExportedTypes()
-            .Single(t => t.IsGenericTypeDefinition &&
-                         t.Name == "Response`" + arity.ToString(CultureInfo.InvariantCulture))
+        typeof(Response<,>)
+            .Assembly.GetExportedTypes()
+            .Single(t =>
+                t.IsGenericTypeDefinition
+                && t.Name == "Response`" + arity.ToString(CultureInfo.InvariantCulture)
+            )
             .MakeGenericType(
-                new[] {
-                    typeof(string), typeof(int), typeof(bool), typeof(Guid),
-                    typeof(TimeSpan), typeof(Uri), typeof(NotFound), typeof(Conflict)
-                }.Take(arity).ToArray());
+                new[]
+                {
+                    typeof(string),
+                    typeof(int),
+                    typeof(bool),
+                    typeof(Guid),
+                    typeof(TimeSpan),
+                    typeof(Uri),
+                    typeof(NotFound),
+                    typeof(Conflict),
+                }
+                    .Take(arity)
+                    .ToArray()
+            );
 
-    public static TheoryData<int> Arities {
-        get {
+    public static TheoryData<int> Arities
+    {
+        get
+        {
             var data = new TheoryData<int>();
 
-            for (var arity = 2; arity <= 8; arity++) {
+            for (var arity = 2; arity <= 8; arity++)
+            {
                 data.Add(arity);
             }
 
@@ -56,7 +71,8 @@ public class DefaultResponseTests {
     /// </summary>
     [Theory]
     [MemberData(nameof(Arities))]
-    public void ADefaultResponseRendersEmptyAtEveryArity(int arity) {
+    public void ADefaultResponseRendersEmptyAtEveryArity(int arity)
+    {
         var closed = Closed(arity);
 
         var empty = Activator.CreateInstance(closed);
@@ -67,7 +83,8 @@ public class DefaultResponseTests {
     /// <summary>And it holds no case, which is what makes the render above the right answer.</summary>
     [Theory]
     [MemberData(nameof(Arities))]
-    public void ADefaultResponseHoldsNoCase(int arity) {
+    public void ADefaultResponseHoldsNoCase(int arity)
+    {
         var closed = Closed(arity);
 
         var empty = Activator.CreateInstance(closed);
@@ -85,7 +102,8 @@ public class DefaultResponseTests {
     /// characters "null".
     /// </remarks>
     [Fact]
-    public void ABodylessResponseGivesTheExceptionNoValue() {
+    public void ABodylessResponseGivesTheExceptionNoValue()
+    {
         var exception = new NoContent().AsException();
 
         Assert.Equal(204, exception.StatusCode);
@@ -101,7 +119,8 @@ public class DefaultResponseTests {
     /// response, and it has to be a no-op rather than a throw.
     /// </remarks>
     [Fact]
-    public void AResponseProvidingNoHeadersAppliesNone() {
+    public void AResponseProvidingNoHeadersAppliesNone()
+    {
         var headers = new Dictionary<string, StringValues>();
 
         new Conflict("clash").AsException().ApplyHeaders(headers);
@@ -117,12 +136,14 @@ public class DefaultResponseTests {
     /// without explanation, which is the common case and the one nobody writes a test for.
     /// </remarks>
     [Fact]
-    public void TheDefaultMessageNamesTheStatus() {
+    public void TheDefaultMessageNamesTheStatus()
+    {
         Assert.Contains("404", new NotFound("todo").AsException().Message);
     }
 
     [Fact]
-    public void AnExplicitMessageReplacesTheDefault() {
+    public void AnExplicitMessageReplacesTheDefault()
+    {
         var exception = new NotFound("todo").AsException("nothing by that id");
 
         Assert.Equal("nothing by that id", exception.Message);

@@ -16,11 +16,12 @@ namespace Hardened.Web.SourceGenerator.Tests.Streaming;
 /// buffered JSON response and a document that said so. <c>HRDW004</c> is that error.
 /// </para>
 /// </summary>
-public class ServerSentEventsDiagnosticTests {
-
-    private static readonly Type[] Anchors = [
-        typeof(GetAttribute),      // Hardened.Web.Runtime
-        typeof(FromBodyAttribute)  // Hardened.Requests.Abstract
+public class ServerSentEventsDiagnosticTests
+{
+    private static readonly Type[] Anchors =
+    [
+        typeof(GetAttribute), // Hardened.Web.Runtime
+        typeof(FromBodyAttribute), // Hardened.Requests.Abstract
     ];
 
     private static GeneratorResult Generate(string handler) =>
@@ -41,7 +42,8 @@ public class ServerSentEventsDiagnosticTests {
             }
             """,
             new WebLibrarySourceGenerator(),
-            Anchors);
+            Anchors
+        );
 
     private static IEnumerable<Diagnostic> Reported(GeneratorResult result) =>
         result.GeneratorDiagnostics.Where(d => d.Id == StreamFramingDiagnostics.DiagnosticId);
@@ -55,12 +57,19 @@ public class ServerSentEventsDiagnosticTests {
     [InlineData("public Task<string> Latest() => Task.FromResult(\"one\");")]
     [InlineData("public List<string> Latest() => new();")]
     [InlineData("public IEnumerable<string> Latest() => new[] { \"one\" };")]
-    public void ServerSentEventsOnABufferedHandlerIsHRDW004(string handler) {
-        var diagnostic = Assert.Single(Reported(Generate($"""
-            [Get("/latest")]
-            [ServerSentEvents]
-            {handler}
-            """)));
+    public void ServerSentEventsOnABufferedHandlerIsHRDW004(string handler)
+    {
+        var diagnostic = Assert.Single(
+            Reported(
+                Generate(
+                    $"""
+                    [Get("/latest")]
+                    [ServerSentEvents]
+                    {handler}
+                    """
+                )
+            )
+        );
 
         Assert.Equal(DiagnosticSeverity.Error, diagnostic.Severity);
         Assert.Contains("FeedController.Latest", diagnostic.GetMessage());
@@ -68,26 +77,34 @@ public class ServerSentEventsDiagnosticTests {
     }
 
     [Fact]
-    public void ServerSentEventsOnAnAsyncEnumerableHandlerReportsNothing() {
-        var result = Generate("""
-            [Get("/feed")]
-            [ServerSentEvents]
-            public async IAsyncEnumerable<string> Feed() {
-                yield return "one";
-                await Task.CompletedTask;
-            }
-            """).AssertNoErrors();
+    public void ServerSentEventsOnAnAsyncEnumerableHandlerReportsNothing()
+    {
+        var result = Generate(
+                """
+                [Get("/feed")]
+                [ServerSentEvents]
+                public async IAsyncEnumerable<string> Feed() {
+                    yield return "one";
+                    await Task.CompletedTask;
+                }
+                """
+            )
+            .AssertNoErrors();
 
         Assert.Empty(Reported(result));
         Assert.Contains("SseFraming.Instance", result.SourceContaining("FeedController_Feed"));
     }
 
     [Fact]
-    public void ABufferedHandlerWithoutTheAttributeReportsNothing() {
-        var result = Generate("""
-            [Get("/latest")]
-            public string Latest() => "one";
-            """).AssertNoErrors();
+    public void ABufferedHandlerWithoutTheAttributeReportsNothing()
+    {
+        var result = Generate(
+                """
+                [Get("/latest")]
+                public string Latest() => "one";
+                """
+            )
+            .AssertNoErrors();
 
         Assert.Empty(Reported(result));
     }
@@ -100,25 +117,33 @@ public class ServerSentEventsDiagnosticTests {
     [Theory]
     [InlineData("[ServerSentEvents]")]
     [InlineData("")]
-    public void AStreamingHandlerSaysSoOnItsHandlerInfo(string framing) {
-        var result = Generate($$"""
-            [Get("/feed")]
-            {{framing}}
-            public async IAsyncEnumerable<string> Feed() {
-                yield return "one";
-                await Task.CompletedTask;
-            }
-            """).AssertNoErrors();
+    public void AStreamingHandlerSaysSoOnItsHandlerInfo(string framing)
+    {
+        var result = Generate(
+                $$"""
+                [Get("/feed")]
+                {{framing}}
+                public async IAsyncEnumerable<string> Feed() {
+                    yield return "one";
+                    await Task.CompletedTask;
+                }
+                """
+            )
+            .AssertNoErrors();
 
         Assert.Contains("streamsResponse: true", result.SourceContaining("FeedController_Feed"));
     }
 
     [Fact]
-    public void ABufferedHandlerDoesNotClaimToStream() {
-        var result = Generate("""
-            [Get("/latest")]
-            public Task<List<string>> Latest() => Task.FromResult(new List<string>());
-            """).AssertNoErrors();
+    public void ABufferedHandlerDoesNotClaimToStream()
+    {
+        var result = Generate(
+                """
+                [Get("/latest")]
+                public Task<List<string>> Latest() => Task.FromResult(new List<string>());
+                """
+            )
+            .AssertNoErrors();
 
         Assert.DoesNotContain("streamsResponse", result.SourceContaining("FeedController_Latest"));
     }

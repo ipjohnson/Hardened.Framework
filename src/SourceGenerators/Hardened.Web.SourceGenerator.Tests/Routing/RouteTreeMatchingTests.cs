@@ -13,8 +13,8 @@ namespace Hardened.Web.SourceGenerator.Tests.Routing;
 /// <c>Hardened.SourceGenerator.Tests/Web/Routing</c> cover the structure; these cover the match.
 /// </para>
 /// </summary>
-public class RouteTreeMatchingTests {
-
+public class RouteTreeMatchingTests
+{
     private const string OverlappingRoutes = """
         using Hardened.Shared.Runtime.Attributes;
         using Hardened.Web.Runtime.Attributes;
@@ -43,7 +43,8 @@ public class RouteTreeMatchingTests {
     /// gives one route the other's token names, silently.
     /// </summary>
     [Fact]
-    public void OverlappingRoutesBindTheirOwnTokenNames() {
+    public void OverlappingRoutesBindTheirOwnTokenNames()
+    {
         var routing = GeneratedRoutingTable.For(OverlappingRoutes);
 
         var single = routing.PathTokens("GET", "/users/42");
@@ -64,7 +65,8 @@ public class RouteTreeMatchingTests {
     /// <c>/users/{id}</c>.
     /// </summary>
     [Fact]
-    public void ALiteralSegmentWinsOverATokenInTheSamePosition() {
+    public void ALiteralSegmentWinsOverATokenInTheSamePosition()
+    {
         var routing = GeneratedRoutingTable.For(OverlappingRoutes);
 
         Assert.Equal("Active", routing.Handler("GET", "/users/active").InvokeMethod);
@@ -86,7 +88,8 @@ public class RouteTreeMatchingTests {
     /// </para>
     /// </summary>
     [Fact]
-    public void ATrailingTokenMatchesOneSegmentAndNoMore() {
+    public void ATrailingTokenMatchesOneSegmentAndNoMore()
+    {
         var routing = GeneratedRoutingTable.For(OverlappingRoutes);
 
         Assert.Equal("42", Assert.Contains("id", routing.PathTokens("GET", "/users/42")));
@@ -97,7 +100,8 @@ public class RouteTreeMatchingTests {
     /// A deeper path does not fall back to a shorter route that happens to share its prefix.
     /// </summary>
     [Fact]
-    public void ADeeperPathDoesNotFallBackToAShallowerRoute() {
+    public void ADeeperPathDoesNotFallBackToAShallowerRoute()
+    {
         var routing = GeneratedRoutingTable.For(OverlappingRoutes);
 
         Assert.Equal("GetPost", routing.Handler("GET", "/users/42/posts/9").InvokeMethod);
@@ -117,7 +121,8 @@ public class RouteTreeMatchingTests {
     /// one token permitted to match nothing.
     /// </remarks>
     [Fact]
-    public void ATokenDoesNotMatchAnEmptyValueAndTheSegmentBeforeItIsRequired() {
+    public void ATokenDoesNotMatchAnEmptyValueAndTheSegmentBeforeItIsRequired()
+    {
         var routing = GeneratedRoutingTable.For(OverlappingRoutes);
 
         Assert.Null(routing.Route("GET", "/users/"));
@@ -130,8 +135,10 @@ public class RouteTreeMatchingTests {
     /// anywhere between the transport and the route table.
     /// </summary>
     [Fact]
-    public void ATrailingSlashIsSignificant() {
-        var routing = GeneratedRoutingTable.For("""
+    public void ATrailingSlashIsSignificant()
+    {
+        var routing = GeneratedRoutingTable.For(
+            """
             using Hardened.Shared.Runtime.Attributes;
             using Hardened.Web.Runtime.Attributes;
 
@@ -147,7 +154,8 @@ public class RouteTreeMatchingTests {
                 [Get("/invoices/")]
                 public string WithSlash() => "with-slash";
             }
-            """);
+            """
+        );
 
         Assert.Equal("NoSlash", routing.Handler("GET", "/orders").InvokeMethod);
         Assert.Null(routing.Route("GET", "/orders/"));
@@ -165,7 +173,8 @@ public class RouteTreeMatchingTests {
     [InlineData("/ORDERS/SUMMARY")]
     [InlineData("/Orders/Summary")]
     [InlineData("/oRdErS/sUmMaRy")]
-    public void ARouteIsMatchedAsWritten(string path) {
+    public void ARouteIsMatchedAsWritten(string path)
+    {
         var routing = GeneratedRoutingTable.For(CaseFixture(""));
 
         Assert.Equal("Summary", routing.Handler("GET", "/orders/summary").InvokeMethod);
@@ -179,8 +188,10 @@ public class RouteTreeMatchingTests {
     /// <c>/orders</c> - silently, for every mixed-case route in an application.
     /// </summary>
     [Fact]
-    public void AMixedCaseRouteMatchesItsOwnSpelling() {
-        var routing = GeneratedRoutingTable.For("""
+    public void AMixedCaseRouteMatchesItsOwnSpelling()
+    {
+        var routing = GeneratedRoutingTable.For(
+            """
             using Hardened.Shared.Runtime.Attributes;
             using Hardened.Web.Runtime.Attributes;
 
@@ -193,7 +204,8 @@ public class RouteTreeMatchingTests {
                 [Get("/Orders/Summary")]
                 public string Summary() => "summary";
             }
-            """);
+            """
+        );
 
         Assert.Equal("Summary", routing.Handler("GET", "/Orders/Summary").InvokeMethod);
         Assert.Null(routing.Route("GET", "/orders/summary"));
@@ -208,7 +220,8 @@ public class RouteTreeMatchingTests {
     [InlineData("/ORDERS/SUMMARY")]
     [InlineData("/Orders/Summary")]
     [InlineData("/oRdErS/sUmMaRy")]
-    public void CaseInsensitiveRoutesMatchesEitherCase(string path) {
+    public void CaseInsensitiveRoutesMatchesEitherCase(string path)
+    {
         var routing = GeneratedRoutingTable.For(CaseFixture("[CaseInsensitiveRoutes]"));
 
         Assert.Equal("Summary", routing.Handler("GET", path).InvokeMethod);
@@ -221,8 +234,10 @@ public class RouteTreeMatchingTests {
     [Theory]
     [InlineData("/mixed/case")]
     [InlineData("/MIXED/CASE")]
-    public void CaseInsensitiveRoutesMatchesAMixedCaseRouteEitherWay(string path) {
-        var routing = GeneratedRoutingTable.For("""
+    public void CaseInsensitiveRoutesMatchesAMixedCaseRouteEitherWay(string path)
+    {
+        var routing = GeneratedRoutingTable.For(
+            """
             using Hardened.Shared.Runtime.Attributes;
             using Hardened.Web.Runtime.Attributes;
 
@@ -236,27 +251,28 @@ public class RouteTreeMatchingTests {
                 [Get("/Mixed/Case")]
                 public string Summary() => "summary";
             }
-            """);
+            """
+        );
 
         Assert.Equal("Summary", routing.Handler("GET", path).InvokeMethod);
     }
 
     private static string CaseFixture(string moduleAttributes) =>
         $$"""
-        using Hardened.Shared.Runtime.Attributes;
-        using Hardened.Web.Runtime.Attributes;
+            using Hardened.Shared.Runtime.Attributes;
+            using Hardened.Web.Runtime.Attributes;
 
-        namespace TestApp;
+            namespace TestApp;
 
-        [HardenedModule]
-        {{moduleAttributes}}
-        public partial class TestApplication { }
+            [HardenedModule]
+            {{moduleAttributes}}
+            public partial class TestApplication { }
 
-        public class OrderController {
-            [Get("/orders/summary")]
-            public string Summary() => "summary";
-        }
-        """;
+            public class OrderController {
+                [Get("/orders/summary")]
+                public string Summary() => "summary";
+            }
+            """;
 
     /// <summary>
     /// Routes diverging after a shared prefix each keep their own tail. The generator emits one
@@ -264,8 +280,10 @@ public class RouteTreeMatchingTests {
     /// off-by-one in the index arithmetic sends every one of them to the same place.
     /// </summary>
     [Fact]
-    public void RoutesSharingAPrefixEachKeepTheirOwnTail() {
-        var routing = GeneratedRoutingTable.For("""
+    public void RoutesSharingAPrefixEachKeepTheirOwnTail()
+    {
+        var routing = GeneratedRoutingTable.For(
+            """
             using Hardened.Shared.Runtime.Attributes;
             using Hardened.Web.Runtime.Attributes;
 
@@ -287,7 +305,8 @@ public class RouteTreeMatchingTests {
                 [Get("/organisation")]
                 public string Organisation() => "organisation";
             }
-            """);
+            """
+        );
 
         Assert.Equal("Order", routing.Handler("GET", "/order").InvokeMethod);
         Assert.Equal("Orders", routing.Handler("GET", "/orders").InvokeMethod);
@@ -309,8 +328,10 @@ public class RouteTreeMatchingTests {
     /// </para>
     /// </summary>
     [Fact]
-    public void AMiddleTokenStopsAtTheSegmentThatFollowsIt() {
-        var routing = GeneratedRoutingTable.For("""
+    public void AMiddleTokenStopsAtTheSegmentThatFollowsIt()
+    {
+        var routing = GeneratedRoutingTable.For(
+            """
             using Hardened.Shared.Runtime.Attributes;
             using Hardened.Web.Runtime.Attributes;
 
@@ -323,7 +344,8 @@ public class RouteTreeMatchingTests {
                 [Get("/files/{name}/download")]
                 public string Download(string name) => name;
             }
-            """);
+            """
+        );
 
         Assert.Equal("a", Assert.Contains("name", routing.PathTokens("GET", "/files/a/download")));
         Assert.Null(routing.Route("GET", "/files/a/b/c/download"));
@@ -354,16 +376,21 @@ public class RouteTreeMatchingTests {
     /// token used to have; it is now the behaviour you ask for.
     /// </summary>
     [Fact]
-    public void ACatchAllTokenTakesTheRestOfThePath() {
+    public void ACatchAllTokenTakesTheRestOfThePath()
+    {
         var routing = GeneratedRoutingTable.For(CatchAllRoutes);
 
         Assert.Equal("Asset", routing.Handler("GET", "/assets/a/b/c.png").InvokeMethod);
-        Assert.Equal("a/b/c.png", Assert.Contains("path", routing.PathTokens("GET", "/assets/a/b/c.png")));
+        Assert.Equal(
+            "a/b/c.png",
+            Assert.Contains("path", routing.PathTokens("GET", "/assets/a/b/c.png"))
+        );
     }
 
     /// <summary>A catch-all still matches a single segment — it is a lower bound, not a shape.</summary>
     [Fact]
-    public void ACatchAllTokenAlsoMatchesOneSegment() {
+    public void ACatchAllTokenAlsoMatchesOneSegment()
+    {
         var routing = GeneratedRoutingTable.For(CatchAllRoutes);
 
         Assert.Equal("only", Assert.Contains("path", routing.PathTokens("GET", "/assets/only")));
@@ -375,7 +402,8 @@ public class RouteTreeMatchingTests {
     /// handler's parameter unbound and fail at binding rather than at routing.
     /// </summary>
     [Fact]
-    public void ACatchAllTokenBindsWithoutTheMarkerInItsName() {
+    public void ACatchAllTokenBindsWithoutTheMarkerInItsName()
+    {
         var routing = GeneratedRoutingTable.For(CatchAllRoutes);
 
         var tokens = routing.PathTokens("GET", "/assets/a/b");
@@ -386,7 +414,8 @@ public class RouteTreeMatchingTests {
 
     /// <summary>A literal in the same position still wins, as it does against an ordinary token.</summary>
     [Fact]
-    public void ALiteralStillWinsOverACatchAll() {
+    public void ALiteralStillWinsOverACatchAll()
+    {
         var routing = GeneratedRoutingTable.For(CatchAllRoutes);
 
         Assert.Equal("Index", routing.Handler("GET", "/assets/index").InvokeMethod);
@@ -397,8 +426,10 @@ public class RouteTreeMatchingTests {
     /// the value written for one must not overwrite the other.
     /// </summary>
     [Fact]
-    public void AdjacentTokensEachKeepTheirOwnValue() {
-        var routing = GeneratedRoutingTable.For("""
+    public void AdjacentTokensEachKeepTheirOwnValue()
+    {
+        var routing = GeneratedRoutingTable.For(
+            """
             using Hardened.Shared.Runtime.Attributes;
             using Hardened.Web.Runtime.Attributes;
 
@@ -411,7 +442,8 @@ public class RouteTreeMatchingTests {
                 [Get("/matrix/{row}/{column}")]
                 public string Cell(string row, string column) => row + column;
             }
-            """);
+            """
+        );
 
         var tokens = routing.PathTokens("GET", "/matrix/7/9");
 

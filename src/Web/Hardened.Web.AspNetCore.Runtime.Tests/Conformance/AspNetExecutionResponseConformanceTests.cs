@@ -13,8 +13,8 @@ namespace Hardened.Web.AspNetCore.Runtime.Tests.Conformance;
 /// onto <c>HttpResponse</c> — the object ASP.NET actually sends from. This is the transport that
 /// disagreed with the harness about every response with no body.
 /// </remarks>
-public class AspNetExecutionResponseConformanceTests : ExecutionResponseConformanceTests {
-
+public class AspNetExecutionResponseConformanceTests : ExecutionResponseConformanceTests
+{
     protected override IExecutionResponseConformanceAdapter Adapter { get; } = new AspNetAdapter();
 
     /// <summary>
@@ -23,12 +23,14 @@ public class AspNetExecutionResponseConformanceTests : ExecutionResponseConforma
     /// completes against the same <c>HttpResponse</c> as the response it was cloned from, which is
     /// the behaviour a fork depends on.
     /// </summary>
-    private class AspNetAdapter : IExecutionResponseConformanceAdapter {
+    private class AspNetAdapter : IExecutionResponseConformanceAdapter
+    {
         private HttpContext? _httpContext;
 
         public string TransportName => "ASP.NET Core";
 
-        public IExecutionResponse CreateResponse() {
+        public IExecutionResponse CreateResponse()
+        {
             _httpContext = new DefaultHttpContext();
 
             // DefaultHttpContext gives Stream.Null, which accepts writes and keeps nothing.
@@ -43,22 +45,27 @@ public class AspNetExecutionResponseConformanceTests : ExecutionResponseConforma
         /// object the host would have sent — including <c>StatusCode</c>, which is 200 until
         /// something says otherwise and is the reason an unset status is not a missing one.
         /// </summary>
-        public Task<ObservedResponse> Complete(IExecutionResponse response) {
+        public Task<ObservedResponse> Complete(IExecutionResponse response)
+        {
             var httpResponse = _httpContext!.Response;
             var body = (MemoryStream)httpResponse.Body;
 
             var headers = httpResponse.Headers.ToDictionary(
                 pair => pair.Key,
                 pair => (IReadOnlyList<string>)pair.Value.ToArray()!,
-                StringComparer.OrdinalIgnoreCase);
+                StringComparer.OrdinalIgnoreCase
+            );
 
             headers.TryGetValue("Set-Cookie", out var setCookies);
 
-            return Task.FromResult(new ObservedResponse(
-                httpResponse.StatusCode,
-                headers,
-                setCookies ?? Array.Empty<string>(),
-                body.ToArray()));
+            return Task.FromResult(
+                new ObservedResponse(
+                    httpResponse.StatusCode,
+                    headers,
+                    setCookies ?? Array.Empty<string>(),
+                    body.ToArray()
+                )
+            );
         }
     }
 }

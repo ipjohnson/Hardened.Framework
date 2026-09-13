@@ -22,14 +22,19 @@ namespace Hardened.Requests.Abstract.Authorization;
 /// say the credential is too weak whatever grants are held, uses the second.
 /// </para>
 /// </remarks>
-public sealed class GrantResolution {
+public sealed class GrantResolution
+{
     /// <summary>Nothing found, nothing to say.</summary>
-    public static readonly GrantResolution Abstained =
-        new(FrozenSet<string>.Empty, AuthorizationDecision.Abstain);
+    public static readonly GrantResolution Abstained = new(
+        FrozenSet<string>.Empty,
+        AuthorizationDecision.Abstain
+    );
 
     public GrantResolution(
         IReadOnlySet<string> granted,
-        AuthorizationDecision decision = AuthorizationDecision.Abstain) {
+        AuthorizationDecision decision = AuthorizationDecision.Abstain
+    )
+    {
         ArgumentNullException.ThrowIfNull(granted);
 
         Granted = granted;
@@ -41,7 +46,8 @@ public sealed class GrantResolution {
         Granting((IEnumerable<string>)granted);
 
     /// <inheritdoc cref="Granting(string[])"/>
-    public static GrantResolution Granting(IEnumerable<string> granted) {
+    public static GrantResolution Granting(IEnumerable<string> granted)
+    {
         ArgumentNullException.ThrowIfNull(granted);
 
         var set = granted.ToFrozenSet(StringComparer.Ordinal);
@@ -80,18 +86,23 @@ public sealed class GrantResolution {
     /// <see cref="AuthorizationDecisions.Combine(AuthorizationDecision, AuthorizationDecision)"/>, so
     /// a refusal still outranks everything - including grants another contributor vouched for.
     /// </remarks>
-    public static GrantResolution Combine(GrantResolution left, GrantResolution right) {
+    public static GrantResolution Combine(GrantResolution left, GrantResolution right)
+    {
         ArgumentNullException.ThrowIfNull(left);
         ArgumentNullException.ThrowIfNull(right);
 
         var decision = AuthorizationDecisions.Combine(left.Decision, right.Decision);
 
-        if (right.Granted.Count == 0) {
+        if (right.Granted.Count == 0)
+        {
             return left.Decision == decision ? left : new GrantResolution(left.Granted, decision);
         }
 
-        if (left.Granted.Count == 0) {
-            return right.Decision == decision ? right : new GrantResolution(right.Granted, decision);
+        if (left.Granted.Count == 0)
+        {
+            return right.Decision == decision
+                ? right
+                : new GrantResolution(right.Granted, decision);
         }
 
         var union = new HashSet<string>(left.Granted, StringComparer.Ordinal);

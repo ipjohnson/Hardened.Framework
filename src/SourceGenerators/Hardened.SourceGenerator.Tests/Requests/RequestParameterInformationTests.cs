@@ -4,12 +4,19 @@ using Xunit;
 
 namespace Hardened.SourceGenerator.Tests.Requests;
 
-public class RequestParameterInformationTests {
-
+public class RequestParameterInformationTests
+{
     private static RequestParameterInformation Body(bool requiresServices = false) =>
-        new(TypeDefinition.Get("TestApp", "EventStore"),
-            "store", true, null, ParameterBindType.Body, "store", 0,
-            constructorRequiresServices: requiresServices);
+        new(
+            TypeDefinition.Get("TestApp", "EventStore"),
+            "store",
+            true,
+            null,
+            ParameterBindType.Body,
+            "store",
+            0,
+            constructorRequiresServices: requiresServices
+        );
 
     /// <summary>
     /// <c>ConstructorRequiresServices</c> rides on the model, so an edit to the type's constructor
@@ -17,12 +24,19 @@ public class RequestParameterInformationTests {
     /// HRDR007 comes and goes with whatever else forced a regeneration.
     /// </summary>
     [Fact]
-    public void AServiceShapedBodyDoesNotCompareEqualToAnOrdinaryOne() {
+    public void AServiceShapedBodyDoesNotCompareEqualToAnOrdinaryOne()
+    {
         var body = Body();
         var service = new RequestParameterInformation(
             TypeDefinition.Get("TestApp", "EventStore"),
-            "store", true, null, ParameterBindType.Body, "store", 0,
-            constructorRequiresServices: true);
+            "store",
+            true,
+            null,
+            ParameterBindType.Body,
+            "store",
+            0,
+            constructorRequiresServices: true
+        );
 
         Assert.NotEqual(body, service);
         Assert.NotEqual(body.GetHashCode(), service.GetHashCode());
@@ -34,12 +48,20 @@ public class RequestParameterInformationTests {
     /// body - which turned HRDR007 off for exactly the handlers it exists to report.
     /// </summary>
     [Fact]
-    public void ReindexingCarriesEveryProperty() {
+    public void ReindexingCarriesEveryProperty()
+    {
         var original = new RequestParameterInformation(
             TypeDefinition.Get("TestApp", "EventStore"),
-            "store", true, "5", ParameterBindType.QueryString, "wire", 0,
-            constructorRequiresServices: true) {
-            Description = "prose"
+            "store",
+            true,
+            "5",
+            ParameterBindType.QueryString,
+            "wire",
+            0,
+            constructorRequiresServices: true
+        )
+        {
+            Description = "prose",
         };
 
         var moved = original.WithIndex(3);
@@ -57,7 +79,8 @@ public class RequestParameterInformationTests {
     }
 
     [Fact]
-    public void TwoParametersAgreeingOnItCompareEqual() {
+    public void TwoParametersAgreeingOnItCompareEqual()
+    {
         var left = Body(true);
         var right = Body(true);
 
@@ -71,23 +94,37 @@ public class RequestParameterInformationTests {
     /// break the model's equality, or HRDR007 waits for whatever else forces a regeneration.
     /// </summary>
     [Fact]
-    public void ARegisteredServiceDoesNotCompareEqualToAnOrdinaryBody() {
+    public void ARegisteredServiceDoesNotCompareEqualToAnOrdinaryBody()
+    {
         var body = Body();
         var service = new RequestParameterInformation(
             TypeDefinition.Get("TestApp", "EventStore"),
-            "store", true, null, ParameterBindType.Body, "store", 0,
-            registeredAsService: true);
+            "store",
+            true,
+            null,
+            ParameterBindType.Body,
+            "store",
+            0,
+            registeredAsService: true
+        );
 
         Assert.NotEqual(body, service);
         Assert.NotEqual(body.GetHashCode(), service.GetHashCode());
     }
 
     [Fact]
-    public void MovingARegisteredServiceKeepsItRegistered() {
+    public void MovingARegisteredServiceKeepsItRegistered()
+    {
         var original = new RequestParameterInformation(
             TypeDefinition.Get("TestApp", "EventStore"),
-            "store", true, null, ParameterBindType.Body, "store", 0,
-            registeredAsService: true);
+            "store",
+            true,
+            null,
+            ParameterBindType.Body,
+            "store",
+            0,
+            registeredAsService: true
+        );
 
         Assert.True(original.WithIndex(3).RegisteredAsService);
     }

@@ -20,10 +20,10 @@ namespace Hardened.Requests.Abstract.Tests.Execution;
 /// apart. Asserted rather than merely covered, because it is a decision.
 /// </para>
 /// </remarks>
-public class RequestParameterIndexerTests {
-
-    private sealed class Parameters : IExecutionRequestParameters {
-
+public class RequestParameterIndexerTests
+{
+    private sealed class Parameters : IExecutionRequestParameters
+    {
         private readonly Dictionary<string, object?> _values;
 
         public Parameters(Dictionary<string, object?> values) => _values = values;
@@ -31,8 +31,10 @@ public class RequestParameterIndexerTests {
         public bool TryGetParameter(string parameterName, out object? parameterValue) =>
             _values.TryGetValue(parameterName, out parameterValue);
 
-        public bool TrySetParameter(string parameterName, object parameterValue) {
-            if (!_values.ContainsKey(parameterName)) {
+        public bool TrySetParameter(string parameterName, object parameterValue)
+        {
+            if (!_values.ContainsKey(parameterName))
+            {
                 return false;
             }
 
@@ -43,28 +45,32 @@ public class RequestParameterIndexerTests {
 
         public IReadOnlyList<IExecutionRequestParameter> Info => [];
 
-        public object this[int index] {
+        public object this[int index]
+        {
             get => _values.Values.ElementAt(index)!;
             set => _values[_values.Keys.ElementAt(index)] = value;
         }
 
         public int ParameterCount => _values.Count;
 
-        public IExecutionRequestParameters Clone() => new Parameters(new Dictionary<string, object?>(_values));
+        public IExecutionRequestParameters Clone() =>
+            new Parameters(new Dictionary<string, object?>(_values));
     }
 
     private static Parameters With(string name, object? value) =>
         new(new Dictionary<string, object?> { [name] = value });
 
     [Fact]
-    public void GettingAKnownParameterReturnsIt() {
+    public void GettingAKnownParameterReturnsIt()
+    {
         IExecutionRequestParameters parameters = With("id", 42);
 
         Assert.Equal(42, parameters["id"]);
     }
 
     [Fact]
-    public void GettingAnUnknownParameterThrows() {
+    public void GettingAnUnknownParameterThrows()
+    {
         IExecutionRequestParameters parameters = With("id", 42);
 
         var exception = Assert.Throws<KeyNotFoundException>(() => parameters["missing"]);
@@ -76,14 +82,16 @@ public class RequestParameterIndexerTests {
     /// A parameter that exists and holds null throws too, rather than returning null.
     /// </summary>
     [Fact]
-    public void GettingAParameterHoldingNullThrows() {
+    public void GettingAParameterHoldingNullThrows()
+    {
         IExecutionRequestParameters parameters = With("id", null);
 
         Assert.Throws<KeyNotFoundException>(() => parameters["id"]);
     }
 
     [Fact]
-    public void SettingAKnownParameterReplacesIt() {
+    public void SettingAKnownParameterReplacesIt()
+    {
         IExecutionRequestParameters parameters = With("id", 1);
 
         parameters["id"] = 2;
@@ -92,7 +100,8 @@ public class RequestParameterIndexerTests {
     }
 
     [Fact]
-    public void SettingAnUnknownParameterThrows() {
+    public void SettingAnUnknownParameterThrows()
+    {
         IExecutionRequestParameters parameters = With("id", 1);
 
         var exception = Assert.Throws<KeyNotFoundException>(() => parameters["missing"] = 2);

@@ -26,9 +26,12 @@ namespace Hardened.Templates.RazorBlade.Tests;
 /// failing.
 /// </para>
 /// </remarks>
-public class HardenedHtmlTemplateTests {
-
-    private static readonly FortunePage Page = new([new Fortune(1, "hello"), new Fortune(2, "again")]);
+public class HardenedHtmlTemplateTests
+{
+    private static readonly FortunePage Page = new([
+        new Fortune(1, "hello"),
+        new Fortune(2, "again"),
+    ]);
 
     private static IHardenedResponseOutput Template() => new Views.AttachedFortunes();
 
@@ -38,7 +41,8 @@ public class HardenedHtmlTemplateTests {
     /// where the handler left it.
     /// </summary>
     [Fact]
-    public async Task TheModelIsReadFromTheResponseAndRendered() {
+    public async Task TheModelIsReadFromTheResponseAndRendered()
+    {
         var context = Pipeline.Context(out var body);
 
         context.Response.ResponseValue = Page;
@@ -56,7 +60,8 @@ public class HardenedHtmlTemplateTests {
     /// written anywhere.
     /// </summary>
     [Fact]
-    public void ARazorBladeTemplateIsAnOutput() {
+    public void ARazorBladeTemplateIsAnOutput()
+    {
         Assert.IsAssignableFrom<IHardenedResponseOutput>(new Views.AttachedFortunes());
         Assert.IsAssignableFrom<IHardenedResponseOutput<FortunePage>>(new Views.AttachedFortunes());
     }
@@ -66,7 +71,8 @@ public class HardenedHtmlTemplateTests {
     /// registry, and it is what the view answers <c>SupportsContentType</c> with.
     /// </summary>
     [Fact]
-    public async Task TheContentTypeComesFromTheBase() {
+    public async Task TheContentTypeComesFromTheBase()
+    {
         var context = Pipeline.Context(out _);
 
         context.Response.ResponseValue = Page;
@@ -87,7 +93,8 @@ public class HardenedHtmlTemplateTests {
     [InlineData("*/*")]
     [InlineData(null)]
     [InlineData("")]
-    public void AViewAnswersWhatItProduces(string? accept) {
+    public void AViewAnswersWhatItProduces(string? accept)
+    {
         Assert.True(Template().SupportsContentType(accept, Pipeline.Context(out _)));
     }
 
@@ -98,7 +105,8 @@ public class HardenedHtmlTemplateTests {
     [Theory]
     [InlineData("application/json")]
     [InlineData("application/xml, text/csv")]
-    public void AViewDeclinesWhatItDoesNotProduce(string accept) {
+    public void AViewDeclinesWhatItDoesNotProduce(string accept)
+    {
         Assert.False(Template().SupportsContentType(accept, Pipeline.Context(out _)));
     }
 
@@ -107,9 +115,12 @@ public class HardenedHtmlTemplateTests {
     /// <c>text/html, application/xhtml+xml, ..., */*</c> and every part of that has to work.
     /// </summary>
     [Fact]
-    public void AViewAnswersAHeaderListingSeveralTypes() {
-        Assert.True(Template().SupportsContentType(
-            "application/json, text/html;q=0.9", Pipeline.Context(out _)));
+    public void AViewAnswersAHeaderListingSeveralTypes()
+    {
+        Assert.True(
+            Template()
+                .SupportsContentType("application/json, text/html;q=0.9", Pipeline.Context(out _))
+        );
     }
 
     /// <summary>
@@ -118,13 +129,15 @@ public class HardenedHtmlTemplateTests {
     /// an error path is ordinary, so this is the likely failure rather than an exotic one.
     /// </summary>
     [Fact]
-    public async Task ANullModelForAValueTypeNamesTheTemplate() {
+    public async Task ANullModelForAValueTypeNamesTheTemplate()
+    {
         var context = Pipeline.Context(out _);
 
         IHardenedResponseOutput template = new ValueModelTemplate();
 
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => template.WriteOutput(context));
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            template.WriteOutput(context)
+        );
 
         Assert.Contains(nameof(ValueModelTemplate), exception.Message);
         Assert.Contains(nameof(Int32), exception.Message);
@@ -132,13 +145,15 @@ public class HardenedHtmlTemplateTests {
 
     /// <summary>And a model of the wrong type says which type it got.</summary>
     [Fact]
-    public async Task AMismatchedModelNamesBothTypes() {
+    public async Task AMismatchedModelNamesBothTypes()
+    {
         var context = Pipeline.Context(out _);
 
         context.Response.ResponseValue = "not a fortune page";
 
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => Template().WriteOutput(context));
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            Template().WriteOutput(context)
+        );
 
         Assert.Contains(nameof(FortunePage), exception.Message);
         Assert.Contains(nameof(String), exception.Message);
@@ -148,7 +163,8 @@ public class HardenedHtmlTemplateTests {
     /// A template over a value type, which is the case the null guard exists for - a reference
     /// model legitimately arrives null when a handler returns nothing.
     /// </summary>
-    private class ValueModelTemplate : HardenedHtmlTemplate<int> {
+    private class ValueModelTemplate : HardenedHtmlTemplate<int>
+    {
         protected override Task ExecuteAsync() => Task.CompletedTask;
     }
 }

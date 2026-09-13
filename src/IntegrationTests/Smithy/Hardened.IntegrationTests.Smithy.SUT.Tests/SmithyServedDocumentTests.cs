@@ -20,9 +20,10 @@ namespace Hardened.IntegrationTests.Smithy.SUT.Tests;
 /// Publishing is still opt-in. What changed is what opting in gets you.
 /// </para>
 /// </remarks>
-public class SmithyServedDocumentTests {
-
-    private static async Task<JsonElement> Document(ITestWebApp app) {
+public class SmithyServedDocumentTests
+{
+    private static async Task<JsonElement> Document(ITestWebApp app)
+    {
         var response = await app.Get("/openapi.json");
 
         response.Assert.Ok();
@@ -35,7 +36,8 @@ public class SmithyServedDocumentTests {
     }
 
     [HardenedTest]
-    public async Task TheServedDocumentIsOpenApiAndNotASmithyAst(ITestWebApp app) {
+    public async Task TheServedDocumentIsOpenApiAndNotASmithyAst(ITestWebApp app)
+    {
         var document = await Document(app);
 
         Assert.True(document.TryGetProperty("openapi", out var version));
@@ -47,7 +49,8 @@ public class SmithyServedDocumentTests {
     }
 
     [HardenedTest]
-    public async Task TheServedDocumentCarriesTheRoutesTheModelDeclares(ITestWebApp app) {
+    public async Task TheServedDocumentCarriesTheRoutesTheModelDeclares(ITestWebApp app)
+    {
         var paths = (await Document(app)).GetProperty("paths");
 
         Assert.True(paths.TryGetProperty("/pets", out var pets));
@@ -64,16 +67,27 @@ public class SmithyServedDocumentTests {
     /// half of the same fix the OpenAPI SUT asserts.
     /// </summary>
     [HardenedTest]
-    public async Task TheBodySchemasCarryTheConstraintsTheModelDeclares(ITestWebApp app) {
+    public async Task TheBodySchemasCarryTheConstraintsTheModelDeclares(ITestWebApp app)
+    {
         var document = await Document(app);
 
-        var bodyRef = document.GetProperty("paths").GetProperty("/pets").GetProperty("post")
-            .GetProperty("requestBody").GetProperty("content").GetProperty("application/json")
-            .GetProperty("schema").GetProperty("$ref").GetString();
+        var bodyRef = document
+            .GetProperty("paths")
+            .GetProperty("/pets")
+            .GetProperty("post")
+            .GetProperty("requestBody")
+            .GetProperty("content")
+            .GetProperty("application/json")
+            .GetProperty("schema")
+            .GetProperty("$ref")
+            .GetString();
 
-        var name = document.GetProperty("components").GetProperty("schemas")
+        var name = document
+            .GetProperty("components")
+            .GetProperty("schemas")
             .GetProperty(bodyRef!.Substring("#/components/schemas/".Length))
-            .GetProperty("properties").GetProperty("name");
+            .GetProperty("properties")
+            .GetProperty("name");
 
         Assert.Equal(1, name.GetProperty("minLength").GetInt32());
         Assert.Equal(64, name.GetProperty("maxLength").GetInt32());
@@ -85,11 +99,16 @@ public class SmithyServedDocumentTests {
     /// never resolved it, so the writer fell back to the C# type.
     /// </summary>
     [HardenedTest]
-    public async Task AnEnumQueryParameterPublishesItsVocabulary(ITestWebApp app) {
-        var parameters = (await Document(app)).GetProperty("paths").GetProperty("/pets")
-            .GetProperty("get").GetProperty("parameters");
+    public async Task AnEnumQueryParameterPublishesItsVocabulary(ITestWebApp app)
+    {
+        var parameters = (await Document(app))
+            .GetProperty("paths")
+            .GetProperty("/pets")
+            .GetProperty("get")
+            .GetProperty("parameters");
 
-        var kind = parameters.EnumerateArray()
+        var kind = parameters
+            .EnumerateArray()
             .Single(parameter => parameter.GetProperty("name").GetString() == "kind");
 
         var schema = kind.GetProperty("schema");
@@ -97,7 +116,8 @@ public class SmithyServedDocumentTests {
         Assert.Equal("string", schema.GetProperty("type").GetString());
         Assert.Equal(
             new[] { "dog", "cat", "other" },
-            schema.GetProperty("enum").EnumerateArray().Select(value => value.GetString()));
+            schema.GetProperty("enum").EnumerateArray().Select(value => value.GetString())
+        );
     }
 
     /// <summary>
@@ -105,32 +125,49 @@ public class SmithyServedDocumentTests {
     /// and the published schema says so with the 2020-12 type array.
     /// </summary>
     [HardenedTest]
-    public async Task AnOptionalMemberPublishesTheNullableTypeArray(ITestWebApp app) {
+    public async Task AnOptionalMemberPublishesTheNullableTypeArray(ITestWebApp app)
+    {
         var document = await Document(app);
 
-        var responseRef = document.GetProperty("paths").GetProperty("/pets").GetProperty("get")
-            .GetProperty("responses").GetProperty("200").GetProperty("content")
-            .GetProperty("application/json").GetProperty("schema").GetProperty("$ref").GetString();
+        var responseRef = document
+            .GetProperty("paths")
+            .GetProperty("/pets")
+            .GetProperty("get")
+            .GetProperty("responses")
+            .GetProperty("200")
+            .GetProperty("content")
+            .GetProperty("application/json")
+            .GetProperty("schema")
+            .GetProperty("$ref")
+            .GetString();
 
-        var nextToken = document.GetProperty("components").GetProperty("schemas")
+        var nextToken = document
+            .GetProperty("components")
+            .GetProperty("schemas")
             .GetProperty(responseRef!.Substring("#/components/schemas/".Length))
-            .GetProperty("properties").GetProperty("nextToken");
+            .GetProperty("properties")
+            .GetProperty("nextToken");
 
         var type = nextToken.GetProperty("type");
 
         Assert.Equal(JsonValueKind.Array, type.ValueKind);
         Assert.Equal(
             new[] { "string", "null" },
-            type.EnumerateArray().Select(entry => entry.GetString()).ToArray());
+            type.EnumerateArray().Select(entry => entry.GetString()).ToArray()
+        );
     }
 
     /// <summary>
     /// And the status the model declares, rather than a guess.
     /// </summary>
     [HardenedTest]
-    public async Task TheServedDocumentCarriesTheDeclaredStatus(ITestWebApp app) {
+    public async Task TheServedDocumentCarriesTheDeclaredStatus(ITestWebApp app)
+    {
         var responses = (await Document(app))
-            .GetProperty("paths").GetProperty("/pets").GetProperty("post").GetProperty("responses");
+            .GetProperty("paths")
+            .GetProperty("/pets")
+            .GetProperty("post")
+            .GetProperty("responses");
 
         Assert.True(responses.TryGetProperty("201", out _));
     }
@@ -140,7 +177,8 @@ public class SmithyServedDocumentTests {
     /// "1.0.0" the generator used to substitute.
     /// </summary>
     [HardenedTest]
-    public async Task TheServedDocumentCarriesTheModelsIdentity(ITestWebApp app) {
+    public async Task TheServedDocumentCarriesTheModelsIdentity(ITestWebApp app)
+    {
         var info = (await Document(app)).GetProperty("info");
 
         Assert.Equal("Pet Store", info.GetProperty("title").GetString());
@@ -153,17 +191,19 @@ public class SmithyServedDocumentTests {
     /// A generated client used to be told nothing and sent every request anonymous.
     /// </summary>
     [HardenedTest]
-    public async Task TheServedDocumentDeclaresTheEnforcedScheme(ITestWebApp app) {
+    public async Task TheServedDocumentDeclaresTheEnforcedScheme(ITestWebApp app)
+    {
         var document = await Document(app);
 
         var scheme = document
-            .GetProperty("components").GetProperty("securitySchemes").GetProperty("httpBearerAuth");
+            .GetProperty("components")
+            .GetProperty("securitySchemes")
+            .GetProperty("httpBearerAuth");
 
         Assert.Equal("http", scheme.GetProperty("type").GetString());
         Assert.Equal("bearer", scheme.GetProperty("scheme").GetString());
 
-        var secured = document
-            .GetProperty("paths").GetProperty("/pets/secured").GetProperty("get");
+        var secured = document.GetProperty("paths").GetProperty("/pets/secured").GetProperty("get");
         var requirement = Assert.Single(secured.GetProperty("security").EnumerateArray());
 
         Assert.Equal(0, requirement.GetProperty("httpBearerAuth").GetArrayLength());
@@ -178,15 +218,20 @@ public class SmithyServedDocumentTests {
     /// them. Every query and header parameter was published as a bare string.
     /// </summary>
     [HardenedTest]
-    public async Task TheServedDocumentCarriesParameterFacts(ITestWebApp app) {
+    public async Task TheServedDocumentCarriesParameterFacts(ITestWebApp app)
+    {
         var document = await Document(app);
 
         var parameters = document
-            .GetProperty("paths").GetProperty("/pets").GetProperty("get")
+            .GetProperty("paths")
+            .GetProperty("/pets")
+            .GetProperty("get")
             .GetProperty("parameters");
 
-        foreach (var parameter in parameters.EnumerateArray()) {
-            if (parameter.GetProperty("name").GetString() != "limit") {
+        foreach (var parameter in parameters.EnumerateArray())
+        {
+            if (parameter.GetProperty("name").GetString() != "limit")
+            {
                 continue;
             }
 
@@ -212,16 +257,23 @@ public class SmithyServedDocumentTests {
     /// Refitter generated a string and threw reading it; Kiota generated one and read null.
     /// </remarks>
     [HardenedTest]
-    public async Task AMapMemberIsPublishedAsAMap(ITestWebApp app) {
+    public async Task AMapMemberIsPublishedAsAMap(ITestWebApp app)
+    {
         var tags = (await Document(app))
-            .GetProperty("components").GetProperty("schemas").GetProperty("CreatePetInput")
-            .GetProperty("properties").GetProperty("tags");
+            .GetProperty("components")
+            .GetProperty("schemas")
+            .GetProperty("CreatePetInput")
+            .GetProperty("properties")
+            .GetProperty("tags");
 
         Assert.Contains(
             "object",
-            tags.GetProperty("type").EnumerateArray().Select(entry => entry.GetString()));
+            tags.GetProperty("type").EnumerateArray().Select(entry => entry.GetString())
+        );
 
         Assert.Equal(
-            "string", tags.GetProperty("additionalProperties").GetProperty("type").GetString());
+            "string",
+            tags.GetProperty("additionalProperties").GetProperty("type").GetString()
+        );
     }
 }

@@ -2,8 +2,8 @@ using CSharpAuthor;
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Requests;
 using Hardened.SourceGenerator.Shared;
-using Xunit;
 using Hardened.Web.Runtime.Responses;
+using Xunit;
 
 namespace Hardened.SourceGenerator.Tests.Requests;
 
@@ -24,8 +24,8 @@ namespace Hardened.SourceGenerator.Tests.Requests;
 /// It is also faster and says more precisely which arm is wrong when one is.
 /// </para>
 /// </remarks>
-public class ResponseSetEmitTests {
-
+public class ResponseSetEmitTests
+{
     private static ITypeDefinition Type(string name) => TypeDefinition.Get("TestApp", name);
 
     /// <summary>
@@ -38,13 +38,16 @@ public class ResponseSetEmitTests {
             "GetTodo",
             TypeDefinition.Get("TestApp.Generated", "TodoController_GetTodo"),
             [],
-            new ResponseInformationModel {
+            new ResponseInformationModel
+            {
                 ReturnType = Type("Response"),
-                UnionCases = UnionResponseSelector.Encode(cases)
+                UnionCases = UnionResponseSelector.Encode(cases),
             },
-            []);
+            []
+        );
 
-    private static string Emit(RequestHandlerModel handler) {
+    private static string Emit(RequestHandlerModel handler)
+    {
         var file = new CSharpFileDefinition("TestApp.Generated");
         var invokeClass = file.AddClass("Invoke");
 
@@ -57,8 +60,11 @@ public class ResponseSetEmitTests {
     }
 
     private static UnionCaseModel Case(
-        string name, int status, bool headers = false, bool body = true) =>
-        new("global::TestApp." + name, status, headers, body);
+        string name,
+        int status,
+        bool headers = false,
+        bool body = true
+    ) => new("global::TestApp." + name, status, headers, body);
 
     #region the switch
 
@@ -67,7 +73,8 @@ public class ResponseSetEmitTests {
     /// nothing transforms it and the arms decide only status, headers and serialization.
     /// </summary>
     [Fact]
-    public void ThePayloadIsAssignedOnceFromValue() {
+    public void ThePayloadIsAssignedOnceFromValue()
+    {
         var emitted = Emit(Handler(Case("Todo", 200), Case("NotFound", 404)));
 
         Assert.Contains("Response.ResponseValue = __response.Value", emitted);
@@ -75,8 +82,11 @@ public class ResponseSetEmitTests {
     }
 
     [Fact]
-    public void EachCaseGetsItsOwnStatus() {
-        var emitted = Emit(Handler(Case("Todo", 200), Case("NotFound", 404), Case("Conflict", 409)));
+    public void EachCaseGetsItsOwnStatus()
+    {
+        var emitted = Emit(
+            Handler(Case("Todo", 200), Case("NotFound", 404), Case("Conflict", 409))
+        );
 
         Assert.Contains("Response.Status = 200", emitted);
         Assert.Contains("Response.Status = 404", emitted);
@@ -88,7 +98,8 @@ public class ResponseSetEmitTests {
     /// response is the cost the compile-time switch exists to avoid.
     /// </summary>
     [Fact]
-    public void OnlyAHeaderContributingCaseCallsApplyHeaders() {
+    public void OnlyAHeaderContributingCaseCallsApplyHeaders()
+    {
         var emitted = Emit(Handler(Case("Todo", 200), Case("RateLimited", 429, headers: true)));
 
         Assert.Contains("__case1.ApplyHeaders(context.Response.Headers)", emitted);
@@ -100,7 +111,8 @@ public class ResponseSetEmitTests {
     /// unused-variable warning about generated code they cannot edit.
     /// </summary>
     [Fact]
-    public void ACaseNothingReadsBindsADiscard() {
+    public void ACaseNothingReadsBindsADiscard()
+    {
         var emitted = Emit(Handler(Case("Todo", 200), Case("NotFound", 404)));
 
         Assert.Contains("case global::TestApp.NotFound _:", emitted);
@@ -111,12 +123,16 @@ public class ResponseSetEmitTests {
     /// A bodyless status suppresses serialization on its own arm rather than for the handler.
     /// </summary>
     [Fact]
-    public void OnlyABodylessCaseSuppressesSerialization() {
+    public void OnlyABodylessCaseSuppressesSerialization()
+    {
         var emitted = Emit(Handler(Case("Todo", 200), Case("NoContent", 204, body: false)));
 
         var arms = emitted.Split("case ");
 
-        Assert.Contains(arms, a => a.Contains("NoContent") && a.Contains("ShouldSerialize = false"));
+        Assert.Contains(
+            arms,
+            a => a.Contains("NoContent") && a.Contains("ShouldSerialize = false")
+        );
         Assert.Contains(arms, a => a.Contains("Todo") && !a.Contains("ShouldSerialize"));
     }
 
@@ -125,7 +141,8 @@ public class ResponseSetEmitTests {
     /// user code. A success status there would send an empty body under a 200.
     /// </summary>
     [Fact]
-    public void TheDefaultArmAnswersFiveHundredWithNoBody() {
+    public void TheDefaultArmAnswersFiveHundredWithNoBody()
+    {
         var emitted = Emit(Handler(Case("Todo", 200), Case("NotFound", 404)));
 
         Assert.Contains("default:", emitted);
@@ -139,7 +156,8 @@ public class ResponseSetEmitTests {
     /// beyond that.
     /// </summary>
     [Fact]
-    public void ArmsKeepTheDeclaredOrder() {
+    public void ArmsKeepTheDeclaredOrder()
+    {
         var emitted = Emit(Handler(Case("Todo", 200), Case("NotFound", 404), Case("Gone", 410)));
 
         var todo = emitted.IndexOf("TestApp.Todo", StringComparison.Ordinal);
@@ -158,7 +176,8 @@ public class ResponseSetEmitTests {
     /// every application in existence takes.
     /// </summary>
     [Fact]
-    public void AHandlerWithNoResponseSetIsUnchanged() {
+    public void AHandlerWithNoResponseSetIsUnchanged()
+    {
         var handler = new RequestHandlerModel(
             new RequestHandlerNameModel("/todos/{id}", "GET"),
             Type("TodoController"),
@@ -166,7 +185,8 @@ public class ResponseSetEmitTests {
             TypeDefinition.Get("TestApp.Generated", "TodoController_GetTodo"),
             [],
             new ResponseInformationModel { ReturnType = Type("Todo") },
-            []);
+            []
+        );
 
         var emitted = Emit(handler);
 
@@ -179,7 +199,8 @@ public class ResponseSetEmitTests {
     /// And a void handler still invokes without assigning anything.
     /// </summary>
     [Fact]
-    public void AVoidHandlerAssignsNothing() {
+    public void AVoidHandlerAssignsNothing()
+    {
         var handler = new RequestHandlerModel(
             new RequestHandlerNameModel("/todos/{id}", "DELETE"),
             Type("TodoController"),
@@ -187,7 +208,8 @@ public class ResponseSetEmitTests {
             TypeDefinition.Get("TestApp.Generated", "TodoController_Remove"),
             [],
             new ResponseInformationModel { ReturnType = TypeDefinition.Get(typeof(void)) },
-            []);
+            []
+        );
 
         var emitted = Emit(handler);
 

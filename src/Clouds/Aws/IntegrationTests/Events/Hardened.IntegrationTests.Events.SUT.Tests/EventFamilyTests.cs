@@ -1,9 +1,9 @@
 using DependencyModules.Testing.Attributes;
-using Hardened.Aws.Lambda.Runtime.Adapters;
-using Hardened.IntegrationTests.Events.SUT;
 using Hardened.Aws.Lambda.EventBridge;
+using Hardened.Aws.Lambda.Runtime.Adapters;
 using Hardened.Aws.Lambda.Sns;
 using Hardened.Aws.Lambda.Sqs;
+using Hardened.IntegrationTests.Events.SUT;
 using Hardened.Shared.Testing.Attributes;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
@@ -22,11 +22,14 @@ namespace Hardened.IntegrationTests.Events.SUT.Tests;
 /// first registered would win.
 /// </para>
 /// </summary>
-public class EventFamilyTests {
-
+public class EventFamilyTests
+{
     [HardenedTest]
     public async Task ANotificationReachesTheTopicHandler(
-        EventsTestApp.Topics topics, [Mock] ITriggerLog log) {
+        EventsTestApp.Topics topics,
+        [Mock] ITriggerLog log
+    )
+    {
         await topics.OrderEvents(new Order { Id = "t-1" });
 
         log.Received().Record("topic:t-1");
@@ -38,7 +41,10 @@ public class EventFamilyTests {
     /// </summary>
     [HardenedTest]
     public async Task AScheduledInvocationReachesTheTimerHandler(
-        EventsTestApp.Timers timers, [Mock] ITriggerLog log) {
+        EventsTestApp.Timers timers,
+        [Mock] ITriggerLog log
+    )
+    {
         await timers.NightlyRollup();
 
         log.Received().Record("timer:nightly-rollup");
@@ -46,7 +52,10 @@ public class EventFamilyTests {
 
     [HardenedTest]
     public async Task AQueueMessageReachesTheQueueHandler(
-        EventsTestApp.Queues queues, [Mock] ITriggerLog log) {
+        EventsTestApp.Queues queues,
+        [Mock] ITriggerLog log
+    )
+    {
         await queues.OrdersNew(new Order { Id = "q-1" });
 
         log.Received().Record("queue:q-1");
@@ -61,12 +70,15 @@ public class EventFamilyTests {
         EventsTestApp.Queues queues,
         EventsTestApp.Topics topics,
         EventsTestApp.Timers timers,
-        [Mock] ITriggerLog log) {
+        [Mock] ITriggerLog log
+    )
+    {
         await queues.OrdersNew(new Order { Id = "q-1" });
         await topics.OrderEvents(new Order { Id = "t-1" });
         await timers.NightlyRollup();
 
-        Received.InOrder(() => {
+        Received.InOrder(() =>
+        {
             log.Record("queue:q-1");
             log.Record("topic:t-1");
             log.Record("timer:nightly-rollup");
@@ -78,7 +90,8 @@ public class EventFamilyTests {
     /// registering it twice would put two adapters in front of every EventBridge payload.
     /// </summary>
     [HardenedTest]
-    public void FourTriggersRegisterThreeAdapters(IServiceProvider provider) {
+    public void FourTriggersRegisterThreeAdapters(IServiceProvider provider)
+    {
         var adapters = provider.GetServices<IPayloadAdapter>().ToArray();
 
         Assert.Equal(3, adapters.Length);

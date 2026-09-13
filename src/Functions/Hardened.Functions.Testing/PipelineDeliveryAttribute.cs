@@ -17,8 +17,13 @@ namespace Hardened.Functions.Testing;
 /// attributes ran in.
 /// </remarks>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
-public sealed class PipelineDeliveryAttribute : Attribute, ITestServiceSetupAttribute {
-    public void SetupServiceCollection(ITestMethodContext testMethod, IServiceCollection serviceCollection) {
+public sealed class PipelineDeliveryAttribute : Attribute, ITestServiceSetupAttribute
+{
+    public void SetupServiceCollection(
+        ITestMethodContext testMethod,
+        IServiceCollection serviceCollection
+    )
+    {
         serviceCollection.RemoveAll<ITriggerDelivery>();
         serviceCollection.AddSingleton<ITriggerDelivery, PipelineDelivery>();
     }

@@ -32,9 +32,12 @@ namespace Hardened.Requests.Abstract.Responses;
 /// </para>
 /// </remarks>
 [AttributeUsage(
-    AttributeTargets.Class | AttributeTargets.Interface, AllowMultiple = true, Inherited = true)]
-public sealed class AnswersStatusAttribute : Attribute {
-
+    AttributeTargets.Class | AttributeTargets.Interface,
+    AllowMultiple = true,
+    Inherited = true
+)]
+public sealed class AnswersStatusAttribute : Attribute
+{
     /// <summary>A status carrying a body.</summary>
     /// <param name="status">The status an operation carrying this declaration may be answered with.</param>
     /// <param name="body">
@@ -42,7 +45,8 @@ public sealed class AnswersStatusAttribute : Attribute {
     /// <c>ExceptionToModelConverter</c>, so that is <c>ErrorModel</c> for all of them; a declaration
     /// answering something else names it here.
     /// </param>
-    public AnswersStatusAttribute(int status, Type body) {
+    public AnswersStatusAttribute(int status, Type body)
+    {
         Status = status;
         Body = body;
     }
@@ -56,7 +60,8 @@ public sealed class AnswersStatusAttribute : Attribute {
     /// publish nothing at all - which is what <c>[ConditionalGet]</c> did.
     /// </remarks>
     /// <param name="status">The status an operation carrying this declaration may be answered with.</param>
-    public AnswersStatusAttribute(int status) {
+    public AnswersStatusAttribute(int status)
+    {
         Status = status;
     }
 

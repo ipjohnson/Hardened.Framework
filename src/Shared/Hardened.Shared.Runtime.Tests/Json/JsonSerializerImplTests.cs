@@ -18,29 +18,34 @@ namespace Hardened.Shared.Runtime.Tests.Json;
 /// Every call closed a stream it did not own. Fixed 2026-08-12.
 /// </para>
 /// </summary>
-public class JsonSerializerImplTests {
-
+public class JsonSerializerImplTests
+{
     private record Payload(string Name, int Count);
 
-    private static IJsonSerializer Serializer() {
+    private static IJsonSerializer Serializer()
+    {
         var configuration = Substitute.For<IJsonSerializerConfiguration>();
 
-        configuration.Options.Returns(new System.Text.Json.JsonSerializerOptions {
-            PropertyNameCaseInsensitive = true
-        });
+        configuration.Options.Returns(
+            new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+        );
 
         return new JsonSerializerImpl(
             Options.Create(configuration),
-            System.Array.Empty<System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver>());
+            System.Array.Empty<System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver>()
+        );
     }
 
     private static MemoryStream Json(string json) => new(Encoding.UTF8.GetBytes(json));
 
     [Fact]
-    public async Task DeserializeReadsTheStream() {
+    public async Task DeserializeReadsTheStream()
+    {
         var payload = await Serializer()
             .DeserializeAsync<Payload>(
-                Json("""{"name":"first","count":2}"""), TestContext.Current.CancellationToken);
+                Json("""{"name":"first","count":2}"""),
+                TestContext.Current.CancellationToken
+            );
 
         Assert.Equal("first", payload.Name);
         Assert.Equal(2, payload.Count);
@@ -51,7 +56,8 @@ public class JsonSerializerImplTests {
     /// this — see <see cref="ReturningADeserializedStreamToThePoolDoesNotThrow"/>.
     /// </summary>
     [Fact]
-    public async Task DeserializeLeavesTheStreamOpen() {
+    public async Task DeserializeLeavesTheStreamOpen()
+    {
         var stream = Json("""{"name":"first","count":2}""");
 
         await Serializer().DeserializeAsync<Payload>(stream, TestContext.Current.CancellationToken);
@@ -67,16 +73,25 @@ public class JsonSerializerImplTests {
     /// <c>Position</c> on return, which throws on a closed stream.
     /// </summary>
     [Fact]
-    public async Task ReturningADeserializedStreamToThePoolDoesNotThrow() {
+    public async Task ReturningADeserializedStreamToThePoolDoesNotThrow()
+    {
         var pool = new MemoryStreamPool();
         var serializer = Serializer();
 
-        using (var reservation = pool.Get()) {
-            await serializer.SerializeAsync(reservation.Item, new Payload("pooled", 1), cancellationToken: TestContext.Current.CancellationToken);
+        using (var reservation = pool.Get())
+        {
+            await serializer.SerializeAsync(
+                reservation.Item,
+                new Payload("pooled", 1),
+                cancellationToken: TestContext.Current.CancellationToken
+            );
 
             reservation.Item.Position = 0;
 
-            var payload = await serializer.DeserializeAsync<Payload>(reservation.Item, TestContext.Current.CancellationToken);
+            var payload = await serializer.DeserializeAsync<Payload>(
+                reservation.Item,
+                TestContext.Current.CancellationToken
+            );
 
             Assert.Equal("pooled", payload.Name);
         }
@@ -94,7 +109,8 @@ public class JsonSerializerImplTests {
     /// that was incidental, not the API.
     /// </remarks>
     [Fact]
-    public void DeserializeReadsAString() {
+    public void DeserializeReadsAString()
+    {
         var payload = Serializer().Deserialize<Payload>("""{"name":"from-string","count":7}""");
 
         Assert.Equal("from-string", payload.Name);
@@ -106,17 +122,24 @@ public class JsonSerializerImplTests {
     /// an exception rather than handing back a null it declared non-nullable.
     /// </summary>
     [Fact]
-    public void DeserializingALiteralNullThrows() {
+    public void DeserializingALiteralNullThrows()
+    {
         var exception = Assert.Throws<Exception>(() => Serializer().Deserialize<Payload>("null"));
 
         Assert.Equal("Deserialized to null instance", exception.Message);
     }
 
     [Fact]
-    public async Task SerializeLeavesTheStreamOpen() {
+    public async Task SerializeLeavesTheStreamOpen()
+    {
         var stream = new MemoryStream();
 
-        await Serializer().SerializeAsync(stream, new Payload("written", 3), cancellationToken: TestContext.Current.CancellationToken);
+        await Serializer()
+            .SerializeAsync(
+                stream,
+                new Payload("written", 3),
+                cancellationToken: TestContext.Current.CancellationToken
+            );
 
         Assert.True(stream.CanWrite, "SerializeAsync closed a stream it was handed");
         Assert.True(stream.Length > 0);
@@ -124,23 +147,38 @@ public class JsonSerializerImplTests {
 
     /// <summary>Two payloads written to one stream, which only works if the first left it open.</summary>
     [Fact]
-    public async Task AStreamCanBeReusedAcrossCalls() {
+    public async Task AStreamCanBeReusedAcrossCalls()
+    {
         var serializer = Serializer();
         var stream = new MemoryStream();
 
-        await serializer.SerializeAsync(stream, new Payload("first", 1), cancellationToken: TestContext.Current.CancellationToken);
+        await serializer.SerializeAsync(
+            stream,
+            new Payload("first", 1),
+            cancellationToken: TestContext.Current.CancellationToken
+        );
 
         stream.Position = 0;
 
-        var first = await serializer.DeserializeAsync<Payload>(stream, TestContext.Current.CancellationToken);
+        var first = await serializer.DeserializeAsync<Payload>(
+            stream,
+            TestContext.Current.CancellationToken
+        );
 
         stream.SetLength(0);
 
-        await serializer.SerializeAsync(stream, new Payload("second", 2), cancellationToken: TestContext.Current.CancellationToken);
+        await serializer.SerializeAsync(
+            stream,
+            new Payload("second", 2),
+            cancellationToken: TestContext.Current.CancellationToken
+        );
 
         stream.Position = 0;
 
-        var second = await serializer.DeserializeAsync<Payload>(stream, TestContext.Current.CancellationToken);
+        var second = await serializer.DeserializeAsync<Payload>(
+            stream,
+            TestContext.Current.CancellationToken
+        );
 
         Assert.Equal("first", first.Name);
         Assert.Equal("second", second.Name);

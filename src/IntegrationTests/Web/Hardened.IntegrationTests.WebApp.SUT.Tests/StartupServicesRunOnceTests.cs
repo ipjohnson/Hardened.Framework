@@ -1,8 +1,8 @@
-using DependencyModules.Testing.Attributes;
 using System.Reflection;
+using DependencyModules.Testing.Attributes;
 using Hardened.Shared.Runtime.Application;
-using Microsoft.Extensions.DependencyInjection;
 using Hardened.Web.Runtime.Responses;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Tests;
 
@@ -17,11 +17,12 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests;
 /// and <c>CorsFilter</c> twice, behind the handler, and the authorization filter provider was
 /// registered twice. Nothing asserted on it, so nothing noticed.
 /// </remarks>
-public class StartupServicesRunOnceTests {
-
+public class StartupServicesRunOnceTests
+{
     [HardenedTest]
     [CountingStartupService]
-    public void AStartupServiceRunsOncePerContainer(CountingStartupService service) {
+    public void AStartupServiceRunsOncePerContainer(CountingStartupService service)
+    {
         Assert.Equal(1, service.Runs);
     }
 
@@ -36,7 +37,10 @@ public class StartupServicesRunOnceTests {
     [HardenedTest]
     [CountingStartupService]
     public async Task TheChainAnswersAfterTheOneRun(
-        CountingStartupService service, [Shared] ITestWebApp app) {
+        CountingStartupService service,
+        [Shared] ITestWebApp app
+    )
+    {
         var response = await app.Get("/verbs/item/1");
 
         response.Assert.Ok();
@@ -45,12 +49,14 @@ public class StartupServicesRunOnceTests {
     }
 }
 
-public sealed class CountingStartupService : IStartupService {
+public sealed class CountingStartupService : IStartupService
+{
     private int _runs;
 
     public int Runs => _runs;
 
-    public Task<bool> Startup(IServiceProvider rootProvider) {
+    public Task<bool> Startup(IServiceProvider rootProvider)
+    {
         Interlocked.Increment(ref _runs);
 
         return Task.FromResult(true);
@@ -59,14 +65,20 @@ public sealed class CountingStartupService : IStartupService {
 
 /// <summary>Registers <see cref="CountingStartupService"/> beside the application's own startup services.</summary>
 [AttributeUsage(AttributeTargets.Method)]
-public sealed class CountingStartupServiceAttribute : Attribute, IHardenedTestDependencyRegistrationAttribute {
-
+public sealed class CountingStartupServiceAttribute
+    : Attribute,
+        IHardenedTestDependencyRegistrationAttribute
+{
     public void RegisterDependencies(
         AttributeCollection attributeCollection,
         MethodInfo methodInfo,
         IHardenedEnvironment environment,
-        IServiceCollection serviceCollection) {
+        IServiceCollection serviceCollection
+    )
+    {
         serviceCollection.AddSingleton<CountingStartupService>();
-        serviceCollection.AddSingleton<IStartupService>(sp => sp.GetRequiredService<CountingStartupService>());
+        serviceCollection.AddSingleton<IStartupService>(sp =>
+            sp.GetRequiredService<CountingStartupService>()
+        );
     }
 }

@@ -24,8 +24,8 @@ namespace Hardened.Smithy.BuildTask.Tests;
 /// into it.
 /// </para>
 /// </remarks>
-public class SmithyResponseSetTests {
-
+public class SmithyResponseSetTests
+{
     /// <summary>
     /// A CLI-built AST, like every other fixture here - this parser reads the JSON the Smithy CLI
     /// produces rather than .smithy source, which is also why a version mismatch fails the build.
@@ -33,18 +33,20 @@ public class SmithyResponseSetTests {
     private static string Fixture() =>
         File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "response-set.json"));
 
-    private static OperationModel Operation(string operationId) {
+    private static OperationModel Operation(string operationId)
+    {
         var model = SmithySpecParser.Parse(Fixture(), "response-set", new List<string>());
 
         Assert.NotNull(model);
 
-        return model!.Services
-            .SelectMany(service => service.Operations)
+        return model!
+            .Services.SelectMany(service => service.Operations)
             .Single(operation => operation.OperationId == operationId);
     }
 
     [Fact]
-    public void Parse_RecordsTheOperationsSuccessAsADeclaredResponse() {
+    public void Parse_RecordsTheOperationsSuccessAsADeclaredResponse()
+    {
         var success = Assert.Single(Operation("GetTodo").SuccessResponses);
 
         Assert.Equal(200, success.StatusCode);
@@ -56,7 +58,8 @@ public class SmithyResponseSetTests {
     /// null, which is what makes the emitted case a bodyless one rather than an absent one.
     /// </summary>
     [Fact]
-    public void Parse_RecordsABodylessSuccess() {
+    public void Parse_RecordsABodylessSuccess()
+    {
         var success = Assert.Single(Operation("RemoveTodo").SuccessResponses);
 
         Assert.Equal(204, success.StatusCode);
@@ -68,9 +71,13 @@ public class SmithyResponseSetTests {
     /// the list the response set is built from. Two places, one answer.
     /// </summary>
     [Fact]
-    public void Parse_AgreesWithTheFlatSuccessStatus() {
+    public void Parse_AgreesWithTheFlatSuccessStatus()
+    {
         var operation = Operation("RemoveTodo");
 
-        Assert.Equal(operation.SuccessStatusCode, Assert.Single(operation.SuccessResponses).StatusCode);
+        Assert.Equal(
+            operation.SuccessStatusCode,
+            Assert.Single(operation.SuccessResponses).StatusCode
+        );
     }
 }

@@ -22,28 +22,44 @@ namespace Hardened.Web.Runtime.Tests.Responses;
 /// by hand would repeat the error it is meant to catch.
 /// </para>
 /// </remarks>
-public class ResponseArityTests {
-
+public class ResponseArityTests
+{
     /// <summary>
     /// A distinct type per position, so a conversion that reached the wrong constructor would put
     /// the wrong value in <c>Value</c> rather than an indistinguishable one.
     /// </summary>
-    private static readonly Type[] CaseTypes = [
-        typeof(string), typeof(int), typeof(bool), typeof(Guid),
-        typeof(TimeSpan), typeof(Uri), typeof(NotFound), typeof(Conflict)
+    private static readonly Type[] CaseTypes =
+    [
+        typeof(string),
+        typeof(int),
+        typeof(bool),
+        typeof(Guid),
+        typeof(TimeSpan),
+        typeof(Uri),
+        typeof(NotFound),
+        typeof(Conflict),
     ];
 
-    private static readonly object[] CaseValues = [
-        "case-one", 2, true, Guid.NewGuid(),
-        TimeSpan.FromSeconds(5), new Uri("https://example.test"),
-        new NotFound("todo"), new Conflict("clash")
+    private static readonly object[] CaseValues =
+    [
+        "case-one",
+        2,
+        true,
+        Guid.NewGuid(),
+        TimeSpan.FromSeconds(5),
+        new Uri("https://example.test"),
+        new NotFound("todo"),
+        new Conflict("clash"),
     ];
 
-    public static TheoryData<int> Arities {
-        get {
+    public static TheoryData<int> Arities
+    {
+        get
+        {
             var data = new TheoryData<int>();
 
-            for (var arity = 2; arity <= 8; arity++) {
+            for (var arity = 2; arity <= 8; arity++)
+            {
                 data.Add(arity);
             }
 
@@ -52,10 +68,14 @@ public class ResponseArityTests {
     }
 
     private static Type Closed(int arity) =>
-        typeof(Response<,>).Assembly
-            .GetExportedTypes()
-            .Single(t => t.IsGenericTypeDefinition &&
-                         t.Name == "Response`" + arity.ToString(System.Globalization.CultureInfo.InvariantCulture))
+        typeof(Response<,>)
+            .Assembly.GetExportedTypes()
+            .Single(t =>
+                t.IsGenericTypeDefinition
+                && t.Name
+                    == "Response`"
+                        + arity.ToString(System.Globalization.CultureInfo.InvariantCulture)
+            )
             .MakeGenericType(CaseTypes.Take(arity).ToArray());
 
     /// <summary>
@@ -64,18 +84,19 @@ public class ResponseArityTests {
     /// </summary>
     [Theory]
     [MemberData(nameof(Arities))]
-    public void EveryConstructorHoldsTheCaseItWasGiven(int arity) {
+    public void EveryConstructorHoldsTheCaseItWasGiven(int arity)
+    {
         var closed = Closed(arity);
 
-        for (var position = 0; position < arity; position++) {
-            var constructor = closed.GetConstructors()
+        for (var position = 0; position < arity; position++)
+        {
+            var constructor = closed
+                .GetConstructors()
                 .Single(c => c.GetParameters()[0].ParameterType == CaseTypes[position]);
 
             var response = constructor.Invoke([CaseValues[position]]);
 
-            Assert.Equal(
-                CaseValues[position],
-                closed.GetProperty("Value")!.GetValue(response));
+            Assert.Equal(CaseValues[position], closed.GetProperty("Value")!.GetValue(response));
         }
     }
 
@@ -85,20 +106,22 @@ public class ResponseArityTests {
     /// </summary>
     [Theory]
     [MemberData(nameof(Arities))]
-    public void EveryConversionReachesItsOwnCase(int arity) {
+    public void EveryConversionReachesItsOwnCase(int arity)
+    {
         var closed = Closed(arity);
 
-        for (var position = 0; position < arity; position++) {
+        for (var position = 0; position < arity; position++)
+        {
             var conversion = closed
                 .GetMethods(BindingFlags.Public | BindingFlags.Static)
-                .Single(m => m.Name == "op_Implicit" &&
-                             m.GetParameters()[0].ParameterType == CaseTypes[position]);
+                .Single(m =>
+                    m.Name == "op_Implicit"
+                    && m.GetParameters()[0].ParameterType == CaseTypes[position]
+                );
 
             var response = conversion.Invoke(null, [CaseValues[position]]);
 
-            Assert.Equal(
-                CaseValues[position],
-                closed.GetProperty("Value")!.GetValue(response));
+            Assert.Equal(CaseValues[position], closed.GetProperty("Value")!.GetValue(response));
         }
     }
 
@@ -108,11 +131,14 @@ public class ResponseArityTests {
     /// </summary>
     [Theory]
     [MemberData(nameof(Arities))]
-    public void ToStringRendersTheCaseAtEveryArity(int arity) {
+    public void ToStringRendersTheCaseAtEveryArity(int arity)
+    {
         var closed = Closed(arity);
 
-        for (var position = 0; position < arity; position++) {
-            var constructor = closed.GetConstructors()
+        for (var position = 0; position < arity; position++)
+        {
+            var constructor = closed
+                .GetConstructors()
                 .Single(c => c.GetParameters()[0].ParameterType == CaseTypes[position]);
 
             var response = constructor.Invoke([CaseValues[position]]);
@@ -126,7 +152,8 @@ public class ResponseArityTests {
     /// </summary>
     [Theory]
     [MemberData(nameof(Arities))]
-    public void DefaultHasNoCaseAtEveryArity(int arity) {
+    public void DefaultHasNoCaseAtEveryArity(int arity)
+    {
         var closed = Closed(arity);
         var uninitialised = Activator.CreateInstance(closed);
 

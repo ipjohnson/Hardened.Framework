@@ -3,8 +3,8 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Hardened.Web.Runtime.Compression;
 
-public static class CompressionServiceCollectionExtensions {
-
+public static class CompressionServiceCollectionExtensions
+{
     /// <summary>
     /// Amends the compression configuration.
     /// </summary>
@@ -25,18 +25,26 @@ public static class CompressionServiceCollectionExtensions {
     /// the request-side cap applies to every application.
     /// </remarks>
     public static IServiceCollection ConfigureCompression(
-        this IServiceCollection services, Action<CompressionConfiguration> configure) {
+        this IServiceCollection services,
+        Action<CompressionConfiguration> configure
+    )
+    {
         services.AddSingleton<IConfigurationPackage>(
             new SimpleConfigurationPackage(
                 Array.Empty<IConfigurationValueProvider>(),
-                new IConfigurationValueAmender[] {
+                new IConfigurationValueAmender[]
+                {
                     new SimpleConfigurationValueAmender<CompressionConfiguration>(
-                        (_, configuration) => {
+                        (_, configuration) =>
+                        {
                             configure(configuration);
 
                             return configuration;
-                        })
-                }));
+                        }
+                    ),
+                }
+            )
+        );
 
         return services;
     }

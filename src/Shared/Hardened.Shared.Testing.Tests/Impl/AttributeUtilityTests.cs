@@ -25,14 +25,19 @@ namespace Hardened.Shared.Testing.Tests.Impl;
 /// anywhere.
 /// </para>
 /// </remarks>
-public class AttributeUtilityTests {
-
+public class AttributeUtilityTests
+{
     [AttributeUsage(
-        AttributeTargets.Assembly | AttributeTargets.Class | AttributeTargets.Method |
-        AttributeTargets.Parameter,
-        AllowMultiple = true)]
-    public sealed class ScopedAttribute : Attribute {
-        public ScopedAttribute(string scope) {
+        AttributeTargets.Assembly
+            | AttributeTargets.Class
+            | AttributeTargets.Method
+            | AttributeTargets.Parameter,
+        AllowMultiple = true
+    )]
+    public sealed class ScopedAttribute : Attribute
+    {
+        public ScopedAttribute(string scope)
+        {
             Scope = scope;
         }
 
@@ -50,7 +55,8 @@ public class AttributeUtilityTests {
     #region fixtures
 
     [Scoped("class")]
-    private class DecoratedClass {
+    private class DecoratedClass
+    {
         [Scoped("method")]
         public void MethodDeclares([Scoped("parameter")] string value) { }
 
@@ -60,7 +66,8 @@ public class AttributeUtilityTests {
         public void ClassOnly(string value) { }
     }
 
-    private class PlainClass {
+    private class PlainClass
+    {
         public void AssemblyOnly(string value) { }
 
         public void NoneAnywhere(string value) { }
@@ -71,76 +78,101 @@ public class AttributeUtilityTests {
     #region GetTestAttribute — narrowest wins
 
     [Fact]
-    public void AMethodPrefersItsOwnDeclaration() {
+    public void AMethodPrefersItsOwnDeclaration()
+    {
         Assert.Equal(
             "method",
             MethodOf(typeof(DecoratedClass), nameof(DecoratedClass.MethodOnly))
-                .GetTestAttribute<ScopedAttribute>()!.Scope);
+                .GetTestAttribute<ScopedAttribute>()!
+                .Scope
+        );
     }
 
     [Fact]
-    public void AMethodFallsBackToItsClass() {
+    public void AMethodFallsBackToItsClass()
+    {
         Assert.Equal(
             "class",
             MethodOf(typeof(DecoratedClass), nameof(DecoratedClass.ClassOnly))
-                .GetTestAttribute<ScopedAttribute>()!.Scope);
+                .GetTestAttribute<ScopedAttribute>()!
+                .Scope
+        );
     }
 
     [Fact]
-    public void AMethodFallsBackToTheAssembly() {
+    public void AMethodFallsBackToTheAssembly()
+    {
         Assert.Equal(
             "assembly",
             MethodOf(typeof(PlainClass), nameof(PlainClass.AssemblyOnly))
-                .GetTestAttribute<ScopedAttribute>()!.Scope);
+                .GetTestAttribute<ScopedAttribute>()!
+                .Scope
+        );
     }
 
     [Fact]
-    public void AnAttributeDeclaredNowhereIsNull() {
+    public void AnAttributeDeclaredNowhereIsNull()
+    {
         Assert.Null(
             MethodOf(typeof(PlainClass), nameof(PlainClass.NoneAnywhere))
-                .GetTestAttribute<UnrelatedAttribute>());
+                .GetTestAttribute<UnrelatedAttribute>()
+        );
     }
 
     /// <summary>
     /// The parameter is narrower than the method it is on.
     /// </summary>
     [Fact]
-    public void AParameterPrefersItsOwnDeclaration() {
+    public void AParameterPrefersItsOwnDeclaration()
+    {
         Assert.Equal(
             "parameter",
             ParameterOf(typeof(DecoratedClass), nameof(DecoratedClass.MethodDeclares))
-                .GetTestAttribute<ScopedAttribute>()!.Scope);
+                .GetTestAttribute<ScopedAttribute>()!
+                .Scope
+        );
     }
 
     [Fact]
-    public void AParameterFallsBackToItsMethod() {
+    public void AParameterFallsBackToItsMethod()
+    {
         Assert.Equal(
             "method",
             ParameterOf(typeof(DecoratedClass), nameof(DecoratedClass.MethodOnly))
-                .GetTestAttribute<ScopedAttribute>()!.Scope);
+                .GetTestAttribute<ScopedAttribute>()!
+                .Scope
+        );
     }
 
     [Fact]
-    public void AParameterFallsBackToItsClass() {
+    public void AParameterFallsBackToItsClass()
+    {
         Assert.Equal(
             "class",
             ParameterOf(typeof(DecoratedClass), nameof(DecoratedClass.ClassOnly))
-                .GetTestAttribute<ScopedAttribute>()!.Scope);
+                .GetTestAttribute<ScopedAttribute>()!
+                .Scope
+        );
     }
 
     [Fact]
-    public void AParameterFallsBackToTheAssembly() {
+    public void AParameterFallsBackToTheAssembly()
+    {
         Assert.Equal(
             "assembly",
             ParameterOf(typeof(PlainClass), nameof(PlainClass.AssemblyOnly))
-                .GetTestAttribute<ScopedAttribute>()!.Scope);
+                .GetTestAttribute<ScopedAttribute>()!
+                .Scope
+        );
     }
 
     [Fact]
-    public void AParameterAttributeDeclaredNowhereIsNull() {
+    public void AParameterAttributeDeclaredNowhereIsNull()
+    {
         Assert.Null(
             ParameterOf(typeof(PlainClass), nameof(PlainClass.NoneAnywhere))
-                .GetTestAttribute<UnrelatedAttribute>());
+                .GetTestAttribute<UnrelatedAttribute>()
+        );
     }
 
     #endregion
@@ -152,7 +184,8 @@ public class AttributeUtilityTests {
     /// class's — that is what lets a class declare a shared mock and a method add one.
     /// </summary>
     [Fact]
-    public void EveryScopeContributesToAMethodsAttributes() {
+    public void EveryScopeContributesToAMethodsAttributes()
+    {
         var scopes = MethodOf(typeof(DecoratedClass), nameof(DecoratedClass.MethodOnly))
             .GetTestAttributes<ScopedAttribute>()
             .Select(attribute => attribute.Scope)
@@ -167,7 +200,8 @@ public class AttributeUtilityTests {
     /// wins, and it has to know which end it is being handed.
     /// </summary>
     [Fact]
-    public void TheAccumulatedOrderIsWidestFirst() {
+    public void TheAccumulatedOrderIsWidestFirst()
+    {
         var scopes = ParameterOf(typeof(DecoratedClass), nameof(DecoratedClass.MethodDeclares))
             .GetTestAttributes<ScopedAttribute>()
             .Select(attribute => attribute.Scope)
@@ -179,11 +213,14 @@ public class AttributeUtilityTests {
         Assert.Equal(
             scopes[^1],
             ParameterOf(typeof(DecoratedClass), nameof(DecoratedClass.MethodDeclares))
-                .GetTestAttribute<ScopedAttribute>()!.Scope);
+                .GetTestAttribute<ScopedAttribute>()!
+                .Scope
+        );
     }
 
     [Fact]
-    public void AParameterWithNoDeclarationStillCollectsTheWiderScopes() {
+    public void AParameterWithNoDeclarationStillCollectsTheWiderScopes()
+    {
         var scopes = ParameterOf(typeof(DecoratedClass), nameof(DecoratedClass.ClassOnly))
             .GetTestAttributes<ScopedAttribute>()
             .Select(attribute => attribute.Scope)
@@ -193,23 +230,28 @@ public class AttributeUtilityTests {
     }
 
     [Fact]
-    public void AMethodOnAnUndecoratedClassStillCollectsTheAssembly() {
+    public void AMethodOnAnUndecoratedClassStillCollectsTheAssembly()
+    {
         Assert.Equal(
             ["assembly"],
             MethodOf(typeof(PlainClass), nameof(PlainClass.AssemblyOnly))
                 .GetTestAttributes<ScopedAttribute>()
-                .Select(attribute => attribute.Scope));
+                .Select(attribute => attribute.Scope)
+        );
     }
 
     [Fact]
-    public void AnAttributeDeclaredNowhereCollectsNothing() {
+    public void AnAttributeDeclaredNowhereCollectsNothing()
+    {
         Assert.Empty(
             MethodOf(typeof(PlainClass), nameof(PlainClass.NoneAnywhere))
-                .GetTestAttributes<UnrelatedAttribute>());
+                .GetTestAttributes<UnrelatedAttribute>()
+        );
 
         Assert.Empty(
             ParameterOf(typeof(PlainClass), nameof(PlainClass.NoneAnywhere))
-                .GetTestAttributes<UnrelatedAttribute>());
+                .GetTestAttributes<UnrelatedAttribute>()
+        );
     }
 
     /// <summary>
@@ -217,10 +259,12 @@ public class AttributeUtilityTests {
     /// one — <c>OfType</c> and the <c>is T</c> filter are what keep the two families honest.
     /// </summary>
     [Fact]
-    public void AnUnrelatedAttributeInTheSameScopeIsIgnored() {
+    public void AnUnrelatedAttributeInTheSameScopeIsIgnored()
+    {
         Assert.Empty(
             MethodOf(typeof(DecoratedClass), nameof(DecoratedClass.MethodOnly))
-                .GetTestAttributes<UnrelatedAttribute>());
+                .GetTestAttributes<UnrelatedAttribute>()
+        );
     }
 
     #endregion

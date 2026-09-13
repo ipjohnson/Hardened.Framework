@@ -24,8 +24,8 @@ namespace Hardened.Requests.Abstract.Responses;
 /// duality <see cref="HttpStatusAttribute"/> already documents for the response types themselves.
 /// </para>
 /// </remarks>
-public interface IStatusCode {
-
+public interface IStatusCode
+{
     /// <summary>The status a response marked with this type is written with.</summary>
     static abstract int Status { get; }
 }

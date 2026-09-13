@@ -24,18 +24,20 @@ namespace Hardened.Validation.SourceGenerator.Tests;
 /// for.
 /// </para>
 /// </remarks>
-public class ValidationGeneratorTests {
-
-    private static readonly Type[] Anchors = [
-        typeof(HardenedModuleAttribute),   // Hardened.Shared.Runtime
-        typeof(IValidatorFor<object>)      // ValidationModules.Runtime
+public class ValidationGeneratorTests
+{
+    private static readonly Type[] Anchors =
+    [
+        typeof(HardenedModuleAttribute), // Hardened.Shared.Runtime
+        typeof(IValidatorFor<object>), // ValidationModules.Runtime
     ];
 
     private static GeneratorResult Run(params (string Name, string Source)[] sources) =>
         GeneratorTestHarness.Run(
             sources.ToDictionary(pair => pair.Name, pair => pair.Source),
             [new HardenedValidationGenerator()],
-            Anchors);
+            Anchors
+        );
 
     private const string EntryPoint = """
         using Hardened.Shared.Runtime.Attributes;
@@ -46,25 +48,30 @@ public class ValidationGeneratorTests {
         public partial class Application { }
         """;
 
-    private static string Model(string ns = "TestApp.Models", string name = "Customer") => $$"""
-        using ValidationModules.Constraints;
+    private static string Model(string ns = "TestApp.Models", string name = "Customer") =>
+        $$"""
+            using ValidationModules.Constraints;
 
-        namespace {{ns}};
+            namespace {{ns}};
 
-        public class {{name}} {
-            [Required]
-            [StringLength(Min = 1, Max = 64)]
-            public string Name { get; set; } = "";
-        }
-        """;
+            public class {{name}} {
+                [Required]
+                [StringLength(Min = 1, Max = 64)]
+                public string Name { get; set; } = "";
+            }
+            """;
 
     private static string RegistrationFile(GeneratorResult result) =>
-        result.GeneratedSources
-            .Single(pair => pair.Key.Contains("ValidationModule", StringComparison.Ordinal))
+        result
+            .GeneratedSources.Single(pair =>
+                pair.Key.Contains("ValidationModule", StringComparison.Ordinal)
+            )
             .Value;
 
     private static bool HasRegistrationFile(GeneratorResult result) =>
-        result.GeneratedSources.Any(pair => pair.Key.Contains("ValidationModule", StringComparison.Ordinal));
+        result.GeneratedSources.Any(pair =>
+            pair.Key.Contains("ValidationModule", StringComparison.Ordinal)
+        );
 
     #region the marker
 
@@ -73,20 +80,24 @@ public class ValidationGeneratorTests {
     /// this one produces and would otherwise name types nobody declares.
     /// </summary>
     [Fact]
-    public void TheMarkerIsEmittedEvenForAnEmptyCompilation() {
+    public void TheMarkerIsEmittedEvenForAnEmptyCompilation()
+    {
         var result = Run(("Empty.cs", "namespace TestApp; public class Nothing { }"));
 
         Assert.Contains(
             result.GeneratedSources,
-            pair => pair.Key.Contains("Marker", StringComparison.Ordinal));
+            pair => pair.Key.Contains("Marker", StringComparison.Ordinal)
+        );
 
         result.AssertNoErrors();
     }
 
     [Fact]
-    public void TheMarkerDeclaresTheTypeOtherGeneratorsLookFor() {
-        var marker = Run(("Empty.cs", "namespace TestApp; public class Nothing { }")).GeneratedSources
-            .Single(pair => pair.Key.Contains("Marker", StringComparison.Ordinal)).Value;
+    public void TheMarkerDeclaresTheTypeOtherGeneratorsLookFor()
+    {
+        var marker = Run(("Empty.cs", "namespace TestApp; public class Nothing { }"))
+            .GeneratedSources.Single(pair => pair.Key.Contains("Marker", StringComparison.Ordinal))
+            .Value;
 
         Assert.Contains("namespace Hardened.Validation.Generated", marker);
         Assert.Contains("class ValidationGeneratorMarker", marker);
@@ -98,9 +109,11 @@ public class ValidationGeneratorTests {
     /// to keep working.
     /// </summary>
     [Fact]
-    public void TheMarkerNeedsNoLanguageFeatures() {
-        var marker = Run(("Empty.cs", "namespace TestApp; public class Nothing { }")).GeneratedSources
-            .Single(pair => pair.Key.Contains("Marker", StringComparison.Ordinal)).Value;
+    public void TheMarkerNeedsNoLanguageFeatures()
+    {
+        var marker = Run(("Empty.cs", "namespace TestApp; public class Nothing { }"))
+            .GeneratedSources.Single(pair => pair.Key.Contains("Marker", StringComparison.Ordinal))
+            .Value;
 
         Assert.DoesNotContain("#nullable", marker);
         Assert.DoesNotContain("namespace Hardened.Validation.Generated;", marker);
@@ -112,25 +125,33 @@ public class ValidationGeneratorTests {
     #region validators
 
     [Fact]
-    public void AConstrainedModelGetsAValidator() {
+    public void AConstrainedModelGetsAValidator()
+    {
         var result = Run(("Entry.cs", EntryPoint), ("Customer.cs", Model()));
 
         Assert.Contains(
             result.GeneratedSources,
-            pair => pair.Key.Contains("Customer", StringComparison.Ordinal));
+            pair => pair.Key.Contains("Customer", StringComparison.Ordinal)
+        );
 
         result.AssertNoErrors();
     }
 
     [Fact]
-    public void AnUnconstrainedModelGetsNoValidator() {
+    public void AnUnconstrainedModelGetsNoValidator()
+    {
         var result = Run(
             ("Entry.cs", EntryPoint),
-            ("Plain.cs", "namespace TestApp.Models; public class Plain { public string Name { get; set; } = \"\"; }"));
+            (
+                "Plain.cs",
+                "namespace TestApp.Models; public class Plain { public string Name { get; set; } = \"\"; }"
+            )
+        );
 
         Assert.DoesNotContain(
             result.GeneratedSources,
-            pair => pair.Key.Contains("Plain", StringComparison.Ordinal));
+            pair => pair.Key.Contains("Plain", StringComparison.Ordinal)
+        );
 
         result.AssertNoErrors();
     }
@@ -140,10 +161,13 @@ public class ValidationGeneratorTests {
     /// so a model annotated either way produces a validator.
     /// </summary>
     [Fact]
-    public void DataAnnotationsProduceAValidatorToo() {
+    public void DataAnnotationsProduceAValidatorToo()
+    {
         var result = Run(
             ("Entry.cs", EntryPoint),
-            ("Annotated.cs", """
+            (
+                "Annotated.cs",
+                """
                 using System.ComponentModel.DataAnnotations;
 
                 namespace TestApp.Models;
@@ -153,11 +177,14 @@ public class ValidationGeneratorTests {
                     [StringLength(64, MinimumLength = 1)]
                     public string Name { get; set; } = "";
                 }
-                """));
+                """
+            )
+        );
 
         Assert.Contains(
             result.GeneratedSources,
-            pair => pair.Key.Contains("Annotated", StringComparison.Ordinal));
+            pair => pair.Key.Contains("Annotated", StringComparison.Ordinal)
+        );
 
         result.AssertNoErrors();
     }
@@ -168,28 +195,41 @@ public class ValidationGeneratorTests {
     /// declaring a <c>Customer</c> is the case that has to work.
     /// </summary>
     [Fact]
-    public void TwoModelsOfTheSameNameInDifferentNamespacesBothGetValidators() {
+    public void TwoModelsOfTheSameNameInDifferentNamespacesBothGetValidators()
+    {
         var result = Run(
             ("Entry.cs", EntryPoint),
             ("First.cs", Model("TestApp.First")),
-            ("Second.cs", Model("TestApp.Second")));
+            ("Second.cs", Model("TestApp.Second"))
+        );
 
         Assert.Equal(
             2,
-            result.GeneratedSources.Count(pair => pair.Key.Contains("Customer", StringComparison.Ordinal)));
+            result.GeneratedSources.Count(pair =>
+                pair.Key.Contains("Customer", StringComparison.Ordinal)
+            )
+        );
 
         result.AssertNoErrors();
     }
 
     [Fact]
-    public void EveryConstrainedModelGetsItsOwnValidator() {
+    public void EveryConstrainedModelGetsItsOwnValidator()
+    {
         var result = Run(
             ("Entry.cs", EntryPoint),
             ("Customer.cs", Model(name: "Customer")),
-            ("Order.cs", Model(name: "Order")));
+            ("Order.cs", Model(name: "Order"))
+        );
 
-        Assert.Contains(result.GeneratedSources, pair => pair.Key.Contains("Customer", StringComparison.Ordinal));
-        Assert.Contains(result.GeneratedSources, pair => pair.Key.Contains("Order", StringComparison.Ordinal));
+        Assert.Contains(
+            result.GeneratedSources,
+            pair => pair.Key.Contains("Customer", StringComparison.Ordinal)
+        );
+        Assert.Contains(
+            result.GeneratedSources,
+            pair => pair.Key.Contains("Order", StringComparison.Ordinal)
+        );
 
         result.AssertNoErrors();
     }
@@ -213,7 +253,8 @@ public class ValidationGeneratorTests {
     /// </para>
     /// </remarks>
     [Fact]
-    public void AModelExtendedInASecondFileStillGetsItsValidator() {
+    public void AModelExtendedInASecondFileStillGetsItsValidator()
+    {
         const string generatedHalf = """
             using ValidationModules.Constraints;
 
@@ -238,14 +279,16 @@ public class ValidationGeneratorTests {
         var result = Run(
             ("Entry.cs", EntryPoint),
             ("Part.g.cs", generatedHalf),
-            ("Part.cs", userHalf));
+            ("Part.cs", userHalf)
+        );
 
         Assert.Empty(result.DuplicateHintNames);
         Assert.Empty(result.GeneratorExceptions);
 
         Assert.Single(
             result.GeneratedSources,
-            pair => pair.Key.Contains("PartValidator", StringComparison.Ordinal));
+            pair => pair.Key.Contains("PartValidator", StringComparison.Ordinal)
+        );
 
         // The registration file is the tell for the wider blast radius: it is emitted from the
         // collected validators, so a generator that died before reaching it leaves none at all.
@@ -259,7 +302,8 @@ public class ValidationGeneratorTests {
     /// rather than one loser.
     /// </summary>
     [Fact]
-    public void AModelDeclaredInThreeFilesStillGetsExactlyOneValidator() {
+    public void AModelDeclaredInThreeFilesStillGetsExactlyOneValidator()
+    {
         const string part = """
             using ValidationModules.Constraints;
 
@@ -274,13 +318,21 @@ public class ValidationGeneratorTests {
         var result = Run(
             ("Entry.cs", EntryPoint),
             ("Part.g.cs", part),
-            ("Part.Display.cs", "namespace TestApp.Models;\n\npublic partial class Part {\n    public int Length => Sku.Length;\n}"),
-            ("Part.Equality.cs", "namespace TestApp.Models;\n\npublic partial class Part {\n    public bool IsBlank => Sku.Length == 0;\n}"));
+            (
+                "Part.Display.cs",
+                "namespace TestApp.Models;\n\npublic partial class Part {\n    public int Length => Sku.Length;\n}"
+            ),
+            (
+                "Part.Equality.cs",
+                "namespace TestApp.Models;\n\npublic partial class Part {\n    public bool IsBlank => Sku.Length == 0;\n}"
+            )
+        );
 
         Assert.Empty(result.DuplicateHintNames);
         Assert.Single(
             result.GeneratedSources,
-            pair => pair.Key.Contains("PartValidator", StringComparison.Ordinal));
+            pair => pair.Key.Contains("PartValidator", StringComparison.Ordinal)
+        );
 
         result.AssertNoErrors();
     }
@@ -321,7 +373,8 @@ public class ValidationGeneratorTests {
     /// </para>
     /// </remarks>
     [Fact]
-    public void ARequiredValueTypeMemberIsReported() {
+    public void ARequiredValueTypeMemberIsReported()
+    {
         var result = Run(("Entry.cs", EntryPoint), ("Part.cs", RequiredValueType));
 
         var warning = Assert.Single(Warnings(result, "HRDV003"));
@@ -335,10 +388,13 @@ public class ValidationGeneratorTests {
     /// value is indistinguishable from a chosen one.
     /// </summary>
     [Fact]
-    public void ARequiredEnumMemberIsReported() {
+    public void ARequiredEnumMemberIsReported()
+    {
         var result = Run(
             ("Entry.cs", EntryPoint),
-            ("Part.cs", """
+            (
+                "Part.cs",
+                """
                 using ValidationModules.Constraints;
 
                 namespace TestApp.Models;
@@ -349,7 +405,9 @@ public class ValidationGeneratorTests {
                     [Required]
                     public Category Category { get; set; }
                 }
-                """));
+                """
+            )
+        );
 
         Assert.Single(Warnings(result, "HRDV003"));
     }
@@ -359,11 +417,16 @@ public class ValidationGeneratorTests {
     /// </summary>
     [Theory]
     [InlineData("[Required]\n    public required int Category { get; set; }")]
-    [InlineData("[Required]\n    [System.Text.Json.Serialization.JsonRequired]\n    public int Category { get; set; }")]
-    public void AMemberTheDeserializerCanRejectIsNotReported(string declaration) {
+    [InlineData(
+        "[Required]\n    [System.Text.Json.Serialization.JsonRequired]\n    public int Category { get; set; }"
+    )]
+    public void AMemberTheDeserializerCanRejectIsNotReported(string declaration)
+    {
         var result = Run(
             ("Entry.cs", EntryPoint),
-            ("Part.cs", $$"""
+            (
+                "Part.cs",
+                $$"""
                 using ValidationModules.Constraints;
 
                 namespace TestApp.Models;
@@ -371,7 +434,9 @@ public class ValidationGeneratorTests {
                 public class Part {
                     {{declaration}}
                 }
-                """));
+                """
+            )
+        );
 
         Assert.Empty(Warnings(result, "HRDV003"));
     }
@@ -384,10 +449,13 @@ public class ValidationGeneratorTests {
     [Theory]
     [InlineData("public string Sku { get; set; } = \"\";")]
     [InlineData("public int? Category { get; set; }")]
-    public void AMemberThatCanBeNullIsNotReported(string declaration) {
+    public void AMemberThatCanBeNullIsNotReported(string declaration)
+    {
         var result = Run(
             ("Entry.cs", EntryPoint),
-            ("Part.cs", $$"""
+            (
+                "Part.cs",
+                $$"""
                 using ValidationModules.Constraints;
 
                 namespace TestApp.Models;
@@ -396,7 +464,9 @@ public class ValidationGeneratorTests {
                     [Required]
                     {{declaration}}
                 }
-                """));
+                """
+            )
+        );
 
         Assert.Empty(Warnings(result, "HRDV003"));
     }
@@ -406,10 +476,13 @@ public class ValidationGeneratorTests {
     /// about.
     /// </summary>
     [Fact]
-    public void AnUnconstrainedValueTypeMemberIsNotReported() {
+    public void AnUnconstrainedValueTypeMemberIsNotReported()
+    {
         var result = Run(
             ("Entry.cs", EntryPoint),
-            ("Part.cs", """
+            (
+                "Part.cs",
+                """
                 using ValidationModules.Constraints;
 
                 namespace TestApp.Models;
@@ -420,7 +493,9 @@ public class ValidationGeneratorTests {
 
                     public int Category { get; set; }
                 }
-                """));
+                """
+            )
+        );
 
         Assert.Empty(Warnings(result, "HRDV003"));
     }
@@ -430,10 +505,13 @@ public class ValidationGeneratorTests {
     /// vocabularies and this has to agree with it.
     /// </summary>
     [Fact]
-    public void TheDataAnnotationsSpellingIsReportedToo() {
+    public void TheDataAnnotationsSpellingIsReportedToo()
+    {
         var result = Run(
             ("Entry.cs", EntryPoint),
-            ("Part.cs", """
+            (
+                "Part.cs",
+                """
                 using System.ComponentModel.DataAnnotations;
 
                 namespace TestApp.Models;
@@ -442,7 +520,9 @@ public class ValidationGeneratorTests {
                     [Required]
                     public int Category { get; set; }
                 }
-                """));
+                """
+            )
+        );
 
         Assert.Single(Warnings(result, "HRDV003"));
     }
@@ -456,7 +536,8 @@ public class ValidationGeneratorTests {
     /// module emitted next to the entry point would sit there unreferenced.
     /// </summary>
     [Fact]
-    public void ValidatorsAreRegisteredIntoTheEntryPoint() {
+    public void ValidatorsAreRegisteredIntoTheEntryPoint()
+    {
         var result = Run(("Entry.cs", EntryPoint), ("Customer.cs", Model()));
 
         var registration = RegistrationFile(result);
@@ -472,10 +553,12 @@ public class ValidationGeneratorTests {
     /// guard the routing table carries.
     /// </summary>
     [Fact]
-    public void TheRegistrationFieldIsHeldAgainstTrimming() {
+    public void TheRegistrationFieldIsHeldAgainstTrimming()
+    {
         Assert.Contains(
             "DynamicDependency",
-            RegistrationFile(Run(("Entry.cs", EntryPoint), ("Customer.cs", Model()))));
+            RegistrationFile(Run(("Entry.cs", EntryPoint), ("Customer.cs", Model())))
+        );
     }
 
     /// <summary>
@@ -483,8 +566,11 @@ public class ValidationGeneratorTests {
     /// its nested types as constructor parameters, so the container has to build it.
     /// </summary>
     [Fact]
-    public void AValidatorIsRegisteredAsASingletonClosedGeneric() {
-        var registration = RegistrationFile(Run(("Entry.cs", EntryPoint), ("Customer.cs", Model())));
+    public void AValidatorIsRegisteredAsASingletonClosedGeneric()
+    {
+        var registration = RegistrationFile(
+            Run(("Entry.cs", EntryPoint), ("Customer.cs", Model()))
+        );
 
         Assert.Contains("AddSingleton<global::ValidationModules.IValidatorFor<", registration);
         Assert.Contains("TestApp.Models.Customer>", registration);
@@ -495,22 +581,30 @@ public class ValidationGeneratorTests {
     /// incremental compile into a diff.
     /// </summary>
     [Fact]
-    public void RegistrationsAreOrderedDeterministically() {
-        var first = RegistrationFile(Run(
-            ("Entry.cs", EntryPoint),
-            ("B.cs", Model("TestApp.Bravo")),
-            ("A.cs", Model("TestApp.Alpha"))));
+    public void RegistrationsAreOrderedDeterministically()
+    {
+        var first = RegistrationFile(
+            Run(
+                ("Entry.cs", EntryPoint),
+                ("B.cs", Model("TestApp.Bravo")),
+                ("A.cs", Model("TestApp.Alpha"))
+            )
+        );
 
-        var second = RegistrationFile(Run(
-            ("Entry.cs", EntryPoint),
-            ("A.cs", Model("TestApp.Alpha")),
-            ("B.cs", Model("TestApp.Bravo"))));
+        var second = RegistrationFile(
+            Run(
+                ("Entry.cs", EntryPoint),
+                ("A.cs", Model("TestApp.Alpha")),
+                ("B.cs", Model("TestApp.Bravo"))
+            )
+        );
 
         Assert.Equal(first, second);
         Assert.True(
-            first.IndexOf("Alpha", StringComparison.Ordinal) <
-            first.IndexOf("Bravo", StringComparison.Ordinal),
-            "registrations are not ordered by namespace");
+            first.IndexOf("Alpha", StringComparison.Ordinal)
+                < first.IndexOf("Bravo", StringComparison.Ordinal),
+            "registrations are not ordered by namespace"
+        );
     }
 
     /// <summary>
@@ -518,10 +612,15 @@ public class ValidationGeneratorTests {
     /// emitted on every build of every project that has none.
     /// </summary>
     [Fact]
-    public void NoValidatorsMeansNoRegistrationFile() {
+    public void NoValidatorsMeansNoRegistrationFile()
+    {
         var result = Run(
             ("Entry.cs", EntryPoint),
-            ("Plain.cs", "namespace TestApp.Models; public class Plain { public string Name { get; set; } = \"\"; }"));
+            (
+                "Plain.cs",
+                "namespace TestApp.Models; public class Plain { public string Name { get; set; } = \"\"; }"
+            )
+        );
 
         Assert.False(HasRegistrationFile(result));
 
@@ -533,12 +632,14 @@ public class ValidationGeneratorTests {
     /// developer's either way. Only the registration needs somewhere to land.
     /// </summary>
     [Fact]
-    public void AValidatorIsEmittedEvenWithNoEntryPoint() {
+    public void AValidatorIsEmittedEvenWithNoEntryPoint()
+    {
         var result = Run(("Customer.cs", Model()));
 
         Assert.Contains(
             result.GeneratedSources,
-            pair => pair.Key.Contains("Customer", StringComparison.Ordinal));
+            pair => pair.Key.Contains("Customer", StringComparison.Ordinal)
+        );
 
         Assert.False(HasRegistrationFile(result));
 
@@ -546,12 +647,14 @@ public class ValidationGeneratorTests {
     }
 
     [Fact]
-    public void TheRegistrationFileIsNamedForTheEntryPoint() {
+    public void TheRegistrationFileIsNamedForTheEntryPoint()
+    {
         var result = Run(("Entry.cs", EntryPoint), ("Customer.cs", Model()));
 
         Assert.Contains(
             result.GeneratedSources,
-            pair => pair.Key.Contains("Application.ValidationModule", StringComparison.Ordinal));
+            pair => pair.Key.Contains("Application.ValidationModule", StringComparison.Ordinal)
+        );
     }
 
     #endregion
@@ -563,28 +666,29 @@ public class ValidationGeneratorTests {
     /// A parent that validates, a child that declares constraints, and the one attribute that
     /// connects them.
     /// </summary>
-    private static string Nested(string property) => $$"""
-        using System.Collections.Generic;
-        using ValidationModules.Constraints;
+    private static string Nested(string property) =>
+        $$"""
+            using System.Collections.Generic;
+            using ValidationModules.Constraints;
 
-        namespace TestApp.Models;
+            namespace TestApp.Models;
 
-        public class PriceTier {
-            [Pattern("^[A-Z]+$")]
-            public string Code { get; set; } = "";
+            public class PriceTier {
+                [Pattern("^[A-Z]+$")]
+                public string Code { get; set; } = "";
 
-            [Range(1, 1000)]
-            public int Price { get; set; }
-        }
+                [Range(1, 1000)]
+                public int Price { get; set; }
+            }
 
-        public class CreateEvent {
-            [Required]
-            [StringLength(Min = 1, Max = 200)]
-            public string Title { get; set; } = "";
+            public class CreateEvent {
+                [Required]
+                [StringLength(Min = 1, Max = 200)]
+                public string Title { get; set; } = "";
 
-            {{property}}
-        }
-        """;
+                {{property}}
+            }
+            """;
 
     /// <summary>
     /// CS-11. Removing <c>[ValidateNested]</c> from the collection stopped every constraint on
@@ -593,10 +697,12 @@ public class ValidationGeneratorTests {
     /// that no longer reaches them.
     /// </summary>
     [Fact]
-    public void ACollectionWithoutValidateNestedIsReported() {
+    public void ACollectionWithoutValidateNestedIsReported()
+    {
         var result = Run(
             ("Entry.cs", EntryPoint),
-            ("Models.cs", Nested("public List<PriceTier> PriceTiers { get; set; } = new();")));
+            ("Models.cs", Nested("public List<PriceTier> PriceTiers { get; set; } = new();"))
+        );
 
         var warning = Assert.Single(Warnings(result, "HRDV004"));
 
@@ -610,22 +716,28 @@ public class ValidationGeneratorTests {
     /// The message names both fixes, because not descending is sometimes what was meant.
     /// </summary>
     [Fact]
-    public void TheMessageNamesTheSuppressionAsWellAsTheFix() {
+    public void TheMessageNamesTheSuppressionAsWellAsTheFix()
+    {
         var result = Run(
             ("Entry.cs", EntryPoint),
-            ("Models.cs", Nested("public List<PriceTier> PriceTiers { get; set; } = new();")));
+            ("Models.cs", Nested("public List<PriceTier> PriceTiers { get; set; } = new();"))
+        );
 
         Assert.Contains("HRDV004", Assert.Single(Warnings(result, "HRDV004")).GetMessage());
     }
 
     [Fact]
-    public void AWarningRatherThanAnError() {
+    public void AWarningRatherThanAnError()
+    {
         var result = Run(
             ("Entry.cs", EntryPoint),
-            ("Models.cs", Nested("public List<PriceTier> PriceTiers { get; set; } = new();")));
+            ("Models.cs", Nested("public List<PriceTier> PriceTiers { get; set; } = new();"))
+        );
 
         Assert.Equal(
-            DiagnosticSeverity.Warning, Assert.Single(Warnings(result, "HRDV004")).Severity);
+            DiagnosticSeverity.Warning,
+            Assert.Single(Warnings(result, "HRDV004")).Severity
+        );
     }
 
     /// <summary>Every shape a descent can take, and every one of them stops without the attribute.</summary>
@@ -635,7 +747,8 @@ public class ValidationGeneratorTests {
     [InlineData("public List<PriceTier> Tiers { get; set; } = new();", "element")]
     [InlineData("public IReadOnlyList<PriceTier> Tiers { get; } = [];", "element")]
     [InlineData("public Dictionary<string, PriceTier> Tiers { get; set; } = new();", "element")]
-    public void EveryNestedShapeIsReported(string property, string kind) {
+    public void EveryNestedShapeIsReported(string property, string kind)
+    {
         var result = Run(("Entry.cs", EntryPoint), ("Models.cs", Nested(property)));
 
         Assert.Contains(kind, Assert.Single(Warnings(result, "HRDV004")).GetMessage());
@@ -645,7 +758,8 @@ public class ValidationGeneratorTests {
     [Theory]
     [InlineData("[ValidateNested]\n    public PriceTier Tier { get; set; } = new();")]
     [InlineData("[ValidateNested]\n    public List<PriceTier> Tiers { get; set; } = new();")]
-    public void DeclaringValidateNestedIsNotReported(string property) {
+    public void DeclaringValidateNestedIsNotReported(string property)
+    {
         var result = Run(("Entry.cs", EntryPoint), ("Models.cs", Nested(property)));
 
         Assert.Empty(Warnings(result, "HRDV004"));
@@ -655,10 +769,13 @@ public class ValidationGeneratorTests {
 
     /// <summary>A child with nothing to check has nothing to become unreachable.</summary>
     [Fact]
-    public void AChildWithNoConstraintsIsNotReported() {
+    public void AChildWithNoConstraintsIsNotReported()
+    {
         var result = Run(
             ("Entry.cs", EntryPoint),
-            ("Models.cs", """
+            (
+                "Models.cs",
+                """
                 using ValidationModules.Constraints;
 
                 namespace TestApp.Models;
@@ -673,7 +790,9 @@ public class ValidationGeneratorTests {
 
                     public Address Home { get; set; } = new();
                 }
-                """));
+                """
+            )
+        );
 
         Assert.Empty(Warnings(result, "HRDV004"));
     }
@@ -684,10 +803,13 @@ public class ValidationGeneratorTests {
     /// nothing was never going to descend anywhere.
     /// </summary>
     [Fact]
-    public void AParentThatConstrainsNothingIsNotReported() {
+    public void AParentThatConstrainsNothingIsNotReported()
+    {
         var result = Run(
             ("Entry.cs", EntryPoint),
-            ("Models.cs", """
+            (
+                "Models.cs",
+                """
                 using System.Collections.Generic;
                 using ValidationModules.Constraints;
 
@@ -701,16 +823,18 @@ public class ValidationGeneratorTests {
                 public class SeedData {
                     public IReadOnlyList<PriceTier> Tiers { get; } = [];
                 }
-                """));
+                """
+            )
+        );
 
         Assert.Empty(Warnings(result, "HRDV004"));
     }
 
     /// <summary>A string is a sequence of characters, not a nested model.</summary>
     [Fact]
-    public void AStringMemberIsNotADescent() {
-        var result = Run(
-            ("Entry.cs", EntryPoint), ("Customer.cs", Model()));
+    public void AStringMemberIsNotADescent()
+    {
+        var result = Run(("Entry.cs", EntryPoint), ("Customer.cs", Model()));
 
         Assert.Empty(Warnings(result, "HRDV004"));
     }
@@ -719,10 +843,13 @@ public class ValidationGeneratorTests {
     /// A type that holds one of itself would otherwise report against its own constraints.
     /// </summary>
     [Fact]
-    public void ASelfReferenceIsNotReported() {
+    public void ASelfReferenceIsNotReported()
+    {
         var result = Run(
             ("Entry.cs", EntryPoint),
-            ("Models.cs", """
+            (
+                "Models.cs",
+                """
                 using ValidationModules.Constraints;
 
                 namespace TestApp.Models;
@@ -733,17 +860,22 @@ public class ValidationGeneratorTests {
 
                     public Node? Parent { get; set; }
                 }
-                """));
+                """
+            )
+        );
 
         Assert.Empty(Warnings(result, "HRDV004"));
     }
 
     /// <summary>The DataAnnotations vocabulary reaches the same place, on both sides.</summary>
     [Fact]
-    public void DataAnnotationsConstraintsCountAsConstraints() {
+    public void DataAnnotationsConstraintsCountAsConstraints()
+    {
         var result = Run(
             ("Entry.cs", EntryPoint),
-            ("Models.cs", """
+            (
+                "Models.cs",
+                """
                 using System.Collections.Generic;
                 using System.ComponentModel.DataAnnotations;
 
@@ -760,7 +892,9 @@ public class ValidationGeneratorTests {
 
                     public List<Line> Lines { get; set; } = new();
                 }
-                """));
+                """
+            )
+        );
 
         Assert.Single(Warnings(result, "HRDV004"));
     }
@@ -771,10 +905,13 @@ public class ValidationGeneratorTests {
     /// walks the base chain for rather than listing names.
     /// </summary>
     [Fact]
-    public void ANamingAttributeIsNotAConstraint() {
+    public void ANamingAttributeIsNotAConstraint()
+    {
         var result = Run(
             ("Entry.cs", EntryPoint),
-            ("Models.cs", """
+            (
+                "Models.cs",
+                """
                 using System.Collections.Generic;
                 using System.ComponentModel.DataAnnotations;
 
@@ -791,7 +928,9 @@ public class ValidationGeneratorTests {
 
                     public List<Line> Lines { get; set; } = new();
                 }
-                """));
+                """
+            )
+        );
 
         Assert.Empty(Warnings(result, "HRDV004"));
     }
@@ -801,24 +940,29 @@ public class ValidationGeneratorTests {
     /// vocabularies, and the registration that wires them together.
     /// </summary>
     [Fact]
-    public void TheWholeArrangementCompiles() {
+    public void TheWholeArrangementCompiles()
+    {
         Run(
-            ("Entry.cs", EntryPoint),
-            ("Customer.cs", Model("TestApp.Models", "Customer")),
-            ("Order.cs", Model("TestApp.Orders", "Order")),
-            ("Annotated.cs", """
-                using System.ComponentModel.DataAnnotations;
+                ("Entry.cs", EntryPoint),
+                ("Customer.cs", Model("TestApp.Models", "Customer")),
+                ("Order.cs", Model("TestApp.Orders", "Order")),
+                (
+                    "Annotated.cs",
+                    """
+                    using System.ComponentModel.DataAnnotations;
 
-                namespace TestApp.Annotated;
+                    namespace TestApp.Annotated;
 
-                public class Person {
-                    [Required]
-                    public string Name { get; set; } = "";
+                    public class Person {
+                        [Required]
+                        public string Name { get; set; } = "";
 
-                    [Range(0, 150)]
-                    public int Age { get; set; }
-                }
-                """))
+                        [Range(0, 150)]
+                        public int Age { get; set; }
+                    }
+                    """
+                )
+            )
             .AssertNoErrors();
     }
 }

@@ -10,20 +10,24 @@ namespace Hardened.Web.Runtime.Tests.CacheControl;
 /// The directives are what a cache reads, so the exact string matters more than usual: an extra
 /// comma or a missing <c>public</c> changes what a CDN does with the response.
 /// </remarks>
-public class CacheControlHeaderTests {
-
+public class CacheControlHeaderTests
+{
     [Fact]
-    public void TheDefaultCombinationIsAPublicMaxAge() {
+    public void TheDefaultCombinationIsAPublicMaxAge()
+    {
         Assert.Equal(
             "public, max-age=0",
-            CacheControlHeader.Format(CacheControlEnum.MaxAge | CacheControlEnum.Public, 0));
+            CacheControlHeader.Format(CacheControlEnum.MaxAge | CacheControlEnum.Public, 0)
+        );
     }
 
     [Fact]
-    public void MaxAgeCarriesItsValue() {
+    public void MaxAgeCarriesItsValue()
+    {
         Assert.Equal(
             "public, max-age=86400",
-            CacheControlHeader.Format(CacheControlEnum.MaxAge | CacheControlEnum.Public, 86400));
+            CacheControlHeader.Format(CacheControlEnum.MaxAge | CacheControlEnum.Public, 86400)
+        );
     }
 
     /// <summary>
@@ -31,12 +35,14 @@ public class CacheControlHeaderTests {
     /// <c>no-store</c> on its own would still emit a <c>max-age=0</c> nobody asked for.
     /// </summary>
     [Fact]
-    public void MaxAgeIsOmittedWhenItsFlagIsNotSet() {
+    public void MaxAgeIsOmittedWhenItsFlagIsNotSet()
+    {
         Assert.Equal("no-store", CacheControlHeader.Format(CacheControlEnum.NoStore, 3600));
     }
 
     [Fact]
-    public void EveryDirectiveHasARendering() {
+    public void EveryDirectiveHasARendering()
+    {
         Assert.Equal("no-cache", CacheControlHeader.Format(CacheControlEnum.NoCache, 0));
         Assert.Equal("no-store", CacheControlHeader.Format(CacheControlEnum.NoStore, 0));
         Assert.Equal("no-transform", CacheControlHeader.Format(CacheControlEnum.NoTransform, 0));
@@ -49,10 +55,12 @@ public class CacheControlHeaderTests {
     /// cannot stop both being set. The more restrictive one is the safer reading.
     /// </summary>
     [Fact]
-    public void PrivateWinsOverPublicWhenBothAreSet() {
+    public void PrivateWinsOverPublicWhenBothAreSet()
+    {
         Assert.Equal(
             "private",
-            CacheControlHeader.Format(CacheControlEnum.Public | CacheControlEnum.Private, 0));
+            CacheControlHeader.Format(CacheControlEnum.Public | CacheControlEnum.Private, 0)
+        );
     }
 
     /// <summary>
@@ -60,25 +68,33 @@ public class CacheControlHeaderTests {
     /// author declared, not to decide which half was meant.
     /// </summary>
     [Fact]
-    public void ContradictoryDirectivesAreBothRendered() {
+    public void ContradictoryDirectivesAreBothRendered()
+    {
         Assert.Equal(
             "no-store, max-age=60",
-            CacheControlHeader.Format(CacheControlEnum.NoStore | CacheControlEnum.MaxAge, 60));
+            CacheControlHeader.Format(CacheControlEnum.NoStore | CacheControlEnum.MaxAge, 60)
+        );
     }
 
     [Fact]
-    public void ImmutableIsAppended() {
+    public void ImmutableIsAppended()
+    {
         Assert.Equal(
             "public, max-age=31536000, immutable",
             CacheControlHeader.Format(
-                CacheControlEnum.MaxAge | CacheControlEnum.Public, 31536000, immutable: true));
+                CacheControlEnum.MaxAge | CacheControlEnum.Public,
+                31536000,
+                immutable: true
+            )
+        );
     }
 
     /// <summary>
     /// No directive means no header, rather than an empty one.
     /// </summary>
     [Fact]
-    public void NoDirectivesRendersNothing() {
+    public void NoDirectivesRendersNothing()
+    {
         Assert.Null(CacheControlHeader.Format(default, 0));
     }
 
@@ -87,11 +103,16 @@ public class CacheControlHeaderTests {
     /// be combined in.
     /// </summary>
     [Fact]
-    public void DirectiveOrderDoesNotDependOnFlagOrder() {
+    public void DirectiveOrderDoesNotDependOnFlagOrder()
+    {
         var one = CacheControlHeader.Format(
-            CacheControlEnum.NoTransform | CacheControlEnum.MaxAge | CacheControlEnum.Private, 30);
+            CacheControlEnum.NoTransform | CacheControlEnum.MaxAge | CacheControlEnum.Private,
+            30
+        );
         var other = CacheControlHeader.Format(
-            CacheControlEnum.Private | CacheControlEnum.NoTransform | CacheControlEnum.MaxAge, 30);
+            CacheControlEnum.Private | CacheControlEnum.NoTransform | CacheControlEnum.MaxAge,
+            30
+        );
 
         Assert.Equal("private, max-age=30, no-transform", one);
         Assert.Equal(one, other);

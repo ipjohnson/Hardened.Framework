@@ -8,7 +8,8 @@ namespace Hardened.IntegrationTests.OpenApi.SUT;
 /// Something a handler might reasonably inherit - shared helpers, a logger, a base for a family of
 /// services. It does nothing here except occupy the first position in the base list.
 /// </summary>
-public abstract class StoreServiceBase {
+public abstract class StoreServiceBase
+{
     protected static string Format(string name, string address) => $"{name}, {address}";
 }
 
@@ -24,11 +25,16 @@ public abstract class StoreServiceBase {
 /// searched by name now, and <c>StoreServiceImplTests</c> drives the route to prove it.
 /// </remarks>
 [Handler]
-public class StoreServiceImpl : StoreServiceBase, IStoreService {
-    public Task<List<Store>> ListStores() {
-        return Task.FromResult(new List<Store> {
-            new Store("1", "Downtown", Format("Downtown", "123 Main St")),
-            new Store("2", "Mall", Format("Mall", "456 Oak Ave"))
-        });
+public class StoreServiceImpl : StoreServiceBase, IStoreService
+{
+    public Task<List<Store>> ListStores()
+    {
+        return Task.FromResult(
+            new List<Store>
+            {
+                new Store("1", "Downtown", Format("Downtown", "123 Main St")),
+                new Store("2", "Mall", Format("Mall", "456 Oak Ave")),
+            }
+        );
     }
 }

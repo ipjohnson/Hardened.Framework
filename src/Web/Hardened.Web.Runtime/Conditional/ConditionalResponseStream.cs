@@ -1,8 +1,8 @@
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
-using Microsoft.Extensions.Primitives;
 using Hardened.Web.Runtime.Headers;
 using Hardened.Web.Runtime.Responses;
+using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Web.Runtime.Conditional;
 
@@ -37,7 +37,8 @@ namespace Hardened.Web.Runtime.Conditional;
 /// the testing response and the API Gateway host read to decide whether a response has started.
 /// </para>
 /// </remarks>
-internal sealed class ConditionalResponseStream : Stream {
+internal sealed class ConditionalResponseStream : Stream
+{
     private readonly IExecutionResponse _response;
     private readonly Stream _transport;
     private readonly StringValues _ifNoneMatch;
@@ -50,7 +51,9 @@ internal sealed class ConditionalResponseStream : Stream {
         IExecutionResponse response,
         Stream transport,
         StringValues ifNoneMatch,
-        StringValues ifModifiedSince) {
+        StringValues ifModifiedSince
+    )
+    {
         _response = response;
         _transport = transport;
         _ifNoneMatch = ifNoneMatch;
@@ -65,7 +68,8 @@ internal sealed class ConditionalResponseStream : Stream {
 
     public override long Length => _accepted;
 
-    public override long Position {
+    public override long Position
+    {
         get => _accepted;
         set => throw new NotSupportedException();
     }
@@ -79,25 +83,31 @@ internal sealed class ConditionalResponseStream : Stream {
     /// False when the chain threw. The bytes are still written, since the error path serialized
     /// into the same buffer, but nothing is tagged and no 304 is decided underneath a failure.
     /// </param>
-    public async ValueTask CompleteAsync(bool decide, CancellationToken cancellationToken) {
+    public async ValueTask CompleteAsync(bool decide, CancellationToken cancellationToken)
+    {
         // Decided on the first write: the transport has the bytes, or nothing does.
-        if (_target != null && _buffer == null) {
+        if (_target != null && _buffer == null)
+        {
             return;
         }
 
-        if (decide) {
-            if (Storable() && !HasTag()) {
+        if (decide)
+        {
+            if (Storable() && !HasTag())
+            {
                 _response.Headers[KnownHeaders.ETag] = EntityTagHeader.ForContent(Held());
             }
 
-            if (NotModified()) {
+            if (NotModified())
+            {
                 Discard();
 
                 return;
             }
         }
 
-        if (_buffer != null) {
+        if (_buffer != null)
+        {
             _buffer.Position = 0;
 
             await _buffer.CopyToAsync(_transport, cancellationToken);
@@ -109,39 +119,51 @@ internal sealed class ConditionalResponseStream : Stream {
     public override Task FlushAsync(CancellationToken cancellationToken) =>
         Target().FlushAsync(cancellationToken);
 
-    public override void Write(byte[] buffer, int offset, int count) {
+    public override void Write(byte[] buffer, int offset, int count)
+    {
         Target().Write(buffer, offset, count);
 
         _accepted += count;
     }
 
-    public override void Write(ReadOnlySpan<byte> buffer) {
+    public override void Write(ReadOnlySpan<byte> buffer)
+    {
         Target().Write(buffer);
 
         _accepted += buffer.Length;
     }
 
-    public override void WriteByte(byte value) {
+    public override void WriteByte(byte value)
+    {
         Target().WriteByte(value);
 
         _accepted++;
     }
 
     public override async Task WriteAsync(
-        byte[] buffer, int offset, int count, CancellationToken cancellationToken) {
+        byte[] buffer,
+        int offset,
+        int count,
+        CancellationToken cancellationToken
+    )
+    {
         await Target().WriteAsync(buffer.AsMemory(offset, count), cancellationToken);
 
         _accepted += count;
     }
 
     public override async ValueTask WriteAsync(
-        ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default) {
+        ReadOnlyMemory<byte> buffer,
+        CancellationToken cancellationToken = default
+    )
+    {
         await Target().WriteAsync(buffer, cancellationToken);
 
         _accepted += buffer.Length;
     }
 
-    public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+    public override int Read(byte[] buffer, int offset, int count) =>
+        throw new NotSupportedException();
 
     public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
 
@@ -150,15 +172,18 @@ internal sealed class ConditionalResponseStream : Stream {
     /// <summary>
     /// Where the bytes go, chosen once.
     /// </summary>
-    private Stream Target() {
-        if (_target != null) {
+    private Stream Target()
+    {
+        if (_target != null)
+        {
             return _target;
         }
 
         // No validator yet. The bytes are held back so one can be computed over all of them, and
         // the caller's conditionals wait for it. This is the cost of declaring [ConditionalGet] on
         // a handler that writes no tag of its own.
-        if (!HasTag()) {
+        if (!HasTag())
+        {
             return _target = _buffer = new MemoryStream();
         }
 
@@ -168,7 +193,8 @@ internal sealed class ConditionalResponseStream : Stream {
     /// <summary>
     /// Turns the response into a 304 and answers with nowhere for the bytes to go.
     /// </summary>
-    private Stream Discard() {
+    private Stream Discard()
+    {
         var headers = _response.Headers;
 
         _response.Status = 304;
@@ -184,7 +210,9 @@ internal sealed class ConditionalResponseStream : Stream {
     /// The bytes held back so far, or none.
     /// </summary>
     private ReadOnlySpan<byte> Held() =>
-        _buffer == null ? ReadOnlySpan<byte>.Empty : _buffer.GetBuffer().AsSpan(0, (int)_buffer.Length);
+        _buffer == null
+            ? ReadOnlySpan<byte>.Empty
+            : _buffer.GetBuffer().AsSpan(0, (int)_buffer.Length);
 
     private bool HasTag() => _response.Headers.ContainsKey(KnownHeaders.ETag);
 
@@ -197,15 +225,16 @@ internal sealed class ConditionalResponseStream : Stream {
     /// status: a tag on a refusal, or a 304 in place of one, would tell a caller who may not read
     /// the resource what it holds.
     /// </remarks>
-    private bool Storable() =>
-        !_response.Refused && (_response.Status ?? 200) == 200;
+    private bool Storable() => !_response.Refused && (_response.Status ?? 200) == 200;
 
     /// <summary>
     /// Whether the caller holds what this response is about to send. Asked only once the response
     /// carries a tag: found there on the first write, or put there as the chain returned.
     /// </summary>
-    private bool NotModified() {
-        if (!Storable()) {
+    private bool NotModified()
+    {
+        if (!Storable())
+        {
             return false;
         }
 
@@ -213,12 +242,16 @@ internal sealed class ConditionalResponseStream : Stream {
 
         // A Last-Modified nothing can read is a Last-Modified the response does not have.
         DateTimeOffset? lastModified =
-            headers.TryGetValue(KnownHeaders.LastModified, out var modified) &&
-            HttpDate.TryParse(modified, out var when)
+            headers.TryGetValue(KnownHeaders.LastModified, out var modified)
+            && HttpDate.TryParse(modified, out var when)
                 ? when
                 : null;
 
         return Precondition.NotModified(
-            _ifNoneMatch, _ifModifiedSince, headers[KnownHeaders.ETag].ToString(), lastModified);
+            _ifNoneMatch,
+            _ifModifiedSince,
+            headers[KnownHeaders.ETag].ToString(),
+            lastModified
+        );
     }
 }

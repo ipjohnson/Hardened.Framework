@@ -22,14 +22,16 @@ namespace Hardened.Requests.Abstract.Caching;
 /// cache produced, which is what carries <c>Cache-Control</c> and <c>ETag</c> onto a hit.
 /// </para>
 /// </remarks>
-public sealed class CachedResponse {
-
+public sealed class CachedResponse
+{
     public CachedResponse(
         int status,
         string? contentType,
         byte[] body,
         IReadOnlyList<KeyValuePair<string, StringValues>> headers,
-        IReadOnlyList<string>? tags = null) {
+        IReadOnlyList<string>? tags = null
+    )
+    {
         Status = status;
         ContentType = contentType;
         Body = body;

@@ -1,8 +1,8 @@
-using Hardened.Idl;
 using Hardened.Generation;
+using Hardened.Generation.Models;
+using Hardened.Idl;
 using Hardened.Idl.Emitters;
 using Hardened.Idl.Filtering;
-using Hardened.Generation.Models;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
 
@@ -34,8 +34,8 @@ namespace Hardened.Idl.BuildTask;
 /// place a front end can live given the IR is compiled in alongside it. No consumer surface widens.
 /// </para>
 /// </remarks>
-public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task {
-
+public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task
+{
     /// <summary>
     /// The suffix every front end writes its normalised model with.
     /// </summary>
@@ -182,7 +182,11 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task {
     /// </para>
     /// </remarks>
     internal abstract ServiceSpecModel? Parse(
-        string document, string fileName, string specPath, ICollection<string> diagnostics);
+        string document,
+        string fileName,
+        string specPath,
+        ICollection<string> diagnostics
+    );
 
     /// <summary>The diagnostic code prefix this front end reports under - <c>HOAT</c> and friends.</summary>
     /// <remarks>
@@ -201,7 +205,8 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task {
     protected abstract string EmitUnreferencedSchemasProperty { get; }
 
     /// <summary>A task-level default a spec item may override either way.</summary>
-    private static bool Overridden(ITaskItem spec, string name, bool fallback) {
+    private static bool Overridden(ITaskItem spec, string name, bool fallback)
+    {
         var declared = spec.GetMetadata(name);
 
         return string.IsNullOrWhiteSpace(declared)
@@ -218,54 +223,94 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task {
     /// It runs even with no filter, because dropping what nothing references is not filtering: an
     /// unreferenced schema is not part of the description any operation describes.
     /// </remarks>
-    private bool Slice(ITaskItem spec, string path, ServiceSpecModel model, out bool failed) {
+    private bool Slice(ITaskItem spec, string path, ServiceSpecModel model, out bool failed)
+    {
         failed = false;
-        var filter = new SpecSlicer.Filter {
+        var filter = new SpecSlicer.Filter
+        {
             IncludePaths = SplitMetadata(spec, "IncludePaths"),
             ExcludePaths = SplitMetadata(spec, "ExcludePaths"),
-            Tags = SplitMetadata(spec, "Tags")
+            Tags = SplitMetadata(spec, "Tags"),
         };
 
-        if (filter.IsEmpty && EmitUnreferencedSchemas) {
+        if (filter.IsEmpty && EmitUnreferencedSchemas)
+        {
             return false;
         }
 
         var result = SpecSlicer.Apply(model, filter, EmitUnreferencedSchemas);
 
-        if (result.MatchedNothing) {
+        if (result.MatchedNothing)
+        {
             failed = true;
 
-            Log.LogError(null, DiagnosticPrefix + "007", null, path, 0, 0, 0, 0,
-                "The slice of '{0}' selected no operations, so nothing would be generated. " +
-                "IncludePaths='{1}' ExcludePaths='{2}' Tags='{3}'.",
-                path, spec.GetMetadata("IncludePaths"), spec.GetMetadata("ExcludePaths"),
-                spec.GetMetadata("Tags"));
+            Log.LogError(
+                null,
+                DiagnosticPrefix + "007",
+                null,
+                path,
+                0,
+                0,
+                0,
+                0,
+                "The slice of '{0}' selected no operations, so nothing would be generated. "
+                    + "IncludePaths='{1}' ExcludePaths='{2}' Tags='{3}'.",
+                path,
+                spec.GetMetadata("IncludePaths"),
+                spec.GetMetadata("ExcludePaths"),
+                spec.GetMetadata("Tags")
+            );
 
             return true;
         }
 
         // Should be unreachable: the closure keeps everything a surviving operation reaches. A hole
         // in it would otherwise degrade to JsonElement without saying so.
-        foreach (var dangling in result.DanglingReferences) {
-            Log.LogWarning(null, DiagnosticPrefix + "008", null, path, 0, 0, 0, 0,
-                "The slice of '{0}' removed a schema that is still referenced: {1}. The reference " +
-                "degrades to JsonElement.", path, dangling);
+        foreach (var dangling in result.DanglingReferences)
+        {
+            Log.LogWarning(
+                null,
+                DiagnosticPrefix + "008",
+                null,
+                path,
+                0,
+                0,
+                0,
+                0,
+                "The slice of '{0}' removed a schema that is still referenced: {1}. The reference "
+                    + "degrades to JsonElement.",
+                path,
+                dangling
+            );
         }
 
         // Said out loud rather than done quietly: a type someone expected and did not get is the
         // failure mode here, and the count is the first thing they would want to see.
-        if (filter.IsEmpty) {
-            if (result.SchemasDropped > 0) {
-                Log.LogMessage(MessageImportance.Normal,
-                    "'{0}' declares {1} schemas no operation references; they were not generated. " +
-                    "Set {2}=true to generate them.",
-                    path, result.SchemasDropped, EmitUnreferencedSchemasProperty);
+        if (filter.IsEmpty)
+        {
+            if (result.SchemasDropped > 0)
+            {
+                Log.LogMessage(
+                    MessageImportance.Normal,
+                    "'{0}' declares {1} schemas no operation references; they were not generated. "
+                        + "Set {2}=true to generate them.",
+                    path,
+                    result.SchemasDropped,
+                    EmitUnreferencedSchemasProperty
+                );
             }
-        } else {
-            Log.LogMessage(MessageImportance.Normal,
+        }
+        else
+        {
+            Log.LogMessage(
+                MessageImportance.Normal,
                 "Sliced '{0}' to {1} operations ({2} dropped) and {3} schemas ({4} dropped).",
-                path, result.OperationsKept, result.OperationsDropped,
-                result.SchemasKept, result.SchemasDropped);
+                path,
+                result.OperationsKept,
+                result.OperationsDropped,
+                result.SchemasKept,
+                result.SchemasDropped
+            );
         }
 
         // Whether the served document now describes operations nobody implements, which is the
@@ -289,15 +334,28 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task {
     /// original would advertise operations that answer 404 and schemas no handler can produce. Asked
     /// for anyway, it is emitted and said out loud.
     /// </remarks>
-    private string ServedDocument(ITaskItem spec, string path, string document, bool sliced) {
-        if (!Embedded(spec)) {
+    private string ServedDocument(ITaskItem spec, string path, string document, bool sliced)
+    {
+        if (!Embedded(spec))
+        {
             return "";
         }
 
-        if (sliced) {
-            Log.LogWarning(null, DiagnosticPrefix + "009", null, path, 0, 0, 0, 0,
-                "'{0}' is sliced but its document is embedded whole, so the application will serve " +
-                "a description of operations it does not implement.", path);
+        if (sliced)
+        {
+            Log.LogWarning(
+                null,
+                DiagnosticPrefix + "009",
+                null,
+                path,
+                0,
+                0,
+                0,
+                0,
+                "'{0}' is sliced but its document is embedded whole, so the application will serve "
+                    + "a description of operations it does not implement.",
+                path
+            );
         }
 
         return document;
@@ -327,16 +385,29 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task {
     /// serving the contract itself, which is its own opt-in.
     /// </para>
     /// </remarks>
-    private bool Published(ITaskItem spec, string path, ServiceSpecModel model) {
+    private bool Published(ITaskItem spec, string path, ServiceSpecModel model)
+    {
         var publishUrl = spec.GetMetadata("PublishUrl").Trim();
         var uiUrl = spec.GetMetadata("UiUrl").Trim();
 
         // A page renders exactly one document and fetches it by URL, so a page without one is a
         // page that renders an error. Said here rather than left to be discovered in a browser.
-        if (uiUrl.Length > 0 && publishUrl.Length == 0) {
-            Log.LogError(null, DiagnosticPrefix + "016", null, path, 0, 0, 0, 0,
-                "'{0}' sets UiUrl but not PublishUrl, so the page at '{1}' would have no document " +
-                "to render. Set PublishUrl to where the document should be served.", path, uiUrl);
+        if (uiUrl.Length > 0 && publishUrl.Length == 0)
+        {
+            Log.LogError(
+                null,
+                DiagnosticPrefix + "016",
+                null,
+                path,
+                0,
+                0,
+                0,
+                0,
+                "'{0}' sets UiUrl but not PublishUrl, so the page at '{1}' would have no document "
+                    + "to render. Set PublishUrl to where the document should be served.",
+                path,
+                uiUrl
+            );
 
             return false;
         }
@@ -345,10 +416,21 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task {
 
         // Here rather than on PublishUrl: serving the contract itself is the one thing that needs
         // the contract in the assembly.
-        if (sourceUrl.Length > 0 && !Embedded(spec)) {
-            Log.LogError(null, DiagnosticPrefix + "017", null, path, 0, 0, 0, 0,
-                "'{0}' sets SourceUrl but EmbedDocument is off, so there is no source to serve. " +
-                "Remove EmbedDocument or drop SourceUrl.", path);
+        if (sourceUrl.Length > 0 && !Embedded(spec))
+        {
+            Log.LogError(
+                null,
+                DiagnosticPrefix + "017",
+                null,
+                path,
+                0,
+                0,
+                0,
+                0,
+                "'{0}' sets SourceUrl but EmbedDocument is off, so there is no source to serve. "
+                    + "Remove EmbedDocument or drop SourceUrl.",
+                path
+            );
 
             return false;
         }
@@ -368,20 +450,24 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task {
     private bool Embedded(ITaskItem spec) => Overridden(spec, "EmbedDocument", EmbedDocument);
 
     /// <summary>Semicolon-separated metadata, as MSBuild lists are written.</summary>
-    private static IReadOnlyList<string> SplitMetadata(ITaskItem spec, string name) {
+    private static IReadOnlyList<string> SplitMetadata(ITaskItem spec, string name)
+    {
         var value = spec.GetMetadata(name);
 
-        if (string.IsNullOrWhiteSpace(value)) {
+        if (string.IsNullOrWhiteSpace(value))
+        {
             return System.Array.Empty<string>();
         }
 
         var parts = value.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
         var trimmed = new List<string>(parts.Length);
 
-        foreach (var part in parts) {
+        foreach (var part in parts)
+        {
             var candidate = part.Trim();
 
-            if (candidate.Length > 0) {
+            if (candidate.Length > 0)
+            {
                 trimmed.Add(candidate);
             }
         }
@@ -389,19 +475,33 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task {
         return trimmed;
     }
 
-    public override bool Execute() {
+    public override bool Execute()
+    {
         var models = new List<ITaskItem>();
         var sources = new List<ITaskItem>();
 
         Directory.CreateDirectory(OutputDirectory);
         Directory.CreateDirectory(GeneratedSourceDirectory);
 
-        foreach (var spec in Specs) {
+        foreach (var spec in Specs)
+        {
             var path = spec.GetMetadata("FullPath");
 
-            if (!File.Exists(path)) {
-                Log.LogError(null, DiagnosticPrefix + "001", null, path, 0, 0, 0, 0,
-                    "{0} '{1}' does not exist.", SpecNoun, path);
+            if (!File.Exists(path))
+            {
+                Log.LogError(
+                    null,
+                    DiagnosticPrefix + "001",
+                    null,
+                    path,
+                    0,
+                    0,
+                    0,
+                    0,
+                    "{0} '{1}' does not exist.",
+                    SpecNoun,
+                    path
+                );
                 continue;
             }
 
@@ -410,8 +510,9 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task {
             // other, and their generated helper types would collide on one name.
             var slice = spec.GetMetadata("Slice");
 
-            var fileName = Path.GetFileNameWithoutExtension(path) +
-                           (string.IsNullOrWhiteSpace(slice) ? "" : "." + slice.Trim());
+            var fileName =
+                Path.GetFileNameWithoutExtension(path)
+                + (string.IsNullOrWhiteSpace(slice) ? "" : "." + slice.Trim());
             var document = File.ReadAllText(path);
             ServiceSpecModel model;
 
@@ -419,31 +520,71 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task {
             // something the document got away with rather than something that stopped it.
             var readerDiagnostics = new List<string>();
 
-            try {
+            try
+            {
                 var parsed = Parse(document, fileName, path, readerDiagnostics);
 
-                if (parsed is null) {
-                    Log.LogError(null, DiagnosticPrefix + "002", null, path, 0, 0, 0, 0,
-                        "{0} '{1}' could not be parsed{2}", SpecNoun, path,
+                if (parsed is null)
+                {
+                    Log.LogError(
+                        null,
+                        DiagnosticPrefix + "002",
+                        null,
+                        path,
+                        0,
+                        0,
+                        0,
+                        0,
+                        "{0} '{1}' could not be parsed{2}",
+                        SpecNoun,
+                        path,
                         readerDiagnostics.Count > 0
                             ? ": " + string.Join("; ", readerDiagnostics.ToArray())
-                            : ", and the reader gave no reason.");
+                            : ", and the reader gave no reason."
+                    );
                     continue;
                 }
 
                 // Not fatal - the document produced a model. Reported so a partially understood
                 // spec does not look like a fully understood one.
-                foreach (var diagnostic in readerDiagnostics) {
-                    Log.LogWarning(null, DiagnosticPrefix + "006", null, path, 0, 0, 0, 0,
-                        "{0} '{1}': {2}", SpecNoun, path, diagnostic);
+                foreach (var diagnostic in readerDiagnostics)
+                {
+                    Log.LogWarning(
+                        null,
+                        DiagnosticPrefix + "006",
+                        null,
+                        path,
+                        0,
+                        0,
+                        0,
+                        0,
+                        "{0} '{1}': {2}",
+                        SpecNoun,
+                        path,
+                        diagnostic
+                    );
                 }
 
                 model = parsed;
-            } catch (Exception exception) {
+            }
+            catch (Exception exception)
+            {
                 // The file and line belong to the spec, not to this task: the author edits the
                 // document, and a build error that points at an MSBuild target instead is noise.
-                Log.LogError(null, DiagnosticPrefix + "002", null, path, 0, 0, 0, 0,
-                    "{0} '{1}' could not be parsed: {2}", SpecNoun, path, exception.Message);
+                Log.LogError(
+                    null,
+                    DiagnosticPrefix + "002",
+                    null,
+                    path,
+                    0,
+                    0,
+                    0,
+                    0,
+                    "{0} '{1}' could not be parsed: {2}",
+                    SpecNoun,
+                    path,
+                    exception.Message
+                );
                 continue;
             }
 
@@ -451,7 +592,8 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task {
             // that will actually be emitted rather than the whole document.
             var sliced = Slice(spec, path, model, out var sliceFailed);
 
-            if (sliceFailed) {
+            if (sliceFailed)
+            {
                 continue;
             }
 
@@ -466,18 +608,45 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task {
             var problems = SpecDiagnostics.Find(model, DiagnosticPrefix);
             var fatal = false;
 
-            foreach (var problem in problems) {
-                if (problem.Fatal) {
-                    Log.LogError(null, problem.Code, null, path, 0, 0, 0, 0, "{0}", problem.Message);
+            foreach (var problem in problems)
+            {
+                if (problem.Fatal)
+                {
+                    Log.LogError(
+                        null,
+                        problem.Code,
+                        null,
+                        path,
+                        0,
+                        0,
+                        0,
+                        0,
+                        "{0}",
+                        problem.Message
+                    );
                     fatal = true;
-                } else {
+                }
+                else
+                {
                     // Already resolved. Reported so the choice is visible rather than discovered
                     // later in a generated file nobody opened.
-                    Log.LogWarning(null, problem.Code, null, path, 0, 0, 0, 0, "{0}", problem.Message);
+                    Log.LogWarning(
+                        null,
+                        problem.Code,
+                        null,
+                        path,
+                        0,
+                        0,
+                        0,
+                        0,
+                        "{0}",
+                        problem.Message
+                    );
                 }
             }
 
-            if (fatal) {
+            if (fatal)
+            {
                 continue;
             }
 
@@ -495,12 +664,16 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task {
 
             NarrowErrorBodies(model);
 
-            if (!Published(spec, path, model)) {
+            if (!Published(spec, path, model))
+            {
                 continue;
             }
 
             var sourcePath = Path.Combine(GeneratedSourceDirectory, fileName + SourceSuffix);
-            WriteIfChanged(sourcePath, Emit(model, ServedDocument(spec, path, document, sliced), path));
+            WriteIfChanged(
+                sourcePath,
+                Emit(model, ServedDocument(spec, path, document, sliced), path)
+            );
             sources.Add(new TaskItem(sourcePath));
 
             var modelPath = Path.Combine(OutputDirectory, fileName + ModelSuffix);
@@ -529,7 +702,13 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task {
     /// </remarks>
     private string Emit(ServiceSpecModel model, string document, string specPath) =>
         SpecFileEmitter.Emit(
-            model, Namespace, ExcludeFromCoverage, document, specPath, SelectedResponseModel());
+            model,
+            Namespace,
+            ExcludeFromCoverage,
+            document,
+            specPath,
+            SelectedResponseModel()
+        );
 
     /// <summary>
     /// Every operation's error responses narrowed to JSON, where the description asked for that.
@@ -546,13 +725,17 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task {
     /// document generator's own copy of the handlers. Both end up narrowing the same field.
     /// </para>
     /// </remarks>
-    private static void NarrowErrorBodies(ServiceSpecModel model) {
-        if (!string.Equals(model.ErrorBodies, "json", System.StringComparison.Ordinal)) {
+    private static void NarrowErrorBodies(ServiceSpecModel model)
+    {
+        if (!string.Equals(model.ErrorBodies, "json", System.StringComparison.Ordinal))
+        {
             return;
         }
 
-        foreach (var service in model.Services) {
-            foreach (var operation in service.Operations) {
+        foreach (var service in model.Services)
+        {
+            foreach (var operation in service.Operations)
+            {
                 operation.ErrorContentTypes.Clear();
                 operation.ErrorContentTypes.Add("application/json");
             }
@@ -567,12 +750,20 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task {
     /// with more at stake: the other two modes put an attribute on every generated model whose
     /// package a Json project does not reference, so failing open here would fail the compile.
     /// </remarks>
-    private SpecSerializer SelectedSerializer() {
-        if (string.Equals(Serializer, "MessagePackKeyed", System.StringComparison.OrdinalIgnoreCase)) {
+    private SpecSerializer SelectedSerializer()
+    {
+        if (
+            string.Equals(Serializer, "MessagePackKeyed", System.StringComparison.OrdinalIgnoreCase)
+        )
+        {
             return SpecSerializer.MessagePackKeyed;
         }
 
-        return string.Equals(Serializer, "MessagePackNamed", System.StringComparison.OrdinalIgnoreCase)
+        return string.Equals(
+            Serializer,
+            "MessagePackNamed",
+            System.StringComparison.OrdinalIgnoreCase
+        )
             ? SpecSerializer.MessagePackNamed
             : SpecSerializer.Json;
     }
@@ -588,21 +779,36 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task {
     /// selects the same mode, under a 026 warning naming the new value, so a project upgrading its
     /// packages keeps building and learns the current spelling from the build that proved it.
     /// </remarks>
-    private SpecResponseModel SelectedResponseModel() {
-        if (string.Equals(ResponseModel, "Response", System.StringComparison.OrdinalIgnoreCase)) {
+    private SpecResponseModel SelectedResponseModel()
+    {
+        if (string.Equals(ResponseModel, "Response", System.StringComparison.OrdinalIgnoreCase))
+        {
             return SpecResponseModel.Response;
         }
 
-        if (string.Equals(ResponseModel, "Union", System.StringComparison.OrdinalIgnoreCase)) {
+        if (string.Equals(ResponseModel, "Union", System.StringComparison.OrdinalIgnoreCase))
+        {
             return SpecResponseModel.Union;
         }
 
-        if (string.Equals(ResponseModel, "Standard", System.StringComparison.OrdinalIgnoreCase) &&
-            !_renamedResponseModelWarned) {
+        if (
+            string.Equals(ResponseModel, "Standard", System.StringComparison.OrdinalIgnoreCase)
+            && !_renamedResponseModelWarned
+        )
+        {
             _renamedResponseModelWarned = true;
-            Log.LogWarning(null, DiagnosticPrefix + "026", null, null, 0, 0, 0, 0,
-                "$(HardenedResponseModel) is 'Standard', which was renamed 'Throws' in 0.19.0. " +
-                "The mode selected is unchanged; write <HardenedResponseModel>Throws</HardenedResponseModel>.");
+            Log.LogWarning(
+                null,
+                DiagnosticPrefix + "026",
+                null,
+                null,
+                0,
+                0,
+                0,
+                0,
+                "$(HardenedResponseModel) is 'Standard', which was renamed 'Throws' in 0.19.0. "
+                    + "The mode selected is unchanged; write <HardenedResponseModel>Throws</HardenedResponseModel>."
+            );
         }
 
         return SpecResponseModel.Throws;
@@ -616,8 +822,10 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task {
     /// check and the generator's incremental cache key off that - so an untouched description would
     /// invalidate the whole compilation on every build.
     /// </summary>
-    private static void WriteIfChanged(string path, string content) {
-        if (File.Exists(path) && File.ReadAllText(path) == content) {
+    private static void WriteIfChanged(string path, string content)
+    {
+        if (File.Exists(path) && File.ReadAllText(path) == content)
+        {
             return;
         }
 

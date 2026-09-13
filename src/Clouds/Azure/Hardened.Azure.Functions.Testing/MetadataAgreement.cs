@@ -21,7 +21,8 @@ namespace Hardened.Azure.Functions.Testing;
 /// reports it; an empty list is agreement.
 /// </para>
 /// </remarks>
-public static class MetadataAgreement {
+public static class MetadataAgreement
+{
     /// <summary>
     /// Everything the provider and the build task's file disagree on, or nothing.
     /// </summary>
@@ -31,14 +32,18 @@ public static class MetadataAgreement {
     /// which is where a referenced application's copied files land.
     /// </param>
     public static async Task<IReadOnlyList<string>> Disagreements(
-        IFunctionMetadataProvider provider, string? directory = null) {
+        IFunctionMetadataProvider provider,
+        string? directory = null
+    )
+    {
         directory ??= AppContext.BaseDirectory;
 
         var declared = await provider.GetFunctionMetadataAsync(directory);
 
         var path = Path.Combine(directory, "functions.metadata");
 
-        if (!File.Exists(path)) {
+        if (!File.Exists(path))
+        {
             return [$"The build task wrote no functions.metadata at {path}."];
         }
 
@@ -46,22 +51,29 @@ public static class MetadataAgreement {
 
         var disagreements = new List<string>();
 
-        var writtenNames = written.RootElement.EnumerateArray()
+        var writtenNames = written
+            .RootElement.EnumerateArray()
             .Select(function => function.GetProperty("name").GetString() ?? "")
             .Order(StringComparer.Ordinal)
             .ToArray();
 
-        var declaredNames = declared.Select(function => function.Name ?? "").Order(StringComparer.Ordinal).ToArray();
+        var declaredNames = declared
+            .Select(function => function.Name ?? "")
+            .Order(StringComparer.Ordinal)
+            .ToArray();
 
-        if (!writtenNames.SequenceEqual(declaredNames)) {
+        if (!writtenNames.SequenceEqual(declaredNames))
+        {
             disagreements.Add(
-                $"The build task lists [{string.Join(", ", writtenNames)}] and the provider " +
-                $"[{string.Join(", ", declaredNames)}].");
+                $"The build task lists [{string.Join(", ", writtenNames)}] and the provider "
+                    + $"[{string.Join(", ", declaredNames)}]."
+            );
 
             return disagreements;
         }
 
-        foreach (var function in written.RootElement.EnumerateArray()) {
+        foreach (var function in written.RootElement.EnumerateArray())
+        {
             var name = function.GetProperty("name").GetString();
             var ours = declared.Single(one => one.Name == name);
 
@@ -71,22 +83,27 @@ public static class MetadataAgreement {
 
             // Binding for binding, as JSON rather than as text: the host reads the document, so
             // key order and spacing are not part of the contract, and the values are.
-            var expected = function.GetProperty("bindings").EnumerateArray()
+            var expected = function
+                .GetProperty("bindings")
+                .EnumerateArray()
                 .Select(Canonical)
                 .ToList();
 
             var actual = (ours.RawBindings ?? new List<string>())
-                .Select(binding => {
+                .Select(binding =>
+                {
                     using var document = JsonDocument.Parse(binding);
 
                     return Canonical(document.RootElement);
                 })
                 .ToList();
 
-            if (!expected.SequenceEqual(actual)) {
+            if (!expected.SequenceEqual(actual))
+            {
                 disagreements.Add(
-                    $"{name}: the build task wrote bindings {string.Join(" ", expected)} and the " +
-                    $"provider declares {string.Join(" ", actual)}.");
+                    $"{name}: the build task wrote bindings {string.Join(" ", expected)} and the "
+                        + $"provider declares {string.Join(" ", actual)}."
+                );
             }
         }
 
@@ -94,33 +111,51 @@ public static class MetadataAgreement {
     }
 
     private static void Compare(
-        List<string> disagreements, string? name, string property, JsonElement function, string? ours) {
+        List<string> disagreements,
+        string? name,
+        string property,
+        JsonElement function,
+        string? ours
+    )
+    {
         var written = function.TryGetProperty(property, out var value) ? value.GetString() : null;
 
-        if (!string.Equals(written, ours, StringComparison.Ordinal)) {
-            disagreements.Add($"{name}: {property} is \"{written}\" in functions.metadata and \"{ours}\" in the provider.");
+        if (!string.Equals(written, ours, StringComparison.Ordinal))
+        {
+            disagreements.Add(
+                $"{name}: {property} is \"{written}\" in functions.metadata and \"{ours}\" in the provider."
+            );
         }
     }
 
     /// <summary>
     /// The element with its object keys sorted, so two documents that mean the same compare equal.
     /// </summary>
-    private static string Canonical(JsonElement element) {
+    private static string Canonical(JsonElement element)
+    {
         using var buffer = new MemoryStream();
 
-        using (var writer = new Utf8JsonWriter(buffer)) {
+        using (var writer = new Utf8JsonWriter(buffer))
+        {
             Write(element, writer);
         }
 
         return Encoding.UTF8.GetString(buffer.ToArray());
     }
 
-    private static void Write(JsonElement element, Utf8JsonWriter writer) {
-        switch (element.ValueKind) {
+    private static void Write(JsonElement element, Utf8JsonWriter writer)
+    {
+        switch (element.ValueKind)
+        {
             case JsonValueKind.Object:
                 writer.WriteStartObject();
 
-                foreach (var property in element.EnumerateObject().OrderBy(one => one.Name, StringComparer.Ordinal)) {
+                foreach (
+                    var property in element
+                        .EnumerateObject()
+                        .OrderBy(one => one.Name, StringComparer.Ordinal)
+                )
+                {
                     writer.WritePropertyName(property.Name);
                     Write(property.Value, writer);
                 }
@@ -132,7 +167,8 @@ public static class MetadataAgreement {
             case JsonValueKind.Array:
                 writer.WriteStartArray();
 
-                foreach (var item in element.EnumerateArray()) {
+                foreach (var item in element.EnumerateArray())
+                {
                     Write(item, writer);
                 }
 

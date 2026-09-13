@@ -1,8 +1,8 @@
 using Hardened.Requests.Abstract.Responses;
 using Hardened.SourceGeneration.Testing;
 using Hardened.Web.Runtime.Attributes;
-using Xunit;
 using Hardened.Web.Runtime.Responses;
+using Xunit;
 
 namespace Hardened.Web.SourceGenerator.Tests;
 
@@ -17,12 +17,9 @@ namespace Hardened.Web.SourceGenerator.Tests;
 /// or an unqualified name produces text that reads correctly and does not compile.
 /// </para>
 /// </summary>
-public class ResponseSetDispatchTests {
-
-    private static readonly Type[] Anchors = [
-        typeof(GetAttribute),
-        typeof(Response<,>)
-    ];
+public class ResponseSetDispatchTests
+{
+    private static readonly Type[] Anchors = [typeof(GetAttribute), typeof(Response<,>)];
 
     private static GeneratorResult Generate(string source) =>
         GeneratorTestHarness.Run(source, new WebLibrarySourceGenerator(), Anchors);
@@ -31,8 +28,7 @@ public class ResponseSetDispatchTests {
     /// A handler declaring a success type and a 404, which is the shape the whole feature exists
     /// for.
     /// </summary>
-    private const string TwoCaseHandler =
-        """
+    private const string TwoCaseHandler = """
         using Hardened.Requests.Abstract.Responses;
         using Hardened.Web.Runtime.Responses;
         using Hardened.Web.Runtime.Attributes;
@@ -54,14 +50,17 @@ public class ResponseSetDispatchTests {
     /// that an assertion here must not accidentally read.
     /// </summary>
     private static string Handler(GeneratorResult result) =>
-        result.GeneratedSources
-            .First(pair => pair.Value.Contains("InvokeMethod", StringComparison.Ordinal))
+        result
+            .GeneratedSources.First(pair =>
+                pair.Value.Contains("InvokeMethod", StringComparison.Ordinal)
+            )
             .Value;
 
     #region it compiles
 
     [Fact]
-    public void AResponseSetHandlerCompiles() {
+    public void AResponseSetHandlerCompiles()
+    {
         Generate(TwoCaseHandler).AssertNoErrors();
     }
 
@@ -71,21 +70,25 @@ public class ResponseSetDispatchTests {
     /// uncompilable text.
     /// </summary>
     [Fact]
-    public void AResponseSetWithAHeaderContributingCaseCompiles() {
-        Generate("""
-            using Hardened.Requests.Abstract.Responses;
-            using Hardened.Web.Runtime.Responses;
-            using Hardened.Web.Runtime.Attributes;
+    public void AResponseSetWithAHeaderContributingCaseCompiles()
+    {
+        Generate(
+                """
+                using Hardened.Requests.Abstract.Responses;
+                using Hardened.Web.Runtime.Responses;
+                using Hardened.Web.Runtime.Attributes;
 
-            namespace TestApp;
+                namespace TestApp;
 
-            public record Todo(int Id);
+                public record Todo(int Id);
 
-            public class TodoController {
-                [Get("/todos/{id}")]
-                public Response<Todo, Unauthorized, RateLimited> GetTodo(int id) => new Todo(id);
-            }
-            """).AssertNoErrors();
+                public class TodoController {
+                    [Get("/todos/{id}")]
+                    public Response<Todo, Unauthorized, RateLimited> GetTodo(int id) => new Todo(id);
+                }
+                """
+            )
+            .AssertNoErrors();
     }
 
     /// <summary>
@@ -93,23 +96,27 @@ public class ResponseSetDispatchTests {
     /// the selector has to unwrap past the task to find the set.
     /// </summary>
     [Fact]
-    public void AnAsyncResponseSetHandlerCompiles() {
-        Generate("""
-            using System.Threading.Tasks;
-            using Hardened.Requests.Abstract.Responses;
-            using Hardened.Web.Runtime.Responses;
-            using Hardened.Web.Runtime.Attributes;
+    public void AnAsyncResponseSetHandlerCompiles()
+    {
+        Generate(
+                """
+                using System.Threading.Tasks;
+                using Hardened.Requests.Abstract.Responses;
+                using Hardened.Web.Runtime.Responses;
+                using Hardened.Web.Runtime.Attributes;
 
-            namespace TestApp;
+                namespace TestApp;
 
-            public record Todo(int Id);
+                public record Todo(int Id);
 
-            public class TodoController {
-                [Get("/todos/{id}")]
-                public Task<Response<Todo, NotFound>> GetTodo(int id) =>
-                    Task.FromResult<Response<Todo, NotFound>>(new Todo(id));
-            }
-            """).AssertNoErrors();
+                public class TodoController {
+                    [Get("/todos/{id}")]
+                    public Task<Response<Todo, NotFound>> GetTodo(int id) =>
+                        Task.FromResult<Response<Todo, NotFound>>(new Todo(id));
+                }
+                """
+            )
+            .AssertNoErrors();
     }
 
     /// <summary>
@@ -117,23 +124,27 @@ public class ResponseSetDispatchTests {
     /// likely to be wrong while it is.
     /// </summary>
     [Fact]
-    public void TheHighestArityCompiles() {
-        Generate("""
-            using System;
-            using Hardened.Requests.Abstract.Responses;
-            using Hardened.Web.Runtime.Responses;
-            using Hardened.Web.Runtime.Attributes;
+    public void TheHighestArityCompiles()
+    {
+        Generate(
+                """
+                using System;
+                using Hardened.Requests.Abstract.Responses;
+                using Hardened.Web.Runtime.Responses;
+                using Hardened.Web.Runtime.Attributes;
 
-            namespace TestApp;
+                namespace TestApp;
 
-            public record Todo(int Id);
+                public record Todo(int Id);
 
-            public class TodoController {
-                [Get("/todos/{id}")]
-                public Response<Todo, NotFound, Conflict, Gone, PreconditionFailed, Forbidden,
-                                Unauthorized, RateLimited> GetTodo(int id) => new Todo(id);
-            }
-            """).AssertNoErrors();
+                public class TodoController {
+                    [Get("/todos/{id}")]
+                    public Response<Todo, NotFound, Conflict, Gone, PreconditionFailed, Forbidden,
+                                    Unauthorized, RateLimited> GetTodo(int id) => new Todo(id);
+                }
+                """
+            )
+            .AssertNoErrors();
     }
 
     /// <summary>
@@ -141,19 +152,23 @@ public class ResponseSetDispatchTests {
     /// has to be per-case rather than per-handler.
     /// </summary>
     [Fact]
-    public void ABodylessCaseCompiles() {
-        Generate("""
-            using Hardened.Requests.Abstract.Responses;
-            using Hardened.Web.Runtime.Responses;
-            using Hardened.Web.Runtime.Attributes;
+    public void ABodylessCaseCompiles()
+    {
+        Generate(
+                """
+                using Hardened.Requests.Abstract.Responses;
+                using Hardened.Web.Runtime.Responses;
+                using Hardened.Web.Runtime.Attributes;
 
-            namespace TestApp;
+                namespace TestApp;
 
-            public class TodoController {
-                [Delete("/todos/{id}")]
-                public Response<NoContent, NotFound> Delete(int id) => new NoContent();
-            }
-            """).AssertNoErrors();
+                public class TodoController {
+                    [Delete("/todos/{id}")]
+                    public Response<NoContent, NotFound> Delete(int id) => new NoContent();
+                }
+                """
+            )
+            .AssertNoErrors();
     }
 
     /// <summary>
@@ -162,23 +177,27 @@ public class ResponseSetDispatchTests {
     /// payload reaches the wire rather than a wrapper with the payload nested inside it.
     /// </summary>
     [Fact]
-    public void ACaseCarryingItsBodyCompiles() {
-        Generate("""
-            using Hardened.Requests.Abstract.Responses;
-            using Hardened.Web.Runtime.Responses;
-            using Hardened.Web.Runtime.Attributes;
+    public void ACaseCarryingItsBodyCompiles()
+    {
+        Generate(
+                """
+                using Hardened.Requests.Abstract.Responses;
+                using Hardened.Web.Runtime.Responses;
+                using Hardened.Web.Runtime.Attributes;
 
-            namespace TestApp;
+                namespace TestApp;
 
-            public record Todo(int Id);
-            public record ApiError(string Code);
+                public record Todo(int Id);
+                public record ApiError(string Code);
 
-            public class TodoController {
-                [Get("/todos/{id}")]
-                public Response<Todo, NotFound<ApiError>, Conflict<ApiError>> ById(int id) =>
-                    new Todo(id);
-            }
-            """).AssertNoErrors();
+                public class TodoController {
+                    [Get("/todos/{id}")]
+                    public Response<Todo, NotFound<ApiError>, Conflict<ApiError>> ById(int id) =>
+                        new Todo(id);
+                }
+                """
+            )
+            .AssertNoErrors();
     }
 
     #endregion
@@ -190,7 +209,8 @@ public class ResponseSetDispatchTests {
     /// <c>object?</c> and a union's <c>Value</c> is already <c>object?</c>, so nothing transforms it.
     /// </summary>
     [Fact]
-    public void ThePayloadIsAssignedOnceFromValue() {
+    public void ThePayloadIsAssignedOnceFromValue()
+    {
         var handler = Handler((Generate(TwoCaseHandler)));
 
         Assert.Contains("Response.ResponseValue = ", handler, StringComparison.Ordinal);
@@ -202,7 +222,8 @@ public class ResponseSetDispatchTests {
     /// <c>[HttpStatus]</c> and the success case from the endpoint's success status.
     /// </summary>
     [Fact]
-    public void EachCaseGetsItsOwnStatus() {
+    public void EachCaseGetsItsOwnStatus()
+    {
         var handler = Handler((Generate(TwoCaseHandler)));
 
         Assert.Contains("Response.Status = 404", handler, StringComparison.Ordinal);
@@ -214,21 +235,28 @@ public class ResponseSetDispatchTests {
     /// Hardcoding 200 would be wrong for every POST that creates.
     /// </summary>
     [Fact]
-    public void AnUnannotatedCaseTakesTheEndpointSuccessStatus() {
-        var handler = Handler((Generate("""
-            using Hardened.Requests.Abstract.Responses;
-            using Hardened.Web.Runtime.Responses;
-            using Hardened.Web.Runtime.Attributes;
+    public void AnUnannotatedCaseTakesTheEndpointSuccessStatus()
+    {
+        var handler = Handler(
+            (
+                Generate(
+                    """
+                    using Hardened.Requests.Abstract.Responses;
+                    using Hardened.Web.Runtime.Responses;
+                    using Hardened.Web.Runtime.Attributes;
 
-            namespace TestApp;
+                    namespace TestApp;
 
-            public record Todo(int Id);
+                    public record Todo(int Id);
 
-            public class TodoController {
-                [Post("/todos", SuccessStatus = 201)]
-                public Response<Todo, Conflict> Create() => new Todo(1);
-            }
-            """)));
+                    public class TodoController {
+                        [Post("/todos", SuccessStatus = 201)]
+                        public Response<Todo, Conflict> Create() => new Todo(1);
+                    }
+                    """
+                )
+            )
+        );
 
         Assert.Contains("Response.Status = 201", handler, StringComparison.Ordinal);
         Assert.Contains("Response.Status = 409", handler, StringComparison.Ordinal);
@@ -240,27 +268,37 @@ public class ResponseSetDispatchTests {
     /// compile-time switch exists to avoid.
     /// </summary>
     [Fact]
-    public void OnlyAHeaderContributingCaseCallsApplyHeaders() {
-        var withHeaders = Handler((Generate("""
-            using Hardened.Requests.Abstract.Responses;
-            using Hardened.Web.Runtime.Responses;
-            using Hardened.Web.Runtime.Attributes;
+    public void OnlyAHeaderContributingCaseCallsApplyHeaders()
+    {
+        var withHeaders = Handler(
+            (
+                Generate(
+                    """
+                    using Hardened.Requests.Abstract.Responses;
+                    using Hardened.Web.Runtime.Responses;
+                    using Hardened.Web.Runtime.Attributes;
 
-            namespace TestApp;
+                    namespace TestApp;
 
-            public record Todo(int Id);
+                    public record Todo(int Id);
 
-            public class TodoController {
-                [Get("/todos/{id}")]
-                public Response<Todo, RateLimited> GetTodo(int id) => new Todo(id);
-            }
-            """)));
+                    public class TodoController {
+                        [Get("/todos/{id}")]
+                        public Response<Todo, RateLimited> GetTodo(int id) => new Todo(id);
+                    }
+                    """
+                )
+            )
+        );
 
         Assert.Contains("ApplyHeaders", withHeaders, StringComparison.Ordinal);
 
         // Neither Todo nor NotFound contributes a header.
         Assert.DoesNotContain(
-            "ApplyHeaders", Handler((Generate(TwoCaseHandler))), StringComparison.Ordinal);
+            "ApplyHeaders",
+            Handler((Generate(TwoCaseHandler))),
+            StringComparison.Ordinal
+        );
     }
 
     /// <summary>
@@ -268,7 +306,8 @@ public class ResponseSetDispatchTests {
     /// success status there would send an empty body under a 200.
     /// </summary>
     [Fact]
-    public void TheDefaultArmAnswersFiveHundred() {
+    public void TheDefaultArmAnswersFiveHundred()
+    {
         var handler = Handler((Generate(TwoCaseHandler)));
 
         Assert.Contains("default:", handler, StringComparison.Ordinal);
@@ -280,22 +319,29 @@ public class ResponseSetDispatchTests {
     /// case sends itself, and nothing casts.
     /// </summary>
     [Fact]
-    public void OnlyAWrappingCaseUnwrapsItsBody() {
-        var handler = Handler((Generate("""
-            using Hardened.Requests.Abstract.Responses;
-            using Hardened.Web.Runtime.Responses;
-            using Hardened.Web.Runtime.Attributes;
+    public void OnlyAWrappingCaseUnwrapsItsBody()
+    {
+        var handler = Handler(
+            (
+                Generate(
+                    """
+                    using Hardened.Requests.Abstract.Responses;
+                    using Hardened.Web.Runtime.Responses;
+                    using Hardened.Web.Runtime.Attributes;
 
-            namespace TestApp;
+                    namespace TestApp;
 
-            public record Todo(int Id);
-            public record ApiError(string Code);
+                    public record Todo(int Id);
+                    public record ApiError(string Code);
 
-            public class TodoController {
-                [Get("/todos/{id}")]
-                public Response<Todo, NotFound<ApiError>, Conflict> ById(int id) => new Todo(id);
-            }
-            """)));
+                    public class TodoController {
+                        [Get("/todos/{id}")]
+                        public Response<Todo, NotFound<ApiError>, Conflict> ById(int id) => new Todo(id);
+                    }
+                    """
+                )
+            )
+        );
 
         // One unwrap, for the one case that wraps a payload.
         Assert.Equal(1, handler.Split("ICarriesResponseBody").Length - 1);
@@ -306,17 +352,24 @@ public class ResponseSetDispatchTests {
     /// application in existence takes, and the feature is worth nothing if it disturbed it.
     /// </summary>
     [Fact]
-    public void AnOrdinaryHandlerIsUnchanged() {
-        var handler = Handler((Generate("""
-            using Hardened.Web.Runtime.Attributes;
+    public void AnOrdinaryHandlerIsUnchanged()
+    {
+        var handler = Handler(
+            (
+                Generate(
+                    """
+                    using Hardened.Web.Runtime.Attributes;
 
-            namespace TestApp;
+                    namespace TestApp;
 
-            public class TodoController {
-                [Get("/todos/{id}")]
-                public string GetTodo(int id) => "todo";
-            }
-            """)));
+                    public class TodoController {
+                        [Get("/todos/{id}")]
+                        public string GetTodo(int id) => "todo";
+                    }
+                    """
+                )
+            )
+        );
 
         // Not "no switch" - the generated parameters class has one over its indexer. What an
         // ordinary handler must not have is a status decided per case, which is the whole of what

@@ -23,7 +23,8 @@ namespace Hardened.Requests.Abstract.Authorization;
 /// than necessity.
 /// </example>
 /// </remarks>
-public abstract class Requirement {
+public abstract class Requirement
+{
     /// <summary>
     /// True when evaluating this requirement needs the execution context, not merely the principal.
     /// </summary>
@@ -51,8 +52,10 @@ public abstract class Requirement {
     public abstract bool IsSatisfiedBy(ICallerPrincipal principal, IExecutionContext context);
 
     /// <summary>Requires one grant.</summary>
-    public static Requirement Grant(string grant) {
-        if (string.IsNullOrEmpty(grant)) {
+    public static Requirement Grant(string grant)
+    {
+        if (string.IsNullOrEmpty(grant))
+        {
             throw new ArgumentException("A grant cannot be empty.", nameof(grant));
         }
 
@@ -93,7 +96,9 @@ public abstract class Requirement {
     /// </remarks>
     public static Requirement Predicate(
         Func<ICallerPrincipal, IExecutionContext, bool> predicate,
-        string? description = null) {
+        string? description = null
+    )
+    {
         ArgumentNullException.ThrowIfNull(predicate);
 
         return new PredicateRequirement(predicate, description);
@@ -116,36 +121,45 @@ public abstract class Requirement {
     /// <see cref="RequiredGrants"/> and the rendered description readable.
     /// </para>
     /// </remarks>
-    private static Requirement Combine(Requirement[] requirements, bool all) {
-        if (requirements is null || requirements.Length == 0) {
+    private static Requirement Combine(Requirement[] requirements, bool all)
+    {
+        if (requirements is null || requirements.Length == 0)
+        {
             throw new ArgumentException(
-                "A requirement must name at least one condition. An empty one has no safe reading: " +
-                "it means either 'nothing is required' or 'nothing can satisfy this', and the first " +
-                "of those silently grants access.",
-                nameof(requirements));
+                "A requirement must name at least one condition. An empty one has no safe reading: "
+                    + "it means either 'nothing is required' or 'nothing can satisfy this', and the first "
+                    + "of those silently grants access.",
+                nameof(requirements)
+            );
         }
 
-        if (requirements.Any(r => r is null)) {
+        if (requirements.Any(r => r is null))
+        {
             throw new ArgumentException("A requirement cannot be null.", nameof(requirements));
         }
 
-        if (requirements.Length == 1) {
+        if (requirements.Length == 1)
+        {
             return requirements[0];
         }
 
         var flattened = requirements
-            .SelectMany(r => r is CompositeRequirement composite && composite.All == all
-                ? composite.Requirements
-                : [r])
+            .SelectMany(r =>
+                r is CompositeRequirement composite && composite.All == all
+                    ? composite.Requirements
+                    : [r]
+            )
             .ToArray();
 
         return new CompositeRequirement(flattened, all);
     }
 
-    private sealed class GrantRequirement : Requirement {
+    private sealed class GrantRequirement : Requirement
+    {
         private readonly string _grant;
 
-        public GrantRequirement(string grant) {
+        public GrantRequirement(string grant)
+        {
             _grant = grant;
         }
 
@@ -159,7 +173,8 @@ public abstract class Requirement {
         public override string ToString() => _grant;
     }
 
-    private sealed class AuthenticatedRequirement : Requirement {
+    private sealed class AuthenticatedRequirement : Requirement
+    {
         public static readonly Requirement Instance = new AuthenticatedRequirement();
 
         public override bool RequiresContext => false;
@@ -172,8 +187,10 @@ public abstract class Requirement {
         public override string ToString() => "authenticated";
     }
 
-    private sealed class CompositeRequirement : Requirement {
-        public CompositeRequirement(Requirement[] requirements, bool all) {
+    private sealed class CompositeRequirement : Requirement
+    {
+        public CompositeRequirement(Requirement[] requirements, bool all)
+        {
             Requirements = requirements;
             All = all;
         }
@@ -196,13 +213,16 @@ public abstract class Requirement {
             "(" + string.Join(All ? " & " : " | ", Requirements.Select(r => r.ToString())) + ")";
     }
 
-    private sealed class PredicateRequirement : Requirement {
+    private sealed class PredicateRequirement : Requirement
+    {
         private readonly Func<ICallerPrincipal, IExecutionContext, bool> _predicate;
         private readonly string? _description;
 
         public PredicateRequirement(
             Func<ICallerPrincipal, IExecutionContext, bool> predicate,
-            string? description) {
+            string? description
+        )
+        {
             _predicate = predicate;
             _description = description;
         }

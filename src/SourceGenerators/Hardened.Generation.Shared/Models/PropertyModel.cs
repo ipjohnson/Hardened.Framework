@@ -1,6 +1,7 @@
 namespace Hardened.Generation.Models;
 
-internal class PropertyModel : IEquatable<PropertyModel>, IConstraintFacets {
+internal class PropertyModel : IEquatable<PropertyModel>, IConstraintFacets
+{
     public string Name { get; set; } = "";
 
     /// <summary>
@@ -195,30 +196,54 @@ internal class PropertyModel : IEquatable<PropertyModel>, IConstraintFacets {
     public int? MaxItems { get; set; }
 
     public bool HasValidationConstraints =>
-        IsRequired || MinLength.HasValue || MaxLength.HasValue ||
-        Minimum.HasValue || Maximum.HasValue ||
-        ExclusiveMinimum || ExclusiveMaximum ||
-        Pattern != null || MinItems.HasValue || MaxItems.HasValue ||
-        EnumValues is { Count: > 0 };
+        IsRequired
+        || MinLength.HasValue
+        || MaxLength.HasValue
+        || Minimum.HasValue
+        || Maximum.HasValue
+        || ExclusiveMinimum
+        || ExclusiveMaximum
+        || Pattern != null
+        || MinItems.HasValue
+        || MaxItems.HasValue
+        || EnumValues is { Count: > 0 };
 
-    public bool Equals(PropertyModel? other) {
-        if (other is null) return false;
-        if (ReferenceEquals(this, other)) return true;
-        return Name == other.Name && Type == other.Type && Format == other.Format &&
-               Description == other.Description &&
-               Ref == other.Ref && IsArray == other.IsArray && IsRequired == other.IsRequired && IsNullable == other.IsNullable && Default == other.Default &&
-               IsReadOnly == other.IsReadOnly && IsWriteOnly == other.IsWriteOnly &&
-               MinLength == other.MinLength && MaxLength == other.MaxLength &&
-               Minimum == other.Minimum && Maximum == other.Maximum &&
-               ExclusiveMinimum == other.ExclusiveMinimum && ExclusiveMaximum == other.ExclusiveMaximum &&
-               Pattern == other.Pattern && MinItems == other.MinItems && MaxItems == other.MaxItems &&
-               HeaderName == other.HeaderName && MessagePackIndex == other.MessagePackIndex;
+    public bool Equals(PropertyModel? other)
+    {
+        if (other is null)
+            return false;
+        if (ReferenceEquals(this, other))
+            return true;
+        return Name == other.Name
+            && Type == other.Type
+            && Format == other.Format
+            && Description == other.Description
+            && Ref == other.Ref
+            && IsArray == other.IsArray
+            && IsRequired == other.IsRequired
+            && IsNullable == other.IsNullable
+            && Default == other.Default
+            && IsReadOnly == other.IsReadOnly
+            && IsWriteOnly == other.IsWriteOnly
+            && MinLength == other.MinLength
+            && MaxLength == other.MaxLength
+            && Minimum == other.Minimum
+            && Maximum == other.Maximum
+            && ExclusiveMinimum == other.ExclusiveMinimum
+            && ExclusiveMaximum == other.ExclusiveMaximum
+            && Pattern == other.Pattern
+            && MinItems == other.MinItems
+            && MaxItems == other.MaxItems
+            && HeaderName == other.HeaderName
+            && MessagePackIndex == other.MessagePackIndex;
     }
 
     public override bool Equals(object? obj) => Equals(obj as PropertyModel);
 
-    public override int GetHashCode() {
-        unchecked {
+    public override int GetHashCode()
+    {
+        unchecked
+        {
             var hash = Name.GetHashCode();
             hash = (hash * 397) ^ (Type?.GetHashCode() ?? 0);
             hash = (hash * 397) ^ IsRequired.GetHashCode();

@@ -7,7 +7,8 @@ namespace Hardened.Web.Testing;
 /// <summary>
 /// Represents a web request
 /// </summary>
-public class TestWebRequest {
+public class TestWebRequest
+{
     /// <summary>
     /// Headers for request
     /// </summary>
@@ -36,7 +37,8 @@ public class TestWebRequest {
     public TestWebRequest RawBody(string text, string contentType = KnownContentType.Json) =>
         RawBody(Encoding.UTF8.GetBytes(text), contentType);
 
-    public TestWebRequest RawBody(byte[] bytes, string contentType) {
+    public TestWebRequest RawBody(byte[] bytes, string contentType)
+    {
         Body = bytes;
         Headers[KnownHeaders.ContentType] = contentType;
 

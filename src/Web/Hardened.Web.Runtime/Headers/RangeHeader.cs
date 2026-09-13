@@ -1,6 +1,5 @@
-using Microsoft.Extensions.Primitives;
-
 using Hardened.Requests.Abstract.Headers;
+using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Web.Runtime.Headers;
 
@@ -22,14 +21,13 @@ namespace Hardened.Web.Runtime.Headers;
 /// satisfied, which is a different statement: the client asked for a byte past the end.
 /// </para>
 /// </remarks>
-public readonly record struct ByteRange(long From, long To) {
-
+public readonly record struct ByteRange(long From, long To)
+{
     /// <summary>How many bytes this range covers.</summary>
     public long Length => To - From + 1;
 
     /// <summary>The <c>Content-Range</c> for a 206 carrying this range out of <paramref name="totalLength"/>.</summary>
-    public string ContentRange(long totalLength) =>
-        $"bytes {From}-{To}/{totalLength}";
+    public string ContentRange(long totalLength) => $"bytes {From}-{To}/{totalLength}";
 
     /// <summary>
     /// The <c>Content-Range</c> for a 416, which names the length rather than a range.
@@ -44,8 +42,8 @@ public readonly record struct ByteRange(long From, long To) {
 /// <summary>
 /// How a <c>Range</c> header resolved.
 /// </summary>
-public enum RangeResult {
-
+public enum RangeResult
+{
     /// <summary>No range was asked for, or one was asked for in a form that must be ignored.</summary>
     None,
 
@@ -53,11 +51,11 @@ public enum RangeResult {
     Satisfiable,
 
     /// <summary>A range that parsed and starts past the end. Answered 416.</summary>
-    Unsatisfiable
+    Unsatisfiable,
 }
 
-public static class RangeHeader {
-
+public static class RangeHeader
+{
     private const string BytesUnit = "bytes";
 
     /// <summary>The only range unit anything sends, and the only one worth advertising.</summary>
@@ -72,28 +70,33 @@ public static class RangeHeader {
     /// unsatisfiable - including <c>bytes=0-</c>, which reads as "everything" and where there is no
     /// everything to give.
     /// </remarks>
-    public static RangeResult Resolve(StringValues range, long totalLength, out ByteRange resolved) {
+    public static RangeResult Resolve(StringValues range, long totalLength, out ByteRange resolved)
+    {
         resolved = default;
 
-        if (range.Count == 0) {
+        if (range.Count == 0)
+        {
             return RangeResult.None;
         }
 
         var value = range.ToString();
 
-        if (string.IsNullOrWhiteSpace(value)) {
+        if (string.IsNullOrWhiteSpace(value))
+        {
             return RangeResult.None;
         }
 
         var span = value.AsSpan().Trim();
 
-        if (!span.StartsWith(BytesUnit.AsSpan(), StringComparison.OrdinalIgnoreCase)) {
+        if (!span.StartsWith(BytesUnit.AsSpan(), StringComparison.OrdinalIgnoreCase))
+        {
             return RangeResult.None;
         }
 
         span = span.Slice(BytesUnit.Length).TrimStart();
 
-        if (span.Length == 0 || span[0] != '=') {
+        if (span.Length == 0 || span[0] != '=')
+        {
             return RangeResult.None;
         }
 
@@ -102,13 +105,15 @@ public static class RangeHeader {
         // More than one range. Legal, and answered with the whole entity - see the note on
         // ByteRange. Detected before parsing so the first range is not served as if it were the
         // only one asked for, which would be a 206 the client did not request.
-        if (span.IndexOf(',') >= 0) {
+        if (span.IndexOf(',') >= 0)
+        {
             return RangeResult.None;
         }
 
         var dash = span.IndexOf('-');
 
-        if (dash < 0) {
+        if (dash < 0)
+        {
             return RangeResult.None;
         }
 
@@ -117,12 +122,15 @@ public static class RangeHeader {
 
         // "-500" is the final 500 bytes, not a range starting at minus five hundred. It is the
         // shape a client uses when it knows how much tail it wants and not how long the whole is.
-        if (firstText.Length == 0) {
-            if (!TryParse(lastText, out var suffixLength) || suffixLength <= 0) {
+        if (firstText.Length == 0)
+        {
+            if (!TryParse(lastText, out var suffixLength) || suffixLength <= 0)
+            {
                 return RangeResult.None;
             }
 
-            if (totalLength == 0) {
+            if (totalLength == 0)
+            {
                 return RangeResult.Unsatisfiable;
             }
 
@@ -133,28 +141,33 @@ public static class RangeHeader {
             return RangeResult.Satisfiable;
         }
 
-        if (!TryParse(firstText, out var start)) {
+        if (!TryParse(firstText, out var start))
+        {
             return RangeResult.None;
         }
 
         // Past the end is the one thing that is an error rather than an omission: the client asked
         // for bytes that do not exist, and telling it the length is more useful than sending the
         // whole entity it did not want.
-        if (start >= totalLength) {
+        if (start >= totalLength)
+        {
             return RangeResult.Unsatisfiable;
         }
 
-        if (lastText.Length == 0) {
+        if (lastText.Length == 0)
+        {
             resolved = new ByteRange(start, totalLength - 1);
 
             return RangeResult.Satisfiable;
         }
 
-        if (!TryParse(lastText, out var end)) {
+        if (!TryParse(lastText, out var end))
+        {
             return RangeResult.None;
         }
 
-        if (end < start) {
+        if (end < start)
+        {
             return RangeResult.None;
         }
 
@@ -163,15 +176,19 @@ public static class RangeHeader {
         return RangeResult.Satisfiable;
     }
 
-    private static bool TryParse(ReadOnlySpan<char> text, out long value) {
+    private static bool TryParse(ReadOnlySpan<char> text, out long value)
+    {
         value = 0;
 
-        if (text.Length == 0) {
+        if (text.Length == 0)
+        {
             return false;
         }
 
-        foreach (var character in text) {
-            if (character is < '0' or > '9') {
+        foreach (var character in text)
+        {
+            if (character is < '0' or > '9')
+            {
                 return false;
             }
         }

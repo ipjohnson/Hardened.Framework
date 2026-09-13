@@ -9,14 +9,15 @@ public delegate Task DefaultOutputFunc(IExecutionContext executionContext);
 /// <summary>
 /// Object that holds all pertinent information for executing a request
 /// </summary>
-public interface IExecutionContext {
+public interface IExecutionContext
+{
     IExecutionContext Clone(
         IExecutionRequest? request = null,
         IExecutionResponse? response = null,
         IServiceProvider? serviceProvider = null,
         IMetricLogger? metricLogger = null
-        );
-    
+    );
+
     /// <summary>
     /// Root service provider for the application
     /// </summary>
@@ -89,7 +90,7 @@ public interface IExecutionContext {
     object? HandlerInstance { get; set; }
 
     /// <summary>
-    /// Get information about the 
+    /// Get information about the
     /// </summary>
     IExecutionRequestHandlerInfo? HandlerInfo { get; set; }
 
@@ -153,7 +154,10 @@ public interface IExecutionContext {
     /// </remarks>
     void ReplaceCancellationToken(CancellationToken token) =>
         throw new NotSupportedException(
-            GetType().Name + " cannot replace the request's cancellation token, so it cannot " +
-            "enforce a deadline. A host supporting [Timeout] overrides " +
-            nameof(ReplaceCancellationToken) + ".");
+            GetType().Name
+                + " cannot replace the request's cancellation token, so it cannot "
+                + "enforce a deadline. A host supporting [Timeout] overrides "
+                + nameof(ReplaceCancellationToken)
+                + "."
+        );
 }

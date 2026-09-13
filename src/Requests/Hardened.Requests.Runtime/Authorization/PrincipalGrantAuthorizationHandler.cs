@@ -22,20 +22,28 @@ namespace Hardened.Requests.Runtime.Authorization;
 /// </para>
 /// </remarks>
 [SingletonService]
-public class PrincipalGrantAuthorizationHandler : IActivityAuthorizationHandler {
+public class PrincipalGrantAuthorizationHandler : IActivityAuthorizationHandler
+{
     private static readonly ValueTask<GrantResolution> Abstained = new(GrantResolution.Abstained);
 
-    public ValueTask<GrantResolution> Resolve(IExecutionContext context, IReadOnlyList<string> grants) {
+    public ValueTask<GrantResolution> Resolve(
+        IExecutionContext context,
+        IReadOnlyList<string> grants
+    )
+    {
         var held = context.CallerPrincipal.Grants;
 
-        if (held.Count == 0 || grants.Count == 0) {
+        if (held.Count == 0 || grants.Count == 0)
+        {
             return Abstained;
         }
 
         HashSet<string>? found = null;
 
-        foreach (var grant in grants) {
-            if (held.Contains(grant)) {
+        foreach (var grant in grants)
+        {
+            if (held.Contains(grant))
+            {
                 (found ??= new HashSet<string>(StringComparer.Ordinal)).Add(grant);
             }
         }

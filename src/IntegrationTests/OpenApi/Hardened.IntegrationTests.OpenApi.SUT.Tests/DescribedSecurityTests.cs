@@ -20,13 +20,14 @@ namespace Hardened.IntegrationTests.OpenApi.SUT.Tests;
 /// build, rather than on the next time somebody remembers to turn a posture on.
 /// </para>
 /// </remarks>
-public class DescribedSecurityTests {
-
+public class DescribedSecurityTests
+{
     /// <summary>
     /// A scope in the description refuses a caller who holds nothing.
     /// </summary>
     [HardenedTest]
-    public async Task ADescribedScopeRefusesAnAnonymousCaller(ITestWebApp testWebApp) {
+    public async Task ADescribedScopeRefusesAnAnonymousCaller(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/secured/scoped");
 
         Assert.Equal(401, response.StatusCode);
@@ -43,7 +44,8 @@ public class DescribedSecurityTests {
     /// its description said otherwise.
     /// </remarks>
     [HardenedTest]
-    public async Task AnUnscopedAlternativeStillRefusesAnAnonymousCaller(ITestWebApp testWebApp) {
+    public async Task AnUnscopedAlternativeStillRefusesAnAnonymousCaller(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/secured/either");
 
         Assert.Equal(401, response.StatusCode);
@@ -67,7 +69,8 @@ public class DescribedSecurityTests {
     /// </para>
     /// </remarks>
     [HardenedTest]
-    public async Task ADeclaredRefusalAnswersTheDeclaredBody(ITestWebApp testWebApp) {
+    public async Task ADeclaredRefusalAnswersTheDeclaredBody(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/secured/either");
 
         Assert.Equal(401, response.StatusCode);
@@ -92,7 +95,8 @@ public class DescribedSecurityTests {
     /// sending that.
     /// </remarks>
     [HardenedTest]
-    public async Task ARefusalWithNoDeclaredBodyKeepsTheGenericOne(ITestWebApp testWebApp) {
+    public async Task ARefusalWithNoDeclaredBodyKeepsTheGenericOne(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/secured/scoped");
 
         Assert.Equal(401, response.StatusCode);
@@ -101,7 +105,10 @@ public class DescribedSecurityTests {
 
         using var document = await JsonDocument.ParseAsync(response.Body);
 
-        Assert.Equal("AuthorizationException", document.RootElement.GetProperty("type").GetString());
+        Assert.Equal(
+            "AuthorizationException",
+            document.RootElement.GetProperty("type").GetString()
+        );
     }
 
     /// <summary>
@@ -114,7 +121,8 @@ public class DescribedSecurityTests {
     /// this application the route answers.
     /// </remarks>
     [HardenedTest]
-    public async Task ARouteDeclaredPublicIsNotGuarded(ITestWebApp testWebApp) {
+    public async Task ARouteDeclaredPublicIsNotGuarded(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/stores");
 
         response.Assert.Ok();
@@ -124,7 +132,8 @@ public class DescribedSecurityTests {
     /// A route the description says nothing about is untouched.
     /// </summary>
     [HardenedTest]
-    public async Task ARouteWithNoDeclaredSecurityIsNotGuarded(ITestWebApp testWebApp) {
+    public async Task ARouteWithNoDeclaredSecurityIsNotGuarded(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/pets");
 
         response.Assert.Ok();
@@ -140,9 +149,12 @@ public class DescribedSecurityTests {
     /// independently. <c>ICurrentCaller</c> is that bridge, shipped and injected by constructor.
     /// </summary>
     [HardenedTest]
-    public async Task AHandlerReadsTheCallerAndAdmitsTheOwner(ITestWebApp testWebApp) {
+    public async Task AHandlerReadsTheCallerAndAdmitsTheOwner(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get(
-            "/secured/owned/integration-test", Holding("pets:read"));
+            "/secured/owned/integration-test",
+            Holding("pets:read")
+        );
 
         Assert.Equal(200, response.StatusCode);
     }
@@ -152,7 +164,8 @@ public class DescribedSecurityTests {
     /// for and pass authorization; only the handler can tell which of them owns the row.
     /// </summary>
     [HardenedTest]
-    public async Task AHandlerReadsTheCallerAndRefusesSomebodyElse(ITestWebApp testWebApp) {
+    public async Task AHandlerReadsTheCallerAndRefusesSomebodyElse(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/secured/owned/somebody-else", Holding("pets:read"));
 
         Assert.Equal(403, response.StatusCode);
@@ -165,7 +178,9 @@ public class DescribedSecurityTests {
     /// </summary>
     [HardenedTest]
     public async Task AnAnonymousRequestIsRefusedBeforeTheHandlerReadsAnything(
-        ITestWebApp testWebApp) {
+        ITestWebApp testWebApp
+    )
+    {
         var response = await testWebApp.Get("/secured/owned/integration-test");
 
         Assert.Equal(401, response.StatusCode);

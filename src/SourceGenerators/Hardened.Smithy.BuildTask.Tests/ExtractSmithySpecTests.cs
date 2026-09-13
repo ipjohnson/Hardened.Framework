@@ -10,13 +10,14 @@ namespace Hardened.Smithy.BuildTask.Tests;
 /// shared - that a second front end supplying nothing but a parse gets the emitters, the model file
 /// and the diagnostics for free, and under its own diagnostic codes.
 /// </remarks>
-public class ExtractSmithySpecTests {
-
+public class ExtractSmithySpecTests
+{
     private static string Fixture(string name) =>
         File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", name));
 
     [Fact]
-    public void Execute_WritesAModelAndGeneratedSource() {
+    public void Execute_WritesAModelAndGeneratedSource()
+    {
         using var harness = new SmithyTaskHarness();
 
         var path = harness.WriteAst("petstore.json", Fixture("petstore.json"));
@@ -33,7 +34,8 @@ public class ExtractSmithySpecTests {
     /// emitter. None of these types is written by anything in Hardened.Smithy.BuildTask.
     /// </summary>
     [Fact]
-    public void Execute_EmitsRecordsEnumsAndAServiceInterface() {
+    public void Execute_EmitsRecordsEnumsAndAServiceInterface()
+    {
         using var harness = new SmithyTaskHarness();
 
         var path = harness.WriteAst("petstore.json", Fixture("petstore.json"));
@@ -54,7 +56,8 @@ public class ExtractSmithySpecTests {
     /// same one an OpenAPI-described service gets.
     /// </summary>
     [Fact]
-    public void Execute_EmitsAJsonTypeInfoResolver() {
+    public void Execute_EmitsAJsonTypeInfoResolver()
+    {
         using var harness = new SmithyTaskHarness();
 
         var path = harness.WriteAst("petstore.json", Fixture("petstore.json"));
@@ -65,7 +68,8 @@ public class ExtractSmithySpecTests {
     }
 
     [Fact]
-    public void Execute_MissingFileIsReportedUnderThisFrontEndsCode() {
+    public void Execute_MissingFileIsReportedUnderThisFrontEndsCode()
+    {
         using var harness = new SmithyTaskHarness();
 
         var result = harness.Run("", Path.Combine(harness.AstDirectory, "absent.json"));
@@ -75,7 +79,8 @@ public class ExtractSmithySpecTests {
     }
 
     [Fact]
-    public void Execute_UnparseableAstIsReportedUnderThisFrontEndsCode() {
+    public void Execute_UnparseableAstIsReportedUnderThisFrontEndsCode()
+    {
         using var harness = new SmithyTaskHarness();
 
         var path = harness.WriteAst("broken.json", "{ not json");
@@ -91,7 +96,8 @@ public class ExtractSmithySpecTests {
     /// writes nothing when validation fails, so a redirect leaves an empty file rather than none.
     /// </summary>
     [Fact]
-    public void Execute_EmptyAstExplainsTheRedirectFailure() {
+    public void Execute_EmptyAstExplainsTheRedirectFailure()
+    {
         using var harness = new SmithyTaskHarness();
 
         var path = harness.WriteAst("empty.json", "");
@@ -103,7 +109,8 @@ public class ExtractSmithySpecTests {
     }
 
     [Fact]
-    public void Execute_SelectsTheNamedService() {
+    public void Execute_SelectsTheNamedService()
+    {
         using var harness = new SmithyTaskHarness();
 
         var path = harness.WriteAst("petstore.json", Fixture("petstore.json"));
@@ -114,7 +121,8 @@ public class ExtractSmithySpecTests {
     }
 
     [Fact]
-    public void Execute_UnknownServiceShapeIdFailsTheBuild() {
+    public void Execute_UnknownServiceShapeIdFailsTheBuild()
+    {
         using var harness = new SmithyTaskHarness();
 
         var path = harness.WriteAst("petstore.json", Fixture("petstore.json"));
@@ -131,7 +139,8 @@ public class ExtractSmithySpecTests {
     /// second front end reuse the whole generator half for no code.
     /// </summary>
     [Fact]
-    public void Execute_WritesTheModelUnderTheSharedSuffix() {
+    public void Execute_WritesTheModelUnderTheSharedSuffix()
+    {
         using var harness = new SmithyTaskHarness();
 
         var path = harness.WriteAst("petstore.json", Fixture("petstore.json"));
@@ -146,7 +155,8 @@ public class ExtractSmithySpecTests {
     /// check and the generator's incremental cache key off that.
     /// </summary>
     [Fact]
-    public void Execute_LeavesUnchangedOutputAlone() {
+    public void Execute_LeavesUnchangedOutputAlone()
+    {
         using var harness = new SmithyTaskHarness();
 
         var path = harness.WriteAst("petstore.json", Fixture("petstore.json"));

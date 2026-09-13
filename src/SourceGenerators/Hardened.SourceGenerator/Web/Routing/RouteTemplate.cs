@@ -12,8 +12,8 @@ namespace Hardened.SourceGenerator.Web.Routing;
 /// disagreed with its own parameter list, and a warning that carried it named a route the operator
 /// cannot find in their own source, because <c>spec_p_588343bc</c> is a hash this build invented.
 /// </remarks>
-internal static class RouteTemplate {
-
+internal static class RouteTemplate
+{
     /// <summary>
     /// The route with every token reduced to its name.
     ///
@@ -31,25 +31,30 @@ internal static class RouteTemplate {
     /// catch-all. Worth knowing, and better than emitting a document no OpenAPI reader accepts.
     /// </para>
     /// </summary>
-    public static string NamesOnly(string path) {
-        if (path.IndexOf('{') < 0) {
+    public static string NamesOnly(string path)
+    {
+        if (path.IndexOf('{') < 0)
+        {
             return path;
         }
 
         var builder = new StringBuilder(path.Length);
         var index = 0;
 
-        while (index < path.Length) {
+        while (index < path.Length)
+        {
             var open = path.IndexOf('{', index);
 
-            if (open < 0) {
+            if (open < 0)
+            {
                 builder.Append(path, index, path.Length - index);
                 break;
             }
 
             var close = path.IndexOf('}', open);
 
-            if (close < 0) {
+            if (close < 0)
+            {
                 builder.Append(path, index, path.Length - index);
                 break;
             }
@@ -84,13 +89,16 @@ internal static class RouteTemplate {
     /// the constraint guarding it. A parameter that binds from the query or a header is not in the
     /// route, and an empty chain is the truthful answer for it: nothing guards the value.
     /// </remarks>
-    public static string ConstraintOn(string path, string token) {
+    public static string ConstraintOn(string path, string token)
+    {
         var open = path.IndexOf('{');
 
-        while (open >= 0) {
+        while (open >= 0)
+        {
             var close = path.IndexOf('}', open);
 
-            if (close < 0) {
+            if (close < 0)
+            {
                 return "";
             }
 
@@ -98,8 +106,11 @@ internal static class RouteTemplate {
             var colon = path.IndexOf(':', start);
             var nameEnd = colon >= 0 && colon < close ? colon : close;
 
-            if (nameEnd - start == token.Length &&
-                string.CompareOrdinal(path, start, token, 0, token.Length) == 0) {
+            if (
+                nameEnd - start == token.Length
+                && string.CompareOrdinal(path, start, token, 0, token.Length) == 0
+            )
+            {
                 return nameEnd == close ? "" : path.Substring(colon + 1, close - colon - 1);
             }
 
@@ -118,13 +129,16 @@ internal static class RouteTemplate {
     /// template alone percent-encodes the separators in the value it sends and gets a 404 from a
     /// route that was built to accept them.
     /// </remarks>
-    public static bool IsCatchAll(string path, string token) {
+    public static bool IsCatchAll(string path, string token)
+    {
         var open = path.IndexOf('{');
 
-        while (open >= 0) {
+        while (open >= 0)
+        {
             var close = path.IndexOf('}', open);
 
-            if (close < 0) {
+            if (close < 0)
+            {
                 return false;
             }
 
@@ -132,8 +146,11 @@ internal static class RouteTemplate {
             var colon = path.IndexOf(':', start);
             var nameEnd = colon >= 0 && colon < close ? colon : close;
 
-            if (nameEnd - start == token.Length &&
-                string.CompareOrdinal(path, start, token, 0, token.Length) == 0) {
+            if (
+                nameEnd - start == token.Length
+                && string.CompareOrdinal(path, start, token, 0, token.Length) == 0
+            )
+            {
                 return start > open + 1;
             }
 
@@ -148,19 +165,23 @@ internal static class RouteTemplate {
     /// The question the document writer asks before it says anything about a route constraint at
     /// all, and the reason it can say nothing for the overwhelming majority of routes.
     /// </remarks>
-    public static bool HasConstraint(string path) {
+    public static bool HasConstraint(string path)
+    {
         var open = path.IndexOf('{');
 
-        while (open >= 0) {
+        while (open >= 0)
+        {
             var close = path.IndexOf('}', open);
 
-            if (close < 0) {
+            if (close < 0)
+            {
                 return false;
             }
 
             var colon = path.IndexOf(':', open);
 
-            if (colon > open && colon < close) {
+            if (colon > open && colon < close)
+            {
                 return true;
             }
 
@@ -174,7 +195,8 @@ internal static class RouteTemplate {
     /// Where the token's name starts: past the opening brace, and past the catch-all marker where
     /// there is one.
     /// </summary>
-    private static int TokenStart(string path, int open, int close) {
+    private static int TokenStart(string path, int open, int close)
+    {
         var start = open + 1;
 
         return start < close && path[start] == '*' ? start + 1 : start;

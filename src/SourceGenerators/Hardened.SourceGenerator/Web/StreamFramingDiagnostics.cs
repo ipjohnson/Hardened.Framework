@@ -22,7 +22,8 @@ namespace Hardened.SourceGenerator.Web;
 /// location, by design, because a span on it would rebuild every handler below an edit.
 /// </para>
 /// </remarks>
-public static class StreamFramingDiagnostics {
+public static class StreamFramingDiagnostics
+{
     public const string DiagnosticId = "HRDW004";
 
     /// <summary>
@@ -30,22 +31,25 @@ public static class StreamFramingDiagnostics {
     /// <c>AmbiguousRouteDiagnostics.Descriptor</c> is: RS2008 looks for the field, and these
     /// projects set <c>EnforceExtendedAnalyzerRules</c>.
     /// </summary>
-    private static DiagnosticDescriptor Descriptor() => new(
-        id: DiagnosticId,
-        title: "[ServerSentEvents] on a handler that does not return IAsyncEnumerable<T>",
-        messageFormat:
-        "'{0}' carries [ServerSentEvents] but does not return IAsyncEnumerable<T>, so there is no " +
-        "stream to frame and the response is buffered and serialized as JSON. Return " +
-        "IAsyncEnumerable<T> to stream it as text/event-stream, or remove the attribute.",
-        category: "Hardened.Web",
-        defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+    private static DiagnosticDescriptor Descriptor() =>
+        new(
+            id: DiagnosticId,
+            title: "[ServerSentEvents] on a handler that does not return IAsyncEnumerable<T>",
+            messageFormat: "'{0}' carries [ServerSentEvents] but does not return IAsyncEnumerable<T>, so there is no "
+                + "stream to frame and the response is buffered and serialized as JSON. Return "
+                + "IAsyncEnumerable<T> to stream it as text/event-stream, or remove the attribute.",
+            category: "Hardened.Web",
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true
+        );
 
     /// <summary>
     /// Reports the finding the transform carried, if there is one.
     /// </summary>
-    public static void Report(SourceProductionContext context, string handler, string? finding) {
-        if (string.IsNullOrEmpty(finding)) {
+    public static void Report(SourceProductionContext context, string handler, string? finding)
+    {
+        if (string.IsNullOrEmpty(finding))
+        {
             return;
         }
 

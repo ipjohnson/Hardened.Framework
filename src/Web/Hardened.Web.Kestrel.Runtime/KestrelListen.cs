@@ -19,7 +19,8 @@ namespace Hardened.Web.Kestrel.Runtime;
 /// <c>kestrel =&gt; KestrelListen.FromEnvironment(kestrel)</c>.
 /// </para>
 /// </remarks>
-public static class KestrelListen {
+public static class KestrelListen
+{
     public const string PortVariable = "PORT";
 
     public const int DefaultPort = 8080;
@@ -28,8 +29,10 @@ public static class KestrelListen {
     /// Every interface on the port <c>PORT</c> names, or <paramref name="defaultPort"/> when the
     /// variable is unset or is not a port.
     /// </summary>
-    public static void FromEnvironment(KestrelServerOptions kestrel, int defaultPort = DefaultPort) =>
-        kestrel.ListenAnyIP(Port(Environment.GetEnvironmentVariable(PortVariable), defaultPort));
+    public static void FromEnvironment(
+        KestrelServerOptions kestrel,
+        int defaultPort = DefaultPort
+    ) => kestrel.ListenAnyIP(Port(Environment.GetEnvironmentVariable(PortVariable), defaultPort));
 
     /// <summary>
     /// The port a value names, or <paramref name="defaultPort"/> when it does not name one.
@@ -40,8 +43,8 @@ public static class KestrelListen {
     /// refuse to start over a setting the platform would have supplied.
     /// </remarks>
     public static int Port(string? configured, int defaultPort = DefaultPort) =>
-        int.TryParse(configured, NumberStyles.None, CultureInfo.InvariantCulture, out var port) &&
-        port is > 0 and <= 65535
+        int.TryParse(configured, NumberStyles.None, CultureInfo.InvariantCulture, out var port)
+        && port is > 0 and <= 65535
             ? port
             : defaultPort;
 }

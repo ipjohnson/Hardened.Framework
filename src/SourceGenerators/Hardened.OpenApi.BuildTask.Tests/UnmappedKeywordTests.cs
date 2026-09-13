@@ -1,8 +1,8 @@
 using System.Linq;
 using System.Threading;
-using Hardened.Idl;
 using Hardened.Generation;
 using Hardened.Generation.Models;
+using Hardened.Idl;
 using Hardened.OpenApi.SourceGenerator;
 using Xunit;
 
@@ -29,8 +29,8 @@ namespace Hardened.OpenApi.BuildTask.Tests;
 /// keyword, and better for these.
 /// </para>
 /// </remarks>
-public class UnmappedKeywordTests {
-
+public class UnmappedKeywordTests
+{
     private const string Dropping = """
         openapi: 3.0.0
         info: { title: Depot, version: '1.0' }
@@ -110,7 +110,8 @@ public class UnmappedKeywordTests {
                   maxLength: 32
         """;
 
-    private static ServiceSpecModel Parse(string yaml) {
+    private static ServiceSpecModel Parse(string yaml)
+    {
         var model = OpenApiSpecParser.Parse(yaml, "depot", CancellationToken.None);
 
         Assert.NotNull(model);
@@ -119,12 +120,14 @@ public class UnmappedKeywordTests {
     }
 
     [Fact]
-    public void MultipleOfIsRecordedAsUnmapped() {
+    public void MultipleOfIsRecordedAsUnmapped()
+    {
         Assert.Contains(Parse(Dropping).UnmappedKeywords, u => u.Keyword == "multipleOf");
     }
 
     [Fact]
-    public void UniqueItemsIsRecordedAsUnmapped() {
+    public void UniqueItemsIsRecordedAsUnmapped()
+    {
         Assert.Contains(Parse(Dropping).UnmappedKeywords, u => u.Keyword == "uniqueItems");
     }
 
@@ -133,10 +136,12 @@ public class UnmappedKeywordTests {
     /// the one most likely to be assumed unsupported-and-therefore-rejected. It is neither.
     /// </summary>
     [Fact]
-    public void NotIsRecordedAsUnmapped() {
+    public void NotIsRecordedAsUnmapped()
+    {
         var withNot = Dropping.Replace(
             "          type: integer\n          multipleOf: 5",
-            "          type: integer\n          not: { const: 0 }");
+            "          type: integer\n          not: { const: 0 }"
+        );
 
         // The replacement has to have happened, or this asserts nothing.
         Assert.DoesNotContain("multipleOf", withNot);
@@ -149,7 +154,8 @@ public class UnmappedKeywordTests {
     /// four hundred schemas is not an actionable sentence.
     /// </summary>
     [Fact]
-    public void TheLocationNamesTheDeclaringMember() {
+    public void TheLocationNamesTheDeclaringMember()
+    {
         var unmapped = Parse(Dropping).UnmappedKeywords.Single(u => u.Keyword == "multipleOf");
 
         Assert.Contains("unitPriceCents", unmapped.Location);
@@ -160,7 +166,8 @@ public class UnmappedKeywordTests {
     /// would train people to ignore the warning.
     /// </summary>
     [Fact]
-    public void UniqueItemsSetToFalseIsNotADeclaration() {
+    public void UniqueItemsSetToFalseIsNotADeclaration()
+    {
         var model = Parse(Dropping.Replace("uniqueItems: true", "uniqueItems: false"));
 
         Assert.DoesNotContain(model.UnmappedKeywords, u => u.Keyword == "uniqueItems");
@@ -171,14 +178,18 @@ public class UnmappedKeywordTests {
     /// the diagnostic could pass its other tests by firing on everything.
     /// </summary>
     [Fact]
-    public void ADescriptionUsingOnlyMappedKeywordsIsSilent() {
+    public void ADescriptionUsingOnlyMappedKeywordsIsSilent()
+    {
         Assert.Empty(Parse(Clean).UnmappedKeywords);
         Assert.DoesNotContain(SpecDiagnostics.Find(Parse(Clean), "HOAT"), p => p.Code == "HOAT024");
     }
 
     [Fact]
-    public void TheDiagnosticIsAWarningRatherThanAnError() {
-        var problems = SpecDiagnostics.Find(Parse(Dropping), "HOAT").Where(p => p.Code == "HOAT024");
+    public void TheDiagnosticIsAWarningRatherThanAnError()
+    {
+        var problems = SpecDiagnostics
+            .Find(Parse(Dropping), "HOAT")
+            .Where(p => p.Code == "HOAT024");
 
         Assert.NotEmpty(problems);
         Assert.All(problems, problem => Assert.False(problem.Fatal));
@@ -189,13 +200,15 @@ public class UnmappedKeywordTests {
     /// thing wrong with them, and forty messages would bury it.
     /// </summary>
     [Fact]
-    public void OneMessagePerKeywordRegardlessOfHowManySitesDeclareIt() {
+    public void OneMessagePerKeywordRegardlessOfHowManySitesDeclareIt()
+    {
         var model = Parse(TwiceDropped);
 
         Assert.Equal(2, model.UnmappedKeywords.Count(u => u.Keyword == "uniqueItems"));
         Assert.Single(
             SpecDiagnostics.Find(model, "HOAT"),
-            p => p.Code == "HOAT024" && p.Message.Contains("uniqueItems"));
+            p => p.Code == "HOAT024" && p.Message.Contains("uniqueItems")
+        );
     }
 
     /// <summary>
@@ -203,8 +216,10 @@ public class UnmappedKeywordTests {
     /// the rest are.
     /// </summary>
     [Fact]
-    public void TheMessageCountsTheSitesItDidNotName() {
-        var problem = SpecDiagnostics.Find(Parse(TwiceDropped), "HOAT")
+    public void TheMessageCountsTheSitesItDidNotName()
+    {
+        var problem = SpecDiagnostics
+            .Find(Parse(TwiceDropped), "HOAT")
             .First(p => p.Code == "HOAT024" && p.Message.Contains("uniqueItems"));
 
         Assert.Contains("1 other place", problem.Message);
@@ -215,8 +230,10 @@ public class UnmappedKeywordTests {
     /// someone a debugging session. "Not supported" alone does not say a caller has been misled.
     /// </summary>
     [Fact]
-    public void TheMessageSaysThePromiseIsNotKept() {
-        var problem = SpecDiagnostics.Find(Parse(Dropping), "HOAT")
+    public void TheMessageSaysThePromiseIsNotKept()
+    {
+        var problem = SpecDiagnostics
+            .Find(Parse(Dropping), "HOAT")
             .First(p => p.Code == "HOAT024" && p.Message.Contains("multipleOf"));
 
         Assert.Contains("not enforced", problem.Message);
@@ -228,7 +245,8 @@ public class UnmappedKeywordTests {
     /// generator's cache key, and the generator has nothing to do with it.
     /// </summary>
     [Fact]
-    public void TheNoteDoesNotSurviveIntoTheModelFile() {
+    public void TheNoteDoesNotSurviveIntoTheModelFile()
+    {
         var restored = SpecModelSerializer.Read(SpecModelSerializer.Write(Parse(Dropping)));
 
         Assert.Empty(restored.UnmappedKeywords);
@@ -239,7 +257,8 @@ public class UnmappedKeywordTests {
     /// cache hit over it.
     /// </summary>
     [Fact]
-    public void ADroppedKeywordDoesNotChangeModelEquality() {
+    public void ADroppedKeywordDoesNotChangeModelEquality()
+    {
         var withKeyword = Parse(Dropping);
         var withoutKeyword = Parse(Dropping.Replace("                  multipleOf: 5\n", ""));
 
@@ -257,12 +276,15 @@ public class UnmappedKeywordTests {
     /// <c>int</c> failed to deserialize the response, with nothing between the document and that.
     /// </remarks>
     [Fact]
-    public void NullableUnderThreeOneIsRecordedAsUnmapped() {
+    public void NullableUnderThreeOneIsRecordedAsUnmapped()
+    {
         var model = Parse(Nullable.Replace("openapi: 3.0.0", "openapi: 3.1.0"));
 
         Assert.Contains(model.UnmappedKeywords, u => u.Keyword == "nullable");
         Assert.Contains(
-            "courierId", model.UnmappedKeywords.Single(u => u.Keyword == "nullable").Location);
+            "courierId",
+            model.UnmappedKeywords.Single(u => u.Keyword == "nullable").Location
+        );
     }
 
     /// <summary>
@@ -270,10 +292,12 @@ public class UnmappedKeywordTests {
     /// generate nullable. Warning there would fire on every correct 3.0 document there is.
     /// </summary>
     [Fact]
-    public void NullableUnderThreeZeroIsRead() {
+    public void NullableUnderThreeZeroIsRead()
+    {
         var model = Parse(Nullable);
-        var courierId = model.Schemas.Single(s => s.Name == "Job").Properties
-            .Single(p => p.Name == "courierId");
+        var courierId = model
+            .Schemas.Single(s => s.Name == "Job")
+            .Properties.Single(p => p.Name == "courierId");
 
         Assert.True(courierId.IsNullable);
         Assert.DoesNotContain(model.UnmappedKeywords, u => u.Keyword == "nullable");
@@ -281,7 +305,8 @@ public class UnmappedKeywordTests {
 
     /// <summary>Its own code, so a bulk-converted document can silence it and keep 024.</summary>
     [Fact]
-    public void TheDroppedNullableDiagnosticIsItsOwnWarning() {
+    public void TheDroppedNullableDiagnosticIsItsOwnWarning()
+    {
         var problem = SpecDiagnostics
             .Find(Parse(Nullable.Replace("openapi: 3.0.0", "openapi: 3.1.0")), "HOAT")
             .Single(p => p.Code == "HOAT032");

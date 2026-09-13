@@ -32,7 +32,8 @@ namespace Hardened.Azure.Functions.EventGrid;
 /// the handler binds is the event's data as the producer wrote it.
 /// </para>
 /// </remarks>
-public sealed class EventGridAdapter : ITriggerAdapter {
+public sealed class EventGridAdapter : ITriggerAdapter
+{
     /// <summary>
     /// Whether the shim was generated for this family. A string on its own says nothing - three
     /// families bind one - so the scheme the shim carries is part of the check.
@@ -40,8 +41,11 @@ public sealed class EventGridAdapter : ITriggerAdapter {
     public bool Handles(FunctionsTrigger trigger) =>
         trigger.Scheme == CloudEventRoutes.EventScheme && trigger.Data is string;
 
-    public IExecutionRequest CreateRequest(FunctionsTrigger trigger, FunctionContext context) {
-        var cloudEvent = CloudEventReader.ReadStructured(Encoding.UTF8.GetBytes((string)trigger.Data));
+    public IExecutionRequest CreateRequest(FunctionsTrigger trigger, FunctionContext context)
+    {
+        var cloudEvent = CloudEventReader.ReadStructured(
+            Encoding.UTF8.GetBytes((string)trigger.Data)
+        );
 
         var headers = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase);
 
@@ -59,7 +63,8 @@ public sealed class EventGridAdapter : ITriggerAdapter {
             cloudEvent.Data.IsEmpty
                 ? Stream.Null
                 : new MemoryStream(cloudEvent.Data.ToArray(), writable: false),
-            headers);
+            headers
+        );
     }
 
     public IExecutionResponse CreateResponse(Stream output) => new FunctionsPayloadResponse(output);
@@ -68,6 +73,8 @@ public sealed class EventGridAdapter : ITriggerAdapter {
     public HostFailurePolicy FailurePolicy => HostFailurePolicy.Rethrow;
 
     /// <summary>Nothing. Event Grid reads no response from a function.</summary>
-    public ValueTask<object?> WriteResponse(IExecutionContext context, FunctionContext functionContext) =>
-        new((object?)null);
+    public ValueTask<object?> WriteResponse(
+        IExecutionContext context,
+        FunctionContext functionContext
+    ) => new((object?)null);
 }

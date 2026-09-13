@@ -19,15 +19,17 @@ namespace Hardened.IntegrationTests.OpenApi.SUT.Tests;
 /// and is not registered is a validator that never runs.
 /// </para>
 /// </remarks>
-public class HandWrittenModelValidationTests {
-
+public class HandWrittenModelValidationTests
+{
     [HardenedTest]
-    public void AHandWrittenModelGetsARegisteredValidator(IValidatorFor<HandWrittenOrder> validator) {
+    public void AHandWrittenModelGetsARegisteredValidator(IValidatorFor<HandWrittenOrder> validator)
+    {
         Assert.NotNull(validator);
     }
 
     [HardenedTest]
-    public void ItReportsTheConstraintsThatFailed(IValidatorFor<HandWrittenOrder> validator) {
+    public void ItReportsTheConstraintsThatFailed(IValidatorFor<HandWrittenOrder> validator)
+    {
         var result = validator.Validate(new HandWrittenOrder { Reference = "ab", Quantity = 900 });
 
         Assert.False(result.IsValid);
@@ -36,8 +38,11 @@ public class HandWrittenModelValidationTests {
     }
 
     [HardenedTest]
-    public void ItPassesWhatSatisfiesThem(IValidatorFor<HandWrittenOrder> validator) {
-        Assert.True(validator.Validate(new HandWrittenOrder { Reference = "abc", Quantity = 5 }).IsValid);
+    public void ItPassesWhatSatisfiesThem(IValidatorFor<HandWrittenOrder> validator)
+    {
+        Assert.True(
+            validator.Validate(new HandWrittenOrder { Reference = "abc", Quantity = 5 }).IsValid
+        );
     }
 
     /// <summary>
@@ -48,8 +53,11 @@ public class HandWrittenModelValidationTests {
     /// once something else has already triggered one.
     /// </remarks>
     [HardenedTest]
-    public void DataAnnotationsAloneProduceAValidator(IValidatorFor<DataAnnotatedOrder> validator) {
-        var result = validator.Validate(new DataAnnotatedOrder { Reference = "ab", Quantity = 900 });
+    public void DataAnnotationsAloneProduceAValidator(IValidatorFor<DataAnnotatedOrder> validator)
+    {
+        var result = validator.Validate(
+            new DataAnnotatedOrder { Reference = "ab", Quantity = 900 }
+        );
 
         Assert.False(result.IsValid);
         Assert.Contains(result.Errors, e => e.Field == "reference");
@@ -61,7 +69,8 @@ public class HandWrittenModelValidationTests {
     /// which is what a caller sent and what they can act on.
     /// </summary>
     [HardenedTest]
-    public void ErrorsCarryWireNamesRatherThanClrNames(IValidatorFor<HandWrittenOrder> validator) {
+    public void ErrorsCarryWireNamesRatherThanClrNames(IValidatorFor<HandWrittenOrder> validator)
+    {
         var result = validator.Validate(new HandWrittenOrder { Reference = "", Quantity = 5 });
 
         Assert.Contains(result.Errors, e => e.Field == "reference");

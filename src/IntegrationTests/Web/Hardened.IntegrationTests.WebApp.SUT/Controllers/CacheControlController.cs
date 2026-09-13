@@ -13,8 +13,8 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Controllers;
 /// resolves them through the semantic model and re-emits them qualified.
 /// </remarks>
 [BasePath("/cache")]
-public class CacheControlController {
-
+public class CacheControlController
+{
     [Get("/default")]
     [CacheControl]
     public string Default() => "default";
@@ -40,8 +40,8 @@ public class CacheControlController {
 /// </summary>
 [BasePath("/cache-all")]
 [CacheControl(MaxAge = 30)]
-public class CachedEverywhereController {
-
+public class CachedEverywhereController
+{
     [Get("/one")]
     public string One() => "one";
 

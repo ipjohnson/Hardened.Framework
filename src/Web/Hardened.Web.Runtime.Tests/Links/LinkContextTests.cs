@@ -1,6 +1,6 @@
+using Hardened.Web.Runtime.Links;
 using Microsoft.Extensions.Options;
 using Xunit;
-using Hardened.Web.Runtime.Links;
 
 namespace Hardened.Web.Runtime.Tests.Links;
 
@@ -15,18 +15,31 @@ namespace Hardened.Web.Runtime.Tests.Links;
 /// with the slash the route also carries, or a scheme with no host to pair it with.
 /// </para>
 /// </summary>
-public class LinkContextTests {
-
-    private static LinkContext Context(string basePath = "", string? scheme = null, string? host = null) =>
-        new(Options.Create<ILinkConfiguration>(
-            new LinkConfiguration { BasePath = basePath, Scheme = scheme, Host = host }));
+public class LinkContextTests
+{
+    private static LinkContext Context(
+        string basePath = "",
+        string? scheme = null,
+        string? host = null
+    ) =>
+        new(
+            Options.Create<ILinkConfiguration>(
+                new LinkConfiguration
+                {
+                    BasePath = basePath,
+                    Scheme = scheme,
+                    Host = host,
+                }
+            )
+        );
 
     /// <summary>
     /// The common host serves at the root, and a link is then the route unchanged rather than the
     /// route with an empty prefix concatenated onto it.
     /// </summary>
     [Fact]
-    public void NoBasePathLeavesTheRouteAlone() {
+    public void NoBasePathLeavesTheRouteAlone()
+    {
         Assert.Equal("/orders/7", Context().Resolve("/orders/7"));
     }
 
@@ -35,7 +48,8 @@ public class LinkContextTests {
     /// application generates is missing the segment the host stripped.
     /// </summary>
     [Fact]
-    public void ABasePathIsPrefixedToTheRoute() {
+    public void ABasePathIsPrefixedToTheRoute()
+    {
         Assert.Equal("/prod/orders/7", Context("/prod").Resolve("/orders/7"));
     }
 
@@ -47,7 +61,8 @@ public class LinkContextTests {
     [Theory]
     [InlineData("/prod")]
     [InlineData("/prod/")]
-    public void ATrailingSlashOnTheBasePathIsTrimmed(string basePath) {
+    public void ATrailingSlashOnTheBasePathIsTrimmed(string basePath)
+    {
         Assert.Equal("/prod/orders", Context(basePath).Resolve("/orders"));
     }
 
@@ -57,10 +72,12 @@ public class LinkContextTests {
     /// separate construction.
     /// </summary>
     [Fact]
-    public void AnAbsoluteLinkUsesTheSchemeHostAndBasePath() {
+    public void AnAbsoluteLinkUsesTheSchemeHostAndBasePath()
+    {
         Assert.Equal(
             "https://api.example.com/prod/orders",
-            Context("/prod", "https", "api.example.com").Absolute("/orders"));
+            Context("/prod", "https", "api.example.com").Absolute("/orders")
+        );
     }
 
     /// <summary>
@@ -74,13 +91,15 @@ public class LinkContextTests {
     [InlineData("https", "")]
     [InlineData("", "api.example.com")]
     [InlineData(null, null)]
-    public void HalfAnOriginFallsBackToTheRelativeLink(string? scheme, string? host) {
+    public void HalfAnOriginFallsBackToTheRelativeLink(string? scheme, string? host)
+    {
         Assert.Equal("/prod/orders", Context("/prod", scheme, host).Absolute("/orders"));
     }
 
     /// <summary>The configured values are readable, which is what a host replacing this reads.</summary>
     [Fact]
-    public void TheConfiguredOriginIsReadBack() {
+    public void TheConfiguredOriginIsReadBack()
+    {
         var context = Context("/prod/", "https", "api.example.com");
 
         Assert.Equal("/prod", context.BasePath);
@@ -93,7 +112,8 @@ public class LinkContextTests {
     /// ASP.NET Core.
     /// </summary>
     [Fact]
-    public void TheDefaultConfigurationServesAtTheRoot() {
+    public void TheDefaultConfigurationServesAtTheRoot()
+    {
         var configuration = new LinkConfiguration();
 
         Assert.Equal("", configuration.BasePath);

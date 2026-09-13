@@ -29,16 +29,19 @@ namespace Hardened.Kiota.Testing;
 /// answer.
 /// </para>
 /// </remarks>
-internal sealed class RecordingHandler : DelegatingHandler {
-
+internal sealed class RecordingHandler : DelegatingHandler
+{
     private static readonly ConditionalWeakTable<object, Received> Responses = new();
 
     protected override async Task<HttpResponseMessage> SendAsync(
-        HttpRequestMessage request, CancellationToken cancellationToken) {
-
+        HttpRequestMessage request,
+        CancellationToken cancellationToken
+    )
+    {
         var response = await base.SendAsync(request, cancellationToken);
 
-        if (CurrentTest.Key is { } test) {
+        if (CurrentTest.Key is { } test)
+        {
             Responses.AddOrUpdate(test, Read(response));
         }
 
@@ -49,7 +52,8 @@ internal sealed class RecordingHandler : DelegatingHandler {
     /// The status the client received in the current test and the headers that came with it, or
     /// false where no call through a recording client has been answered in it, or no test is running.
     /// </summary>
-    public static bool TryCurrent([NotNullWhen(true)] out Received? received) {
+    public static bool TryCurrent([NotNullWhen(true)] out Received? received)
+    {
         received = null;
 
         return CurrentTest.Key is { } test && Responses.TryGetValue(test, out received);
@@ -59,14 +63,17 @@ internal sealed class RecordingHandler : DelegatingHandler {
     /// Response headers and content headers together, because both are headers on the response and
     /// only the transport draws the line between them.
     /// </summary>
-    private static Received Read(HttpResponseMessage response) {
+    private static Received Read(HttpResponseMessage response)
+    {
         var headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var header in response.Headers) {
+        foreach (var header in response.Headers)
+        {
             headers[header.Key] = string.Join(", ", header.Value);
         }
 
-        foreach (var header in response.Content.Headers) {
+        foreach (var header in response.Content.Headers)
+        {
             headers[header.Key] = string.Join(", ", header.Value);
         }
 

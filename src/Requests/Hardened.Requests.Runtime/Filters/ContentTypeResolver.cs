@@ -28,24 +28,31 @@ namespace Hardened.Requests.Runtime.Filters;
 /// <see cref="TimeoutResolver"/>, which resolves the same four rungs for a deadline.
 /// </para>
 /// </remarks>
-internal static class ContentTypeResolver {
-
+internal static class ContentTypeResolver
+{
     /// <summary>
     /// One lookup per assembly rather than one per handler, since a controller with twenty routes
     /// asks the same question twenty times.
     /// </summary>
-    private static readonly ConcurrentDictionary<Assembly, IReadOnlyList<string>?> AssemblyDeclarations = new();
+    private static readonly ConcurrentDictionary<
+        Assembly,
+        IReadOnlyList<string>?
+    > AssemblyDeclarations = new();
 
     public static IReadOnlyList<string> Resolve(
-        IServiceProvider serviceProvider, IExecutionRequestHandlerInfo handlerInfo) {
+        IServiceProvider serviceProvider,
+        IExecutionRequestHandlerInfo handlerInfo
+    )
+    {
         // The operation and its class, which the generator already resolved between them.
-        if (handlerInfo.ProducedContentTypes.Count > 0) {
+        if (handlerInfo.ProducedContentTypes.Count > 0)
+        {
             return handlerInfo.ProducedContentTypes;
         }
 
-        return ForAssembly(handlerInfo.HandlerType.Assembly) ??
-               RegisteredDefault(serviceProvider) ??
-               Array.Empty<string>();
+        return ForAssembly(handlerInfo.HandlerType.Assembly)
+            ?? RegisteredDefault(serviceProvider)
+            ?? Array.Empty<string>();
     }
 
     /// <summary>
@@ -58,32 +65,39 @@ internal static class ContentTypeResolver {
     private static IReadOnlyList<string>? ForAssembly(Assembly assembly) =>
         AssemblyDeclarations.GetOrAdd(
             assembly,
-            static declaring => {
-                var declared = declaring.GetCustomAttributes()
+            static declaring =>
+            {
+                var declared = declaring
+                    .GetCustomAttributes()
                     .OfType<ProducesAttribute>()
                     .FirstOrDefault()
                     ?.ContentTypes;
 
                 return declared is { Length: > 0 } ? declared : null;
-            });
+            }
+        );
 
     /// <summary>
     /// The last <see cref="ResponseContentTypeDefault"/> the application registered, or null.
     /// </summary>
-    private static IReadOnlyList<string>? RegisteredDefault(IServiceProvider serviceProvider) {
+    private static IReadOnlyList<string>? RegisteredDefault(IServiceProvider serviceProvider)
+    {
         // GetService rather than GetServices, for the reason ExecutionHelper.ApplyConventions
         // gives: the convenience overload resolves IEnumerable<T> as required, and Hardened's
         // container does not synthesise an empty one.
         var registered = serviceProvider.GetService<IEnumerable<ResponseContentTypeDefault>>();
 
-        if (registered == null) {
+        if (registered == null)
+        {
             return null;
         }
 
         IReadOnlyList<string>? last = null;
 
-        foreach (var declaration in registered) {
-            if (declaration.ContentTypes.Count > 0) {
+        foreach (var declaration in registered)
+        {
+            if (declaration.ContentTypes.Count > 0)
+            {
                 last = declaration.ContentTypes;
             }
         }

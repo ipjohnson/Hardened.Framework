@@ -7,7 +7,8 @@ namespace Hardened.Requests.Runtime.Filters;
 /// <summary>
 /// Putting <see cref="BatchExecutionFilter"/> into every handler's chain.
 /// </summary>
-public static class BatchFilterServiceCollectionExtensions {
+public static class BatchFilterServiceCollectionExtensions
+{
     /// <summary>
     /// One instance, because the filter holds nothing. Everything it works on comes off the chain.
     /// </summary>
@@ -32,9 +33,10 @@ public static class BatchFilterServiceCollectionExtensions {
     /// </remarks>
     public static IServiceCollection AddBatchExecutionFilter(this IServiceCollection services) =>
         services.AddGlobalFilter(
-            new SingleFilterProvider(
-                _ => new RequestFilterInfo(
-                    _ => Filter,
-                    FilterOrder.BeforeSerialization,
-                    nameof(BatchExecutionFilter))));
+            new SingleFilterProvider(_ => new RequestFilterInfo(
+                _ => Filter,
+                FilterOrder.BeforeSerialization,
+                nameof(BatchExecutionFilter)
+            ))
+        );
 }

@@ -1,23 +1,27 @@
-﻿using Hardened.Requests.Abstract.Execution;
-using DependencyModules.Runtime.Attributes;
+﻿using DependencyModules.Runtime.Attributes;
+using Hardened.Requests.Abstract.Execution;
 using Hardened.Shared.Runtime.Metrics;
-using Microsoft.AspNetCore.Http;
 using Hardened.Web.Runtime.Responses;
+using Microsoft.AspNetCore.Http;
 
 namespace Hardened.Web.AspNetCore.Runtime.Impl;
 
-public interface IAspNetCoreRequestHandler {
+public interface IAspNetCoreRequestHandler
+{
     Task HandleRequest(HttpContext context, RequestDelegate requestDelegate);
 }
 
 [TransientService]
-public class AspNetCoreRequestHandler : IAspNetCoreRequestHandler {
+public class AspNetCoreRequestHandler : IAspNetCoreRequestHandler
+{
     private readonly IMetricLoggerProvider _metricLoggerProvider;
     private readonly IRequestExecutor _executor;
 
     public AspNetCoreRequestHandler(
         IMetricLoggerProvider metricLoggerProvider,
-        IRequestExecutor executor) {
+        IRequestExecutor executor
+    )
+    {
         _metricLoggerProvider = metricLoggerProvider;
         _executor = executor;
     }
@@ -46,19 +50,23 @@ public class AspNetCoreRequestHandler : IAspNetCoreRequestHandler {
     /// the <c>finally</c> that closes the request out.
     /// </para>
     /// </remarks>
-    public async Task HandleRequest(HttpContext context, RequestDelegate requestDelegate) {
+    public async Task HandleRequest(HttpContext context, RequestDelegate requestDelegate)
+    {
         var executionContext = GetExecutionContext(context, _metricLoggerProvider);
 
         _executor.Begin(executionContext);
 
-        try {
+        try
+        {
             await _executor.RunChain(executionContext, HostFailurePolicy.Answer500);
 
-            if (!Answered(executionContext)) {
+            if (!Answered(executionContext))
+            {
                 await requestDelegate(context);
             }
         }
-        finally {
+        finally
+        {
             // In a finally because the close-out ran as straight-line statements after the chain,
             // so an exception escaping to ASP.NET's own handler took it all with it: no duration,
             // no end, and no flush. The fallthrough delegate can still throw, which is what makes
@@ -102,18 +110,24 @@ public class AspNetCoreRequestHandler : IAspNetCoreRequestHandler {
     /// turn, and ASP.NET's own 404 answers if none of them do.
     /// </para>
     /// </remarks>
-    private static bool Answered(IExecutionContext executionContext) {
+    private static bool Answered(IExecutionContext executionContext)
+    {
         var response = executionContext.Response;
 
         return executionContext.HandlerInfo != null
-               || response.Status.HasValue
-               || response.ResponseValue != null
-               || response.ResponseStarted;
+            || response.Status.HasValue
+            || response.ResponseValue != null
+            || response.ResponseStarted;
     }
 
     private IExecutionContext GetExecutionContext(
         HttpContext context,
-        IMetricLoggerProvider metricLoggerProvider) {
-        return new AspNetExecutionContext(context, metricLoggerProvider.CreateLogger("asp-net-session"));
+        IMetricLoggerProvider metricLoggerProvider
+    )
+    {
+        return new AspNetExecutionContext(
+            context,
+            metricLoggerProvider.CreateLogger("asp-net-session")
+        );
     }
 }

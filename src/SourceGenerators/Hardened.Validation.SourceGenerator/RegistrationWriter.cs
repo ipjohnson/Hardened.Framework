@@ -25,16 +25,21 @@ namespace Hardened.Validation.SourceGenerator;
 /// registers for the same type runs alongside the generated one rather than replacing it.
 /// </para>
 /// </remarks>
-internal static class RegistrationWriter {
-
-    private static readonly ITypeDefinition ServiceCollection =
-        TypeDefinition.Get("Microsoft.Extensions.DependencyInjection", "IServiceCollection");
+internal static class RegistrationWriter
+{
+    private static readonly ITypeDefinition ServiceCollection = TypeDefinition.Get(
+        "Microsoft.Extensions.DependencyInjection",
+        "IServiceCollection"
+    );
 
     public static void Write(
         SourceProductionContext context,
         EntryPointSelector.Model entryPoint,
-        ImmutableArray<ValidatedTypeModel> validators) {
-        if (validators.Length == 0) {
+        ImmutableArray<ValidatedTypeModel> validators
+    )
+    {
+        if (validators.Length == 0)
+        {
             return;
         }
 
@@ -51,13 +56,15 @@ internal static class RegistrationWriter {
         field.Modifiers |= ComponentModifier.Private | ComponentModifier.Static;
         field.AddUsingNamespace("DependencyModules.Runtime.Helpers");
         field.InitializeValue = new CodeOutputComponent(
-            $"DependencyRegistry<{entryPoint.EntryPointType.Name}>.Add(ValidationModuleDI)");
+            $"DependencyRegistry<{entryPoint.EntryPointType.Name}>.Add(ValidationModuleDI)"
+        );
 
         // Without this the field initializer is trimmed and nothing is ever registered - the same
         // guard the routing table carries.
         field.AddAttribute(
             TypeDefinition.Get("System.Diagnostics.CodeAnalysis", "DynamicDependency"),
-            new CodeOutputComponent("nameof(ValidationModuleDI)") { Indented = false });
+            new CodeOutputComponent("nameof(ValidationModuleDI)") { Indented = false }
+        );
 
         var method = appClass.AddMethod("ValidationModuleDI");
         method.Modifiers |= ComponentModifier.Private | ComponentModifier.Static;
@@ -66,28 +73,43 @@ internal static class RegistrationWriter {
 
         // Ordered so the emitted table does not reshuffle between builds, which would turn every
         // incremental compile into a diff.
-        foreach (var validator in validators
-                     .OrderBy(v => v.Namespace, StringComparer.Ordinal)
-                     .ThenBy(v => v.ValidatorName, StringComparer.Ordinal)) {
-            var qualified = validator.Namespace.Length == 0
-                ? validator.ValidatorName
-                : validator.Namespace + "." + validator.ValidatorName;
+        foreach (
+            var validator in validators
+                .OrderBy(v => v.Namespace, StringComparer.Ordinal)
+                .ThenBy(v => v.ValidatorName, StringComparer.Ordinal)
+        )
+        {
+            var qualified =
+                validator.Namespace.Length == 0
+                    ? validator.ValidatorName
+                    : validator.Namespace + "." + validator.ValidatorName;
 
             // Registered as a type, not as an instance. A generated validator takes the validators
             // for its nested types as constructor parameters, so the container has to build it -
             // there is no instance to hand over, and a static one could not have been injected into
             // anyway. Closed generics, so nothing resolves reflectively at run time.
-            method.AddIndentedStatement(new CodeOutputComponent(
-                $"serviceCollection.AddSingleton<global::ValidationModules.IValidatorFor<{validator.QualifiedTypeName}>, " +
-                $"global::{qualified}>()") { Indented = false });
+            method.AddIndentedStatement(
+                new CodeOutputComponent(
+                    $"serviceCollection.AddSingleton<global::ValidationModules.IValidatorFor<{validator.QualifiedTypeName}>, "
+                        + $"global::{qualified}>()"
+                )
+                {
+                    Indented = false,
+                }
+            );
         }
 
         _ = services;
 
-        var outputContext = new OutputContext(new OutputContextOptions { TypeOutputMode = TypeOutputMode.Global });
+        var outputContext = new OutputContext(
+            new OutputContextOptions { TypeOutputMode = TypeOutputMode.Global }
+        );
 
         file.WriteOutput(outputContext);
 
-        context.AddSource(entryPoint.EntryPointType.Name + ".ValidationModule.g.cs", GeneratedSource.Header(outputContext.Output()));
+        context.AddSource(
+            entryPoint.EntryPointType.Name + ".ValidationModule.g.cs",
+            GeneratedSource.Header(outputContext.Output())
+        );
     }
 }

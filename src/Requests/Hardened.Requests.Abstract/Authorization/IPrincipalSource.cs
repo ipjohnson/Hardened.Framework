@@ -29,7 +29,8 @@ namespace Hardened.Requests.Abstract.Authorization;
 /// principal it builds, which is what the testing source does.
 /// </para>
 /// </remarks>
-public interface IPrincipalSource {
+public interface IPrincipalSource
+{
     /// <summary>
     /// The caller this request's credential establishes, or null when the request carries no
     /// credential this source reads.

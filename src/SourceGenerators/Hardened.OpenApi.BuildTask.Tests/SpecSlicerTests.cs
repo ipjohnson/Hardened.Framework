@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using System.Threading;
+using Hardened.Generation.Models;
 using Hardened.Idl.Filtering;
 using Hardened.OpenApi.SourceGenerator;
-using Hardened.Generation.Models;
 using Xunit;
 
 namespace Hardened.OpenApi.BuildTask.Tests;
@@ -10,8 +10,8 @@ namespace Hardened.OpenApi.BuildTask.Tests;
 /// <summary>
 /// Narrowing a description to the part one service implements.
 /// </summary>
-public class SpecSlicerTests {
-
+public class SpecSlicerTests
+{
     /// <summary>
     /// Two operations under different paths, each reaching a schema of its own, plus a schema
     /// neither reaches.
@@ -67,7 +67,8 @@ public class SpecSlicerTests {
                 nothing: { type: string }
         """;
 
-    private static ServiceSpecModel Parse() {
+    private static ServiceSpecModel Parse()
+    {
         var model = OpenApiSpecParser.Parse(TwoServices, "spec", CancellationToken.None);
 
         Assert.NotNull(model);
@@ -75,11 +76,11 @@ public class SpecSlicerTests {
         return model!;
     }
 
-    private static SpecSlicer.Filter Paths(params string[] globs) =>
-        new() { IncludePaths = globs };
+    private static SpecSlicer.Filter Paths(params string[] globs) => new() { IncludePaths = globs };
 
     [Fact]
-    public void AnEmptyFilterKeepsEveryOperation() {
+    public void AnEmptyFilterKeepsEveryOperation()
+    {
         var model = Parse();
 
         var result = SpecSlicer.Apply(model, new SpecSlicer.Filter());
@@ -99,7 +100,8 @@ public class SpecSlicerTests {
     /// collision, and a type, over something no caller could reach.
     /// </remarks>
     [Fact]
-    public void AnUnreferencedSchemaIsDroppedEvenWithNoFilter() {
+    public void AnUnreferencedSchemaIsDroppedEvenWithNoFilter()
+    {
         var model = Parse();
 
         var result = SpecSlicer.Apply(model, new SpecSlicer.Filter());
@@ -130,7 +132,8 @@ public class SpecSlicerTests {
     /// code, from a contract that was right.
     /// </remarks>
     [Fact]
-    public void ASchemaReachedOnlyThroughAnItemSchemaIsKept() {
+    public void ASchemaReachedOnlyThroughAnItemSchemaIsKept()
+    {
         var model = OpenApiSpecParser.Parse(Streamed, "spec", CancellationToken.None)!;
 
         var result = SpecSlicer.Apply(model, new SpecSlicer.Filter());
@@ -170,7 +173,8 @@ public class SpecSlicerTests {
         """;
 
     [Fact]
-    public void ASubtypeOfADiscriminatedBaseIsReachedThroughTheBase() {
+    public void ASubtypeOfADiscriminatedBaseIsReachedThroughTheBase()
+    {
         var model = OpenApiSpecParser.Parse(Polymorphic, "spec", CancellationToken.None)!;
 
         SpecSlicer.Apply(model, new SpecSlicer.Filter());
@@ -241,7 +245,8 @@ public class SpecSlicerTests {
     /// allowed to be, which makes them part of the contract whatever the property is typed as.
     /// </remarks>
     [Fact]
-    public void TheBranchesOfAOneOfSurviveThoughThePropertyIsTypedLoosely() {
+    public void TheBranchesOfAOneOfSurviveThoughThePropertyIsTypedLoosely()
+    {
         var model = OpenApiSpecParser.Parse(Branching, "spec", CancellationToken.None)!;
 
         SpecSlicer.Apply(model, new SpecSlicer.Filter());
@@ -303,7 +308,8 @@ public class SpecSlicerTests {
 
     /// <summary>The escape hatch, for a project that uses a declared type the document never does.</summary>
     [Fact]
-    public void KeepingUnreferencedSchemasIsAvailable() {
+    public void KeepingUnreferencedSchemasIsAvailable()
+    {
         var model = Parse();
 
         var result = SpecSlicer.Apply(model, new SpecSlicer.Filter(), keepUnreferenced: true);
@@ -314,7 +320,8 @@ public class SpecSlicerTests {
     }
 
     [Fact]
-    public void APathGlobKeepsOnlyTheOperationsUnderIt() {
+    public void APathGlobKeepsOnlyTheOperationsUnderIt()
+    {
         var model = Parse();
 
         var result = SpecSlicer.Apply(model, Paths("/repos/**"));
@@ -330,14 +337,16 @@ public class SpecSlicerTests {
     /// <c>Release</c>, and <c>Release</c> reaches <c>User</c>.
     /// </summary>
     [Fact]
-    public void SchemasAreKeptTransitivelyAndNothingElseSurvives() {
+    public void SchemasAreKeptTransitivelyAndNothingElseSurvives()
+    {
         var model = Parse();
 
         SpecSlicer.Apply(model, Paths("/repos/**"));
 
         var names = new List<string>();
 
-        foreach (var schema in model.Schemas) {
+        foreach (var schema in model.Schemas)
+        {
             names.Add(schema.Name);
         }
 
@@ -348,7 +357,8 @@ public class SpecSlicerTests {
     }
 
     [Fact]
-    public void NothingKeptStillPointsAtSomethingRemoved() {
+    public void NothingKeptStillPointsAtSomethingRemoved()
+    {
         var model = Parse();
 
         var result = SpecSlicer.Apply(model, Paths("/repos/**"));
@@ -357,20 +367,26 @@ public class SpecSlicerTests {
     }
 
     [Fact]
-    public void AnExcludeIsAppliedAfterTheIncludeSet() {
+    public void AnExcludeIsAppliedAfterTheIncludeSet()
+    {
         var model = Parse();
 
-        var result = SpecSlicer.Apply(model, new SpecSlicer.Filter {
-            IncludePaths = new[] { "/**" },
-            ExcludePaths = new[] { "/repos/**" }
-        });
+        var result = SpecSlicer.Apply(
+            model,
+            new SpecSlicer.Filter
+            {
+                IncludePaths = new[] { "/**" },
+                ExcludePaths = new[] { "/repos/**" },
+            }
+        );
 
         Assert.Equal(1, result.OperationsKept);
         Assert.Equal("listIssues", model.Services[0].Operations[0].OperationId);
     }
 
     [Fact]
-    public void TagsSelectTheSameWayPathsDo() {
+    public void TagsSelectTheSameWayPathsDo()
+    {
         var model = Parse();
 
         var result = SpecSlicer.Apply(model, new SpecSlicer.Filter { Tags = new[] { "Issues" } });
@@ -384,7 +400,8 @@ public class SpecSlicerTests {
     /// succeed against an empty project.
     /// </summary>
     [Fact]
-    public void AFilterMatchingNothingSaysSo() {
+    public void AFilterMatchingNothingSaysSo()
+    {
         var model = Parse();
 
         var result = SpecSlicer.Apply(model, Paths("/nothing/here/**"));
@@ -410,7 +427,8 @@ public class SpecSlicerTests {
     // Partial segment wildcards.
     [InlineData("/v*/things", "/v2/things", true)]
     [InlineData("/v*/things", "/api/things", false)]
-    public void GlobsMatchBySegment(string glob, string path, bool expected) {
+    public void GlobsMatchBySegment(string glob, string path, bool expected)
+    {
         Assert.Equal(expected, SpecSlicer.GlobMatches(glob, path));
     }
 }

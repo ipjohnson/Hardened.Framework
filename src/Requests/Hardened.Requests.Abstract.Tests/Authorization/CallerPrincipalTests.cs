@@ -11,8 +11,8 @@ namespace Hardened.Requests.Abstract.Tests.Authorization;
 /// genuinely immutable, so handing one to a filter cannot be a way to edit it.
 /// </para>
 /// </summary>
-public class CallerPrincipalTests {
-
+public class CallerPrincipalTests
+{
     #region anonymous
 
     /// <summary>
@@ -20,12 +20,14 @@ public class CallerPrincipalTests {
     /// to get wrong under concurrency.
     /// </summary>
     [Fact]
-    public void Anonymous_IsASingleSharedInstance() {
+    public void Anonymous_IsASingleSharedInstance()
+    {
         Assert.Same(AnonymousCallerPrincipal.Instance, AnonymousCallerPrincipal.Instance);
     }
 
     [Fact]
-    public void Anonymous_IsNotAuthenticatedAndNamesNoScheme() {
+    public void Anonymous_IsNotAuthenticatedAndNamesNoScheme()
+    {
         Assert.Null(AnonymousCallerPrincipal.Instance.AuthenticationScheme);
         Assert.False(AnonymousCallerPrincipal.Instance.IsAuthenticated);
     }
@@ -35,7 +37,8 @@ public class CallerPrincipalTests {
     /// caller as for an authenticated one instead of null-checking first.
     /// </summary>
     [Fact]
-    public void Anonymous_HoldsNoGrantsAndNoClaims() {
+    public void Anonymous_HoldsNoGrantsAndNoClaims()
+    {
         Assert.Empty(AnonymousCallerPrincipal.Instance.Grants);
         Assert.False(AnonymousCallerPrincipal.Instance.TryGetClaim("sub", out _));
         Assert.Null(AnonymousCallerPrincipal.Instance.Subject);
@@ -59,25 +62,29 @@ public class CallerPrincipalTests {
     /// </para>
     /// </summary>
     [Fact]
-    public void IsAuthenticated_FollowsFromTheSchemeBeingPresent() {
+    public void IsAuthenticated_FollowsFromTheSchemeBeingPresent()
+    {
         ICallerPrincipal principal = new CallerPrincipal("bearer");
 
         Assert.True(principal.IsAuthenticated);
     }
 
     [Fact]
-    public void Constructing_WithoutASchemeThrows() {
+    public void Constructing_WithoutASchemeThrows()
+    {
         Assert.Throws<ArgumentException>(() => new CallerPrincipal(""));
         Assert.Throws<ArgumentException>(() => new CallerPrincipal(null!));
     }
 
     [Fact]
-    public void Constructing_CarriesSubjectIssuerAndGrants() {
+    public void Constructing_CarriesSubjectIssuerAndGrants()
+    {
         var principal = new CallerPrincipal(
             "bearer",
             ["pets:read", "pets:write"],
             subject: "user-42",
-            issuer: "https://issuer.example");
+            issuer: "https://issuer.example"
+        );
 
         Assert.Equal("bearer", principal.AuthenticationScheme);
         Assert.Equal("user-42", principal.Subject);
@@ -87,7 +94,8 @@ public class CallerPrincipalTests {
     }
 
     [Fact]
-    public void Constructing_WithNoGrantsYieldsAnEmptySetRatherThanNull() {
+    public void Constructing_WithNoGrantsYieldsAnEmptySetRatherThanNull()
+    {
         Assert.Empty(new CallerPrincipal("bearer").Grants);
     }
 
@@ -97,7 +105,8 @@ public class CallerPrincipalTests {
     /// mutates" false while looking true.
     /// </summary>
     [Fact]
-    public void Grants_AreNotWritableThroughTheSetHandedIn() {
+    public void Grants_AreNotWritableThroughTheSetHandedIn()
+    {
         var source = new HashSet<string> { "pets:read" };
         var principal = new CallerPrincipal("bearer", source);
 
@@ -111,16 +120,20 @@ public class CallerPrincipalTests {
     #region claims
 
     [Fact]
-    public void TryGetClaim_ReadsAClaimTheCredentialCarried() {
+    public void TryGetClaim_ReadsAClaimTheCredentialCarried()
+    {
         var principal = new CallerPrincipal(
-            "bearer", claims: [new KeyValuePair<string, string>("tenant", "acme")]);
+            "bearer",
+            claims: [new KeyValuePair<string, string>("tenant", "acme")]
+        );
 
         Assert.True(principal.TryGetClaim("tenant", out var value));
         Assert.Equal("acme", value);
     }
 
     [Fact]
-    public void TryGetClaim_ReportsFalseForAClaimThatIsNotThere() {
+    public void TryGetClaim_ReportsFalseForAClaimThatIsNotThere()
+    {
         Assert.False(new CallerPrincipal("bearer").TryGetClaim("tenant", out var value));
         Assert.Null(value);
     }
@@ -129,9 +142,12 @@ public class CallerPrincipalTests {
     /// A claim name is a wire identifier, so it is matched ordinally for the same reason a grant is.
     /// </summary>
     [Fact]
-    public void TryGetClaim_MatchesTheNameCaseSensitively() {
+    public void TryGetClaim_MatchesTheNameCaseSensitively()
+    {
         var principal = new CallerPrincipal(
-            "bearer", claims: [new KeyValuePair<string, string>("tenant", "acme")]);
+            "bearer",
+            claims: [new KeyValuePair<string, string>("tenant", "acme")]
+        );
 
         Assert.False(principal.TryGetClaim("Tenant", out _));
     }
@@ -141,11 +157,16 @@ public class CallerPrincipalTests {
     /// validator accepts into a 500; taking the last one is what a dictionary build would do anyway.
     /// </summary>
     [Fact]
-    public void Constructing_WithADuplicateClaimKeepsTheLastRatherThanThrowing() {
-        var principal = new CallerPrincipal("bearer", claims: [
-            new KeyValuePair<string, string>("tenant", "first"),
-            new KeyValuePair<string, string>("tenant", "second"),
-        ]);
+    public void Constructing_WithADuplicateClaimKeepsTheLastRatherThanThrowing()
+    {
+        var principal = new CallerPrincipal(
+            "bearer",
+            claims:
+            [
+                new KeyValuePair<string, string>("tenant", "first"),
+                new KeyValuePair<string, string>("tenant", "second"),
+            ]
+        );
 
         Assert.True(principal.TryGetClaim("tenant", out var value));
         Assert.Equal("second", value);

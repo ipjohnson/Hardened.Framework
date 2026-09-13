@@ -29,18 +29,21 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests;
 /// does the same over the port: the second connects to the first's, and is refused.
 /// </para>
 /// </remarks>
-public class ContainerLifetimeTests {
-
+public class ContainerLifetimeTests
+{
     private static readonly ConcurrentBag<IServiceProvider> Earlier = new();
 
     [HardenedTest]
-    public void TheContainerOfATestThatHasRunIsDisposed(IServiceProvider provider) => Check(provider);
+    public void TheContainerOfATestThatHasRunIsDisposed(IServiceProvider provider) =>
+        Check(provider);
 
     [HardenedTest]
     public void WhicheverOfTheTwoRanFirst(IServiceProvider provider) => Check(provider);
 
-    private static void Check(IServiceProvider current) {
-        foreach (var earlier in Earlier) {
+    private static void Check(IServiceProvider current)
+    {
+        foreach (var earlier in Earlier)
+        {
             Assert.Throws<ObjectDisposedException>(() => earlier.GetService(typeof(object)));
         }
 
@@ -52,8 +55,8 @@ public class ContainerLifetimeTests {
 
 /// <summary>The socket half: a finished test's port is closed by the time the next test runs.</summary>
 [KestrelRuntime]
-public class SocketLifetimeTests {
-
+public class SocketLifetimeTests
+{
     private static readonly ConcurrentBag<int> EarlierPorts = new();
 
     [HardenedTest]
@@ -62,13 +65,17 @@ public class SocketLifetimeTests {
     [HardenedTest]
     public async Task WhicheverOfTheTwoRanFirst(ITestWebApp app) => await Check(app);
 
-    private static async Task Check(ITestWebApp app) {
+    private static async Task Check(ITestWebApp app)
+    {
         var token = TestContext.Current.CancellationToken;
 
-        foreach (var port in EarlierPorts) {
+        foreach (var port in EarlierPorts)
+        {
             using var probe = new TcpClient();
 
-            await Assert.ThrowsAsync<SocketException>(() => probe.ConnectAsync(IPAddress.Loopback, port, token).AsTask());
+            await Assert.ThrowsAsync<SocketException>(() =>
+                probe.ConnectAsync(IPAddress.Loopback, port, token).AsTask()
+            );
         }
 
         var response = await app.Get("/verbs/item/1");
@@ -81,9 +88,10 @@ public class SocketLifetimeTests {
 
 /// <summary>Hands every test's container to <see cref="ContainerLeakGuard"/>.</summary>
 [AttributeUsage(AttributeTargets.Assembly)]
-public sealed class TrackContainersAttribute : Attribute, ITestStartupAttribute {
-
-    public Task StartupAsync(ITestMethodContext testMethod, IServiceProvider serviceProvider) {
+public sealed class TrackContainersAttribute : Attribute, ITestStartupAttribute
+{
+    public Task StartupAsync(ITestMethodContext testMethod, IServiceProvider serviceProvider)
+    {
         ContainerLeakGuard.Track(serviceProvider);
 
         return Task.CompletedTask;
@@ -94,28 +102,32 @@ public sealed class TrackContainersAttribute : Attribute, ITestStartupAttribute 
 /// At the end of the run, every container a test built has been disposed. The probe that found
 /// the defect, turned into a guard over the whole assembly rather than one class's pair.
 /// </summary>
-public sealed class ContainerLeakGuard : IAsyncDisposable {
-
+public sealed class ContainerLeakGuard : IAsyncDisposable
+{
     private static readonly ConcurrentBag<IServiceProvider> Containers = new();
 
     public static void Track(IServiceProvider provider) => Containers.Add(provider);
 
-    public ValueTask DisposeAsync() {
+    public ValueTask DisposeAsync()
+    {
         var alive = 0;
 
-        foreach (var container in Containers) {
-            try {
+        foreach (var container in Containers)
+        {
+            try
+            {
                 container.GetService(typeof(object));
                 alive++;
             }
-            catch (ObjectDisposedException) {
-            }
+            catch (ObjectDisposedException) { }
         }
 
-        if (alive > 0) {
+        if (alive > 0)
+        {
             throw new InvalidOperationException(
-                $"{alive} of {Containers.Count} test containers were still alive at the end of the run. " +
-                "The runner disposes a container when its case has run; something has stopped doing so.");
+                $"{alive} of {Containers.Count} test containers were still alive at the end of the run. "
+                    + "The runner disposes a container when its case has run; something has stopped doing so."
+            );
         }
 
         return default;

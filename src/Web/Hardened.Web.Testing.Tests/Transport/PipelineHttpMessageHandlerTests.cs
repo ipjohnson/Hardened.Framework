@@ -1,9 +1,9 @@
 using System.Net;
 using System.Text;
 using Hardened.Requests.Abstract.Headers;
+using Hardened.Web.Runtime.Responses;
 using Hardened.Web.Testing.Tests.Conformance;
 using Xunit;
-using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.Testing.Tests.Transport;
 
@@ -12,8 +12,8 @@ namespace Hardened.Web.Testing.Tests.Transport;
 /// to: the path decoding measured against Kestrel, the raw body, cancellation, and the base
 /// address a client resolves against.
 /// </summary>
-public class PipelineHttpMessageHandlerTests {
-
+public class PipelineHttpMessageHandlerTests
+{
     /// <summary>
     /// The SU-07 probe: the answers Kestrel gives over a socket, which
     /// <c>EncodedPathOverASocketTests</c> in the Kestrel host's own tests measures against the same
@@ -29,7 +29,11 @@ public class PipelineHttpMessageHandlerTests {
     [InlineData("/echo/path/a%2Fb", "/echo/path/a%2Fb")]
     [InlineData("/echo/path/a%2fb", "/echo/path/a%2fb")]
     [InlineData("/echo/path/a+b", "/echo/path/a+b")]
-    public async Task AnEncodedPathReachesThePipelineTheWayKestrelDecodesIt(string sent, string expected) {
+    public async Task AnEncodedPathReachesThePipelineTheWayKestrelDecodesIt(
+        string sent,
+        string expected
+    )
+    {
         var host = new SubstitutePipeline();
 
         using var client = host.Client();
@@ -42,11 +46,13 @@ public class PipelineHttpMessageHandlerTests {
     /// The public constructor, for a test with nothing but a root provider in hand.
     /// </summary>
     [Fact]
-    public async Task TheHandlerIsConstructibleFromTheRootProviderAlone() {
+    public async Task TheHandlerIsConstructibleFromTheRootProviderAlone()
+    {
         var host = new SubstitutePipeline();
 
-        using var client = new HttpClient(new PipelineHttpMessageHandler(host.Provider)) {
-            BaseAddress = new Uri("http://harness/")
+        using var client = new HttpClient(new PipelineHttpMessageHandler(host.Provider))
+        {
+            BaseAddress = new Uri("http://harness/"),
         };
         using var response = await client.GetAsync("/plain", TestContext.Current.CancellationToken);
 
@@ -62,24 +68,37 @@ public class PipelineHttpMessageHandlerTests {
     [InlineData(null, "/")]
     [InlineData("/things/1?page=2", "/things/1")]
     [InlineData("things/1", "/things/1")]
-    public async Task AMessageWithoutABaseAddressIsRootedAsWritten(string? uri, string expectedPath) {
-        using var message = new HttpRequestMessage(HttpMethod.Get, uri == null ? null : new Uri(uri, UriKind.Relative));
+    public async Task AMessageWithoutABaseAddressIsRootedAsWritten(string? uri, string expectedPath)
+    {
+        using var message = new HttpRequestMessage(
+            HttpMethod.Get,
+            uri == null ? null : new Uri(uri, UriKind.Relative)
+        );
 
-        var request = await PipelineHttpMessageHandler.CreateRequestAsync(message, null, TestContext.Current.CancellationToken);
+        var request = await PipelineHttpMessageHandler.CreateRequestAsync(
+            message,
+            null,
+            TestContext.Current.CancellationToken
+        );
 
         Assert.Equal(expectedPath, request.Path);
 
-        if (uri != null && uri.Contains('?')) {
+        if (uri != null && uri.Contains('?'))
+        {
             Assert.Equal("2", request.QueryString.Get("page").ToString());
         }
     }
 
     [Fact]
-    public async Task ARelativeUrlResolvesAgainstTheBaseAddressTheHandlerIgnores() {
+    public async Task ARelativeUrlResolvesAgainstTheBaseAddressTheHandlerIgnores()
+    {
         var host = new SubstitutePipeline();
 
         using var client = host.Client();
-        using var response = await client.GetAsync("things/42?page=2", TestContext.Current.CancellationToken);
+        using var response = await client.GetAsync(
+            "things/42?page=2",
+            TestContext.Current.CancellationToken
+        );
 
         var request = Assert.Single(host.Contexts).Request;
 
@@ -88,7 +107,8 @@ public class PipelineHttpMessageHandlerTests {
     }
 
     [Fact]
-    public async Task TheBodyArrivesAsTheBytesTheClientSent() {
+    public async Task TheBodyArrivesAsTheBytesTheClientSent()
+    {
         var host = new SubstitutePipeline();
         var malformed = "{\"values\": [1, 2,"u8.ToArray();
 
@@ -97,7 +117,11 @@ public class PipelineHttpMessageHandlerTests {
 
         content.Headers.TryAddWithoutValidation("Content-Type", "application/json");
 
-        using var response = await client.PostAsync("/registration", content, TestContext.Current.CancellationToken);
+        using var response = await client.PostAsync(
+            "/registration",
+            content,
+            TestContext.Current.CancellationToken
+        );
 
         var request = Assert.Single(host.Contexts).Request;
 
@@ -105,12 +129,16 @@ public class PipelineHttpMessageHandlerTests {
 
         using var reader = new StreamReader(request.Body, Encoding.UTF8);
 
-        Assert.Equal("{\"values\": [1, 2,", await reader.ReadToEndAsync(TestContext.Current.CancellationToken));
+        Assert.Equal(
+            "{\"values\": [1, 2,",
+            await reader.ReadToEndAsync(TestContext.Current.CancellationToken)
+        );
         Assert.Equal("application/json", request.ContentType);
     }
 
     [Fact]
-    public async Task EveryValueOfAHeaderArrives() {
+    public async Task EveryValueOfAHeaderArrives()
+    {
         var host = new SubstitutePipeline();
 
         using var client = host.Client();
@@ -126,8 +154,10 @@ public class PipelineHttpMessageHandlerTests {
     }
 
     [Fact]
-    public async Task TheResponseCarriesStatusHeadersCookiesContentTypeAndBody() {
-        var host = new SubstitutePipeline(context => {
+    public async Task TheResponseCarriesStatusHeadersCookiesContentTypeAndBody()
+    {
+        var host = new SubstitutePipeline(context =>
+        {
             context.Response.Status = 201;
             context.Response.ContentType = "text/plain";
             context.Response.Headers[KnownHeaders.Location] = "/things/7";
@@ -137,13 +167,20 @@ public class PipelineHttpMessageHandlerTests {
         });
 
         using var client = host.Client();
-        using var response = await client.PostAsync("/things", new StringContent(""), TestContext.Current.CancellationToken);
+        using var response = await client.PostAsync(
+            "/things",
+            new StringContent(""),
+            TestContext.Current.CancellationToken
+        );
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         Assert.Equal("/things/7", response.Headers.Location!.OriginalString);
         Assert.Contains("session=abc", Assert.Single(response.Headers.GetValues("Set-Cookie")));
         Assert.Equal("text/plain", response.Content.Headers.ContentType!.MediaType);
-        Assert.Equal("made", await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+        Assert.Equal(
+            "made",
+            await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken)
+        );
         Assert.Equal(4, response.Content.Headers.ContentLength);
     }
 
@@ -152,8 +189,10 @@ public class PipelineHttpMessageHandlerTests {
     /// bytes contradict would be a message the client refuses to read.
     /// </summary>
     [Fact]
-    public async Task AContentLengthThePipelineWroteIsReplacedByTheBodys() {
-        var host = new SubstitutePipeline(context => {
+    public async Task AContentLengthThePipelineWroteIsReplacedByTheBodys()
+    {
+        var host = new SubstitutePipeline(context =>
+        {
             context.Response.Headers[KnownHeaders.ContentLength] = "999";
 
             return context.Response.Body.WriteAsync("four"u8.ToArray()).AsTask();
@@ -163,7 +202,10 @@ public class PipelineHttpMessageHandlerTests {
         using var response = await client.GetAsync("/sized", TestContext.Current.CancellationToken);
 
         Assert.Equal(4, response.Content.Headers.ContentLength);
-        Assert.Equal("four", await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+        Assert.Equal(
+            "four",
+            await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken)
+        );
     }
 
     /// <summary>
@@ -171,10 +213,12 @@ public class PipelineHttpMessageHandlerTests {
     /// request carried, not a token of the harness's own.
     /// </summary>
     [Fact]
-    public async Task ACancelledTokenCancelsTheChain() {
+    public async Task ACancelledTokenCancelsTheChain()
+    {
         var reached = new TaskCompletionSource();
 
-        var host = new SubstitutePipeline(async context => {
+        var host = new SubstitutePipeline(async context =>
+        {
             reached.SetResult();
 
             await Task.Delay(Timeout.Infinite, context.CancellationToken);
@@ -194,10 +238,13 @@ public class PipelineHttpMessageHandlerTests {
     }
 
     [Fact]
-    public async Task TheCredentialTravelsAsTheTwoTestHeaders() {
+    public async Task TheCredentialTravelsAsTheTwoTestHeaders()
+    {
         var host = new SubstitutePipeline();
 
-        using var client = host.Client(new TestCredential(new[] { "todos:write", "todos:read" }, "pia"));
+        using var client = host.Client(
+            new TestCredential(new[] { "todos:write", "todos:read" }, "pia")
+        );
         using var response = await client.GetAsync("/", TestContext.Current.CancellationToken);
 
         var headers = Assert.Single(host.Contexts).Request.Headers;
@@ -207,7 +254,8 @@ public class PipelineHttpMessageHandlerTests {
     }
 
     [Fact]
-    public async Task AHeaderTheCallerSetBeatsTheCredential() {
+    public async Task AHeaderTheCallerSetBeatsTheCredential()
+    {
         var host = new SubstitutePipeline();
 
         using var client = host.Client(new TestCredential(new[] { "todos:write" }));

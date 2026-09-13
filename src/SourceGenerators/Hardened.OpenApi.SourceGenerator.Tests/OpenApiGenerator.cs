@@ -1,12 +1,12 @@
 using System.Collections.Immutable;
-using Hardened.Idl.Emitters;
+using Hardened.Generation;
 using Hardened.Generation.Models;
+using Hardened.Idl;
+using Hardened.Idl.Emitters;
 using Hardened.Requests.Abstract.Attributes;
 using Hardened.Requests.Runtime.Validation;
 using Hardened.SourceGeneration.Testing;
 using Hardened.Web.Runtime.Handlers;
-using Hardened.Idl;
-using Hardened.Generation;
 using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.OpenApi.SourceGenerator.Tests;
@@ -23,16 +23,17 @@ namespace Hardened.OpenApi.SourceGenerator.Tests;
 /// here instead, which also means these tests exercise the round trip on every run rather than
 /// only where <c>SpecModelSerializerTests</c> looks.
 /// </remarks>
-internal static class OpenApiGenerator {
-
+internal static class OpenApiGenerator
+{
     /// <summary>
     /// One type from every assembly the emitted code binds against. Without these the generated
     /// trees fail to compile for want of a reference, and the failure reads as a generator defect.
     /// </summary>
-    private static readonly Type[] Anchors = [
-        typeof(HandlerAttribute),                        // Hardened.Requests.Abstract
-        typeof(ValidationFilter<>),                      // Hardened.Requests.Runtime
-        typeof(IWebExecutionRequestHandlerProvider)      // Hardened.Web.Runtime
+    private static readonly Type[] Anchors =
+    [
+        typeof(HandlerAttribute), // Hardened.Requests.Abstract
+        typeof(ValidationFilter<>), // Hardened.Requests.Runtime
+        typeof(IWebExecutionRequestHandlerProvider), // Hardened.Web.Runtime
     ];
 
     /// <summary>The hint name the generator emits on every run whatever the input.</summary>
@@ -43,11 +44,8 @@ internal static class OpenApiGenerator {
         string spec,
         string source = MinimalEntryPoint,
         string specFileName = "petstore.yaml",
-        IReadOnlyDictionary<string, string>? buildProperties = null) =>
-        Run(
-            new Dictionary<string, string> { [specFileName] = spec },
-            source,
-            buildProperties);
+        IReadOnlyDictionary<string, string>? buildProperties = null
+    ) => Run(new Dictionary<string, string> { [specFileName] = spec }, source, buildProperties);
 
     /// <summary>Runs the generator over several specifications at once.</summary>
     /// <remarks>
@@ -59,23 +57,30 @@ internal static class OpenApiGenerator {
         IReadOnlyDictionary<string, string> specs,
         string source,
         IReadOnlyDictionary<string, string>? buildProperties = null,
-        IReadOnlyList<Microsoft.CodeAnalysis.MetadataReference>? additionalReferences = null) {
+        IReadOnlyList<Microsoft.CodeAnalysis.MetadataReference>? additionalReferences = null
+    )
+    {
         // Must resolve exactly as the generator does, and against the same defaults the harness
         // supplies. The two halves emit into one namespace and bind across it, so a harness that
         // resolves differently produces a handler referencing a service interface that was emitted
         // somewhere else entirely. Keys carry no build_property. prefix here - the harness adds it.
-        var excludeFromCoverage =
-            !string.Equals(Property(buildProperties, "ExcludeGeneratedCodeFromCoverage"), "false", StringComparison.OrdinalIgnoreCase);
+        var excludeFromCoverage = !string.Equals(
+            Property(buildProperties, "ExcludeGeneratedCodeFromCoverage"),
+            "false",
+            StringComparison.OrdinalIgnoreCase
+        );
 
         var ns = FirstNonEmpty(
             Property(buildProperties, "HardenedOpenApiNamespace"),
             Property(buildProperties, "RootNamespace"),
             // The default TestAnalyzerConfigOptions supplies for RootNamespace when a test sets none.
-            "TestNamespace");
+            "TestNamespace"
+        );
 
-        var sources = new Dictionary<string, string> {
+        var sources = new Dictionary<string, string>
+        {
             ["GlobalUsings.cs"] = ImplicitUsings,
-            ["Test.cs"] = source
+            ["Test.cs"] = source,
         };
 
         var models = new Dictionary<string, string>();
@@ -85,13 +90,15 @@ internal static class OpenApiGenerator {
         // between Standard, Response and Union, and a harness that ignored it could only ever
         // exercise Standard - which is how the response-set emitters shipped shapes nothing here
         // compiled.
-        var responseModel = Property(buildProperties, "HardenedResponseModel") switch {
+        var responseModel = Property(buildProperties, "HardenedResponseModel") switch
+        {
             "Response" => SpecResponseModel.Response,
             "Union" => SpecResponseModel.Union,
-            _ => SpecResponseModel.Throws
+            _ => SpecResponseModel.Throws,
         };
 
-        foreach (var spec in specs) {
+        foreach (var spec in specs)
+        {
             var model = ParseSpec(spec.Key, spec.Value);
 
             model.ResponseModel = responseModel;
@@ -103,7 +110,8 @@ internal static class OpenApiGenerator {
             // nothing wired to any handler, on a build that still compiles.
             var emitted = new KeyValuePair<string, string>(
                 $"{model.FileName}.g.cs",
-                SpecFileEmitter.Emit(model, ns, excludeFromCoverage, responseModel: responseModel));
+                SpecFileEmitter.Emit(model, ns, excludeFromCoverage, responseModel: responseModel)
+            );
 
             sources[emitted.Key] = emitted.Value;
             taskEmitted[emitted.Key] = emitted.Value;
@@ -112,8 +120,13 @@ internal static class OpenApiGenerator {
         }
 
         var result = GeneratorTestHarness.Run(
-            sources, [new SpecSourceGenerator()], Anchors, models, buildProperties,
-            additionalReferences: additionalReferences);
+            sources,
+            [new SpecSourceGenerator()],
+            Anchors,
+            models,
+            buildProperties,
+            additionalReferences: additionalReferences
+        );
 
         // GeneratedSources carries both halves, because that is what the project ends up compiling.
         // Splitting them would make every assertion depend on which side of the task/generator line
@@ -124,13 +137,16 @@ internal static class OpenApiGenerator {
         // unimplemented and the compiler says CS8795. That is the harness's scope rather than a
         // defect: a spec with a pattern builds in Hardened.IntegrationTests.OpenApi.SUT, which is
         // what proves the arrangement works. Every other diagnostic is still enforced.
-        var compilationDiagnostics = result.CompilationDiagnostics
-            .Where(diagnostic => !(diagnostic.Id == "CS8795" && diagnostic.GetMessage().Contains("Patterns.P_")))
+        var compilationDiagnostics = result
+            .CompilationDiagnostics.Where(diagnostic =>
+                !(diagnostic.Id == "CS8795" && diagnostic.GetMessage().Contains("Patterns.P_"))
+            )
             .ToImmutableArray();
 
         var combined = new Dictionary<string, string>(taskEmitted, StringComparer.Ordinal);
 
-        foreach (var generated in result.GeneratedSources) {
+        foreach (var generated in result.GeneratedSources)
+        {
             combined[generated.Key] = generated.Value;
         }
 
@@ -140,7 +156,8 @@ internal static class OpenApiGenerator {
             compilationDiagnostics,
             result.Compilation,
             result.GeneratorExceptions,
-            result.DuplicateHintNames);
+            result.DuplicateHintNames
+        );
     }
 
     private static string? Property(IReadOnlyDictionary<string, string>? properties, string key) =>
@@ -153,8 +170,6 @@ internal static class OpenApiGenerator {
     /// The single file <c>ExtractOpenApiSpec</c> writes into <c>@(Compile)</c> for one spec, built
     /// by the same composer the task calls rather than by a copy of it.
     /// </summary>
-
-
     /// <summary>
     /// Runs the generator over additional files exactly as given, with no parse step.
     /// </summary>
@@ -167,27 +182,34 @@ internal static class OpenApiGenerator {
     internal static GeneratorResult RunRaw(
         IReadOnlyDictionary<string, string> additionalFiles,
         string source = MinimalEntryPoint,
-        IReadOnlyDictionary<string, string>? buildProperties = null) =>
+        IReadOnlyDictionary<string, string>? buildProperties = null
+    ) =>
         GeneratorTestHarness.Run(
-            new Dictionary<string, string> {
+            new Dictionary<string, string>
+            {
                 ["GlobalUsings.cs"] = ImplicitUsings,
-                ["Test.cs"] = source
+                ["Test.cs"] = source,
             },
             [new SpecSourceGenerator()],
             Anchors,
             additionalFiles,
-            buildProperties);
+            buildProperties
+        );
 
     /// <summary>
     /// What the build task does, inline: parse the yaml once and hand the generator the normalised
     /// model. A spec that will not parse is surfaced here rather than as an empty generator run,
     /// which is the same trade the task makes.
     /// </summary>
-    private static ServiceSpecModel ParseSpec(string specFileName, string yaml) {
+    private static ServiceSpecModel ParseSpec(string specFileName, string yaml)
+    {
         var fileName = Path.GetFileNameWithoutExtension(specFileName);
 
-        var model = OpenApiSpecParser.Parse(yaml, fileName, CancellationToken.None)
-            ?? throw new InvalidOperationException($"'{specFileName}' did not parse; the generator would see nothing.");
+        var model =
+            OpenApiSpecParser.Parse(yaml, fileName, CancellationToken.None)
+            ?? throw new InvalidOperationException(
+                $"'{specFileName}' did not parse; the generator would see nothing."
+            );
 
         // The task names the resolver and records it in the model; the generator is told rather than
         // deriving it, so the harness has to do the naming too or the routing table registers a type
@@ -212,8 +234,7 @@ internal static class OpenApiGenerator {
     /// <c>CSharpCompilation</c> has none, so the harness supplies them the way the SDK would.
     /// </para>
     /// </summary>
-    private const string ImplicitUsings =
-        """
+    private const string ImplicitUsings = """
         global using global::System;
         global using global::System.Collections.Generic;
         global using global::System.IO;
@@ -227,8 +248,7 @@ internal static class OpenApiGenerator {
     /// The smallest project the generator will produce a routing table for: a partial class
     /// carrying <c>[HardenedModule]</c>, which is what <c>EntryPointSelector</c> looks for.
     /// </summary>
-    internal const string MinimalEntryPoint =
-        """
+    internal const string MinimalEntryPoint = """
         using Hardened.Shared.Runtime.Attributes;
 
         namespace TestNamespace;
@@ -245,21 +265,21 @@ internal static class OpenApiGenerator {
     /// </summary>
     internal static string EntryPointWithHandler(string handlerBody) =>
         $$"""
-        using System.Collections.Generic;
-        using System.Threading.Tasks;
-        using Hardened.Requests.Abstract.Attributes;
-        using Hardened.Requests.Abstract.Responses;
-        using Hardened.Web.Runtime.Responses;
-        using Hardened.Shared.Runtime.Attributes;
-        using TestNamespace.Models;
-        using TestNamespace.Services;
+            using System.Collections.Generic;
+            using System.Threading.Tasks;
+            using Hardened.Requests.Abstract.Attributes;
+            using Hardened.Requests.Abstract.Responses;
+            using Hardened.Web.Runtime.Responses;
+            using Hardened.Shared.Runtime.Attributes;
+            using TestNamespace.Models;
+            using TestNamespace.Services;
 
-        namespace TestNamespace;
+            namespace TestNamespace;
 
-        [HardenedModule]
-        public partial class TestApp {
-        }
+            [HardenedModule]
+            public partial class TestApp {
+            }
 
-        {{handlerBody}}
-        """;
+            {{handlerBody}}
+            """;
 }

@@ -19,7 +19,8 @@ namespace Hardened.Azure.Functions.Http;
 /// cookies are objects and the body is a stream. What is left is naming each the way the pipeline
 /// asks for it.
 /// </remarks>
-public class HttpFunctionRequest : IExecutionRequest {
+public class HttpFunctionRequest : IExecutionRequest
+{
     private readonly string _method;
     private IPathTokenCollection? _pathTokens;
     private IQueryStringCollection? _queryStringCollection;
@@ -28,8 +29,16 @@ public class HttpFunctionRequest : IExecutionRequest {
     private ITransportInfo? _transport;
 
     public HttpFunctionRequest(HttpRequestData request, string? routedPath)
-        : this(request, request.Body, null, routedPath ?? request.Url.AbsolutePath, null, null, null, null) {
-    }
+        : this(
+            request,
+            request.Body,
+            null,
+            routedPath ?? request.Url.AbsolutePath,
+            null,
+            null,
+            null,
+            null
+        ) { }
 
     private HttpFunctionRequest(
         HttpRequestData request,
@@ -39,7 +48,9 @@ public class HttpFunctionRequest : IExecutionRequest {
         IHeaderCollection? headers,
         IQueryStringCollection? queryString,
         IReadOnlyList<string>? cookies,
-        ITransportInfo? transport) {
+        ITransportInfo? transport
+    )
+    {
         Data = request;
         Body = body;
         _method = method ?? request.Method;
@@ -82,7 +93,8 @@ public class HttpFunctionRequest : IExecutionRequest {
     /// </remarks>
     public IQueryStringCollection QueryString => _queryStringCollection ??= ReadQuery(Data);
 
-    public IPathTokenCollection PathTokens {
+    public IPathTokenCollection PathTokens
+    {
         get => _pathTokens ?? PathTokenCollection.Empty;
         set => _pathTokens = value;
     }
@@ -99,7 +111,9 @@ public class HttpFunctionRequest : IExecutionRequest {
         string? path = null,
         IDictionary<string, StringValues>? headers = null,
         IQueryStringCollection? queryString = null,
-        IReadOnlyList<string>? cookies = null) {
+        IReadOnlyList<string>? cookies = null
+    )
+    {
         return new HttpFunctionRequest(
             Data,
             Body,
@@ -108,39 +122,50 @@ public class HttpFunctionRequest : IExecutionRequest {
             CloneHeaders(headers),
             queryString ?? _queryStringCollection,
             cookies ?? _cookies,
-            Transport) {
+            Transport
+        )
+        {
             // Cloned, not shared: a forked chain must be able to rebind without writing through to
             // the request it was forked from.
             Parameters = Parameters?.Clone(),
-            PathTokens = PathTokens
+            PathTokens = PathTokens,
         };
     }
 
-    private IHeaderCollection? CloneHeaders(IDictionary<string, StringValues>? headers) {
-        if (headers != null) {
+    private IHeaderCollection? CloneHeaders(IDictionary<string, StringValues>? headers)
+    {
+        if (headers != null)
+        {
             return new HeaderCollectionStringValues(headers);
         }
 
         return _headerCollection == null
             ? null
-            : new HeaderCollectionStringValues(new Dictionary<string, StringValues>(_headerCollection));
+            : new HeaderCollectionStringValues(
+                new Dictionary<string, StringValues>(_headerCollection)
+            );
     }
 
-    private static IHeaderCollection ReadHeaders(HttpRequestData request) {
+    private static IHeaderCollection ReadHeaders(HttpRequestData request)
+    {
         var headers = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var header in request.Headers) {
+        foreach (var header in request.Headers)
+        {
             headers[header.Key] = new StringValues(header.Value.ToArray());
         }
 
         return new HeaderCollectionStringValues(headers);
     }
 
-    private static IQueryStringCollection ReadQuery(HttpRequestData request) {
+    private static IQueryStringCollection ReadQuery(HttpRequestData request)
+    {
         var query = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var key in request.Query.AllKeys) {
-            if (key == null) {
+        foreach (var key in request.Query.AllKeys)
+        {
+            if (key == null)
+            {
                 continue;
             }
 

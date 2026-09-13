@@ -25,8 +25,10 @@ namespace Hardened.Web.Runtime.Responses;
 /// </remarks>
 [HttpStatus(501)]
 public sealed record NotImplemented<T>(T Body)
-    : IHttpStatusResponse, ICarriesResponseBody, IResponseExpectation<NotImplemented<T>> {
-
+    : IHttpStatusResponse,
+        ICarriesResponseBody,
+        IResponseExpectation<NotImplemented<T>>
+{
     public string Type => ProblemTypes.NotImplemented;
 
     public string Title => "Not Implemented";
@@ -38,6 +40,7 @@ public sealed record NotImplemented<T>(T Body)
     object? ICarriesResponseBody.Body => Body;
 
     public static NotImplemented<T> FromResponse(
-        object? body, IReadOnlyDictionary<string, string> headers) =>
-        new(ResponseExpectation.Body<T>(body));
+        object? body,
+        IReadOnlyDictionary<string, string> headers
+    ) => new(ResponseExpectation.Body<T>(body));
 }

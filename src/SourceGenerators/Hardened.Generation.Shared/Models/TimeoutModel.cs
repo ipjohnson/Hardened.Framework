@@ -16,8 +16,8 @@ namespace Hardened.Generation.Models;
 /// <c>CancelAfter</c> takes, and a second unit would be a second place for the two to disagree.
 /// </para>
 /// </remarks>
-internal class TimeoutModel : IEquatable<TimeoutModel> {
-
+internal class TimeoutModel : IEquatable<TimeoutModel>
+{
     /// <summary>The budget. A model declaring zero or less is refused where it is parsed.</summary>
     public int Milliseconds { get; set; }
 
@@ -28,15 +28,17 @@ internal class TimeoutModel : IEquatable<TimeoutModel> {
     public int RetryAfterSeconds { get; set; }
 
     public bool Equals(TimeoutModel? other) =>
-        other is not null &&
-        Milliseconds == other.Milliseconds &&
-        Status == other.Status &&
-        RetryAfterSeconds == other.RetryAfterSeconds;
+        other is not null
+        && Milliseconds == other.Milliseconds
+        && Status == other.Status
+        && RetryAfterSeconds == other.RetryAfterSeconds;
 
     public override bool Equals(object? obj) => Equals(obj as TimeoutModel);
 
-    public override int GetHashCode() {
-        unchecked {
+    public override int GetHashCode()
+    {
+        unchecked
+        {
             var hash = Milliseconds;
 
             hash = (hash * 397) ^ Status;

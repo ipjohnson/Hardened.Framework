@@ -23,30 +23,37 @@ namespace Hardened.Requests.Runtime.Tests.Serializer;
 /// <c>application/x-msgpack</c> still answers its refusals as MessagePack.
 /// </para>
 /// </remarks>
-public class ErrorBodyPolicyTests {
-
-    private static IResponseSerializer Serializer(string produces, bool isDefault = false) {
+public class ErrorBodyPolicyTests
+{
+    private static IResponseSerializer Serializer(string produces, bool isDefault = false)
+    {
         var serializer = Substitute.For<IResponseSerializer>();
 
         serializer.ContentType.Returns(produces);
-        serializer.CanProduce(Arg.Any<string>(), Arg.Any<IExecutionContext>())
+        serializer
+            .CanProduce(Arg.Any<string>(), Arg.Any<IExecutionContext>())
             .Returns(call => MediaType.Matches((string)call[0], produces));
         serializer.IsDefaultSerializer.Returns(isDefault);
 
         return serializer;
     }
 
-    private static readonly IResponseSerializer Json =
-        Serializer(KnownContentType.Json, isDefault: true);
+    private static readonly IResponseSerializer Json = Serializer(
+        KnownContentType.Json,
+        isDefault: true
+    );
 
     private static readonly IResponseSerializer MessagePack = Serializer("application/x-msgpack");
 
     private static SerializationLocatorService Locator(ErrorBodyFormat? format) =>
-        new(Array.Empty<IRequestDeserializer>(),
+        new(
+            Array.Empty<IRequestDeserializer>(),
             new[] { Json, MessagePack },
-            errorBodyPolicy: format is { } value ? new ErrorBodyPolicy(value) : null);
+            errorBodyPolicy: format is { } value ? new ErrorBodyPolicy(value) : null
+        );
 
-    private static IExecutionContext Failing(int status, string accept = "application/x-msgpack") {
+    private static IExecutionContext Failing(int status, string accept = "application/x-msgpack")
+    {
         var context = Pipeline.Context(accept: accept);
 
         context.Response.Status = status;
@@ -68,7 +75,10 @@ public class ErrorBodyPolicyTests {
     /// </summary>
     [Fact]
     public void ASuccessStillNegotiates() =>
-        Assert.Same(MessagePack, Locator(ErrorBodyFormat.Json).FindResponseSerializer(Failing(200)));
+        Assert.Same(
+            MessagePack,
+            Locator(ErrorBodyFormat.Json).FindResponseSerializer(Failing(200))
+        );
 
     /// <summary>
     /// The boundary. 399 is not a failure and 400 is.
@@ -79,7 +89,8 @@ public class ErrorBodyPolicyTests {
     public void FourHundredIsWhereItStarts(int status, bool json) =>
         Assert.Same(
             json ? Json : MessagePack,
-            Locator(ErrorBodyFormat.Json).FindResponseSerializer(Failing(status)));
+            Locator(ErrorBodyFormat.Json).FindResponseSerializer(Failing(status))
+        );
 
     /// <summary>
     /// The default, which is what every service that says nothing gets: an operation declaring
@@ -97,7 +108,8 @@ public class ErrorBodyPolicyTests {
     /// so the commitment is the thing that has to give.
     /// </summary>
     [Fact]
-    public void ACommittedContentTypeDoesNotSurviveAFailure() {
+    public void ACommittedContentTypeDoesNotSurviveAFailure()
+    {
         var context = Failing(500);
 
         context.Response.ContentType = "application/x-msgpack";
@@ -111,11 +123,13 @@ public class ErrorBodyPolicyTests {
     /// this setting is not the place to overrule it.
     /// </summary>
     [Fact]
-    public void ItFallsThroughWhenNothingWritesJson() {
+    public void ItFallsThroughWhenNothingWritesJson()
+    {
         var locator = new SerializationLocatorService(
             Array.Empty<IRequestDeserializer>(),
             new[] { MessagePack },
-            errorBodyPolicy: new ErrorBodyPolicy(ErrorBodyFormat.Json));
+            errorBodyPolicy: new ErrorBodyPolicy(ErrorBodyFormat.Json)
+        );
 
         Assert.Same(MessagePack, locator.FindResponseSerializer(Failing(404)));
     }

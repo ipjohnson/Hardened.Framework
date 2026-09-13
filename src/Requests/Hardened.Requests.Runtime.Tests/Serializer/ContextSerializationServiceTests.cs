@@ -13,13 +13,15 @@ namespace Hardened.Requests.Runtime.Tests.Serializer;
 /// response somewhere different, and their precedence is what decides whether a handler that threw
 /// on a route with a view renders the view or an error.
 /// </summary>
-public class ContextSerializationServiceTests {
-
+public class ContextSerializationServiceTests
+{
     /// <summary>An output that records what it was asked and what it wrote.</summary>
-    private class RecordingOutput : IHardenedResponseOutput {
+    private class RecordingOutput : IHardenedResponseOutput
+    {
         private readonly bool _supports;
 
-        public RecordingOutput(bool supports = true) {
+        public RecordingOutput(bool supports = true)
+        {
             _supports = supports;
         }
 
@@ -27,13 +29,15 @@ public class ContextSerializationServiceTests {
 
         public int Writes { get; private set; }
 
-        public bool SupportsContentType(string? accept, IExecutionContext context) {
+        public bool SupportsContentType(string? accept, IExecutionContext context)
+        {
             AskedAbout = accept;
 
             return _supports;
         }
 
-        public Task WriteOutput(IExecutionContext context) {
+        public Task WriteOutput(IExecutionContext context)
+        {
             Writes++;
 
             return Task.CompletedTask;
@@ -44,7 +48,8 @@ public class ContextSerializationServiceTests {
     /// A declared output writes the response, and the locator is never consulted.
     /// </summary>
     [Fact]
-    public async Task ADeclaredOutputWritesTheResponse() {
+    public async Task ADeclaredOutputWritesTheResponse()
+    {
         var fixture = new Fixture();
         var context = Pipeline.Context();
         var output = new RecordingOutput();
@@ -55,7 +60,9 @@ public class ContextSerializationServiceTests {
         await fixture.Service.SerializeResponse(context);
 
         Assert.Equal(1, output.Writes);
-        await fixture.ResponseSerializer.DidNotReceive().SerializeResponse(Arg.Any<IExecutionContext>());
+        await fixture
+            .ResponseSerializer.DidNotReceive()
+            .SerializeResponse(Arg.Any<IExecutionContext>());
     }
 
     /// <summary>
@@ -69,7 +76,8 @@ public class ContextSerializationServiceTests {
     /// but a view.
     /// </remarks>
     [Fact]
-    public async Task AnOutputTheClientWillNotTakeIs406AndNothingElse() {
+    public async Task AnOutputTheClientWillNotTakeIs406AndNothingElse()
+    {
         var fixture = new Fixture();
         var context = Pipeline.Context(accept: "application/json");
         var output = new RecordingOutput(supports: false);
@@ -82,12 +90,15 @@ public class ContextSerializationServiceTests {
         Assert.Equal(406, context.Response.Status);
         Assert.Equal(0, output.Writes);
         Assert.False(context.Response.ShouldSerialize);
-        await fixture.ResponseSerializer.DidNotReceive().SerializeResponse(Arg.Any<IExecutionContext>());
+        await fixture
+            .ResponseSerializer.DidNotReceive()
+            .SerializeResponse(Arg.Any<IExecutionContext>());
     }
 
     /// <summary>The output is asked about the request's own Accept header.</summary>
     [Fact]
-    public async Task TheOutputIsAskedAboutTheRequestsAcceptHeader() {
+    public async Task TheOutputIsAskedAboutTheRequestsAcceptHeader()
+    {
         var fixture = new Fixture();
         var context = Pipeline.Context(accept: "text/html, */*");
         var output = new RecordingOutput();
@@ -104,12 +115,14 @@ public class ContextSerializationServiceTests {
     /// written with.
     /// </summary>
     [Fact]
-    public async Task TheOutputIsBuiltOnce() {
+    public async Task TheOutputIsBuiltOnce()
+    {
         var fixture = new Fixture();
         var context = Pipeline.Context();
         var built = 0;
 
-        context.Response.OutputFactory = _ => {
+        context.Response.OutputFactory = _ =>
+        {
             built++;
 
             return new RecordingOutput();
@@ -128,7 +141,8 @@ public class ContextSerializationServiceTests {
     /// a cast failure inside the render.
     /// </summary>
     [Fact]
-    public async Task AnExceptionOutranksTheOutput() {
+    public async Task AnExceptionOutranksTheOutput()
+    {
         var fixture = new Fixture();
         var context = Pipeline.Context();
         var output = new RecordingOutput();
@@ -142,28 +156,42 @@ public class ContextSerializationServiceTests {
         await fixture.Exceptions.Received(1).Handle(context, Arg.Any<Exception>());
     }
 
-    private class Fixture {
-        public ISerializationLocatorService Locator { get; } = Substitute.For<ISerializationLocatorService>();
+    private class Fixture
+    {
+        public ISerializationLocatorService Locator { get; } =
+            Substitute.For<ISerializationLocatorService>();
 
-        public INullValueResponseHandler NullValues { get; } = Substitute.For<INullValueResponseHandler>();
+        public INullValueResponseHandler NullValues { get; } =
+            Substitute.For<INullValueResponseHandler>();
 
         public IExceptionResponseSerializer Exceptions { get; } =
             Substitute.For<IExceptionResponseSerializer>();
 
-        public IResponseSerializer ResponseSerializer { get; } = Substitute.For<IResponseSerializer>();
+        public IResponseSerializer ResponseSerializer { get; } =
+            Substitute.For<IResponseSerializer>();
 
-        public IRequestDeserializer RequestDeserializer { get; } = Substitute.For<IRequestDeserializer>();
+        public IRequestDeserializer RequestDeserializer { get; } =
+            Substitute.For<IRequestDeserializer>();
 
-        public Fixture() {
-            Locator.FindResponseSerializer(Arg.Any<IExecutionContext>()).Returns(ResponseSerializer);
-            Locator.FindRequestDeserializer(Arg.Any<IExecutionContext>()).Returns(RequestDeserializer);
+        public Fixture()
+        {
+            Locator
+                .FindResponseSerializer(Arg.Any<IExecutionContext>())
+                .Returns(ResponseSerializer);
+            Locator
+                .FindRequestDeserializer(Arg.Any<IExecutionContext>())
+                .Returns(RequestDeserializer);
             NullValues.Handle(Arg.Any<IExecutionContext>()).Returns(Task.CompletedTask);
-            Exceptions.Handle(Arg.Any<IExecutionContext>(), Arg.Any<Exception>()).Returns(Task.CompletedTask);
-            ResponseSerializer.SerializeResponse(Arg.Any<IExecutionContext>()).Returns(Task.CompletedTask);
+            Exceptions
+                .Handle(Arg.Any<IExecutionContext>(), Arg.Any<Exception>())
+                .Returns(Task.CompletedTask);
+            ResponseSerializer
+                .SerializeResponse(Arg.Any<IExecutionContext>())
+                .Returns(Task.CompletedTask);
         }
 
-        public ContextSerializationService Service => new(
-            Pipeline.Logger<ContextSerializationService>(), Locator, NullValues, Exceptions);
+        public ContextSerializationService Service =>
+            new(Pipeline.Logger<ContextSerializationService>(), Locator, NullValues, Exceptions);
     }
 
     // ── a bound serializer ─────────────────────────────────────────────
@@ -174,7 +202,8 @@ public class ContextSerializationServiceTests {
     /// serializer set to search, no container resolve.
     /// </summary>
     [Fact]
-    public async Task ABoundSerializerWritesWithoutTheLocator() {
+    public async Task ABoundSerializerWritesWithoutTheLocator()
+    {
         var fixture = new Fixture();
         var context = Pipeline.Context();
         var bound = Substitute.For<IResponseSerializer>();
@@ -193,7 +222,8 @@ public class ContextSerializationServiceTests {
     /// the build cannot make for it.
     /// </summary>
     [Fact]
-    public async Task AHandlerThatPicksItsOwnContentTypeSendsTheResponseToTheLocator() {
+    public async Task AHandlerThatPicksItsOwnContentTypeSendsTheResponseToTheLocator()
+    {
         var fixture = new Fixture();
         var context = Pipeline.Context();
         var bound = Substitute.For<IResponseSerializer>();
@@ -213,7 +243,8 @@ public class ContextSerializationServiceTests {
     /// handler - whose declared type is on the response before it runs - keeps its binding.
     /// </summary>
     [Fact]
-    public async Task AssigningTheDeclaredContentTypeKeepsTheBinding() {
+    public async Task AssigningTheDeclaredContentTypeKeepsTheBinding()
+    {
         var fixture = new Fixture();
         var context = Pipeline.Context();
         var bound = Substitute.For<IResponseSerializer>();
@@ -234,7 +265,8 @@ public class ContextSerializationServiceTests {
     /// refusal's status.
     /// </summary>
     [Fact]
-    public async Task ABoundHandlerThatThrewStillGoesToTheExceptionSerializer() {
+    public async Task ABoundHandlerThatThrewStillGoesToTheExceptionSerializer()
+    {
         var fixture = new Fixture();
         var context = Pipeline.Context();
         var bound = Substitute.For<IResponseSerializer>();
@@ -248,7 +280,8 @@ public class ContextSerializationServiceTests {
     }
 
     [Fact]
-    public async Task AResponseValueIsHandedToTheLocatedSerializer() {
+    public async Task AResponseValueIsHandedToTheLocatedSerializer()
+    {
         var fixture = new Fixture();
         var context = Pipeline.Context();
 
@@ -261,14 +294,17 @@ public class ContextSerializationServiceTests {
     }
 
     [Fact]
-    public async Task ANullResponseValueGoesToTheNullValueHandler() {
+    public async Task ANullResponseValueGoesToTheNullValueHandler()
+    {
         var fixture = new Fixture();
         var context = Pipeline.Context();
 
         await fixture.Service.SerializeResponse(context);
 
         await fixture.NullValues.Received(1).Handle(context);
-        await fixture.ResponseSerializer.DidNotReceive().SerializeResponse(Arg.Any<IExecutionContext>());
+        await fixture
+            .ResponseSerializer.DidNotReceive()
+            .SerializeResponse(Arg.Any<IExecutionContext>());
     }
 
     /// <summary>
@@ -276,7 +312,8 @@ public class ContextSerializationServiceTests {
     /// then failed must report the failure, not the partial result.
     /// </summary>
     [Fact]
-    public async Task AnExceptionWinsOverAResponseValue() {
+    public async Task AnExceptionWinsOverAResponseValue()
+    {
         var fixture = new Fixture();
         var context = Pipeline.Context();
         var failure = new InvalidOperationException("failed");
@@ -287,7 +324,9 @@ public class ContextSerializationServiceTests {
         await fixture.Service.SerializeResponse(context);
 
         await fixture.Exceptions.Received(1).Handle(context, failure);
-        await fixture.ResponseSerializer.DidNotReceive().SerializeResponse(Arg.Any<IExecutionContext>());
+        await fixture
+            .ResponseSerializer.DidNotReceive()
+            .SerializeResponse(Arg.Any<IExecutionContext>());
     }
 
     /// <summary>
@@ -296,12 +335,14 @@ public class ContextSerializationServiceTests {
     /// renders through its template rather than emitting a JSON error document.
     /// </summary>
     [Fact]
-    public async Task ADefaultOutputFunctionTakesPrecedenceOverEverythingElse() {
+    public async Task ADefaultOutputFunctionTakesPrecedenceOverEverythingElse()
+    {
         var fixture = new Fixture();
         var context = Pipeline.Context();
         var invoked = 0;
 
-        context.DefaultOutput = _ => {
+        context.DefaultOutput = _ =>
+        {
             invoked++;
 
             return Task.CompletedTask;
@@ -313,8 +354,12 @@ public class ContextSerializationServiceTests {
         await fixture.Service.SerializeResponse(context);
 
         Assert.Equal(1, invoked);
-        await fixture.Exceptions.DidNotReceive().Handle(Arg.Any<IExecutionContext>(), Arg.Any<Exception>());
-        await fixture.ResponseSerializer.DidNotReceive().SerializeResponse(Arg.Any<IExecutionContext>());
+        await fixture
+            .Exceptions.DidNotReceive()
+            .Handle(Arg.Any<IExecutionContext>(), Arg.Any<Exception>());
+        await fixture
+            .ResponseSerializer.DidNotReceive()
+            .SerializeResponse(Arg.Any<IExecutionContext>());
     }
 
     /// <summary>
@@ -322,12 +367,14 @@ public class ContextSerializationServiceTests {
     /// a template renderer needs the response value it is rendering.
     /// </summary>
     [Fact]
-    public async Task ADefaultOutputFunctionReceivesTheContextBeingSerialized() {
+    public async Task ADefaultOutputFunctionReceivesTheContextBeingSerialized()
+    {
         var fixture = new Fixture();
         var context = Pipeline.Context();
 
         IExecutionContext? seen = null;
-        context.DefaultOutput = c => {
+        context.DefaultOutput = c =>
+        {
             seen = c;
 
             return Task.CompletedTask;
@@ -339,11 +386,13 @@ public class ContextSerializationServiceTests {
     }
 
     [Fact]
-    public async Task DeserializationIsDelegatedToTheLocatedDeserializer() {
+    public async Task DeserializationIsDelegatedToTheLocatedDeserializer()
+    {
         var fixture = new Fixture();
         var context = Pipeline.Context();
 
-        fixture.RequestDeserializer.DeserializeRequestBody<string>(context)
+        fixture
+            .RequestDeserializer.DeserializeRequestBody<string>(context)
             .Returns(new ValueTask<string?>("body"));
 
         var result = await fixture.Service.DeserializeRequestBody<string>(context);

@@ -19,9 +19,12 @@ namespace Hardened.Shared.Testing.Tests.Impl;
 /// that must go round the loop twice cost a second each; that is a floor, not a margin, and cannot
 /// make them flake.
 /// </remarks>
-public class RetryEngineTests {
-
-    private static (IRetryEngine Retry, RecordingLogger Logger) Engine(CancellationTokenSource? cancellation = null) {
+public class RetryEngineTests
+{
+    private static (IRetryEngine Retry, RecordingLogger Logger) Engine(
+        CancellationTokenSource? cancellation = null
+    )
+    {
         var logger = new RecordingLogger();
         var token = cancellation?.Token ?? CancellationToken.None;
 
@@ -31,27 +34,37 @@ public class RetryEngineTests {
     // ---- TillTrue -----------------------------------------------------------------------------
 
     [Fact]
-    public async Task TillTrueStopsOnTheFirstTruePredicate() {
+    public async Task TillTrueStopsOnTheFirstTruePredicate()
+    {
         var (retry, _) = Engine();
         var attempts = 0;
 
-        await retry.TillTrue(() => {
-            attempts++;
-            return Task.FromResult(true);
-        }, "waiting");
+        await retry.TillTrue(
+            () =>
+            {
+                attempts++;
+                return Task.FromResult(true);
+            },
+            "waiting"
+        );
 
         Assert.Equal(1, attempts);
     }
 
     [Fact]
-    public async Task TillTrueKeepsAskingWhileThePredicateIsFalse() {
+    public async Task TillTrueKeepsAskingWhileThePredicateIsFalse()
+    {
         var (retry, _) = Engine();
         var attempts = 0;
 
-        await retry.TillTrue(() => {
-            attempts++;
-            return Task.FromResult(attempts == 2);
-        }, "waiting");
+        await retry.TillTrue(
+            () =>
+            {
+                attempts++;
+                return Task.FromResult(attempts == 2);
+            },
+            "waiting"
+        );
 
         Assert.Equal(2, attempts);
     }
@@ -59,27 +72,37 @@ public class RetryEngineTests {
     // ---- TillFalse ----------------------------------------------------------------------------
 
     [Fact]
-    public async Task TillFalseStopsOnTheFirstFalsePredicate() {
+    public async Task TillFalseStopsOnTheFirstFalsePredicate()
+    {
         var (retry, _) = Engine();
         var attempts = 0;
 
-        await retry.TillFalse(() => {
-            attempts++;
-            return Task.FromResult(false);
-        }, "waiting");
+        await retry.TillFalse(
+            () =>
+            {
+                attempts++;
+                return Task.FromResult(false);
+            },
+            "waiting"
+        );
 
         Assert.Equal(1, attempts);
     }
 
     [Fact]
-    public async Task TillFalseKeepsAskingWhileThePredicateIsTrue() {
+    public async Task TillFalseKeepsAskingWhileThePredicateIsTrue()
+    {
         var (retry, _) = Engine();
         var attempts = 0;
 
-        await retry.TillFalse(() => {
-            attempts++;
-            return Task.FromResult(attempts != 2);
-        }, "waiting");
+        await retry.TillFalse(
+            () =>
+            {
+                attempts++;
+                return Task.FromResult(attempts != 2);
+            },
+            "waiting"
+        );
 
         Assert.Equal(2, attempts);
     }
@@ -87,7 +110,8 @@ public class RetryEngineTests {
     // ---- TillValue ----------------------------------------------------------------------------
 
     [Fact]
-    public async Task TillValueHandsBackWhateverThePredicateProduced() {
+    public async Task TillValueHandsBackWhateverThePredicateProduced()
+    {
         var (retry, _) = Engine();
 
         var result = await retry.TillValue(() => Task.FromResult("produced"), "waiting");
@@ -96,14 +120,19 @@ public class RetryEngineTests {
     }
 
     [Fact]
-    public async Task TillValueAsksOnlyOnceWhenTheFirstCallSucceeds() {
+    public async Task TillValueAsksOnlyOnceWhenTheFirstCallSucceeds()
+    {
         var (retry, _) = Engine();
         var attempts = 0;
 
-        await retry.TillValue(() => {
-            attempts++;
-            return Task.FromResult(attempts);
-        }, "waiting");
+        await retry.TillValue(
+            () =>
+            {
+                attempts++;
+                return Task.FromResult(attempts);
+            },
+            "waiting"
+        );
 
         Assert.Equal(1, attempts);
     }
@@ -116,35 +145,47 @@ public class RetryEngineTests {
     /// throw would be useless for the case it exists to serve.
     /// </summary>
     [Fact]
-    public async Task AThrownPredicateIsRetriedRatherThanFailingTheCaller() {
+    public async Task AThrownPredicateIsRetriedRatherThanFailingTheCaller()
+    {
         var (retry, _) = Engine();
         var attempts = 0;
 
-        await retry.TillTrue(() => {
-            attempts++;
-            if (attempts == 1) {
-                throw new InvalidOperationException("not ready");
-            }
+        await retry.TillTrue(
+            () =>
+            {
+                attempts++;
+                if (attempts == 1)
+                {
+                    throw new InvalidOperationException("not ready");
+                }
 
-            return Task.FromResult(true);
-        }, "waiting");
+                return Task.FromResult(true);
+            },
+            "waiting"
+        );
 
         Assert.Equal(2, attempts);
     }
 
     [Fact]
-    public async Task AThrownPredicateIsLoggedSoTheReasonSurvives() {
+    public async Task AThrownPredicateIsLoggedSoTheReasonSurvives()
+    {
         var (retry, logger) = Engine();
         var attempts = 0;
 
-        await retry.TillTrue(() => {
-            attempts++;
-            if (attempts == 1) {
-                throw new InvalidOperationException("not ready");
-            }
+        await retry.TillTrue(
+            () =>
+            {
+                attempts++;
+                if (attempts == 1)
+                {
+                    throw new InvalidOperationException("not ready");
+                }
 
-            return Task.FromResult(true);
-        }, "waiting");
+                return Task.FromResult(true);
+            },
+            "waiting"
+        );
 
         var failure = Assert.Single(logger.Entries, entry => entry.Exception != null);
 
@@ -152,18 +193,24 @@ public class RetryEngineTests {
     }
 
     [Fact]
-    public async Task TillValueRetriesAThrownPredicateAndReturnsTheLaterValue() {
+    public async Task TillValueRetriesAThrownPredicateAndReturnsTheLaterValue()
+    {
         var (retry, _) = Engine();
         var attempts = 0;
 
-        var result = await retry.TillValue(() => {
-            attempts++;
-            if (attempts == 1) {
-                throw new InvalidOperationException("not ready");
-            }
+        var result = await retry.TillValue(
+            () =>
+            {
+                attempts++;
+                if (attempts == 1)
+                {
+                    throw new InvalidOperationException("not ready");
+                }
 
-            return Task.FromResult("eventually");
-        }, "waiting");
+                return Task.FromResult("eventually");
+            },
+            "waiting"
+        );
 
         Assert.Equal("eventually", result);
     }
@@ -175,72 +222,106 @@ public class RetryEngineTests {
     /// not get one more round trip against a system that is going away.
     /// </summary>
     [Fact]
-    public async Task ATokenAlreadyCancelledStopsBeforeTheFirstAttempt() {
+    public async Task ATokenAlreadyCancelledStopsBeforeTheFirstAttempt()
+    {
         using var source = new CancellationTokenSource();
         source.Cancel();
 
         var (retry, _) = Engine(source);
         var attempts = 0;
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => retry.TillTrue(() => {
-            attempts++;
-            return Task.FromResult(false);
-        }, "waiting"));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            retry.TillTrue(
+                () =>
+                {
+                    attempts++;
+                    return Task.FromResult(false);
+                },
+                "waiting"
+            )
+        );
 
         Assert.Equal(0, attempts);
     }
 
     [Fact]
-    public async Task CancellingWhileWaitingEndsTheRetryLoop() {
+    public async Task CancellingWhileWaitingEndsTheRetryLoop()
+    {
         using var source = new CancellationTokenSource();
 
         var (retry, _) = Engine(source);
         var attempts = 0;
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => retry.TillTrue(() => {
-            attempts++;
-            source.Cancel();
-            return Task.FromResult(false);
-        }, "waiting"));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            retry.TillTrue(
+                () =>
+                {
+                    attempts++;
+                    source.Cancel();
+                    return Task.FromResult(false);
+                },
+                "waiting"
+            )
+        );
 
         Assert.Equal(1, attempts);
     }
 
     [Fact]
-    public async Task CancellingEndsTillFalseToo() {
+    public async Task CancellingEndsTillFalseToo()
+    {
         using var source = new CancellationTokenSource();
 
         var (retry, _) = Engine(source);
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => retry.TillFalse(() => {
-            source.Cancel();
-            return Task.FromResult(true);
-        }, "waiting"));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            retry.TillFalse(
+                () =>
+                {
+                    source.Cancel();
+                    return Task.FromResult(true);
+                },
+                "waiting"
+            )
+        );
     }
 
     [Fact]
-    public async Task CancellingEndsTillValueToo() {
+    public async Task CancellingEndsTillValueToo()
+    {
         using var source = new CancellationTokenSource();
 
         var (retry, _) = Engine(source);
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => retry.TillValue<string>(() => {
-            source.Cancel();
-            throw new InvalidOperationException("not ready");
-        }, "waiting"));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            retry.TillValue<string>(
+                () =>
+                {
+                    source.Cancel();
+                    throw new InvalidOperationException("not ready");
+                },
+                "waiting"
+            )
+        );
     }
 
     // ---- logging ------------------------------------------------------------------------------
 
     [Fact]
-    public async Task EveryAttemptIsLoggedWithTheCallersDescription() {
+    public async Task EveryAttemptIsLoggedWithTheCallersDescription()
+    {
         var (retry, logger) = Engine();
         var attempts = 0;
 
-        await retry.TillTrue(() => {
-            attempts++;
-            return Task.FromResult(attempts == 2);
-        }, "waiting for {resource}", "queue");
+        await retry.TillTrue(
+            () =>
+            {
+                attempts++;
+                return Task.FromResult(attempts == 2);
+            },
+            "waiting for {resource}",
+            "queue"
+        );
 
         var described = logger.Entries.Where(entry => entry.Value("resource") is "queue").ToArray();
 
@@ -261,7 +342,8 @@ public class RetryEngineTests {
     /// changed Delay is ignored would have to be deleted by whoever fixes it.
     /// </remarks>
     [Fact]
-    public void TheRetryIntervalDefaultsToOneSecond() {
+    public void TheRetryIntervalDefaultsToOneSecond()
+    {
         var (retry, _) = Engine();
 
         Assert.Equal(1000, retry.Delay);

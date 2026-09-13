@@ -24,8 +24,10 @@ namespace Hardened.Functions.Runtime.Attributes;
 /// <c>BatchFailureMode.Checkpoint</c> for what that means when one item fails.
 /// </para>
 /// </remarks>
-public class ChangeAttribute : Attribute {
-    public ChangeAttribute(string name) {
+public class ChangeAttribute : Attribute
+{
+    public ChangeAttribute(string name)
+    {
         Name = name;
     }
 

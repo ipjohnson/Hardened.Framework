@@ -1,8 +1,8 @@
 using Hardened.Generation;
+using Hardened.Idl;
 using Hardened.SourceGeneration.Testing;
 using Microsoft.CodeAnalysis;
 using Xunit;
-using Hardened.Idl;
 
 namespace Hardened.OpenApi.SourceGenerator.Tests;
 
@@ -22,8 +22,8 @@ namespace Hardened.OpenApi.SourceGenerator.Tests;
 /// never throws, and always emits the diagnostic file.
 /// </para>
 /// </summary>
-public class MalformedSpecDiagnosticsTests {
-
+public class MalformedSpecDiagnosticsTests
+{
     private const string ModelFile = "petstore.openapi-model.txt";
 
     private static IEnumerable<Diagnostic> ReadWarnings(GeneratorResult result) =>
@@ -34,7 +34,8 @@ public class MalformedSpecDiagnosticsTests {
     /// task. Reported, and the build carries on.
     /// </summary>
     [Fact]
-    public void ACorruptModelFileReportsHoag002AndDoesNotBreakTheBuild() {
+    public void ACorruptModelFileReportsHoag002AndDoesNotBreakTheBuild()
+    {
         var result = OpenApiGenerator
             .RunRaw(new Dictionary<string, string> { [ModelFile] = "garbage that is not a model" })
             .AssertNoErrors();
@@ -50,7 +51,8 @@ public class MalformedSpecDiagnosticsTests {
     /// ran and wrote nothing rather than a model that is wrong.
     /// </summary>
     [Fact]
-    public void AnEmptyModelFileReportsHoag002() {
+    public void AnEmptyModelFileReportsHoag002()
+    {
         var result = OpenApiGenerator
             .RunRaw(new Dictionary<string, string> { [ModelFile] = "" })
             .AssertNoErrors();
@@ -66,14 +68,21 @@ public class MalformedSpecDiagnosticsTests {
     /// at, because a half-understood model generates wrong code instead of an error.
     /// </summary>
     [Fact]
-    public void AModelFileFromAnUnknownFormatVersionReportsHoag002() {
+    public void AModelFileFromAnUnknownFormatVersionReportsHoag002()
+    {
         var result = OpenApiGenerator
-            .RunRaw(new Dictionary<string, string> {
-                [ModelFile] = "#hardened-openapi-model 99\nspec\tFileName=petstore\n"
-            })
+            .RunRaw(
+                new Dictionary<string, string>
+                {
+                    [ModelFile] = "#hardened-openapi-model 99\nspec\tFileName=petstore\n",
+                }
+            )
             .AssertNoErrors();
 
-        Assert.Contains(ReadWarnings(result), warning => warning.GetMessage().Contains("hardened-openapi-model"));
+        Assert.Contains(
+            ReadWarnings(result),
+            warning => warning.GetMessage().Contains("hardened-openapi-model")
+        );
     }
 
     /// <summary>
@@ -86,7 +95,8 @@ public class MalformedSpecDiagnosticsTests {
     [InlineData("docker-compose.yaml")]
     [InlineData("petstore.yaml")]
     [InlineData("notes.txt")]
-    public void AnAdditionalFileThatIsNotASpecModelIsIgnored(string fileName) {
+    public void AnAdditionalFileThatIsNotASpecModelIsIgnored(string fileName)
+    {
         var result = OpenApiGenerator
             .RunRaw(new Dictionary<string, string> { [fileName] = Specs.NotOpenApiJson })
             .AssertNoErrors();
@@ -100,7 +110,8 @@ public class MalformedSpecDiagnosticsTests {
     /// generated, so the count has to be there even when the read failed.
     /// </summary>
     [Fact]
-    public void TheDiagnosticFileRecordsThePathsAndTheReadFailure() {
+    public void TheDiagnosticFileRecordsThePathsAndTheReadFailure()
+    {
         var result = OpenApiGenerator
             .RunRaw(new Dictionary<string, string> { [ModelFile] = "garbage" })
             .AssertNoErrors();
@@ -118,7 +129,8 @@ public class MalformedSpecDiagnosticsTests {
     /// reads this before anything else.
     /// </summary>
     [Fact]
-    public void TheDiagnosticFileRecordsASuccessfulReadWithNoErrors() {
+    public void TheDiagnosticFileRecordsASuccessfulReadWithNoErrors()
+    {
         var result = OpenApiGenerator.Run(Specs.Minimal).AssertNoErrors();
 
         var diagnosticFile = result.GeneratedSources[OpenApiGenerator.DiagnosticHintName];
@@ -133,7 +145,8 @@ public class MalformedSpecDiagnosticsTests {
     /// file, and says the count was zero - which is the answer to "why did nothing generate".
     /// </summary>
     [Fact]
-    public void AProjectWithNoAdditionalFilesStillGetsTheDiagnosticFile() {
+    public void AProjectWithNoAdditionalFilesStillGetsTheDiagnosticFile()
+    {
         var result = OpenApiGenerator.RunRaw(new Dictionary<string, string>()).AssertNoErrors();
 
         var diagnosticFile = result.GeneratedSources[OpenApiGenerator.DiagnosticHintName];
@@ -152,18 +165,30 @@ public class MalformedSpecDiagnosticsTests {
     /// good model is enough to show that.
     /// </remarks>
     [Fact]
-    public void AGoodModelStillGeneratesAlongsideABadOne() {
+    public void AGoodModelStillGeneratesAlongsideABadOne()
+    {
         var goodModel = SpecModelSerializer.Write(
-            OpenApiSpecParser.Parse(Specs.Minimal, "petstore", CancellationToken.None)!);
+            OpenApiSpecParser.Parse(Specs.Minimal, "petstore", CancellationToken.None)!
+        );
 
-        var result = OpenApiGenerator.RunRaw(new Dictionary<string, string> {
-            ["petstore.openapi-model.txt"] = goodModel,
-            ["broken.openapi-model.txt"] = "garbage"
-        });
+        var result = OpenApiGenerator.RunRaw(
+            new Dictionary<string, string>
+            {
+                ["petstore.openapi-model.txt"] = goodModel,
+                ["broken.openapi-model.txt"] = "garbage",
+            }
+        );
 
-        Assert.Contains(result.GeneratedSources.Keys, key => key.Contains("PetController_ListPets"));
-        Assert.Contains(result.GeneratorDiagnostics,
-            diagnostic => diagnostic.Id == "HOAG002" && diagnostic.GetMessage().Contains("broken.openapi-model.txt"));
+        Assert.Contains(
+            result.GeneratedSources.Keys,
+            key => key.Contains("PetController_ListPets")
+        );
+        Assert.Contains(
+            result.GeneratorDiagnostics,
+            diagnostic =>
+                diagnostic.Id == "HOAG002"
+                && diagnostic.GetMessage().Contains("broken.openapi-model.txt")
+        );
     }
 
     /// <summary>
@@ -182,9 +207,11 @@ public class MalformedSpecDiagnosticsTests {
     [InlineData("#hardened-openapi-model 1\nprop\tName=orphan")]
     [InlineData("[1, 2, 3]")]
     [InlineData("\0")]
-    public void NoMalformedModelMakesTheGeneratorThrow(string content) {
+    public void NoMalformedModelMakesTheGeneratorThrow(string content)
+    {
         var result = OpenApiGenerator.RunRaw(
-            new Dictionary<string, string> { ["candidate.openapi-model.txt"] = content });
+            new Dictionary<string, string> { ["candidate.openapi-model.txt"] = content }
+        );
 
         Assert.Empty(result.GeneratorExceptions);
         result.AssertNoErrors();

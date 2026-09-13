@@ -13,8 +13,8 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 /// chain, and that a refusal becomes a status and a header on a real response.
 /// </para>
 /// </summary>
-public class AuthorizationTests {
-
+public class AuthorizationTests
+{
     private static Action<TestWebRequest> Holding(string grants) =>
         request => request.Headers[TestGrantsPrincipalSource.GrantsHeader] = grants;
 
@@ -25,14 +25,16 @@ public class AuthorizationTests {
     /// exactly as it was before any of this existed.
     /// </summary>
     [HardenedTest]
-    public async Task AHandlerWithNoAttributeIsStillPublic(ITestWebApp testWebApp) {
+    public async Task AHandlerWithNoAttributeIsStillPublic(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/authorization/unguarded");
 
         response.Assert.Ok();
     }
 
     [HardenedTest]
-    public async Task AllowAnonymousIsReachableWithoutACredential(ITestWebApp testWebApp) {
+    public async Task AllowAnonymousIsReachableWithoutACredential(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/authorization/open");
 
         response.Assert.Ok();
@@ -47,7 +49,8 @@ public class AuthorizationTests {
     /// has not identified itself.
     /// </summary>
     [HardenedTest]
-    public async Task AGuardedRouteRefusesAnAnonymousCallerWith401(ITestWebApp testWebApp) {
+    public async Task AGuardedRouteRefusesAnAnonymousCallerWith401(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/authorization/pets");
 
         response.Assert.Unauthorized();
@@ -58,7 +61,8 @@ public class AuthorizationTests {
     /// it tells the client how to authenticate rather than only that it must.
     /// </summary>
     [HardenedTest]
-    public async Task ARefusalCarriesAChallengeHeader(ITestWebApp testWebApp) {
+    public async Task ARefusalCarriesAChallengeHeader(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/authorization/pets");
 
         Assert.True(response.Headers.TryGetValue("WWW-Authenticate", out var challenge));
@@ -69,7 +73,8 @@ public class AuthorizationTests {
     /// Authenticated but short of grants is a 403, and the challenge names what would have worked.
     /// </summary>
     [HardenedTest]
-    public async Task AnAuthenticatedCallerShortOfGrantsIsForbidden(ITestWebApp testWebApp) {
+    public async Task AnAuthenticatedCallerShortOfGrantsIsForbidden(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/authorization/pets-manage", Holding("pets:read"));
 
         response.Assert.Forbidden();
@@ -84,7 +89,8 @@ public class AuthorizationTests {
     #region admitted
 
     [HardenedTest]
-    public async Task ACallerHoldingTheGrantIsAdmitted(ITestWebApp testWebApp) {
+    public async Task ACallerHoldingTheGrantIsAdmitted(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/authorization/pets", Holding("pets:read"));
 
         response.Assert.Ok();
@@ -94,9 +100,12 @@ public class AuthorizationTests {
     /// Grants within one attribute are an and, so holding both admits the request.
     /// </summary>
     [HardenedTest]
-    public async Task ACallerHoldingBothGrantsIsAdmitted(ITestWebApp testWebApp) {
+    public async Task ACallerHoldingBothGrantsIsAdmitted(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get(
-            "/authorization/pets-manage", Holding("pets:read pets:write"));
+            "/authorization/pets-manage",
+            Holding("pets:read pets:write")
+        );
 
         response.Assert.Ok();
     }
@@ -105,9 +114,9 @@ public class AuthorizationTests {
     /// Stacked attributes conjoin, so the caller needs everything all of them named.
     /// </summary>
     [HardenedTest]
-    public async Task StackedAttributesAdmitOnlyTheCallerHoldingEverything(ITestWebApp testWebApp) {
-        var response = await testWebApp.Get(
-            "/authorization/stacked", Holding("pets:read admin:*"));
+    public async Task StackedAttributesAdmitOnlyTheCallerHoldingEverything(ITestWebApp testWebApp)
+    {
+        var response = await testWebApp.Get("/authorization/stacked", Holding("pets:read admin:*"));
 
         response.Assert.Ok();
     }
@@ -117,7 +126,8 @@ public class AuthorizationTests {
     /// attribute restricted the route rather than opening it.
     /// </summary>
     [HardenedTest]
-    public async Task StackedAttributesRefuseACallerHoldingOnlyOne(ITestWebApp testWebApp) {
+    public async Task StackedAttributesRefuseACallerHoldingOnlyOne(ITestWebApp testWebApp)
+    {
         var viaPets = await testWebApp.Get("/authorization/stacked", Holding("pets:read"));
         var viaAdmin = await testWebApp.Get("/authorization/stacked", Holding("admin:*"));
 
@@ -129,9 +139,12 @@ public class AuthorizationTests {
     /// An application's own attribute, deriving from <c>[AuthorizeGrants]</c>, guards its route.
     /// </summary>
     [HardenedTest]
-    public async Task ADerivedAttributeGuardsItsRoute(ITestWebApp testWebApp) {
+    public async Task ADerivedAttributeGuardsItsRoute(ITestWebApp testWebApp)
+    {
         var holding = await testWebApp.Get(
-            "/authorization/derived", Holding("pets:read pets:write"));
+            "/authorization/derived",
+            Holding("pets:read pets:write")
+        );
         var lacking = await testWebApp.Get("/authorization/derived", Holding("pets:read"));
 
         holding.Assert.Ok();

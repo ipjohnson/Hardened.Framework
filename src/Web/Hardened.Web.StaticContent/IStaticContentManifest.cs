@@ -19,8 +19,8 @@ namespace Hardened.Web.StaticContent;
 /// than a requirement.
 /// </para>
 /// </remarks>
-public interface IStaticContentManifest {
-
+public interface IStaticContentManifest
+{
     /// <summary>Every file, keyed by the path a request asks for.</summary>
     IReadOnlyList<StaticContentManifestEntry> Entries { get; }
 
@@ -67,11 +67,11 @@ public sealed record StaticContentManifestEntry(
     long LastModifiedUtcTicks,
     byte[]? Content,
     byte[]? GZipContent,
-    string? RelativePath) {
-
+    string? RelativePath
+)
+{
     /// <summary>Whether the bytes travel in the assembly rather than beside it.</summary>
     public bool IsEmbedded => Content != null;
 
-    public DateTimeOffset LastModified =>
-        new(LastModifiedUtcTicks, TimeSpan.Zero);
+    public DateTimeOffset LastModified => new(LastModifiedUtcTicks, TimeSpan.Zero);
 }

@@ -14,17 +14,19 @@ namespace Hardened.Requests.Runtime.Tests.Authorization;
 /// because the failure mode is silent in both directions: a described requirement that replaced an
 /// attribute would drop a rule somebody wrote, and one that was ignored would drop the contract's.
 /// </remarks>
-public class DescribedAuthorizationTests {
-
+public class DescribedAuthorizationTests
+{
     /// <summary>
     /// It is recognised the same way an attribute is - through the interface, not by type name.
     /// </summary>
     [Fact]
-    public void ADescribedRequirementReachesTheHandler() {
+    public void ADescribedRequirementReachesTheHandler()
+    {
         var requirement = Requirement.Grant("pets:write");
 
-        var result = IExecutionRequestHandlerInfo.RequirementFrom(
-            [new DescribedAuthorization(requirement)]);
+        var result = IExecutionRequestHandlerInfo.RequirementFrom([
+            new DescribedAuthorization(requirement),
+        ]);
 
         Assert.NotNull(result);
         Assert.Equal(new[] { "pets:write" }, result!.RequiredGrants);
@@ -39,10 +41,11 @@ public class DescribedAuthorizationTests {
     /// so passing it there would have silenced the attribute instead of composing with it.
     /// </remarks>
     [Fact]
-    public void ADescribedRequirementNarrowsRatherThanReplaces() {
+    public void ADescribedRequirementNarrowsRatherThanReplaces()
+    {
         var result = IExecutionRequestHandlerInfo.RequirementFrom([
             new DescribedAuthorization(Requirement.Grant("pets:write")),
-            new AuthorizeGrantsAttribute("tenant:member")
+            new AuthorizeGrantsAttribute("tenant:member"),
         ]);
 
         Assert.NotNull(result);
@@ -55,15 +58,13 @@ public class DescribedAuthorizationTests {
     /// wanted rather than picking one branch arbitrarily.
     /// </summary>
     [Fact]
-    public void AnAlternativeNamesEveryGrantThatWouldSatisfyIt() {
+    public void AnAlternativeNamesEveryGrantThatWouldSatisfyIt()
+    {
         var described = new DescribedAuthorization(
-            Requirement.AnyOf(
-                Requirement.Grant("pets:read"),
-                Requirement.Grant("admin:all")));
+            Requirement.AnyOf(Requirement.Grant("pets:read"), Requirement.Grant("admin:all"))
+        );
 
-        Assert.Equal(
-            new[] { "pets:read", "admin:all" },
-            described.Requirement.RequiredGrants);
+        Assert.Equal(new[] { "pets:read", "admin:all" }, described.Requirement.RequiredGrants);
     }
 
     /// <summary>
@@ -71,11 +72,13 @@ public class DescribedAuthorizationTests {
     /// keeps an OR containing it from being satisfied by everybody.
     /// </summary>
     [Fact]
-    public void AuthenticatedIsARequirementInItsOwnRight() {
+    public void AuthenticatedIsARequirementInItsOwnRight()
+    {
         var anonymous = AnonymousCallerPrincipal.Instance;
 
         var described = new DescribedAuthorization(
-            Requirement.AnyOf(Requirement.Grant("pets:read"), Requirement.Authenticated()));
+            Requirement.AnyOf(Requirement.Grant("pets:read"), Requirement.Authenticated())
+        );
 
         Assert.False(described.Requirement.IsSatisfiedBy(anonymous, null!));
     }

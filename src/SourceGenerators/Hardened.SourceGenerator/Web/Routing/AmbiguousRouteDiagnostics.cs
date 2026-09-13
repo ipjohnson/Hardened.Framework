@@ -1,6 +1,6 @@
 using Hardened.SourceGenerator.Models.Request;
-using Microsoft.CodeAnalysis;
 using Hardened.SourceGenerator.Shared;
+using Microsoft.CodeAnalysis;
 
 namespace Hardened.SourceGenerator.Web.Routing;
 
@@ -35,7 +35,8 @@ namespace Hardened.SourceGenerator.Web.Routing;
 /// which is where that conversation belongs.
 /// </para>
 /// </remarks>
-public static class AmbiguousRouteDiagnostics {
+public static class AmbiguousRouteDiagnostics
+{
     public const string DiagnosticId = "HRDR001";
 
     /// <summary>
@@ -43,17 +44,18 @@ public static class AmbiguousRouteDiagnostics {
     /// <c>UnresolvedHandler.Descriptor</c> is: RS2008 looks for the field, and these projects set
     /// <c>EnforceExtendedAnalyzerRules</c>.
     /// </summary>
-    private static DiagnosticDescriptor Descriptor(DiagnosticSeverity severity) => new(
-        id: DiagnosticId,
-        title: "Ambiguous route pair",
-        messageFormat:
-        "'{0}' and '{1}' match the same paths and differ only in what their token accepts, so which " +
-        "handler a request reaches depends on the value in it. A client cannot reason about which " +
-        "endpoint it hit, caches cannot tell them apart, and the pair is unrepresentable in OpenAPI. " +
-        "Give them different paths.",
-        category: "Hardened.Routing",
-        defaultSeverity: severity,
-        isEnabledByDefault: true);
+    private static DiagnosticDescriptor Descriptor(DiagnosticSeverity severity) =>
+        new(
+            id: DiagnosticId,
+            title: "Ambiguous route pair",
+            messageFormat: "'{0}' and '{1}' match the same paths and differ only in what their token accepts, so which "
+                + "handler a request reaches depends on the value in it. A client cannot reason about which "
+                + "endpoint it hit, caches cannot tell them apart, and the pair is unrepresentable in OpenAPI. "
+                + "Give them different paths.",
+            category: "Hardened.Routing",
+            defaultSeverity: severity,
+            isEnabledByDefault: true
+        );
 
     /// <summary>
     /// Reports every ambiguous pair among <paramref name="handlers"/>.
@@ -66,19 +68,24 @@ public static class AmbiguousRouteDiagnostics {
         SourceProductionContext context,
         IReadOnlyList<RequestHandlerModel> handlers,
         string basePath,
-        DiagnosticSeverity defaultSeverity) {
+        DiagnosticSeverity defaultSeverity
+    )
+    {
         // Grouped by the shape a request is matched against: the template with every token reduced
         // to a marker, plus the verb. Two routes in one group match exactly the same requests, so
         // anything distinguishing them can only be the content of a token.
         var byShape = new Dictionary<string, List<(string Route, IReadOnlyList<string> Tokens)>>(
-            StringComparer.Ordinal);
+            StringComparer.Ordinal
+        );
 
-        foreach (var handler in handlers) {
+        foreach (var handler in handlers)
+        {
             var route = RoutePath.Combine(basePath, handler.Name.Path);
             var (shape, tokens) = RouteTreeGenerator<RequestHandlerModel>.StandardizeToken(route);
             var key = handler.Name.Method + " " + shape;
 
-            if (!byShape.TryGetValue(key, out var group)) {
+            if (!byShape.TryGetValue(key, out var group))
+            {
                 group = new List<(string, IReadOnlyList<string>)>();
                 byShape[key] = group;
             }
@@ -86,25 +93,38 @@ public static class AmbiguousRouteDiagnostics {
             group.Add((route, tokens));
         }
 
-        foreach (var group in byShape) {
-            if (group.Value.Count < 2) {
+        foreach (var group in byShape)
+        {
+            if (group.Value.Count < 2)
+            {
                 continue;
             }
 
-            for (var i = 0; i < group.Value.Count; i++) {
-                for (var j = i + 1; j < group.Value.Count; j++) {
-                    if (!DiffersOnlyByWhatTheTokenAccepts(group.Value[i].Tokens, group.Value[j].Tokens)) {
+            for (var i = 0; i < group.Value.Count; i++)
+            {
+                for (var j = i + 1; j < group.Value.Count; j++)
+                {
+                    if (
+                        !DiffersOnlyByWhatTheTokenAccepts(
+                            group.Value[i].Tokens,
+                            group.Value[j].Tokens
+                        )
+                    )
+                    {
                         continue;
                     }
 
                     // Location.None, as everywhere else models are reported from: a syntax location
                     // would travel with the model through the incremental caches, which compare
                     // models for equality to decide whether to regenerate.
-                    context.ReportDiagnostic(Diagnostic.Create(
-                        Descriptor(defaultSeverity),
-                        Location.None,
-                        group.Value[i].Route,
-                        group.Value[j].Route));
+                    context.ReportDiagnostic(
+                        Diagnostic.Create(
+                            Descriptor(defaultSeverity),
+                            Location.None,
+                            group.Value[i].Route,
+                            group.Value[j].Route
+                        )
+                    );
                 }
             }
         }
@@ -120,16 +140,26 @@ public static class AmbiguousRouteDiagnostics {
     /// rule is about.
     /// </remarks>
     private static bool DiffersOnlyByWhatTheTokenAccepts(
-        IReadOnlyList<string> left, IReadOnlyList<string> right) {
-        if (left.Count != right.Count) {
+        IReadOnlyList<string> left,
+        IReadOnlyList<string> right
+    )
+    {
+        if (left.Count != right.Count)
+        {
             return false;
         }
 
-        for (var i = 0; i < left.Count; i++) {
-            if (RouteTokens.IsCatchAll(left[i]) != RouteTokens.IsCatchAll(right[i]) ||
-                !string.Equals(
-                    RouteTokens.Constraint(left[i]), RouteTokens.Constraint(right[i]),
-                    StringComparison.Ordinal)) {
+        for (var i = 0; i < left.Count; i++)
+        {
+            if (
+                RouteTokens.IsCatchAll(left[i]) != RouteTokens.IsCatchAll(right[i])
+                || !string.Equals(
+                    RouteTokens.Constraint(left[i]),
+                    RouteTokens.Constraint(right[i]),
+                    StringComparison.Ordinal
+                )
+            )
+            {
                 return true;
             }
         }
@@ -141,10 +171,11 @@ public static class AmbiguousRouteDiagnostics {
     /// The severity <c>&lt;HardenedAmbiguousRoutes&gt;</c> asks for, or error.
     /// </summary>
     public static DiagnosticSeverity Severity(string? configured) =>
-        configured?.Trim().ToLowerInvariant() switch {
+        configured?.Trim().ToLowerInvariant() switch
+        {
             "warning" => DiagnosticSeverity.Warning,
             "info" or "suggestion" => DiagnosticSeverity.Info,
             "none" or "hidden" => DiagnosticSeverity.Hidden,
-            _ => DiagnosticSeverity.Error
+            _ => DiagnosticSeverity.Error,
         };
 }

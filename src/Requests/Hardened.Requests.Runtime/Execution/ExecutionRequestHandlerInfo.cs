@@ -4,7 +4,8 @@ using Hardened.Requests.Abstract.Timeouts;
 
 namespace Hardened.Requests.Runtime.Execution;
 
-public class ExecutionRequestHandlerInfo : IExecutionRequestHandlerInfo {
+public class ExecutionRequestHandlerInfo : IExecutionRequestHandlerInfo
+{
     public ExecutionRequestHandlerInfo(
         string path,
         string method,
@@ -21,7 +22,9 @@ public class ExecutionRequestHandlerInfo : IExecutionRequestHandlerInfo {
         TimeoutPolicy? timeout = null,
         bool streamsResponse = false,
         IReadOnlyDictionary<int, object>? declaredErrorBodies = null,
-        bool writesRawBytes = false) {
+        bool writesRawBytes = false
+    )
+    {
         Path = path;
         Method = method;
         HandlerType = handlerType;
@@ -74,7 +77,8 @@ public class ExecutionRequestHandlerInfo : IExecutionRequestHandlerInfo {
         Requirement? requirement,
         TimeoutPolicy? timeout = null,
         IReadOnlyList<object>? metadata = null,
-        IReadOnlyList<string>? producedContentTypes = null)
+        IReadOnlyList<string>? producedContentTypes = null
+    )
         : this(
             path ?? source.Path,
             source.Method,
@@ -91,7 +95,8 @@ public class ExecutionRequestHandlerInfo : IExecutionRequestHandlerInfo {
             timeout ?? source.Timeout,
             source.StreamsResponse,
             source.DeclaredErrorBodies,
-            source.WritesRawBytes) { }
+            source.WritesRawBytes
+        ) { }
 
     public string Path { get; }
 
@@ -179,8 +184,8 @@ public class ExecutionRequestHandlerInfo : IExecutionRequestHandlerInfo {
 /// <summary>
 /// Amendments to a handler that carry every other member across unchanged.
 /// </summary>
-public static class ExecutionRequestHandlerInfoExtensions {
-
+public static class ExecutionRequestHandlerInfoExtensions
+{
     /// <summary>
     /// The same handler, requiring <paramref name="requirement"/> of its caller.
     /// </summary>
@@ -198,7 +203,9 @@ public static class ExecutionRequestHandlerInfoExtensions {
     /// </para>
     /// </remarks>
     public static IExecutionRequestHandlerInfo WithRequirement(
-        this IExecutionRequestHandlerInfo handlerInfo, Requirement? requirement) =>
+        this IExecutionRequestHandlerInfo handlerInfo,
+        Requirement? requirement
+    ) =>
         requirement is null || ReferenceEquals(requirement, handlerInfo.Requirement)
             ? handlerInfo
             : new ExecutionRequestHandlerInfo(handlerInfo, path: null, requirement);
@@ -218,7 +225,9 @@ public static class ExecutionRequestHandlerInfoExtensions {
     /// </para>
     /// </remarks>
     public static IExecutionRequestHandlerInfo WithTimeout(
-        this IExecutionRequestHandlerInfo handlerInfo, TimeoutPolicy? timeout) =>
+        this IExecutionRequestHandlerInfo handlerInfo,
+        TimeoutPolicy? timeout
+    ) =>
         timeout is null || Equals(timeout, handlerInfo.Timeout)
             ? handlerInfo
             : new ExecutionRequestHandlerInfo(handlerInfo, path: null, requirement: null, timeout);
@@ -254,8 +263,12 @@ public static class ExecutionRequestHandlerInfoExtensions {
     /// </para>
     /// </remarks>
     public static IExecutionRequestHandlerInfo WithWiderRungs(
-        this IExecutionRequestHandlerInfo handlerInfo, IReadOnlyList<object> rungs) {
-        if (rungs.Count == 0) {
+        this IExecutionRequestHandlerInfo handlerInfo,
+        IReadOnlyList<object> rungs
+    )
+    {
+        if (rungs.Count == 0)
+        {
             return handlerInfo;
         }
 
@@ -269,16 +282,19 @@ public static class ExecutionRequestHandlerInfoExtensions {
             path: null,
             requirement: Conjoined(handlerInfo.Requirement, rungs),
             timeout: null,
-            metadata: merged);
+            metadata: merged
+        );
     }
 
     /// <summary>
     /// What the handler already required, and what the wider rungs require of it.
     /// </summary>
-    private static Requirement? Conjoined(Requirement? required, IReadOnlyList<object> rungs) {
+    private static Requirement? Conjoined(Requirement? required, IReadOnlyList<object> rungs)
+    {
         var wider = IExecutionRequestHandlerInfo.RequirementFrom(rungs);
 
-        if (wider == null) {
+        if (wider == null)
+        {
             return required;
         }
 
@@ -300,7 +316,9 @@ public static class ExecutionRequestHandlerInfoExtensions {
     /// </para>
     /// </remarks>
     public static IExecutionRequestHandlerInfo WithProducedContentTypes(
-        this IExecutionRequestHandlerInfo handlerInfo, IReadOnlyList<string> producedContentTypes) =>
+        this IExecutionRequestHandlerInfo handlerInfo,
+        IReadOnlyList<string> producedContentTypes
+    ) =>
         ReferenceEquals(producedContentTypes, handlerInfo.ProducedContentTypes)
             ? handlerInfo
             : new ExecutionRequestHandlerInfo(
@@ -308,5 +326,6 @@ public static class ExecutionRequestHandlerInfoExtensions {
                 path: null,
                 requirement: null,
                 timeout: null,
-                producedContentTypes: producedContentTypes);
+                producedContentTypes: producedContentTypes
+            );
 }

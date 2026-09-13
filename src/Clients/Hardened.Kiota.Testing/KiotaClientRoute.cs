@@ -1,9 +1,9 @@
 using System.Reflection;
+using Hardened.Web.Runtime.Responses;
 using Hardened.Web.Testing;
 using Microsoft.Kiota.Abstractions;
 using Microsoft.Kiota.Abstractions.Authentication;
 using Microsoft.Kiota.Http.HttpClientLibrary;
-using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Kiota.Testing;
 
@@ -32,30 +32,34 @@ namespace Hardened.Kiota.Testing;
 /// <see cref="ITestClientFactory{TClient}"/>, which wins over this.
 /// </para>
 /// </remarks>
-public sealed class KiotaClientRoute : ITestClientRoute, ITestClientReader {
-
+public sealed class KiotaClientRoute : ITestClientRoute, ITestClientReader
+{
     private const string UntypedNote =
-        "The client threw a bare ApiException rather than a model, which is what it does for a " +
-        "status the document declares no body for - so there was nothing for it to deserialise " +
-        "into, whatever the response carried.";
+        "The client threw a bare ApiException rather than a model, which is what it does for a "
+        + "status the document declares no body for - so there was nothing for it to deserialise "
+        + "into, whatever the response carried.";
 
     public bool CanBuild(Type clientType) =>
-        clientType is { IsClass: true, IsAbstract: false } &&
-        typeof(BaseRequestBuilder).IsAssignableFrom(clientType) &&
-        AdapterConstructor(clientType) != null;
+        clientType is { IsClass: true, IsAbstract: false }
+        && typeof(BaseRequestBuilder).IsAssignableFrom(clientType)
+        && AdapterConstructor(clientType) != null;
 
-    public object Build(TestClientContext context, Type clientType) {
+    public object Build(TestClientContext context, Type clientType)
+    {
         ArgumentNullException.ThrowIfNull(context);
 
-        var constructor = AdapterConstructor(clientType)
+        var constructor =
+            AdapterConstructor(clientType)
             ?? throw new InvalidOperationException(
-                $"{clientType.FullName} is not a Kiota client: it has no public constructor taking " +
-                "one IRequestAdapter.");
+                $"{clientType.FullName} is not a Kiota client: it has no public constructor taking "
+                    + "one IRequestAdapter."
+            );
 
         var adapter = new HttpClientRequestAdapter(
             new AnonymousAuthenticationProvider(),
-            httpClient: context.CreateHttpClient(new RecordingHandler())) {
-
+            httpClient: context.CreateHttpClient(new RecordingHandler())
+        )
+        {
             // Kiota resolves every request against this, and a code-first document with no server
             // entry leaves the generated client with none. The transport ignores the host.
             BaseUrl = context.BaseAddress.ToString().TrimEnd('/'),
@@ -76,34 +80,45 @@ public sealed class KiotaClientRoute : ITestClientRoute, ITestClientReader {
     /// generated model for a status the document declares a body for and <see cref="ApiException"/>
     /// itself for one it does not, so the exact type is the answer to whether there is a body at all.
     /// </remarks>
-    public Task<ClientAnswer?> Read(object? result, Exception? thrown, Type? bodyType) {
-        if (thrown is ApiException refusal) {
+    public Task<ClientAnswer?> Read(object? result, Exception? thrown, Type? bodyType)
+    {
+        if (thrown is ApiException refusal)
+        {
             var untyped = refusal.GetType() == typeof(ApiException);
 
-            return Task.FromResult<ClientAnswer?>(new ClientAnswer(
-                refusal.ResponseStatusCode,
-                untyped ? null : refusal,
-                Flatten(refusal.ResponseHeaders),
-                untyped ? UntypedNote : null));
+            return Task.FromResult<ClientAnswer?>(
+                new ClientAnswer(
+                    refusal.ResponseStatusCode,
+                    untyped ? null : refusal,
+                    Flatten(refusal.ResponseHeaders),
+                    untyped ? UntypedNote : null
+                )
+            );
         }
 
-        if (thrown == null && RecordingHandler.TryCurrent(out var received)) {
-            return Task.FromResult<ClientAnswer?>(new ClientAnswer(received.Status, result, received.Headers));
+        if (thrown == null && RecordingHandler.TryCurrent(out var received))
+        {
+            return Task.FromResult<ClientAnswer?>(
+                new ClientAnswer(received.Status, result, received.Headers)
+            );
         }
 
         return Task.FromResult<ClientAnswer?>(null);
     }
 
     public string Unreadable =>
-        "A Kiota client built through [assembly: KiotaTesting] records what it receives, and no " +
-        "call through one has been answered in this test; a client built by an ITestClientFactory " +
-        "of the test project's own, or constructed by hand, is not recorded.";
+        "A Kiota client built through [assembly: KiotaTesting] records what it receives, and no "
+        + "call through one has been answered in this test; a client built by an ITestClientFactory "
+        + "of the test project's own, or constructed by hand, is not recorded.";
 
-    private static ConstructorInfo? AdapterConstructor(Type clientType) {
-        foreach (var constructor in clientType.GetConstructors()) {
+    private static ConstructorInfo? AdapterConstructor(Type clientType)
+    {
+        foreach (var constructor in clientType.GetConstructors())
+        {
             var parameters = constructor.GetParameters();
 
-            if (parameters.Length == 1 && parameters[0].ParameterType == typeof(IRequestAdapter)) {
+            if (parameters.Length == 1 && parameters[0].ParameterType == typeof(IRequestAdapter))
+            {
                 return constructor;
             }
         }
@@ -111,10 +126,14 @@ public sealed class KiotaClientRoute : ITestClientRoute, ITestClientReader {
         return null;
     }
 
-    private static IReadOnlyDictionary<string, string> Flatten(IDictionary<string, IEnumerable<string>> headers) {
+    private static IReadOnlyDictionary<string, string> Flatten(
+        IDictionary<string, IEnumerable<string>> headers
+    )
+    {
         var flattened = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var header in headers) {
+        foreach (var header in headers)
+        {
             flattened[header.Key] = string.Join(", ", header.Value);
         }
 

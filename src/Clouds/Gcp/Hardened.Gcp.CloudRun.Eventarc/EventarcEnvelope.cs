@@ -30,30 +30,40 @@ namespace Hardened.Gcp.CloudRun.Eventarc;
 /// claimed.
 /// </para>
 /// </remarks>
-public sealed class EventarcEnvelope : IFallbackTriggerEnvelope {
+public sealed class EventarcEnvelope : IFallbackTriggerEnvelope
+{
     public bool Recognises(IExecutionRequest request) =>
-        string.Equals(request.Method, "POST", StringComparison.OrdinalIgnoreCase) &&
-        (CloudEventReader.IsStructured(request.ContentType) || CloudEventReader.IsBinary(request.Headers));
+        string.Equals(request.Method, "POST", StringComparison.OrdinalIgnoreCase)
+        && (
+            CloudEventReader.IsStructured(request.ContentType)
+            || CloudEventReader.IsBinary(request.Headers)
+        );
 
-    public CloudRunTriggerRequest? Unwrap(IExecutionRequest request, TriggerPayload payload) {
+    public CloudRunTriggerRequest? Unwrap(IExecutionRequest request, TriggerPayload payload)
+    {
         CloudEvent cloudEvent;
 
-        try {
+        try
+        {
             cloudEvent = CloudEventReader.Read(request.ContentType, request.Headers, payload.Raw);
         }
-        catch (CloudEventFormatException exception) {
+        catch (CloudEventFormatException exception)
+        {
             // Raised rather than declined: the request said it was a CloudEvent and is not a
             // well-formed one, and a 500 names that where a 404 from the routing table would not.
             throw new InvalidOperationException(
-                "Eventarc delivered a request that claims to be a CloudEvent and is not one: " + exception.Message,
-                exception);
+                "Eventarc delivered a request that claims to be a CloudEvent and is not one: "
+                    + exception.Message,
+                exception
+            );
         }
 
         var headers = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase);
 
         CloudEventHeaders.Write(headers, cloudEvent);
 
-        if (!string.IsNullOrEmpty(cloudEvent.DataContentType)) {
+        if (!string.IsNullOrEmpty(cloudEvent.DataContentType))
+        {
             headers[KnownHeaders.ContentType] = cloudEvent.DataContentType;
         }
 
@@ -62,6 +72,7 @@ public sealed class EventarcEnvelope : IFallbackTriggerEnvelope {
             CloudEventRoutes.Event(cloudEvent),
             TriggerPayload.AsStream(cloudEvent.Data),
             headers,
-            request);
+            request
+        );
     }
 }

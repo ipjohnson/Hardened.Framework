@@ -1,7 +1,6 @@
-using Microsoft.Extensions.Primitives;
-
 using Hardened.Requests.Abstract.Responses;
 using Hardened.Web.Runtime.Responses;
+using Microsoft.Extensions.Primitives;
 
 namespace Hardened.IntegrationTests.OpenApi.ResponseModel.SUT.Tests;
 
@@ -21,10 +20,11 @@ namespace Hardened.IntegrationTests.OpenApi.ResponseModel.SUT.Tests;
 /// thrown, and <c>RequiresResponseSet</c> stays false - the broken branch never executed there.
 /// </para>
 /// </remarks>
-public class ScalarSuccessBodyTests {
-
+public class ScalarSuccessBodyTests
+{
     [HardenedTest]
-    public async Task AScalarSuccessCarriesItsBody(ITestWebApp testWebApp) {
+    public async Task AScalarSuccessCarriesItsBody(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/labels/7");
 
         response.Assert.Ok();
@@ -39,7 +39,8 @@ public class ScalarSuccessBodyTests {
     /// body resolves a serializer on an operation whose success is text.
     /// </summary>
     [HardenedTest]
-    public async Task AReturnedNotFoundCaseAnswersAsJson(ITestWebApp testWebApp) {
+    public async Task AReturnedNotFoundCaseAnswersAsJson(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/labels/missing");
 
         Assert.Equal(404, response.StatusCode);
@@ -60,9 +61,12 @@ public class ScalarSuccessBodyTests {
     /// the declared set did not take the success over.
     /// </summary>
     [HardenedTest]
-    public async Task AskingForTextStillAnswersText(ITestWebApp testWebApp) {
+    public async Task AskingForTextStillAnswersText(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get(
-            "/labels/7", request => request.Headers["Accept"] = new StringValues("text/plain"));
+            "/labels/7",
+            request => request.Headers["Accept"] = new StringValues("text/plain")
+        );
 
         response.Assert.Ok();
 
@@ -74,7 +78,8 @@ public class ScalarSuccessBodyTests {
     /// serializing into a 204.
     /// </summary>
     [HardenedTest]
-    public async Task ANoContentCaseStillSerializesNothing(ITestWebApp testWebApp) {
+    public async Task ANoContentCaseStillSerializesNothing(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Post("", "/labels/7/archive");
 
         Assert.Equal(204, response.StatusCode);
@@ -82,7 +87,8 @@ public class ScalarSuccessBodyTests {
     }
 
     [HardenedTest]
-    public async Task ANoContentOperationStillAnswersItsReturnedNotFound(ITestWebApp testWebApp) {
+    public async Task ANoContentOperationStillAnswersItsReturnedNotFound(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Post("", "/labels/missing/archive");
 
         Assert.Equal(404, response.StatusCode);
@@ -94,7 +100,8 @@ public class ScalarSuccessBodyTests {
         Assert.Equal(NotFound.Default.Detail, problem.Detail);
     }
 
-    private static async Task<string> Body(TestWebResponse response) {
+    private static async Task<string> Body(TestWebResponse response)
+    {
         response.Body.Position = 0;
 
         using var reader = new StreamReader(response.Body, leaveOpen: true);

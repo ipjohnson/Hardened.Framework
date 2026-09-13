@@ -20,8 +20,8 @@ namespace Hardened.Web.Runtime.Responses;
 /// matching on <c>type</c>, so it is a decision rather than an edit.
 /// </para>
 /// </remarks>
-public static class ProblemTypes {
-
+public static class ProblemTypes
+{
     /// <summary>The namespace every built-in problem type is qualified by.</summary>
     public const string Prefix = "urn:hardened:problem:";
 

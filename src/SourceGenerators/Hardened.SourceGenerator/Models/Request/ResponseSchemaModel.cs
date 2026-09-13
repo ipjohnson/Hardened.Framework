@@ -21,9 +21,10 @@ namespace Hardened.SourceGenerator.Models.Request;
 /// generated client from waiting for one.
 /// </para>
 /// </remarks>
-public sealed class ResponseSchemaModel : System.IEquatable<ResponseSchemaModel> {
-
-    public ResponseSchemaModel(int status, string description, HandlerSchema? schema) {
+public sealed class ResponseSchemaModel : System.IEquatable<ResponseSchemaModel>
+{
+    public ResponseSchemaModel(int status, string description, HandlerSchema? schema)
+    {
         Status = status;
         Description = description;
         Schema = schema;
@@ -58,16 +59,18 @@ public sealed class ResponseSchemaModel : System.IEquatable<ResponseSchemaModel>
     /// ones as the same.
     /// </summary>
     public bool Equals(ResponseSchemaModel? other) =>
-        other is not null &&
-        Status == other.Status &&
-        Description == other.Description &&
-        Equals(Schema, other.Schema) &&
-        Headers.SequenceEqual(other.Headers);
+        other is not null
+        && Status == other.Status
+        && Description == other.Description
+        && Equals(Schema, other.Schema)
+        && Headers.SequenceEqual(other.Headers);
 
     public override bool Equals(object? obj) => Equals(obj as ResponseSchemaModel);
 
-    public override int GetHashCode() {
-        unchecked {
+    public override int GetHashCode()
+    {
+        unchecked
+        {
             var hash = Status;
 
             hash = (hash * 397) ^ Description.GetHashCode();

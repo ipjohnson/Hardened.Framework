@@ -23,8 +23,8 @@ namespace Hardened.Requests.Abstract.Caching;
 /// checked by the compiler instead.
 /// </para>
 /// </summary>
-public interface ICacheKeyProvider {
-
+public interface ICacheKeyProvider
+{
     /// <summary>
     /// Builds the provider from the attribute's positional arguments.
     /// </summary>

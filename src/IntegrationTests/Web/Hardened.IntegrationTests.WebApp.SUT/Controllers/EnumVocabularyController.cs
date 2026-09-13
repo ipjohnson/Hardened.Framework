@@ -6,19 +6,32 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Controllers;
 /// <summary>
 /// An enum with no attribute of its own, which is the case the default has to be right for.
 /// </summary>
-public enum Priority { Low, InProgress, OnHold }
+public enum Priority
+{
+    Low,
+    InProgress,
+    OnHold,
+}
 
 /// <summary>
 /// The opt-out, for an enum whose member names are already its wire values.
 /// </summary>
 [JsonEnumNaming(EnumNaming.MemberName)]
-public enum LegacyCode { AB12, CD34 }
+public enum LegacyCode
+{
+    AB12,
+    CD34,
+}
 
 /// <summary>
 /// A vocabulary chosen for the API rather than for C#.
 /// </summary>
 [JsonEnumNaming(EnumNaming.KebabCaseLower)]
-public enum Shipping { NextDay, TwoDay }
+public enum Shipping
+{
+    NextDay,
+    TwoDay,
+}
 
 public record Ticket(string Title, Priority Priority);
 
@@ -35,8 +48,8 @@ public record Order(LegacyCode Code, Shipping Shipping);
 /// <c>Hardened.IntegrationTests.WebApp.SUT.Tests.EnumVocabularyTests</c>.
 /// </remarks>
 [BasePath("/enum-vocabulary")]
-public class EnumVocabularyController {
-
+public class EnumVocabularyController
+{
     [Get("/ticket")]
     public Ticket DefaultNaming() => new("Ship it", Priority.InProgress);
 

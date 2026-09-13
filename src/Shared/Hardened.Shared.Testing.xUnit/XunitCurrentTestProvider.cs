@@ -17,8 +17,8 @@ namespace Hardened.Shared.Testing;
 /// outside a <c>[HardenedTest]</c> calls <see cref="Install"/> itself. Installing is idempotent
 /// and never replaces a provider another package put there.
 /// </remarks>
-public sealed class XunitCurrentTestProvider : ICurrentTestProvider {
-
+public sealed class XunitCurrentTestProvider : ICurrentTestProvider
+{
     /// <summary>
     /// The running test, which xUnit holds for exactly as long as the test lives. Null while the
     /// container is being built: the DependencyModules runner does that in xUnit's test-method
@@ -27,7 +27,9 @@ public sealed class XunitCurrentTestProvider : ICurrentTestProvider {
     public object? Key => TestContext.Current.Test;
 
     public Assembly? Assembly =>
-        TestContext.Current.TestClass is IXunitTestClass { Class: var testClass } ? testClass.Assembly : null;
+        TestContext.Current.TestClass is IXunitTestClass { Class: var testClass }
+            ? testClass.Assembly
+            : null;
 
     public string? DisplayName => TestContext.Current.Test?.TestDisplayName;
 

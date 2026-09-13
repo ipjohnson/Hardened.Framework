@@ -21,7 +21,8 @@ namespace Hardened.Requests.Runtime.Headers;
 /// out when the body first writes — anything deferred past that is already too late.
 /// </para>
 /// </remarks>
-public class HeaderCookieSetCollection : ICookieSetCollection {
+public class HeaderCookieSetCollection : ICookieSetCollection
+{
     private static readonly IReadOnlyDictionary<string, Tuple<string, CookieSetOptions>> None =
         new Dictionary<string, Tuple<string, CookieSetOptions>>();
 
@@ -33,14 +34,18 @@ public class HeaderCookieSetCollection : ICookieSetCollection {
     /// </summary>
     private Dictionary<string, Tuple<string, CookieSetOptions>>? _cookies;
 
-    public HeaderCookieSetCollection(IDictionary<string, StringValues> headers) {
+    public HeaderCookieSetCollection(IDictionary<string, StringValues> headers)
+    {
         _headers = headers;
     }
 
-    public void Append(string cookieName, string cookieValue, CookieSetOptions? options = null) {
+    public void Append(string cookieName, string cookieValue, CookieSetOptions? options = null)
+    {
         _cookies ??= new Dictionary<string, Tuple<string, CookieSetOptions>>();
-        _cookies[cookieName] =
-            new Tuple<string, CookieSetOptions>(cookieValue, options ?? CookieSetOptions.Empty);
+        _cookies[cookieName] = new Tuple<string, CookieSetOptions>(
+            cookieValue,
+            options ?? CookieSetOptions.Empty
+        );
 
         WriteHeader();
     }
@@ -53,11 +58,13 @@ public class HeaderCookieSetCollection : ICookieSetCollection {
     /// Gateway collection both document. Appending would emit the replaced value as well, leaving
     /// the client to pick, and which one it picks is not something to leave to a client.
     /// </remarks>
-    private void WriteHeader() {
+    private void WriteHeader()
+    {
         var values = new string[_cookies!.Count];
         var index = 0;
 
-        foreach (var cookie in _cookies) {
+        foreach (var cookie in _cookies)
+        {
             var builder = new StringBuilder();
 
             builder.Append(cookie.Key);

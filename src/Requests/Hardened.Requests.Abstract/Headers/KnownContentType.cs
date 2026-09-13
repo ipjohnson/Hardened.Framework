@@ -2,7 +2,8 @@
 
 namespace Hardened.Requests.Abstract.Headers;
 
-public class KnownContentType {
+public class KnownContentType
+{
     public const string Json = "application/json";
     public static StringValues JsonStringValues = new StringValues(Json);
 

@@ -27,16 +27,23 @@ namespace Hardened.Gcp.CloudRun.Runtime.Tests.Conformance;
 /// same door a filter uses.
 /// </para>
 /// </remarks>
-public class FirestoreChangeConformanceTests : PayloadExecutionRequestConformanceTests {
-    protected override IExecutionRequestConformanceAdapter Adapter { get; } = new FirestoreAdapter();
+public class FirestoreChangeConformanceTests : PayloadExecutionRequestConformanceTests
+{
+    protected override IExecutionRequestConformanceAdapter Adapter { get; } =
+        new FirestoreAdapter();
 
-    private sealed class FirestoreAdapter : IExecutionRequestConformanceAdapter {
+    private sealed class FirestoreAdapter : IExecutionRequestConformanceAdapter
+    {
         private readonly FirestoreEnvelope _envelope = new();
 
         public string TransportName => "Cloud Run Firestore change";
 
-        public IExecutionRequest CreateRequest(ConformanceRequestSpec spec) {
-            var document = new Document { Name = "projects/p/databases/(default)/documents/conformance/c-1" };
+        public IExecutionRequest CreateRequest(ConformanceRequestSpec spec)
+        {
+            var document = new Document
+            {
+                Name = "projects/p/databases/(default)/documents/conformance/c-1",
+            };
 
             // A JSON object is marshalled into the document's fields, so the adapter's value
             // conversion is what produces the body the suite reads back. Anything else - the
@@ -44,40 +51,55 @@ public class FirestoreChangeConformanceTests : PayloadExecutionRequestConformanc
             // unwrap so the body assertions hold to the request contract rather than the envelope.
             byte[]? raw = null;
 
-            if (spec.Body != null) {
-                try {
+            if (spec.Body != null)
+            {
+                try
+                {
                     using var json = JsonDocument.Parse(spec.Body);
 
-                    if (json.RootElement.ValueKind == JsonValueKind.Object) {
+                    if (json.RootElement.ValueKind == JsonValueKind.Object)
+                    {
                         FirestoreValueWire.WriteFields(document.Fields, json.RootElement);
                     }
-                    else {
+                    else
+                    {
                         raw = spec.Body;
                     }
                 }
-                catch (JsonException) {
+                catch (JsonException)
+                {
                     raw = spec.Body;
                 }
             }
 
-            var data = new DocumentEventData { Value = document, OldValue = document }.ToByteArray();
+            var data = new DocumentEventData
+            {
+                Value = document,
+                OldValue = document,
+            }.ToByteArray();
 
             var delivery = Deliveries.CloudEvent(
                 FirestoreEnvelope.DocumentTypePrefix + "updated",
                 "//firestore.googleapis.com/projects/p/databases/(default)",
                 "documents/conformance/c-1",
-                "application/protobuf");
+                "application/protobuf"
+            );
 
-            var trigger = Deliveries.Unwrap(_envelope, delivery, data)
-                          ?? throw new InvalidOperationException("The envelope declined the event built for it.");
+            var trigger =
+                Deliveries.Unwrap(_envelope, delivery, data)
+                ?? throw new InvalidOperationException(
+                    "The envelope declined the event built for it."
+                );
 
-            if (raw != null) {
+            if (raw != null)
+            {
                 trigger.Body = new MemoryStream(raw, writable: false);
             }
 
             var headers = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase);
 
-            foreach (var header in spec.Headers) {
+            foreach (var header in spec.Headers)
+            {
                 headers[header.Key] = header.Value;
             }
 

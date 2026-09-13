@@ -1,33 +1,45 @@
-﻿using Hardened.SourceGenerator.Shared;
-using CSharpAuthor;
+﻿using CSharpAuthor;
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Requests;
+using Hardened.SourceGenerator.Shared;
 using Hardened.SourceGenerator.Web.Routing;
 using Microsoft.CodeAnalysis;
 
 namespace Hardened.SourceGenerator.Web;
 
-public class WebExecutionHandlerCodeGenerator {
-    public void GenerateSource(SourceProductionContext sourceProductionContext,
-        RequestHandlerModel requestHandlerModel) {
+public class WebExecutionHandlerCodeGenerator
+{
+    public void GenerateSource(
+        SourceProductionContext sourceProductionContext,
+        RequestHandlerModel requestHandlerModel
+    )
+    {
         GenerateSource(sourceProductionContext, requestHandlerModel, false);
     }
 
-    public void GenerateSource(SourceProductionContext sourceProductionContext,
+    public void GenerateSource(
+        SourceProductionContext sourceProductionContext,
         RequestHandlerModel requestHandlerModel,
-        IReadOnlyList<RouteConstraintModel> constraints) {
+        IReadOnlyList<RouteConstraintModel> constraints
+    )
+    {
         GenerateSource(sourceProductionContext, requestHandlerModel, false, constraints);
     }
 
-    public void GenerateSource(SourceProductionContext sourceProductionContext,
-        RequestHandlerModel requestHandlerModel, bool excludeFromCoverage,
-        IReadOnlyList<RouteConstraintModel>? constraints = null) {
+    public void GenerateSource(
+        SourceProductionContext sourceProductionContext,
+        RequestHandlerModel requestHandlerModel,
+        bool excludeFromCoverage,
+        IReadOnlyList<RouteConstraintModel>? constraints = null
+    )
+    {
         sourceProductionContext.CancellationToken.ThrowIfCancellationRequested();
 
         // A parameter whose type does not resolve cannot be bound, so this handler is skipped and
         // the reason reported. Reported here rather than in the routing table because this stage
         // runs once per handler; the routing table sees them all and would report each repeatedly.
-        if (requestHandlerModel.ReportIfUnresolved(sourceProductionContext)) {
+        if (requestHandlerModel.ReportIfUnresolved(sourceProductionContext))
+        {
             return;
         }
 
@@ -41,7 +53,8 @@ public class WebExecutionHandlerCodeGenerator {
         ThrownResponseSelector.Report(
             sourceProductionContext,
             requestHandlerModel.ControllerType.Name + "." + requestHandlerModel.HandlerMethod,
-            requestHandlerModel.ResponseInformation.ThrowsDiagnostic);
+            requestHandlerModel.ResponseInformation.ThrowsDiagnostic
+        );
 
         // Same treatment as an unsupported token: an error, and emit anyway. The handler compiles
         // and routes correctly - one of its two readings of the body just comes back empty - so
@@ -73,24 +86,41 @@ public class WebExecutionHandlerCodeGenerator {
         // wrong and how to fix it. Skipping is safe here for the reason it is safe for an
         // unresolved parameter and unsafe for the rest - the routing table skips the same
         // handlers, and HRDR009 fails the build regardless.
-        if (requestHandlerModel.CannotBeEmitted()) {
+        if (requestHandlerModel.CannotBeEmitted())
+        {
             return;
         }
 
-        var sourceFile = GenerateFile(requestHandlerModel, sourceProductionContext.CancellationToken, excludeFromCoverage);
+        var sourceFile = GenerateFile(
+            requestHandlerModel,
+            sourceProductionContext.CancellationToken,
+            excludeFromCoverage
+        );
 
-        sourceProductionContext.AddSource(requestHandlerModel.InvokeHandlerType.Name, GeneratedSource.Header(sourceFile));
+        sourceProductionContext.AddSource(
+            requestHandlerModel.InvokeHandlerType.Name,
+            GeneratedSource.Header(sourceFile)
+        );
     }
 
-    public string GenerateFile(RequestHandlerModel requestHandlerModel, CancellationToken cancellationToken, bool excludeFromCoverage = false) {
+    public string GenerateFile(
+        RequestHandlerModel requestHandlerModel,
+        CancellationToken cancellationToken,
+        bool excludeFromCoverage = false
+    )
+    {
         var csharpFile = new CSharpFileDefinition(requestHandlerModel.InvokeHandlerType.Namespace);
 
-        InvokeClassGenerator.GenerateInvokeClass(requestHandlerModel, csharpFile, cancellationToken, excludeFromCoverage);
+        InvokeClassGenerator.GenerateInvokeClass(
+            requestHandlerModel,
+            csharpFile,
+            cancellationToken,
+            excludeFromCoverage
+        );
 
         var outputContext = new OutputContext(
-            new OutputContextOptions {
-                TypeOutputMode = TypeOutputMode.Global
-            });
+            new OutputContextOptions { TypeOutputMode = TypeOutputMode.Global }
+        );
 
         csharpFile.WriteOutput(outputContext);
 

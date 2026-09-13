@@ -23,45 +23,47 @@ namespace Hardened.OpenApi.BuildTask.Tests;
 /// and the shape with nowhere else to put the rule.
 /// </para>
 /// </remarks>
-public class ArrayItemConstraintTests {
+public class ArrayItemConstraintTests
+{
+    private static string Document(string itemSchema) =>
+        $$"""
+            openapi: 3.0.0
+            info: { title: Depot, version: '1.0' }
+            paths:
+              /orders:
+                post:
+                  operationId: placeOrder
+                  requestBody:
+                    content:
+                      application/json:
+                        schema:
+                          $ref: '#/components/schemas/Order'
+                  responses:
+                    '200':
+                      description: ok
+                      content:
+                        application/json:
+                          schema:
+                            type: string
+            components:
+              schemas:
+                Order:
+                  type: object
+                  properties:
+                    skus:
+                      type: array
+                      items:
+                        {{itemSchema}}
+                Part:
+                  type: object
+                  properties:
+                    sku:
+                      type: string
+                      minLength: 3
+            """;
 
-    private static string Document(string itemSchema) => $$"""
-        openapi: 3.0.0
-        info: { title: Depot, version: '1.0' }
-        paths:
-          /orders:
-            post:
-              operationId: placeOrder
-              requestBody:
-                content:
-                  application/json:
-                    schema:
-                      $ref: '#/components/schemas/Order'
-              responses:
-                '200':
-                  description: ok
-                  content:
-                    application/json:
-                      schema:
-                        type: string
-        components:
-          schemas:
-            Order:
-              type: object
-              properties:
-                skus:
-                  type: array
-                  items:
-                    {{itemSchema}}
-            Part:
-              type: object
-              properties:
-                sku:
-                  type: string
-                  minLength: 3
-        """;
-
-    private static ServiceSpecModel Parse(string yaml) {
+    private static ServiceSpecModel Parse(string yaml)
+    {
         var model = OpenApiSpecParser.Parse(yaml, "depot", CancellationToken.None);
 
         Assert.NotNull(model);
@@ -79,7 +81,8 @@ public class ArrayItemConstraintTests {
     [InlineData("{ type: integer, minimum: 1 }", "minimum")]
     [InlineData("{ type: integer, maximum: 99 }", "maximum")]
     [InlineData("{ type: integer, multipleOf: 5 }", "multipleOf")]
-    public void AConstraintOnAnInlineItemIsRecordedAsUnmapped(string itemSchema, string keyword) {
+    public void AConstraintOnAnInlineItemIsRecordedAsUnmapped(string itemSchema, string keyword)
+    {
         Assert.Contains(Unmapped(itemSchema), u => u.Keyword == keyword);
     }
 
@@ -94,7 +97,8 @@ public class ArrayItemConstraintTests {
     /// <c>SpecDiagnostics</c> collapses into "at X and 1 other place" when it reports.
     /// </remarks>
     [Fact]
-    public void TheLocationNamesTheElementNotTheArray() {
+    public void TheLocationNamesTheElementNotTheArray()
+    {
         var located = Unmapped("{ type: string, minLength: 3 }")
             .Where(u => u.Keyword == "minLength")
             .ToArray();
@@ -108,8 +112,11 @@ public class ArrayItemConstraintTests {
     /// three rules has lost three.
     /// </summary>
     [Fact]
-    public void EveryDroppedKeywordOnOneElementIsReported() {
-        var keywords = Unmapped("{ type: string, minLength: 3, maxLength: 32, pattern: '^[A-Z]+$' }")
+    public void EveryDroppedKeywordOnOneElementIsReported()
+    {
+        var keywords = Unmapped(
+                "{ type: string, minLength: 3, maxLength: 32, pattern: '^[A-Z]+$' }"
+            )
             .Select(u => u.Keyword)
             .ToArray();
 
@@ -123,7 +130,8 @@ public class ArrayItemConstraintTests {
     /// nothing is lost and reporting it would be a false positive on the arrangement that works.
     /// </summary>
     [Fact]
-    public void AReferencedItemSchemaIsNotReported() {
+    public void AReferencedItemSchemaIsNotReported()
+    {
         Assert.Empty(Unmapped("$ref: '#/components/schemas/Part'"));
     }
 
@@ -132,7 +140,8 @@ public class ArrayItemConstraintTests {
     /// on every string list in existence.
     /// </summary>
     [Fact]
-    public void AnUnconstrainedItemIsNotReported() {
+    public void AnUnconstrainedItemIsNotReported()
+    {
         Assert.Empty(Unmapped("{ type: string }"));
     }
 
@@ -141,9 +150,10 @@ public class ArrayItemConstraintTests {
     /// does not stop anything being honoured.
     /// </summary>
     [Fact]
-    public void ConstraintsOnAnOrdinaryPropertyAreStillCompiled() {
-        var part = Parse(Document("{ type: string }")).Schemas
-            .Single(schema => schema.Name == "Part");
+    public void ConstraintsOnAnOrdinaryPropertyAreStillCompiled()
+    {
+        var part = Parse(Document("{ type: string }"))
+            .Schemas.Single(schema => schema.Name == "Part");
 
         var sku = part.Properties.Single(property => property.Name == "sku");
 

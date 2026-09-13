@@ -26,8 +26,8 @@ namespace Hardened.Requests.Abstract.Headers;
 /// last, which on a re-deploy behind a CDN need not be this process.
 /// </para>
 /// </remarks>
-public static class EntityTagHeader {
-
+public static class EntityTagHeader
+{
     private const string WeakPrefix = "W/";
 
     /// <summary>
@@ -81,27 +81,34 @@ public static class EntityTagHeader {
     /// The tag as it would be sent, quotes included. A weak marker on it is ignored, as it is on
     /// every candidate.
     /// </param>
-    public static bool Matches(StringValues ifNoneMatch, string etag) {
-        if (ifNoneMatch.Count == 0 || string.IsNullOrEmpty(etag)) {
+    public static bool Matches(StringValues ifNoneMatch, string etag)
+    {
+        if (ifNoneMatch.Count == 0 || string.IsNullOrEmpty(etag))
+        {
             return false;
         }
 
         var expected = Opaque(etag);
 
-        foreach (var value in ifNoneMatch) {
-            if (string.IsNullOrEmpty(value)) {
+        foreach (var value in ifNoneMatch)
+        {
+            if (string.IsNullOrEmpty(value))
+            {
                 continue;
             }
 
             var index = 0;
 
-            while (TryReadTag(value, ref index, out var candidate, out var wildcard)) {
+            while (TryReadTag(value, ref index, out var candidate, out var wildcard))
+            {
                 // "*" matches any current representation, which is what having one here means.
-                if (wildcard) {
+                if (wildcard)
+                {
                     return true;
                 }
 
-                if (string.Equals(candidate, expected, StringComparison.Ordinal)) {
+                if (string.Equals(candidate, expected, StringComparison.Ordinal))
+                {
                     return true;
                 }
             }
@@ -119,14 +126,17 @@ public static class EntityTagHeader {
     /// and refusing to match it would turn every conditional request from a client holding one into
     /// a full body forever.
     /// </remarks>
-    private static string Opaque(string tag) {
+    private static string Opaque(string tag)
+    {
         var span = tag.AsSpan().Trim();
 
-        if (span.StartsWith(WeakPrefix.AsSpan(), StringComparison.Ordinal)) {
+        if (span.StartsWith(WeakPrefix.AsSpan(), StringComparison.Ordinal))
+        {
             span = span.Slice(WeakPrefix.Length);
         }
 
-        if (span.Length >= 2 && span[0] == '"' && span[span.Length - 1] == '"') {
+        if (span.Length >= 2 && span[0] == '"' && span[span.Length - 1] == '"')
+        {
             span = span.Slice(1, span.Length - 2);
         }
 
@@ -138,30 +148,40 @@ public static class EntityTagHeader {
     /// </summary>
     /// <returns>False once the list is exhausted, or once it stops parsing.</returns>
     private static bool TryReadTag(
-        string value, ref int index, out string candidate, out bool wildcard) {
+        string value,
+        ref int index,
+        out string candidate,
+        out bool wildcard
+    )
+    {
         candidate = string.Empty;
         wildcard = false;
 
-        while (index < value.Length && (value[index] == ',' || char.IsWhiteSpace(value[index]))) {
+        while (index < value.Length && (value[index] == ',' || char.IsWhiteSpace(value[index])))
+        {
             index++;
         }
 
-        if (index >= value.Length) {
+        if (index >= value.Length)
+        {
             return false;
         }
 
-        if (value[index] == '*') {
+        if (value[index] == '*')
+        {
             index++;
             wildcard = true;
 
             return true;
         }
 
-        if (string.CompareOrdinal(value, index, WeakPrefix, 0, WeakPrefix.Length) == 0) {
+        if (string.CompareOrdinal(value, index, WeakPrefix, 0, WeakPrefix.Length) == 0)
+        {
             index += WeakPrefix.Length;
         }
 
-        if (index >= value.Length || value[index] != '"') {
+        if (index >= value.Length || value[index] != '"')
+        {
             // Not an entity-tag. Stop rather than resynchronise: the rest of a header this
             // malformed says nothing reliable about what the client holds.
             index = value.Length;
@@ -171,11 +191,13 @@ public static class EntityTagHeader {
 
         var start = ++index;
 
-        while (index < value.Length && value[index] != '"') {
+        while (index < value.Length && value[index] != '"')
+        {
             index++;
         }
 
-        if (index >= value.Length) {
+        if (index >= value.Length)
+        {
             // Unterminated. Same reasoning.
             return false;
         }

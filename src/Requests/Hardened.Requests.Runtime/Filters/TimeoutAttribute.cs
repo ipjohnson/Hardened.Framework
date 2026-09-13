@@ -44,11 +44,16 @@ namespace Hardened.Requests.Runtime.Filters;
 /// </summary>
 [AttributeUsage(
     AttributeTargets.Class | AttributeTargets.Method | AttributeTargets.Assembly,
-    AllowMultiple = false)]
-[AnswersStatus(TimeoutPolicy.DefaultStatus, typeof(ErrorModel), StatusFrom = nameof(Status),
-    Description = "The operation did not finish inside its budget.")]
-public sealed class TimeoutAttribute : Attribute, IDeclaresTimeout {
-
+    AllowMultiple = false
+)]
+[AnswersStatus(
+    TimeoutPolicy.DefaultStatus,
+    typeof(ErrorModel),
+    StatusFrom = nameof(Status),
+    Description = "The operation did not finish inside its budget."
+)]
+public sealed class TimeoutAttribute : Attribute, IDeclaresTimeout
+{
     /// <summary>How long the operation may take before its token is cancelled.</summary>
     public int Milliseconds { get; set; } = TimeoutPolicy.DefaultMilliseconds;
 

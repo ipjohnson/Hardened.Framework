@@ -22,26 +22,32 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests;
 /// generator is pointed at. <c>ExportedDocumentTests</c> holds the two to each other.
 /// </para>
 /// </remarks>
-public class DeclaredHeaderDocumentTests {
-
-    private static async Task<JsonElement> Operation(
-        ITestWebApp app, string path, string method) {
+public class DeclaredHeaderDocumentTests
+{
+    private static async Task<JsonElement> Operation(ITestWebApp app, string path, string method)
+    {
         var response = await app.Get("/openapi.json");
 
         response.Assert.Ok();
 
         using var document = JsonDocument.Parse(await response.ReadTextAsync());
 
-        return document.RootElement
-            .GetProperty("paths").GetProperty(path).GetProperty(method).Clone();
+        return document
+            .RootElement.GetProperty("paths")
+            .GetProperty(path)
+            .GetProperty(method)
+            .Clone();
     }
 
-    private static IEnumerable<string> ParameterNames(JsonElement operation) {
-        if (!operation.TryGetProperty("parameters", out var parameters)) {
+    private static IEnumerable<string> ParameterNames(JsonElement operation)
+    {
+        if (!operation.TryGetProperty("parameters", out var parameters))
+        {
             yield break;
         }
 
-        foreach (var parameter in parameters.EnumerateArray()) {
+        foreach (var parameter in parameters.EnumerateArray())
+        {
             yield return parameter.GetProperty("name").GetString()!;
         }
     }
@@ -55,29 +61,40 @@ public class DeclaredHeaderDocumentTests {
     /// throws-mode arm found no way to say it.
     /// </remarks>
     [HardenedTest]
-    public async Task AHandlerDeclaresTheHeaderItWrites(ITestWebApp app) {
+    public async Task AHandlerDeclaresTheHeaderItWrites(ITestWebApp app)
+    {
         var created = (await Operation(app, "/declared-header/notes", "post"))
-            .GetProperty("responses").GetProperty("201");
+            .GetProperty("responses")
+            .GetProperty("201");
 
         Assert.Equal(
             "Where the note was created.",
-            created.GetProperty("headers").GetProperty("Location")
-                .GetProperty("description").GetString());
+            created
+                .GetProperty("headers")
+                .GetProperty("Location")
+                .GetProperty("description")
+                .GetString()
+        );
 
         Assert.Equal(
             "string",
-            created.GetProperty("headers").GetProperty("Location")
-                .GetProperty("schema").GetProperty("type").GetString());
+            created
+                .GetProperty("headers")
+                .GetProperty("Location")
+                .GetProperty("schema")
+                .GetProperty("type")
+                .GetString()
+        );
     }
 
     /// <summary>And the value reaches the wire, so the document is describing something real.</summary>
     [HardenedTest]
-    public async Task TheDeclaredHeaderIsTheOneTheHandlerSends(ITestWebApp app) {
+    public async Task TheDeclaredHeaderIsTheOneTheHandlerSends(ITestWebApp app)
+    {
         var response = await app.Post(new { }, "/declared-header/notes");
 
         Assert.Equal(201, response.StatusCode);
-        Assert.Equal(
-            DeclaredHeaderController.CreatedAt, response.Headers["Location"].ToString());
+        Assert.Equal(DeclaredHeaderController.CreatedAt, response.Headers["Location"].ToString());
     }
 
     /// <summary>
@@ -85,16 +102,24 @@ public class DeclaredHeaderDocumentTests {
     /// conditional headers it reads.
     /// </summary>
     [HardenedTest]
-    public async Task AConditionalGetPublishesWhatItAnswersAndReads(ITestWebApp app) {
+    public async Task AConditionalGetPublishesWhatItAnswersAndReads(ITestWebApp app)
+    {
         var read = await Operation(app, "/declared-header/notes", "get");
         var responses = read.GetProperty("responses");
 
-        Assert.Contains("current", responses.GetProperty("304").GetProperty("description").GetString());
+        Assert.Contains(
+            "current",
+            responses.GetProperty("304").GetProperty("description").GetString()
+        );
 
         // The tag on both, because a client needs it from the 200 to send back and gets it again
         // on the 304.
-        Assert.True(responses.GetProperty("200").GetProperty("headers").TryGetProperty("ETag", out _));
-        Assert.True(responses.GetProperty("304").GetProperty("headers").TryGetProperty("ETag", out _));
+        Assert.True(
+            responses.GetProperty("200").GetProperty("headers").TryGetProperty("ETag", out _)
+        );
+        Assert.True(
+            responses.GetProperty("304").GetProperty("headers").TryGetProperty("ETag", out _)
+        );
 
         // And no body on the 304, which is what stops a generated client waiting for one.
         Assert.False(responses.GetProperty("304").TryGetProperty("content", out _));
@@ -112,7 +137,8 @@ public class DeclaredHeaderDocumentTests {
     /// nothing reads - which is the same defect as publishing nothing, with the sign flipped.
     /// </remarks>
     [HardenedTest]
-    public async Task AWriteUnderTheSameClassPublishesNoConditionalRequest(ITestWebApp app) {
+    public async Task AWriteUnderTheSameClassPublishesNoConditionalRequest(ITestWebApp app)
+    {
         var write = await Operation(app, "/declared-header/notes", "post");
 
         Assert.False(write.GetProperty("responses").TryGetProperty("304", out _));
@@ -130,7 +156,8 @@ public class DeclaredHeaderDocumentTests {
     /// this is the other half agreeing with it.
     /// </remarks>
     [HardenedTest]
-    public async Task ResponsesAreInStatusOrder(ITestWebApp app) {
+    public async Task ResponsesAreInStatusOrder(ITestWebApp app)
+    {
         var response = await app.Get("/openapi.json");
 
         response.Assert.Ok();
@@ -138,15 +165,22 @@ public class DeclaredHeaderDocumentTests {
         using var document = JsonDocument.Parse(await response.ReadTextAsync());
         var checkedAny = false;
 
-        foreach (var path in document.RootElement.GetProperty("paths").EnumerateObject()) {
-            foreach (var operation in path.Value.EnumerateObject()) {
-                if (operation.Value.ValueKind != JsonValueKind.Object ||
-                    !operation.Value.TryGetProperty("responses", out var responses)) {
+        foreach (var path in document.RootElement.GetProperty("paths").EnumerateObject())
+        {
+            foreach (var operation in path.Value.EnumerateObject())
+            {
+                if (
+                    operation.Value.ValueKind != JsonValueKind.Object
+                    || !operation.Value.TryGetProperty("responses", out var responses)
+                )
+                {
                     continue;
                 }
 
-                var statuses = responses.EnumerateObject()
-                    .Select(status => int.Parse(status.Name)).ToList();
+                var statuses = responses
+                    .EnumerateObject()
+                    .Select(status => int.Parse(status.Name))
+                    .ToList();
 
                 Assert.Equal(statuses.OrderBy(status => status).ToList(), statuses);
 

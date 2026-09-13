@@ -21,7 +21,8 @@ namespace Hardened.SourceGenerator.Web;
 /// declaration says what the author wanted, and two of them say two things.
 /// </para>
 /// </remarks>
-public static class CompressDiagnostics {
+public static class CompressDiagnostics
+{
     public const string DiagnosticId = "HRDW003";
 
     private const string AttributeNamespace = "Hardened.Web.Runtime.Compression";
@@ -33,16 +34,17 @@ public static class CompressDiagnostics {
     /// <c>AmbiguousRouteDiagnostics.Descriptor</c> is: RS2008 looks for the field, and these
     /// projects set <c>EnforceExtendedAnalyzerRules</c>.
     /// </summary>
-    private static DiagnosticDescriptor Descriptor() => new(
-        id: DiagnosticId,
-        title: "Handler declares [Compress] more than once",
-        messageFormat:
-        "'{0}' carries {1} [Compress] declarations - on the method and on its class, or both " +
-        "[Compress] and [Compress<T>]. One declaration decides how an operation is compressed, " +
-        "so remove the others.",
-        category: "Hardened.Web",
-        defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+    private static DiagnosticDescriptor Descriptor() =>
+        new(
+            id: DiagnosticId,
+            title: "Handler declares [Compress] more than once",
+            messageFormat: "'{0}' carries {1} [Compress] declarations - on the method and on its class, or both "
+                + "[Compress] and [Compress<T>]. One declaration decides how an operation is compressed, "
+                + "so remove the others.",
+            category: "Hardened.Web",
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true
+        );
 
     /// <summary>
     /// How many compress declarations reach this handler, from its method and its class together.
@@ -51,11 +53,14 @@ public static class CompressDiagnostics {
     /// Separate from <see cref="Report"/> because a <c>SourceProductionContext</c> only exists
     /// inside a running generator, and the count is worth testing on its own.
     /// </remarks>
-    public static int Declarations(RequestHandlerModel model) {
+    public static int Declarations(RequestHandlerModel model)
+    {
         var count = 0;
 
-        foreach (var filter in model.Filters) {
-            if (IsCompress(filter.TypeDefinition)) {
+        foreach (var filter in model.Filters)
+        {
+            if (IsCompress(filter.TypeDefinition))
+            {
                 count++;
             }
         }
@@ -63,10 +68,12 @@ public static class CompressDiagnostics {
         return count;
     }
 
-    public static void Report(SourceProductionContext context, RequestHandlerModel model) {
+    public static void Report(SourceProductionContext context, RequestHandlerModel model)
+    {
         var declarations = Declarations(model);
 
-        if (declarations < 2) {
+        if (declarations < 2)
+        {
             return;
         }
 
@@ -75,7 +82,9 @@ public static class CompressDiagnostics {
                 Descriptor(),
                 Location.None,
                 model.ControllerType.Name + "." + model.HandlerMethod,
-                declarations));
+                declarations
+            )
+        );
     }
 
     /// <summary>

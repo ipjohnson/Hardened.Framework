@@ -24,9 +24,10 @@ namespace Hardened.IntegrationTests.OpenApi.SUT.Tests;
 /// OpenAPI and no use to anyone reading it.
 /// </para>
 /// </remarks>
-public class GeneratedDocumentTests {
-
-    private static async Task<JsonElement> Document(ITestWebApp app) {
+public class GeneratedDocumentTests
+{
+    private static async Task<JsonElement> Document(ITestWebApp app)
+    {
         var response = await app.Get("/openapi.json");
 
         response.Assert.Ok();
@@ -41,52 +42,73 @@ public class GeneratedDocumentTests {
         document.GetProperty("paths").GetProperty("/pets").GetProperty("post");
 
     [HardenedTest]
-    public async Task TheOperationCarriesTheSummaryAndDescriptionSeparately(ITestWebApp app) {
+    public async Task TheOperationCarriesTheSummaryAndDescriptionSeparately(ITestWebApp app)
+    {
         var post = CreatePet(await Document(app));
 
         // Two fields, because a document has two and they render differently. They used to be
         // collapsed at parse time with the summary winning, which put a title in the description
         // and discarded the prose.
         Assert.Equal("Add a pet to the store", post.GetProperty("summary").GetString());
-        Assert.Contains("The prose a description carries", post.GetProperty("description").GetString());
+        Assert.Contains(
+            "The prose a description carries",
+            post.GetProperty("description").GetString()
+        );
     }
 
     [HardenedTest]
-    public async Task TheOperationCarriesItsRequestBodySchema(ITestWebApp app) {
+    public async Task TheOperationCarriesItsRequestBodySchema(ITestWebApp app)
+    {
         var schema = CreatePet(await Document(app))
-            .GetProperty("requestBody").GetProperty("content")
-            .GetProperty("application/json").GetProperty("schema");
+            .GetProperty("requestBody")
+            .GetProperty("content")
+            .GetProperty("application/json")
+            .GetProperty("schema");
 
-        Assert.Equal("#/components/schemas/CreatePetRequest", schema.GetProperty("$ref").GetString());
+        Assert.Equal(
+            "#/components/schemas/CreatePetRequest",
+            schema.GetProperty("$ref").GetString()
+        );
     }
 
     /// <summary>
     /// The declared status, with the payload declared for it - not a bare 200.
     /// </summary>
     [HardenedTest]
-    public async Task TheOperationCarriesItsDeclaredResponse(ITestWebApp app) {
+    public async Task TheOperationCarriesItsDeclaredResponse(ITestWebApp app)
+    {
         var created = CreatePet(await Document(app)).GetProperty("responses").GetProperty("201");
 
         Assert.Equal("Pet created", created.GetProperty("description").GetString());
 
         Assert.Equal(
             "#/components/schemas/Pet",
-            created.GetProperty("content").GetProperty("application/json")
-                .GetProperty("schema").GetProperty("$ref").GetString());
+            created
+                .GetProperty("content")
+                .GetProperty("application/json")
+                .GetProperty("schema")
+                .GetProperty("$ref")
+                .GetString()
+        );
     }
 
     [HardenedTest]
-    public async Task TheComponentsCarryTheSchemasTheContractDeclared(ITestWebApp app) {
+    public async Task TheComponentsCarryTheSchemasTheContractDeclared(ITestWebApp app)
+    {
         var schemas = (await Document(app)).GetProperty("components").GetProperty("schemas");
 
         Assert.True(schemas.TryGetProperty("Pet", out var pet));
         Assert.True(schemas.TryGetProperty("CreatePetRequest", out _));
 
-        Assert.Equal("A pet in the store, as the store knows it.", pet.GetProperty("description").GetString());
+        Assert.Equal(
+            "A pet in the store, as the store knows it.",
+            pet.GetProperty("description").GetString()
+        );
 
         Assert.Equal(
             "Assigned by the store when the pet is created.",
-            pet.GetProperty("properties").GetProperty("id").GetProperty("description").GetString());
+            pet.GetProperty("properties").GetProperty("id").GetProperty("description").GetString()
+        );
 
         Assert.Equal("id", pet.GetProperty("required")[0].GetString());
     }
@@ -102,7 +124,8 @@ public class GeneratedDocumentTests {
     /// matrix, over the schemas this contract already declares.
     /// </remarks>
     [HardenedTest]
-    public async Task TheSchemasCarryTheConstraintsTheContractDeclared(ITestWebApp app) {
+    public async Task TheSchemasCarryTheConstraintsTheContractDeclared(ITestWebApp app)
+    {
         var schemas = (await Document(app)).GetProperty("components").GetProperty("schemas");
 
         var create = schemas.GetProperty("CreatePetRequest").GetProperty("properties");
@@ -110,9 +133,13 @@ public class GeneratedDocumentTests {
         Assert.Equal(1, create.GetProperty("name").GetProperty("minLength").GetInt32());
         Assert.Equal(100, create.GetProperty("name").GetProperty("maxLength").GetInt32());
         Assert.Equal(
-            "^[a-zA-Z0-9-]*$", create.GetProperty("tag").GetProperty("pattern").GetString());
+            "^[a-zA-Z0-9-]*$",
+            create.GetProperty("tag").GetProperty("pattern").GetString()
+        );
 
-        var rating = schemas.GetProperty("UpdatePetRequest").GetProperty("properties")
+        var rating = schemas
+            .GetProperty("UpdatePetRequest")
+            .GetProperty("properties")
             .GetProperty("rating");
 
         Assert.Equal(1, rating.GetProperty("minimum").GetInt32());
@@ -124,15 +151,16 @@ public class GeneratedDocumentTests {
     /// tags list, which used to carry the name alone.
     /// </summary>
     [HardenedTest]
-    public async Task TheTagCarriesItsDeclaredDescription(ITestWebApp app) {
+    public async Task TheTagCarriesItsDeclaredDescription(ITestWebApp app)
+    {
         var tags = (await Document(app)).GetProperty("tags");
 
-        var pet = tags.EnumerateArray()
-            .Single(tag => tag.GetProperty("name").GetString() == "Pet");
+        var pet = tags.EnumerateArray().Single(tag => tag.GetProperty("name").GetString() == "Pet");
 
         Assert.Equal(
             "Everything about the pets in the store.",
-            pet.GetProperty("description").GetString());
+            pet.GetProperty("description").GetString()
+        );
     }
 
     /// <summary>
@@ -140,16 +168,22 @@ public class GeneratedDocumentTests {
     /// code-first writer already does. The framework's own 404 body sends <c>detail</c> as null.
     /// </summary>
     [HardenedTest]
-    public async Task ANullablePropertyPublishesTheTypeArray(ITestWebApp app) {
-        var detail = (await Document(app)).GetProperty("components").GetProperty("schemas")
-            .GetProperty("Problem").GetProperty("properties").GetProperty("detail");
+    public async Task ANullablePropertyPublishesTheTypeArray(ITestWebApp app)
+    {
+        var detail = (await Document(app))
+            .GetProperty("components")
+            .GetProperty("schemas")
+            .GetProperty("Problem")
+            .GetProperty("properties")
+            .GetProperty("detail");
 
         var type = detail.GetProperty("type");
 
         Assert.Equal(JsonValueKind.Array, type.ValueKind);
         Assert.Equal(
             new[] { "string", "null" },
-            type.EnumerateArray().Select(entry => entry.GetString()).ToArray());
+            type.EnumerateArray().Select(entry => entry.GetString()).ToArray()
+        );
     }
 
     /// <summary>
@@ -165,24 +199,33 @@ public class GeneratedDocumentTests {
     /// description was wrong about the API.
     /// </remarks>
     [HardenedTest]
-    public async Task EveryVerbAtOnePathReachesTheDocument(ITestWebApp app) {
+    public async Task EveryVerbAtOnePathReachesTheDocument(ITestWebApp app)
+    {
         var item = (await Document(app)).GetProperty("paths").GetProperty("/pets/{petId}");
 
-        foreach (var verb in new[] { "get", "delete", "patch", "put" }) {
-            Assert.True(item.TryGetProperty(verb, out _), $"the document has no {verb} at /pets/{{petId}}");
+        foreach (var verb in new[] { "get", "delete", "patch", "put" })
+        {
+            Assert.True(
+                item.TryGetProperty(verb, out _),
+                $"the document has no {verb} at /pets/{{petId}}"
+            );
         }
     }
 
     [HardenedTest]
-    public async Task AParameterCarriesItsDescription(ITestWebApp app) {
+    public async Task AParameterCarriesItsDescription(ITestWebApp app)
+    {
         var parameter = (await Document(app))
-            .GetProperty("paths").GetProperty("/pets/{petId}").GetProperty("get")
+            .GetProperty("paths")
+            .GetProperty("/pets/{petId}")
+            .GetProperty("get")
             .GetProperty("parameters")[0];
 
         Assert.Equal("petId", parameter.GetProperty("name").GetString());
         Assert.Equal(
             "The pet's identifier, as assigned by the server.",
-            parameter.GetProperty("description").GetString());
+            parameter.GetProperty("description").GetString()
+        );
     }
 
     #region what the trial found missing
@@ -192,7 +235,8 @@ public class GeneratedDocumentTests {
     /// substitute for it.
     /// </summary>
     [HardenedTest]
-    public async Task TheContractsInfoBlockIsServed(ITestWebApp app) {
+    public async Task TheContractsInfoBlockIsServed(ITestWebApp app)
+    {
         var info = (await Document(app)).GetProperty("info");
 
         Assert.Equal("Petstore API", info.GetProperty("title").GetString());
@@ -205,30 +249,41 @@ public class GeneratedDocumentTests {
     /// request anonymous and had no token URL to go to.
     /// </summary>
     [HardenedTest]
-    public async Task TheDeclaredSchemeAndScopesAreServed(ITestWebApp app) {
+    public async Task TheDeclaredSchemeAndScopesAreServed(ITestWebApp app)
+    {
         var document = await Document(app);
 
         var scheme = document
-            .GetProperty("components").GetProperty("securitySchemes").GetProperty("petstoreOAuth");
+            .GetProperty("components")
+            .GetProperty("securitySchemes")
+            .GetProperty("petstoreOAuth");
 
         Assert.Equal("oauth2", scheme.GetProperty("type").GetString());
-        Assert.True(scheme.GetProperty("flows").GetProperty("clientCredentials")
-            .GetProperty("scopes").TryGetProperty("pets:read", out _));
+        Assert.True(
+            scheme
+                .GetProperty("flows")
+                .GetProperty("clientCredentials")
+                .GetProperty("scopes")
+                .TryGetProperty("pets:read", out _)
+        );
 
         var secured = document
-            .GetProperty("paths").GetProperty("/secured/scoped").GetProperty("get");
+            .GetProperty("paths")
+            .GetProperty("/secured/scoped")
+            .GetProperty("get");
         var requirement = Assert.Single(secured.GetProperty("security").EnumerateArray());
 
         Assert.Equal(
             "pets:read",
-            Assert.Single(requirement.GetProperty("petstoreOAuth").EnumerateArray()).GetString());
+            Assert.Single(requirement.GetProperty("petstoreOAuth").EnumerateArray()).GetString()
+        );
     }
 
     /// <summary>The Location the 201 declares and the service sends, as a headers block.</summary>
     [HardenedTest]
-    public async Task TheDeclaredResponseHeaderIsServed(ITestWebApp app) {
-        var created = CreatePet(await Document(app))
-            .GetProperty("responses").GetProperty("201");
+    public async Task TheDeclaredResponseHeaderIsServed(ITestWebApp app)
+    {
+        var created = CreatePet(await Document(app)).GetProperty("responses").GetProperty("201");
 
         var location = created.GetProperty("headers").GetProperty("Location");
 
@@ -240,15 +295,21 @@ public class GeneratedDocumentTests {
     /// failure was a status the document never mentioned.
     /// </summary>
     [HardenedTest]
-    public async Task TheValidationResponseIsDeclared(ITestWebApp app) {
+    public async Task TheValidationResponseIsDeclared(ITestWebApp app)
+    {
         var document = await Document(app);
 
         var badRequest = CreatePet(document).GetProperty("responses").GetProperty("400");
 
         Assert.Equal(
             "#/components/schemas/RequestValidationError",
-            badRequest.GetProperty("content").GetProperty("application/json")
-                .GetProperty("schema").GetProperty("$ref").GetString());
+            badRequest
+                .GetProperty("content")
+                .GetProperty("application/json")
+                .GetProperty("schema")
+                .GetProperty("$ref")
+                .GetString()
+        );
     }
 
     #endregion
@@ -270,13 +331,17 @@ public class GeneratedDocumentTests {
         Assert.Contains(
             "does not hold",
             Responses(await Document(app), "/guarded/by-attribute")
-                .GetProperty("403").GetProperty("description").GetString());
+                .GetProperty("403")
+                .GetProperty("description")
+                .GetString()
+        );
 
     /// <summary>
     /// The 403 a described scope produces, beside the 401 that was already there.
     /// </summary>
     [HardenedTest]
-    public async Task AScopedRequirementDeclaresBothRefusals(ITestWebApp app) {
+    public async Task AScopedRequirementDeclaresBothRefusals(ITestWebApp app)
+    {
         var responses = Responses(await Document(app), "/secured/scoped");
 
         Assert.True(responses.TryGetProperty("401", out _));
@@ -293,7 +358,8 @@ public class GeneratedDocumentTests {
     /// the sign flipped.
     /// </remarks>
     [HardenedTest]
-    public async Task AnUnscopedAlternativeDeclaresNoForbidden(ITestWebApp app) {
+    public async Task AnUnscopedAlternativeDeclaresNoForbidden(ITestWebApp app)
+    {
         var responses = Responses(await Document(app), "/secured/either");
 
         Assert.True(responses.TryGetProperty("401", out _));

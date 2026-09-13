@@ -2,12 +2,12 @@ using Hardened.IntegrationTests.WebApp.SUT.Models;
 using Hardened.Requests.Abstract.Responses;
 using Hardened.Requests.Runtime.Validation;
 using Hardened.Web.Runtime.Attributes;
+using Hardened.Web.Runtime.Responses;
 using ValidationModules;
 // Both namespaces declare a ValidationException, which is CS0104 without this. Either reaches the
 // same response - ExceptionToModelConverter maps one shape from both - so which is aliased is a
 // choice, and Hardened's is the one this controller means.
 using ValidationException = Hardened.Requests.Runtime.Validation.ValidationException;
-using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Controllers;
 
@@ -30,14 +30,15 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Controllers;
 /// </para>
 /// </remarks>
 [BasePath("/registration")]
-public class RegistrationController {
-
+public class RegistrationController
+{
     [Post("/")]
     public string Register(RegistrationModel model) => model.Name ?? "";
 
     /// <summary>The same model reached with a path token beside it, so both sources coexist.</summary>
     [Post("/for/{tenant}")]
-    public string RegisterForTenant(string tenant, RegistrationModel model) => $"{tenant}:{model.Name}";
+    public string RegisterForTenant(string tenant, RegistrationModel model) =>
+        $"{tenant}:{model.Name}";
 
     /// <summary>
     /// A body whose only declaration is the nullable annotation on its member.
@@ -74,7 +75,9 @@ public class RegistrationController {
     [Post("/declared-422/by-hand")]
     [Throws<RequestValidationError>(422)]
     public string ThrowValidation() =>
-        throw new ValidationException(ValidationResult.FromErrors([
-            new ValidationError("model.name", "required", "model.name is required.")
-        ]));
+        throw new ValidationException(
+            ValidationResult.FromErrors([
+                new ValidationError("model.name", "required", "model.name is required."),
+            ])
+        );
 }

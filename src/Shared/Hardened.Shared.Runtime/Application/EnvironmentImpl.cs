@@ -1,35 +1,45 @@
 ﻿namespace Hardened.Shared.Runtime.Application;
 
-public class EnvironmentImpl : IHardenedEnvironment {
+public class EnvironmentImpl : IHardenedEnvironment
+{
     private readonly IDictionary<string, string>? _environmentValues;
     private readonly IDictionary<string, object>? _customData;
 
-    public EnvironmentImpl(string? name = null,
+    public EnvironmentImpl(
+        string? name = null,
         IDictionary<string, string>? environmentValues = null,
         IReadOnlyList<string>? arguments = null,
-        IDictionary<string, object>? customData = null) {
-        Name = name ?? System.Environment.GetEnvironmentVariable("HARDENED_ENVIRONMENT") ?? "development";
+        IDictionary<string, object>? customData = null
+    )
+    {
+        Name =
+            name
+            ?? System.Environment.GetEnvironmentVariable("HARDENED_ENVIRONMENT")
+            ?? "development";
         _environmentValues = environmentValues;
         _customData = customData;
         Arguments = arguments ?? Array.Empty<string>();
-        
     }
 
     public string Name { get; }
 
     public IReadOnlyList<string> Arguments { get; }
 
-    public T? Value<T>(string name, T? defaultValue = default) {
+    public T? Value<T>(string name, T? defaultValue = default)
+    {
         string? envValue = null;
 
         _environmentValues?.TryGetValue(name, out envValue);
 
-        if (string.IsNullOrEmpty(envValue)) {
+        if (string.IsNullOrEmpty(envValue))
+        {
             envValue = Environment.GetEnvironmentVariable(name);
         }
 
-        if (!string.IsNullOrEmpty(envValue)) {
-            if (typeof(T) == typeof(string)) {
+        if (!string.IsNullOrEmpty(envValue))
+        {
+            if (typeof(T) == typeof(string))
+            {
                 return (T)(object)envValue;
             }
 
@@ -39,11 +49,13 @@ public class EnvironmentImpl : IHardenedEnvironment {
         return defaultValue;
     }
 
-    public T? CustomData<T>(string name, T? defaultValue = default) {
-        if (_customData != null && _customData.TryGetValue(name, out var value)) {
+    public T? CustomData<T>(string name, T? defaultValue = default)
+    {
+        if (_customData != null && _customData.TryGetValue(name, out var value))
+        {
             return (T)value;
         }
-        
+
         return defaultValue;
     }
 }

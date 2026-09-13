@@ -6,22 +6,30 @@ using Xunit;
 
 namespace Hardened.SourceGenerator.Tests.Web.RouteTableGeneratorTests;
 
-public class GenerateRouteMatchSourceTest {
+public class GenerateRouteMatchSourceTest
+{
     [Fact]
-    public void GenerateRoutingTree() {
+    public void GenerateRoutingTree()
+    {
         var handlerDefinitions = CreateHandlerModels();
-        var applicationModel = new EntryPointSelector.Model {
+        var applicationModel = new EntryPointSelector.Model
+        {
             EntryPointType = TypeDefinition.Get("Testing", "App"),
             MethodDefinitions = Array.Empty<HardenedMethodDefinition>(),
-            RootEntryPoint = true
+            RootEntryPoint = true,
         };
 
-        var csharpFile =
-            RoutingTableGenerator.GenerateCSharpRouteFile(applicationModel, handlerDefinitions, CancellationToken.None);
+        var csharpFile = RoutingTableGenerator.GenerateCSharpRouteFile(
+            applicationModel,
+            handlerDefinitions,
+            CancellationToken.None
+        );
     }
 
-    private IReadOnlyList<RequestHandlerModel> CreateHandlerModels() {
-        var list = new List<RequestHandlerModel> {
+    private IReadOnlyList<RequestHandlerModel> CreateHandlerModels()
+    {
+        var list = new List<RequestHandlerModel>
+        {
             new(
                 new RequestHandlerNameModel("/company/{company}/Subscription/{id}", "GET"),
                 TypeDefinition.Get("Testing", "Controller"),

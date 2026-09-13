@@ -1,16 +1,16 @@
 using Hardened.Requests.Abstract.Errors;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Logging;
-using Hardened.Requests.Runtime.PathTokens;
-using Hardened.Web.Runtime.Handlers;
-using Hardened.Web.Runtime.Configuration;
 using Hardened.Requests.Abstract.QueryString;
+using Hardened.Requests.Runtime.PathTokens;
 using Hardened.Shared.Runtime.Metrics;
+using Hardened.Web.Runtime.Configuration;
+using Hardened.Web.Runtime.Handlers;
+using Hardened.Web.Runtime.Responses;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 using NSubstitute;
 using Xunit;
-using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.Runtime.Tests.Handlers;
 
@@ -25,14 +25,15 @@ namespace Hardened.Web.Runtime.Tests.Handlers;
 /// matches at all.
 /// </para>
 /// </summary>
-public class WebExecutionHandlerServiceTests {
-
+public class WebExecutionHandlerServiceTests
+{
     /// <summary>
     /// A matched route hands the request to the handler's own chain, and neither the static content
     /// mount behind it nor the not-found path is reached.
     /// </summary>
     [Fact]
-    public async Task AMatchedRouteRunsTheHandlersChain() {
+    public async Task AMatchedRouteRunsTheHandlersChain()
+    {
         var fixture = new Fixture();
         var staticChain = fixture.StaticMount();
         var handlerChain = fixture.RouteMatches("/orders");
@@ -50,7 +51,8 @@ public class WebExecutionHandlerServiceTests {
     /// leaving either unset makes every filter see the previous request's route.
     /// </summary>
     [Fact]
-    public async Task AMatchedRoutePutsItsTokensAndHandlerInfoOnTheContext() {
+    public async Task AMatchedRoutePutsItsTokensAndHandlerInfoOnTheContext()
+    {
         var fixture = new Fixture();
         var tokens = new PathTokenCollection(1, ["id"]);
 
@@ -69,7 +71,8 @@ public class WebExecutionHandlerServiceTests {
     /// write as the error envelope instead, and nothing else answers the request.
     /// </summary>
     [Fact]
-    public async Task AHandlerThatCannotBeBuiltIsRecordedRatherThanThrown() {
+    public async Task AHandlerThatCannotBeBuiltIsRecordedRatherThanThrown()
+    {
         var fixture = new Fixture();
         var fault = new InvalidOperationException("no IClock is registered");
 
@@ -84,7 +87,8 @@ public class WebExecutionHandlerServiceTests {
 
     /// <summary>The match is logged as a mapped request, which is what ties a log line to a route.</summary>
     [Fact]
-    public async Task AMatchedRouteIsLoggedAsMapped() {
+    public async Task AMatchedRouteIsLoggedAsMapped()
+    {
         var fixture = new Fixture();
 
         fixture.RouteMatches("/orders");
@@ -100,7 +104,8 @@ public class WebExecutionHandlerServiceTests {
     /// reverse the order and the library always wins.
     /// </summary>
     [Fact]
-    public async Task TheLastRegisteredProviderIsAskedFirst() {
+    public async Task TheLastRegisteredProviderIsAskedFirst()
+    {
         var fixture = new Fixture();
 
         var first = fixture.Provider(matches: true, "FirstRegistered");
@@ -111,13 +116,15 @@ public class WebExecutionHandlerServiceTests {
         await service.Execute(fixture.Chain);
 
         // The winner is the one whose handler info reached the context.
-        fixture.Context.Received(1).HandlerInfo =
-            Arg.Is<IExecutionRequestHandlerInfo>(info => info.InvokeMethod == "LastRegistered");
+        fixture.Context.Received(1).HandlerInfo = Arg.Is<IExecutionRequestHandlerInfo>(info =>
+            info.InvokeMethod == "LastRegistered"
+        );
     }
 
     /// <summary>A provider that does not match is passed over rather than ending the search.</summary>
     [Fact]
-    public async Task AProviderThatDoesNotMatchFallsThroughToTheNextOne() {
+    public async Task AProviderThatDoesNotMatchFallsThroughToTheNextOne()
+    {
         var fixture = new Fixture();
 
         var matching = fixture.Provider(matches: true, "Matching");
@@ -128,8 +135,9 @@ public class WebExecutionHandlerServiceTests {
 
         await service.Execute(fixture.Chain);
 
-        fixture.Context.Received(1).HandlerInfo =
-            Arg.Is<IExecutionRequestHandlerInfo>(info => info.InvokeMethod == "Matching");
+        fixture.Context.Received(1).HandlerInfo = Arg.Is<IExecutionRequestHandlerInfo>(info =>
+            info.InvokeMethod == "Matching"
+        );
     }
 
     /// <summary>
@@ -137,7 +145,8 @@ public class WebExecutionHandlerServiceTests {
     /// 404. The mount is consulted last, so this is what "nothing else claimed it" looks like.
     /// </summary>
     [Fact]
-    public async Task ARequestWithNoRouteIsAnsweredByTheStaticMount() {
+    public async Task ARequestWithNoRouteIsAnsweredByTheStaticMount()
+    {
         var fixture = new Fixture();
         var staticChain = fixture.StaticMount();
 
@@ -154,7 +163,8 @@ public class WebExecutionHandlerServiceTests {
     /// in its own package and an application chose where its module went.
     /// </summary>
     [Fact]
-    public async Task AFallbackIsConsultedAfterEveryOrdinaryProvider() {
+    public async Task AFallbackIsConsultedAfterEveryOrdinaryProvider()
+    {
         var fixture = new Fixture();
 
         // Registered after the route, so reverse order alone would consult it first.
@@ -173,7 +183,8 @@ public class WebExecutionHandlerServiceTests {
     /// direct call could never have any of it.
     /// </summary>
     [Fact]
-    public async Task AStaticFileIsDispatchedLikeAnyOtherHandler() {
+    public async Task AStaticFileIsDispatchedLikeAnyOtherHandler()
+    {
         var fixture = new Fixture();
 
         fixture.StaticMount();
@@ -189,7 +200,8 @@ public class WebExecutionHandlerServiceTests {
     /// having no provider answer, which is what a path with no file behind it looks like.
     /// </summary>
     [Fact]
-    public async Task ARequestWithNeitherARouteNorAFileReachesTheNotFoundHandler() {
+    public async Task ARequestWithNeitherARouteNorAFileReachesTheNotFoundHandler()
+    {
         var fixture = new Fixture();
 
         await fixture.Service().Execute(fixture.Chain);
@@ -202,7 +214,8 @@ public class WebExecutionHandlerServiceTests {
     /// a route", and a static file or a 404 did not.
     /// </summary>
     [Fact]
-    public async Task AnUnmatchedRequestIsNotLoggedAsMapped() {
+    public async Task AnUnmatchedRequestIsNotLoggedAsMapped()
+    {
         var fixture = new Fixture();
 
         await fixture.Service().Execute(fixture.Chain);
@@ -216,12 +229,18 @@ public class WebExecutionHandlerServiceTests {
     /// provider; an application with no providers now genuinely has no static content either.
     /// </summary>
     [Fact]
-    public async Task AnApplicationWithNoProvidersAnswersNotFound() {
+    public async Task AnApplicationWithNoProvidersAnswersNotFound()
+    {
         var fixture = new Fixture();
 
         var service = new WebExecutionHandlerService(
-            [], [], fixture.NotFound, fixture.MethodNotAllowed, fixture.RequestLogger,
-            Options.Create<IWebRoutingConfiguration>(new WebRoutingConfiguration()));
+            [],
+            [],
+            fixture.NotFound,
+            fixture.MethodNotAllowed,
+            fixture.RequestLogger,
+            Options.Create<IWebRoutingConfiguration>(new WebRoutingConfiguration())
+        );
 
         await service.Execute(fixture.Chain);
 
@@ -234,7 +253,8 @@ public class WebExecutionHandlerServiceTests {
     /// CloudFront and generated clients all read the two differently.
     /// </summary>
     [Fact]
-    public async Task APathMatchedUnderAnotherVerbIs405RatherThan404() {
+    public async Task APathMatchedUnderAnotherVerbIs405RatherThan404()
+    {
         var fixture = new Fixture();
 
         fixture.MethodMismatch("GET, HEAD");
@@ -250,7 +270,8 @@ public class WebExecutionHandlerServiceTests {
     /// from the first that merely recognised the path would shadow a table that had the route.
     /// </summary>
     [Fact]
-    public async Task AProviderThatAnswersTheVerbBeatsOneThatOnlyMatchedThePath() {
+    public async Task AProviderThatAnswersTheVerbBeatsOneThatOnlyMatchedThePath()
+    {
         var fixture = new Fixture();
 
         fixture.MethodMismatch("GET");
@@ -258,7 +279,8 @@ public class WebExecutionHandlerServiceTests {
 
         await fixture.Service().Execute(fixture.Chain);
 
-        await fixture.MethodNotAllowed.DidNotReceive()
+        await fixture
+            .MethodNotAllowed.DidNotReceive()
             .Handle(Arg.Any<IExecutionContext>(), Arg.Any<string>());
     }
 
@@ -267,7 +289,8 @@ public class WebExecutionHandlerServiceTests {
     /// tell a client the other verb is unavailable when it is not.
     /// </summary>
     [Fact]
-    public async Task AllowedVerbsFromEveryTableAreReported() {
+    public async Task AllowedVerbsFromEveryTableAreReported()
+    {
         var fixture = new Fixture();
 
         fixture.MethodMismatch("GET");
@@ -275,8 +298,12 @@ public class WebExecutionHandlerServiceTests {
 
         await fixture.Service().Execute(fixture.Chain);
 
-        await fixture.MethodNotAllowed.Received(1)
-            .Handle(fixture.Context, Arg.Is<string>(allow => allow.Contains("GET") && allow.Contains("POST")));
+        await fixture
+            .MethodNotAllowed.Received(1)
+            .Handle(
+                fixture.Context,
+                Arg.Is<string>(allow => allow.Contains("GET") && allow.Contains("POST"))
+            );
     }
 
     /// <summary>
@@ -284,7 +311,8 @@ public class WebExecutionHandlerServiceTests {
     /// a 405 ahead of it would hide it.
     /// </summary>
     [Fact]
-    public async Task StaticContentIsTriedBeforeThe405() {
+    public async Task StaticContentIsTriedBeforeThe405()
+    {
         var fixture = new Fixture();
         var staticChain = fixture.StaticMount();
 
@@ -294,7 +322,8 @@ public class WebExecutionHandlerServiceTests {
 
         await staticChain.Received(1).Next();
 
-        await fixture.MethodNotAllowed.DidNotReceive()
+        await fixture
+            .MethodNotAllowed.DidNotReceive()
             .Handle(Arg.Any<IExecutionContext>(), Arg.Any<string>());
     }
 
@@ -303,7 +332,8 @@ public class WebExecutionHandlerServiceTests {
     /// /orders/ are unrelated routes, which is also what an OpenAPI document says.
     /// </summary>
     [Fact]
-    public async Task StrictLeavesTheOtherSpellingUnmatched() {
+    public async Task StrictLeavesTheOtherSpellingUnmatched()
+    {
         var fixture = new Fixture();
 
         fixture.Context.Request.Path.Returns("/orders/");
@@ -319,7 +349,8 @@ public class WebExecutionHandlerServiceTests {
     /// applications want from a link somebody typed.
     /// </summary>
     [Fact]
-    public async Task NormaliseReachesTheRouteWithoutTheSlash() {
+    public async Task NormaliseReachesTheRouteWithoutTheSlash()
+    {
         var fixture = new Fixture();
 
         fixture.Routing.TrailingSlash = TrailingSlash.Normalise;
@@ -335,7 +366,8 @@ public class WebExecutionHandlerServiceTests {
 
     /// <summary>And in the other direction, for a route declared with the slash.</summary>
     [Fact]
-    public async Task NormaliseAlsoAddsAMissingSlash() {
+    public async Task NormaliseAlsoAddsAMissingSlash()
+    {
         var fixture = new Fixture();
 
         fixture.Routing.TrailingSlash = TrailingSlash.Normalise;
@@ -353,7 +385,8 @@ public class WebExecutionHandlerServiceTests {
     /// clients rewrite a 301 on a POST to GET, which silently drops the body.
     /// </summary>
     [Fact]
-    public async Task RedirectAnswers308AtTheDeclaredPath() {
+    public async Task RedirectAnswers308AtTheDeclaredPath()
+    {
         var fixture = new Fixture();
 
         fixture.Routing.TrailingSlash = TrailingSlash.Redirect;
@@ -371,7 +404,8 @@ public class WebExecutionHandlerServiceTests {
     /// 404, not a redirect to another 404.
     /// </summary>
     [Fact]
-    public async Task RedirectDoesNothingWhenNeitherSpellingMatches() {
+    public async Task RedirectDoesNothingWhenNeitherSpellingMatches()
+    {
         var fixture = new Fixture();
 
         fixture.Routing.TrailingSlash = TrailingSlash.Redirect;
@@ -387,7 +421,8 @@ public class WebExecutionHandlerServiceTests {
     /// path.
     /// </summary>
     [Fact]
-    public async Task TheRootIsNotRewritten() {
+    public async Task TheRootIsNotRewritten()
+    {
         var fixture = new Fixture();
 
         fixture.Routing.TrailingSlash = TrailingSlash.Redirect;
@@ -405,7 +440,8 @@ public class WebExecutionHandlerServiceTests {
     /// which a client parses as a verb whose name is the empty string.
     /// </summary>
     [Fact]
-    public async Task ATableThatNamesNoVerbsAddsNothingToTheAllowHeader() {
+    public async Task ATableThatNamesNoVerbsAddsNothingToTheAllowHeader()
+    {
         var fixture = new Fixture();
 
         fixture.Context.Request.Path.Returns("/thing");
@@ -424,7 +460,8 @@ public class WebExecutionHandlerServiceTests {
     /// body is put back untouched, and Content-Length reports what was measured.
     /// </summary>
     [Fact]
-    public async Task AHeadRequestRunsTheHandlerAndReportsTheLengthOfTheBodyItDiscards() {
+    public async Task AHeadRequestRunsTheHandlerAndReportsTheLengthOfTheBodyItDiscards()
+    {
         var fixture = new Fixture();
         var realBody = new MemoryStream();
 
@@ -433,11 +470,14 @@ public class WebExecutionHandlerServiceTests {
 
         var handlerChain = fixture.RouteMatches("/orders");
 
-        handlerChain.Next().Returns(_ => {
-            fixture.Context.Response.Body.Write(new byte[10], 0, 10);
+        handlerChain
+            .Next()
+            .Returns(_ =>
+            {
+                fixture.Context.Response.Body.Write(new byte[10], 0, 10);
 
-            return Task.CompletedTask;
-        });
+                return Task.CompletedTask;
+            });
 
         await fixture.Service().Execute(fixture.Chain);
 
@@ -453,7 +493,8 @@ public class WebExecutionHandlerServiceTests {
     /// uncounted is a Content-Length that is quietly short.
     /// </summary>
     [Fact]
-    public async Task TheDiscardingStreamCountsEveryWriteOverloadAndRefusesToBeRead() {
+    public async Task TheDiscardingStreamCountsEveryWriteOverloadAndRefusesToBeRead()
+    {
         var fixture = new Fixture();
 
         fixture.Context.Request.Method.Returns("HEAD");
@@ -463,20 +504,23 @@ public class WebExecutionHandlerServiceTests {
 
         Stream? discard = null;
 
-        handlerChain.Next().Returns(_ => {
-            discard = fixture.Context.Response.Body;
+        handlerChain
+            .Next()
+            .Returns(_ =>
+            {
+                discard = fixture.Context.Response.Body;
 
-            discard.Write(new byte[3], 0, 3);
-            discard.WriteByte(1);
-            discard.Write(new byte[5].AsSpan());
-            discard.WriteAsync(new byte[7], 0, 7).GetAwaiter().GetResult();
-            discard.WriteAsync(new ReadOnlyMemory<byte>(new byte[11])).GetAwaiter().GetResult();
+                discard.Write(new byte[3], 0, 3);
+                discard.WriteByte(1);
+                discard.Write(new byte[5].AsSpan());
+                discard.WriteAsync(new byte[7], 0, 7).GetAwaiter().GetResult();
+                discard.WriteAsync(new ReadOnlyMemory<byte>(new byte[11])).GetAwaiter().GetResult();
 
-            discard.Flush();
-            discard.FlushAsync().GetAwaiter().GetResult();
+                discard.Flush();
+                discard.FlushAsync().GetAwaiter().GetResult();
 
-            return Task.CompletedTask;
-        });
+                return Task.CompletedTask;
+            });
 
         await fixture.Service().Execute(fixture.Chain);
 
@@ -502,7 +546,8 @@ public class WebExecutionHandlerServiceTests {
     /// than one that answers without a Content-Length.
     /// </summary>
     [Fact]
-    public async Task AHeadRequestLeavesContentLengthAloneOnceTheResponseHasStarted() {
+    public async Task AHeadRequestLeavesContentLengthAloneOnceTheResponseHasStarted()
+    {
         var fixture = new Fixture();
 
         fixture.Context.Request.Method.Returns("HEAD");
@@ -511,11 +556,14 @@ public class WebExecutionHandlerServiceTests {
 
         var handlerChain = fixture.RouteMatches("/orders");
 
-        handlerChain.Next().Returns(_ => {
-            fixture.Context.Response.Body.WriteByte(1);
+        handlerChain
+            .Next()
+            .Returns(_ =>
+            {
+                fixture.Context.Response.Body.WriteByte(1);
 
-            return Task.CompletedTask;
-        });
+                return Task.CompletedTask;
+            });
 
         await fixture.Service().Execute(fixture.Chain);
 
@@ -528,7 +576,8 @@ public class WebExecutionHandlerServiceTests {
     /// <c>Content-Length</c> only when it is that one.
     /// </summary>
     [Fact]
-    public async Task AHeadRequestAnswered304ReportsNoLength() {
+    public async Task AHeadRequestAnswered304ReportsNoLength()
+    {
         var fixture = new Fixture();
 
         fixture.Context.Request.Method.Returns("HEAD");
@@ -549,7 +598,8 @@ public class WebExecutionHandlerServiceTests {
     /// counting stream in place for whatever writes the error response.
     /// </summary>
     [Fact]
-    public async Task AHeadRequestPutsTheBodyBackWhenTheHandlerThrows() {
+    public async Task AHeadRequestPutsTheBodyBackWhenTheHandlerThrows()
+    {
         var fixture = new Fixture();
         var realBody = new MemoryStream();
 
@@ -558,10 +608,13 @@ public class WebExecutionHandlerServiceTests {
 
         var handlerChain = fixture.RouteMatches("/orders");
 
-        handlerChain.Next().Returns<Task>(_ => throw new InvalidOperationException("handler failed"));
+        handlerChain
+            .Next()
+            .Returns<Task>(_ => throw new InvalidOperationException("handler failed"));
 
-        await Assert.ThrowsAsync<InvalidOperationException>(
-            () => fixture.Service().Execute(fixture.Chain));
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            fixture.Service().Execute(fixture.Chain)
+        );
 
         Assert.Same(realBody, fixture.Context.Response.Body);
     }
@@ -572,7 +625,8 @@ public class WebExecutionHandlerServiceTests {
     /// body.
     /// </summary>
     [Fact]
-    public async Task AHeadRequestIsRecognisedWhateverCaseItArrivesIn() {
+    public async Task AHeadRequestIsRecognisedWhateverCaseItArrivesIn()
+    {
         var fixture = new Fixture();
 
         fixture.Context.Request.Method.Returns("head");
@@ -580,11 +634,14 @@ public class WebExecutionHandlerServiceTests {
 
         var handlerChain = fixture.RouteMatches("/orders");
 
-        handlerChain.Next().Returns(_ => {
-            fixture.Context.Response.Body.WriteByte(1);
+        handlerChain
+            .Next()
+            .Returns(_ =>
+            {
+                fixture.Context.Response.Body.WriteByte(1);
 
-            return Task.CompletedTask;
-        });
+                return Task.CompletedTask;
+            });
 
         await fixture.Service().Execute(fixture.Chain);
 
@@ -595,7 +652,8 @@ public class WebExecutionHandlerServiceTests {
     /// A GET is left alone: its bytes go to the real body and no length is invented for it.
     /// </summary>
     [Fact]
-    public async Task AGetRequestWritesToTheRealBody() {
+    public async Task AGetRequestWritesToTheRealBody()
+    {
         var fixture = new Fixture();
         var realBody = new MemoryStream();
 
@@ -604,11 +662,14 @@ public class WebExecutionHandlerServiceTests {
 
         var handlerChain = fixture.RouteMatches("/orders");
 
-        handlerChain.Next().Returns(_ => {
-            fixture.Context.Response.Body.Write(new byte[4], 0, 4);
+        handlerChain
+            .Next()
+            .Returns(_ =>
+            {
+                fixture.Context.Response.Body.Write(new byte[4], 0, 4);
 
-            return Task.CompletedTask;
-        });
+                return Task.CompletedTask;
+            });
 
         await fixture.Service().Execute(fixture.Chain);
 
@@ -616,10 +677,12 @@ public class WebExecutionHandlerServiceTests {
         Assert.False(fixture.Headers.ContainsKey("Content-Length"));
     }
 
-    private sealed class Fixture {
+    private sealed class Fixture
+    {
         private readonly List<IWebExecutionRequestHandlerProvider> _providers = [];
 
-        public Fixture() {
+        public Fixture()
+        {
             Context = Substitute.For<IExecutionContext>();
             Context.Request.Returns(Substitute.For<IExecutionRequest>());
             Context.Response.Returns(Substitute.For<IExecutionResponse>());
@@ -629,13 +692,16 @@ public class WebExecutionHandlerServiceTests {
             // cloning the request onto a cloned context rather than mutating the one in flight.
             // Both clones have to behave, or the probe reads the original path back and every
             // policy looks like strict.
-            Context.Request.Clone(
+            Context
+                .Request.Clone(
                     Arg.Any<string?>(),
                     Arg.Any<string?>(),
                     Arg.Any<IDictionary<string, StringValues>?>(),
                     Arg.Any<IQueryStringCollection?>(),
-                    Arg.Any<IReadOnlyList<string>?>())
-                .Returns(call => {
+                    Arg.Any<IReadOnlyList<string>?>()
+                )
+                .Returns(call =>
+                {
                     var request = Substitute.For<IExecutionRequest>();
 
                     request.Path.Returns((string?)call[1]);
@@ -643,12 +709,15 @@ public class WebExecutionHandlerServiceTests {
                     return request;
                 });
 
-            Context.Clone(
+            Context
+                .Clone(
                     Arg.Any<IExecutionRequest?>(),
                     Arg.Any<IExecutionResponse?>(),
                     Arg.Any<IServiceProvider?>(),
-                    Arg.Any<IMetricLogger?>())
-                .Returns(call => {
+                    Arg.Any<IMetricLogger?>()
+                )
+                .Returns(call =>
+                {
                     var cloned = Substitute.For<IExecutionContext>();
 
                     cloned.Request.Returns((IExecutionRequest?)call[0]);
@@ -686,7 +755,8 @@ public class WebExecutionHandlerServiceTests {
         /// shape for the trailing-slash probe: that asks about a clone, and a provider keyed on the
         /// original would answer for both spellings and prove nothing.
         /// </remarks>
-        public IExecutionChain RouteMatchesPath(string path) {
+        public IExecutionChain RouteMatchesPath(string path)
+        {
             var handlerChain = Substitute.For<IExecutionChain>();
             var handler = Substitute.For<IExecutionRequestHandler>();
 
@@ -695,11 +765,13 @@ public class WebExecutionHandlerServiceTests {
 
             var provider = Substitute.For<IWebExecutionRequestHandlerProvider>();
 
-            provider.GetExecutionRequestHandler(Arg.Any<IExecutionContext>())
+            provider
+                .GetExecutionRequestHandler(Arg.Any<IExecutionContext>())
                 .Returns(call =>
                     ((IExecutionContext)call[0]).Request.Path == path
                         ? new RequestHandlerInfo(handler, PathTokenCollection.Empty)
-                        : null);
+                        : null
+                );
 
             _providers.Add(provider);
 
@@ -707,7 +779,8 @@ public class WebExecutionHandlerServiceTests {
         }
 
         /// <summary>Registers a provider that matches, and returns the chain its handler hands back.</summary>
-        public IExecutionChain RouteMatches(string path, PathTokenCollection? tokens = null) {
+        public IExecutionChain RouteMatches(string path, PathTokenCollection? tokens = null)
+        {
             Context.Request.Path.Returns(path);
 
             var handlerChain = Substitute.For<IExecutionChain>();
@@ -718,7 +791,8 @@ public class WebExecutionHandlerServiceTests {
 
             var provider = Substitute.For<IWebExecutionRequestHandlerProvider>();
 
-            provider.GetExecutionRequestHandler(Context)
+            provider
+                .GetExecutionRequestHandler(Context)
                 .Returns(new RequestHandlerInfo(handler, tokens ?? PathTokenCollection.Empty));
 
             _providers.Add(provider);
@@ -727,7 +801,8 @@ public class WebExecutionHandlerServiceTests {
         }
 
         /// <summary>A provider whose routing table fails while building the handler for a path.</summary>
-        public void RouteThrows(string path, Exception fault) {
+        public void RouteThrows(string path, Exception fault)
+        {
             Context.Request.Path.Returns(path);
 
             var provider = Substitute.For<IWebExecutionRequestHandlerProvider>();
@@ -738,11 +813,14 @@ public class WebExecutionHandlerServiceTests {
         }
 
         /// <summary>A provider identified by the invoke method name its handler reports.</summary>
-        public IWebExecutionRequestHandlerProvider Provider(bool matches, string invokeMethod) {
+        public IWebExecutionRequestHandlerProvider Provider(bool matches, string invokeMethod)
+        {
             var provider = Substitute.For<IWebExecutionRequestHandlerProvider>();
 
-            if (!matches) {
-                provider.GetExecutionRequestHandler(Arg.Any<IExecutionContext>())
+            if (!matches)
+            {
+                provider
+                    .GetExecutionRequestHandler(Arg.Any<IExecutionContext>())
                     .Returns((RequestHandlerInfo?)null);
 
                 return provider;
@@ -753,9 +831,12 @@ public class WebExecutionHandlerServiceTests {
 
             var handler = Substitute.For<IExecutionRequestHandler>();
             handler.HandlerInfo.Returns(handlerInfo);
-            handler.GetExecutionChain(Arg.Any<IExecutionContext>()).Returns(Substitute.For<IExecutionChain>());
+            handler
+                .GetExecutionChain(Arg.Any<IExecutionContext>())
+                .Returns(Substitute.For<IExecutionChain>());
 
-            provider.GetExecutionRequestHandler(Arg.Any<IExecutionContext>())
+            provider
+                .GetExecutionRequestHandler(Arg.Any<IExecutionContext>())
                 .Returns(new RequestHandlerInfo(handler, PathTokenCollection.Empty));
 
             return provider;
@@ -773,7 +854,8 @@ public class WebExecutionHandlerServiceTests {
         /// what decides when it is consulted now. Ordering used to be a property of where the
         /// registration sat, and a provider shipping in its own package cannot control that.
         /// </remarks>
-        public IExecutionChain StaticMount() {
+        public IExecutionChain StaticMount()
+        {
             var handlerChain = Substitute.For<IExecutionChain>();
             var handler = Substitute.For<IExecutionRequestHandler>();
 
@@ -782,7 +864,8 @@ public class WebExecutionHandlerServiceTests {
 
             var provider = Substitute.For<IFallbackRequestHandlerProvider>();
 
-            provider.GetExecutionRequestHandler(Arg.Any<IExecutionContext>())
+            provider
+                .GetExecutionRequestHandler(Arg.Any<IExecutionContext>())
                 .Returns(new RequestHandlerInfo(handler, PathTokenCollection.Empty));
 
             _fallbacks.Add(provider);
@@ -791,10 +874,12 @@ public class WebExecutionHandlerServiceTests {
         }
 
         /// <summary>A provider that recognises the path but not the verb.</summary>
-        public IWebExecutionRequestHandlerProvider MethodMismatch(string allow) {
+        public IWebExecutionRequestHandlerProvider MethodMismatch(string allow)
+        {
             var provider = Substitute.For<IWebExecutionRequestHandlerProvider>();
 
-            provider.GetExecutionRequestHandler(Arg.Any<IExecutionContext>())
+            provider
+                .GetExecutionRequestHandler(Arg.Any<IExecutionContext>())
                 .Returns(RequestHandlerInfo.MethodNotAllowed(allow));
 
             _providers.Add(provider);
@@ -807,12 +892,16 @@ public class WebExecutionHandlerServiceTests {
 
         private readonly List<IFallbackRequestHandlerProvider> _fallbacks = new();
 
-        public WebExecutionHandlerService Service(params IWebExecutionRequestHandlerProvider[] providers) =>
-            new(providers.Length > 0 ? providers : _providers,
+        public WebExecutionHandlerService Service(
+            params IWebExecutionRequestHandlerProvider[] providers
+        ) =>
+            new(
+                providers.Length > 0 ? providers : _providers,
                 _fallbacks,
                 NotFound,
                 MethodNotAllowed,
                 RequestLogger,
-                Options.Create<IWebRoutingConfiguration>(Routing));
+                Options.Create<IWebRoutingConfiguration>(Routing)
+            );
     }
 }

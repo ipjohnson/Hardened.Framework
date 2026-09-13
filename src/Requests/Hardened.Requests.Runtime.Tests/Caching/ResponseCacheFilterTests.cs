@@ -14,22 +14,28 @@ namespace Hardened.Requests.Runtime.Tests.Caching;
 /// <summary>
 /// What the filter does with a hit, with a miss, and with a request no strategy will key.
 /// </summary>
-public class ResponseCacheFilterTests {
-
+public class ResponseCacheFilterTests
+{
     /// <summary>The unit separator the filter joins composite keys with.</summary>
     private const string Separator = "\u001f";
 
     private static ResponseCacheFilter Filter(
-        int duration = 0, params ICacheKeyProvider[] providers) =>
-        new(providers.Length == 0 ? [new CacheTestSupport.FixedKey()] : providers,
+        int duration = 0,
+        params ICacheKeyProvider[] providers
+    ) =>
+        new(
+            providers.Length == 0 ? [new CacheTestSupport.FixedKey()] : providers,
             "GET /catalog",
-            duration);
+            duration
+        );
 
     private static IExecutionContext Context(CacheTestSupport.RecordingStore store) =>
-        Pipeline.Context(
-            configureServices: services => services.AddSingleton<IResponseCacheStore>(store));
+        Pipeline.Context(configureServices: services =>
+            services.AddSingleton<IResponseCacheStore>(store)
+        );
 
-    private static string BodyOf(IExecutionContext context) {
+    private static string BodyOf(IExecutionContext context)
+    {
         var body = (MemoryStream)context.Response.Body;
 
         return Encoding.UTF8.GetString(body.ToArray());
@@ -39,13 +45,12 @@ public class ResponseCacheFilterTests {
     /// Writes what the handler wrote, and keeps a copy.
     /// </summary>
     [Fact]
-    public async Task AMissRunsTheChainAndStoresWhatItProduced() {
+    public async Task AMissRunsTheChainAndStoresWhatItProduced()
+    {
         var store = new CacheTestSupport.RecordingStore();
         var context = Context(store);
 
-        var chain = Pipeline.Chain(context,
-            Filter(),
-            Writing("catalog"));
+        var chain = Pipeline.Chain(context, Filter(), Writing("catalog"));
 
         await chain.Next();
 
@@ -58,7 +63,8 @@ public class ResponseCacheFilterTests {
     /// than behind it.
     /// </summary>
     [Fact]
-    public async Task AHitAnswersWithoutRunningTheChain() {
+    public async Task AHitAnswersWithoutRunningTheChain()
+    {
         var store = new CacheTestSupport.RecordingStore();
         var ran = 0;
 
@@ -78,15 +84,23 @@ public class ResponseCacheFilterTests {
     /// A stored response carries its status and content type back, not only its bytes.
     /// </summary>
     [Fact]
-    public async Task AHitReplaysTheStatusAndContentType() {
+    public async Task AHitReplaysTheStatusAndContentType()
+    {
         var store = new CacheTestSupport.RecordingStore();
 
-        await Pipeline.Chain(Context(store), Filter(), new Pipeline.Inline(chain => {
-            chain.Context.Response.Status = 200;
-            chain.Context.Response.ContentType = "application/json";
+        await Pipeline
+            .Chain(
+                Context(store),
+                Filter(),
+                new Pipeline.Inline(chain =>
+                {
+                    chain.Context.Response.Status = 200;
+                    chain.Context.Response.ContentType = "application/json";
 
-            return Task.CompletedTask;
-        })).Next();
+                    return Task.CompletedTask;
+                })
+            )
+            .Next();
 
         var second = Context(store);
 
@@ -102,15 +116,24 @@ public class ResponseCacheFilterTests {
     /// the sort happened to order first.
     /// </summary>
     [Fact]
-    public async Task AHitReplaysTheHeadersTheResponseCarried() {
+    public async Task AHitReplaysTheHeadersTheResponseCarried()
+    {
         var store = new CacheTestSupport.RecordingStore();
 
-        await Pipeline.Chain(Context(store), Filter(), new Pipeline.Inline(chain => {
-            chain.Context.Response.Headers[KnownHeaders.CacheControl] =
-                new StringValues("public, max-age=60");
+        await Pipeline
+            .Chain(
+                Context(store),
+                Filter(),
+                new Pipeline.Inline(chain =>
+                {
+                    chain.Context.Response.Headers[KnownHeaders.CacheControl] = new StringValues(
+                        "public, max-age=60"
+                    );
 
-            return Task.CompletedTask;
-        })).Next();
+                    return Task.CompletedTask;
+                })
+            )
+            .Next();
 
         var second = Context(store);
 
@@ -124,14 +147,24 @@ public class ResponseCacheFilterTests {
     /// the response is captured. Replaying one hands a second caller the first one's session.
     /// </summary>
     [Fact]
-    public async Task ASetCookieIsNeverReplayed() {
+    public async Task ASetCookieIsNeverReplayed()
+    {
         var store = new CacheTestSupport.RecordingStore();
 
-        await Pipeline.Chain(Context(store), Filter(), new Pipeline.Inline(chain => {
-            chain.Context.Response.Headers[KnownHeaders.SetCookie] = new StringValues("session=abc");
+        await Pipeline
+            .Chain(
+                Context(store),
+                Filter(),
+                new Pipeline.Inline(chain =>
+                {
+                    chain.Context.Response.Headers[KnownHeaders.SetCookie] = new StringValues(
+                        "session=abc"
+                    );
 
-            return Task.CompletedTask;
-        })).Next();
+                    return Task.CompletedTask;
+                })
+            )
+            .Next();
 
         var second = Context(store);
 
@@ -144,14 +177,16 @@ public class ResponseCacheFilterTests {
     /// A strategy that returns null neither looks the request up nor stores it.
     /// </summary>
     [Fact]
-    public async Task ANullKeyLeavesTheRequestUncached() {
+    public async Task ANullKeyLeavesTheRequestUncached()
+    {
         var store = new CacheTestSupport.RecordingStore();
         var context = Context(store);
 
         var chain = Pipeline.Chain(
             context,
             Filter(providers: new CacheTestSupport.Keyed(_ => null)),
-            Writing("catalog"));
+            Writing("catalog")
+        );
 
         await chain.Next();
 
@@ -165,17 +200,22 @@ public class ResponseCacheFilterTests {
     /// order they were declared.
     /// </summary>
     [Fact]
-    public async Task TwoStrategiesComposeOneKey() {
+    public async Task TwoStrategiesComposeOneKey()
+    {
         var store = new CacheTestSupport.RecordingStore();
 
         var chain = Pipeline.Chain(
             Context(store),
             Filter(providers: [new CacheTestSupport.FixedKey(), new CacheTestSupport.SecondKey()]),
-            Writing("catalog"));
+            Writing("catalog")
+        );
 
         await chain.Next();
 
-        Assert.Equal("GET /catalog" + Separator + "fixed" + Separator + "second", Assert.Single(store.Reads));
+        Assert.Equal(
+            "GET /catalog" + Separator + "fixed" + Separator + "second",
+            Assert.Single(store.Reads)
+        );
     }
 
     /// <summary>
@@ -183,13 +223,17 @@ public class ResponseCacheFilterTests {
     /// key: a response varying on something a strategy could not read must not be shared.
     /// </summary>
     [Fact]
-    public async Task OneStrategyDecliningLeavesACompositeRequestUncached() {
+    public async Task OneStrategyDecliningLeavesACompositeRequestUncached()
+    {
         var store = new CacheTestSupport.RecordingStore();
 
         var chain = Pipeline.Chain(
             Context(store),
-            Filter(providers: [new CacheTestSupport.FixedKey(), new CacheTestSupport.Keyed(_ => null)]),
-            Writing("catalog"));
+            Filter(
+                providers: [new CacheTestSupport.FixedKey(), new CacheTestSupport.Keyed(_ => null)]
+            ),
+            Writing("catalog")
+        );
 
         await chain.Next();
 
@@ -197,7 +241,8 @@ public class ResponseCacheFilterTests {
     }
 
     [Fact]
-    public async Task TheDeclaredDurationIsWhatIsStored() {
+    public async Task TheDeclaredDurationIsWhatIsStored()
+    {
         var store = new CacheTestSupport.RecordingStore();
 
         await Pipeline.Chain(Context(store), Filter(duration: 300), Writing("catalog")).Next();
@@ -206,14 +251,16 @@ public class ResponseCacheFilterTests {
     }
 
     [Fact]
-    public async Task NoDeclaredDurationIsSixtySeconds() {
+    public async Task NoDeclaredDurationIsSixtySeconds()
+    {
         var store = new CacheTestSupport.RecordingStore();
 
         await Pipeline.Chain(Context(store), Filter(), Writing("catalog")).Next();
 
         Assert.Equal(
             TimeSpan.FromSeconds(ResponseCacheFilter.DefaultDuration),
-            Assert.Single(store.Writes).Duration);
+            Assert.Single(store.Writes).Duration
+        );
     }
 
     /// <summary>
@@ -225,14 +272,22 @@ public class ResponseCacheFilterTests {
     [InlineData(500)]
     [InlineData(302)]
     [InlineData(304)]
-    public async Task OnlyA200IsStored(int status) {
+    public async Task OnlyA200IsStored(int status)
+    {
         var store = new CacheTestSupport.RecordingStore();
 
-        await Pipeline.Chain(Context(store), Filter(), new Pipeline.Inline(chain => {
-            chain.Context.Response.Status = status;
+        await Pipeline
+            .Chain(
+                Context(store),
+                Filter(),
+                new Pipeline.Inline(chain =>
+                {
+                    chain.Context.Response.Status = status;
 
-            return Task.CompletedTask;
-        })).Next();
+                    return Task.CompletedTask;
+                })
+            )
+            .Next();
 
         Assert.Empty(store.Writes);
     }
@@ -242,15 +297,25 @@ public class ResponseCacheFilterTests {
     /// the client - the buffer is copied out in a <c>finally</c>, so a failure is not an empty body.
     /// </summary>
     [Fact]
-    public async Task AFailedResponseIsWrittenAndNotStored() {
+    public async Task AFailedResponseIsWrittenAndNotStored()
+    {
         var store = new CacheTestSupport.RecordingStore();
         var context = Context(store);
 
-        await Pipeline.Chain(context, Filter(), new Pipeline.Inline(async chain => {
-            await Write(chain.Context, "it broke");
+        await Pipeline
+            .Chain(
+                context,
+                Filter(),
+                new Pipeline.Inline(async chain =>
+                {
+                    await Write(chain.Context, "it broke");
 
-            chain.Context.Response.ExceptionValue = new InvalidOperationException("it broke");
-        })).Next();
+                    chain.Context.Response.ExceptionValue = new InvalidOperationException(
+                        "it broke"
+                    );
+                })
+            )
+            .Next();
 
         Assert.Equal("it broke", BodyOf(context));
         Assert.Empty(store.Writes);
@@ -261,15 +326,21 @@ public class ResponseCacheFilterTests {
     /// nobody reads.
     /// </summary>
     [Fact]
-    public async Task AThrowingChainStillWritesWhatItHadWritten() {
+    public async Task AThrowingChainStillWritesWhatItHadWritten()
+    {
         var store = new CacheTestSupport.RecordingStore();
         var context = Context(store);
 
-        var chain = Pipeline.Chain(context, Filter(), new Pipeline.Inline(async chain => {
-            await Write(chain.Context, "partial");
+        var chain = Pipeline.Chain(
+            context,
+            Filter(),
+            new Pipeline.Inline(async chain =>
+            {
+                await Write(chain.Context, "partial");
 
-            throw new InvalidOperationException("it broke");
-        }));
+                throw new InvalidOperationException("it broke");
+            })
+        );
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => chain.Next());
 
@@ -281,10 +352,15 @@ public class ResponseCacheFilterTests {
     /// method and path are in front of every key.
     /// </summary>
     [Fact]
-    public async Task TwoHandlersKeyedAlikeDoNotShareEntries() {
+    public async Task TwoHandlersKeyedAlikeDoNotShareEntries()
+    {
         var store = new CacheTestSupport.RecordingStore();
 
-        var catalog = new ResponseCacheFilter([new CacheTestSupport.FixedKey()], "GET /catalog", 60);
+        var catalog = new ResponseCacheFilter(
+            [new CacheTestSupport.FixedKey()],
+            "GET /catalog",
+            60
+        );
         var basket = new ResponseCacheFilter([new CacheTestSupport.FixedKey()], "GET /basket", 60);
 
         await Pipeline.Chain(Context(store), catalog, Writing("catalog")).Next();
@@ -306,13 +382,15 @@ public class ResponseCacheFilterTests {
     /// caller got a 500 with Content-Length: 0.
     /// </remarks>
     [Fact]
-    public async Task NoRegisteredStoreNamesTheHandler() {
+    public async Task NoRegisteredStoreNamesTheHandler()
+    {
         var context = Pipeline.Context();
 
         await Pipeline.Chain(context, Filter(), Writing("catalog")).Next();
 
-        var exception =
-            Assert.IsType<ResponseCacheStoreMissingException>(context.Response.ExceptionValue);
+        var exception = Assert.IsType<ResponseCacheStoreMissingException>(
+            context.Response.ExceptionValue
+        );
 
         Assert.Equal("GET /catalog", exception.Handler);
         Assert.Contains("Hardened.Requests.Caching.Memory", exception.Message);
@@ -323,14 +401,22 @@ public class ResponseCacheFilterTests {
     /// the framework's error envelope instead of a bodyless 500.
     /// </summary>
     [Fact]
-    public async Task NoRegisteredStoreStillReachesTheFilterThatWritesIt() {
+    public async Task NoRegisteredStoreStillReachesTheFilterThatWritesIt()
+    {
         var reached = false;
 
-        await Pipeline.Chain(Pipeline.Context(), Filter(), new Pipeline.Inline(_ => {
-            reached = true;
+        await Pipeline
+            .Chain(
+                Pipeline.Context(),
+                Filter(),
+                new Pipeline.Inline(_ =>
+                {
+                    reached = true;
 
-            return Task.CompletedTask;
-        })).Next();
+                    return Task.CompletedTask;
+                })
+            )
+            .Next();
 
         Assert.True(reached);
     }
@@ -355,16 +441,24 @@ public class ResponseCacheFilterTests {
     [InlineData(KnownHeaders.Upgrade, "websocket")]
     [InlineData(KnownHeaders.Date, "Wed, 03 Sep 2026 09:00:00 GMT")]
     [InlineData(KnownHeaders.Server, "Kestrel")]
-    public async Task ATransportHeaderIsNeverStored(string name, string value) {
+    public async Task ATransportHeaderIsNeverStored(string name, string value)
+    {
         var store = new CacheTestSupport.RecordingStore();
 
         // Set inside the chain, which is where the transport sets it: the body is copied to the
         // real stream in CaptureAndStore's finally, and framing is decided by that write.
-        await Pipeline.Chain(Context(store), Filter(), new Pipeline.Inline(chain => {
-            chain.Context.Response.Headers[name] = new StringValues(value);
+        await Pipeline
+            .Chain(
+                Context(store),
+                Filter(),
+                new Pipeline.Inline(chain =>
+                {
+                    chain.Context.Response.Headers[name] = new StringValues(value);
 
-            return Task.CompletedTask;
-        })).Next();
+                    return Task.CompletedTask;
+                })
+            )
+            .Next();
 
         var second = Context(store);
 
@@ -384,7 +478,8 @@ public class ResponseCacheFilterTests {
     /// <c>RateLimit-Remaining</c>.
     /// </remarks>
     [Fact]
-    public async Task AHeaderTheChainDidNotWriteIsNotStored() {
+    public async Task AHeaderTheChainDidNotWriteIsNotStored()
+    {
         var store = new CacheTestSupport.RecordingStore();
         var first = Context(store);
 
@@ -405,18 +500,27 @@ public class ResponseCacheFilterTests {
     /// A header the chain changed is stored, because a miss would have changed it the same way.
     /// </summary>
     [Fact]
-    public async Task AHeaderTheChainChangedIsStored() {
+    public async Task AHeaderTheChainChangedIsStored()
+    {
         var store = new CacheTestSupport.RecordingStore();
         var first = Context(store);
 
         first.Response.Headers[KnownHeaders.CacheControl] = new StringValues("no-store");
 
-        await Pipeline.Chain(first, Filter(), new Pipeline.Inline(chain => {
-            chain.Context.Response.Headers[KnownHeaders.CacheControl] =
-                new StringValues("public, max-age=60");
+        await Pipeline
+            .Chain(
+                first,
+                Filter(),
+                new Pipeline.Inline(chain =>
+                {
+                    chain.Context.Response.Headers[KnownHeaders.CacheControl] = new StringValues(
+                        "public, max-age=60"
+                    );
 
-            return Task.CompletedTask;
-        })).Next();
+                    return Task.CompletedTask;
+                })
+            )
+            .Next();
 
         var second = Context(store);
 
@@ -437,7 +541,8 @@ public class ResponseCacheFilterTests {
     /// permitted caller had filled.
     /// </remarks>
     [Fact]
-    public async Task ARefusedRequestIsNotAnsweredFromTheStore() {
+    public async Task ARefusedRequestIsNotAnsweredFromTheStore()
+    {
         var store = new CacheTestSupport.RecordingStore();
 
         await Pipeline.Chain(Context(store), Filter(), Writing("secret")).Next();
@@ -462,7 +567,8 @@ public class ResponseCacheFilterTests {
     /// The refusal survives the stage, so the filter behind still has one to write.
     /// </summary>
     [Fact]
-    public async Task ARefusedRequestKeepsItsRefusal() {
+    public async Task ARefusedRequestKeepsItsRefusal()
+    {
         var store = new CacheTestSupport.RecordingStore();
         var refusal = new UnauthorizedAccessException("no grant");
         var context = Context(store);
@@ -479,18 +585,26 @@ public class ResponseCacheFilterTests {
     /// write the refusal. Returning here instead would answer nothing at all.
     /// </summary>
     [Fact]
-    public async Task ARefusedRequestStillReachesTheFilterThatWritesIt() {
+    public async Task ARefusedRequestStillReachesTheFilterThatWritesIt()
+    {
         var store = new CacheTestSupport.RecordingStore();
         var context = Context(store);
         var reached = false;
 
         context.Response.ExceptionValue = new UnauthorizedAccessException("no grant");
 
-        await Pipeline.Chain(context, Filter(), new Pipeline.Inline(_ => {
-            reached = true;
+        await Pipeline
+            .Chain(
+                context,
+                Filter(),
+                new Pipeline.Inline(_ =>
+                {
+                    reached = true;
 
-            return Task.CompletedTask;
-        })).Next();
+                    return Task.CompletedTask;
+                })
+            )
+            .Next();
 
         Assert.True(reached);
     }
@@ -500,7 +614,8 @@ public class ResponseCacheFilterTests {
     /// to make is one the next caller would hit.
     /// </summary>
     [Fact]
-    public async Task ARefusedRequestIsNotStored() {
+    public async Task ARefusedRequestIsNotStored()
+    {
         var store = new CacheTestSupport.RecordingStore();
         var context = Context(store);
 
@@ -519,11 +634,11 @@ public class ResponseCacheFilterTests {
     /// to: the entry belongs to the caller it was filled for.
     /// </remarks>
     [Fact]
-    public async Task PerCallerAnswersEachCallerFromTheirOwnEntry() {
+    public async Task PerCallerAnswersEachCallerFromTheirOwnEntry()
+    {
         var store = new CacheTestSupport.RecordingStore();
 
-        await Pipeline.Chain(
-            AsCaller(store, "subscriber-one"), PerCaller(), Writing("one")).Next();
+        await Pipeline.Chain(AsCaller(store, "subscriber-one"), PerCaller(), Writing("one")).Next();
 
         var other = AsCaller(store, "subscriber-two");
 
@@ -536,19 +651,18 @@ public class ResponseCacheFilterTests {
     /// And the same caller twice is still a hit, so the feature survives being made safe.
     /// </summary>
     [Fact]
-    public async Task PerCallerStillAnswersTheSameCallerFromTheStore() {
+    public async Task PerCallerStillAnswersTheSameCallerFromTheStore()
+    {
         var store = new CacheTestSupport.RecordingStore();
         var ran = 0;
 
-        await Pipeline.Chain(
-            AsCaller(store, "subscriber-one"),
-            PerCaller(),
-            Writing("one", () => ran++)).Next();
+        await Pipeline
+            .Chain(AsCaller(store, "subscriber-one"), PerCaller(), Writing("one", () => ran++))
+            .Next();
 
-        await Pipeline.Chain(
-            AsCaller(store, "subscriber-one"),
-            PerCaller(),
-            Writing("one", () => ran++)).Next();
+        await Pipeline
+            .Chain(AsCaller(store, "subscriber-one"), PerCaller(), Writing("one", () => ran++))
+            .Next();
 
         Assert.Equal(1, ran);
     }
@@ -558,11 +672,13 @@ public class ResponseCacheFilterTests {
     /// one is the application where that matters.
     /// </summary>
     [Fact]
-    public async Task PerCallerSeparatesTheSameSubjectFromTwoIssuers() {
+    public async Task PerCallerSeparatesTheSameSubjectFromTwoIssuers()
+    {
         var store = new CacheTestSupport.RecordingStore();
 
-        await Pipeline.Chain(
-            AsCaller(store, "subject", issuer: "https://first"), PerCaller(), Writing("one")).Next();
+        await Pipeline
+            .Chain(AsCaller(store, "subject", issuer: "https://first"), PerCaller(), Writing("one"))
+            .Next();
 
         var other = AsCaller(store, "subject", issuer: "https://second");
 
@@ -576,7 +692,8 @@ public class ResponseCacheFilterTests {
     /// shared one this scope exists to refuse. So the request is neither looked up nor stored.
     /// </summary>
     [Fact]
-    public async Task PerCallerLeavesACallerWithNoSubjectUncached() {
+    public async Task PerCallerLeavesACallerWithNoSubjectUncached()
+    {
         var store = new CacheTestSupport.RecordingStore();
         var context = Context(store);
 
@@ -592,7 +709,8 @@ public class ResponseCacheFilterTests {
     /// send back, and into the entry, so a hit carries the same one.
     /// </summary>
     [Fact]
-    public async Task AMissIsTaggedWithAValidatorOverTheBytesItStored() {
+    public async Task AMissIsTaggedWithAValidatorOverTheBytesItStored()
+    {
         var store = new CacheTestSupport.RecordingStore();
         var context = Context(store);
 
@@ -614,10 +732,15 @@ public class ResponseCacheFilterTests {
     /// under one handler are two.
     /// </summary>
     [Fact]
-    public async Task TheTagFollowsTheBytes() {
+    public async Task TheTagFollowsTheBytes()
+    {
         var store = new CacheTestSupport.RecordingStore();
 
-        var catalog = new ResponseCacheFilter([new CacheTestSupport.FixedKey()], "GET /catalog", 60);
+        var catalog = new ResponseCacheFilter(
+            [new CacheTestSupport.FixedKey()],
+            "GET /catalog",
+            60
+        );
         var basket = new ResponseCacheFilter([new CacheTestSupport.FixedKey()], "GET /basket", 60);
         var other = new ResponseCacheFilter([new CacheTestSupport.FixedKey()], "GET /other", 60);
 
@@ -631,10 +754,12 @@ public class ResponseCacheFilterTests {
 
         Assert.Equal(
             first.Response.Headers[KnownHeaders.ETag].ToString(),
-            same.Response.Headers[KnownHeaders.ETag].ToString());
+            same.Response.Headers[KnownHeaders.ETag].ToString()
+        );
         Assert.NotEqual(
             first.Response.Headers[KnownHeaders.ETag].ToString(),
-            different.Response.Headers[KnownHeaders.ETag].ToString());
+            different.Response.Headers[KnownHeaders.ETag].ToString()
+        );
     }
 
     /// <summary>
@@ -642,15 +767,23 @@ public class ResponseCacheFilterTests {
     /// resource does, not when the serializer does - so it is kept, on the miss and in the entry.
     /// </summary>
     [Fact]
-    public async Task AHandlerThatSetsItsOwnTagKeepsIt() {
+    public async Task AHandlerThatSetsItsOwnTagKeepsIt()
+    {
         var store = new CacheTestSupport.RecordingStore();
         var first = Context(store);
 
-        await Pipeline.Chain(first, Filter(), new Pipeline.Inline(async chain => {
-            chain.Context.Response.Headers[KnownHeaders.ETag] = new StringValues("\"v7\"");
+        await Pipeline
+            .Chain(
+                first,
+                Filter(),
+                new Pipeline.Inline(async chain =>
+                {
+                    chain.Context.Response.Headers[KnownHeaders.ETag] = new StringValues("\"v7\"");
 
-            await Write(chain.Context, "catalog");
-        })).Next();
+                    await Write(chain.Context, "catalog");
+                })
+            )
+            .Next();
 
         var second = Context(store);
 
@@ -667,15 +800,23 @@ public class ResponseCacheFilterTests {
     [Theory]
     [InlineData(404)]
     [InlineData(500)]
-    public async Task AResponseThatIsNotStoredIsNotTagged(int status) {
+    public async Task AResponseThatIsNotStoredIsNotTagged(int status)
+    {
         var store = new CacheTestSupport.RecordingStore();
         var context = Context(store);
 
-        await Pipeline.Chain(context, Filter(), new Pipeline.Inline(async chain => {
-            chain.Context.Response.Status = status;
+        await Pipeline
+            .Chain(
+                context,
+                Filter(),
+                new Pipeline.Inline(async chain =>
+                {
+                    chain.Context.Response.Status = status;
 
-            await Write(chain.Context, "gone");
-        })).Next();
+                    await Write(chain.Context, "gone");
+                })
+            )
+            .Next();
 
         Assert.False(context.Response.Headers.ContainsKey(KnownHeaders.ETag));
     }
@@ -684,7 +825,11 @@ public class ResponseCacheFilterTests {
         new([new CacheTestSupport.FixedKey()], "GET /catalog", 60, CacheScope.PerCaller);
 
     private static IExecutionContext AsCaller(
-        CacheTestSupport.RecordingStore store, string subject, string? issuer = null) {
+        CacheTestSupport.RecordingStore store,
+        string subject,
+        string? issuer = null
+    )
+    {
         var context = Context(store);
 
         context.CallerPrincipal = new CallerPrincipal("test", subject: subject, issuer: issuer);
@@ -693,13 +838,15 @@ public class ResponseCacheFilterTests {
     }
 
     private static Pipeline.Inline Writing(string body, Action? onRun = null) =>
-        new(async chain => {
+        new(async chain =>
+        {
             onRun?.Invoke();
 
             await Write(chain.Context, body);
         });
 
-    private static Task Write(IExecutionContext context, string body) {
+    private static Task Write(IExecutionContext context, string body)
+    {
         var bytes = Encoding.UTF8.GetBytes(body);
 
         return context.Response.Body.WriteAsync(bytes, 0, bytes.Length, context.CancellationToken);

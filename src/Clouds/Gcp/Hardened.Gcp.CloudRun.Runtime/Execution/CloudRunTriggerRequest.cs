@@ -34,7 +34,8 @@ namespace Hardened.Gcp.CloudRun.Runtime.Execution;
 /// the request. Such a subclass overrides <see cref="Clone"/> so a fork keeps what it carries.
 /// </para>
 /// </remarks>
-public class CloudRunTriggerRequest : IExecutionRequest {
+public class CloudRunTriggerRequest : IExecutionRequest
+{
     private IPathTokenCollection? _pathTokens;
 
     /// <param name="scheme">The trigger scheme - <c>QUEUE</c>, <c>TOPIC</c>, <c>EVENT</c>, <c>TIMER</c>.</param>
@@ -47,9 +48,10 @@ public class CloudRunTriggerRequest : IExecutionRequest {
         string path,
         Stream body,
         IDictionary<string, StringValues> headers,
-        IExecutionRequest delivery)
-        : this(scheme, path, body, headers, delivery, new CloudRunTransportInfo(delivery.Transport)) {
-    }
+        IExecutionRequest delivery
+    )
+        : this(scheme, path, body, headers, delivery, new CloudRunTransportInfo(delivery.Transport))
+    { }
 
     /// <summary>For a clone, and for a subclass: the transport is shared rather than built again.</summary>
     protected CloudRunTriggerRequest(
@@ -58,7 +60,9 @@ public class CloudRunTriggerRequest : IExecutionRequest {
         Stream body,
         IDictionary<string, StringValues> headers,
         IExecutionRequest delivery,
-        ITransportInfo transport) {
+        ITransportInfo transport
+    )
+    {
         Method = scheme;
         Path = path;
         Body = body;
@@ -89,7 +93,8 @@ public class CloudRunTriggerRequest : IExecutionRequest {
     /// <summary>Nothing. A message carries no query string.</summary>
     public IQueryStringCollection QueryString => EmptyQueryStringCollection.Instance;
 
-    public IPathTokenCollection PathTokens {
+    public IPathTokenCollection PathTokens
+    {
         get => _pathTokens ?? PathTokenCollection.Empty;
         set => _pathTokens = value;
     }
@@ -113,9 +118,18 @@ public class CloudRunTriggerRequest : IExecutionRequest {
         string? path = null,
         IDictionary<string, StringValues>? headers = null,
         IQueryStringCollection? queryString = null,
-        IReadOnlyList<string>? cookies = null) =>
-        CopyInto(new CloudRunTriggerRequest(
-            method ?? Method, path ?? Path, Body, headers ?? Headers, Delivery, Transport));
+        IReadOnlyList<string>? cookies = null
+    ) =>
+        CopyInto(
+            new CloudRunTriggerRequest(
+                method ?? Method,
+                path ?? Path,
+                Body,
+                headers ?? Headers,
+                Delivery,
+                Transport
+            )
+        );
 
     /// <summary>
     /// What every clone carries besides its constructor arguments: its own parameters, and the
@@ -125,7 +139,9 @@ public class CloudRunTriggerRequest : IExecutionRequest {
     /// <c>Parameters?.Clone()</c>, not the same instance: a forked chain rebinds its own
     /// parameters, and sharing them would let one fork overwrite another's. Null stays null.
     /// </remarks>
-    protected TRequest CopyInto<TRequest>(TRequest clone) where TRequest : CloudRunTriggerRequest {
+    protected TRequest CopyInto<TRequest>(TRequest clone)
+        where TRequest : CloudRunTriggerRequest
+    {
         clone.Parameters = Parameters?.Clone();
         clone.PathTokens = PathTokens;
 

@@ -17,8 +17,10 @@ namespace Hardened.Aws.Lambda.Sns;
 /// </remarks>
 [DependencyModule]
 [LambdaRuntimeModule]
-public partial class SnsModule : IServiceCollectionConfiguration {
-    public void ConfigureServices(IServiceCollection services) {
+public partial class SnsModule : IServiceCollectionConfiguration
+{
+    public void ConfigureServices(IServiceCollection services)
+    {
         services.AddSingleton<IPayloadAdapter, SnsAdapter>();
 
         services.AddBatchExecutionFilter();

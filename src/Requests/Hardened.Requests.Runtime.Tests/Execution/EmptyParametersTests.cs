@@ -20,26 +20,30 @@ namespace Hardened.Requests.Runtime.Tests.Execution;
 /// another's.
 /// </para>
 /// </remarks>
-public class EmptyParametersTests {
-
+public class EmptyParametersTests
+{
     [Fact]
-    public void ParameterCountIsZero() {
+    public void ParameterCountIsZero()
+    {
         Assert.Equal(0, EmptyParameters.Instance.ParameterCount);
     }
 
     [Fact]
-    public void InfoIsEmptyRatherThanNull() {
+    public void InfoIsEmptyRatherThanNull()
+    {
         Assert.Empty(EmptyParameters.Instance.Info);
     }
 
     [Fact]
-    public void TryGetParameterFindsNothingAndYieldsNull() {
+    public void TryGetParameterFindsNothingAndYieldsNull()
+    {
         Assert.False(EmptyParameters.Instance.TryGetParameter("anything", out var value));
         Assert.Null(value);
     }
 
     [Fact]
-    public void TrySetParameterRefusesRatherThanThrowing() {
+    public void TrySetParameterRefusesRatherThanThrowing()
+    {
         Assert.False(EmptyParameters.Instance.TrySetParameter("anything", "value"));
     }
 
@@ -47,19 +51,22 @@ public class EmptyParametersTests {
     [InlineData(0)]
     [InlineData(1)]
     [InlineData(-1)]
-    public void IndexingThrowsAtEveryIndex(int index) {
+    public void IndexingThrowsAtEveryIndex(int index)
+    {
         Assert.Throws<IndexOutOfRangeException>(() => EmptyParameters.Instance[index]);
     }
 
     [Theory]
     [InlineData(0)]
     [InlineData(-1)]
-    public void AssigningByIndexThrows(int index) {
+    public void AssigningByIndexThrows(int index)
+    {
         Assert.Throws<IndexOutOfRangeException>(() => EmptyParameters.Instance[index] = "value");
     }
 
     [Fact]
-    public void InstanceIsShared() {
+    public void InstanceIsShared()
+    {
         Assert.Same(EmptyParameters.Instance, EmptyParameters.Instance);
     }
 
@@ -68,7 +75,8 @@ public class EmptyParametersTests {
     /// must not hand back something a second request could write into.
     /// </summary>
     [Fact]
-    public void CloneIsTheSameInstance() {
+    public void CloneIsTheSameInstance()
+    {
         IExecutionRequestParameters parameters = EmptyParameters.Instance;
 
         Assert.Same(parameters, parameters.Clone());

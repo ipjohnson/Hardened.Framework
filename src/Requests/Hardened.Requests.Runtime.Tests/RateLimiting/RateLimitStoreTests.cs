@@ -12,19 +12,23 @@ namespace Hardened.Requests.Runtime.Tests.RateLimiting;
 /// <summary>
 /// The in-process store, and the seam that lets an application replace it.
 /// </summary>
-public class RateLimitStoreTests {
-
+public class RateLimitStoreTests
+{
     private static InProcessRateLimitStore Store(RateLimitConfiguration? config = null) =>
         new(config ?? new RateLimitConfiguration());
 
-    private static readonly RateLimitPolicy Small =
-        new(PermitLimit: 3, Window: TimeSpan.FromMinutes(5));
+    private static readonly RateLimitPolicy Small = new(
+        PermitLimit: 3,
+        Window: TimeSpan.FromMinutes(5)
+    );
 
     [Fact]
-    public async Task Acquire_AllowsUpToTheLimit() {
+    public async Task Acquire_AllowsUpToTheLimit()
+    {
         var store = Store();
 
-        for (var i = 0; i < 3; i++) {
+        for (var i = 0; i < 3; i++)
+        {
             var decision = await store.Acquire("caller", Small, CancellationToken.None);
 
             Assert.True(decision.Allowed);
@@ -32,10 +36,12 @@ public class RateLimitStoreTests {
     }
 
     [Fact]
-    public async Task Acquire_RefusesPastTheLimit() {
+    public async Task Acquire_RefusesPastTheLimit()
+    {
         var store = Store();
 
-        for (var i = 0; i < 3; i++) {
+        for (var i = 0; i < 3; i++)
+        {
             await store.Acquire("caller", Small, CancellationToken.None);
         }
 
@@ -48,10 +54,12 @@ public class RateLimitStoreTests {
 
     /// <summary>One caller exhausting its allowance does not refuse anybody else.</summary>
     [Fact]
-    public async Task Acquire_CountsEachPartitionSeparately() {
+    public async Task Acquire_CountsEachPartitionSeparately()
+    {
         var store = Store();
 
-        for (var i = 0; i < 3; i++) {
+        for (var i = 0; i < 3; i++)
+        {
             await store.Acquire("noisy", Small, CancellationToken.None);
         }
 
@@ -64,13 +72,15 @@ public class RateLimitStoreTests {
     /// on the same caller must not spend each other's permits.
     /// </summary>
     [Fact]
-    public async Task Acquire_CountsEachNamedPolicySeparately() {
+    public async Task Acquire_CountsEachNamedPolicySeparately()
+    {
         var store = Store();
 
         var burst = new RateLimitPolicy(3, TimeSpan.FromMinutes(5), "burst");
         var hourly = new RateLimitPolicy(3, TimeSpan.FromMinutes(5), "hourly");
 
-        for (var i = 0; i < 3; i++) {
+        for (var i = 0; i < 3; i++)
+        {
             await store.Acquire("caller", burst, CancellationToken.None);
         }
 
@@ -84,7 +94,8 @@ public class RateLimitStoreTests {
     /// into an outage.
     /// </summary>
     [Fact]
-    public async Task Acquire_FailsOpenOnceThePartitionCapIsReached() {
+    public async Task Acquire_FailsOpenOnceThePartitionCapIsReached()
+    {
         var store = Store(new RateLimitConfiguration { MaxTrackedPartitions = 2 });
 
         // Fill the table.
@@ -92,13 +103,15 @@ public class RateLimitStoreTests {
         await store.Acquire("b", Small, CancellationToken.None);
 
         // A partition beyond the cap is allowed however many times it asks.
-        for (var i = 0; i < 10; i++) {
+        for (var i = 0; i < 10; i++)
+        {
             Assert.True((await store.Acquire("c", Small, CancellationToken.None)).Allowed);
         }
     }
 
     [Fact]
-    public async Task Acquire_ReportsWhatIsLeftOfTheAllowance() {
+    public async Task Acquire_ReportsWhatIsLeftOfTheAllowance()
+    {
         var store = Store();
 
         var first = await store.Acquire("caller", Small, CancellationToken.None);
@@ -114,9 +127,13 @@ public class RateLimitStoreTests {
     /// framework change.
     /// </summary>
     [Fact]
-    public void TheDefaultStoreIsRegisteredSoAnApplicationCanReplaceIt() {
-        var attribute = (SingletonServiceAttribute)Attribute.GetCustomAttribute(
-            typeof(InProcessRateLimitStore), typeof(SingletonServiceAttribute))!;
+    public void TheDefaultStoreIsRegisteredSoAnApplicationCanReplaceIt()
+    {
+        var attribute = (SingletonServiceAttribute)
+            Attribute.GetCustomAttribute(
+                typeof(InProcessRateLimitStore),
+                typeof(SingletonServiceAttribute)
+            )!;
 
         Assert.Equal(RegistrationType.Try, attribute.Using);
     }
@@ -126,7 +143,8 @@ public class RateLimitStoreTests {
     /// order is not something an application controls.
     /// </summary>
     [Fact]
-    public void AnApplicationsOwnStoreWinsWhicheverOrderTheModulesLoadIn() {
+    public void AnApplicationsOwnStoreWinsWhicheverOrderTheModulesLoadIn()
+    {
         var frameworkFirst = new ServiceCollection();
 
         frameworkFirst.TryAddSingleton<IRateLimitStore, InProcessRateLimitStore>();
@@ -137,11 +155,13 @@ public class RateLimitStoreTests {
         applicationFirst.AddSingleton<IRateLimitStore, ReplacementStore>();
         applicationFirst.TryAddSingleton<IRateLimitStore, InProcessRateLimitStore>();
 
-        foreach (var services in new[] { frameworkFirst, applicationFirst }) {
+        foreach (var services in new[] { frameworkFirst, applicationFirst })
+        {
             services.TryAddSingleton(new RateLimitConfiguration());
 
             Assert.IsType<ReplacementStore>(
-                services.BuildServiceProvider().GetRequiredService<IRateLimitStore>());
+                services.BuildServiceProvider().GetRequiredService<IRateLimitStore>()
+            );
         }
     }
 
@@ -151,7 +171,8 @@ public class RateLimitStoreTests {
     /// default is still constructed by anything that enumerates.
     /// </summary>
     [Fact]
-    public void ReplaceLeavesExactlyOneRegistration() {
+    public void ReplaceLeavesExactlyOneRegistration()
+    {
         var services = new ServiceCollection();
 
         services.TryAddSingleton<IRateLimitStore, InProcessRateLimitStore>();
@@ -164,17 +185,21 @@ public class RateLimitStoreTests {
         Assert.IsType<ReplacementStore>(all[0]);
     }
 
-    private sealed class ReplacementStore : IRateLimitStore {
+    private sealed class ReplacementStore : IRateLimitStore
+    {
         public ValueTask<RateLimitDecision> Acquire(
-            string partition, RateLimitPolicy policy, CancellationToken cancellationToken) =>
-            new(RateLimitDecision.Allow(policy.PermitLimit, policy.PermitLimit));
+            string partition,
+            RateLimitPolicy policy,
+            CancellationToken cancellationToken
+        ) => new(RateLimitDecision.Allow(policy.PermitLimit, policy.PermitLimit));
     }
 
     // ----------------------------------------------------------- partitioner
 
     /// <summary>An authenticated caller is counted as themselves.</summary>
     [Fact]
-    public void Partition_UsesTheAuthenticatedSubject() {
+    public void Partition_UsesTheAuthenticatedSubject()
+    {
         var principal = Substitute.For<ICallerPrincipal>();
 
         principal.IsAuthenticated.Returns(true);
@@ -186,7 +211,8 @@ public class RateLimitStoreTests {
 
         Assert.Equal(
             "sub:user-7",
-            new DefaultRateLimitPartitioner(new RateLimitConfiguration()).Partition(context));
+            new DefaultRateLimitPartitioner(new RateLimitConfiguration()).Partition(context)
+        );
     }
 
     /// <summary>
@@ -194,13 +220,15 @@ public class RateLimitStoreTests {
     /// callers can partition them without this needing a remote address it does not have.
     /// </summary>
     [Fact]
-    public void Partition_FallsBackToTheConfiguredHeader() {
+    public void Partition_FallsBackToTheConfiguredHeader()
+    {
         var context = Pipeline.Context();
 
         context.Request.Headers["X-Api-Key"] = "key-abc";
 
         var partitioner = new DefaultRateLimitPartitioner(
-            new RateLimitConfiguration { PartitionHeader = "X-Api-Key" });
+            new RateLimitConfiguration { PartitionHeader = "X-Api-Key" }
+        );
 
         Assert.Equal("X-Api-Key:key-abc", partitioner.Partition(context));
     }
@@ -211,13 +239,18 @@ public class RateLimitStoreTests {
     /// leak wearing a limiter's name.
     /// </summary>
     [Fact]
-    public void Partition_PutsEveryUnattributableRequestInOneBucket() {
+    public void Partition_PutsEveryUnattributableRequestInOneBucket()
+    {
         var partitioner = new DefaultRateLimitPartitioner(new RateLimitConfiguration());
 
         Assert.Equal(
-            DefaultRateLimitPartitioner.Anonymous, partitioner.Partition(Pipeline.Context()));
+            DefaultRateLimitPartitioner.Anonymous,
+            partitioner.Partition(Pipeline.Context())
+        );
         Assert.Equal(
-            DefaultRateLimitPartitioner.Anonymous, partitioner.Partition(Pipeline.Context()));
+            DefaultRateLimitPartitioner.Anonymous,
+            partitioner.Partition(Pipeline.Context())
+        );
     }
 
     /// <summary>
@@ -225,11 +258,15 @@ public class RateLimitStoreTests {
     /// the shared bucket rather than to an empty key that every such caller would share silently.
     /// </summary>
     [Fact]
-    public void Partition_FallsBackWhenTheConfiguredHeaderIsAbsent() {
+    public void Partition_FallsBackWhenTheConfiguredHeaderIsAbsent()
+    {
         var partitioner = new DefaultRateLimitPartitioner(
-            new RateLimitConfiguration { PartitionHeader = "X-Api-Key" });
+            new RateLimitConfiguration { PartitionHeader = "X-Api-Key" }
+        );
 
         Assert.Equal(
-            DefaultRateLimitPartitioner.Anonymous, partitioner.Partition(Pipeline.Context()));
+            DefaultRateLimitPartitioner.Anonymous,
+            partitioner.Partition(Pipeline.Context())
+        );
     }
 }

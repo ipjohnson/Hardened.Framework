@@ -2,9 +2,9 @@ using Hardened.Requests.Abstract.Responses;
 using Hardened.SourceGeneration.Testing;
 using Hardened.SourceGenerator.Requests;
 using Hardened.Web.Runtime.Attributes;
+using Hardened.Web.Runtime.Responses;
 using Microsoft.CodeAnalysis;
 using Xunit;
-using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.SourceGenerator.Tests;
 
@@ -25,37 +25,36 @@ namespace Hardened.Web.SourceGenerator.Tests;
 /// about the value arriving, not about the parser being right.
 /// </para>
 /// </remarks>
-public class ResponseModelGeneratorTests {
-
-    private static readonly Type[] Anchors = [
-        typeof(GetAttribute),
-        typeof(ResponseModelAttribute)
-    ];
+public class ResponseModelGeneratorTests
+{
+    private static readonly Type[] Anchors = [typeof(GetAttribute), typeof(ResponseModelAttribute)];
 
     /// <summary>
     /// A module with one ordinary handler, carrying whatever response-model attribute is given.
     /// </summary>
     private static GeneratorResult Generate(string? attribute) =>
         GeneratorTestHarness.Run(
-            new Dictionary<string, string> {
+            new Dictionary<string, string>
+            {
                 ["Test.cs"] = $$"""
-                    using Hardened.Shared.Runtime.Attributes;
-                    using Hardened.Web.Runtime.Attributes;
+                using Hardened.Shared.Runtime.Attributes;
+                using Hardened.Web.Runtime.Attributes;
 
-                    namespace TestApp;
+                namespace TestApp;
 
-                    [HardenedModule]
-                    {{attribute}}
-                    public partial class TestApplication { }
+                [HardenedModule]
+                {{attribute}}
+                public partial class TestApplication { }
 
-                    public class UserController {
-                        [Get("/users/{id}")]
-                        public string ById(string id) => id;
-                    }
-                    """
+                public class UserController {
+                    [Get("/users/{id}")]
+                    public string ById(string id) => id;
+                }
+                """,
             },
             new IIncrementalGenerator[] { new WebLibrarySourceGenerator() },
-            Anchors);
+            Anchors
+        );
 
     private static Diagnostic? Reported(GeneratorResult result, string id) =>
         result.GeneratorDiagnostics.FirstOrDefault(diagnostic => diagnostic.Id == id);
@@ -64,7 +63,9 @@ public class ResponseModelGeneratorTests {
     /// No error at all. Every mode is emitted now, so a module declaring one has nothing to be told.
     /// </summary>
     private static void AssertNoModeDiagnostics(GeneratorResult result) =>
-        Assert.Empty(result.GeneratorDiagnostics.Where(d => d.Severity == DiagnosticSeverity.Error));
+        Assert.Empty(
+            result.GeneratorDiagnostics.Where(d => d.Severity == DiagnosticSeverity.Error)
+        );
 
     #region the modes that build
 
@@ -72,7 +73,8 @@ public class ResponseModelGeneratorTests {
     /// Every application that has never heard of this attribute keeps building exactly as it did.
     /// </summary>
     [Fact]
-    public void AnEntryPointWithNoAttribute_BuildsWithNoDiagnostic() {
+    public void AnEntryPointWithNoAttribute_BuildsWithNoDiagnostic()
+    {
         AssertNoModeDiagnostics(Generate(attribute: null));
     }
 
@@ -80,10 +82,14 @@ public class ResponseModelGeneratorTests {
     /// Saying Throws is a choice, and a choice that works. It must not be told anything.
     /// </summary>
     [Fact]
-    public void AnExplicitThrows_BuildsWithNoDiagnostic() {
-        AssertNoModeDiagnostics(Generate(
-            "[Hardened.Requests.Abstract.Responses.ResponseModel(" +
-            "Hardened.Requests.Abstract.Responses.ResponseModel.Throws)]"));
+    public void AnExplicitThrows_BuildsWithNoDiagnostic()
+    {
+        AssertNoModeDiagnostics(
+            Generate(
+                "[Hardened.Requests.Abstract.Responses.ResponseModel("
+                    + "Hardened.Requests.Abstract.Responses.ResponseModel.Throws)]"
+            )
+        );
     }
 
     /// <summary>
@@ -92,10 +98,14 @@ public class ResponseModelGeneratorTests {
     /// nothing.
     /// </summary>
     [Fact]
-    public void TheRenamedStandardSpelling_StillBuildsWithNoModeDiagnostic() {
-        AssertNoModeDiagnostics(Generate(
-            "[Hardened.Requests.Abstract.Responses.ResponseModel(" +
-            "Hardened.Requests.Abstract.Responses.ResponseModel.Standard)]"));
+    public void TheRenamedStandardSpelling_StillBuildsWithNoModeDiagnostic()
+    {
+        AssertNoModeDiagnostics(
+            Generate(
+                "[Hardened.Requests.Abstract.Responses.ResponseModel("
+                    + "Hardened.Requests.Abstract.Responses.ResponseModel.Standard)]"
+            )
+        );
     }
 
     /// <summary>
@@ -103,10 +113,12 @@ public class ResponseModelGeneratorTests {
     /// disturb anything on the path that already worked.
     /// </summary>
     [Fact]
-    public void AnExplicitThrows_StillEmitsTheRoutingTable() {
+    public void AnExplicitThrows_StillEmitsTheRoutingTable()
+    {
         var result = Generate(
-            "[Hardened.Requests.Abstract.Responses.ResponseModel(" +
-            "Hardened.Requests.Abstract.Responses.ResponseModel.Throws)]");
+            "[Hardened.Requests.Abstract.Responses.ResponseModel("
+                + "Hardened.Requests.Abstract.Responses.ResponseModel.Throws)]"
+        );
 
         Assert.Contains(result.GeneratedSources, pair => pair.Key.Contains("Routing"));
     }
@@ -124,10 +136,12 @@ public class ResponseModelGeneratorTests {
     [Theory]
     [InlineData("Response")]
     [InlineData("Union")]
-    public void EveryMode_Builds(string mode) {
+    public void EveryMode_Builds(string mode)
+    {
         var result = Generate(
-            "[Hardened.Requests.Abstract.Responses.ResponseModel(" +
-            $"Hardened.Requests.Abstract.Responses.ResponseModel.{mode})]");
+            "[Hardened.Requests.Abstract.Responses.ResponseModel("
+                + $"Hardened.Requests.Abstract.Responses.ResponseModel.{mode})]"
+        );
 
         AssertNoModeDiagnostics(result);
         Assert.Contains(result.GeneratedSources, pair => pair.Key.Contains("Routing"));

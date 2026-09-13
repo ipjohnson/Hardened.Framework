@@ -5,35 +5,36 @@ using Hardened.Web.Runtime.Attributes;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Controllers;
 
-public class IntMathController {
-    
+public class IntMathController
+{
     [Post("/int/add")]
     [Retry(Retries = 4)]
-    public int Add(IMathService<int> mathService, MathAddModel model) {
+    public int Add(IMathService<int> mathService, MathAddModel model)
+    {
         return mathService.Add(model.Values?.ToArray() ?? Array.Empty<int>());
     }
-    
-    
+
     [Post("/int/subtract")]
-    public int Subtract(IMathService<int> mathService, MathAddModel model) {
+    public int Subtract(IMathService<int> mathService, MathAddModel model)
+    {
         return mathService.Add(model.Values?.ToArray() ?? Array.Empty<int>());
     }
-    
-    
+
     [Post("/int/subtract-test")]
-    public int SubtractTest(IMathService<int> mathService, MathAddModel model) {
+    public int SubtractTest(IMathService<int> mathService, MathAddModel model)
+    {
         return mathService.Add(model.Values?.ToArray() ?? Array.Empty<int>());
     }
-    
-    
+
     [Post("/int/subtract-test1")]
-    public int SubtractTest1(IMathService<int> mathService, MathAddModel model) {
+    public int SubtractTest1(IMathService<int> mathService, MathAddModel model)
+    {
         return mathService.Add(model.Values?.ToArray() ?? Array.Empty<int>());
     }
-    
-    
+
     [Post("/int/subtract-test2")]
-    public int SubtractTest2(IMathService<int> mathService, MathAddModel model) {
+    public int SubtractTest2(IMathService<int> mathService, MathAddModel model)
+    {
         return mathService.Add(model.Values?.ToArray() ?? Array.Empty<int>());
     }
 }

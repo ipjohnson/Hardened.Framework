@@ -19,7 +19,8 @@ namespace Hardened.Benchmarks.Micro;
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory(BenchmarkCategories.Micro)]
-public class SerializationBenchmarks {
+public class SerializationBenchmarks
+{
     private HardenedNativeHarness _harness = null!;
     private IJsonSerializer _serializer = null!;
     private MemoryStream _target = null!;
@@ -29,33 +30,41 @@ public class SerializationBenchmarks {
     private JsonSerializerOptions _sourceGenOptions = null!;
 
     [GlobalSetup]
-    public void Setup() {
+    public void Setup()
+    {
         _harness = new HardenedNativeHarness();
         _serializer = _harness.Provider.GetRequiredService<IJsonSerializer>();
         _target = new MemoryStream();
 
-        _response = new ItemResponse {
+        _response = new ItemResponse
+        {
             Id = 1,
             Name = "benchmark",
             Active = true,
-            Score = 99.5
+            Score = 99.5,
         };
 
         _requestBytes = Encoding.UTF8.GetBytes(
-            JsonSerializer.Serialize(new SumRequest {
-                Id = 7,
-                Label = "benchmark",
-                Values = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-            }));
+            JsonSerializer.Serialize(
+                new SumRequest
+                {
+                    Id = 7,
+                    Label = "benchmark",
+                    Values = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+                }
+            )
+        );
 
         _reflectionOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
-        _sourceGenOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web) {
-            TypeInfoResolver = BenchmarkJsonContext.Default
+        _sourceGenOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web)
+        {
+            TypeInfoResolver = BenchmarkJsonContext.Default,
         };
     }
 
     [Benchmark(Baseline = true)]
-    public async Task<long> HardenedSerialize() {
+    public async Task<long> HardenedSerialize()
+    {
         _target.SetLength(0);
         await _serializer.SerializeAsync(_target, _response);
 
@@ -63,14 +72,16 @@ public class SerializationBenchmarks {
     }
 
     [Benchmark]
-    public async Task<SumRequest> HardenedDeserialize() {
+    public async Task<SumRequest> HardenedDeserialize()
+    {
         using var source = new MemoryStream(_requestBytes, false);
 
         return await _serializer.DeserializeAsync<SumRequest>(source);
     }
 
     [Benchmark]
-    public async Task<long> SystemTextJsonSerialize() {
+    public async Task<long> SystemTextJsonSerialize()
+    {
         _target.SetLength(0);
         await JsonSerializer.SerializeAsync(_target, _response, _reflectionOptions);
 
@@ -78,7 +89,8 @@ public class SerializationBenchmarks {
     }
 
     [Benchmark]
-    public async Task<long> SystemTextJsonSerializeSourceGen() {
+    public async Task<long> SystemTextJsonSerializeSourceGen()
+    {
         _target.SetLength(0);
         await JsonSerializer.SerializeAsync(_target, _response, _sourceGenOptions);
 
@@ -86,21 +98,24 @@ public class SerializationBenchmarks {
     }
 
     [Benchmark]
-    public async Task<SumRequest?> SystemTextJsonDeserialize() {
+    public async Task<SumRequest?> SystemTextJsonDeserialize()
+    {
         using var source = new MemoryStream(_requestBytes, false);
 
         return await JsonSerializer.DeserializeAsync<SumRequest>(source, _reflectionOptions);
     }
 
     [Benchmark]
-    public async Task<SumRequest?> SystemTextJsonDeserializeSourceGen() {
+    public async Task<SumRequest?> SystemTextJsonDeserializeSourceGen()
+    {
         using var source = new MemoryStream(_requestBytes, false);
 
         return await JsonSerializer.DeserializeAsync<SumRequest>(source, _sourceGenOptions);
     }
 
     [GlobalCleanup]
-    public void Cleanup() {
+    public void Cleanup()
+    {
         _harness.Dispose();
         _target.Dispose();
     }

@@ -24,12 +24,15 @@ namespace Hardened.IntegrationTests.AzureStream.Host.Tests;
 /// <c>FunctionsHostSimulator</c> records.
 /// </para>
 /// </remarks>
-public sealed class StreamHostSimulator : IAsyncDisposable {
-    public const string HostImage = "mcr.microsoft.com/azure-functions/dotnet-isolated:4-dotnet-isolated8.0";
+public sealed class StreamHostSimulator : IAsyncDisposable
+{
+    public const string HostImage =
+        "mcr.microsoft.com/azure-functions/dotnet-isolated:4-dotnet-isolated8.0";
 
     public const string AzuriteImage = "mcr.microsoft.com/azure-storage/azurite:3.35.0";
 
-    public const string EventHubsImage = "mcr.microsoft.com/azure-messaging/eventhubs-emulator:2.2.1";
+    public const string EventHubsImage =
+        "mcr.microsoft.com/azure-messaging/eventhubs-emulator:2.2.1";
 
     /// <summary>The hub the emulator's configuration declares and the fixture's handler names.</summary>
     public const string Hub = "clickstream";
@@ -43,7 +46,8 @@ public sealed class StreamHostSimulator : IAsyncDisposable {
     private readonly EventHubsContainer _eventHubs;
     private readonly IContainer _host;
 
-    public StreamHostSimulator(string outputDirectory) {
+    public StreamHostSimulator(string outputDirectory)
+    {
         _network = new NetworkBuilder().Build();
 
         _azurite = new AzuriteBuilder(AzuriteImage)
@@ -73,10 +77,13 @@ public sealed class StreamHostSimulator : IAsyncDisposable {
             .WithPortBinding(HostPort, assignRandomHostPort: true)
             .DependsOn(_azurite)
             .DependsOn(_eventHubs)
-            .WithWaitStrategy(Wait.ForUnixContainer()
-                .UntilHttpRequestIsSucceeded(
-                    request => request.ForPort(HostPort).ForPath("/"),
-                    strategy => strategy.WithTimeout(StartupTimeout)))
+            .WithWaitStrategy(
+                Wait.ForUnixContainer()
+                    .UntilHttpRequestIsSucceeded(
+                        request => request.ForPort(HostPort).ForPath("/"),
+                        strategy => strategy.WithTimeout(StartupTimeout)
+                    )
+            )
             .Build();
     }
 
@@ -89,18 +96,24 @@ public sealed class StreamHostSimulator : IAsyncDisposable {
     public string PublisherConnectionString => _eventHubs.GetConnectionString();
 
     /// <summary>Starts the host and its dependencies, or fails carrying what the host printed.</summary>
-    public async Task StartAsync(CancellationToken cancellationToken = default) {
-        try {
+    public async Task StartAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
             await _host.StartAsync(cancellationToken);
         }
-        catch (TimeoutException timeout) {
+        catch (TimeoutException timeout)
+        {
             throw new TimeoutException(
-                $"The host did not answer on its port within {StartupTimeout.TotalMinutes:0} minutes. It printed:\n" +
-                await HostLog(cancellationToken), timeout);
+                $"The host did not answer on its port within {StartupTimeout.TotalMinutes:0} minutes. It printed:\n"
+                    + await HostLog(cancellationToken),
+                timeout
+            );
         }
     }
 
-    public async Task<string> HostLog(CancellationToken cancellationToken = default) {
+    public async Task<string> HostLog(CancellationToken cancellationToken = default)
+    {
         var (stdout, stderr) = await _host.GetLogsAsync(ct: cancellationToken);
 
         return stdout + "\n" + stderr;
@@ -110,19 +123,27 @@ public sealed class StreamHostSimulator : IAsyncDisposable {
     /// The host log once it contains <paramref name="fragment"/>, or a failure carrying the log.
     /// </summary>
     public async Task<string> HostLogContaining(
-        string fragment, TimeSpan? timeout = null, CancellationToken cancellationToken = default) {
+        string fragment,
+        TimeSpan? timeout = null,
+        CancellationToken cancellationToken = default
+    )
+    {
         var deadline = DateTime.UtcNow + (timeout ?? ObservedInvocations.DefaultTimeout);
 
-        while (true) {
+        while (true)
+        {
             var log = await HostLog(cancellationToken);
 
-            if (log.Contains(fragment, StringComparison.Ordinal)) {
+            if (log.Contains(fragment, StringComparison.Ordinal))
+            {
                 return log;
             }
 
-            if (DateTime.UtcNow > deadline) {
+            if (DateTime.UtcNow > deadline)
+            {
                 throw new TimeoutException(
-                    $"The host never logged '{fragment}'. It printed:\n{log}");
+                    $"The host never logged '{fragment}'. It printed:\n{log}"
+                );
             }
 
             await Task.Delay(250, cancellationToken);
@@ -130,17 +151,20 @@ public sealed class StreamHostSimulator : IAsyncDisposable {
     }
 
     private static string AzuriteConnectionString() =>
-        "DefaultEndpointsProtocol=http;AccountName=" + AzuriteBuilder.AccountName +
-        ";AccountKey=" + AzuriteBuilder.AccountKey +
-        $";BlobEndpoint=http://{AzuriteAlias}:{AzuriteBuilder.BlobPort}/{AzuriteBuilder.AccountName}" +
-        $";QueueEndpoint=http://{AzuriteAlias}:{AzuriteBuilder.QueuePort}/{AzuriteBuilder.AccountName}" +
-        $";TableEndpoint=http://{AzuriteAlias}:{AzuriteBuilder.TablePort}/{AzuriteBuilder.AccountName};";
+        "DefaultEndpointsProtocol=http;AccountName="
+        + AzuriteBuilder.AccountName
+        + ";AccountKey="
+        + AzuriteBuilder.AccountKey
+        + $";BlobEndpoint=http://{AzuriteAlias}:{AzuriteBuilder.BlobPort}/{AzuriteBuilder.AccountName}"
+        + $";QueueEndpoint=http://{AzuriteAlias}:{AzuriteBuilder.QueuePort}/{AzuriteBuilder.AccountName}"
+        + $";TableEndpoint=http://{AzuriteAlias}:{AzuriteBuilder.TablePort}/{AzuriteBuilder.AccountName};";
 
     private static string EventHubsConnectionString() =>
-        $"Endpoint=sb://{EventHubsAlias}:{EventHubsBuilder.EventHubsPort};" +
-        "SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;";
+        $"Endpoint=sb://{EventHubsAlias}:{EventHubsBuilder.EventHubsPort};"
+        + "SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;";
 
-    public async ValueTask DisposeAsync() {
+    public async ValueTask DisposeAsync()
+    {
         await _host.DisposeAsync();
         await _eventHubs.DisposeAsync();
         await _azurite.DisposeAsync();

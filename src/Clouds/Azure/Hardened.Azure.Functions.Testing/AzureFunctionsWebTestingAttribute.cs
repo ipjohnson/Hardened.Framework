@@ -37,10 +37,16 @@ namespace Hardened.Azure.Functions.Testing;
 /// composes.
 /// </para>
 /// </remarks>
-[AttributeUsage(AttributeTargets.Method | AttributeTargets.Class | AttributeTargets.Assembly, AllowMultiple = false)]
-public sealed class AzureFunctionsWebTestingAttribute : TestHostAttribute, IDependencyModuleProvider {
-    public override ITestHost CreateHost(ITestMethodContext testMethod, IServiceCollection services) =>
-        new FunctionsWebHost();
+[AttributeUsage(
+    AttributeTargets.Method | AttributeTargets.Class | AttributeTargets.Assembly,
+    AllowMultiple = false
+)]
+public sealed class AzureFunctionsWebTestingAttribute : TestHostAttribute, IDependencyModuleProvider
+{
+    public override ITestHost CreateHost(
+        ITestMethodContext testMethod,
+        IServiceCollection services
+    ) => new FunctionsWebHost();
 
     public IDependencyModule GetModule() => new HttpModule();
 }
@@ -55,7 +61,8 @@ public sealed class AzureFunctionsWebTestingAttribute : TestHostAttribute, IDepe
 /// adapter reads it. A test that asked for <c>/orders/o-1</c> is therefore routed through the
 /// same prefix-stripping a deployed function does.
 /// </remarks>
-public sealed class FunctionsWebHost : ITestHost {
+public sealed class FunctionsWebHost : ITestHost
+{
     /// <summary>The host's default route prefix, which the adapter has to take off.</summary>
     public const string RoutePrefix = "api";
 
@@ -78,7 +85,8 @@ public sealed class FunctionsWebHost : ITestHost {
     /// installs it on its first invocation, which is the same thing a deployed function does and
     /// the path worth exercising.
     /// </remarks>
-    public Task StartAsync(IServiceProvider provider, CancellationToken cancellationToken) {
+    public Task StartAsync(IServiceProvider provider, CancellationToken cancellationToken)
+    {
         _provider = provider;
 
         return ApplicationLogic.Start(provider, null);
@@ -88,7 +96,10 @@ public sealed class FunctionsWebHost : ITestHost {
         new HostHandler(this, credential);
 
     public async Task<TestWebResponse> SendAsync(
-        TestHostRequest request, CancellationToken cancellationToken) {
+        TestHostRequest request,
+        CancellationToken cancellationToken
+    )
+    {
         var handler = Provider.GetRequiredService<FunctionsInvocationHandler>();
 
         var split = request.PathAndQuery.IndexOf('?');
@@ -102,17 +113,21 @@ public sealed class FunctionsWebHost : ITestHost {
             "Http",
             new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase) { ["path"] = routed },
             Provider,
-            cancellationToken);
+            cancellationToken
+        );
 
         var data = new TestHttpRequestData(
             context,
             request.Method,
             new Uri(BaseAddress, RoutePrefix + "/" + routed + query),
             request.Headers,
-            request.Body);
+            request.Body
+        );
 
         var answer = await handler.Invoke(
-            new FunctionsTrigger("HTTP", "/" + routed, data, FunctionsDispatch.Web), context);
+            new FunctionsTrigger("HTTP", "/" + routed, data, FunctionsDispatch.Web),
+            context
+        );
 
         return new TestWebResponse(Response((HttpResponseData)answer!));
     }
@@ -126,24 +141,27 @@ public sealed class FunctionsWebHost : ITestHost {
     /// the same way. The cookies become <c>Set-Cookie</c> headers, which is what the host makes of
     /// them.
     /// </remarks>
-    private static TestExecutionResponse Response(HttpResponseData data) {
+    private static TestExecutionResponse Response(HttpResponseData data)
+    {
         var body = data.Body;
 
-        if (body.CanSeek) {
+        if (body.CanSeek)
+        {
             body.Position = 0;
         }
 
-        var response = new TestExecutionResponse(body) {
-            Status = (int)data.StatusCode
-        };
+        var response = new TestExecutionResponse(body) { Status = (int)data.StatusCode };
 
-        foreach (var header in data.Headers) {
+        foreach (var header in data.Headers)
+        {
             response.Headers[header.Key] = new StringValues(header.Value.ToArray());
         }
 
-        if (data.Cookies is TestHttpCookies cookies && cookies.Cookies.Count > 0) {
-            response.Headers["Set-Cookie"] =
-                new StringValues(cookies.Cookies.Select(TestHttpCookies.Render).ToArray());
+        if (data.Cookies is TestHttpCookies cookies && cookies.Cookies.Count > 0)
+        {
+            response.Headers["Set-Cookie"] = new StringValues(
+                cookies.Cookies.Select(TestHttpCookies.Render).ToArray()
+            );
         }
 
         return response;
@@ -152,30 +170,39 @@ public sealed class FunctionsWebHost : ITestHost {
     public ValueTask DisposeAsync() => default;
 
     private IServiceProvider Provider =>
-        _provider ?? throw new InvalidOperationException(
-            "The Functions web host has not been started, so it has no container to invoke through.");
+        _provider
+        ?? throw new InvalidOperationException(
+            "The Functions web host has not been started, so it has no container to invoke through."
+        );
 
     /// <summary>Routes an <see cref="HttpClient"/> through the same invocation.</summary>
-    private sealed class HostHandler : HttpMessageHandler {
+    private sealed class HostHandler : HttpMessageHandler
+    {
         private readonly FunctionsWebHost _host;
         private readonly TestCredential? _credential;
 
-        public HostHandler(FunctionsWebHost host, TestCredential? credential) {
+        public HostHandler(FunctionsWebHost host, TestCredential? credential)
+        {
             _host = host;
             _credential = credential;
         }
 
         protected override async Task<HttpResponseMessage> SendAsync(
-            HttpRequestMessage request, CancellationToken cancellationToken) {
+            HttpRequestMessage request,
+            CancellationToken cancellationToken
+        )
+        {
             var headers = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase);
 
-            foreach (var header in request.Headers) {
+            foreach (var header in request.Headers)
+            {
                 headers[header.Key] = new StringValues(header.Value.ToArray());
             }
 
-            var body = request.Content == null
-                ? Stream.Null
-                : await request.Content.ReadAsStreamAsync(cancellationToken);
+            var body =
+                request.Content == null
+                    ? Stream.Null
+                    : await request.Content.ReadAsStreamAsync(cancellationToken);
 
             var response = await _host.SendAsync(
                 new TestHostRequest(
@@ -183,20 +210,25 @@ public sealed class FunctionsWebHost : ITestHost {
                     request.RequestUri!.PathAndQuery,
                     headers,
                     body,
-                    _credential),
-                cancellationToken);
+                    _credential
+                ),
+                cancellationToken
+            );
 
-            var message = new HttpResponseMessage((HttpStatusCode)response.StatusCode) {
-                Content = new StreamContent(response.Body)
+            var message = new HttpResponseMessage((HttpStatusCode)response.StatusCode)
+            {
+                Content = new StreamContent(response.Body),
             };
 
             // Content-Type and Content-Length belong to the content, and the message's own
             // collection refuses them; a client reads the content type to decide whether there
             // is a body to deserialize at all.
-            foreach (var header in response.Headers) {
+            foreach (var header in response.Headers)
+            {
                 var values = header.Value.ToArray();
 
-                if (!message.Headers.TryAddWithoutValidation(header.Key, values)) {
+                if (!message.Headers.TryAddWithoutValidation(header.Key, values))
+                {
                     message.Content.Headers.TryAddWithoutValidation(header.Key, values);
                 }
             }

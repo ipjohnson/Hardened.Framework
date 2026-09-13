@@ -6,11 +6,15 @@ namespace Hardened.SourceGenerator.Shared;
 /// <summary>
 /// Default entry point writer
 /// </summary>
-public abstract class ApplicationEntryPointFileWriter {
+public abstract class ApplicationEntryPointFileWriter
+{
     protected const string RootServiceProvider = "RootServiceProvider";
 
-    public virtual void CreateApplicationClass(EntryPointSelector.Model model,
-        IConstructContainer constructContainer) {
+    public virtual void CreateApplicationClass(
+        EntryPointSelector.Model model,
+        IConstructContainer constructContainer
+    )
+    {
         var classDefinition = CreateClassDefinition(model, constructContainer);
 
         ImplementApplicationRoot(model, classDefinition);
@@ -20,14 +24,24 @@ public abstract class ApplicationEntryPointFileWriter {
         CreateDomainMethods(model, classDefinition);
     }
 
-    protected virtual void ImplementApplicationRoot(EntryPointSelector.Model model, ClassDefinition classDefinition) {
+    protected virtual void ImplementApplicationRoot(
+        EntryPointSelector.Model model,
+        ClassDefinition classDefinition
+    )
+    {
         classDefinition.ImplementApplicationRoot();
     }
 
-    protected virtual void CreateDomainMethods(EntryPointSelector.Model model, ClassDefinition classDefinition) { }
+    protected virtual void CreateDomainMethods(
+        EntryPointSelector.Model model,
+        ClassDefinition classDefinition
+    ) { }
 
-    protected virtual ClassDefinition CreateClassDefinition(EntryPointSelector.Model model,
-        IConstructContainer constructContainer) {
+    protected virtual ClassDefinition CreateClassDefinition(
+        EntryPointSelector.Model model,
+        IConstructContainer constructContainer
+    )
+    {
         var classDefinition = constructContainer.AddClass(model.EntryPointType.Name);
 
         classDefinition.Modifiers = ComponentModifier.Public | ComponentModifier.Partial;
@@ -36,34 +50,59 @@ public abstract class ApplicationEntryPointFileWriter {
     }
 
     protected virtual void CreateConstructors(
-        EntryPointSelector.Model entryPoint, ClassDefinition appClass) {
+        EntryPointSelector.Model entryPoint,
+        ClassDefinition appClass
+    )
+    {
         appClass.AddConstructor(This(New(KnownTypes.Application.EnvironmentImpl), Null()));
 
         var constructor = appClass.AddConstructor();
 
-        var environment = constructor.AddParameter(KnownTypes.Application.IHardenedEnvironment, "environment");
+        var environment = constructor.AddParameter(
+            KnownTypes.Application.IHardenedEnvironment,
+            "environment"
+        );
 
-        var overrides =
-            constructor.AddParameter(
-                TypeDefinition.Action(KnownTypes.Application.IHardenedEnvironment, KnownTypes.DI.IServiceCollection)
-                    .MakeNullable(), "overrideDependencies");
+        var overrides = constructor.AddParameter(
+            TypeDefinition
+                .Action(
+                    KnownTypes.Application.IHardenedEnvironment,
+                    KnownTypes.DI.IServiceCollection
+                )
+                .MakeNullable(),
+            "overrideDependencies"
+        );
 
         var loggingBuilderAction = SetupLoggingBuilderAction(entryPoint, constructor, environment);
 
-        constructor.Assign(
-                Invoke("CreateServiceProvider", environment, overrides, loggingBuilderAction, "RegisterInitDi"))
+        constructor
+            .Assign(
+                Invoke(
+                    "CreateServiceProvider",
+                    environment,
+                    overrides,
+                    loggingBuilderAction,
+                    "RegisterInitDi"
+                )
+            )
             .To("RootServiceProvider");
 
         var registerInitDi = appClass.AddMethod("RegisterInitDi");
 
         registerInitDi.Modifiers = ComponentModifier.Private | ComponentModifier.Static;
-        var env = registerInitDi.AddParameter(KnownTypes.Application.IHardenedEnvironment, "environment");
-        var coll = registerInitDi.AddParameter(KnownTypes.DI.IServiceCollection, "serviceCollection");
-
+        var env = registerInitDi.AddParameter(
+            KnownTypes.Application.IHardenedEnvironment,
+            "environment"
+        );
+        var coll = registerInitDi.AddParameter(
+            KnownTypes.DI.IServiceCollection,
+            "serviceCollection"
+        );
 
         var startupMethod = "null";
 
-        if (entryPoint.MethodDefinitions.Any(m => m.Name == "Startup")) {
+        if (entryPoint.MethodDefinitions.Any(m => m.Name == "Startup"))
+        {
             startupMethod = "Startup";
         }
 
@@ -73,26 +112,46 @@ public abstract class ApplicationEntryPointFileWriter {
                 "StartWithWait",
                 "RootServiceProvider",
                 startupMethod,
-                15));
+                15
+            )
+        );
 
         CustomConstructorLogic(entryPoint, appClass, constructor, environment);
     }
 
-    protected virtual void CustomConstructorLogic(EntryPointSelector.Model entryPoint, ClassDefinition appClass,
-        ConstructorDefinition constructor, ParameterDefinition environment) { }
+    protected virtual void CustomConstructorLogic(
+        EntryPointSelector.Model entryPoint,
+        ClassDefinition appClass,
+        ConstructorDefinition constructor,
+        ParameterDefinition environment
+    ) { }
 
     private static IOutputComponent SetupLoggingBuilderAction(
-        EntryPointSelector.Model entryPoint, ConstructorDefinition constructor, ParameterDefinition environment) {
-        var loggingMethod = entryPoint.MethodDefinitions.FirstOrDefault(m => m.Name == "ConfigureLogging");
-        var logLevelMethod = entryPoint.MethodDefinitions.FirstOrDefault(m => m.Name == "ConfigureLogLevel");
+        EntryPointSelector.Model entryPoint,
+        ConstructorDefinition constructor,
+        ParameterDefinition environment
+    )
+    {
+        var loggingMethod = entryPoint.MethodDefinitions.FirstOrDefault(m =>
+            m.Name == "ConfigureLogging"
+        );
+        var logLevelMethod = entryPoint.MethodDefinitions.FirstOrDefault(m =>
+            m.Name == "ConfigureLogLevel"
+        );
 
-        if (loggingMethod != null) {
-            if (loggingMethod.Parameters.Count == 1) {
+        if (loggingMethod != null)
+        {
+            if (loggingMethod.Parameters.Count == 1)
+            {
                 return CodeOutputComponent.Get(loggingMethod.Name);
             }
 
-            return constructor.Assign("builder => ConfigureLogging(environment, builder)")
-                .ToLocal(TypeDefinition.Action(KnownTypes.Logging.ILoggingBuilder), "loggingBuilderAction");
+            return constructor
+                .Assign("builder => ConfigureLogging(environment, builder)")
+                .ToLocal(
+                    TypeDefinition.Action(KnownTypes.Logging.ILoggingBuilder),
+                    "loggingBuilderAction"
+                );
         }
 
         return Null();
@@ -101,24 +160,36 @@ public abstract class ApplicationEntryPointFileWriter {
     protected virtual InstanceDefinition SetupLoggerFactory(
         EntryPointSelector.Model entryPoint,
         ConstructorDefinition constructorDefinition,
-        ParameterDefinition environment) {
-        var loggingMethod = entryPoint.MethodDefinitions.FirstOrDefault(m => m.Name == "ConfigureLogging");
-        var logLevelMethod = entryPoint.MethodDefinitions.FirstOrDefault(m => m.Name == "ConfigureLogLevel");
+        ParameterDefinition environment
+    )
+    {
+        var loggingMethod = entryPoint.MethodDefinitions.FirstOrDefault(m =>
+            m.Name == "ConfigureLogging"
+        );
+        var logLevelMethod = entryPoint.MethodDefinitions.FirstOrDefault(m =>
+            m.Name == "ConfigureLogLevel"
+        );
 
         IOutputComponent? logCreateMethod;
 
-        if (loggingMethod != null) {
-            logCreateMethod =
-                CodeOutputComponent.Get("LoggerFactory.Create(builder => ConfigureLogging(environment, builder))");
-        }
-        else if (logLevelMethod != null) {
+        if (loggingMethod != null)
+        {
             logCreateMethod = CodeOutputComponent.Get(
-                $"LoggerFactory.Create({LoggerHelper.Name}.CreateAction(ConfigureLogLevel(environment), \"{entryPoint.EntryPointType.Namespace}\"))");
+                "LoggerFactory.Create(builder => ConfigureLogging(environment, builder))"
+            );
+        }
+        else if (logLevelMethod != null)
+        {
+            logCreateMethod = CodeOutputComponent.Get(
+                $"LoggerFactory.Create({LoggerHelper.Name}.CreateAction(ConfigureLogLevel(environment), \"{entryPoint.EntryPointType.Namespace}\"))"
+            );
             logCreateMethod.AddUsingNamespace(LoggerHelper.Namespace);
         }
-        else {
+        else
+        {
             logCreateMethod = CodeOutputComponent.Get(
-                $"LoggerFactory.Create({LoggerHelper.Name}.CreateAction(environment, \"{entryPoint.EntryPointType.Namespace}\"))");
+                $"LoggerFactory.Create({LoggerHelper.Name}.CreateAction(environment, \"{entryPoint.EntryPointType.Namespace}\"))"
+            );
             logCreateMethod.AddUsingNamespace(LoggerHelper.Namespace);
         }
 

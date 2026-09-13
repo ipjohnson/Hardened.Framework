@@ -20,32 +20,39 @@ namespace Hardened.Requests.Runtime.Tests.Filters;
 /// back here.
 /// </para>
 /// </summary>
-public class RetryFilterTests {
-
+public class RetryFilterTests
+{
     private static RetryFilter Filter(
-        int attempts, int baseDelay = 0, int budget = 0, bool allowNonIdempotent = true,
-        Func<Exception, bool>? shouldRetry = null) =>
-        new(attempts, baseDelay, budget, allowNonIdempotent, shouldRetry);
+        int attempts,
+        int baseDelay = 0,
+        int budget = 0,
+        bool allowNonIdempotent = true,
+        Func<Exception, bool>? shouldRetry = null
+    ) => new(attempts, baseDelay, budget, allowNonIdempotent, shouldRetry);
 
     /// <summary>
     /// Fails the way the pipeline actually fails: the invoke filters catch whatever the handler
     /// raised and record it on the response rather than letting it propagate.
     /// </summary>
-    private sealed class FailsViaResponse : IExecutionFilter {
+    private sealed class FailsViaResponse : IExecutionFilter
+    {
         private readonly int _failuresBeforeSuccess;
         private readonly Func<int, Exception> _exception;
 
         public int Attempts;
 
-        public FailsViaResponse(int failuresBeforeSuccess, Func<int, Exception>? exception = null) {
+        public FailsViaResponse(int failuresBeforeSuccess, Func<int, Exception>? exception = null)
+        {
             _failuresBeforeSuccess = failuresBeforeSuccess;
             _exception = exception ?? (n => new InvalidOperationException($"attempt {n}"));
         }
 
-        public Task Execute(IExecutionChain chain) {
+        public Task Execute(IExecutionChain chain)
+        {
             Attempts++;
 
-            if (Attempts <= _failuresBeforeSuccess) {
+            if (Attempts <= _failuresBeforeSuccess)
+            {
                 chain.Context.Response.ExceptionValue = _exception(Attempts);
             }
 
@@ -54,19 +61,23 @@ public class RetryFilterTests {
     }
 
     /// <summary>Fails by throwing, which some filters still do.</summary>
-    private sealed class FailsByThrowing : IExecutionFilter {
+    private sealed class FailsByThrowing : IExecutionFilter
+    {
         private readonly int _failuresBeforeSuccess;
 
         public int Attempts;
 
-        public FailsByThrowing(int failuresBeforeSuccess) {
+        public FailsByThrowing(int failuresBeforeSuccess)
+        {
             _failuresBeforeSuccess = failuresBeforeSuccess;
         }
 
-        public Task Execute(IExecutionChain chain) {
+        public Task Execute(IExecutionChain chain)
+        {
             Attempts++;
 
-            if (Attempts <= _failuresBeforeSuccess) {
+            if (Attempts <= _failuresBeforeSuccess)
+            {
                 throw new InvalidOperationException($"attempt {Attempts}");
             }
 
@@ -79,7 +90,8 @@ public class RetryFilterTests {
     /// implementation could not see at all, and the reason it never retried anything.
     /// </summary>
     [Fact]
-    public async Task Execute_RetriesAFailureRecordedOnTheResponse() {
+    public async Task Execute_RetriesAFailureRecordedOnTheResponse()
+    {
         var downstream = new FailsViaResponse(failuresBeforeSuccess: 2);
         var context = Pipeline.Context();
 
@@ -91,7 +103,8 @@ public class RetryFilterTests {
 
     /// <summary>A thrown failure is retried on the same terms.</summary>
     [Fact]
-    public async Task Execute_RetriesAThrownFailure() {
+    public async Task Execute_RetriesAThrownFailure()
+    {
         var downstream = new FailsByThrowing(failuresBeforeSuccess: 2);
         var context = Pipeline.Context();
 
@@ -103,7 +116,8 @@ public class RetryFilterTests {
 
     /// <summary>A handler that works is run once.</summary>
     [Fact]
-    public async Task Execute_RunsOnceWhenTheFirstAttemptSucceeds() {
+    public async Task Execute_RunsOnceWhenTheFirstAttemptSucceeds()
+    {
         var downstream = new FailsViaResponse(failuresBeforeSuccess: 0);
         var context = Pipeline.Context();
 
@@ -121,7 +135,8 @@ public class RetryFilterTests {
     [InlineData(1)]
     [InlineData(2)]
     [InlineData(5)]
-    public async Task Execute_LeavesTheFinalFailureOnTheResponseWhenAttemptsRunOut(int attempts) {
+    public async Task Execute_LeavesTheFinalFailureOnTheResponseWhenAttemptsRunOut(int attempts)
+    {
         var downstream = new FailsViaResponse(failuresBeforeSuccess: int.MaxValue);
         var context = Pipeline.Context();
 
@@ -139,7 +154,8 @@ public class RetryFilterTests {
     [Theory]
     [InlineData(0)]
     [InlineData(1)]
-    public async Task Execute_RunsExactlyOnceWhenNoRetriesAreConfigured(int attempts) {
+    public async Task Execute_RunsExactlyOnceWhenNoRetriesAreConfigured(int attempts)
+    {
         var downstream = new FailsViaResponse(failuresBeforeSuccess: int.MaxValue);
         var context = Pipeline.Context();
 
@@ -157,12 +173,15 @@ public class RetryFilterTests {
     [InlineData(typeof(BadRequestException))]
     [InlineData(typeof(FormatException))]
     [InlineData(typeof(OperationCanceledException))]
-    public async Task Execute_DoesNotRetryAClientError(Type exceptionType) {
+    public async Task Execute_DoesNotRetryAClientError(Type exceptionType)
+    {
         var downstream = new FailsViaResponse(
             failuresBeforeSuccess: int.MaxValue,
-            exception: _ => exceptionType == typeof(BadRequestException)
-                ? new BadRequestException("bad")
-                : (Exception)Activator.CreateInstance(exceptionType)!);
+            exception: _ =>
+                exceptionType == typeof(BadRequestException)
+                    ? new BadRequestException("bad")
+                    : (Exception)Activator.CreateInstance(exceptionType)!
+        );
 
         var context = Pipeline.Context();
 
@@ -179,9 +198,12 @@ public class RetryFilterTests {
     [InlineData(404, 1)]
     [InlineData(409, 1)]
     [InlineData(503, 3)]
-    public async Task Execute_DecidesOnStatusCodeExceptionsByTheirStatus(int status, int expected) {
+    public async Task Execute_DecidesOnStatusCodeExceptionsByTheirStatus(int status, int expected)
+    {
         var downstream = new FailsViaResponse(
-            failuresBeforeSuccess: int.MaxValue, exception: _ => new StatusCodeException(status));
+            failuresBeforeSuccess: int.MaxValue,
+            exception: _ => new StatusCodeException(status)
+        );
 
         var context = Pipeline.Context();
 
@@ -192,14 +214,18 @@ public class RetryFilterTests {
 
     /// <summary>A supplied predicate replaces the default entirely.</summary>
     [Fact]
-    public async Task Execute_UsesTheSuppliedPredicateInsteadOfTheDefault() {
+    public async Task Execute_UsesTheSuppliedPredicateInsteadOfTheDefault()
+    {
         var downstream = new FailsViaResponse(
-            failuresBeforeSuccess: int.MaxValue, exception: _ => new BadRequestException("bad"));
+            failuresBeforeSuccess: int.MaxValue,
+            exception: _ => new BadRequestException("bad")
+        );
 
         var context = Pipeline.Context();
 
-        await Pipeline.Chain(
-            context, Filter(attempts: 3, shouldRetry: _ => true), downstream).Next();
+        await Pipeline
+            .Chain(context, Filter(attempts: 3, shouldRetry: _ => true), downstream)
+            .Next();
 
         Assert.Equal(3, downstream.Attempts);
     }
@@ -215,28 +241,28 @@ public class RetryFilterTests {
     [InlineData("PUT", 3)]
     [InlineData("DELETE", 3)]
     [InlineData("HEAD", 3)]
-    public async Task Execute_OnlyRetriesIdempotentVerbsByDefault(string method, int expected) {
+    public async Task Execute_OnlyRetriesIdempotentVerbsByDefault(string method, int expected)
+    {
         var downstream = new FailsViaResponse(failuresBeforeSuccess: int.MaxValue);
         var context = Pipeline.Context(method: method);
 
-        await Pipeline.Chain(
-            context,
-            new RetryFilter(3, 0, 0, allowNonIdempotent: false),
-            downstream).Next();
+        await Pipeline
+            .Chain(context, new RetryFilter(3, 0, 0, allowNonIdempotent: false), downstream)
+            .Next();
 
         Assert.Equal(expected, downstream.Attempts);
     }
 
     /// <summary>Opting in retries the write verbs too.</summary>
     [Fact]
-    public async Task Execute_RetriesANonIdempotentVerbWhenExplicitlyAllowed() {
+    public async Task Execute_RetriesANonIdempotentVerbWhenExplicitlyAllowed()
+    {
         var downstream = new FailsViaResponse(failuresBeforeSuccess: int.MaxValue);
         var context = Pipeline.Context(method: "POST");
 
-        await Pipeline.Chain(
-            context,
-            new RetryFilter(3, 0, 0, allowNonIdempotent: true),
-            downstream).Next();
+        await Pipeline
+            .Chain(context, new RetryFilter(3, 0, 0, allowNonIdempotent: true), downstream)
+            .Next();
 
         Assert.Equal(3, downstream.Attempts);
     }
@@ -246,13 +272,16 @@ public class RetryFilterTests {
     /// its second try must not report the first try's exception.
     /// </summary>
     [Fact]
-    public async Task Execute_ClearsAFailedAttemptsExceptionBeforeTheNextAttempt() {
+    public async Task Execute_ClearsAFailedAttemptsExceptionBeforeTheNextAttempt()
+    {
         var seen = new List<Exception?>();
 
-        var downstream = new Pipeline.Inline(chain => {
+        var downstream = new Pipeline.Inline(chain =>
+        {
             seen.Add(chain.Context.Response.ExceptionValue);
 
-            if (seen.Count == 1) {
+            if (seen.Count == 1)
+            {
                 chain.Context.Response.ExceptionValue = new InvalidOperationException("first");
             }
 
@@ -273,15 +302,18 @@ public class RetryFilterTests {
     /// tests pinned that as intended.
     /// </summary>
     [Fact]
-    public async Task Execute_RollsBackStatusAndResponseValueBetweenAttempts() {
+    public async Task Execute_RollsBackStatusAndResponseValueBetweenAttempts()
+    {
         var observed = new List<(int? Status, object? Value)>();
 
-        var downstream = new Pipeline.Inline(chain => {
+        var downstream = new Pipeline.Inline(chain =>
+        {
             var response = chain.Context.Response;
 
             observed.Add((response.Status, response.ResponseValue));
 
-            if (observed.Count == 1) {
+            if (observed.Count == 1)
+            {
                 response.Status = 500;
                 response.ResponseValue = "partial";
                 response.ExceptionValue = new InvalidOperationException("first");
@@ -303,17 +335,19 @@ public class RetryFilterTests {
     /// the whole request rather than whatever the failed attempt left unread.
     /// </summary>
     [Fact]
-    public async Task Execute_RewindsASeekableBodyBetweenAttempts() {
+    public async Task Execute_RewindsASeekableBodyBetweenAttempts()
+    {
         var reads = new List<string>();
         var context = Pipeline.Context(body: "the whole body"u8.ToArray());
 
-        var downstream = new Pipeline.Inline(async chain => {
-            using var reader = new StreamReader(
-                chain.Context.Request.Body, leaveOpen: true);
+        var downstream = new Pipeline.Inline(async chain =>
+        {
+            using var reader = new StreamReader(chain.Context.Request.Body, leaveOpen: true);
 
             reads.Add(await reader.ReadToEndAsync());
 
-            if (reads.Count < 3) {
+            if (reads.Count < 3)
+            {
                 chain.Context.Response.ExceptionValue = new InvalidOperationException("transient");
             }
         });
@@ -331,16 +365,19 @@ public class RetryFilterTests {
     /// never trips it, because its enumeration runs outside the fork.
     /// </summary>
     [Fact]
-    public async Task Execute_DoesNotAttemptAgainOnceTheResponseHasStarted() {
+    public async Task Execute_DoesNotAttemptAgainOnceTheResponseHasStarted()
+    {
         var attempts = 0;
         var context = Pipeline.Context();
 
-        var downstream = new Pipeline.Inline(chain => {
+        var downstream = new Pipeline.Inline(chain =>
+        {
             attempts++;
 
             chain.Context.Response.Body.WriteByte((byte)'x');
-            chain.Context.Response.ExceptionValue =
-                new InvalidOperationException("after the first byte");
+            chain.Context.Response.ExceptionValue = new InvalidOperationException(
+                "after the first byte"
+            );
 
             return Task.CompletedTask;
         });
@@ -356,14 +393,14 @@ public class RetryFilterTests {
     /// The budget stops the attempts even when the count has not been reached.
     /// </summary>
     [Fact]
-    public async Task Execute_StopsAttemptingOnceTheTotalBudgetIsSpent() {
+    public async Task Execute_StopsAttemptingOnceTheTotalBudgetIsSpent()
+    {
         var downstream = new FailsViaResponse(failuresBeforeSuccess: int.MaxValue);
         var context = Pipeline.Context();
 
-        await Pipeline.Chain(
-            context,
-            Filter(attempts: 50, baseDelay: 20, budget: 60),
-            downstream).Next();
+        await Pipeline
+            .Chain(context, Filter(attempts: 50, baseDelay: 20, budget: 60), downstream)
+            .Next();
 
         Assert.InRange(downstream.Attempts, 1, 20);
         Assert.NotNull(context.Response.ExceptionValue);
@@ -374,13 +411,15 @@ public class RetryFilterTests {
     /// caller who is no longer there.
     /// </summary>
     [Fact]
-    public async Task Execute_StopsAttemptingWhenTheRequestIsCancelled() {
+    public async Task Execute_StopsAttemptingWhenTheRequestIsCancelled()
+    {
         using var cancellation = new CancellationTokenSource();
 
         var context = Pipeline.Cancellable(cancellation.Token);
         var attempts = 0;
 
-        var downstream = new Pipeline.Inline(chain => {
+        var downstream = new Pipeline.Inline(chain =>
+        {
             attempts++;
             chain.Context.Response.ExceptionValue = new InvalidOperationException("transient");
             cancellation.Cancel();

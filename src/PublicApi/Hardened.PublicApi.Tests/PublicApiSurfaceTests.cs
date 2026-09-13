@@ -22,8 +22,8 @@ namespace Hardened.PublicApi.Tests;
 /// as an API change, then re-approve deliberately.
 /// </para>
 /// </summary>
-public class PublicApiSurfaceTests {
-
+public class PublicApiSurfaceTests
+{
     /// <summary>
     /// Set <c>APPROVE_PUBLIC_API=1</c> to rewrite the approved files from the current surface.
     /// Never set in CI — the workflow would approve its own regressions.
@@ -32,7 +32,8 @@ public class PublicApiSurfaceTests {
         Environment.GetEnvironmentVariable("APPROVE_PUBLIC_API") == "1";
 
     /// <summary>Every shipped net8.0 assembly, by name.</summary>
-    private static readonly string[] Shipped = [
+    private static readonly string[] Shipped =
+    [
         "Hardened.Aws.DynamoDbClient",
         "Hardened.Aws.DynamoDbClient.Testing",
         "Hardened.Aws.Lambda.Http",
@@ -85,7 +86,7 @@ public class PublicApiSurfaceTests {
         "Hardened.Web.Kestrel.Testing",
         "Hardened.Web.Runtime",
         "Hardened.Web.StaticContent",
-        "Hardened.Web.Testing"
+        "Hardened.Web.Testing",
     ];
 
     /// <summary>
@@ -99,52 +100,62 @@ public class PublicApiSurfaceTests {
     /// that assembly and a <c>ProjectReference</c> still copies it here, so the coverage check
     /// below has to be told.
     /// </remarks>
-    private static readonly string[] ShipsNoAssembly = [
+    private static readonly string[] ShipsNoAssembly =
+    [
         "Hardened.PublicApi.Tests",
         "Hardened.Aws.Lambda",
         "Hardened.Azure.Functions",
-        "Hardened.Gcp.CloudRun"
+        "Hardened.Gcp.CloudRun",
     ];
 
     public static TheoryData<string> ShippedAssemblies() => new(Shipped);
 
     [Theory]
     [MemberData(nameof(ShippedAssemblies))]
-    public void PublicSurfaceMatchesTheApprovedFile(string assemblyName) {
+    public void PublicSurfaceMatchesTheApprovedFile(string assemblyName)
+    {
         var assembly = Assembly.Load(assemblyName);
 
-        var actual = Normalise(assembly.GeneratePublicApi(new ApiGeneratorOptions {
-            ExcludeAttributes = [
-                // Build-stamped, so they differ per machine and per configuration.
-                "System.Runtime.Versioning.TargetFrameworkAttribute",
-                "System.Reflection.AssemblyMetadataAttribute",
-                "System.Diagnostics.DebuggableAttribute",
-                "System.Runtime.CompilerServices.CompilationRelaxationsAttribute",
-                "System.Runtime.CompilerServices.RuntimeCompatibilityAttribute",
-
-                // xunit.v3 records the source file and line of every [Fact] and [Theory], which
-                // Hardened.Requests.Testing ships on its conformance suite. Those arguments are
-                // absolute paths, so they differ between a developer machine and a deterministic
-                // CI build - and the line numbers churn whenever anyone edits the file, which
-                // would fail this test on edits that change no public surface at all. The method
-                // signatures themselves are still compared.
-                "Xunit.FactAttribute",
-                "Xunit.TheoryAttribute"
-            ]
-        }));
+        var actual = Normalise(
+            assembly.GeneratePublicApi(
+                new ApiGeneratorOptions
+                {
+                    ExcludeAttributes =
+                    [
+                        // Build-stamped, so they differ per machine and per configuration.
+                        "System.Runtime.Versioning.TargetFrameworkAttribute",
+                        "System.Reflection.AssemblyMetadataAttribute",
+                        "System.Diagnostics.DebuggableAttribute",
+                        "System.Runtime.CompilerServices.CompilationRelaxationsAttribute",
+                        "System.Runtime.CompilerServices.RuntimeCompatibilityAttribute",
+                        // xunit.v3 records the source file and line of every [Fact] and [Theory], which
+                        // Hardened.Requests.Testing ships on its conformance suite. Those arguments are
+                        // absolute paths, so they differ between a developer machine and a deterministic
+                        // CI build - and the line numbers churn whenever anyone edits the file, which
+                        // would fail this test on edits that change no public surface at all. The method
+                        // signatures themselves are still compared.
+                        "Xunit.FactAttribute",
+                        "Xunit.TheoryAttribute",
+                    ],
+                }
+            )
+        );
 
         var approvedPath = ApprovedPath(assemblyName);
 
-        if (Approving) {
+        if (Approving)
+        {
             var directory = SourceDirectory();
 
-            if (directory == null) {
+            if (directory == null)
+            {
                 // Not a skip: CI fails on any skipped test, and this is a misused flag rather than
                 // an environment that cannot run the check.
                 Assert.Fail(
-                    "APPROVE_PUBLIC_API is set but the source directory is not reachable from " +
-                    "this build, so there is nowhere to write the approved file. Approve from a " +
-                    "developer machine, not from a deterministic build.");
+                    "APPROVE_PUBLIC_API is set but the source directory is not reachable from "
+                        + "this build, so there is nowhere to write the approved file. Approve from a "
+                        + "developer machine, not from a deterministic build."
+                );
             }
 
             var sourcePath = Path.Combine(directory, "Approved", assemblyName + ".approved.txt");
@@ -155,18 +166,23 @@ public class PublicApiSurfaceTests {
             return;
         }
 
-        if (!File.Exists(approvedPath)) {
+        if (!File.Exists(approvedPath))
+        {
             WriteReceived(assemblyName, actual);
 
             Assert.Fail(
-                $"{assemblyName} has no approved public API file." + Environment.NewLine +
-                $"  expected: {approvedPath}" + Environment.NewLine +
-                "  Review the .received.txt written beside it, then re-run with APPROVE_PUBLIC_API=1.");
+                $"{assemblyName} has no approved public API file."
+                    + Environment.NewLine
+                    + $"  expected: {approvedPath}"
+                    + Environment.NewLine
+                    + "  Review the .received.txt written beside it, then re-run with APPROVE_PUBLIC_API=1."
+            );
         }
 
         var approved = Normalise(File.ReadAllText(approvedPath));
 
-        if (approved == actual) {
+        if (approved == actual)
+        {
             DeleteStaleReceived(assemblyName);
 
             return;
@@ -175,11 +191,15 @@ public class PublicApiSurfaceTests {
         WriteReceived(assemblyName, actual);
 
         Assert.Fail(
-            $"The public API of {assemblyName} changed." + Environment.NewLine + Environment.NewLine +
-            Describe(approved, actual) + Environment.NewLine +
-            "  If the change is intended, re-run with APPROVE_PUBLIC_API=1 and commit the approved file." +
-            Environment.NewLine +
-            "  If it is not, something shipped is no longer reachable by consumers.");
+            $"The public API of {assemblyName} changed."
+                + Environment.NewLine
+                + Environment.NewLine
+                + Describe(approved, actual)
+                + Environment.NewLine
+                + "  If the change is intended, re-run with APPROVE_PUBLIC_API=1 and commit the approved file."
+                + Environment.NewLine
+                + "  If it is not, something shipped is no longer reachable by consumers."
+        );
     }
 
     /// <summary>
@@ -197,7 +217,8 @@ public class PublicApiSurfaceTests {
     /// </para>
     /// </summary>
     [Fact]
-    public void EveryShippedAssemblyBesideThisOneIsCovered() {
+    public void EveryShippedAssemblyBesideThisOneIsCovered()
+    {
         var covered = Shipped.ToHashSet(StringComparer.Ordinal);
 
         var present = Directory
@@ -211,14 +232,19 @@ public class PublicApiSurfaceTests {
         // written next to it, which is the point of naming them rather than filtering by shape.
         Assert.NotEmpty(present);
 
-        var uncovered = present.Except(covered).OrderBy(name => name, StringComparer.Ordinal).ToList();
+        var uncovered = present
+            .Except(covered)
+            .OrderBy(name => name, StringComparer.Ordinal)
+            .ToList();
 
-        Assert.True(uncovered.Count == 0,
-            "These Hardened assemblies are built beside this test but have no approved public API:" +
-            Environment.NewLine +
-            string.Join(Environment.NewLine, uncovered.Select(name => "  " + name)) +
-            Environment.NewLine +
-            "Add each to Shipped and approve its surface.");
+        Assert.True(
+            uncovered.Count == 0,
+            "These Hardened assemblies are built beside this test but have no approved public API:"
+                + Environment.NewLine
+                + string.Join(Environment.NewLine, uncovered.Select(name => "  " + name))
+                + Environment.NewLine
+                + "Add each to Shipped and approve its surface."
+        );
     }
 
     /// <summary>
@@ -234,10 +260,12 @@ public class PublicApiSurfaceTests {
     /// approved. Only possible on a developer machine — see <see cref="SourceDirectory"/>. In CI
     /// there is nowhere useful to put it and the failure message carries the diff instead.
     /// </summary>
-    private static void WriteReceived(string assemblyName, string actual) {
+    private static void WriteReceived(string assemblyName, string actual)
+    {
         var directory = SourceDirectory();
 
-        if (directory == null) {
+        if (directory == null)
+        {
             return;
         }
 
@@ -247,16 +275,19 @@ public class PublicApiSurfaceTests {
         File.WriteAllText(path, actual);
     }
 
-    private static void DeleteStaleReceived(string assemblyName) {
+    private static void DeleteStaleReceived(string assemblyName)
+    {
         var directory = SourceDirectory();
 
-        if (directory == null) {
+        if (directory == null)
+        {
             return;
         }
 
         var path = Path.Combine(directory, "Approved", assemblyName + ".received.txt");
 
-        if (File.Exists(path)) {
+        if (File.Exists(path))
+        {
             File.Delete(path);
         }
     }
@@ -272,20 +303,21 @@ public class PublicApiSurfaceTests {
     /// assuming one failed every surface test in CI while passing locally.
     /// </para>
     /// </summary>
-    private static string? SourceDirectory([CallerFilePath] string path = "") {
+    private static string? SourceDirectory([CallerFilePath] string path = "")
+    {
         var directory = Path.GetDirectoryName(path);
 
         return directory != null && Directory.Exists(directory) ? directory : null;
     }
 
-    private static string Normalise(string api) =>
-        api.Replace("\r\n", "\n").TrimEnd() + "\n";
+    private static string Normalise(string api) => api.Replace("\r\n", "\n").TrimEnd() + "\n";
 
     /// <summary>
     /// The added and removed lines, rather than two full API dumps. A surface file runs to hundreds
     /// of lines and the interesting part is usually one of them.
     /// </summary>
-    private static string Describe(string approved, string actual) {
+    private static string Describe(string approved, string actual)
+    {
         var approvedLines = approved.Split('\n');
         var actualLines = actual.Split('\n');
 
@@ -294,15 +326,18 @@ public class PublicApiSurfaceTests {
 
         var message = new System.Text.StringBuilder();
 
-        foreach (var line in removed.Where(line => line.Trim().Length > 0).Take(40)) {
+        foreach (var line in removed.Where(line => line.Trim().Length > 0).Take(40))
+        {
             message.AppendLine("  - " + line.Trim());
         }
 
-        foreach (var line in added.Where(line => line.Trim().Length > 0).Take(40)) {
+        foreach (var line in added.Where(line => line.Trim().Length > 0).Take(40))
+        {
             message.AppendLine("  + " + line.Trim());
         }
 
-        if (removed.Count + added.Count > 80) {
+        if (removed.Count + added.Count > 80)
+        {
             message.AppendLine($"  … {removed.Count + added.Count - 80} more changed lines");
         }
 

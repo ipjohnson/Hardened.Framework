@@ -15,13 +15,16 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 /// This fixture imports <c>[MessagePackSerializerLibrary]</c>, so the serializer is registered the
 /// way an application registers it rather than constructed by the test.
 /// </remarks>
-public class MessagePackTests {
-
-    private static MessagePackController.Reading Read(TestWebResponse response) {
+public class MessagePackTests
+{
+    private static MessagePackController.Reading Read(TestWebResponse response)
+    {
         response.Body.Position = 0;
 
         return MessagePackSerializer.Deserialize<MessagePackController.Reading>(
-            response.Body, ContractlessOrGenerated);
+            response.Body,
+            ContractlessOrGenerated
+        );
     }
 
     /// <summary>
@@ -41,7 +44,10 @@ public class MessagePackTests {
     /// The operation declares JSON first, so a client expressing no preference is answered with it.
     /// </summary>
     [HardenedTest]
-    public async Task AClientWithNoPreferenceGetsTheTypeTheOperationLeadsWith(ITestWebApp testWebApp) {
+    public async Task AClientWithNoPreferenceGetsTheTypeTheOperationLeadsWith(
+        ITestWebApp testWebApp
+    )
+    {
         var response = await testWebApp.Get("/msgpack/negotiated/3");
 
         response.Assert.Ok();
@@ -50,10 +56,12 @@ public class MessagePackTests {
     }
 
     [HardenedTest]
-    public async Task AClientAskingForMessagePackGetsMessagePack(ITestWebApp testWebApp) {
+    public async Task AClientAskingForMessagePackGetsMessagePack(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get(
             "/msgpack/negotiated/3",
-            request => request.Headers[KnownHeaders.Accept] = MessagePackContentType.Value);
+            request => request.Headers[KnownHeaders.Accept] = MessagePackContentType.Value
+        );
 
         response.Assert.Ok();
 
@@ -66,10 +74,12 @@ public class MessagePackTests {
     /// nothing about the handler says which one it answered with.
     /// </summary>
     [HardenedTest]
-    public async Task TheSameOperationAnswersJsonForAClientThatAsksForIt(ITestWebApp testWebApp) {
+    public async Task TheSameOperationAnswersJsonForAClientThatAsksForIt(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get(
             "/msgpack/negotiated/3",
-            request => request.Headers[KnownHeaders.Accept] = KnownContentType.Json);
+            request => request.Headers[KnownHeaders.Accept] = KnownContentType.Json
+        );
 
         response.Assert.Ok();
 
@@ -85,7 +95,8 @@ public class MessagePackTests {
     /// that path assigns but the serializer itself.
     /// </summary>
     [HardenedTest]
-    public async Task AnOperationDeclaringMessagePackAloneAnswersIt(ITestWebApp testWebApp) {
+    public async Task AnOperationDeclaringMessagePackAloneAnswersIt(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/msgpack/packed/4");
 
         response.Assert.Ok();
@@ -101,17 +112,24 @@ public class MessagePackTests {
     /// an operation reads MessagePack because the client sent it.
     /// </summary>
     [HardenedTest]
-    public async Task AMessagePackBodyIsRead(ITestWebApp testWebApp) {
+    public async Task AMessagePackBodyIsRead(ITestWebApp testWebApp)
+    {
         var body = MessagePackSerializer.Serialize(
-            new MessagePackController.Reading("sensor-9", 41), ContractlessOrGenerated);
+            new MessagePackController.Reading("sensor-9", 41),
+            ContractlessOrGenerated
+        );
 
         var response = await testWebApp.Request(
-            "POST", null, "/msgpack/round",
-            request => {
+            "POST",
+            null,
+            "/msgpack/round",
+            request =>
+            {
                 request.Headers[KnownHeaders.ContentType] = MessagePackContentType.Value;
                 request.Headers[KnownHeaders.Accept] = MessagePackContentType.Value;
                 request.Body = body;
-            });
+            }
+        );
 
         response.Assert.Ok();
 
@@ -123,9 +141,12 @@ public class MessagePackTests {
     /// rather than declared once.
     /// </summary>
     [HardenedTest]
-    public async Task AJsonBodyStillReadsOnTheSameOperation(ITestWebApp testWebApp) {
+    public async Task AJsonBodyStillReadsOnTheSameOperation(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Post(
-            new MessagePackController.Reading("sensor-9", 41), "/msgpack/round");
+            new MessagePackController.Reading("sensor-9", 41),
+            "/msgpack/round"
+        );
 
         response.Assert.Ok();
 
@@ -147,10 +168,12 @@ public class MessagePackTests {
     /// operation went out that way. See <c>ErrorEnvelopeFormatters</c>.
     /// </remarks>
     [HardenedTest]
-    public async Task ARefusalIsAnsweredAsMessagePack(ITestWebApp testWebApp) {
+    public async Task ARefusalIsAnsweredAsMessagePack(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get(
             "/msgpack/packed/notanumber",
-            request => request.Headers[KnownHeaders.Accept] = MessagePackContentType.Value);
+            request => request.Headers[KnownHeaders.Accept] = MessagePackContentType.Value
+        );
 
         Assert.Equal(400, response.StatusCode);
         Assert.StartsWith(MessagePackContentType.Value, ContentType(response));
@@ -159,7 +182,8 @@ public class MessagePackTests {
 
         var error = MessagePackSerializer.Deserialize<RequestValidationError>(
             response.Body,
-            MessagePackSerializerOptions.Standard.WithResolver(HardenedFormatterResolver.Instance));
+            MessagePackSerializerOptions.Standard.WithResolver(HardenedFormatterResolver.Instance)
+        );
 
         Assert.NotEmpty(error.Type);
         Assert.NotEmpty(error.Errors);
@@ -179,10 +203,12 @@ public class MessagePackTests {
     /// <c>HardenedFormatterResolver</c> answers for it now.
     /// </remarks>
     [HardenedTest]
-    public async Task ADeclaredNotFoundIsAnsweredAsMessagePack(ITestWebApp testWebApp) {
+    public async Task ADeclaredNotFoundIsAnsweredAsMessagePack(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get(
             "/msgpack/declared/500",
-            request => request.Headers[KnownHeaders.Accept] = MessagePackContentType.Value);
+            request => request.Headers[KnownHeaders.Accept] = MessagePackContentType.Value
+        );
 
         Assert.Equal(404, response.StatusCode);
         Assert.StartsWith(MessagePackContentType.Value, ContentType(response));
@@ -191,7 +217,8 @@ public class MessagePackTests {
 
         var notFound = MessagePackSerializer.Deserialize<NotFound>(
             response.Body,
-            MessagePackSerializerOptions.Standard.WithResolver(HardenedFormatterResolver.Instance));
+            MessagePackSerializerOptions.Standard.WithResolver(HardenedFormatterResolver.Instance)
+        );
 
         Assert.Equal("reading", notFound.Resource);
         Assert.Equal(404, notFound.Status);
@@ -200,10 +227,12 @@ public class MessagePackTests {
 
     /// <summary>And the success case on the same operation still negotiates.</summary>
     [HardenedTest]
-    public async Task TheSuccessOnTheSameOperationStillAnswersMessagePack(ITestWebApp testWebApp) {
+    public async Task TheSuccessOnTheSameOperationStillAnswersMessagePack(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get(
             "/msgpack/declared/4",
-            request => request.Headers[KnownHeaders.Accept] = MessagePackContentType.Value);
+            request => request.Headers[KnownHeaders.Accept] = MessagePackContentType.Value
+        );
 
         response.Assert.Ok();
 

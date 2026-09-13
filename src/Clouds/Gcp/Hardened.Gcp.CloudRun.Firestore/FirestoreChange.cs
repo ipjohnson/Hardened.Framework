@@ -20,15 +20,18 @@ namespace Hardened.Gcp.CloudRun.Firestore;
 /// still hands it a request <c>[OldValue]</c> can read.
 /// </para>
 /// </remarks>
-public sealed class FirestoreChange : CloudRunTriggerRequest {
+public sealed class FirestoreChange : CloudRunTriggerRequest
+{
     public FirestoreChange(
         string scheme,
         string path,
         Stream body,
         IDictionary<string, StringValues> headers,
         IExecutionRequest delivery,
-        DocumentEventData documentEvent)
-        : base(scheme, path, body, headers, delivery) {
+        DocumentEventData documentEvent
+    )
+        : base(scheme, path, body, headers, delivery)
+    {
         Event = documentEvent;
     }
 
@@ -39,8 +42,10 @@ public sealed class FirestoreChange : CloudRunTriggerRequest {
         IDictionary<string, StringValues> headers,
         IExecutionRequest delivery,
         ITransportInfo transport,
-        DocumentEventData documentEvent)
-        : base(scheme, path, body, headers, delivery, transport) {
+        DocumentEventData documentEvent
+    )
+        : base(scheme, path, body, headers, delivery, transport)
+    {
         Event = documentEvent;
     }
 
@@ -58,7 +63,17 @@ public sealed class FirestoreChange : CloudRunTriggerRequest {
         string? path = null,
         IDictionary<string, StringValues>? headers = null,
         IQueryStringCollection? queryString = null,
-        IReadOnlyList<string>? cookies = null) =>
-        CopyInto(new FirestoreChange(
-            method ?? Method, path ?? Path, Body, headers ?? Headers, Delivery, Transport, Event));
+        IReadOnlyList<string>? cookies = null
+    ) =>
+        CopyInto(
+            new FirestoreChange(
+                method ?? Method,
+                path ?? Path,
+                Body,
+                headers ?? Headers,
+                Delivery,
+                Transport,
+                Event
+            )
+        );
 }

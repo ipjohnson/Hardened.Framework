@@ -28,28 +28,29 @@ namespace Hardened.OpenApi.BuildTask.Tests;
 /// something different everywhere else.
 /// </para>
 /// </remarks>
-public class SecurityScopeDiagnosticTests {
-
-    private static string Document(string schemeDeclaration, string requirement) => $$"""
-        openapi: 3.0.0
-        info: { title: Depot, version: '1.0' }
-        paths:
-          /products:
-            get:
-              operationId: listProducts
-              security:
-                {{requirement}}
-              responses:
-                '200':
-                  description: ok
-                  content:
-                    application/json:
-                      schema:
-                        type: string
-        components:
-          securitySchemes:
-            {{schemeDeclaration}}
-        """;
+public class SecurityScopeDiagnosticTests
+{
+    private static string Document(string schemeDeclaration, string requirement) =>
+        $$"""
+            openapi: 3.0.0
+            info: { title: Depot, version: '1.0' }
+            paths:
+              /products:
+                get:
+                  operationId: listProducts
+                  security:
+                    {{requirement}}
+                  responses:
+                    '200':
+                      description: ok
+                      content:
+                        application/json:
+                          schema:
+                            type: string
+            components:
+              securitySchemes:
+                {{schemeDeclaration}}
+            """;
 
     private const string Bearer = """
         depotAuth:
@@ -83,12 +84,18 @@ public class SecurityScopeDiagnosticTests {
         """;
 
     private static (ServiceSpecModel Model, List<string> Diagnostics) Parse(
-        string scheme, string requirement) {
+        string scheme,
+        string requirement
+    )
+    {
         var diagnostics = new List<string>();
 
         var model = OpenApiSpecParser.Parse(
-            Document(scheme, requirement), "depot", CancellationToken.None,
-            diagnostics: diagnostics);
+            Document(scheme, requirement),
+            "depot",
+            CancellationToken.None,
+            diagnostics: diagnostics
+        );
 
         Assert.NotNull(model);
 
@@ -99,14 +106,16 @@ public class SecurityScopeDiagnosticTests {
         model.Services.SelectMany(service => service.Operations).Single();
 
     [Fact]
-    public void ScopesOnABearerSchemeAreReported() {
+    public void ScopesOnABearerSchemeAreReported()
+    {
         var (_, diagnostics) = Parse(Bearer, NamesAScope);
 
         Assert.Contains(diagnostics, d => d.Contains("'depot:read'") && d.Contains("cannot carry"));
     }
 
     [Fact]
-    public void ScopesOnAnApiKeySchemeAreReported() {
+    public void ScopesOnAnApiKeySchemeAreReported()
+    {
         var (_, diagnostics) = Parse(ApiKey, NamesAScope);
 
         Assert.Contains(diagnostics, d => d.Contains("cannot carry"));
@@ -116,7 +125,8 @@ public class SecurityScopeDiagnosticTests {
     /// The message says what the document said, so the fix does not need a second look at the file.
     /// </summary>
     [Fact]
-    public void TheReportNamesTheOperationTheSchemeAndItsType() {
+    public void TheReportNamesTheOperationTheSchemeAndItsType()
+    {
         var (_, diagnostics) = Parse(Bearer, NamesAScope);
 
         var reported = Assert.Single(diagnostics, d => d.Contains("cannot carry"));
@@ -132,7 +142,8 @@ public class SecurityScopeDiagnosticTests {
     /// breaking change wearing a warning.
     /// </summary>
     [Fact]
-    public void TheOperationStillRequiresAuthenticationAndNoGrant() {
+    public void TheOperationStillRequiresAuthenticationAndNoGrant()
+    {
         var (model, _) = Parse(Bearer, NamesAScope);
 
         var branch = Assert.Single(Operation(model).AuthorizationBranches);
@@ -145,7 +156,8 @@ public class SecurityScopeDiagnosticTests {
     /// A scheme that can carry scopes keeps them, and says nothing.
     /// </summary>
     [Fact]
-    public void ScopesOnAnOAuthSchemeAreKeptAndNotReported() {
+    public void ScopesOnAnOAuthSchemeAreKeptAndNotReported()
+    {
         var (model, diagnostics) = Parse(OAuth, NamesAScope);
 
         Assert.DoesNotContain(diagnostics, d => d.Contains("cannot carry"));
@@ -160,7 +172,8 @@ public class SecurityScopeDiagnosticTests {
     /// stay silent - otherwise the diagnostic fires on every API-key API in existence.
     /// </summary>
     [Fact]
-    public void AnEmptyScopeArrayIsNotReported() {
+    public void AnEmptyScopeArrayIsNotReported()
+    {
         var (_, diagnostics) = Parse(ApiKey, NamesNothing);
 
         Assert.DoesNotContain(diagnostics, d => d.Contains("cannot carry"));
@@ -171,14 +184,21 @@ public class SecurityScopeDiagnosticTests {
     /// dangling - and must not also collect this one, which would name a type it does not have.
     /// </summary>
     [Fact]
-    public void AnUndeclaredSchemeIsReportedOnlyAsDangling() {
+    public void AnUndeclaredSchemeIsReportedOnlyAsDangling()
+    {
         var diagnostics = new List<string>();
 
         OpenApiSpecParser.Parse(
-            Document(Bearer, """
+            Document(
+                Bearer,
+                """
                 - missingAuth: ["depot:read"]
-                """),
-            "depot", CancellationToken.None, diagnostics: diagnostics);
+                """
+            ),
+            "depot",
+            CancellationToken.None,
+            diagnostics: diagnostics
+        );
 
         Assert.Contains(diagnostics, d => d.Contains("does not declare"));
         Assert.DoesNotContain(diagnostics, d => d.Contains("cannot carry"));

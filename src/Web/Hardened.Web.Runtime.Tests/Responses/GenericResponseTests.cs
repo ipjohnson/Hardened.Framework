@@ -1,8 +1,8 @@
 using System.Reflection;
 using Hardened.Requests.Abstract.Authorization;
 using Hardened.Requests.Abstract.Responses;
-using Microsoft.Extensions.Primitives;
 using Hardened.Web.Runtime.Responses;
+using Microsoft.Extensions.Primitives;
 using Xunit;
 
 namespace Hardened.Web.Runtime.Tests.Responses;
@@ -23,22 +23,28 @@ namespace Hardened.Web.Runtime.Tests.Responses;
 /// it. That is <see cref="ICarriesResponseBody"/>, and the dispatch reads it at compile time.
 /// </para>
 /// </remarks>
-public class GenericResponseTests {
-
+public class GenericResponseTests
+{
     public sealed record ApiError(string Code, string Message);
 
     /// <summary>
     /// Every generic problem type, found by reflection rather than listed, so one added later is
     /// covered without anyone remembering.
     /// </summary>
-    public static TheoryData<Type> GenericProblemTypes {
-        get {
+    public static TheoryData<Type> GenericProblemTypes
+    {
+        get
+        {
             var data = new TheoryData<Type>();
 
-            foreach (var type in typeof(NotFound<>).Assembly.GetExportedTypes()) {
-                if (type.IsGenericTypeDefinition &&
-                    type.GetCustomAttribute<HttpStatusAttribute>() != null &&
-                    typeof(ICarriesResponseBody).IsAssignableFrom(type)) {
+            foreach (var type in typeof(NotFound<>).Assembly.GetExportedTypes())
+            {
+                if (
+                    type.IsGenericTypeDefinition
+                    && type.GetCustomAttribute<HttpStatusAttribute>() != null
+                    && typeof(ICarriesResponseBody).IsAssignableFrom(type)
+                )
+                {
                     data.Add(type);
                 }
             }
@@ -47,17 +53,20 @@ public class GenericResponseTests {
         }
     }
 
-    private static object Build(Type type) {
+    private static object Build(Type type)
+    {
         var closed = type.IsGenericTypeDefinition ? type.MakeGenericType(typeof(ApiError)) : type;
         var constructor = closed.GetConstructors().OrderBy(c => c.GetParameters().Length).First();
 
-        var arguments = constructor.GetParameters()
+        var arguments = constructor
+            .GetParameters()
             .Select(p =>
-                p.ParameterType == typeof(ApiError) ? new ApiError("e", "m") :
-                p.ParameterType == typeof(TimeSpan) ? TimeSpan.FromSeconds(5) :
-                p.ParameterType == typeof(string) ? "/things/1" :
-                p.HasDefaultValue ? p.DefaultValue :
-                Activator.CreateInstance(p.ParameterType))
+                p.ParameterType == typeof(ApiError) ? new ApiError("e", "m")
+                : p.ParameterType == typeof(TimeSpan) ? TimeSpan.FromSeconds(5)
+                : p.ParameterType == typeof(string) ? "/things/1"
+                : p.HasDefaultValue ? p.DefaultValue
+                : Activator.CreateInstance(p.ParameterType)
+            )
             .ToArray();
 
         return constructor.Invoke(arguments);
@@ -71,7 +80,8 @@ public class GenericResponseTests {
     /// </summary>
     [Theory]
     [MemberData(nameof(GenericProblemTypes))]
-    public void TheBodyIsThePayloadNotTheWrapper(Type openGeneric) {
+    public void TheBodyIsThePayloadNotTheWrapper(Type openGeneric)
+    {
         var response = (ICarriesResponseBody)Build(openGeneric);
 
         var body = Assert.IsType<ApiError>(response.Body);
@@ -85,17 +95,20 @@ public class GenericResponseTests {
     /// </summary>
     [Theory]
     [MemberData(nameof(GenericProblemTypes))]
-    public void EveryGenericProblemCarriesItsBody(Type openGeneric) {
+    public void EveryGenericProblemCarriesItsBody(Type openGeneric)
+    {
         Assert.True(
             typeof(ICarriesResponseBody).IsAssignableFrom(openGeneric),
-            openGeneric.Name + " must implement ICarriesResponseBody.");
+            openGeneric.Name + " must implement ICarriesResponseBody."
+        );
     }
 
     /// <summary>
     /// Created&lt;T&gt; had this noted as outstanding when it was written; it is the same case.
     /// </summary>
     [Fact]
-    public void CreatedCarriesItsValueRatherThanItself() {
+    public void CreatedCarriesItsValueRatherThanItself()
+    {
         ICarriesResponseBody created = new Created<ApiError>(new ApiError("e", "m"), "/things/1");
 
         Assert.IsType<ApiError>(created.Body);
@@ -116,29 +129,35 @@ public class GenericResponseTests {
     /// </remarks>
     [Theory]
     [MemberData(nameof(GenericProblemTypes))]
-    public void AGenericProblemAgreesWithItsNonGenericFormOnKind(Type openGeneric) {
+    public void AGenericProblemAgreesWithItsNonGenericFormOnKind(Type openGeneric)
+    {
         var plain = openGeneric.Assembly.GetType(
-            openGeneric.Namespace + "." + openGeneric.Name.Split('`')[0]);
+            openGeneric.Namespace + "." + openGeneric.Name.Split('`')[0]
+        );
 
         // Created<T> has no non-generic counterpart, and MethodNotAllowed's whole answer is a
         // status and an Allow header - neither is a problem kind, so neither has a URI to agree on.
-        if (plain == null || plain.GetProperty("Type") == null) {
+        if (plain == null || plain.GetProperty("Type") == null)
+        {
             return;
         }
 
         var generic = Build(openGeneric);
         var reference = Build(plain);
 
-        foreach (var member in new[] { "Type", "Title" }) {
+        foreach (var member in new[] { "Type", "Title" })
+        {
             Assert.Equal(
                 plain.GetProperty(member)!.GetValue(reference),
-                openGeneric.MakeGenericType(typeof(ApiError)).GetProperty(member)!.GetValue(generic));
+                openGeneric.MakeGenericType(typeof(ApiError)).GetProperty(member)!.GetValue(generic)
+            );
         }
     }
 
     [Theory]
     [MemberData(nameof(GenericProblemTypes))]
-    public void TheAttributeAgreesWithTheStatusProperty(Type openGeneric) {
+    public void TheAttributeAgreesWithTheStatusProperty(Type openGeneric)
+    {
         var declared = openGeneric.GetCustomAttribute<HttpStatusAttribute>()!.StatusCode;
 
         Assert.Equal(declared, ((IHttpStatusResponse)Build(openGeneric)).Status);
@@ -146,7 +165,8 @@ public class GenericResponseTests {
 
     [Theory]
     [MemberData(nameof(GenericProblemTypes))]
-    public void EveryGenericProblemIsSealed(Type openGeneric) {
+    public void EveryGenericProblemIsSealed(Type openGeneric)
+    {
         Assert.True(openGeneric.IsSealed, openGeneric.Name + " must be sealed.");
     }
 
@@ -155,29 +175,33 @@ public class GenericResponseTests {
     #region headers still come from the response
 
     [Fact]
-    public void TheGenericRateLimitedStillWritesRetryAfter() {
+    public void TheGenericRateLimitedStillWritesRetryAfter()
+    {
         var headers = new Dictionary<string, StringValues>();
 
-        new RateLimited<ApiError>(TimeSpan.FromSeconds(30), new ApiError("e","m"))
-            .ApplyHeaders(headers);
+        new RateLimited<ApiError>(TimeSpan.FromSeconds(30), new ApiError("e", "m")).ApplyHeaders(
+            headers
+        );
 
         Assert.Equal("30", headers["Retry-After"]);
     }
 
     [Fact]
-    public void TheGenericUnauthorizedStillChallenges() {
+    public void TheGenericUnauthorizedStillChallenges()
+    {
         var headers = new Dictionary<string, StringValues>();
 
-        new Unauthorized<ApiError>(new ApiError("e","m")).ApplyHeaders(headers);
+        new Unauthorized<ApiError>(new ApiError("e", "m")).ApplyHeaders(headers);
 
         Assert.Equal("Bearer", headers[AuthorizationChallenge.HeaderName]);
     }
 
     [Fact]
-    public void TheGenericServiceUnavailableWritesNoRetryAfterWithoutOne() {
+    public void TheGenericServiceUnavailableWritesNoRetryAfterWithoutOne()
+    {
         var headers = new Dictionary<string, StringValues>();
 
-        new ServiceUnavailable<ApiError>(new ApiError("e","m")).ApplyHeaders(headers);
+        new ServiceUnavailable<ApiError>(new ApiError("e", "m")).ApplyHeaders(headers);
 
         Assert.False(headers.ContainsKey("Retry-After"));
     }
@@ -191,12 +215,15 @@ public class GenericResponseTests {
     /// <c>Response&lt;Todo, ApiError, ApiError&gt;</c> is CS0457; these are distinct closed types.
     /// </summary>
     [Fact]
-    public void TwoStatusesCanShareOnePayloadType() {
-        Response<string, NotFound<ApiError>, Conflict<ApiError>> notFound =
-            new NotFound<ApiError>(new ApiError("nf", "no such todo"));
+    public void TwoStatusesCanShareOnePayloadType()
+    {
+        Response<string, NotFound<ApiError>, Conflict<ApiError>> notFound = new NotFound<ApiError>(
+            new ApiError("nf", "no such todo")
+        );
 
-        Response<string, NotFound<ApiError>, Conflict<ApiError>> conflict =
-            new Conflict<ApiError>(new ApiError("cf", "already exists"));
+        Response<string, NotFound<ApiError>, Conflict<ApiError>> conflict = new Conflict<ApiError>(
+            new ApiError("cf", "already exists")
+        );
 
         Assert.IsType<NotFound<ApiError>>(notFound.Value);
         Assert.IsType<Conflict<ApiError>>(conflict.Value);
@@ -207,13 +234,16 @@ public class GenericResponseTests {
     /// response because both are ordinary types.
     /// </summary>
     [Fact]
-    public void AGenericProblemCanBeThrownWithItsTypeIntact() {
+    public void AGenericProblemCanBeThrownWithItsTypeIntact()
+    {
         var response = new NotFound<ApiError>(new ApiError("nf", "no such todo"));
 
-        try {
+        try
+        {
             throw response.AsException();
         }
-        catch (ResponseException<NotFound<ApiError>> e) {
+        catch (ResponseException<NotFound<ApiError>> e)
+        {
             Assert.Equal(404, e.StatusCode);
             Assert.Equal("nf", e.Response.Body.Code);
         }

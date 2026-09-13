@@ -5,8 +5,8 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Hardened.SourceGenerator.Shared;
 
-public static class SyntaxNodeExtensions {
-
+public static class SyntaxNodeExtensions
+{
     /// <summary>
     /// The value of an attribute's first argument as a string, or empty when there is none.
     ///
@@ -16,17 +16,22 @@ public static class SyntaxNodeExtensions {
     /// compile. The constant value is what callers actually want.
     /// </summary>
     public static string GetFirstStringArgumentValue(
-        this AttributeSyntax attribute, GeneratorSyntaxContext generatorSyntaxContext) {
+        this AttributeSyntax attribute,
+        GeneratorSyntaxContext generatorSyntaxContext
+    )
+    {
         var expression = attribute.ArgumentList?.Arguments.FirstOrDefault()?.Expression;
 
-        if (expression == null) {
+        if (expression == null)
+        {
             return "";
         }
 
         // Handles literals and references to string constants alike.
         var constant = generatorSyntaxContext.SemanticModel.GetConstantValue(expression);
 
-        if (constant is { HasValue: true, Value: string value }) {
+        if (constant is { HasValue: true, Value: string value })
+        {
             return value;
         }
 
@@ -35,27 +40,35 @@ public static class SyntaxNodeExtensions {
         return expression.ToFullString().Trim().Trim('"');
     }
 
-    public static string GetNamespace(this BaseTypeDeclarationSyntax syntax) {
+    public static string GetNamespace(this BaseTypeDeclarationSyntax syntax)
+    {
         var parentSyntaxNode = syntax.Parent;
 
-        while (parentSyntaxNode != null &&
-               parentSyntaxNode is not NamespaceDeclarationSyntax &&
-               parentSyntaxNode is not FileScopedNamespaceDeclarationSyntax) {
+        while (
+            parentSyntaxNode != null
+            && parentSyntaxNode is not NamespaceDeclarationSyntax
+            && parentSyntaxNode is not FileScopedNamespaceDeclarationSyntax
+        )
+        {
             parentSyntaxNode = parentSyntaxNode.Parent;
         }
 
-        if (parentSyntaxNode is BaseNamespaceDeclarationSyntax namespaceNode) {
+        if (parentSyntaxNode is BaseNamespaceDeclarationSyntax namespaceNode)
+        {
             return WalkNamespaceNodes(namespaceNode);
         }
 
         return "";
     }
 
-    private static string WalkNamespaceNodes(BaseNamespaceDeclarationSyntax? namespaceNode) {
+    private static string WalkNamespaceNodes(BaseNamespaceDeclarationSyntax? namespaceNode)
+    {
         var stringBuilder = new StringBuilder();
 
-        while (namespaceNode != null) {
-            if (stringBuilder.Length > 0) {
+        while (namespaceNode != null)
+        {
+            if (stringBuilder.Length > 0)
+            {
                 stringBuilder.Insert(0, '.');
             }
 
@@ -81,37 +94,57 @@ public static class SyntaxNodeExtensions {
     /// string, which is what <see cref="TypeDefinition"/> already means by it.
     /// </para>
     /// </summary>
-    public static ITypeDefinition GetTypeDefinition(this ClassDeclarationSyntax classDeclarationSyntax) {
-        var namespaceSyntax = classDeclarationSyntax.Ancestors()
+    public static ITypeDefinition GetTypeDefinition(
+        this ClassDeclarationSyntax classDeclarationSyntax
+    )
+    {
+        var namespaceSyntax = classDeclarationSyntax
+            .Ancestors()
             .OfType<BaseNamespaceDeclarationSyntax>()
             .FirstOrDefault();
 
         return TypeDefinition.Get(
             namespaceSyntax?.Name.ToFullString().TrimEnd() ?? "",
-            classDeclarationSyntax.Identifier.Text);
+            classDeclarationSyntax.Identifier.Text
+        );
     }
 
-    public static AttributeSyntax? GetAttribute(this SyntaxNode node, string attributeName, string ns = "") {
+    public static AttributeSyntax? GetAttribute(
+        this SyntaxNode node,
+        string attributeName,
+        string ns = ""
+    )
+    {
         return node.DescendantNodes()
-            .OfType<AttributeSyntax>().FirstOrDefault(
-                a => {
-                    var name = a.Name.ToString();
+            .OfType<AttributeSyntax>()
+            .FirstOrDefault(a =>
+            {
+                var name = a.Name.ToString();
 
-                    return name.Equals(attributeName) || name.Equals(attributeName + "Attribute") ||
-                           name.Equals(ns + "." + attributeName) || name.Equals(ns + "." + attributeName + "Attribute");
-                });
+                return name.Equals(attributeName)
+                    || name.Equals(attributeName + "Attribute")
+                    || name.Equals(ns + "." + attributeName)
+                    || name.Equals(ns + "." + attributeName + "Attribute");
+            });
     }
 
-    public static IEnumerable<AttributeSyntax>
-        GetAttributes(this SyntaxNode node, string attributeName, string ns = "") {
+    public static IEnumerable<AttributeSyntax> GetAttributes(
+        this SyntaxNode node,
+        string attributeName,
+        string ns = ""
+    )
+    {
         return node.DescendantNodes()
-            .OfType<AttributeSyntax>().Where(
-                a => {
-                    var name = a.Name.ToString();
+            .OfType<AttributeSyntax>()
+            .Where(a =>
+            {
+                var name = a.Name.ToString();
 
-                    return name.Equals(attributeName) || name.Equals(attributeName + "Attribute") ||
-                           name.Equals(ns + "." + attributeName) || name.Equals(ns + "." + attributeName + "Attribute");
-                });
+                return name.Equals(attributeName)
+                    || name.Equals(attributeName + "Attribute")
+                    || name.Equals(ns + "." + attributeName)
+                    || name.Equals(ns + "." + attributeName + "Attribute");
+            });
     }
 
     /// <summary>
@@ -133,30 +166,40 @@ public static class SyntaxNodeExtensions {
     /// properly and discards it, while under-matching loses the type silently.
     /// </para>
     /// </summary>
-    public static bool IsAttributed(this SyntaxNode node, string attributeName, string ns = "") {
+    public static bool IsAttributed(this SyntaxNode node, string attributeName, string ns = "")
+    {
         return node.DescendantNodes()
-            .OfType<AttributeSyntax>().Any(
-                a => {
-                    var name = a.Name.ToString();
+            .OfType<AttributeSyntax>()
+            .Any(a =>
+            {
+                var name = a.Name.ToString();
 
-                    if (name.Equals(attributeName) || name.Equals(attributeName + "Attribute") ||
-                        name.Equals(ns + "." + attributeName) || name.Equals(ns + "." + attributeName + "Attribute")) {
-                        return true;
-                    }
+                if (
+                    name.Equals(attributeName)
+                    || name.Equals(attributeName + "Attribute")
+                    || name.Equals(ns + "." + attributeName)
+                    || name.Equals(ns + "." + attributeName + "Attribute")
+                )
+                {
+                    return true;
+                }
 
-                    var lastDot = name.LastIndexOf('.');
+                var lastDot = name.LastIndexOf('.');
 
-                    if (lastDot < 0) {
-                        return false;
-                    }
+                if (lastDot < 0)
+                {
+                    return false;
+                }
 
-                    var simpleName = name.Substring(lastDot + 1);
+                var simpleName = name.Substring(lastDot + 1);
 
-                    return simpleName.Equals(attributeName) || simpleName.Equals(attributeName + "Attribute");
-                });
+                return simpleName.Equals(attributeName)
+                    || simpleName.Equals(attributeName + "Attribute");
+            });
     }
 
-    public static bool IsAttributed(this SyntaxNode node, ITypeDefinition typeDefinition) {
+    public static bool IsAttributed(this SyntaxNode node, ITypeDefinition typeDefinition)
+    {
         var ns = typeDefinition.Namespace;
         var attributeName = typeDefinition.Name.Replace("Attribute", "");
 

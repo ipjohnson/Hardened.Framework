@@ -18,7 +18,8 @@ namespace Hardened.Generation.Models;
 /// a non-nullable value type can never be absent, and constraining one is VM0004.
 /// </para>
 /// </remarks>
-internal interface IConstraintFacets {
+internal interface IConstraintFacets
+{
     int? MinLength { get; }
 
     int? MaxLength { get; }

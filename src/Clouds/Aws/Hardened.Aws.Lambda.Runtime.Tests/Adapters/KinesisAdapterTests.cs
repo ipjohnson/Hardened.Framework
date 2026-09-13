@@ -11,15 +11,18 @@ namespace Hardened.Aws.Lambda.Runtime.Tests.Adapters;
 /// The Kinesis adapter: the route it derives, the bytes a handler binds, and the report a failure
 /// produces.
 /// </summary>
-public class KinesisAdapterTests {
-    private static KinesisRequest Request(bool reportsItemFailures = false) {
+public class KinesisAdapterTests
+{
+    private static KinesisRequest Request(bool reportsItemFailures = false)
+    {
         using var payload = Infrastructure.Payloads.Payload(Infrastructure.Payloads.KinesisJson);
 
-        return (KinesisRequest)new KinesisAdapter(reportsItemFailures)
-            .CreateRequest(payload, new TestLambdaContext());
+        return (KinesisRequest)
+            new KinesisAdapter(reportsItemFailures).CreateRequest(payload, new TestLambdaContext());
     }
 
-    private static string Body(IExecutionRequest request) {
+    private static string Body(IExecutionRequest request)
+    {
         request.Body!.Position = 0;
 
         // leaveOpen, because a StreamReader closes what it wraps and a test may read a
@@ -37,7 +40,8 @@ public class KinesisAdapterTests {
         Assert.Equal(expected, KinesisAdapter.StreamName(arn));
 
     [Fact]
-    public void TheBatchRoutesOnTheStreamAndTheStreamScheme() {
+    public void TheBatchRoutesOnTheStreamAndTheStreamScheme()
+    {
         var request = Request();
 
         Assert.Equal("STREAM", request.Method);
@@ -68,7 +72,8 @@ public class KinesisAdapterTests {
     /// Each fork carries its own record, in the order the shard delivered them.
     /// </summary>
     [Fact]
-    public void EachRecordKeepsItsOwnDataAndItsOrder() {
+    public void EachRecordKeepsItsOwnDataAndItsOrder()
+    {
         var request = Request();
 
         Assert.Equal(2, request.Count);
@@ -84,16 +89,21 @@ public class KinesisAdapterTests {
     /// fraction, which is exactly the shape that throws when a model types the field as a DateTime.
     /// </remarks>
     [Fact]
-    public void ARecordCarriesItsEnvelopeAsHeaders() {
+    public void ARecordCarriesItsEnvelopeAsHeaders()
+    {
         var headers = Request().ForItem(0).Headers;
 
         Assert.Equal("p1", headers[KinesisRequest.PartitionKeyHeader].ToString());
         Assert.Equal("49590", headers[KinesisRequest.SequenceNumberHeader].ToString());
-        Assert.Equal("shardId-000000000000:49590", headers[KinesisRequest.EventIdHeader].ToString());
+        Assert.Equal(
+            "shardId-000000000000:49590",
+            headers[KinesisRequest.EventIdHeader].ToString()
+        );
         Assert.Equal("1545084650.987", headers[KinesisRequest.ArrivalTimeHeader].ToString());
         Assert.Equal(
             "arn:aws:kinesis:us-east-1:123456789012:stream/orders",
-            headers[KinesisRequest.StreamArnHeader].ToString());
+            headers[KinesisRequest.StreamArnHeader].ToString()
+        );
     }
 
     /// <summary>
@@ -105,7 +115,8 @@ public class KinesisAdapterTests {
     /// batch for it.
     /// </remarks>
     [Fact]
-    public async Task AFailureIsReportedBySequenceNumber() {
+    public async Task AFailureIsReportedBySequenceNumber()
+    {
         var adapter = new KinesisAdapter(reportsItemFailures: true);
         var request = Request(reportsItemFailures: true);
 
@@ -114,7 +125,9 @@ public class KinesisAdapterTests {
         var output = new MemoryStream();
 
         await adapter.WriteResponse(
-            new ResponseOnlyContext(adapter.CreateResponse(new MemoryStream()), request), output);
+            new ResponseOnlyContext(adapter.CreateResponse(new MemoryStream()), request),
+            output
+        );
 
         output.Position = 0;
 
@@ -124,18 +137,22 @@ public class KinesisAdapterTests {
     }
 
     [Fact]
-    public async Task ABatchWithNoFailureReportsAnEmptyList() {
+    public async Task ABatchWithNoFailureReportsAnEmptyList()
+    {
         var adapter = new KinesisAdapter();
 
         var output = new MemoryStream();
 
         await adapter.WriteResponse(
-            new ResponseOnlyContext(adapter.CreateResponse(new MemoryStream()), Request()), output);
+            new ResponseOnlyContext(adapter.CreateResponse(new MemoryStream()), Request()),
+            output
+        );
 
         output.Position = 0;
 
-        Assert.Empty(JsonDocument.Parse(output).RootElement.GetProperty("batchItemFailures")
-            .EnumerateArray());
+        Assert.Empty(
+            JsonDocument.Parse(output).RootElement.GetProperty("batchItemFailures").EnumerateArray()
+        );
     }
 
     /// <summary>
@@ -146,14 +163,17 @@ public class KinesisAdapterTests {
     /// item failure, where a throw inside the adapter would take every other record with it.
     /// </remarks>
     [Fact]
-    public void AnUndecodableRecordGivesAnEmptyBody() {
-        var json = Infrastructure.Payloads.KinesisJson
-            .Replace("eyJpZCI6ImEtMSIsInF1YW50aXR5Ijo3fQ==", "not-base64!!");
+    public void AnUndecodableRecordGivesAnEmptyBody()
+    {
+        var json = Infrastructure.Payloads.KinesisJson.Replace(
+            "eyJpZCI6ImEtMSIsInF1YW50aXR5Ijo3fQ==",
+            "not-base64!!"
+        );
 
         using var payload = Infrastructure.Payloads.Payload(json);
 
-        var request = (KinesisRequest)new KinesisAdapter()
-            .CreateRequest(payload, new TestLambdaContext());
+        var request = (KinesisRequest)
+            new KinesisAdapter().CreateRequest(payload, new TestLambdaContext());
 
         Assert.Equal("", Body(request.ForItem(0)));
         Assert.Equal(2, request.Count);

@@ -16,7 +16,8 @@ namespace Hardened.Requests.Abstract.Authorization;
 /// Immutable and stateless, so a single instance serves every request on every thread.
 /// </para>
 /// </remarks>
-public sealed class AnonymousCallerPrincipal : ICallerPrincipal {
+public sealed class AnonymousCallerPrincipal : ICallerPrincipal
+{
     public static readonly ICallerPrincipal Instance = new AnonymousCallerPrincipal();
 
     private AnonymousCallerPrincipal() { }
@@ -30,7 +31,8 @@ public sealed class AnonymousCallerPrincipal : ICallerPrincipal {
 
     public string? Issuer => null;
 
-    public bool TryGetClaim(string name, [MaybeNullWhen(false)] out string value) {
+    public bool TryGetClaim(string name, [MaybeNullWhen(false)] out string value)
+    {
         value = null;
         return false;
     }

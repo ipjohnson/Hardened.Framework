@@ -25,7 +25,8 @@ namespace Hardened.Aws.Lambda.Sqs;
 /// and one message has no batch.
 /// </para>
 /// </remarks>
-public class SqsRequest : LambdaPayloadRequest, IBatchRequest {
+public class SqsRequest : LambdaPayloadRequest, IBatchRequest
+{
     private readonly List<int> _failed = [];
 
     public SqsRequest(
@@ -33,8 +34,10 @@ public class SqsRequest : LambdaPayloadRequest, IBatchRequest {
         Stream body,
         IDictionary<string, StringValues> headers,
         IReadOnlyList<SQSEvent.SQSMessage> records,
-        bool reportsItemFailures = false)
-        : base(SqsScheme, "/" + queueName, body, headers) {
+        bool reportsItemFailures = false
+    )
+        : base(SqsScheme, "/" + queueName, body, headers)
+    {
         Records = records;
         ReportsItemFailures = reportsItemFailures;
     }
@@ -118,14 +121,18 @@ public class SqsRequest : LambdaPayloadRequest, IBatchRequest {
     public IEnumerable<string> FailedMessageIds =>
         _failed.Select(index => Records[index].MessageId).Where(id => !string.IsNullOrEmpty(id));
 
-    public IExecutionRequest ForRecord(SQSEvent.SQSMessage record) {
+    public IExecutionRequest ForRecord(SQSEvent.SQSMessage record)
+    {
         var headers = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase);
 
-        if (record.MessageAttributes != null) {
-            foreach (var attribute in record.MessageAttributes) {
+        if (record.MessageAttributes != null)
+        {
+            foreach (var attribute in record.MessageAttributes)
+            {
                 // StringValue only. A binary attribute is not a header, and rendering one as
                 // base64 under the same name would make a handler unable to tell the two apart.
-                if (attribute.Value?.StringValue is { } value) {
+                if (attribute.Value?.StringValue is { } value)
+                {
                     headers[attribute.Key] = value;
                 }
             }
@@ -138,8 +145,10 @@ public class SqsRequest : LambdaPayloadRequest, IBatchRequest {
         return new LambdaPayloadRequest(Method, Path, BodyStream(record.Body), headers);
     }
 
-    private static void Set(IDictionary<string, StringValues> headers, string name, string? value) {
-        if (!string.IsNullOrEmpty(value)) {
+    private static void Set(IDictionary<string, StringValues> headers, string name, string? value)
+    {
+        if (!string.IsNullOrEmpty(value))
+        {
             headers[name] = value;
         }
     }

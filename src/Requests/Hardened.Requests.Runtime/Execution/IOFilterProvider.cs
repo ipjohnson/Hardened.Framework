@@ -11,7 +11,8 @@ using Microsoft.Extensions.Options;
 namespace Hardened.Requests.Runtime.Execution;
 
 [SingletonService(Using = RegistrationType.Try)]
-public class IOFilterProvider : IIOFilterProvider {
+public class IOFilterProvider : IIOFilterProvider
+{
     private readonly IContextSerializationService _contextSerializationService;
     private readonly ISerializationLocatorService? _serializationLocatorService;
     private readonly RawResponseSerializer? _rawResponseWriter;
@@ -34,7 +35,9 @@ public class IOFilterProvider : IIOFilterProvider {
         ISerializationLocatorService? serializationLocatorService = null,
         RawResponseSerializer? rawResponseWriter = null,
         StreamingJsonResponseSerializer? streamingWriter = null,
-        IContentNegotiationPolicy? negotiationPolicy = null) {
+        IContentNegotiationPolicy? negotiationPolicy = null
+    )
+    {
         _contextSerializationService = contextSerializationService;
         _serializationLocatorService = serializationLocatorService;
         _rawResponseWriter = rawResponseWriter;
@@ -44,21 +47,32 @@ public class IOFilterProvider : IIOFilterProvider {
         _heartbeatInterval = streamingConfiguration.Value.HeartbeatInterval;
     }
 
-    private Action<IExecutionContext>? SetupHeaderActions(IResponseHeaderConfiguration responseHeaderConfiguration) {
-        if (responseHeaderConfiguration.HeaderActions.Count == 0 &&
-            responseHeaderConfiguration.CommonHeaders.Count == 0) {
+    private Action<IExecutionContext>? SetupHeaderActions(
+        IResponseHeaderConfiguration responseHeaderConfiguration
+    )
+    {
+        if (
+            responseHeaderConfiguration.HeaderActions.Count == 0
+            && responseHeaderConfiguration.CommonHeaders.Count == 0
+        )
+        {
             return null;
         }
 
-        var headerAction = new List<Action<IExecutionContext>>(responseHeaderConfiguration.HeaderActions);
+        var headerAction = new List<Action<IExecutionContext>>(
+            responseHeaderConfiguration.HeaderActions
+        );
 
-        if (responseHeaderConfiguration.CommonHeaders.Count > 0) {
+        if (responseHeaderConfiguration.CommonHeaders.Count > 0)
+        {
             var commonList = responseHeaderConfiguration.CommonHeaders;
 
-            headerAction.Add(context => {
+            headerAction.Add(context =>
+            {
                 var responseHeaders = context.Response.Headers;
 
-                for (var i = 0; i < commonList.Count; i++) {
+                for (var i = 0; i < commonList.Count; i++)
+                {
                     var kvp = commonList[i];
 
                     responseHeaders[kvp.Key] = kvp.Value;
@@ -66,12 +80,15 @@ public class IOFilterProvider : IIOFilterProvider {
             });
         }
 
-        if (headerAction.Count == 1) {
+        if (headerAction.Count == 1)
+        {
             return headerAction[0];
         }
 
-        return context => {
-            for (var i = 0; i < headerAction.Count; i++) {
+        return context =>
+        {
+            for (var i = 0; i < headerAction.Count; i++)
+            {
                 headerAction[i].Invoke(context);
             }
         };
@@ -79,12 +96,10 @@ public class IOFilterProvider : IIOFilterProvider {
 
     public IExecutionFilter ProvideFilter(
         IExecutionRequestHandlerInfo handlerInfo,
-        Func<IExecutionContext, Task<IExecutionRequestParameters>> deserializeRequest) {
-        return new IoFilter(
-            deserializeRequest,
-            SerializeResponse(handlerInfo),
-            _headerActions
-        );
+        Func<IExecutionContext, Task<IExecutionRequestParameters>> deserializeRequest
+    )
+    {
+        return new IoFilter(deserializeRequest, SerializeResponse(handlerInfo), _headerActions);
     }
 
     /// <summary>
@@ -101,10 +116,14 @@ public class IOFilterProvider : IIOFilterProvider {
     /// application rather than one per request.
     /// </para>
     /// </remarks>
-    private Func<IExecutionContext, Task> SerializeResponse(IExecutionRequestHandlerInfo handlerInfo) {
+    private Func<IExecutionContext, Task> SerializeResponse(
+        IExecutionRequestHandlerInfo handlerInfo
+    )
+    {
         var bound = Bind(handlerInfo, out var declaredContentType);
 
-        if (bound == null) {
+        if (bound == null)
+        {
             return _contextSerializationService.SerializeResponse;
         }
 
@@ -131,14 +150,17 @@ public class IOFilterProvider : IIOFilterProvider {
     /// re-derive an answer fixed when the handler was composed.
     /// </para>
     /// </remarks>
-    private Func<IExecutionContext, Task> SerializeStreamedItem() {
-        if (_streamingWriter == null) {
+    private Func<IExecutionContext, Task> SerializeStreamedItem()
+    {
+        if (_streamingWriter == null)
+        {
             return _contextSerializationService.SerializeResponse;
         }
 
         // The declared type is passed as null: the framing owns the content type here, and it
         // commits one the writer is expected to write under rather than one it has to match.
-        return context => _contextSerializationService.SerializeResponse(context, _streamingWriter, null);
+        return context =>
+            _contextSerializationService.SerializeResponse(context, _streamingWriter, null);
     }
 
     /// <summary>
@@ -168,22 +190,28 @@ public class IOFilterProvider : IIOFilterProvider {
     /// </para>
     /// </remarks>
     private IResponseSerializer? Bind(
-        IExecutionRequestHandlerInfo handlerInfo, out string? declaredContentType) {
+        IExecutionRequestHandlerInfo handlerInfo,
+        out string? declaredContentType
+    )
+    {
         var declared = handlerInfo.ProducedContentTypes;
 
         declaredContentType = declared.Count == 1 ? declared[0] : null;
 
-        if (handlerInfo.WritesRawBytes && _rawResponseWriter != null) {
+        if (handlerInfo.WritesRawBytes && _rawResponseWriter != null)
+        {
             return _rawResponseWriter;
         }
 
-        if (_serializationLocatorService == null) {
+        if (_serializationLocatorService == null)
+        {
             declaredContentType = null;
 
             return null;
         }
 
-        if (declared.Count == 0) {
+        if (declared.Count == 0)
+        {
             var fallback = _serializationLocatorService.DefaultSerializer;
 
             declaredContentType = fallback?.ContentType;
@@ -191,7 +219,8 @@ public class IOFilterProvider : IIOFilterProvider {
             return fallback;
         }
 
-        if (declared.Count > 1 || _negotiationPolicy.Mode != ContentNegotiationMode.Lenient) {
+        if (declared.Count > 1 || _negotiationPolicy.Mode != ContentNegotiationMode.Lenient)
+        {
             declaredContentType = null;
 
             return null;
@@ -199,7 +228,8 @@ public class IOFilterProvider : IIOFilterProvider {
 
         var serializer = _serializationLocatorService.ProducerOf(declared[0]);
 
-        if (serializer == null) {
+        if (serializer == null)
+        {
             declaredContentType = null;
         }
 
@@ -208,7 +238,9 @@ public class IOFilterProvider : IIOFilterProvider {
 
     public IExecutionFilter ProvideAsyncEnumerableFilter<TItem>(
         IExecutionRequestHandlerInfo handlerInfo,
-        Func<IExecutionContext, Task<IExecutionRequestParameters>> deserializeRequest) {
+        Func<IExecutionContext, Task<IExecutionRequestParameters>> deserializeRequest
+    )
+    {
         return ProvideAsyncEnumerableFilter<TItem>(handlerInfo, deserializeRequest, null);
     }
 
@@ -223,7 +255,9 @@ public class IOFilterProvider : IIOFilterProvider {
     public IExecutionFilter ProvideAsyncEnumerableFilter<TItem>(
         IExecutionRequestHandlerInfo handlerInfo,
         Func<IExecutionContext, Task<IExecutionRequestParameters>> deserializeRequest,
-        IStreamFraming? framing) {
+        IStreamFraming? framing
+    )
+    {
         return new AsyncEnumerableIoFilter<TItem>(
             deserializeRequest,
             SerializeStreamedItem(),

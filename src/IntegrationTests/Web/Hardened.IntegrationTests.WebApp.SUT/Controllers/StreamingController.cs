@@ -35,13 +35,14 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Controllers;
 /// </para>
 /// </remarks>
 [BasePath("/streaming")]
-public class StreamingController {
-
+public class StreamingController
+{
     public record Measurement(string Sensor, int Reading, bool Settled);
 
     /// <summary>A model per line, which is the case that used to throw.</summary>
     [Get("/models")]
-    public async IAsyncEnumerable<Measurement> Models() {
+    public async IAsyncEnumerable<Measurement> Models()
+    {
         yield return new Measurement("north", 12, false);
 
         await Task.Yield();
@@ -55,7 +56,8 @@ public class StreamingController {
 
     /// <summary>The shape that already worked, so it keeps being checked.</summary>
     [Get("/strings")]
-    public async IAsyncEnumerable<string> Strings() {
+    public async IAsyncEnumerable<string> Strings()
+    {
         yield return "alpha";
 
         await Task.Yield();
@@ -74,7 +76,9 @@ public class StreamingController {
     /// </remarks>
     [Get("/cancellable")]
     public async IAsyncEnumerable<Measurement> Cancellable(
-        [EnumeratorCancellation] CancellationToken cancellationToken) {
+        [EnumeratorCancellation] CancellationToken cancellationToken
+    )
+    {
         yield return new Measurement("west", 7, true);
 
         await Task.Yield();
@@ -85,7 +89,8 @@ public class StreamingController {
     /// <summary>Server-sent events, framed rather than newline-delimited.</summary>
     [Get("/events")]
     [ServerSentEvents]
-    public async IAsyncEnumerable<Measurement> Events() {
+    public async IAsyncEnumerable<Measurement> Events()
+    {
         yield return new Measurement("north", 12, false);
 
         await Task.Yield();
@@ -102,9 +107,14 @@ public class StreamingController {
     /// </remarks>
     [Get("/events-with-ids")]
     [ServerSentEvents]
-    public async IAsyncEnumerable<SseItem<Measurement>> EventsWithIds() {
+    public async IAsyncEnumerable<SseItem<Measurement>> EventsWithIds()
+    {
         yield return new SseItem<Measurement>(
-            new Measurement("north", 12, false), Id: "1", Event: "reading", Retry: 5000);
+            new Measurement("north", 12, false),
+            Id: "1",
+            Event: "reading",
+            Retry: 5000
+        );
 
         await Task.Yield();
 
@@ -114,7 +124,8 @@ public class StreamingController {
     /// <summary>An event stream that produces nothing.</summary>
     [Get("/events-empty")]
     [ServerSentEvents]
-    public async IAsyncEnumerable<Measurement> EventsEmpty() {
+    public async IAsyncEnumerable<Measurement> EventsEmpty()
+    {
         await Task.CompletedTask;
 
         yield break;
@@ -129,7 +140,8 @@ public class StreamingController {
     /// hangs. That behaviour has never had a test through the real pipeline.
     /// </remarks>
     [Get("/empty")]
-    public async IAsyncEnumerable<Measurement> Empty() {
+    public async IAsyncEnumerable<Measurement> Empty()
+    {
         await Task.CompletedTask;
 
         yield break;
@@ -137,11 +149,12 @@ public class StreamingController {
 
     #region reconnect, refusal, failure, retry and heartbeat
 
-    private static readonly Measurement[] Readings = [
+    private static readonly Measurement[] Readings =
+    [
         new("north", 12, false),
         new("south", 41, true),
         new("east", -3, false),
-        new("west", 7, true)
+        new("west", 7, true),
     ];
 
     /// <summary>
@@ -159,16 +172,20 @@ public class StreamingController {
     [ServerSentEvents]
     public async IAsyncEnumerable<SseItem<Measurement>> EventsResume(
         [FromHeader(KnownHeaders.LastEventId)] string? lastEventId,
-        IExecutionContext context) {
+        IExecutionContext context
+    )
+    {
         var after = int.TryParse(lastEventId, out var id) ? id : 0;
 
-        if (after >= Readings.Length) {
+        if (after >= Readings.Length)
+        {
             context.Response.Status = 204;
 
             yield break;
         }
 
-        for (var i = after; i < Readings.Length; i++) {
+        for (var i = after; i < Readings.Length; i++)
+        {
             yield return new SseItem<Measurement>(Readings[i], Id: (i + 1).ToString());
 
             await Task.Yield();
@@ -179,7 +196,8 @@ public class StreamingController {
     [Get("/events-guarded")]
     [ServerSentEvents]
     [AuthorizeGrants("events:read")]
-    public async IAsyncEnumerable<Measurement> EventsGuarded() {
+    public async IAsyncEnumerable<Measurement> EventsGuarded()
+    {
         yield return Readings[0];
 
         await Task.Yield();
@@ -188,7 +206,8 @@ public class StreamingController {
     /// <summary>The newline-delimited twin of <see cref="EventsGuarded"/>.</summary>
     [Get("/models-guarded")]
     [AuthorizeGrants("events:read")]
-    public async IAsyncEnumerable<Measurement> ModelsGuarded() {
+    public async IAsyncEnumerable<Measurement> ModelsGuarded()
+    {
         yield return Readings[0];
 
         await Task.Yield();
@@ -200,10 +219,12 @@ public class StreamingController {
     /// </summary>
     [Get("/events-fail-before-first")]
     [ServerSentEvents]
-    public async IAsyncEnumerable<Measurement> EventsFailBeforeFirst() {
+    public async IAsyncEnumerable<Measurement> EventsFailBeforeFirst()
+    {
         await Task.Yield();
 
-        if (ThrowNothingToStream()) {
+        if (ThrowNothingToStream())
+        {
             yield return Readings[0];
         }
     }
@@ -211,12 +232,14 @@ public class StreamingController {
     /// <summary>Fails after its first event, which is already with the client.</summary>
     [Get("/events-fail-after-first")]
     [ServerSentEvents]
-    public async IAsyncEnumerable<Measurement> EventsFailAfterFirst() {
+    public async IAsyncEnumerable<Measurement> EventsFailAfterFirst()
+    {
         yield return Readings[0];
 
         await Task.Yield();
 
-        if (ThrowNothingToStream()) {
+        if (ThrowNothingToStream())
+        {
             yield return Readings[1];
         }
     }
@@ -239,14 +262,16 @@ public class StreamingController {
     [Get("/events-retry-after-first")]
     [ServerSentEvents]
     [Retry(Attempts = 3, SleepTime = 0)]
-    public async IAsyncEnumerable<Measurement> EventsRetryAfterFirst() {
+    public async IAsyncEnumerable<Measurement> EventsRetryAfterFirst()
+    {
         Interlocked.Increment(ref RetryAfterFirstEnumerations);
 
         yield return Readings[0];
 
         await Task.Yield();
 
-        if (ThrowNothingToStream()) {
+        if (ThrowNothingToStream())
+        {
             yield return Readings[1];
         }
     }
@@ -265,8 +290,10 @@ public class StreamingController {
     [Get("/events-retry-call")]
     [ServerSentEvents]
     [Retry(Attempts = 3, SleepTime = 0)]
-    public IAsyncEnumerable<Measurement> EventsRetryCall() {
-        if (++_retryCalls == 1) {
+    public IAsyncEnumerable<Measurement> EventsRetryCall()
+    {
+        if (++_retryCalls == 1)
+        {
             throw new InvalidOperationException("first call fails");
         }
 
@@ -279,7 +306,9 @@ public class StreamingController {
     [Get("/events-slow")]
     [ServerSentEvents]
     public async IAsyncEnumerable<Measurement> EventsSlow(
-        [EnumeratorCancellation] CancellationToken cancellationToken) {
+        [EnumeratorCancellation] CancellationToken cancellationToken
+    )
+    {
         yield return Readings[0];
 
         await Task.Delay(100, cancellationToken);

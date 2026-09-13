@@ -22,29 +22,35 @@ namespace Hardened.Generation.Models;
 /// none. It maps to <c>Requirement.Authenticated()</c>, which is a real requirement.
 /// </para>
 /// </remarks>
-internal class AuthorizationBranchModel : IEquatable<AuthorizationBranchModel> {
-
+internal class AuthorizationBranchModel : IEquatable<AuthorizationBranchModel>
+{
     /// <summary>The scopes this branch requires, as grant names. All of them, not any.</summary>
     public List<string> Grants { get; set; } = new();
 
     /// <summary>Whether the caller must be authenticated beyond holding the grants above.</summary>
     public bool RequiresAuthentication { get; set; }
 
-    public bool Equals(AuthorizationBranchModel? other) {
-        if (other is null) return false;
-        if (ReferenceEquals(this, other)) return true;
+    public bool Equals(AuthorizationBranchModel? other)
+    {
+        if (other is null)
+            return false;
+        if (ReferenceEquals(this, other))
+            return true;
 
-        return RequiresAuthentication == other.RequiresAuthentication &&
-               Grants.SequenceEqual(other.Grants);
+        return RequiresAuthentication == other.RequiresAuthentication
+            && Grants.SequenceEqual(other.Grants);
     }
 
     public override bool Equals(object? obj) => Equals(obj as AuthorizationBranchModel);
 
-    public override int GetHashCode() {
-        unchecked {
+    public override int GetHashCode()
+    {
+        unchecked
+        {
             var hash = RequiresAuthentication ? 397 : 0;
 
-            foreach (var grant in Grants) {
+            foreach (var grant in Grants)
+            {
                 hash = (hash * 397) ^ grant.GetHashCode();
             }
 

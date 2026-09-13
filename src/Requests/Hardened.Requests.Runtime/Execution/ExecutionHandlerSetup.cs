@@ -18,10 +18,13 @@ namespace Hardened.Requests.Runtime.Execution;
 /// call, not to be stored.
 /// </para>
 /// </remarks>
-public readonly struct ExecutionHandlerSetup {
+public readonly struct ExecutionHandlerSetup
+{
     public ExecutionHandlerSetup(
         IExecutionRequestHandlerInfo handlerInfo,
-        Func<IExecutionContext, IExecutionFilter>[] filters) {
+        Func<IExecutionContext, IExecutionFilter>[] filters
+    )
+    {
         HandlerInfo = handlerInfo;
         Filters = filters;
     }

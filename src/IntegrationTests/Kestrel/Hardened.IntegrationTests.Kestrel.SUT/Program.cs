@@ -18,7 +18,9 @@ services.AddTransient<IHardenedEnvironment>(_ => new EnvironmentImpl(arguments: 
 new Application().PopulateServiceCollection(services);
 
 await using var app = HardenedKestrelApplication.Create(
-    services, kestrel => kestrel.ListenLocalhost(port));
+    services,
+    kestrel => kestrel.ListenLocalhost(port)
+);
 
 await app.StartAsync();
 

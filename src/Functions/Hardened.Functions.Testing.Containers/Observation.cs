@@ -5,8 +5,10 @@ namespace Hardened.Functions.Testing.Containers;
 /// <summary>
 /// One line an application printed behind <see cref="ObservationMarker.Prefix"/>, parsed.
 /// </summary>
-public sealed class Observation {
-    private Observation(JsonElement fields, string raw) {
+public sealed class Observation
+{
+    private Observation(JsonElement fields, string raw)
+    {
         Fields = fields;
         Raw = raw;
     }
@@ -19,9 +21,9 @@ public sealed class Observation {
 
     /// <summary>A string field, or null when absent or not a string.</summary>
     public string? Get(string name) =>
-        Fields.ValueKind == JsonValueKind.Object &&
-        Fields.TryGetProperty(name, out var value) &&
-        value.ValueKind == JsonValueKind.String
+        Fields.ValueKind == JsonValueKind.Object
+        && Fields.TryGetProperty(name, out var value)
+        && value.ValueKind == JsonValueKind.String
             ? value.GetString()
             : null;
 
@@ -36,25 +38,30 @@ public sealed class Observation {
     /// rather than dropped: a test asserting on a count would otherwise pass over a handler that
     /// printed something malformed, and the raw line is what says so.
     /// </remarks>
-    public static IReadOnlyList<Observation> Parse(string output) {
+    public static IReadOnlyList<Observation> Parse(string output)
+    {
         var observations = new List<Observation>();
 
-        foreach (var line in output.Split('\n')) {
+        foreach (var line in output.Split('\n'))
+        {
             var trimmed = line.TrimEnd('\r');
             var start = trimmed.IndexOf(ObservationMarker.Prefix, StringComparison.Ordinal);
 
-            if (start < 0) {
+            if (start < 0)
+            {
                 continue;
             }
 
             var json = trimmed.Substring(start + ObservationMarker.Prefix.Length).Trim();
 
-            try {
+            try
+            {
                 using var document = JsonDocument.Parse(json);
 
                 observations.Add(new Observation(document.RootElement.Clone(), trimmed));
             }
-            catch (JsonException) {
+            catch (JsonException)
+            {
                 observations.Add(new Observation(default, trimmed));
             }
         }

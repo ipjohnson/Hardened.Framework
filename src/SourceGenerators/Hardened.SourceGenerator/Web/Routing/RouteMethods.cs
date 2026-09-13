@@ -17,7 +17,8 @@ namespace Hardened.SourceGenerator.Web.Routing;
 /// honest — see <c>HeadRequest</c> in Hardened.Requests.Runtime.
 /// </para>
 /// </summary>
-public static class RouteMethods {
+public static class RouteMethods
+{
     public const string Get = "GET";
 
     public const string Head = "HEAD";
@@ -30,13 +31,16 @@ public static class RouteMethods {
     /// Allow is being told what it may call - and it may call HEAD. Sorted so the header does not
     /// reshuffle between builds.
     /// </remarks>
-    public static string Allow<T>(IReadOnlyList<RouteTreeLeafNode<T>> leaves) {
+    public static string Allow<T>(IReadOnlyList<RouteTreeLeafNode<T>> leaves)
+    {
         var verbs = new SortedSet<string>(StringComparer.Ordinal);
 
-        foreach (var leaf in leaves) {
+        foreach (var leaf in leaves)
+        {
             verbs.Add(leaf.Method);
 
-            if (AddsHeadFallThrough(leaves, leaf)) {
+            if (AddsHeadFallThrough(leaves, leaf))
+            {
                 verbs.Add(Head);
             }
         }
@@ -57,13 +61,19 @@ public static class RouteMethods {
     /// </para>
     /// </summary>
     public static bool AddsHeadFallThrough<T>(
-        IReadOnlyList<RouteTreeLeafNode<T>> siblingLeaves, RouteTreeLeafNode<T> leaf) {
-        if (leaf.Method != Get) {
+        IReadOnlyList<RouteTreeLeafNode<T>> siblingLeaves,
+        RouteTreeLeafNode<T> leaf
+    )
+    {
+        if (leaf.Method != Get)
+        {
             return false;
         }
 
-        foreach (var sibling in siblingLeaves) {
-            if (sibling.Method == Head) {
+        foreach (var sibling in siblingLeaves)
+        {
+            if (sibling.Method == Head)
+            {
                 return false;
             }
         }

@@ -1,14 +1,19 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using CSharpAuthor;
-using static CSharpAuthor.SyntaxHelpers;
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Shared;
+using static CSharpAuthor.SyntaxHelpers;
 
 namespace Hardened.SourceGenerator.Requests;
 
-public static class ParametersClassGenerator {
-    public static ClassDefinition GenerateParametersClass(RequestHandlerModel handlerModel,
-        IConstructContainer constructContainer, string parameterClassName = "Parameters") {
+public static class ParametersClassGenerator
+{
+    public static ClassDefinition GenerateParametersClass(
+        RequestHandlerModel handlerModel,
+        IConstructContainer constructContainer,
+        string parameterClassName = "Parameters"
+    )
+    {
         var parametersClass = constructContainer.AddClass(parameterClassName);
 
         parametersClass.Modifiers = ComponentModifier.Public | ComponentModifier.Partial;
@@ -22,7 +27,8 @@ public static class ParametersClassGenerator {
         // The validated shape, when something produced one. Implementing it is what lets a filter
         // hold IValidatorFor<TInterface> and hand this instance to it - no reflection, one type
         // test. The properties below satisfy it by name; nothing extra is emitted for it.
-        if (handlerModel.ParametersInterface != null) {
+        if (handlerModel.ParametersInterface != null)
+        {
             parametersClass.AddBaseType(handlerModel.ParametersInterface);
         }
 
@@ -35,9 +41,15 @@ public static class ParametersClassGenerator {
         return parametersClass;
     }
 
-    private static void WritePropertyInfo(RequestHandlerModel handlerModel, ClassDefinition parametersClass) {
-        var parametersProperty =
-            parametersClass.AddProperty(KnownTypes.Requests.IReadOnlyListExecutionRequestParameter, "Info");
+    private static void WritePropertyInfo(
+        RequestHandlerModel handlerModel,
+        ClassDefinition parametersClass
+    )
+    {
+        var parametersProperty = parametersClass.AddProperty(
+            KnownTypes.Requests.IReadOnlyListExecutionRequestParameter,
+            "Info"
+        );
 
         parametersProperty.Modifiers |= ComponentModifier.Override;
         parametersProperty.Set = null;
@@ -45,7 +57,11 @@ public static class ParametersClassGenerator {
         parametersProperty.Get.AddCode("_parameterInfo;");
     }
 
-    private static void WriteItemProperty(RequestHandlerModel handlerModel, ClassDefinition parametersClass) {
+    private static void WriteItemProperty(
+        RequestHandlerModel handlerModel,
+        ClassDefinition parametersClass
+    )
+    {
         var indexProperty = parametersClass.AddProperty(typeof(object), "this");
 
         indexProperty.Modifiers |= ComponentModifier.Override;
@@ -71,11 +87,16 @@ public static class ParametersClassGenerator {
     /// not ours to predict, and <c>this.</c> holds whatever it is.
     /// </para>
     /// </remarks>
-    private static void WriteItemGetProperty(RequestHandlerModel handlerModel, PropertyDefinition indexProperty) {
+    private static void WriteItemGetProperty(
+        RequestHandlerModel handlerModel,
+        PropertyDefinition indexProperty
+    )
+    {
         var switchStatement = indexProperty.Get.Switch("index");
         var index = 0;
 
-        foreach (var parameterInformation in handlerModel.RequestParameterInformationList) {
+        foreach (var parameterInformation in handlerModel.RequestParameterInformationList)
+        {
             var caseBlock = switchStatement.AddCase(index++);
 
             caseBlock.Return("this." + parameterInformation.MemberName + "!");
@@ -87,15 +108,21 @@ public static class ParametersClassGenerator {
         indexProperty.Get.Throw(typeof(IndexOutOfRangeException), throwMessage);
     }
 
-    private static void WriteItemSetProperty(RequestHandlerModel handlerModel, PropertyDefinition indexProperty) {
+    private static void WriteItemSetProperty(
+        RequestHandlerModel handlerModel,
+        PropertyDefinition indexProperty
+    )
+    {
         var switchStatement = indexProperty.Set!.Switch("index");
         var index = 0;
 
-        foreach (var parameterInformation in handlerModel.RequestParameterInformationList) {
+        foreach (var parameterInformation in handlerModel.RequestParameterInformationList)
+        {
             var caseBlock = switchStatement.AddCase(index++);
 
             // this., for the reason WriteItemGetProperty gives.
-            caseBlock.Assign(StaticCast(parameterInformation.ParameterType, "value"))
+            caseBlock
+                .Assign(StaticCast(parameterInformation.ParameterType, "value"))
                 .To("this." + parameterInformation.MemberName);
 
             // return, not break: break leaves the switch and falls into the throw below, so every
@@ -110,11 +137,17 @@ public static class ParametersClassGenerator {
         indexProperty.Set!.Throw(typeof(IndexOutOfRangeException), throwMessage);
     }
 
-    private static void WriteProperties(RequestHandlerModel handlerModel, ClassDefinition parametersClass) {
-        foreach (var requestParameterInformation in handlerModel.RequestParameterInformationList) {
+    private static void WriteProperties(
+        RequestHandlerModel handlerModel,
+        ClassDefinition parametersClass
+    )
+    {
+        foreach (var requestParameterInformation in handlerModel.RequestParameterInformationList)
+        {
             var property = parametersClass.AddProperty(
                 requestParameterInformation.ParameterType,
-                requestParameterInformation.MemberName);
+                requestParameterInformation.MemberName
+            );
 
             property.DefaultValue = CodeOutputComponent.Get("default!");
         }

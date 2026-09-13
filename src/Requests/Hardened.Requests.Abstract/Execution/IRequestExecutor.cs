@@ -4,7 +4,8 @@ namespace Hardened.Requests.Abstract.Execution;
 /// What a host does when the middleware chain throws, which is the one thing the five drivers
 /// genuinely disagreed about.
 /// </summary>
-public enum HostFailurePolicy {
+public enum HostFailurePolicy
+{
     /// <summary>
     /// Answer 500 if the response has not started, tell <c>IRequestLogger</c>, and return
     /// normally. The web hosts, because the server's own handler would log against the server
@@ -17,7 +18,7 @@ public enum HostFailurePolicy {
     /// invocation failed is the existing contract: inventing a 500 hides the failure from retries
     /// and the dead letter queue.
     /// </summary>
-    Rethrow
+    Rethrow,
 }
 
 /// <summary>
@@ -47,7 +48,8 @@ public enum HostFailurePolicy {
 /// <c>CompleteAsync</c>.
 /// </para>
 /// </remarks>
-public interface IRequestExecutor {
+public interface IRequestExecutor
+{
     /// <summary>
     /// Opens the request. Call once, after the context is built and before <see cref="RunChain"/>.
     /// </summary>

@@ -1,12 +1,13 @@
-using Hardened.OpenApi.SourceGenerator;
-using Xunit;
-using Hardened.Idl;
 using Hardened.Generation;
 using Hardened.Generation.Models;
+using Hardened.Idl;
+using Hardened.OpenApi.SourceGenerator;
+using Xunit;
 
 namespace Hardened.OpenApi.BuildTask.Tests;
 
-public class TypeMapperTests {
+public class TypeMapperTests
+{
     [Theory]
     [InlineData("string", null, "string")]
     [InlineData("string", "date-time", "DateTimeOffset")]
@@ -23,7 +24,8 @@ public class TypeMapperTests {
     [InlineData("string", "number", "decimal")]
     [InlineData("number", null, "double")]
     [InlineData("boolean", null, "bool")]
-    public void MapToCSharpType_BasicTypes(string type, string? format, string expected) {
+    public void MapToCSharpType_BasicTypes(string type, string? format, string expected)
+    {
         var result = TypeMapper.MapToCSharpType(type, format);
         Assert.Equal(expected, result);
     }
@@ -34,32 +36,47 @@ public class TypeMapperTests {
     /// exact - money - was binary floating point in both places and exact everywhere else.
     /// </summary>
     [Fact]
-    public void MapPropertyToCSharpType_KeepsTheFormatOfAMapValue() {
-        var property = new PropertyModel {
-            Name = "quotes", IsDictionary = true, DictionaryValueType = "number", DictionaryValueFormat = "decimal",
+    public void MapPropertyToCSharpType_KeepsTheFormatOfAMapValue()
+    {
+        var property = new PropertyModel
+        {
+            Name = "quotes",
+            IsDictionary = true,
+            DictionaryValueType = "number",
+            DictionaryValueFormat = "decimal",
         };
 
         Assert.Equal("Dictionary<string, decimal>", TypeMapper.MapPropertyToCSharpType(property));
     }
 
     [Fact]
-    public void MapParameterToCSharpType_KeepsTheFormatOfAnArrayItem() {
-        var parameter = new ParameterModel {
-            Name = "amounts", IsArray = true, ArrayItemsType = "number", ArrayItemsFormat = "decimal",
+    public void MapParameterToCSharpType_KeepsTheFormatOfAnArrayItem()
+    {
+        var parameter = new ParameterModel
+        {
+            Name = "amounts",
+            IsArray = true,
+            ArrayItemsType = "number",
+            ArrayItemsFormat = "decimal",
         };
 
         Assert.Equal("List<decimal>", TypeMapper.MapParameterToCSharpType(parameter));
     }
 
     [Fact]
-    public void MapToCSharpType_WithRef_ReturnsTypeName() {
+    public void MapToCSharpType_WithRef_ReturnsTypeName()
+    {
         var result = TypeMapper.MapToCSharpType(null, null, "#/components/schemas/Pet");
         Assert.Equal("Pet", result);
     }
 
     [Fact]
-    public void GetRefName_ExtractsLastSegment() {
+    public void GetRefName_ExtractsLastSegment()
+    {
         Assert.Equal("Pet", TypeMapper.GetRefName("#/components/schemas/Pet"));
-        Assert.Equal("CreatePetRequest", TypeMapper.GetRefName("#/components/schemas/CreatePetRequest"));
+        Assert.Equal(
+            "CreatePetRequest",
+            TypeMapper.GetRefName("#/components/schemas/CreatePetRequest")
+        );
     }
 }

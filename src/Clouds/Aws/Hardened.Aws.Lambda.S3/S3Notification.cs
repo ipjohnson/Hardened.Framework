@@ -34,4 +34,5 @@ public sealed record S3Notification(
     string? ETag,
     string? Sequencer,
     string EventName,
-    string? EventTime);
+    string? EventTime
+);

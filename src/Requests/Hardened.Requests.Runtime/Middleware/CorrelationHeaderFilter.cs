@@ -25,8 +25,8 @@ namespace Hardened.Requests.Runtime.Middleware;
 /// span's trace id rather than an unrelated value minted a moment earlier.
 /// </para>
 /// </remarks>
-public class CorrelationHeaderFilter : IExecutionFilter {
-
+public class CorrelationHeaderFilter : IExecutionFilter
+{
     /// <summary>
     /// The header the id comes back on.
     /// </summary>
@@ -39,15 +39,18 @@ public class CorrelationHeaderFilter : IExecutionFilter {
 
     private readonly string _headerName;
 
-    public CorrelationHeaderFilter(string? headerName = null) {
+    public CorrelationHeaderFilter(string? headerName = null)
+    {
         _headerName = string.IsNullOrEmpty(headerName) ? HeaderName : headerName;
     }
 
-    public Task Execute(IExecutionChain chain) {
+    public Task Execute(IExecutionChain chain)
+    {
         var context = chain.Context;
         var correlationId = context.CorrelationId;
 
-        if (!string.IsNullOrEmpty(correlationId)) {
+        if (!string.IsNullOrEmpty(correlationId))
+        {
             context.Response.Headers[_headerName] = new StringValues(correlationId);
         }
 

@@ -13,25 +13,34 @@ namespace Hardened.Web.StaticContent.BuildTask.Tests;
 /// is a build that succeeds while serving a secret.
 /// </para>
 /// </summary>
-public class BuildStaticContentManifestTests : IDisposable {
-
+public class BuildStaticContentManifestTests : IDisposable
+{
     private readonly string _root;
     private readonly string _output;
 
-    public BuildStaticContentManifestTests() {
+    public BuildStaticContentManifestTests()
+    {
         _root = Path.Combine(Path.GetTempPath(), "hardened-task-" + Guid.NewGuid().ToString("N"));
         _output = Path.Combine(_root, "obj", "manifest.g.cs");
 
         Directory.CreateDirectory(Path.Combine(_root, "content"));
     }
 
-    public void Dispose() {
-        try { Directory.Delete(_root, true); } catch { /* best effort */ }
+    public void Dispose()
+    {
+        try
+        {
+            Directory.Delete(_root, true);
+        }
+        catch
+        { /* best effort */
+        }
 
         GC.SuppressFinalize(this);
     }
 
-    private void Write(string relative, string content) {
+    private void Write(string relative, string content)
+    {
         var path = Path.Combine(_root, "content", relative);
 
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
@@ -39,7 +48,8 @@ public class BuildStaticContentManifestTests : IDisposable {
     }
 
     /// <summary>Records what the task logged, which is the half of its behaviour MSBuild sees.</summary>
-    private sealed class RecordingEngine : IBuildEngine {
+    private sealed class RecordingEngine : IBuildEngine
+    {
         public List<BuildErrorEventArgs> Errors { get; } = new();
 
         public List<BuildWarningEventArgs> Warnings { get; } = new();
@@ -53,8 +63,11 @@ public class BuildStaticContentManifestTests : IDisposable {
         public void LogCustomEvent(CustomBuildEventArgs e) { }
 
         public bool BuildProjectFile(
-            string projectFileName, string[] targetNames, IDictionary globalProperties,
-            IDictionary targetOutputs) => true;
+            string projectFileName,
+            string[] targetNames,
+            IDictionary globalProperties,
+            IDictionary targetOutputs
+        ) => true;
 
         public bool ContinueOnError => false;
 
@@ -66,16 +79,21 @@ public class BuildStaticContentManifestTests : IDisposable {
     }
 
     private (bool Result, RecordingEngine Engine, BuildStaticContentManifest Task) Run(
-        string? fallBack = null, long embed = 1024 * 1024, string? contentDirectory = null) {
+        string? fallBack = null,
+        long embed = 1024 * 1024,
+        string? contentDirectory = null
+    )
+    {
         var engine = new RecordingEngine();
 
-        var task = new BuildStaticContentManifest {
+        var task = new BuildStaticContentManifest
+        {
             BuildEngine = engine,
             ContentDirectory = contentDirectory ?? Path.Combine(_root, "content"),
             OutputFile = _output,
             Namespace = "Contoso.Orders",
             FallBackFile = fallBack,
-            EmbedThresholdBytes = embed
+            EmbedThresholdBytes = embed,
         };
 
         return (task.Execute(), engine, task);
@@ -84,7 +102,8 @@ public class BuildStaticContentManifestTests : IDisposable {
     #region what it writes
 
     [Fact]
-    public void ASuccessfulRunWritesTheManifest() {
+    public void ASuccessfulRunWritesTheManifest()
+    {
         Write("app.js", "console.log('hi');");
 
         var (result, engine, task) = Run();
@@ -102,7 +121,8 @@ public class BuildStaticContentManifestTests : IDisposable {
 
     /// <summary>The output directory is created rather than assumed.</summary>
     [Fact]
-    public void TheOutputDirectoryIsCreated() {
+    public void TheOutputDirectoryIsCreated()
+    {
         Write("app.js", "x");
 
         Assert.False(Directory.Exists(Path.GetDirectoryName(_output)));
@@ -115,7 +135,8 @@ public class BuildStaticContentManifestTests : IDisposable {
     /// with identical bytes moves its timestamp and makes the next build a full rebuild.
     /// </summary>
     [Fact]
-    public void AnUnchangedTreeDoesNotTouchTheFile() {
+    public void AnUnchangedTreeDoesNotTouchTheFile()
+    {
         Write("app.js", "console.log('hi');");
 
         Assert.True(Run().Result);
@@ -134,7 +155,8 @@ public class BuildStaticContentManifestTests : IDisposable {
 
     /// <summary>And a changed tree does rewrite it.</summary>
     [Fact]
-    public void AChangedTreeRewritesTheFile() {
+    public void AChangedTreeRewritesTheFile()
+    {
         Write("app.js", "console.log('hi');");
 
         Assert.True(Run().Result);
@@ -156,7 +178,8 @@ public class BuildStaticContentManifestTests : IDisposable {
     /// which would read as an application that serves no files and is meant to.
     /// </summary>
     [Fact]
-    public void AMissingContentDirectoryFailsTheBuild() {
+    public void AMissingContentDirectoryFailsTheBuild()
+    {
         var (result, engine, _) = Run(contentDirectory: Path.Combine(_root, "no-such-directory"));
 
         Assert.False(result);
@@ -169,7 +192,8 @@ public class BuildStaticContentManifestTests : IDisposable {
     /// on every unknown path, forever - so a typo turned every 404 into a 500 in production.
     /// </summary>
     [Fact]
-    public void AMissingFallBackFileFailsTheBuild() {
+    public void AMissingFallBackFileFailsTheBuild()
+    {
         Write("app.js", "console.log('hi');");
 
         var (result, engine, _) = Run(fallBack: "index.html");
@@ -180,7 +204,8 @@ public class BuildStaticContentManifestTests : IDisposable {
 
     /// <summary>Nothing is written when the build is going to fail.</summary>
     [Fact]
-    public void AFailedRunWritesNothing() {
+    public void AFailedRunWritesNothing()
+    {
         Write("app.js", "console.log('hi');");
 
         Assert.False(Run(fallBack: "missing.html").Result);
@@ -192,7 +217,8 @@ public class BuildStaticContentManifestTests : IDisposable {
     /// as an unhandled exception with an MSBuild stack trace in it.
     /// </summary>
     [Fact]
-    public void ADirectoryThatCannotBeReadFailsWithACode() {
+    public void ADirectoryThatCannotBeReadFailsWithACode()
+    {
         var (result, engine, _) = Run(contentDirectory: "");
 
         Assert.False(result);
@@ -208,7 +234,8 @@ public class BuildStaticContentManifestTests : IDisposable {
     /// still served. It is a prompt to look, not a policy.
     /// </summary>
     [Fact]
-    public void ASecretLookingFileIsAWarningAndTheBuildContinues() {
+    public void ASecretLookingFileIsAWarningAndTheBuildContinues()
+    {
         Write("app.js", "x");
         Write(".env", "SECRET_KEY=abc");
 
@@ -221,7 +248,8 @@ public class BuildStaticContentManifestTests : IDisposable {
     }
 
     [Fact]
-    public void AnEmptyDirectoryIsAWarningAndTheBuildContinues() {
+    public void AnEmptyDirectoryIsAWarningAndTheBuildContinues()
+    {
         var (result, engine, _) = Run();
 
         Assert.True(result);
@@ -234,7 +262,8 @@ public class BuildStaticContentManifestTests : IDisposable {
     /// what stays beside it.
     /// </summary>
     [Fact]
-    public void TheEmbedThresholdIsHonoured() {
+    public void TheEmbedThresholdIsHonoured()
+    {
         Write("big.bin", new string('a', 5000));
 
         Assert.True(Run(embed: 1024).Result);

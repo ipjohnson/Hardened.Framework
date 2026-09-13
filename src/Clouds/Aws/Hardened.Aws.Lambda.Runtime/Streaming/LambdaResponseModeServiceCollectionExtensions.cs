@@ -3,8 +3,8 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Hardened.Aws.Lambda.Runtime.Streaming;
 
-public static class LambdaResponseModeServiceCollectionExtensions {
-
+public static class LambdaResponseModeServiceCollectionExtensions
+{
     /// <summary>
     /// Amends the response mode the environment was read into.
     /// </summary>
@@ -22,18 +22,26 @@ public static class LambdaResponseModeServiceCollectionExtensions {
     /// URL can say so in code and stop depending on a variable being set correctly.
     /// </remarks>
     public static IServiceCollection ConfigureLambdaResponseMode(
-        this IServiceCollection services, Action<LambdaResponseModeConfiguration> configure) {
+        this IServiceCollection services,
+        Action<LambdaResponseModeConfiguration> configure
+    )
+    {
         services.AddSingleton<IConfigurationPackage>(
             new SimpleConfigurationPackage(
                 Array.Empty<IConfigurationValueProvider>(),
-                new IConfigurationValueAmender[] {
+                new IConfigurationValueAmender[]
+                {
                     new SimpleConfigurationValueAmender<LambdaResponseModeConfiguration>(
-                        (_, configuration) => {
+                        (_, configuration) =>
+                        {
                             configure(configuration);
 
                             return configuration;
-                        })
-                }));
+                        }
+                    ),
+                }
+            )
+        );
 
         return services;
     }

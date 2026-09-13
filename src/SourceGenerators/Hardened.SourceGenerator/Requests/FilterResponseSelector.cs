@@ -33,7 +33,8 @@ namespace Hardened.SourceGenerator.Requests;
 /// the attribute was repeated would describe the rest as unable to refuse.
 /// </para>
 /// </remarks>
-public static class FilterResponseSelector {
+public static class FilterResponseSelector
+{
     private const string AnswersStatus = "AnswersStatusAttribute";
 
     private const string AnswersHeader = "AnswersHeaderAttribute";
@@ -75,12 +76,14 @@ public static class FilterResponseSelector {
     internal static DeclaredOperationFacts Read(
         GeneratorSyntaxContext context,
         MethodDeclarationSyntax method,
-        CancellationToken cancellationToken) =>
+        CancellationToken cancellationToken
+    ) =>
         Collect(
             context,
             Declarations(context, method),
             Written(context, method),
-            cancellationToken);
+            cancellationToken
+        );
 
     /// <summary>
     /// The same reading, over declarations that are not on a handler at all.
@@ -102,18 +105,22 @@ public static class FilterResponseSelector {
     internal static DeclaredOperationFacts ReadDeclarations(
         GeneratorSyntaxContext context,
         IEnumerable<AttributeSyntax> declarations,
-        CancellationToken cancellationToken) =>
+        CancellationToken cancellationToken
+    ) =>
         Collect(
             context,
             declarations.Select(attribute => Declaration.FromSyntax(context, attribute)),
             Enumerable.Empty<(ISymbol, AttributeData)>(),
-            cancellationToken);
+            cancellationToken
+        );
 
     private static DeclaredOperationFacts Collect(
         GeneratorSyntaxContext context,
         IEnumerable<Declaration> declarations,
         IEnumerable<(ISymbol Carrier, AttributeData Facet)> written,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken
+    )
+    {
         Dictionary<int, ScopedRefusal>? byStatus = null;
         List<ScopedResponseHeader>? responseHeaders = null;
         List<ScopedRequestHeader>? requestHeaders = null;
@@ -124,47 +131,60 @@ public static class FilterResponseSelector {
         // and the further one add a 504 the operation can never answer.
         HashSet<string>? spoken = null;
 
-        foreach (var declaration in declarations) {
+        foreach (var declaration in declarations)
+        {
             cancellationToken.ThrowIfCancellationRequested();
 
-            if (declaration.Type == null) {
+            if (declaration.Type == null)
+            {
                 continue;
             }
 
-            foreach (var (carrier, facet) in Facets(declaration.Type, AnswersStatus)) {
-                if (!(spoken ??= new HashSet<string>()).Add(Key(carrier, facet))) {
+            foreach (var (carrier, facet) in Facets(declaration.Type, AnswersStatus))
+            {
+                if (!(spoken ??= new HashSet<string>()).Add(Key(carrier, facet)))
+                {
                     continue;
                 }
 
                 var status = StatusFor(declaration, facet);
 
-                if (status == null || (byStatus?.ContainsKey(status.Value) ?? false)) {
+                if (status == null || (byStatus?.ContainsKey(status.Value) ?? false))
+                {
                     continue;
                 }
 
-                var body = facet.ConstructorArguments.Length > 1
-                    ? facet.ConstructorArguments[1].Value as INamedTypeSymbol
-                    : null;
+                var body =
+                    facet.ConstructorArguments.Length > 1
+                        ? facet.ConstructorArguments[1].Value as INamedTypeSymbol
+                        : null;
 
                 (byStatus ??= new Dictionary<int, ScopedRefusal>()).Add(
                     status.Value,
                     new ScopedRefusal(
                         new ResponseSchemaModel(
                             status.Value,
-                            Named(facet, "Description") as string ??
-                            HttpResponseDescription.For(status.Value),
+                            Named(facet, "Description") as string
+                                ?? HttpResponseDescription.For(status.Value),
                             body == null
                                 ? null
                                 : JsonSchemaWriter.Write(
-                                    body, context.SemanticModel.Compilation.Assembly)),
-                        Scope(facet)));
+                                    body,
+                                    context.SemanticModel.Compilation.Assembly
+                                )
+                        ),
+                        Scope(facet)
+                    )
+                );
             }
 
-            foreach (var (carrier, facet) in Facets(declaration.Type, AnswersHeader)) {
+            foreach (var (carrier, facet) in Facets(declaration.Type, AnswersHeader))
+            {
                 AddResponseHeader(carrier, facet, ref spoken, ref responseHeaders);
             }
 
-            foreach (var (carrier, facet) in Facets(declaration.Type, ReadsHeader)) {
+            foreach (var (carrier, facet) in Facets(declaration.Type, ReadsHeader))
+            {
                 AddRequestHeader(carrier, facet, ref spoken, ref requestHeaders);
             }
         }
@@ -174,16 +194,20 @@ public static class FilterResponseSelector {
         // it carries a Location - and those are read off the symbol rather than through
         // Declarations, because Declarations carries an attribute's type and this needs the
         // arguments the attribute was written with.
-        foreach (var (carrier, facet) in written) {
-            if (Is(facet, AnswersHeader)) {
+        foreach (var (carrier, facet) in written)
+        {
+            if (Is(facet, AnswersHeader))
+            {
                 AddResponseHeader(carrier, facet, ref spoken, ref responseHeaders);
             }
-            else if (Is(facet, ReadsHeader)) {
+            else if (Is(facet, ReadsHeader))
+            {
                 AddRequestHeader(carrier, facet, ref spoken, ref requestHeaders);
             }
         }
 
-        if (byStatus == null && responseHeaders == null && requestHeaders == null) {
+        if (byStatus == null && responseHeaders == null && requestHeaders == null)
+        {
             return DeclaredOperationFacts.Empty;
         }
 
@@ -191,47 +215,74 @@ public static class FilterResponseSelector {
             byStatus == null
                 ? System.Array.Empty<ScopedRefusal>()
                 : byStatus.OrderBy(entry => entry.Key).Select(entry => entry.Value).ToList(),
-            (IReadOnlyList<ScopedResponseHeader>?)responseHeaders ??
-            System.Array.Empty<ScopedResponseHeader>(),
-            (IReadOnlyList<ScopedRequestHeader>?)requestHeaders ??
-            System.Array.Empty<ScopedRequestHeader>());
+            (IReadOnlyList<ScopedResponseHeader>?)responseHeaders
+                ?? System.Array.Empty<ScopedResponseHeader>(),
+            (IReadOnlyList<ScopedRequestHeader>?)requestHeaders
+                ?? System.Array.Empty<ScopedRequestHeader>()
+        );
     }
 
     private static void AddResponseHeader(
-        ISymbol carrier, AttributeData facet, ref HashSet<string>? spoken,
-        ref List<ScopedResponseHeader>? headers) {
-        if (facet.ConstructorArguments.Length < 2 ||
-            facet.ConstructorArguments[0].Value is not int status ||
-            facet.ConstructorArguments[1].Value is not string name) {
+        ISymbol carrier,
+        AttributeData facet,
+        ref HashSet<string>? spoken,
+        ref List<ScopedResponseHeader>? headers
+    )
+    {
+        if (
+            facet.ConstructorArguments.Length < 2
+            || facet.ConstructorArguments[0].Value is not int status
+            || facet.ConstructorArguments[1].Value is not string name
+        )
+        {
             return;
         }
 
         // Keyed on the name as well as the status, because two headers on one carrier at one
         // status are two headers - a 200 carrying both an ETag and a Last-Modified is the
         // ordinary conditional-request shape.
-        if (!(spoken ??= new HashSet<string>()).Add(
-                carrier.ToDisplayString() + "#h" + status + "#" + name)) {
+        if (
+            !(spoken ??= new HashSet<string>()).Add(
+                carrier.ToDisplayString() + "#h" + status + "#" + name
+            )
+        )
+        {
             return;
         }
 
         (headers ??= new List<ScopedResponseHeader>()).Add(
-            new ScopedResponseHeader(status, name, Named(facet, "Description") as string, Scope(facet)));
+            new ScopedResponseHeader(
+                status,
+                name,
+                Named(facet, "Description") as string,
+                Scope(facet)
+            )
+        );
     }
 
     private static void AddRequestHeader(
-        ISymbol carrier, AttributeData facet, ref HashSet<string>? spoken,
-        ref List<ScopedRequestHeader>? headers) {
-        if (facet.ConstructorArguments.Length < 1 ||
-            facet.ConstructorArguments[0].Value is not string name) {
+        ISymbol carrier,
+        AttributeData facet,
+        ref HashSet<string>? spoken,
+        ref List<ScopedRequestHeader>? headers
+    )
+    {
+        if (
+            facet.ConstructorArguments.Length < 1
+            || facet.ConstructorArguments[0].Value is not string name
+        )
+        {
             return;
         }
 
-        if (!(spoken ??= new HashSet<string>()).Add(carrier.ToDisplayString() + "#r#" + name)) {
+        if (!(spoken ??= new HashSet<string>()).Add(carrier.ToDisplayString() + "#r#" + name))
+        {
             return;
         }
 
         (headers ??= new List<ScopedRequestHeader>()).Add(
-            new ScopedRequestHeader(name, Named(facet, "Description") as string, Scope(facet)));
+            new ScopedRequestHeader(name, Named(facet, "Description") as string, Scope(facet))
+        );
     }
 
     /// <summary>
@@ -243,20 +294,27 @@ public static class FilterResponseSelector {
     /// one, so what is wanted is its arguments and not its type.
     /// </remarks>
     private static IEnumerable<(ISymbol Carrier, AttributeData Facet)> Written(
-        GeneratorSyntaxContext context, MethodDeclarationSyntax method) {
-        if (context.SemanticModel.GetDeclaredSymbol(method) is not IMethodSymbol handler) {
+        GeneratorSyntaxContext context,
+        MethodDeclarationSyntax method
+    )
+    {
+        if (context.SemanticModel.GetDeclaredSymbol(method) is not IMethodSymbol handler)
+        {
             yield break;
         }
 
-        foreach (var attribute in handler.GetAttributes()) {
+        foreach (var attribute in handler.GetAttributes())
+        {
             yield return (handler, attribute);
         }
 
-        foreach (var attribute in handler.ContainingType.GetAttributes()) {
+        foreach (var attribute in handler.ContainingType.GetAttributes())
+        {
             yield return (handler.ContainingType, attribute);
         }
 
-        foreach (var attribute in context.SemanticModel.Compilation.Assembly.GetAttributes()) {
+        foreach (var attribute in context.SemanticModel.Compilation.Assembly.GetAttributes())
+        {
             yield return (context.SemanticModel.Compilation.Assembly, attribute);
         }
     }
@@ -275,7 +333,8 @@ public static class FilterResponseSelector {
     /// an assembly's lives in whichever file its author put it in, and is only reachable as a
     /// symbol - where the arguments are already bound and need no model at all.
     /// </remarks>
-    private readonly struct Declaration {
+    private readonly struct Declaration
+    {
         private readonly GeneratorSyntaxContext _context;
         private readonly AttributeSyntax? _syntax;
         private readonly AttributeData? _data;
@@ -284,7 +343,9 @@ public static class FilterResponseSelector {
             GeneratorSyntaxContext context,
             INamedTypeSymbol? type,
             AttributeSyntax? syntax,
-            AttributeData? data) {
+            AttributeData? data
+        )
+        {
             _context = context;
             _syntax = syntax;
             _data = data;
@@ -293,20 +354,29 @@ public static class FilterResponseSelector {
 
         public INamedTypeSymbol? Type { get; }
 
-        public static Declaration FromSyntax(GeneratorSyntaxContext context, AttributeSyntax syntax) =>
-            new(context,
+        public static Declaration FromSyntax(
+            GeneratorSyntaxContext context,
+            AttributeSyntax syntax
+        ) =>
+            new(
+                context,
                 context.SemanticModel.GetSymbolInfo(syntax).Symbol?.ContainingType,
                 syntax,
-                data: null);
+                data: null
+            );
 
         public static Declaration FromSymbol(GeneratorSyntaxContext context, AttributeData data) =>
             new(context, data.AttributeClass, syntax: null, data);
 
         /// <summary>The value this declaration gave <paramref name="property"/>, or null.</summary>
-        public int? Written(string property) {
-            if (_data != null) {
-                foreach (var argument in _data.NamedArguments) {
-                    if (argument.Key == property && argument.Value.Value is int bound) {
+        public int? Written(string property)
+        {
+            if (_data != null)
+            {
+                foreach (var argument in _data.NamedArguments)
+                {
+                    if (argument.Key == property && argument.Value.Value is int bound)
+                    {
                         return bound;
                     }
                 }
@@ -314,15 +384,18 @@ public static class FilterResponseSelector {
                 return null;
             }
 
-            var written = _syntax?.ArgumentList?.Arguments.FirstOrDefault(
-                candidate => candidate.NameEquals?.Name.Identifier.Text == property);
+            var written = _syntax?.ArgumentList?.Arguments.FirstOrDefault(candidate =>
+                candidate.NameEquals?.Name.Identifier.Text == property
+            );
 
-            if (written == null) {
+            if (written == null)
+            {
                 return null;
             }
 
-            return _context.SemanticModel.GetConstantValue(written.Expression) is
-                { HasValue: true, Value: int status }
+            return
+                _context.SemanticModel.GetConstantValue(written.Expression)
+                    is { HasValue: true, Value: int status }
                 ? status
                 : null;
         }
@@ -333,16 +406,24 @@ public static class FilterResponseSelector {
     /// the assembly's.
     /// </summary>
     private static IEnumerable<Declaration> Declarations(
-        GeneratorSyntaxContext context, MethodDeclarationSyntax method) {
-        foreach (var list in method.AttributeLists) {
-            foreach (var attribute in list.Attributes) {
+        GeneratorSyntaxContext context,
+        MethodDeclarationSyntax method
+    )
+    {
+        foreach (var list in method.AttributeLists)
+        {
+            foreach (var attribute in list.Attributes)
+            {
                 yield return Declaration.FromSyntax(context, attribute);
             }
         }
 
-        if (method.Parent is TypeDeclarationSyntax declaringType) {
-            foreach (var list in declaringType.AttributeLists) {
-                foreach (var attribute in list.Attributes) {
+        if (method.Parent is TypeDeclarationSyntax declaringType)
+        {
+            foreach (var list in declaringType.AttributeLists)
+            {
+                foreach (var attribute in list.Attributes)
+                {
                     yield return Declaration.FromSyntax(context, attribute);
                 }
             }
@@ -351,7 +432,8 @@ public static class FilterResponseSelector {
         // The compilation's own assembly, which is the handler's, which is the one the runtime
         // resolves that rung against. A referenced library's declaration bounds that library's
         // handlers and belongs in that library's document.
-        foreach (var attribute in context.SemanticModel.Compilation.Assembly.GetAttributes()) {
+        foreach (var attribute in context.SemanticModel.Compilation.Assembly.GetAttributes())
+        {
             yield return Declaration.FromSymbol(context, attribute);
         }
     }
@@ -367,18 +449,27 @@ public static class FilterResponseSelector {
     /// <c>IAuthorizeAttribute</c>.
     /// </remarks>
     private static IEnumerable<(INamedTypeSymbol Carrier, AttributeData Facet)> Facets(
-        INamedTypeSymbol declaration, string facetName) {
-        for (var type = declaration; type != null; type = type.BaseType) {
-            foreach (var attribute in type.GetAttributes()) {
-                if (Is(attribute, facetName)) {
+        INamedTypeSymbol declaration,
+        string facetName
+    )
+    {
+        for (var type = declaration; type != null; type = type.BaseType)
+        {
+            foreach (var attribute in type.GetAttributes())
+            {
+                if (Is(attribute, facetName))
+                {
                     yield return (type, attribute);
                 }
             }
         }
 
-        foreach (var contract in declaration.AllInterfaces) {
-            foreach (var attribute in contract.GetAttributes()) {
-                if (Is(attribute, facetName)) {
+        foreach (var contract in declaration.AllInterfaces)
+        {
+            foreach (var attribute in contract.GetAttributes())
+            {
+                if (Is(attribute, facetName))
+                {
                     yield return (contract, attribute);
                 }
             }
@@ -395,8 +486,9 @@ public static class FilterResponseSelector {
     /// <c>IAuthorizeAttribute</c>. The status distinguishes two facets on one carrier.
     /// </remarks>
     private static string Key(INamedTypeSymbol carrier, AttributeData facet) =>
-        carrier.ToDisplayString() + "#" +
-        (facet.ConstructorArguments.Length > 0 ? facet.ConstructorArguments[0].Value : null);
+        carrier.ToDisplayString()
+        + "#"
+        + (facet.ConstructorArguments.Length > 0 ? facet.ConstructorArguments[0].Value : null);
 
     /// <summary>
     /// By namespace as well as name, so an application's own <c>AnswersStatus</c> is not mistaken
@@ -407,29 +499,37 @@ public static class FilterResponseSelector {
         attribute.AttributeClass != null && Is(attribute.AttributeClass, facetName);
 
     private static bool Is(INamedTypeSymbol type, string facetName) =>
-        type.Name == facetName &&
-        type.ContainingNamespace?.ToDisplayString() ==
-        (facetName == ReadsHeader ? ReadsHeaderNamespace : DeclarationNamespace);
+        type.Name == facetName
+        && type.ContainingNamespace?.ToDisplayString()
+            == (facetName == ReadsHeader ? ReadsHeaderNamespace : DeclarationNamespace);
 
     /// <summary>
     /// The status the facet declares, or the one the declaration was written with where the facet
     /// names a property that overrides it.
     /// </summary>
-    private static int? StatusFor(Declaration declaration, AttributeData facet) {
-        if (Named(facet, "StatusFrom") is string property &&
-            declaration.Written(property) is { } written) {
+    private static int? StatusFor(Declaration declaration, AttributeData facet)
+    {
+        if (
+            Named(facet, "StatusFrom") is string property
+            && declaration.Written(property) is { } written
+        )
+        {
             return written;
         }
 
-        return facet.ConstructorArguments.Length > 0 &&
-               facet.ConstructorArguments[0].Value is int status
+        return
+            facet.ConstructorArguments.Length > 0
+            && facet.ConstructorArguments[0].Value is int status
             ? status
             : null;
     }
 
-    private static object? Named(AttributeData facet, string name) {
-        foreach (var argument in facet.NamedArguments) {
-            if (argument.Key == name) {
+    private static object? Named(AttributeData facet, string name)
+    {
+        foreach (var argument in facet.NamedArguments)
+        {
+            if (argument.Key == name)
+            {
                 return argument.Value.Value;
             }
         }

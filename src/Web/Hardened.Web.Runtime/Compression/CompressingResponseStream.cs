@@ -28,7 +28,8 @@ namespace Hardened.Web.Runtime.Compression;
 /// started check reads and what the testing response reads for the same purpose.
 /// </para>
 /// </remarks>
-internal sealed class CompressingResponseStream : Stream {
+internal sealed class CompressingResponseStream : Stream
+{
     private readonly IExecutionContext _context;
     private readonly Stream _transport;
     private readonly string _coding;
@@ -43,7 +44,9 @@ internal sealed class CompressingResponseStream : Stream {
         Stream transport,
         string coding,
         ICompressionPredicate? predicate,
-        ICompressionConfiguration configuration) {
+        ICompressionConfiguration configuration
+    )
+    {
         _context = context;
         _transport = transport;
         _coding = coding;
@@ -59,7 +62,8 @@ internal sealed class CompressingResponseStream : Stream {
 
     public override long Length => _accepted;
 
-    public override long Position {
+    public override long Position
+    {
         get => _accepted;
         set => throw new NotSupportedException();
     }
@@ -69,39 +73,51 @@ internal sealed class CompressingResponseStream : Stream {
     public override Task FlushAsync(CancellationToken cancellationToken) =>
         (_target ?? _transport).FlushAsync(cancellationToken);
 
-    public override void Write(byte[] buffer, int offset, int count) {
+    public override void Write(byte[] buffer, int offset, int count)
+    {
         Target().Write(buffer, offset, count);
 
         _accepted += count;
     }
 
-    public override void Write(ReadOnlySpan<byte> buffer) {
+    public override void Write(ReadOnlySpan<byte> buffer)
+    {
         Target().Write(buffer);
 
         _accepted += buffer.Length;
     }
 
-    public override void WriteByte(byte value) {
+    public override void WriteByte(byte value)
+    {
         Target().WriteByte(value);
 
         _accepted++;
     }
 
     public override async Task WriteAsync(
-        byte[] buffer, int offset, int count, CancellationToken cancellationToken) {
+        byte[] buffer,
+        int offset,
+        int count,
+        CancellationToken cancellationToken
+    )
+    {
         await Target().WriteAsync(buffer.AsMemory(offset, count), cancellationToken);
 
         _accepted += count;
     }
 
     public override async ValueTask WriteAsync(
-        ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default) {
+        ReadOnlyMemory<byte> buffer,
+        CancellationToken cancellationToken = default
+    )
+    {
         await Target().WriteAsync(buffer, cancellationToken);
 
         _accepted += buffer.Length;
     }
 
-    public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+    public override int Read(byte[] buffer, int offset, int count) =>
+        throw new NotSupportedException();
 
     public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
 
@@ -110,16 +126,20 @@ internal sealed class CompressingResponseStream : Stream {
     /// <summary>
     /// Writes the trailer. Never closes the transport, which the host completes.
     /// </summary>
-    public override async ValueTask DisposeAsync() {
-        if (_encoder != null) {
+    public override async ValueTask DisposeAsync()
+    {
+        if (_encoder != null)
+        {
             await _encoder.DisposeAsync();
         }
 
         await base.DisposeAsync();
     }
 
-    protected override void Dispose(bool disposing) {
-        if (disposing) {
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
             _encoder?.Dispose();
         }
 
@@ -129,14 +149,17 @@ internal sealed class CompressingResponseStream : Stream {
     /// <summary>
     /// Where the bytes go, chosen once.
     /// </summary>
-    private Stream Target() {
-        if (_target != null) {
+    private Stream Target()
+    {
+        if (_target != null)
+        {
             return _target;
         }
 
         var response = _context.Response;
 
-        if (!Compresses(response)) {
+        if (!Compresses(response))
+        {
             return _target = _transport;
         }
 
@@ -150,9 +173,13 @@ internal sealed class CompressingResponseStream : Stream {
         // A strong validator names one exact byte sequence, and these are not those bytes. Weak
         // keeps the validator usable for a conditional request while saying so, which is what
         // ASP.NET Core's compression does with the same header.
-        if (response.Headers.TryGetValue(KnownHeaders.ETag, out var etag) &&
-            etag.Count == 1 && etag[0] is { Length: > 0 } strong &&
-            !strong.StartsWith("W/", StringComparison.Ordinal)) {
+        if (
+            response.Headers.TryGetValue(KnownHeaders.ETag, out var etag)
+            && etag.Count == 1
+            && etag[0] is { Length: > 0 } strong
+            && !strong.StartsWith("W/", StringComparison.Ordinal)
+        )
+        {
             response.Headers[KnownHeaders.ETag] = "W/" + strong;
         }
 
@@ -173,18 +200,22 @@ internal sealed class CompressingResponseStream : Stream {
     /// stream is not an offset into the resource; then the operation's predicate over the
     /// handler's value where there is one, and the configured media-type rule otherwise.
     /// </summary>
-    private bool Compresses(IExecutionResponse response) {
-        if (response.ResponseStarted || response.Headers.ContainsKey(KnownHeaders.ContentEncoding)) {
+    private bool Compresses(IExecutionResponse response)
+    {
+        if (response.ResponseStarted || response.Headers.ContainsKey(KnownHeaders.ContentEncoding))
+        {
             return false;
         }
 
-        if (response.Status is 204 or 206 or 304) {
+        if (response.Status is 204 or 206 or 304)
+        {
             return false;
         }
 
         // A hit replayed from the response cache carries no handler value, so a predicate is not
         // consulted there and the default rule applies. See ICompressionPredicate.
-        if (_predicate != null && response.ResponseValue is { } value) {
+        if (_predicate != null && response.ResponseValue is { } value)
+        {
             return _predicate.ShouldCompress(value, _context);
         }
 

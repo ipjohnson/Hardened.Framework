@@ -21,10 +21,11 @@ namespace Hardened.OpenApi.BuildTask.Tests;
 /// is what stops that; <c>false</c> is what keeps it a warning rather than an error.
 /// </para>
 /// </remarks>
-public class DeprecationTests {
-
+public class DeprecationTests
+{
     private static string Emit() =>
-        EmitterHarness.Write(ns => {
+        EmitterHarness.Write(ns =>
+        {
             var definition = ns.AddClass("Pet");
 
             definition.Modifiers |= ComponentModifier.Public;
@@ -33,12 +34,14 @@ public class DeprecationTests {
         });
 
     [Fact]
-    public void TheTypeIsMarkedObsolete() {
+    public void TheTypeIsMarkedObsolete()
+    {
         Assert.Contains("Obsolete", Emit());
     }
 
     [Fact]
-    public void TheMessageSaysWhereTheDeprecationCameFrom() {
+    public void TheMessageSaysWhereTheDeprecationCameFrom()
+    {
         Assert.Contains("Declared deprecated by the specification.", Emit());
     }
 
@@ -46,7 +49,8 @@ public class DeprecationTests {
     /// A warning, not an error. Deprecation is notice that something will go, not that it has gone.
     /// </summary>
     [Fact]
-    public void TheObsoleteAttributeIsAWarningRatherThanAnError() {
+    public void TheObsoleteAttributeIsAWarningRatherThanAnError()
+    {
         Assert.Contains("false", Emit());
         Assert.DoesNotContain("true", Emit());
     }
@@ -55,7 +59,8 @@ public class DeprecationTests {
     /// Without this, one deprecated operation breaks the build of every project implementing it.
     /// </summary>
     [Fact]
-    public void TheDeclarationIsWrappedInAPragmaSuppressing618() {
+    public void TheDeclarationIsWrappedInAPragmaSuppressing618()
+    {
         var output = Emit();
 
         Assert.Contains("#pragma warning disable 618", output);
@@ -63,19 +68,28 @@ public class DeprecationTests {
     }
 
     [Fact]
-    public void ThePragmaSurroundsTheDeclaration() {
+    public void ThePragmaSurroundsTheDeclaration()
+    {
         var output = Emit();
 
-        var disable = output.IndexOf("#pragma warning disable 618", System.StringComparison.Ordinal);
+        var disable = output.IndexOf(
+            "#pragma warning disable 618",
+            System.StringComparison.Ordinal
+        );
         var declaration = output.IndexOf("class Pet", System.StringComparison.Ordinal);
-        var restore = output.IndexOf("#pragma warning restore 618", System.StringComparison.Ordinal);
+        var restore = output.IndexOf(
+            "#pragma warning restore 618",
+            System.StringComparison.Ordinal
+        );
 
         Assert.InRange(declaration, disable, restore);
     }
 
     [Fact]
-    public void AnUndeprecatedTypeCarriesNeither() {
-        var output = EmitterHarness.Write(ns => {
+    public void AnUndeprecatedTypeCarriesNeither()
+    {
+        var output = EmitterHarness.Write(ns =>
+        {
             var definition = ns.AddClass("Pet");
 
             definition.Modifiers |= ComponentModifier.Public;

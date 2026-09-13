@@ -2,8 +2,8 @@ using DependencyModules.Testing.Attributes;
 using Hardened.IntegrationTests.WebApp.SUT.Controllers;
 using Hardened.Requests.Abstract.Errors;
 using Hardened.Requests.Abstract.Headers;
-using Hardened.Web.Testing;
 using Hardened.Web.Runtime.Responses;
+using Hardened.Web.Testing;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 
@@ -18,10 +18,11 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 /// pass every unit test and bound nothing; and the status is written by
 /// <c>ExceptionToModelConverter</c> during that same serialization, inside the filter's own span.
 /// </remarks>
-public class TimeoutTests {
-
+public class TimeoutTests
+{
     [HardenedTest]
-    public async Task AHandlerThatOutlivesItsBudgetIs504(ITestWebApp testWebApp) {
+    public async Task AHandlerThatOutlivesItsBudgetIs504(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/timeout/slow");
 
         Assert.Equal(504, response.StatusCode);
@@ -33,7 +34,8 @@ public class TimeoutTests {
     /// normally, and the handler ran once.
     /// </summary>
     [HardenedTest]
-    public async Task AHandlerThatFinishesInsideItsBudgetAnswersNormally(ITestWebApp testWebApp) {
+    public async Task AHandlerThatFinishesInsideItsBudgetAnswersNormally(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/timeout/fast");
 
         Assert.Equal(200, response.StatusCode);
@@ -46,7 +48,8 @@ public class TimeoutTests {
     /// and always answers 504.
     /// </summary>
     [HardenedTest]
-    public async Task ADeclaredStatusAndRetryAfterReachTheCaller(ITestWebApp testWebApp) {
+    public async Task ADeclaredStatusAndRetryAfterReachTheCaller(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/timeout/shed");
 
         Assert.Equal(503, response.StatusCode);
@@ -56,7 +59,8 @@ public class TimeoutTests {
 
     /// <summary>A 504 knows nothing about when the dependency recovers, so it sends no number.</summary>
     [HardenedTest]
-    public async Task A504SendsNoRetryAfter(ITestWebApp testWebApp) {
+    public async Task A504SendsNoRetryAfter(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/timeout/slow");
 
         Assert.False(response.Headers.ContainsKey(KnownHeaders.RetryAfter));
@@ -67,7 +71,8 @@ public class TimeoutTests {
     /// assembly's declaration, which is a bound rather than a delay.
     /// </summary>
     [HardenedTest]
-    public async Task AnOperationThatDeclaresNothingStillAnswers(ITestWebApp testWebApp) {
+    public async Task AnOperationThatDeclaresNothingStillAnswers(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/timeout/unbounded");
 
         Assert.Equal(200, response.StatusCode);
@@ -85,7 +90,8 @@ public class TimeoutTests {
     /// first-class buys: the filter enforcing it and the handler reporting it are the same value.
     /// </remarks>
     [HardenedTest]
-    public async Task AnOperationDeclaringNothingInheritsItsAssembly(ITestWebApp testWebApp) {
+    public async Task AnOperationDeclaringNothingInheritsItsAssembly(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/timeout/budget");
 
         Assert.Equal(300_000, response.Deserialize<int>());
@@ -93,7 +99,8 @@ public class TimeoutTests {
 
     /// <summary>A class-level declaration is nearer than the assembly, so it wins.</summary>
     [HardenedTest]
-    public async Task AClassBeatsItsAssembly(ITestWebApp testWebApp) {
+    public async Task AClassBeatsItsAssembly(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/timeout/classed/budget");
 
         Assert.Equal(20_000, response.Deserialize<int>());
@@ -104,7 +111,8 @@ public class TimeoutTests {
     /// the reason resolution takes the first declaration in metadata rather than the smallest.
     /// </summary>
     [HardenedTest]
-    public async Task AMethodBeatsItsClassEvenWhenItLoosens(ITestWebApp testWebApp) {
+    public async Task AMethodBeatsItsClassEvenWhenItLoosens(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/timeout/classed/slower");
 
         Assert.Equal(40_000, response.Deserialize<int>());
@@ -112,7 +120,8 @@ public class TimeoutTests {
 
     /// <summary>An operation's own declaration is the nearest rung of all.</summary>
     [HardenedTest]
-    public async Task AnOperationBeatsEverythingAboveIt(ITestWebApp testWebApp) {
+    public async Task AnOperationBeatsEverythingAboveIt(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/timeout/slow");
 
         Assert.Equal(504, response.StatusCode);
@@ -124,12 +133,12 @@ public class TimeoutTests {
     /// fires; five attempts at fifty milliseconds each cannot fit in a hundred and fifty.
     /// </summary>
     [HardenedTest]
-    public async Task OneBudgetCoversEveryRetryAttempt([Shared] ITestWebApp testWebApp) {
+    public async Task OneBudgetCoversEveryRetryAttempt([Shared] ITestWebApp testWebApp)
+    {
         await testWebApp.Get("/timeout/retried");
 
         var attempts = (await testWebApp.Get("/timeout/calls/retried")).Deserialize<int>();
 
         Assert.InRange(attempts, 1, 4);
     }
-
 }

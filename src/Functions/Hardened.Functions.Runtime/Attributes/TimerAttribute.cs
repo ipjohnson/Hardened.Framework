@@ -14,8 +14,10 @@ namespace Hardened.Functions.Runtime.Attributes;
 /// empty, so a handler that takes no parameter is the ordinary case here rather than an oddity.
 /// </para>
 /// </remarks>
-public class TimerAttribute : Attribute {
-    public TimerAttribute(string name) {
+public class TimerAttribute : Attribute
+{
+    public TimerAttribute(string name)
+    {
         Name = name;
     }
 

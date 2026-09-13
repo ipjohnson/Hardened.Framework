@@ -11,23 +11,26 @@ namespace Hardened.Requests.Runtime.Tests.Serializer;
 /// Which serializer writes a response: what the response committed to, then what the client asked
 /// for, then the default.
 /// </summary>
-public class SerializationLocatorServiceTests {
-
+public class SerializationLocatorServiceTests
+{
     /// <summary>
     /// A serializer that emits <paramref name="produces"/>, or nothing at all when it is null.
     /// </summary>
-    private static IResponseSerializer Response(bool isDefault, string? produces = null) {
+    private static IResponseSerializer Response(bool isDefault, string? produces = null)
+    {
         var serializer = Substitute.For<IResponseSerializer>();
 
         serializer.ContentType.Returns(produces ?? "");
-        serializer.CanProduce(Arg.Any<string>(), Arg.Any<IExecutionContext>())
+        serializer
+            .CanProduce(Arg.Any<string>(), Arg.Any<IExecutionContext>())
             .Returns(call => produces != null && MediaType.Matches((string)call[0], produces));
         serializer.IsDefaultSerializer.Returns(isDefault);
 
         return serializer;
     }
 
-    private static IRequestDeserializer Request(bool canProcess, bool isDefault) {
+    private static IRequestDeserializer Request(bool canProcess, bool isDefault)
+    {
         var deserializer = Substitute.For<IRequestDeserializer>();
 
         deserializer.CanProcessContext(Arg.Any<IExecutionContext>()).Returns(canProcess);
@@ -38,14 +41,18 @@ public class SerializationLocatorServiceTests {
 
     private static SerializationLocatorService Locator(
         IEnumerable<IRequestDeserializer>? deserializers = null,
-        IEnumerable<IResponseSerializer>? serializers = null) =>
-        new(deserializers ?? Array.Empty<IRequestDeserializer>(),
-            serializers ?? Array.Empty<IResponseSerializer>());
+        IEnumerable<IResponseSerializer>? serializers = null
+    ) =>
+        new(
+            deserializers ?? Array.Empty<IRequestDeserializer>(),
+            serializers ?? Array.Empty<IResponseSerializer>()
+        );
 
     // ── negotiation ────────────────────────────────────────────────────
 
     [Fact]
-    public void TheSerializerThatProducesTheRequestedTypeIsChosen() {
+    public void TheSerializerThatProducesTheRequestedTypeIsChosen()
+    {
         var declines = Response(isDefault: false, produces: "text/csv");
         var claims = Response(isDefault: false, produces: "application/json");
 
@@ -73,26 +80,34 @@ public class SerializationLocatorServiceTests {
     /// </para>
     /// </remarks>
     [Fact]
-    public void TheClientsFirstPreferenceWinsOverRegistrationOrder() {
+    public void TheClientsFirstPreferenceWinsOverRegistrationOrder()
+    {
         var html = Response(isDefault: false, produces: "text/html");
         var json = Response(isDefault: true, produces: "application/json");
 
         var chosen = Locator(serializers: new[] { html, json })
-            .FindResponseSerializer(Pipeline.Context(
-                accept: "application/json,text/html;q=0.9,application/xml;q=0.8,*/*;q=0.7"));
+            .FindResponseSerializer(
+                Pipeline.Context(
+                    accept: "application/json,text/html;q=0.9,application/xml;q=0.8,*/*;q=0.7"
+                )
+            );
 
         Assert.Same(json, chosen);
     }
 
     /// <summary>And the same two serializers resolve the other way for a browser.</summary>
     [Fact]
-    public void AClientPreferringHtmlGetsTheHtmlSerializer() {
+    public void AClientPreferringHtmlGetsTheHtmlSerializer()
+    {
         var html = Response(isDefault: false, produces: "text/html");
         var json = Response(isDefault: true, produces: "application/json");
 
         var chosen = Locator(serializers: new[] { html, json })
-            .FindResponseSerializer(Pipeline.Context(
-                accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"));
+            .FindResponseSerializer(
+                Pipeline.Context(
+                    accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+                )
+            );
 
         Assert.Same(html, chosen);
     }
@@ -109,7 +124,8 @@ public class SerializationLocatorServiceTests {
     /// and an operation that declares what it produces never reaches this loop at all.
     /// </remarks>
     [Fact]
-    public void TheLastRegistrationDecidesWithinOneAcceptPosition() {
+    public void TheLastRegistrationDecidesWithinOneAcceptPosition()
+    {
         var first = Response(isDefault: true, produces: "application/json");
         var last = Response(isDefault: false, produces: "text/html");
 
@@ -124,7 +140,8 @@ public class SerializationLocatorServiceTests {
     /// declined by every serializer and rescued by the default.
     /// </summary>
     [Fact]
-    public void NoAcceptHeaderIsTreatedAsAnything() {
+    public void NoAcceptHeaderIsTreatedAsAnything()
+    {
         var json = Response(isDefault: false, produces: "application/json");
 
         var chosen = Locator(serializers: new[] { json })
@@ -135,12 +152,16 @@ public class SerializationLocatorServiceTests {
 
     /// <summary>A subtype wildcard matches within its type and not outside it.</summary>
     [Fact]
-    public void ASubtypeWildcardMatchesWithinItsType() {
+    public void ASubtypeWildcardMatchesWithinItsType()
+    {
         var json = Response(isDefault: false, produces: "application/json");
         var html = Response(isDefault: false, produces: "text/html");
 
-        Assert.Same(html, Locator(serializers: new[] { json, html })
-            .FindResponseSerializer(Pipeline.Context(accept: "text/*")));
+        Assert.Same(
+            html,
+            Locator(serializers: new[] { json, html })
+                .FindResponseSerializer(Pipeline.Context(accept: "text/*"))
+        );
     }
 
     /// <summary>
@@ -148,7 +169,8 @@ public class SerializationLocatorServiceTests {
     /// relationship, so an application's own still beats the framework's. The sort has to be stable.
     /// </summary>
     [Fact]
-    public void WithinOneOrderTheLaterRegistrationIsTestedFirst() {
+    public void WithinOneOrderTheLaterRegistrationIsTestedFirst()
+    {
         var framework = Response(isDefault: true, produces: "application/json");
         var application = Response(isDefault: false, produces: "application/json");
 
@@ -165,7 +187,8 @@ public class SerializationLocatorServiceTests {
     /// unfamiliar Accept still gets an answer.
     /// </summary>
     [Fact]
-    public void ADefaultSerializerIsTheFallbackWhenNothingProducesWhatWasAsked() {
+    public void ADefaultSerializerIsTheFallbackWhenNothingProducesWhatWasAsked()
+    {
         var specialist = Response(isDefault: false, produces: "text/csv");
         var fallback = Response(isDefault: true, produces: "application/json");
 
@@ -180,7 +203,8 @@ public class SerializationLocatorServiceTests {
     /// they were registered.
     /// </summary>
     [Fact]
-    public void ADefaultDoesNotShadowASerializerThatProducesTheRequestedType() {
+    public void ADefaultDoesNotShadowASerializerThatProducesTheRequestedType()
+    {
         var specialist = Response(isDefault: false, produces: "text/csv");
         var alwaysDefault = Response(isDefault: true, produces: "application/json");
 
@@ -191,15 +215,20 @@ public class SerializationLocatorServiceTests {
     }
 
     [Fact]
-    public void NoProducerAndNoDefaultIsAnError() {
-        var locator = Locator(serializers: new[] { Response(isDefault: false, produces: "text/csv") });
+    public void NoProducerAndNoDefaultIsAnError()
+    {
+        var locator = Locator(
+            serializers: new[] { Response(isDefault: false, produces: "text/csv") }
+        );
 
-        Assert.Throws<Exception>(
-            () => locator.FindResponseSerializer(Pipeline.Context(accept: "application/pdf")));
+        Assert.Throws<Exception>(() =>
+            locator.FindResponseSerializer(Pipeline.Context(accept: "application/pdf"))
+        );
     }
 
     [Fact]
-    public void NoSerializerRegisteredAtAllIsAnError() {
+    public void NoSerializerRegisteredAtAllIsAnError()
+    {
         Assert.Throws<Exception>(() => Locator().FindResponseSerializer(Pipeline.Context()));
     }
 
@@ -211,7 +240,8 @@ public class SerializationLocatorServiceTests {
     /// returns a PDF whatever the request asked for.
     /// </summary>
     [Fact]
-    public void ACommittedContentTypeSkipsNegotiation() {
+    public void ACommittedContentTypeSkipsNegotiation()
+    {
         var csv = Response(isDefault: false, produces: "text/csv");
         var json = Response(isDefault: true, produces: "application/json");
 
@@ -226,7 +256,8 @@ public class SerializationLocatorServiceTests {
     /// with JSON instead would hide it.
     /// </summary>
     [Fact]
-    public void ACommittedContentTypeNothingCanProduceIsAnError() {
+    public void ACommittedContentTypeNothingCanProduceIsAnError()
+    {
         var json = Response(isDefault: true, produces: "application/json");
 
         var context = Pipeline.Context(accept: "application/json");
@@ -234,8 +265,9 @@ public class SerializationLocatorServiceTests {
 
         var locator = Locator(serializers: new[] { json });
 
-        var exception = Assert.Throws<ContentTypeNotProducibleException>(
-            () => locator.FindResponseSerializer(context));
+        var exception = Assert.Throws<ContentTypeNotProducibleException>(() =>
+            locator.FindResponseSerializer(context)
+        );
 
         Assert.Contains("application/pdf", exception.Message);
     }
@@ -243,7 +275,8 @@ public class SerializationLocatorServiceTests {
     // ── request side, unchanged ────────────────────────────────────────
 
     [Fact]
-    public void TheDeserializerThatClaimsTheContextIsChosen() {
+    public void TheDeserializerThatClaimsTheContextIsChosen()
+    {
         var declines = Request(canProcess: false, isDefault: false);
         var claims = Request(canProcess: true, isDefault: false);
 
@@ -254,7 +287,8 @@ public class SerializationLocatorServiceTests {
     }
 
     [Fact]
-    public void ADefaultDeserializerIsTheFallbackWhenNothingClaimsTheContext() {
+    public void ADefaultDeserializerIsTheFallbackWhenNothingClaimsTheContext()
+    {
         var specialist = Request(canProcess: false, isDefault: false);
         var fallback = Request(canProcess: false, isDefault: true);
 
@@ -265,8 +299,11 @@ public class SerializationLocatorServiceTests {
     }
 
     [Fact]
-    public void NoDeserializerAtAllIsAnError() {
-        var locator = Locator(deserializers: new[] { Request(canProcess: false, isDefault: false) });
+    public void NoDeserializerAtAllIsAnError()
+    {
+        var locator = Locator(
+            deserializers: new[] { Request(canProcess: false, isDefault: false) }
+        );
 
         Assert.Throws<Exception>(() => locator.FindRequestDeserializer(Pipeline.Context()));
     }
@@ -278,7 +315,8 @@ public class SerializationLocatorServiceTests {
     /// overwritten while walking.
     /// </summary>
     [Fact]
-    public void TheDefaultDeserializerFallbackIsTheLastRegisteredOne() {
+    public void TheDefaultDeserializerFallbackIsTheLastRegisteredOne()
+    {
         var first = Request(canProcess: false, isDefault: true);
         var second = Request(canProcess: false, isDefault: true);
 
@@ -289,7 +327,8 @@ public class SerializationLocatorServiceTests {
     }
 
     [Fact]
-    public void TheDefaultResponseSerializerFallbackIsAlsoTheLastRegisteredOne() {
+    public void TheDefaultResponseSerializerFallbackIsAlsoTheLastRegisteredOne()
+    {
         var first = Response(isDefault: true, produces: "application/json");
         var second = Response(isDefault: true, produces: "application/json");
 

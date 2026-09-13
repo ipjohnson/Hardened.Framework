@@ -26,8 +26,8 @@ namespace Hardened.Web.Runtime.Caching;
 /// with no tokens keys on the route alone. That is correct and worth saying out loud: it is a cache
 /// of one entry, which is what a collection endpoint taking no parameters should have.
 /// </remarks>
-public sealed class VaryByRoute : ICacheKeyProvider {
-
+public sealed class VaryByRoute : ICacheKeyProvider
+{
     private static readonly VaryByRoute _instance = new();
 
     private VaryByRoute() { }
@@ -36,20 +36,25 @@ public sealed class VaryByRoute : ICacheKeyProvider {
         values.Length == 0
             ? _instance
             : throw new ArgumentException(
-                "VaryByRoute keys on the route's own tokens and takes no values, but was given " +
-                string.Join(", ", values) + ". Name query keys with VaryByQuery instead.",
-                nameof(values));
+                "VaryByRoute keys on the route's own tokens and takes no values, but was given "
+                    + string.Join(", ", values)
+                    + ". Name query keys with VaryByQuery instead.",
+                nameof(values)
+            );
 
-    public ValueTask<string?> Key(IExecutionContext context) {
+    public ValueTask<string?> Key(IExecutionContext context)
+    {
         var tokens = context.Request.PathTokens;
 
-        if (tokens.Count == 0) {
+        if (tokens.Count == 0)
+        {
             return new ValueTask<string?>(string.Empty);
         }
 
         var key = new StringBuilder();
 
-        for (var i = 0; i < tokens.Count; i++) {
+        for (var i = 0; i < tokens.Count; i++)
+        {
             var token = tokens.Get(i);
 
             key.Append(token.TokenName).Append('=').Append(token.TokenValue).Append('&');

@@ -1,9 +1,11 @@
 ﻿namespace Hardened.Shared.Runtime.Metrics;
 
-public class NullMetricsLogger : IMetricLogger {
+public class NullMetricsLogger : IMetricLogger
+{
     public void Dispose() { }
 
-    public Task Flush() {
+    public Task Flush()
+    {
         return Task.CompletedTask;
     }
 

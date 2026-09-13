@@ -16,10 +16,11 @@ namespace Hardened.Web.Runtime.Tests.Responses;
 /// the tests here are about landing in all three of those places, not about the exception itself.
 /// </para>
 /// </summary>
-public class ResponseExceptionTests {
-
+public class ResponseExceptionTests
+{
     [Fact]
-    public void StatusCode_ComesFromTheResponse() {
+    public void StatusCode_ComesFromTheResponse()
+    {
         Assert.Equal(404, new ResponseException(new NotFound("todo")).StatusCode);
         Assert.Equal(409, new ResponseException(new Conflict()).StatusCode);
         Assert.Equal(503, new ResponseException(new ServiceUnavailable()).StatusCode);
@@ -31,7 +32,8 @@ public class ResponseExceptionTests {
     /// response silently discarded - which is the failure that looks like it works.
     /// </summary>
     [Fact]
-    public void Value_IsTheResponseItself() {
+    public void Value_IsTheResponseItself()
+    {
         var response = new NotFound("todo", "No todo with id 7.");
 
         Assert.Same(response, new ResponseException(response).Value);
@@ -45,7 +47,8 @@ public class ResponseExceptionTests {
     /// wrapper around one.
     /// </summary>
     [Fact]
-    public void Value_IsTheCarriedBodyForAResponseThatCarriesOne() {
+    public void Value_IsTheCarriedBodyForAResponseThatCarriesOne()
+    {
         var problem = new { Detail = "No todo with id 7." };
 
         Assert.Same(problem, new ResponseException(new NotFound<object>(problem)).Value);
@@ -57,13 +60,15 @@ public class ResponseExceptionTests {
     /// Value is null, so a bodyless response has to be null here rather than merely empty.
     /// </summary>
     [Fact]
-    public void Value_IsNullForABodylessResponse() {
+    public void Value_IsNullForABodylessResponse()
+    {
         Assert.Null(new ResponseException(new NoContent()).Value);
         Assert.Null(new ResponseException(new Accepted("/jobs/7")).Value);
     }
 
     [Fact]
-    public void Response_IsAvailableWithoutUnwrappingValue() {
+    public void Response_IsAvailableWithoutUnwrappingValue()
+    {
         var response = new Gone();
 
         Assert.Same(response, new ResponseException(response).Response);
@@ -75,25 +80,29 @@ public class ResponseExceptionTests {
     /// branch.
     /// </summary>
     [Fact]
-    public void ResponseException_IsAStatusCodeException() {
+    public void ResponseException_IsAStatusCodeException()
+    {
         Assert.IsAssignableFrom<IStatusCodeException>(new ResponseException(new Forbidden()));
         Assert.IsAssignableFrom<StatusCodeException>(new ResponseException(new Forbidden()));
     }
 
     [Fact]
-    public void Message_NamesTheStatusWhenNoneWasGiven() {
+    public void Message_NamesTheStatusWhenNoneWasGiven()
+    {
         Assert.Contains("410", new ResponseException(new Gone()).Message, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void Message_IsTheOneGivenWhenThereIsOne() {
+    public void Message_IsTheOneGivenWhenThereIsOne()
+    {
         var exception = new ResponseException(new Gone(), "The board was deleted in March.");
 
         Assert.Equal("The board was deleted in March.", exception.Message);
     }
 
     [Fact]
-    public void Constructor_RejectsANullResponse() {
+    public void Constructor_RejectsANullResponse()
+    {
         Assert.Throws<ArgumentNullException>(() => new ResponseException(null!));
     }
 }

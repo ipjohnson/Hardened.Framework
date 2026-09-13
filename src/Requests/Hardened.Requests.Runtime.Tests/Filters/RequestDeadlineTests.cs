@@ -1,7 +1,7 @@
 using Hardened.Requests.Abstract.Timeouts;
-using Hardened.Shared.Runtime.Diagnostics;
 using Hardened.Requests.Runtime.Filters;
 using Hardened.Requests.Runtime.Tests.Support;
+using Hardened.Shared.Runtime.Diagnostics;
 using Xunit;
 
 namespace Hardened.Requests.Runtime.Tests.Filters;
@@ -14,8 +14,8 @@ namespace Hardened.Requests.Runtime.Tests.Filters;
 /// the accessor is the whole contract: a handler takes this in its constructor whatever its
 /// lifetime, which is the reason the value is not on a scoped holder.
 /// </remarks>
-public class RequestDeadlineTests {
-
+public class RequestDeadlineTests
+{
     /// <summary>Longer than any test here takes, so nothing expires on its own.</summary>
     private const int LongBudget = 60_000;
 
@@ -25,19 +25,24 @@ public class RequestDeadlineTests {
     private static readonly IRequestDeadline Accessor = new RequestDeadline();
 
     [Fact]
-    public async Task ABoundedHandlerReadsWhenItsBudgetRunsOut() {
+    public async Task ABoundedHandlerReadsWhenItsBudgetRunsOut()
+    {
         var context = Pipeline.Context();
 
         double remaining = 0;
 
-        await Pipeline.Chain(
-            context,
-            new TimeoutFilter(LongBudget),
-            new Pipeline.Inline(_ => {
-                remaining = Accessor.Deadline!.Value.GetRemainingMilliseconds();
+        await Pipeline
+            .Chain(
+                context,
+                new TimeoutFilter(LongBudget),
+                new Pipeline.Inline(_ =>
+                {
+                    remaining = Accessor.Deadline!.Value.GetRemainingMilliseconds();
 
-                return Task.CompletedTask;
-            })).Next();
+                    return Task.CompletedTask;
+                })
+            )
+            .Next();
 
         // Bounded rather than exact: the deadline is taken as the filter starts the budget, so the
         // reading is a whole budget less however long the chain took to reach the handler.
@@ -49,19 +54,24 @@ public class RequestDeadlineTests {
     /// measured from anywhere but the <c>CancelAfter</c> would disagree with the token enforcing it.
     /// </summary>
     [Fact]
-    public async Task TheDeadlineIsAheadWhileTheBudgetHolds() {
+    public async Task TheDeadlineIsAheadWhileTheBudgetHolds()
+    {
         var context = Pipeline.Context();
 
         var future = false;
 
-        await Pipeline.Chain(
-            context,
-            new TimeoutFilter(LongBudget),
-            new Pipeline.Inline(_ => {
-                future = Accessor.Deadline!.Value.Future;
+        await Pipeline
+            .Chain(
+                context,
+                new TimeoutFilter(LongBudget),
+                new Pipeline.Inline(_ =>
+                {
+                    future = Accessor.Deadline!.Value.Future;
 
-                return Task.CompletedTask;
-            })).Next();
+                    return Task.CompletedTask;
+                })
+            )
+            .Next();
 
         Assert.True(future);
     }
@@ -71,21 +81,26 @@ public class RequestDeadlineTests {
     /// is the <c>AsyncLocal</c> write and the execution-context copies after it.
     /// </summary>
     [Fact]
-    public async Task DeadlineFalsePublishesNothing() {
+    public async Task DeadlineFalsePublishesNothing()
+    {
         var context = Pipeline.Context();
 
         MachineTimestamp? observed = null;
         CancellationToken bounded = default;
 
-        await Pipeline.Chain(
-            context,
-            new TimeoutFilter(LongBudget, publishDeadline: false),
-            new Pipeline.Inline(chain => {
-                observed = Accessor.Deadline;
-                bounded = chain.Context.CancellationToken;
+        await Pipeline
+            .Chain(
+                context,
+                new TimeoutFilter(LongBudget, publishDeadline: false),
+                new Pipeline.Inline(chain =>
+                {
+                    observed = Accessor.Deadline;
+                    bounded = chain.Context.CancellationToken;
 
-                return Task.CompletedTask;
-            })).Next();
+                    return Task.CompletedTask;
+                })
+            )
+            .Next();
 
         Assert.Null(observed);
 
@@ -97,7 +112,8 @@ public class RequestDeadlineTests {
     }
 
     [Fact]
-    public void AHandlerNoBudgetAppliesToReadsNothing() {
+    public void AHandlerNoBudgetAppliesToReadsNothing()
+    {
         Assert.Null(Accessor.Deadline);
         Assert.Null(Accessor.CancellationToken);
     }
@@ -108,7 +124,8 @@ public class RequestDeadlineTests {
     /// looks cancellable would be the wrong one.
     /// </summary>
     [Fact]
-    public async Task ThePublishedTokenIsTheOneTheBudgetCancels() {
+    public async Task ThePublishedTokenIsTheOneTheBudgetCancels()
+    {
         using var transport = new CancellationTokenSource();
 
         var context = Pipeline.Cancellable(transport.Token);
@@ -116,15 +133,19 @@ public class RequestDeadlineTests {
         CancellationToken? published = null;
         CancellationToken installed = default;
 
-        await Pipeline.Chain(
-            context,
-            new TimeoutFilter(LongBudget),
-            new Pipeline.Inline(chain => {
-                published = Accessor.CancellationToken;
-                installed = chain.Context.CancellationToken;
+        await Pipeline
+            .Chain(
+                context,
+                new TimeoutFilter(LongBudget),
+                new Pipeline.Inline(chain =>
+                {
+                    published = Accessor.CancellationToken;
+                    installed = chain.Context.CancellationToken;
 
-                return Task.CompletedTask;
-            })).Next();
+                    return Task.CompletedTask;
+                })
+            )
+            .Next();
 
         Assert.Equal(installed, published);
         Assert.NotEqual(transport.Token, published);
@@ -135,13 +156,17 @@ public class RequestDeadlineTests {
     /// out, for a handler that reached it through the accessor rather than a parameter.
     /// </summary>
     [Fact]
-    public async Task WorkStartedOnThePublishedTokenIsCancelledByTheBudget() {
+    public async Task WorkStartedOnThePublishedTokenIsCancelledByTheBudget()
+    {
         var context = Pipeline.Context();
 
         var chain = Pipeline.Chain(
             context,
             new TimeoutFilter(ShortBudget),
-            new Pipeline.Inline(_ => Task.Delay(Timeout.Infinite, Accessor.CancellationToken!.Value)));
+            new Pipeline.Inline(_ =>
+                Task.Delay(Timeout.Infinite, Accessor.CancellationToken!.Value)
+            )
+        );
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => chain.Next());
     }
@@ -151,7 +176,8 @@ public class RequestDeadlineTests {
     /// filter must not read a deadline from a request that has finished.
     /// </summary>
     [Fact]
-    public async Task TheDeadlineIsGoneWhenTheFilterReturns() {
+    public async Task TheDeadlineIsGoneWhenTheFilterReturns()
+    {
         var context = Pipeline.Context();
 
         await Pipeline.Chain(context, new TimeoutFilter(LongBudget)).Next();
@@ -165,27 +191,36 @@ public class RequestDeadlineTests {
     /// outer one is what is visible again afterwards.
     /// </summary>
     [Fact]
-    public async Task AnInnerBudgetIsWhatTheHandlerReadsAndTheOuterComesBack() {
+    public async Task AnInnerBudgetIsWhatTheHandlerReadsAndTheOuterComesBack()
+    {
         var context = Pipeline.Context();
 
         double inner = 0;
         double afterInner = 0;
 
-        await Pipeline.Chain(
-            context,
-            new TimeoutFilter(LongBudget),
-            new Pipeline.Inline(async chain => {
-                await Pipeline.Chain(
-                    chain.Context,
-                    new TimeoutFilter(1_000),
-                    new Pipeline.Inline(_ => {
-                        inner = Accessor.Deadline!.Value.GetRemainingMilliseconds();
+        await Pipeline
+            .Chain(
+                context,
+                new TimeoutFilter(LongBudget),
+                new Pipeline.Inline(async chain =>
+                {
+                    await Pipeline
+                        .Chain(
+                            chain.Context,
+                            new TimeoutFilter(1_000),
+                            new Pipeline.Inline(_ =>
+                            {
+                                inner = Accessor.Deadline!.Value.GetRemainingMilliseconds();
 
-                        return Task.CompletedTask;
-                    })).Next();
+                                return Task.CompletedTask;
+                            })
+                        )
+                        .Next();
 
-                afterInner = Accessor.Deadline!.Value.GetRemainingMilliseconds();
-            })).Next();
+                    afterInner = Accessor.Deadline!.Value.GetRemainingMilliseconds();
+                })
+            )
+            .Next();
 
         Assert.InRange(inner, 0, 1_000);
         Assert.InRange(afterInner, LongBudget - 5_000, LongBudget);

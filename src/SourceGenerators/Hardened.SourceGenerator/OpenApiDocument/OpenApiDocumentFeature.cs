@@ -12,19 +12,22 @@ namespace Hardened.SourceGenerator.OpenApiDocument;
 /// facet is some other kind of feature and is passed over, which is what lets one attribute name
 /// serve every optional feature.
 /// </remarks>
-internal static class OpenApiDocumentFeature {
-
+internal static class OpenApiDocumentFeature
+{
     /// <summary>The facet naming where the document is served from.</summary>
     private const string PathFacet = "OpenApiDocumentPath";
 
     /// <summary>
     /// The path this entry point serves its document at, or null if it enabled no such feature.
     /// </summary>
-    public static string? Path(EntryPointSelector.Model appModel) {
-        foreach (var feature in appModel.EnabledFeatures) {
+    public static string? Path(EntryPointSelector.Model appModel)
+    {
+        foreach (var feature in appModel.EnabledFeatures)
+        {
             var path = feature.Facet(PathFacet)?.Value;
 
-            if (!string.IsNullOrEmpty(path)) {
+            if (!string.IsNullOrEmpty(path))
+            {
                 return path;
             }
         }

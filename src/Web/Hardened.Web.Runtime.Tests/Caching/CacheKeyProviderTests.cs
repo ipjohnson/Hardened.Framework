@@ -6,31 +6,39 @@ using Hardened.Requests.Runtime.PathTokens;
 using Hardened.Requests.Runtime.QueryString;
 using Hardened.Requests.Testing;
 using Hardened.Web.Runtime.Caching;
+using Hardened.Web.Runtime.Responses;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Primitives;
 using NSubstitute;
 using Xunit;
-using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.Runtime.Tests.Caching;
 
 /// <summary>
 /// What the HTTP strategies put in a cache key, and what they refuse to be built from.
 /// </summary>
-public class CacheKeyProviderTests {
-
+public class CacheKeyProviderTests
+{
     private static IExecutionContext Context(
         IDictionary<string, string>? query = null,
         IDictionary<string, StringValues>? headers = null,
-        IPathTokenCollection? pathTokens = null) {
+        IPathTokenCollection? pathTokens = null
+    )
+    {
         var provider = new ServiceCollection().BuildServiceProvider();
 
         var request = new TestExecutionRequest(
-            "GET", "/catalog", "application/json", new SimpleQueryStringCollection(query)) {
-            Headers = headers ?? new Dictionary<string, StringValues>()
+            "GET",
+            "/catalog",
+            "application/json",
+            new SimpleQueryStringCollection(query)
+        )
+        {
+            Headers = headers ?? new Dictionary<string, StringValues>(),
         };
 
-        if (pathTokens != null) {
+        if (pathTokens != null)
+        {
             request.PathTokens = pathTokens;
         }
 
@@ -40,20 +48,23 @@ public class CacheKeyProviderTests {
             Substitute.For<IKnownServices>(),
             request,
             new TestExecutionResponse(new MemoryStream()),
-            CancellationToken.None);
+            CancellationToken.None
+        );
     }
 
-    private static async Task<string?> KeyOf(ICacheKeyProvider provider, IExecutionContext context) =>
-        await provider.Key(context);
+    private static async Task<string?> KeyOf(
+        ICacheKeyProvider provider,
+        IExecutionContext context
+    ) => await provider.Key(context);
 
     #region VaryByQuery
 
     [Fact]
-    public async Task VaryByQueryReadsTheKeysItWasNamed() {
-        var context = Context(query: new Dictionary<string, string> {
-            { "culture", "en-GB" },
-            { "region", "eu" }
-        });
+    public async Task VaryByQueryReadsTheKeysItWasNamed()
+    {
+        var context = Context(
+            query: new Dictionary<string, string> { { "culture", "en-GB" }, { "region", "eu" } }
+        );
 
         var key = await KeyOf(VaryByQuery.Create(["culture", "region"]), context);
 
@@ -65,17 +76,22 @@ public class CacheKeyProviderTests {
     /// misses at will by adding a parameter nothing reads.
     /// </summary>
     [Fact]
-    public async Task VaryByQueryIgnoresAKeyItWasNotNamed() {
-        var withExtra = Context(query: new Dictionary<string, string> {
-            { "culture", "en-GB" },
-            { "utm_source", "somewhere" }
-        });
+    public async Task VaryByQueryIgnoresAKeyItWasNotNamed()
+    {
+        var withExtra = Context(
+            query: new Dictionary<string, string>
+            {
+                { "culture", "en-GB" },
+                { "utm_source", "somewhere" },
+            }
+        );
 
         var without = Context(query: new Dictionary<string, string> { { "culture", "en-GB" } });
 
         Assert.Equal(
             await KeyOf(VaryByQuery.Create(["culture"]), without),
-            await KeyOf(VaryByQuery.Create(["culture"]), withExtra));
+            await KeyOf(VaryByQuery.Create(["culture"]), withExtra)
+        );
     }
 
     /// <summary>
@@ -83,24 +99,28 @@ public class CacheKeyProviderTests {
     /// same way stay distinct.
     /// </summary>
     [Fact]
-    public async Task VaryByQueryDistinguishesValuesThatWouldConcatenateAlike() {
+    public async Task VaryByQueryDistinguishesValuesThatWouldConcatenateAlike()
+    {
         var first = Context(query: new Dictionary<string, string> { { "a", "xy" }, { "b", "" } });
         var second = Context(query: new Dictionary<string, string> { { "a", "x" }, { "b", "y" } });
 
         Assert.NotEqual(
             await KeyOf(VaryByQuery.Create(["a", "b"]), first),
-            await KeyOf(VaryByQuery.Create(["a", "b"]), second));
+            await KeyOf(VaryByQuery.Create(["a", "b"]), second)
+        );
     }
 
     [Fact]
-    public async Task VaryByQueryTreatsAnAbsentKeyAsEmpty() {
+    public async Task VaryByQueryTreatsAnAbsentKeyAsEmpty()
+    {
         var context = Context(query: new Dictionary<string, string>());
 
         Assert.Equal("culture=&", await KeyOf(VaryByQuery.Create(["culture"]), context));
     }
 
     [Fact]
-    public void VaryByQueryNeedsAtLeastOneKey() {
+    public void VaryByQueryNeedsAtLeastOneKey()
+    {
         Assert.Throws<ArgumentException>(() => VaryByQuery.Create([]));
     }
 
@@ -109,14 +129,19 @@ public class CacheKeyProviderTests {
     #region VaryByHeader
 
     [Fact]
-    public async Task VaryByHeaderReadsTheHeadersItWasNamed() {
-        var context = Context(headers: new Dictionary<string, StringValues> {
-            { "Accept-Language", new StringValues("en-GB") }
-        });
+    public async Task VaryByHeaderReadsTheHeadersItWasNamed()
+    {
+        var context = Context(
+            headers: new Dictionary<string, StringValues>
+            {
+                { "Accept-Language", new StringValues("en-GB") },
+            }
+        );
 
         Assert.Equal(
             "Accept-Language=en-GB&",
-            await KeyOf(VaryByHeader.Create(["Accept-Language"]), context));
+            await KeyOf(VaryByHeader.Create(["Accept-Language"]), context)
+        );
     }
 
     /// <summary>
@@ -124,14 +149,19 @@ public class CacheKeyProviderTests {
     /// lowercased, and a key that read one as absent would store one entry per casing.
     /// </summary>
     [Fact]
-    public async Task VaryByHeaderReadsAHeaderWhateverItsCasing() {
-        var lowercased = Context(headers: new Dictionary<string, StringValues> {
-            { "accept-language", new StringValues("en-GB") }
-        });
+    public async Task VaryByHeaderReadsAHeaderWhateverItsCasing()
+    {
+        var lowercased = Context(
+            headers: new Dictionary<string, StringValues>
+            {
+                { "accept-language", new StringValues("en-GB") },
+            }
+        );
 
         Assert.Equal(
             "Accept-Language=en-GB&",
-            await KeyOf(VaryByHeader.Create(["Accept-Language"]), lowercased));
+            await KeyOf(VaryByHeader.Create(["Accept-Language"]), lowercased)
+        );
     }
 
     /// <summary>
@@ -140,18 +170,21 @@ public class CacheKeyProviderTests {
     /// this.
     /// </summary>
     [Fact]
-    public async Task VaryByHeaderWritesVaryOnTheResponse() {
+    public async Task VaryByHeaderWritesVaryOnTheResponse()
+    {
         var context = Context();
 
         await KeyOf(VaryByHeader.Create(["Accept-Language", "Accept-Encoding"]), context);
 
         Assert.Equal(
             "Accept-Language, Accept-Encoding",
-            context.Response.Headers[KnownHeaders.Vary]);
+            context.Response.Headers[KnownHeaders.Vary]
+        );
     }
 
     [Fact]
-    public void VaryByHeaderNeedsAtLeastOneName() {
+    public void VaryByHeaderNeedsAtLeastOneName()
+    {
         Assert.Throws<ArgumentException>(() => VaryByHeader.Create([]));
     }
 
@@ -160,7 +193,8 @@ public class CacheKeyProviderTests {
     /// though it might be.
     /// </summary>
     [Fact]
-    public void VaryByHeaderRefusesCookie() {
+    public void VaryByHeaderRefusesCookie()
+    {
         var exception = Assert.Throws<ArgumentException>(() => VaryByHeader.Create(["cookie"]));
 
         Assert.Contains("Cookie", exception.Message);
@@ -171,7 +205,8 @@ public class CacheKeyProviderTests {
     #region VaryByRoute
 
     [Fact]
-    public async Task VaryByRouteReadsEveryToken() {
+    public async Task VaryByRouteReadsEveryToken()
+    {
         var tokens = new PathTokenCollection(2, ["ownerId", "petId"]);
 
         tokens.SetValue(0, "7");
@@ -179,7 +214,8 @@ public class CacheKeyProviderTests {
 
         Assert.Equal(
             "ownerId=7&petId=3&",
-            await KeyOf(VaryByRoute.Create([]), Context(pathTokens: tokens)));
+            await KeyOf(VaryByRoute.Create([]), Context(pathTokens: tokens))
+        );
     }
 
     /// <summary>
@@ -187,12 +223,14 @@ public class CacheKeyProviderTests {
     /// every key. That is a cache of one entry, which is what a collection endpoint should have.
     /// </summary>
     [Fact]
-    public async Task ARouteWithNoTokensKeysAsEmpty() {
+    public async Task ARouteWithNoTokensKeysAsEmpty()
+    {
         Assert.Equal(string.Empty, await KeyOf(VaryByRoute.Create([]), Context()));
     }
 
     [Fact]
-    public void VaryByRouteTakesNoValues() {
+    public void VaryByRouteTakesNoValues()
+    {
         var exception = Assert.Throws<ArgumentException>(() => VaryByRoute.Create(["culture"]));
 
         Assert.Contains("VaryByQuery", exception.Message);

@@ -25,22 +25,30 @@ namespace Hardened.Requests.Runtime.Tests.Serializer;
 /// <see cref="AJsonSerializerWritesIdentityBytesWhateverTheClientAccepts"/> pins that these write
 /// what they are given.
 /// </remarks>
-public class JsonResponseSerializerTests {
-
+public class JsonResponseSerializerTests
+{
     private static IOptions<IJsonSerializerConfiguration> Config() =>
-        Options.Create<IJsonSerializerConfiguration>(new JsonSerializerConfiguration {
-            SerializeOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web)
-        });
+        Options.Create<IJsonSerializerConfiguration>(
+            new JsonSerializerConfiguration
+            {
+                SerializeOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web),
+            }
+        );
 
     private static (IExecutionContext context, MemoryStream body) Context(
-        object? responseValue, string? accept = "application/json", string? acceptEncoding = null) {
+        object? responseValue,
+        string? accept = "application/json",
+        string? acceptEncoding = null
+    )
+    {
         var context = Substitute.For<IExecutionContext>();
         var request = Substitute.For<IExecutionRequest>();
         var response = Substitute.For<IExecutionResponse>();
         var body = new MemoryStream();
         var headers = new Dictionary<string, StringValues>();
 
-        if (acceptEncoding != null) {
+        if (acceptEncoding != null)
+        {
             headers[KnownHeaders.AcceptEncoding] = acceptEncoding;
         }
 
@@ -54,30 +62,37 @@ public class JsonResponseSerializerTests {
         return (context, body);
     }
 
-    private static IEnumerable<IResponseSerializer> Serializers() {
+    private static IEnumerable<IResponseSerializer> Serializers()
+    {
         yield return new SystemTextJsonResponseSerializer(
-            Config(), Array.Empty<IJsonTypeInfoResolver>());
+            Config(),
+            Array.Empty<IJsonTypeInfoResolver>()
+        );
         yield return new AotResponseSerializer(
-            Config(), new IJsonTypeInfoResolver[] { PayloadContext.Default });
+            Config(),
+            new IJsonTypeInfoResolver[] { PayloadContext.Default }
+        );
     }
 
-    public static TheoryData<string> SerializerNames => new() {
-        nameof(SystemTextJsonResponseSerializer),
-        nameof(AotResponseSerializer)
-    };
+    public static TheoryData<string> SerializerNames =>
+        new() { nameof(SystemTextJsonResponseSerializer), nameof(AotResponseSerializer) };
 
     private static IResponseSerializer SerializerNamed(string name) =>
         Serializers().First(s => s.GetType().Name == name);
 
     [Theory]
     [MemberData(nameof(SerializerNames))]
-    public async Task AResponseIsWrittenAsPlainJson(string serializerName) {
+    public async Task AResponseIsWrittenAsPlainJson(string serializerName)
+    {
         var (context, body) = Context(new Payload("hello", 42));
 
         await SerializerNamed(serializerName).SerializeResponse(context);
 
         var json = System.Text.Encoding.UTF8.GetString(body.ToArray());
-        var payload = JsonSerializer.Deserialize<Payload>(json, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        var payload = JsonSerializer.Deserialize<Payload>(
+            json,
+            new JsonSerializerOptions(JsonSerializerDefaults.Web)
+        );
 
         Assert.Equal("hello", payload!.Name);
         Assert.Equal(42, payload.Value);
@@ -90,7 +105,10 @@ public class JsonResponseSerializerTests {
     /// </summary>
     [Theory]
     [MemberData(nameof(SerializerNames))]
-    public async Task AJsonSerializerWritesIdentityBytesWhateverTheClientAccepts(string serializerName) {
+    public async Task AJsonSerializerWritesIdentityBytesWhateverTheClientAccepts(
+        string serializerName
+    )
+    {
         var (context, body) = Context(new Payload("plain", 7), acceptEncoding: "gzip, deflate, br");
 
         await SerializerNamed(serializerName).SerializeResponse(context);
@@ -103,7 +121,8 @@ public class JsonResponseSerializerTests {
 
     [Theory]
     [MemberData(nameof(SerializerNames))]
-    public async Task NullResponseValueWritesNothing(string serializerName) {
+    public async Task NullResponseValueWritesNothing(string serializerName)
+    {
         var (context, body) = Context(responseValue: null);
 
         await SerializerNamed(serializerName).SerializeResponse(context);
@@ -113,7 +132,8 @@ public class JsonResponseSerializerTests {
 
     [Theory]
     [MemberData(nameof(SerializerNames))]
-    public async Task ContentTypeIsSetToApplicationJson(string serializerName) {
+    public async Task ContentTypeIsSetToApplicationJson(string serializerName)
+    {
         var (context, _) = Context(new Payload("x", 1));
 
         await SerializerNamed(serializerName).SerializeResponse(context);
@@ -134,7 +154,8 @@ public class JsonResponseSerializerTests {
     /// </remarks>
     [Theory]
     [MemberData(nameof(SerializerNames))]
-    public void CanProduceAnswersForTheMediaTypeItIsAskedAbout(string serializerName) {
+    public void CanProduceAnswersForTheMediaTypeItIsAskedAbout(string serializerName)
+    {
         var serializer = SerializerNamed(serializerName);
         var (context, _) = Context(new Payload("x", 1), accept: "application/json");
 
@@ -147,7 +168,8 @@ public class JsonResponseSerializerTests {
 
     [Theory]
     [MemberData(nameof(SerializerNames))]
-    public void BothAreRegisteredAsDefaultSerializers(string serializerName) {
+    public void BothAreRegisteredAsDefaultSerializers(string serializerName)
+    {
         Assert.True(SerializerNamed(serializerName).IsDefaultSerializer);
     }
 }

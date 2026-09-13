@@ -26,7 +26,8 @@ namespace Hardened.Requests.Runtime.Diagnostics;
 /// Turning a per-request string into a per-request Meter would create one instrument set per request.
 /// </para>
 /// </remarks>
-public class MeterMetricLoggerProvider : IMetricLoggerProvider {
+public class MeterMetricLoggerProvider : IMetricLoggerProvider
+{
     /// <summary>
     /// One instrument per metric name, for the life of the process.
     /// </summary>
@@ -51,27 +52,35 @@ public class MeterMetricLoggerProvider : IMetricLoggerProvider {
     /// Everything not named here passes through as it is, including an application's own metrics.
     /// There is no convention for how long a handler took to bind its parameters.
     /// </remarks>
-    private static readonly Dictionary<string, (string Name, string Unit, double Scale)> _conventions =
-        new() {
-            ["TotalRequestDuration"] = ("http.server.request.duration", "s", 0.001)
-        };
+    private static readonly Dictionary<
+        string,
+        (string Name, string Unit, double Scale)
+    > _conventions = new()
+    {
+        ["TotalRequestDuration"] = ("http.server.request.duration", "s", 0.001),
+    };
 
-    public IMetricLogger CreateLogger(string loggerName) {
+    public IMetricLogger CreateLogger(string loggerName)
+    {
         return new MeterMetricLogger();
     }
 
-    private static Histogram<double> HistogramFor(IMetricDefinition metric) {
+    private static Histogram<double> HistogramFor(IMetricDefinition metric)
+    {
         return _histograms.GetOrAdd(
             metric.Name,
-            static (_, definition) => {
+            static (_, definition) =>
+            {
                 var (name, unit, _) = Translate(definition);
 
                 return HardenedDiagnostics.Meter.CreateHistogram<double>(name, unit);
             },
-            metric);
+            metric
+        );
     }
 
-    private static (string Name, string Unit, double Scale) Translate(IMetricDefinition metric) {
+    private static (string Name, string Unit, double Scale) Translate(IMetricDefinition metric)
+    {
         return _conventions.TryGetValue(metric.Name, out var convention)
             ? convention
             : (metric.Name, Ucum(metric.Units), 1d);
@@ -80,12 +89,14 @@ public class MeterMetricLoggerProvider : IMetricLoggerProvider {
     /// <summary>
     /// <see cref="MetricUnits"/> spells its units the way CloudWatch does. A Meter unit is UCUM.
     /// </summary>
-    private static string Ucum(MetricUnits units) {
-        return units.Name switch {
+    private static string Ucum(MetricUnits units)
+    {
+        return units.Name switch
+        {
             "Milliseconds" => "ms",
             "Seconds" => "s",
             "Count" => "{count}",
-            _ => units.Name
+            _ => units.Name,
         };
     }
 
@@ -107,16 +118,19 @@ public class MeterMetricLoggerProvider : IMetricLoggerProvider {
     /// provider and would have made this one silently emit nothing.
     /// </para>
     /// </remarks>
-    private sealed class MeterMetricLogger : IMetricLogger {
+    private sealed class MeterMetricLogger : IMetricLogger
+    {
         private readonly List<(IMetricDefinition Metric, double Value)> _measurements = [];
         private readonly List<KeyValuePair<string, object?>> _tags = [];
         private int _disposed;
 
-        public void Record(IMetricDefinition metric, double value) {
+        public void Record(IMetricDefinition metric, double value)
+        {
             _measurements.Add((metric, value));
         }
 
-        public void Tag(string tagName, object tagValue) {
+        public void Tag(string tagName, object tagValue)
+        {
             _tags.Add(new KeyValuePair<string, object?>(tagName, tagValue));
         }
 
@@ -126,26 +140,32 @@ public class MeterMetricLoggerProvider : IMetricLoggerProvider {
         /// </summary>
         public void Data(string dataName, object dataValue) { }
 
-        public Task Flush() {
+        public Task Flush()
+        {
             Emit();
 
             return Task.CompletedTask;
         }
 
-        public void Dispose() {
-            if (Interlocked.CompareExchange(ref _disposed, 1, 0) == 0) {
+        public void Dispose()
+        {
+            if (Interlocked.CompareExchange(ref _disposed, 1, 0) == 0)
+            {
                 Emit();
             }
         }
 
-        private void Emit() {
-            if (_measurements.Count == 0) {
+        private void Emit()
+        {
+            if (_measurements.Count == 0)
+            {
                 return;
             }
 
             var tags = _tags.ToArray();
 
-            foreach (var (metric, value) in _measurements) {
+            foreach (var (metric, value) in _measurements)
+            {
                 var (_, _, scale) = Translate(metric);
 
                 HistogramFor(metric).Record(value * scale, tags);

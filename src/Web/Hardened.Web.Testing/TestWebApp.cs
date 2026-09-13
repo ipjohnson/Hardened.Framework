@@ -10,7 +10,8 @@ using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Web.Testing;
 
-public class TestWebApp : TestContext, ITestWebApp {
+public class TestWebApp : TestContext, ITestWebApp
+{
     private readonly IApplicationRoot _applicationRoot;
     private readonly TestCancellationToken _testCancellationToken;
     private readonly TestCredential? _credential;
@@ -19,8 +20,7 @@ public class TestWebApp : TestContext, ITestWebApp {
     private bool _reuseContainer;
 
     public TestWebApp(IApplicationRoot applicationRoot, ILogger logger)
-        : this(applicationRoot, logger, null, null) {
-    }
+        : this(applicationRoot, logger, null, null) { }
 
     /// <param name="credential">
     /// The credential the test's attributes resolved to, sent on every request whose configure
@@ -31,8 +31,13 @@ public class TestWebApp : TestContext, ITestWebApp {
     /// The calling assembly when null.
     /// </param>
     public TestWebApp(
-        IApplicationRoot applicationRoot, ILogger logger, TestCredential? credential, Assembly? testAssembly)
-        : base(applicationRoot.Provider.GetRequiredService<TestCancellationToken>().Token, logger) {
+        IApplicationRoot applicationRoot,
+        ILogger logger,
+        TestCredential? credential,
+        Assembly? testAssembly
+    )
+        : base(applicationRoot.Provider.GetRequiredService<TestCancellationToken>().Token, logger)
+    {
         _applicationRoot = applicationRoot;
         _testCancellationToken = _applicationRoot.Provider.GetService<TestCancellationToken>()!;
         _credential = credential;
@@ -41,28 +46,50 @@ public class TestWebApp : TestContext, ITestWebApp {
 
     public IServiceProvider RootServiceProvider => _applicationRoot.Provider;
 
-    public Task<TestWebResponse> Get(string path, Action<TestWebRequest>? webRequest = null) {
+    public Task<TestWebResponse> Get(string path, Action<TestWebRequest>? webRequest = null)
+    {
         return ExecuteHttpMethod("GET", path, webRequest);
     }
 
-    public Task<TestWebResponse> Post(object postValue, string path, Action<TestWebRequest>? webRequest = null) {
+    public Task<TestWebResponse> Post(
+        object postValue,
+        string path,
+        Action<TestWebRequest>? webRequest = null
+    )
+    {
         return ExecuteHttpMethod("POST", path, webRequest, postValue);
     }
 
-    public Task<TestWebResponse> Put(object value, string path, Action<TestWebRequest>? webRequest = null) {
+    public Task<TestWebResponse> Put(
+        object value,
+        string path,
+        Action<TestWebRequest>? webRequest = null
+    )
+    {
         return ExecuteHttpMethod("PUT", path, webRequest, value);
     }
 
-    public Task<TestWebResponse> Patch(object value, string path, Action<TestWebRequest>? webRequest = null) {
+    public Task<TestWebResponse> Patch(
+        object value,
+        string path,
+        Action<TestWebRequest>? webRequest = null
+    )
+    {
         return ExecuteHttpMethod("PATCH", path, webRequest, value);
     }
 
-    public Task<TestWebResponse> Delete(string path, Action<TestWebRequest>? webRequest = null) {
+    public Task<TestWebResponse> Delete(string path, Action<TestWebRequest>? webRequest = null)
+    {
         return ExecuteHttpMethod("DELETE", path, webRequest, null);
     }
 
-    public Task<TestWebResponse> Request(string method, object? value, string path,
-        Action<TestWebRequest>? webRequest = null) {
+    public Task<TestWebResponse> Request(
+        string method,
+        object? value,
+        string path,
+        Action<TestWebRequest>? webRequest = null
+    )
+    {
         return ExecuteHttpMethod(method, path, webRequest, value);
     }
 
@@ -75,14 +102,25 @@ public class TestWebApp : TestContext, ITestWebApp {
     /// and stays so because the method is never inlined into its caller.
     /// </remarks>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public TClient CreateClient<TClient>(TestCredential? credential = null) where TClient : class =>
-        (TClient)TestClientBuilder.Build(
-            typeof(TClient),
-            TestClientBuilder.CreateContext(_applicationRoot.Provider, credential ?? _credential),
-            _testAssembly ?? Assembly.GetCallingAssembly());
+    public TClient CreateClient<TClient>(TestCredential? credential = null)
+        where TClient : class =>
+        (TClient)
+            TestClientBuilder.Build(
+                typeof(TClient),
+                TestClientBuilder.CreateContext(
+                    _applicationRoot.Provider,
+                    credential ?? _credential
+                ),
+                _testAssembly ?? Assembly.GetCallingAssembly()
+            );
 
-    private async Task<TestWebResponse> ExecuteHttpMethod(string httpMethod, string path,
-        Action<TestWebRequest>? webRequest, object? bodyValue = null) {
+    private async Task<TestWebResponse> ExecuteHttpMethod(
+        string httpMethod,
+        string path,
+        Action<TestWebRequest>? webRequest,
+        object? bodyValue = null
+    )
+    {
         _testCancellationToken.Token.ThrowIfCancellationRequested();
 
         // Case-insensitive, as a transport's are: a test that sets content-type and a pipeline
@@ -98,24 +136,28 @@ public class TestWebApp : TestContext, ITestWebApp {
         // A default rather than an override. It used to be assigned unconditionally, after the
         // caller's own configuration had run, so a test setting this header had it silently
         // replaced - which made the uncompressed path of any handler that honours it untestable.
-        if (!headers.ContainsKey(KnownHeaders.AcceptEncoding)) {
+        if (!headers.ContainsKey(KnownHeaders.AcceptEncoding))
+        {
             headers[KnownHeaders.AcceptEncoding] = KnownEncoding.GZip;
         }
 
         var hasBody = testWebRequest.Body != null || bodyValue != null;
 
-        if (hasBody && !headers.ContainsKey(KnownHeaders.ContentType)) {
+        if (hasBody && !headers.ContainsKey(KnownHeaders.ContentType))
+        {
             headers[KnownHeaders.ContentType] = KnownContentType.Js;
         }
 
-        var body = testWebRequest.Body != null
-            ? new MemoryStream(testWebRequest.Body)
-            : SetupBodyStream(bodyValue);
+        var body =
+            testWebRequest.Body != null
+                ? new MemoryStream(testWebRequest.Body)
+                : SetupBodyStream(bodyValue);
 
         return await Host.SendAsync(
             new TestHostRequest(httpMethod, path, headers, body, _credential),
             testWebRequest.Token.Value,
-            _reuseContainer);
+            _reuseContainer
+        );
     }
 
     /// <summary>
@@ -132,13 +174,15 @@ public class TestWebApp : TestContext, ITestWebApp {
     /// Set at construction by the harness rather than exposed to a test, so the only way to ask is
     /// the attribute. A host that reuses anyway ignores it.
     /// </remarks>
-    internal TestWebApp ReusingOneContainer() {
+    internal TestWebApp ReusingOneContainer()
+    {
         _reuseContainer = true;
 
         return this;
     }
 
-    private Stream SetupBodyStream(object? bodyValue) {
+    private Stream SetupBodyStream(object? bodyValue)
+    {
         if (bodyValue == null)
             return Stream.Null;
 
@@ -146,18 +190,21 @@ public class TestWebApp : TestContext, ITestWebApp {
         // which is right for a JSON body and wrong for every other content type a test wants to
         // send - a form body, plain text, anything hand-written. RawResponseSerializer makes the
         // same call in the other direction: a string is text, not a document about a string.
-        if (bodyValue is string raw) {
+        if (bodyValue is string raw)
+        {
             return new MemoryStream(System.Text.Encoding.UTF8.GetBytes(raw));
         }
 
         // And bytes go as themselves too, for a body that is not text at all. Without this they
         // serialized as a JSON array of numbers, so an upload, a truncated payload or a byte
         // sequence that is not valid UTF-8 could only be exercised against a live socket.
-        if (bodyValue is byte[] bytes) {
+        if (bodyValue is byte[] bytes)
+        {
             return new MemoryStream(bytes);
         }
 
-        if (bodyValue is ReadOnlyMemory<byte> memory) {
+        if (bodyValue is ReadOnlyMemory<byte> memory)
+        {
             return new MemoryStream(memory.ToArray());
         }
 
@@ -168,8 +215,10 @@ public class TestWebApp : TestContext, ITestWebApp {
         // one mutated by AotJsonSerializer/JsonSerializerImpl on construction.
         var serializer = _applicationRoot.Provider.GetRequiredService<IJsonSerializer>();
         var memoryStream = new MemoryStream();
-        serializer.SerializeAsync(memoryStream, bodyValue, false, CancellationToken.None)
-            .GetAwaiter().GetResult();
+        serializer
+            .SerializeAsync(memoryStream, bodyValue, false, CancellationToken.None)
+            .GetAwaiter()
+            .GetResult();
         memoryStream.Position = 0;
 
         return memoryStream;

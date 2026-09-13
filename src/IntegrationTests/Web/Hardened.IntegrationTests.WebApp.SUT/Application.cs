@@ -1,15 +1,15 @@
-﻿using Hardened.IntegrationTests.Web.SUT;
-using DependencyModules.Runtime.Interfaces;
+﻿using DependencyModules.Runtime.Interfaces;
+using Hardened.IntegrationTests.Web.SUT;
 using Hardened.Requests.Abstract.Authorization;
+using Hardened.Requests.Caching.Memory;
+using Hardened.Requests.Serializers.MessagePack;
 using Hardened.Requests.Testing;
 using Hardened.Shared.Runtime.Application;
 using Hardened.Shared.Runtime.Attributes;
 using Hardened.Web.AspNetCore.Runtime;
-using Hardened.Web.Runtime.Handlers;
-using Hardened.Requests.Caching.Memory;
 using Hardened.Web.Runtime.Compression;
+using Hardened.Web.Runtime.Handlers;
 using Hardened.Web.Runtime.OpenApi;
-using Hardened.Requests.Serializers.MessagePack;
 
 namespace Hardened.IntegrationTests.WebApp.SUT;
 
@@ -44,9 +44,10 @@ namespace Hardened.IntegrationTests.WebApp.SUT;
 [HardenedMemoryResponseCache]
 [MessagePackSerializerLibrary]
 [AspNetCoreRuntime]
-public partial class Application : IServiceCollectionConfiguration {
-
-    public void ConfigureServices(IServiceCollection services) {
+public partial class Application : IServiceCollectionConfiguration
+{
+    public void ConfigureServices(IServiceCollection services)
+    {
         // The supported testing source, through the same seam and middleware a production
         // authentication source uses - this fixture carried its own copy of both until they
         // shipped.
@@ -54,12 +55,15 @@ public partial class Application : IServiceCollectionConfiguration {
 
         // Small enough for a test to exceed with a body it can build in a line. Only a compressed
         // body is measured against it.
-        services.ConfigureCompression(compression => compression.MaxDecompressedRequestBytes = 4096);
+        services.ConfigureCompression(compression =>
+            compression.MaxDecompressedRequestBytes = 4096
+        );
     }
 
-    public static WebApplicationBuilder CreateBuilder(string[] args) {
+    public static WebApplicationBuilder CreateBuilder(string[] args)
+    {
         var hardenedApp = new Application();
-        var environment = new EnvironmentImpl(arguments:  args);
+        var environment = new EnvironmentImpl(arguments: args);
         var builder = WebApplication.CreateBuilder(args);
 
         builder.Services.AddTransient<IHardenedEnvironment>(_ => environment);

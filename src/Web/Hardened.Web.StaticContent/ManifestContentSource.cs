@@ -30,7 +30,8 @@ namespace Hardened.Web.StaticContent;
 /// had. Which source answers is a decision, made once in
 /// <c>HardenedStaticContent.ConfigureServices</c> from whether the build produced a manifest.
 /// </remarks>
-public class ManifestContentSource : IStaticContentSource {
+public class ManifestContentSource : IStaticContentSource
+{
     private readonly IStaticContentManifest _manifest;
     private readonly IStaticContentConfiguration _configuration;
     private readonly IFileExtToMimeTypeHelper _fileExtToMimeTypeHelper;
@@ -43,7 +44,9 @@ public class ManifestContentSource : IStaticContentSource {
         IStaticContentManifest manifest,
         IOptions<IStaticContentConfiguration> configuration,
         IFileExtToMimeTypeHelper fileExtToMimeTypeHelper,
-        ILogger<ManifestContentSource> logger) {
+        ILogger<ManifestContentSource> logger
+    )
+    {
         _manifest = manifest;
         _configuration = configuration.Value;
         _fileExtToMimeTypeHelper = fileExtToMimeTypeHelper;
@@ -55,12 +58,15 @@ public class ManifestContentSource : IStaticContentSource {
         _entries = manifest.Entries.ToDictionary(entry => entry.RoutePath, StringComparer.Ordinal);
 
         _rootPath = Path.GetFullPath(
-            Path.Combine(Directory.GetCurrentDirectory(), _configuration.Path));
+            Path.Combine(Directory.GetCurrentDirectory(), _configuration.Path)
+        );
 
-        if (!Directory.Exists(_rootPath)) {
+        if (!Directory.Exists(_rootPath))
+        {
             var baseDirectory = AppContext.BaseDirectory;
 
-            if (!string.IsNullOrEmpty(baseDirectory)) {
+            if (!string.IsNullOrEmpty(baseDirectory))
+            {
                 _rootPath = Path.GetFullPath(Path.Combine(baseDirectory, _configuration.Path));
             }
         }
@@ -72,25 +78,33 @@ public class ManifestContentSource : IStaticContentSource {
     /// </summary>
     public bool Enabled => _entries.Count > 0;
 
-    public StaticContentLocation? Locate(string requestPath) {
-        if (_entries.TryGetValue(requestPath, out var entry)) {
+    public StaticContentLocation? Locate(string requestPath)
+    {
+        if (_entries.TryGetValue(requestPath, out var entry))
+        {
             return Location(entry, viaFallback: false);
         }
 
-        if (_manifest.FallBackRoute != null &&
-            _entries.TryGetValue(_manifest.FallBackRoute, out var fallback)) {
+        if (
+            _manifest.FallBackRoute != null
+            && _entries.TryGetValue(_manifest.FallBackRoute, out var fallback)
+        )
+        {
             return Location(fallback, viaFallback: true);
         }
 
         return null;
     }
 
-    public ValueTask<StaticContentEntry?> Load(StaticContentLocation location) {
-        if (location.Cached != null) {
+    public ValueTask<StaticContentEntry?> Load(StaticContentLocation location)
+    {
+        if (location.Cached != null)
+        {
             return new ValueTask<StaticContentEntry?>(location.Cached);
         }
 
-        if (!_entries.TryGetValue(location.Key, out var entry)) {
+        if (!_entries.TryGetValue(location.Key, out var entry))
+        {
             return new ValueTask<StaticContentEntry?>((StaticContentEntry?)null);
         }
 
@@ -98,31 +112,39 @@ public class ManifestContentSource : IStaticContentSource {
     }
 
     private StaticContentLocation Location(StaticContentManifestEntry entry, bool viaFallback) =>
-        new(entry.RoutePath,
+        new(
+            entry.RoutePath,
             entry.RelativePath ?? entry.RoutePath,
             entry.GZipContent != null ? KnownEncoding.GZip : null,
             _built.TryGetValue(entry.RoutePath, out var built) ? built : null,
-            viaFallback);
+            viaFallback
+        );
 
-    private async ValueTask<StaticContentEntry?> Build(StaticContentManifestEntry entry) {
-        var (contentType, isBinary) =
-            _fileExtToMimeTypeHelper.GetMimeTypeInfo(Path.GetExtension(entry.RoutePath));
+    private async ValueTask<StaticContentEntry?> Build(StaticContentManifestEntry entry)
+    {
+        var (contentType, isBinary) = _fileExtToMimeTypeHelper.GetMimeTypeInfo(
+            Path.GetExtension(entry.RoutePath)
+        );
 
         byte[] content;
         string? encoding;
 
-        if (entry.GZipContent != null) {
+        if (entry.GZipContent != null)
+        {
             content = entry.GZipContent;
             encoding = KnownEncoding.GZip;
         }
-        else if (entry.Content != null) {
+        else if (entry.Content != null)
+        {
             content = entry.Content;
             encoding = null;
         }
-        else {
+        else
+        {
             var read = await ReadFromDisk(entry);
 
-            if (read == null) {
+            if (read == null)
+            {
                 return null;
             }
 
@@ -131,7 +153,13 @@ public class ManifestContentSource : IStaticContentSource {
         }
 
         var built = new StaticContentEntry(
-            contentType, encoding, isBinary, entry.Hash, content, entry.LastModified);
+            contentType,
+            encoding,
+            isBinary,
+            entry.Hash,
+            content,
+            entry.LastModified
+        );
 
         _built.TryAdd(entry.RoutePath, built);
 
@@ -147,18 +175,23 @@ public class ManifestContentSource : IStaticContentSource {
     /// without its content, which is worth a log line: it answers 404 either way, and a 404 for a
     /// file the build definitely saw is otherwise indistinguishable from a URL nobody declared.
     /// </remarks>
-    private async ValueTask<byte[]?> ReadFromDisk(StaticContentManifestEntry entry) {
+    private async ValueTask<byte[]?> ReadFromDisk(StaticContentManifestEntry entry)
+    {
         var path = Path.Combine(_rootPath, entry.RelativePath!);
 
-        try {
+        try
+        {
             return await File.ReadAllBytesAsync(path);
         }
-        catch (Exception exception) when (
-            exception is FileNotFoundException or DirectoryNotFoundException) {
+        catch (Exception exception)
+            when (exception is FileNotFoundException or DirectoryNotFoundException)
+        {
             _logger.LogWarning(
-                "Static content {RoutePath} is in the manifest but {FilePath} is not on disk. " +
-                "The application was deployed without the content the build was given",
-                entry.RoutePath, path);
+                "Static content {RoutePath} is in the manifest but {FilePath} is not on disk. "
+                    + "The application was deployed without the content the build was given",
+                entry.RoutePath,
+                path
+            );
 
             return null;
         }

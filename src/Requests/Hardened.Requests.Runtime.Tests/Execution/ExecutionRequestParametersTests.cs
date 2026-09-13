@@ -15,81 +15,95 @@ namespace Hardened.Requests.Runtime.Tests.Execution;
 /// than through one generated bag that happens to exercise it.
 /// </para>
 /// </summary>
-public class ExecutionRequestParametersTests {
-
+public class ExecutionRequestParametersTests
+{
     /// <summary>
     /// Two named slots held in fields, which is the shape the generator emits — one property per
     /// parameter, and an indexer that switches over them. Storing them in a backing array
     /// instead would break <see cref="ExecutionRequestParameters.Clone"/>, for the reason
     /// <see cref="ArrayBackedParameters"/> pins below.
     /// </summary>
-    private class TwoParameters : ExecutionRequestParameters {
+    private class TwoParameters : ExecutionRequestParameters
+    {
         public object? Id { get; set; }
 
         public object? Model { get; set; }
 
-        public override object this[int index] {
+        public override object this[int index]
+        {
             get => index == 0 ? Id! : Model!;
-            set {
-                if (index == 0) {
+            set
+            {
+                if (index == 0)
+                {
                     Id = value;
                 }
-                else {
+                else
+                {
                     Model = value;
                 }
             }
         }
 
-        public override IReadOnlyList<IExecutionRequestParameter> Info { get; } = [
+        public override IReadOnlyList<IExecutionRequestParameter> Info { get; } =
+        [
             new ExecutionRequestParameter("id", 0, typeof(string)),
-            new ExecutionRequestParameter("model", 1, typeof(object))
+            new ExecutionRequestParameter("model", 1, typeof(object)),
         ];
     }
 
     /// <summary>Stores its values in a container rather than in fields.</summary>
-    private class ArrayBackedParameters : ExecutionRequestParameters {
+    private class ArrayBackedParameters : ExecutionRequestParameters
+    {
         private readonly object?[] _values = new object?[1];
 
-        public override object this[int index] {
+        public override object this[int index]
+        {
             get => _values[index]!;
             set => _values[index] = value;
         }
 
-        public override IReadOnlyList<IExecutionRequestParameter> Info { get; } = [
-            new ExecutionRequestParameter("only", 0, typeof(object))
-        ];
+        public override IReadOnlyList<IExecutionRequestParameter> Info { get; } =
+        [new ExecutionRequestParameter("only", 0, typeof(object))];
     }
 
     /// <summary>
     /// Info whose declared indices do not match their position in the list, which is what
     /// separates "the slot this parameter occupies" from "where its description happened to sit".
     /// </summary>
-    private class ReorderedInfoParameters : ExecutionRequestParameters {
+    private class ReorderedInfoParameters : ExecutionRequestParameters
+    {
         public object? Slot0 { get; set; }
 
         public object? Slot1 { get; set; }
 
-        public override object this[int index] {
+        public override object this[int index]
+        {
             get => index == 0 ? Slot0! : Slot1!;
-            set {
-                if (index == 0) {
+            set
+            {
+                if (index == 0)
+                {
                     Slot0 = value;
                 }
-                else {
+                else
+                {
                     Slot1 = value;
                 }
             }
         }
 
         // "second" is described first but occupies slot 1.
-        public override IReadOnlyList<IExecutionRequestParameter> Info { get; } = [
+        public override IReadOnlyList<IExecutionRequestParameter> Info { get; } =
+        [
             new ExecutionRequestParameter("second", 1, typeof(object)),
-            new ExecutionRequestParameter("first", 0, typeof(object))
+            new ExecutionRequestParameter("first", 0, typeof(object)),
         ];
     }
 
     [Fact]
-    public void ParameterCountComesFromTheDeclaredParameters() {
+    public void ParameterCountComesFromTheDeclaredParameters()
+    {
         Assert.Equal(2, new TwoParameters().ParameterCount);
     }
 
@@ -100,7 +114,8 @@ public class ExecutionRequestParametersTests {
     /// construction.
     /// </summary>
     [Fact]
-    public void LookupUsesTheDeclaredIndexRatherThanThePositionInInfo() {
+    public void LookupUsesTheDeclaredIndexRatherThanThePositionInInfo()
+    {
         var parameters = new ReorderedInfoParameters();
 
         Assert.True(parameters.TrySetParameter("second", "went to slot one"));
@@ -113,7 +128,8 @@ public class ExecutionRequestParametersTests {
     }
 
     [Fact]
-    public void AKnownNameReadsTheValueAtItsPosition() {
+    public void AKnownNameReadsTheValueAtItsPosition()
+    {
         var parameters = new TwoParameters();
 
         parameters[1] = "the model";
@@ -124,7 +140,8 @@ public class ExecutionRequestParametersTests {
 
     /// <summary>The first slot as well as a later one — an off-by-one here reads the wrong argument.</summary>
     [Fact]
-    public void TheFirstParameterIsReachableByName() {
+    public void TheFirstParameterIsReachableByName()
+    {
         var parameters = new TwoParameters();
 
         parameters[0] = "the id";
@@ -134,13 +151,15 @@ public class ExecutionRequestParametersTests {
     }
 
     [Fact]
-    public void AnUnknownNameReadsNothingAndSaysSo() {
+    public void AnUnknownNameReadsNothingAndSaysSo()
+    {
         Assert.False(new TwoParameters().TryGetParameter("absent", out var value));
         Assert.Null(value);
     }
 
     [Fact]
-    public void AKnownNameWritesTheValueAtItsPosition() {
+    public void AKnownNameWritesTheValueAtItsPosition()
+    {
         var parameters = new TwoParameters();
 
         Assert.True(parameters.TrySetParameter("model", "written"));
@@ -148,7 +167,8 @@ public class ExecutionRequestParametersTests {
     }
 
     [Fact]
-    public void AnUnknownNameWritesNothingAndSaysSo() {
+    public void AnUnknownNameWritesNothingAndSaysSo()
+    {
         var parameters = new TwoParameters();
 
         Assert.False(parameters.TrySetParameter("absent", "ignored"));
@@ -160,7 +180,8 @@ public class ExecutionRequestParametersTests {
     /// <c>model</c>, because that is what C# means by them.
     /// </summary>
     [Fact]
-    public void NameMatchingIsCaseSensitive() {
+    public void NameMatchingIsCaseSensitive()
+    {
         Assert.False(new TwoParameters().TryGetParameter("Model", out _));
     }
 
@@ -169,7 +190,8 @@ public class ExecutionRequestParametersTests {
     /// <c>IExecutionRequest.Clone</c> relies on to isolate a forked chain.
     /// </summary>
     [Fact]
-    public void CloneCarriesTheValuesAndDetachesFromTheOriginal() {
+    public void CloneCarriesTheValuesAndDetachesFromTheOriginal()
+    {
         var parameters = new TwoParameters();
 
         parameters[0] = "original id";
@@ -204,7 +226,8 @@ public class ExecutionRequestParametersTests {
     /// </para>
     /// </summary>
     [Fact]
-    public void CloneDoesNotDetachAParametersBagThatStoresItsValuesInAContainer() {
+    public void CloneDoesNotDetachAParametersBagThatStoresItsValuesInAContainer()
+    {
         var parameters = new ArrayBackedParameters();
 
         parameters[0] = "original";

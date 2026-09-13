@@ -25,8 +25,8 @@ namespace Hardened.SourceGenerator.OpenApiDocument;
 /// operations is written once.
 /// </para>
 /// </remarks>
-public static class JsonSchemaWriter {
-
+public static class JsonSchemaWriter
+{
     /// <summary>
     /// The schema for <paramref name="type"/>, and every named schema it depends on.
     /// </summary>
@@ -40,8 +40,13 @@ public static class JsonSchemaWriter {
     /// <c>TaskStatus</c> acquired generated converters renaming their members.
     /// </para>
     /// </param>
-    public static HandlerSchema? Write(ITypeSymbol? type, IAssemblySymbol? compilationAssembly = null) {
-        if (type == null || type.SpecialType == SpecialType.System_Void) {
+    public static HandlerSchema? Write(
+        ITypeSymbol? type,
+        IAssemblySymbol? compilationAssembly = null
+    )
+    {
+        if (type == null || type.SpecialType == SpecialType.System_Void)
+        {
             return null;
         }
 
@@ -49,7 +54,12 @@ public static class JsonSchemaWriter {
         var enums = new Dictionary<string, EnumVocabulary>(System.StringComparer.Ordinal);
 
         var root = SchemaFor(
-            Unwrap(type), components, new HashSet<string>(), enums, compilationAssembly);
+            Unwrap(type),
+            components,
+            new HashSet<string>(),
+            enums,
+            compilationAssembly
+        );
 
         return new HandlerSchema(
             root,
@@ -60,7 +70,8 @@ public static class JsonSchemaWriter {
             enums
                 .OrderBy(pair => pair.Key, System.StringComparer.Ordinal)
                 .Select(pair => pair.Value)
-                .ToList());
+                .ToList()
+        );
     }
 
     /// <summary>
@@ -74,15 +85,22 @@ public static class JsonSchemaWriter {
     /// is spelled <c>itemSchema</c>, which is where the caller puts it.
     /// </para>
     /// </summary>
-    private static ITypeSymbol Unwrap(ITypeSymbol type) {
-        while (type is INamedTypeSymbol { IsGenericType: true } named) {
+    private static ITypeSymbol Unwrap(ITypeSymbol type)
+    {
+        while (type is INamedTypeSymbol { IsGenericType: true } named)
+        {
             var name = named.ConstructedFrom.Name;
 
             // SseItem<T> alongside the awaitables, because it is a wrapper in the same sense: the
             // wire carries T under data:, and the id and event name sit beside the payload rather
             // than inside it. Documenting SseItem<T> would describe a shape no client ever parses.
-            if (name != "Task" && name != "ValueTask" &&
-                name != "IAsyncEnumerable" && name != "SseItem") {
+            if (
+                name != "Task"
+                && name != "ValueTask"
+                && name != "IAsyncEnumerable"
+                && name != "SseItem"
+            )
+            {
                 break;
             }
 
@@ -93,44 +111,66 @@ public static class JsonSchemaWriter {
     }
 
     private static string SchemaFor(
-        ITypeSymbol type, Dictionary<string, string> components, HashSet<string> inProgress,
-        Dictionary<string, EnumVocabulary> enums, IAssemblySymbol? compilationAssembly) {
-        if (type is INamedTypeSymbol { IsGenericType: true } nullable &&
-            nullable.ConstructedFrom.SpecialType == SpecialType.System_Nullable_T) {
-            return SchemaFor(nullable.TypeArguments[0], components, inProgress, enums, compilationAssembly);
+        ITypeSymbol type,
+        Dictionary<string, string> components,
+        HashSet<string> inProgress,
+        Dictionary<string, EnumVocabulary> enums,
+        IAssemblySymbol? compilationAssembly
+    )
+    {
+        if (
+            type is INamedTypeSymbol { IsGenericType: true } nullable
+            && nullable.ConstructedFrom.SpecialType == SpecialType.System_Nullable_T
+        )
+        {
+            return SchemaFor(
+                nullable.TypeArguments[0],
+                components,
+                inProgress,
+                enums,
+                compilationAssembly
+            );
         }
 
         var primitive = Primitive(type);
 
-        if (primitive != null) {
+        if (primitive != null)
+        {
             return primitive;
         }
 
-        if (type is IArrayTypeSymbol array) {
+        if (type is IArrayTypeSymbol array)
+        {
             // byte[] is the payload itself, not a sequence of numbers. Every element type below
             // maps through Primitive, and byte maps to an int32 - so the array branch described an
             // octet-stream body as a JSON array of integers, which a generated client reads with
             // the wrong type against a body that is not JSON at all.
-            if (array.ElementType.SpecialType == SpecialType.System_Byte) {
+            if (array.ElementType.SpecialType == SpecialType.System_Byte)
+            {
                 return BinaryPayload;
             }
 
-            return "{\"type\":\"array\",\"items\":" +
-                   SchemaFor(array.ElementType, components, inProgress, enums, compilationAssembly) + "}";
+            return "{\"type\":\"array\",\"items\":"
+                + SchemaFor(array.ElementType, components, inProgress, enums, compilationAssembly)
+                + "}";
         }
 
-        if (type is INamedTypeSymbol named) {
+        if (type is INamedTypeSymbol named)
+        {
             var collection = Collection(named, components, inProgress, enums, compilationAssembly);
 
-            if (collection != null) {
+            if (collection != null)
+            {
                 return collection;
             }
 
-            if (named.TypeKind == TypeKind.Enum) {
+            if (named.TypeKind == TypeKind.Enum)
+            {
                 return EnumRef(named, components, enums, compilationAssembly);
             }
 
-            if (named.TypeKind is TypeKind.Class or TypeKind.Struct or TypeKind.Interface) {
+            if (named.TypeKind is TypeKind.Class or TypeKind.Struct or TypeKind.Interface)
+            {
                 return ObjectRef(named, components, inProgress, enums, compilationAssembly);
             }
         }
@@ -140,27 +180,58 @@ public static class JsonSchemaWriter {
     }
 
     private static string? Collection(
-        INamedTypeSymbol named, Dictionary<string, string> components, HashSet<string> inProgress,
-        Dictionary<string, EnumVocabulary> enums, IAssemblySymbol? compilationAssembly) {
-        if (!named.IsGenericType) {
+        INamedTypeSymbol named,
+        Dictionary<string, string> components,
+        HashSet<string> inProgress,
+        Dictionary<string, EnumVocabulary> enums,
+        IAssemblySymbol? compilationAssembly
+    )
+    {
+        if (!named.IsGenericType)
+        {
             return null;
         }
 
         var name = named.ConstructedFrom.Name;
 
-        if (name is "List" or "IList" or "IReadOnlyList" or "ICollection" or "IReadOnlyCollection"
-            or "IEnumerable" or "HashSet" or "ISet") {
-            return "{\"type\":\"array\",\"items\":" +
-                   SchemaFor(named.TypeArguments[0], components, inProgress, enums, compilationAssembly) + "}";
+        if (
+            name
+            is "List"
+                or "IList"
+                or "IReadOnlyList"
+                or "ICollection"
+                or "IReadOnlyCollection"
+                or "IEnumerable"
+                or "HashSet"
+                or "ISet"
+        )
+        {
+            return "{\"type\":\"array\",\"items\":"
+                + SchemaFor(
+                    named.TypeArguments[0],
+                    components,
+                    inProgress,
+                    enums,
+                    compilationAssembly
+                )
+                + "}";
         }
 
-        if (name is "Dictionary" or "IDictionary" or "IReadOnlyDictionary") {
+        if (name is "Dictionary" or "IDictionary" or "IReadOnlyDictionary")
+        {
             var values = SchemaFor(
-                named.TypeArguments[1], components, inProgress, enums, compilationAssembly);
+                named.TypeArguments[1],
+                components,
+                inProgress,
+                enums,
+                compilationAssembly
+            );
 
-            return "{\"type\":\"object\"" + PropertyNames(
-                       named.TypeArguments[0], components, enums, compilationAssembly) +
-                   ",\"additionalProperties\":" + values + "}";
+            return "{\"type\":\"object\""
+                + PropertyNames(named.TypeArguments[0], components, enums, compilationAssembly)
+                + ",\"additionalProperties\":"
+                + values
+                + "}";
         }
 
         return null;
@@ -187,9 +258,14 @@ public static class JsonSchemaWriter {
     /// </para>
     /// </remarks>
     private static string PropertyNames(
-        ITypeSymbol key, Dictionary<string, string> components,
-        Dictionary<string, EnumVocabulary> enums, IAssemblySymbol? compilationAssembly) {
-        if (key is not INamedTypeSymbol { TypeKind: TypeKind.Enum } enumeration) {
+        ITypeSymbol key,
+        Dictionary<string, string> components,
+        Dictionary<string, EnumVocabulary> enums,
+        IAssemblySymbol? compilationAssembly
+    )
+    {
+        if (key is not INamedTypeSymbol { TypeKind: TypeKind.Enum } enumeration)
+        {
             return "";
         }
 
@@ -208,8 +284,12 @@ public static class JsonSchemaWriter {
     /// <c>OpenApiDocumentGenerator</c> refers to the same component from the vocabulary it holds.
     /// </remarks>
     private static string EnumRef(
-        INamedTypeSymbol named, Dictionary<string, string> components,
-        Dictionary<string, EnumVocabulary> enums, IAssemblySymbol? compilationAssembly) {
+        INamedTypeSymbol named,
+        Dictionary<string, string> components,
+        Dictionary<string, EnumVocabulary> enums,
+        IAssemblySymbol? compilationAssembly
+    )
+    {
         var name = SchemaName(named);
 
         components[name] = EnumSchema(named, enums, compilationAssembly);
@@ -231,7 +311,11 @@ public static class JsonSchemaWriter {
     /// disagrees with the wire is the defect; two implementations of one policy is how it returns.
     /// </remarks>
     private static string EnumSchema(
-        INamedTypeSymbol named, Dictionary<string, EnumVocabulary> enums, IAssemblySymbol? compilationAssembly) {
+        INamedTypeSymbol named,
+        Dictionary<string, EnumVocabulary> enums,
+        IAssemblySymbol? compilationAssembly
+    )
+    {
         var owned = EnumWireNaming.IsOwned(named, compilationAssembly);
 
         // An enum the application does not own keeps the member name it always had here, and gets
@@ -247,19 +331,23 @@ public static class JsonSchemaWriter {
 
         // Recorded whether or not it is new: the same enum reached from two handlers resolves to the
         // same vocabulary, and the dictionary is what keeps one converter emitted for it.
-        if (owned && members.Count > 0) {
+        if (owned && members.Count > 0)
+        {
             enums[qualified] = new EnumVocabulary(
                 qualified,
                 named.Name,
                 naming,
-                members.Select(pair => new EnumWireValue(pair.Member, pair.Wire)).ToList());
+                members.Select(pair => new EnumWireValue(pair.Member, pair.Wire)).ToList()
+            );
         }
 
         var builder = new StringBuilder("{\"type\":\"string\",\"enum\":[");
         var first = true;
 
-        foreach (var (_, wire) in members) {
-            if (!first) {
+        foreach (var (_, wire) in members)
+        {
+            if (!first)
+            {
                 builder.Append(',');
             }
 
@@ -280,11 +368,14 @@ public static class JsonSchemaWriter {
     /// <see cref="XmlDocumentation"/> learned to read raw trivia. A symbol from another assembly has
     /// no syntax here and contributes nothing, which is correct: its prose is in its own document.
     /// </remarks>
-    private static string? DocumentationOf(ISymbol symbol) {
-        foreach (var reference in symbol.DeclaringSyntaxReferences) {
+    private static string? DocumentationOf(ISymbol symbol)
+    {
+        foreach (var reference in symbol.DeclaringSyntaxReferences)
+        {
             var summary = XmlDocumentation.Read(reference.GetSyntax()).Summary;
 
-            if (summary != null) {
+            if (summary != null)
+            {
                 return summary;
             }
         }
@@ -320,8 +411,11 @@ public static class JsonSchemaWriter {
     /// </remarks>
     public static string WithMessagePackIndex(string schema, int? index) =>
         index is { } value
-            ? Append(schema, "\"x-message-pack-index\":" +
-                             value.ToString(System.Globalization.CultureInfo.InvariantCulture))
+            ? Append(
+                schema,
+                "\"x-message-pack-index\":"
+                    + value.ToString(System.Globalization.CultureInfo.InvariantCulture)
+            )
             : schema;
 
     /// <summary>Adds a keyword to a schema that has been written already.</summary>
@@ -329,7 +423,8 @@ public static class JsonSchemaWriter {
     /// A <c>$ref</c> takes no siblings in OpenAPI 3.0 - they are ignored - so a reference is
     /// wrapped in <c>allOf</c>, which every tool reads. Anything else takes the key directly.
     /// </remarks>
-    private static string Append(string schema, string keyword) {
+    private static string Append(string schema, string keyword)
+    {
         var suffix = "," + keyword + "}";
 
         return schema.StartsWith("{\"$ref\"", System.StringComparison.Ordinal)
@@ -338,13 +433,19 @@ public static class JsonSchemaWriter {
     }
 
     private static string ObjectRef(
-        INamedTypeSymbol named, Dictionary<string, string> components, HashSet<string> inProgress,
-        Dictionary<string, EnumVocabulary> enums, IAssemblySymbol? compilationAssembly) {
+        INamedTypeSymbol named,
+        Dictionary<string, string> components,
+        HashSet<string> inProgress,
+        Dictionary<string, EnumVocabulary> enums,
+        IAssemblySymbol? compilationAssembly
+    )
+    {
         var name = SchemaName(named);
         var reference = "{\"$ref\":\"#/components/schemas/" + Escape(name) + "\"}";
 
         // Already written, or being written further up the stack - a type reaching itself.
-        if (components.ContainsKey(name) || !inProgress.Add(name)) {
+        if (components.ContainsKey(name) || !inProgress.Add(name))
+        {
             return reference;
         }
 
@@ -352,14 +453,19 @@ public static class JsonSchemaWriter {
         var required = new List<string>();
         var first = true;
 
-        foreach (var property in named.GetMembers().OfType<IPropertySymbol>()) {
-            if (property.DeclaredAccessibility != Accessibility.Public ||
-                property.IsStatic ||
-                property.GetMethod == null) {
+        foreach (var property in named.GetMembers().OfType<IPropertySymbol>())
+        {
+            if (
+                property.DeclaredAccessibility != Accessibility.Public
+                || property.IsStatic
+                || property.GetMethod == null
+            )
+            {
                 continue;
             }
 
-            if (!first) {
+            if (!first)
+            {
                 properties.Append(',');
             }
 
@@ -367,18 +473,33 @@ public static class JsonSchemaWriter {
             var (hasDefault, defaultLiteral) = DefaultOf(named, property, compilationAssembly);
 
             properties
-                .Append('"').Append(Escape(wireName)).Append("\":")
-                .Append(WithMessagePackIndex(
-                    WithDefault(
-                        Describe(
-                            Nullable(
-                                SchemaConstraintWriter.Apply(
-                                    SchemaFor(property.Type, components, inProgress, enums, compilationAssembly),
-                                    property),
-                                property.Type),
-                            DocumentationOf(property)),
-                        defaultLiteral),
-                    MessagePackIndex(property)));
+                .Append('"')
+                .Append(Escape(wireName))
+                .Append("\":")
+                .Append(
+                    WithMessagePackIndex(
+                        WithDefault(
+                            Describe(
+                                Nullable(
+                                    SchemaConstraintWriter.Apply(
+                                        SchemaFor(
+                                            property.Type,
+                                            components,
+                                            inProgress,
+                                            enums,
+                                            compilationAssembly
+                                        ),
+                                        property
+                                    ),
+                                    property.Type
+                                ),
+                                DocumentationOf(property)
+                            ),
+                            defaultLiteral
+                        ),
+                        MessagePackIndex(property)
+                    )
+                );
 
             // A member that is always present belongs in required: a non-nullable reference type
             // because the author said so, a non-nullable value type because C# serialization
@@ -386,11 +507,18 @@ public static class JsonSchemaWriter {
             // document described int members as optional in every response that always sends them.
             // A member with a constructor default is the exception whatever its type: the caller may
             // omit it, and the server fills it in.
-            if (!hasDefault &&
-                ((property.Type.NullableAnnotation == NullableAnnotation.NotAnnotated &&
-                  property.Type.IsReferenceType) ||
-                 (property.Type.IsValueType && !IsNullableValueType(property.Type)) ||
-                 SchemaConstraintWriter.IsRequired(property))) {
+            if (
+                !hasDefault
+                && (
+                    (
+                        property.Type.NullableAnnotation == NullableAnnotation.NotAnnotated
+                        && property.Type.IsReferenceType
+                    )
+                    || (property.Type.IsValueType && !IsNullableValueType(property.Type))
+                    || SchemaConstraintWriter.IsRequired(property)
+                )
+            )
+            {
                 required.Add(wireName);
             }
 
@@ -401,12 +529,15 @@ public static class JsonSchemaWriter {
 
         var summary = DocumentationOf(named);
 
-        if (summary != null) {
+        if (summary != null)
+        {
             schema.Append(",\"description\":\"").Append(Escape(summary)).Append('"');
         }
 
-        if (required.Count > 0) {
-            schema.Append(",\"required\":[")
+        if (required.Count > 0)
+        {
+            schema
+                .Append(",\"required\":[")
                 .Append(string.Join(",", required.Select(r => "\"" + Escape(r) + "\"")))
                 .Append(']');
         }
@@ -430,14 +561,19 @@ public static class JsonSchemaWriter {
     /// read nothing for it without anything failing. The attribute on a positional record
     /// parameter reaches the property it declares, which is where this reads it.
     /// </remarks>
-    private static string WireName(IPropertySymbol property) {
-        foreach (var attribute in property.GetAttributes()) {
-            if (attribute.AttributeClass?.Name == "JsonPropertyNameAttribute" &&
-                attribute.AttributeClass.ContainingNamespace?.ToDisplayString() ==
-                "System.Text.Json.Serialization" &&
-                attribute.ConstructorArguments.Length == 1 &&
-                attribute.ConstructorArguments[0].Value is string name &&
-                name.Length > 0) {
+    private static string WireName(IPropertySymbol property)
+    {
+        foreach (var attribute in property.GetAttributes())
+        {
+            if (
+                attribute.AttributeClass?.Name == "JsonPropertyNameAttribute"
+                && attribute.AttributeClass.ContainingNamespace?.ToDisplayString()
+                    == "System.Text.Json.Serialization"
+                && attribute.ConstructorArguments.Length == 1
+                && attribute.ConstructorArguments[0].Value is string name
+                && name.Length > 0
+            )
+            {
                 return name;
             }
         }
@@ -465,13 +601,18 @@ public static class JsonSchemaWriter {
     /// under the named mode, where the document's property name already says the same thing.
     /// </para>
     /// </remarks>
-    private static int? MessagePackIndex(IPropertySymbol property) {
-        foreach (var attribute in property.GetAttributes()) {
-            if (attribute.AttributeClass?.Name == "KeyAttribute" &&
-                attribute.AttributeClass.ContainingNamespace?.ToDisplayString() == "MessagePack" &&
-                attribute.ConstructorArguments.Length == 1 &&
-                attribute.ConstructorArguments[0].Value is int index &&
-                index >= 0) {
+    private static int? MessagePackIndex(IPropertySymbol property)
+    {
+        foreach (var attribute in property.GetAttributes())
+        {
+            if (
+                attribute.AttributeClass?.Name == "KeyAttribute"
+                && attribute.AttributeClass.ContainingNamespace?.ToDisplayString() == "MessagePack"
+                && attribute.ConstructorArguments.Length == 1
+                && attribute.ConstructorArguments[0].Value is int index
+                && index >= 0
+            )
+            {
                 return index;
             }
         }
@@ -490,13 +631,17 @@ public static class JsonSchemaWriter {
     /// <c>PagedOfCourier</c> are two components, in the spelling client generators already produce
     /// for a constructed type.
     /// </remarks>
-    private static string SchemaName(ITypeSymbol type) {
-        if (type is IArrayTypeSymbol array) {
+    private static string SchemaName(ITypeSymbol type)
+    {
+        if (type is IArrayTypeSymbol array)
+        {
             return SchemaName(array.ElementType) + "Array";
         }
 
-        if (type is INamedTypeSymbol { IsGenericType: true } named) {
-            if (named.ConstructedFrom.SpecialType == SpecialType.System_Nullable_T) {
+        if (type is INamedTypeSymbol { IsGenericType: true } named)
+        {
+            if (named.ConstructedFrom.SpecialType == SpecialType.System_Nullable_T)
+            {
                 return SchemaName(named.TypeArguments[0]);
             }
 
@@ -529,10 +674,17 @@ public static class JsonSchemaWriter {
     /// </para>
     /// </remarks>
     private static (bool Declared, string? Literal) DefaultOf(
-        INamedTypeSymbol owner, IPropertySymbol property, IAssemblySymbol? compilationAssembly) {
-        foreach (var constructor in owner.InstanceConstructors) {
-            foreach (var parameter in constructor.Parameters) {
-                if (parameter.HasExplicitDefaultValue && parameter.Name == property.Name) {
+        INamedTypeSymbol owner,
+        IPropertySymbol property,
+        IAssemblySymbol? compilationAssembly
+    )
+    {
+        foreach (var constructor in owner.InstanceConstructors)
+        {
+            foreach (var parameter in constructor.Parameters)
+            {
+                if (parameter.HasExplicitDefaultValue && parameter.Name == property.Name)
+                {
                     return (true, DefaultLiteral(parameter, compilationAssembly));
                 }
             }
@@ -548,9 +700,12 @@ public static class JsonSchemaWriter {
     /// A property declared in more than one place cannot carry two initializers, so the first
     /// reference that is a property declaration answers for all of them.
     /// </remarks>
-    private static bool HasInitializer(IPropertySymbol property) {
-        foreach (var reference in property.DeclaringSyntaxReferences) {
-            if (reference.GetSyntax() is PropertyDeclarationSyntax { Initializer: not null }) {
+    private static bool HasInitializer(IPropertySymbol property)
+    {
+        foreach (var reference in property.DeclaringSyntaxReferences)
+        {
+            if (reference.GetSyntax() is PropertyDeclarationSyntax { Initializer: not null })
+            {
                 return true;
             }
         }
@@ -558,28 +713,36 @@ public static class JsonSchemaWriter {
         return false;
     }
 
-    private static string? DefaultLiteral(IParameterSymbol parameter, IAssemblySymbol? compilationAssembly) {
+    private static string? DefaultLiteral(
+        IParameterSymbol parameter,
+        IAssemblySymbol? compilationAssembly
+    )
+    {
         var value = parameter.ExplicitDefaultValue;
 
-        if (value == null) {
+        if (value == null)
+        {
             return null;
         }
 
-        var type = parameter.Type is INamedTypeSymbol { IsGenericType: true } nullable &&
-                   nullable.ConstructedFrom.SpecialType == SpecialType.System_Nullable_T
-            ? nullable.TypeArguments[0]
-            : parameter.Type;
+        var type =
+            parameter.Type is INamedTypeSymbol { IsGenericType: true } nullable
+            && nullable.ConstructedFrom.SpecialType == SpecialType.System_Nullable_T
+                ? nullable.TypeArguments[0]
+                : parameter.Type;
 
-        if (type is INamedTypeSymbol { TypeKind: TypeKind.Enum } enumType) {
+        if (type is INamedTypeSymbol { TypeKind: TypeKind.Enum } enumType)
+        {
             return EnumMemberLiteral(enumType, value, compilationAssembly);
         }
 
-        return value switch {
+        return value switch
+        {
             string text => "\"" + Escape(text) + "\"",
             char character => "\"" + Escape(character.ToString()) + "\"",
             bool flag => flag ? "true" : "false",
             IFormattable number => number.ToString(null, CultureInfo.InvariantCulture),
-            _ => null
+            _ => null,
         };
     }
 
@@ -588,18 +751,26 @@ public static class JsonSchemaWriter {
     /// resolves the values beside it.
     /// </summary>
     private static string? EnumMemberLiteral(
-        INamedTypeSymbol enumType, object value, IAssemblySymbol? compilationAssembly) {
+        INamedTypeSymbol enumType,
+        object value,
+        IAssemblySymbol? compilationAssembly
+    )
+    {
         var naming = EnumWireNaming.IsOwned(enumType, compilationAssembly)
             ? EnumWireNaming.For(enumType, EnumWireNaming.AssemblyDefault(enumType))
             : "MemberName";
 
-        foreach (var field in enumType.GetMembers().OfType<IFieldSymbol>()) {
-            if (!field.HasConstantValue || !Equals(field.ConstantValue, value)) {
+        foreach (var field in enumType.GetMembers().OfType<IFieldSymbol>())
+        {
+            if (!field.HasConstantValue || !Equals(field.ConstantValue, value))
+            {
                 continue;
             }
 
-            foreach (var (member, wire) in EnumWireNaming.Members(enumType, naming)) {
-                if (member == field.Name) {
+            foreach (var (member, wire) in EnumWireNaming.Members(enumType, naming))
+            {
+                if (member == field.Name)
+                {
                     return "\"" + Escape(wire) + "\"";
                 }
             }
@@ -609,13 +780,16 @@ public static class JsonSchemaWriter {
     }
 
     private static string? Primitive(ITypeSymbol type) =>
-        type.SpecialType switch {
+        type.SpecialType switch
+        {
             SpecialType.System_String or SpecialType.System_Char => "{\"type\":\"string\"}",
             SpecialType.System_Boolean => "{\"type\":\"boolean\"}",
-            SpecialType.System_Byte or SpecialType.System_SByte or
-                SpecialType.System_Int16 or SpecialType.System_UInt16 or
-                SpecialType.System_Int32 or SpecialType.System_UInt32 =>
-                "{\"type\":\"integer\",\"format\":\"int32\"}",
+            SpecialType.System_Byte
+            or SpecialType.System_SByte
+            or SpecialType.System_Int16
+            or SpecialType.System_UInt16
+            or SpecialType.System_Int32
+            or SpecialType.System_UInt32 => "{\"type\":\"integer\",\"format\":\"int32\"}",
             SpecialType.System_Int64 or SpecialType.System_UInt64 =>
                 "{\"type\":\"integer\",\"format\":\"int64\"}",
             SpecialType.System_Single => "{\"type\":\"number\",\"format\":\"float\"}",
@@ -628,17 +802,18 @@ public static class JsonSchemaWriter {
             SpecialType.System_Decimal => "{\"type\":\"number\",\"format\":\"decimal\"}",
             SpecialType.System_DateTime => "{\"type\":\"string\",\"format\":\"date-time\"}",
             SpecialType.System_Object => "{}",
-            _ => ByName(type)
+            _ => ByName(type),
         };
 
     private static string? ByName(ITypeSymbol type) =>
-        type.Name switch {
+        type.Name switch
+        {
             "Guid" => "{\"type\":\"string\",\"format\":\"uuid\"}",
             "DateOnly" => "{\"type\":\"string\",\"format\":\"date\"}",
             "TimeOnly" or "TimeSpan" => "{\"type\":\"string\"}",
             "DateTimeOffset" => "{\"type\":\"string\",\"format\":\"date-time\"}",
             "Uri" => "{\"type\":\"string\",\"format\":\"uri\"}",
-            _ => null
+            _ => null,
         };
 
     private static string CamelCase(string name) =>
@@ -670,8 +845,10 @@ public static class JsonSchemaWriter {
     /// document needed yet. The service sent null for members the document typed non-nullable,
     /// which is the defect this closes.
     /// </remarks>
-    private static string Nullable(string schema, ITypeSymbol type) {
-        if (type.NullableAnnotation != NullableAnnotation.Annotated && !IsNullableValueType(type)) {
+    private static string Nullable(string schema, ITypeSymbol type)
+    {
+        if (type.NullableAnnotation != NullableAnnotation.Annotated && !IsNullableValueType(type))
+        {
             return schema;
         }
 
@@ -679,17 +856,20 @@ public static class JsonSchemaWriter {
         // inside it. Without this a nullable member pointing at a component was published as
         // though it were always present, while a nullable scalar beside it said ["string","null"] -
         // the same annotation described two different ways in one schema.
-        if (schema.StartsWith("{\"$ref\"", System.StringComparison.Ordinal)) {
+        if (schema.StartsWith("{\"$ref\"", System.StringComparison.Ordinal))
+        {
             return "{\"anyOf\":[" + schema + ",{\"type\":\"null\"}]}";
         }
 
         const string prefix = "{\"type\":\"";
-        if (!schema.StartsWith(prefix, System.StringComparison.Ordinal)) {
+        if (!schema.StartsWith(prefix, System.StringComparison.Ordinal))
+        {
             return schema;
         }
 
         var close = schema.IndexOf('"', prefix.Length);
-        if (close < 0) {
+        if (close < 0)
+        {
             return schema;
         }
 
@@ -698,33 +878,52 @@ public static class JsonSchemaWriter {
         return "{\"type\":[\"" + name + "\",\"null\"]" + schema.Substring(close + 1);
     }
 
-    internal static string Escape(string value) {
+    internal static string Escape(string value)
+    {
         var clean = true;
 
-        foreach (var ch in value) {
-            if (ch == '\\' || ch == '"' || ch < ' ') {
+        foreach (var ch in value)
+        {
+            if (ch == '\\' || ch == '"' || ch < ' ')
+            {
                 clean = false;
                 break;
             }
         }
 
-        if (clean) {
+        if (clean)
+        {
             return value;
         }
 
         var builder = new StringBuilder(value.Length + 8);
 
-        foreach (var ch in value) {
-            switch (ch) {
-                case '\\': builder.Append("\\\\"); break;
-                case '"': builder.Append("\\\""); break;
-                case '\n': builder.Append("\\n"); break;
-                case '\r': builder.Append("\\r"); break;
-                case '\t': builder.Append("\\t"); break;
+        foreach (var ch in value)
+        {
+            switch (ch)
+            {
+                case '\\':
+                    builder.Append("\\\\");
+                    break;
+                case '"':
+                    builder.Append("\\\"");
+                    break;
+                case '\n':
+                    builder.Append("\\n");
+                    break;
+                case '\r':
+                    builder.Append("\\r");
+                    break;
+                case '\t':
+                    builder.Append("\\t");
+                    break;
                 default:
-                    if (ch < ' ') {
+                    if (ch < ' ')
+                    {
                         builder.Append("\\u").Append(((int)ch).ToString("x4"));
-                    } else {
+                    }
+                    else
+                    {
                         builder.Append(ch);
                     }
 

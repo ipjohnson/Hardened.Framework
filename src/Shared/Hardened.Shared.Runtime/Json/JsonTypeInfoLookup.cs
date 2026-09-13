@@ -32,8 +32,8 @@ namespace Hardened.Shared.Runtime.Json;
 /// rather than about its host.
 /// </para>
 /// </remarks>
-public static class JsonTypeInfoLookup {
-
+public static class JsonTypeInfoLookup
+{
     /// <summary>Metadata for a statically known type.</summary>
     public static JsonTypeInfo<T> For<T>(JsonSerializerOptions options) =>
         (JsonTypeInfo<T>)options.GetTypeInfo(typeof(T));
@@ -71,8 +71,12 @@ public static class JsonTypeInfoLookup {
     /// </para>
     /// </remarks>
     public static JsonSerializerOptions WithResolvers(
-        JsonSerializerOptions options, IEnumerable<IJsonTypeInfoResolver> resolvers) {
-        foreach (var resolver in resolvers) {
+        JsonSerializerOptions options,
+        IEnumerable<IJsonTypeInfoResolver> resolvers
+    )
+    {
+        foreach (var resolver in resolvers)
+        {
             options.TypeInfoResolverChain.Add(resolver);
         }
 
@@ -89,16 +93,26 @@ public static class JsonTypeInfoLookup {
     /// withholds reflection for <c>string</c> and every other type no context declares. This one
     /// makes no such trade: it is for the serializers whose contract is reflection.
     /// </remarks>
-    [UnconditionalSuppressMessage("Trimming", "IL2026:RequiresUnreferencedCode",
-        Justification = "Guarded on JsonSerializer.IsReflectionEnabledByDefault; the trimmer removes the branch.")]
-    [UnconditionalSuppressMessage("AOT", "IL3050:RequiresDynamicCode",
-        Justification = "Guarded on JsonSerializer.IsReflectionEnabledByDefault; the trimmer removes the branch.")]
-    public static JsonSerializerOptions AppendReflectionFallback(JsonSerializerOptions options) {
+    [UnconditionalSuppressMessage(
+        "Trimming",
+        "IL2026:RequiresUnreferencedCode",
+        Justification = "Guarded on JsonSerializer.IsReflectionEnabledByDefault; the trimmer removes the branch."
+    )]
+    [UnconditionalSuppressMessage(
+        "AOT",
+        "IL3050:RequiresDynamicCode",
+        Justification = "Guarded on JsonSerializer.IsReflectionEnabledByDefault; the trimmer removes the branch."
+    )]
+    public static JsonSerializerOptions AppendReflectionFallback(JsonSerializerOptions options)
+    {
         // Idempotent, because the options a serializer is handed may be shared and several
         // serializers may pass them through here. Checked against the chain rather than against
         // TypeInfoResolver, which any resolver at all makes non-null.
-        if (JsonSerializer.IsReflectionEnabledByDefault &&
-            !options.TypeInfoResolverChain.Any(r => r is DefaultJsonTypeInfoResolver)) {
+        if (
+            JsonSerializer.IsReflectionEnabledByDefault
+            && !options.TypeInfoResolverChain.Any(r => r is DefaultJsonTypeInfoResolver)
+        )
+        {
             options.TypeInfoResolverChain.Add(new DefaultJsonTypeInfoResolver());
         }
 
@@ -124,15 +138,23 @@ public static class JsonTypeInfoLookup {
     /// at the missing context.
     /// </para>
     /// </remarks>
-    [UnconditionalSuppressMessage("Trimming", "IL2026:RequiresUnreferencedCode",
-        Justification = "Guarded on JsonSerializer.IsReflectionEnabledByDefault; the trimmer removes the branch.")]
-    [UnconditionalSuppressMessage("AOT", "IL3050:RequiresDynamicCode",
-        Justification = "Guarded on JsonSerializer.IsReflectionEnabledByDefault; the trimmer removes the branch.")]
-    public static JsonSerializerOptions WithReflectionFallback(JsonSerializerOptions options) {
+    [UnconditionalSuppressMessage(
+        "Trimming",
+        "IL2026:RequiresUnreferencedCode",
+        Justification = "Guarded on JsonSerializer.IsReflectionEnabledByDefault; the trimmer removes the branch."
+    )]
+    [UnconditionalSuppressMessage(
+        "AOT",
+        "IL3050:RequiresDynamicCode",
+        Justification = "Guarded on JsonSerializer.IsReflectionEnabledByDefault; the trimmer removes the branch."
+    )]
+    public static JsonSerializerOptions WithReflectionFallback(JsonSerializerOptions options)
+    {
         // Idempotent, because the options a serializer is handed may be shared and several
         // serializers may pass them through here - and because an application that supplied its own
         // resolver has already answered this question.
-        if (options.TypeInfoResolver is null && JsonSerializer.IsReflectionEnabledByDefault) {
+        if (options.TypeInfoResolver is null && JsonSerializer.IsReflectionEnabledByDefault)
+        {
             options.TypeInfoResolverChain.Add(new DefaultJsonTypeInfoResolver());
         }
 

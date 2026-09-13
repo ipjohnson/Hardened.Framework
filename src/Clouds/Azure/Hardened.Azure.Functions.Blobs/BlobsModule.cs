@@ -17,7 +17,8 @@ namespace Hardened.Azure.Functions.Blobs;
 /// </remarks>
 [DependencyModule]
 [FunctionsRuntimeModule]
-public partial class BlobsModule : IServiceCollectionConfiguration {
+public partial class BlobsModule : IServiceCollectionConfiguration
+{
     /// <summary>
     /// The app setting that holds the storage connection, or null for the extension's default,
     /// <c>AzureWebJobsStorage</c>. Nullable, as every module property has to be; see
@@ -25,7 +26,8 @@ public partial class BlobsModule : IServiceCollectionConfiguration {
     /// </summary>
     public string? Connection { get; set; }
 
-    public void ConfigureServices(IServiceCollection services) {
+    public void ConfigureServices(IServiceCollection services)
+    {
         services.AddSingleton<ITriggerAdapter>(new BlobsAdapter());
 
         // One blob per invocation is never a batch, but the neutral test delivery always is, and

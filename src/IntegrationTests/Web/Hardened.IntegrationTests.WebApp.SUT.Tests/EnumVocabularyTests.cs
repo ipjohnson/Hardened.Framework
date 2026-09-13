@@ -19,13 +19,14 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests;
 /// are the same fact. Each is asserted against a literal, since the literal is what a client sends.
 /// </para>
 /// </remarks>
-public class EnumVocabularyTests {
-
+public class EnumVocabularyTests
+{
     /// <summary>
     /// No attribute anywhere: the default an application gets for saying nothing.
     /// </summary>
     [HardenedTest]
-    public async Task WriteUsesCamelCaseByDefault(ITestWebApp testWebApp) {
+    public async Task WriteUsesCamelCaseByDefault(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/enum-vocabulary/ticket");
 
         Assert.Equal(200, response.StatusCode);
@@ -40,9 +41,12 @@ public class EnumVocabularyTests {
     /// Reading has to accept what writing produces, or the application refuses its own output.
     /// </summary>
     [HardenedTest]
-    public async Task ReadAcceptsTheValueWriteProduces(ITestWebApp testWebApp) {
+    public async Task ReadAcceptsTheValueWriteProduces(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Post(
-            new Ticket("Ship it", Priority.OnHold), "/enum-vocabulary/ticket");
+            new Ticket("Ship it", Priority.OnHold),
+            "/enum-vocabulary/ticket"
+        );
 
         Assert.Equal(200, response.StatusCode);
         Assert.Contains("onHold", await response.ReadTextAsync());
@@ -54,7 +58,8 @@ public class EnumVocabularyTests {
     /// read and wrote values and System.Text.Json wants the property-name pair for a key.
     /// </summary>
     [HardenedTest]
-    public async Task ADictionaryKeyIsWrittenInTheVocabulary(ITestWebApp testWebApp) {
+    public async Task ADictionaryKeyIsWrittenInTheVocabulary(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/enum-vocabulary/by-priority/counts");
 
         Assert.Equal(200, response.StatusCode);
@@ -66,11 +71,13 @@ public class EnumVocabularyTests {
     }
 
     [HardenedTest]
-    public async Task ADictionaryKeyIsReadInTheVocabulary(ITestWebApp testWebApp) {
+    public async Task ADictionaryKeyIsReadInTheVocabulary(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Post(
             "{\"onHold\":3}",
             "/enum-vocabulary/by-priority/counts",
-            request => request.Headers["Content-Type"] = "application/json");
+            request => request.Headers["Content-Type"] = "application/json"
+        );
 
         Assert.Equal(200, response.StatusCode);
         Assert.Equal("3", await response.ReadTextAsync());
@@ -80,11 +87,13 @@ public class EnumVocabularyTests {
     /// A value the application does not declare is refused rather than guessed at.
     /// </summary>
     [HardenedTest]
-    public async Task ReadRefusesAnUndeclaredValue(ITestWebApp testWebApp) {
+    public async Task ReadRefusesAnUndeclaredValue(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Post(
             "{\"title\":\"x\",\"priority\":\"urgent\"}",
             "/enum-vocabulary/ticket",
-            request => request.Headers["Content-Type"] = "application/json");
+            request => request.Headers["Content-Type"] = "application/json"
+        );
 
         Assert.Equal(400, response.StatusCode);
     }
@@ -94,7 +103,8 @@ public class EnumVocabularyTests {
     /// choosing a vocabulary that is not a C# identifier at all.
     /// </summary>
     [HardenedTest]
-    public async Task ADeclaredNamingOverridesTheDefault(ITestWebApp testWebApp) {
+    public async Task ADeclaredNamingOverridesTheDefault(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/enum-vocabulary/order");
 
         Assert.Equal(200, response.StatusCode);
@@ -115,7 +125,8 @@ public class EnumVocabularyTests {
     /// accident: it is not a valid C# identifier, so nothing reaches it through <c>Enum.Parse</c>.
     /// </remarks>
     [HardenedTest]
-    public async Task AQueryParameterBindsTheSameVocabulary(ITestWebApp testWebApp) {
+    public async Task AQueryParameterBindsTheSameVocabulary(ITestWebApp testWebApp)
+    {
         var byDefault = await testWebApp.Get("/enum-vocabulary/by-priority?priority=inProgress");
 
         Assert.Equal(200, byDefault.StatusCode);
@@ -136,17 +147,21 @@ public class EnumVocabularyTests {
     /// the wire is a contract that cannot be honoured.
     /// </remarks>
     [HardenedTest]
-    public async Task TheDocumentDeclaresTheValuesTheWireCarries(ITestWebApp testWebApp) {
+    public async Task TheDocumentDeclaresTheValuesTheWireCarries(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/openapi.json");
 
         Assert.Equal(200, response.StatusCode);
 
-        var schemas = JsonDocument.Parse(await response.ReadTextAsync())
-            .RootElement.GetProperty("components").GetProperty("schemas");
+        var schemas = JsonDocument
+            .Parse(await response.ReadTextAsync())
+            .RootElement.GetProperty("components")
+            .GetProperty("schemas");
 
         Assert.Equal(
             new[] { "low", "inProgress", "onHold" },
-            Values(schemas, "Ticket", "priority"));
+            Values(schemas, "Ticket", "priority")
+        );
 
         Assert.Equal(new[] { "AB12", "CD34" }, Values(schemas, "Order", "code"));
         Assert.Equal(new[] { "next-day", "two-day" }, Values(schemas, "Order", "shipping"));
@@ -156,14 +171,17 @@ public class EnumVocabularyTests {
     /// Through the reference: an enum is one component, and the member refers to it, so a client
     /// generator produces one type per server enum rather than one per property.
     /// </summary>
-    private static string[] Values(JsonElement schemas, string schema, string property) {
-        var reference = schemas.GetProperty(schema)
+    private static string[] Values(JsonElement schemas, string schema, string property)
+    {
+        var reference = schemas
+            .GetProperty(schema)
             .GetProperty("properties")
             .GetProperty(property)
             .GetProperty("$ref")
             .GetString()!;
 
-        return schemas.GetProperty(reference.Substring("#/components/schemas/".Length))
+        return schemas
+            .GetProperty(reference.Substring("#/components/schemas/".Length))
             .GetProperty("enum")
             .EnumerateArray()
             .Select(value => value.GetString()!)

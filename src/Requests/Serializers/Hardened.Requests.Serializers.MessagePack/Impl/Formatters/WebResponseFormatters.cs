@@ -14,8 +14,8 @@ namespace Hardened.Requests.Serializers.MessagePack.Impl.Formatters;
 /// JSON representation's spelling and order. These are separate only because the shared formatter
 /// is parameterised by four accessors and would need a fifth shape for each of them.
 /// </remarks>
-internal static class WebResponseFormatters {
-
+internal static class WebResponseFormatters
+{
     /// <summary>
     /// A <c>TimeSpan</c> as the string System.Text.Json writes for one.
     /// </summary>
@@ -27,8 +27,10 @@ internal static class WebResponseFormatters {
     internal static void WriteDuration(ref MessagePackWriter writer, TimeSpan value) =>
         writer.Write(value.ToString(null, CultureInfo.InvariantCulture));
 
-    internal static TimeSpan? ReadDuration(ref MessagePackReader reader) {
-        if (reader.TryReadNil()) {
+    internal static TimeSpan? ReadDuration(ref MessagePackReader reader)
+    {
+        if (reader.TryReadNil())
+        {
             return null;
         }
 
@@ -38,12 +40,18 @@ internal static class WebResponseFormatters {
     }
 }
 
-internal sealed class NotFoundFormatter : IMessagePackFormatter<NotFound?> {
-
+internal sealed class NotFoundFormatter : IMessagePackFormatter<NotFound?>
+{
     public static readonly NotFoundFormatter Instance = new();
 
-    public void Serialize(ref MessagePackWriter writer, NotFound? value, MessagePackSerializerOptions options) {
-        if (value == null) {
+    public void Serialize(
+        ref MessagePackWriter writer,
+        NotFound? value,
+        MessagePackSerializerOptions options
+    )
+    {
+        if (value == null)
+        {
             writer.WriteNil();
 
             return;
@@ -57,13 +65,16 @@ internal sealed class NotFoundFormatter : IMessagePackFormatter<NotFound?> {
         Problem.WriteTail(ref writer, value.Type, value.Title, value.Status);
     }
 
-    public NotFound? Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options) {
+    public NotFound? Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
+    {
         var count = Problem.MapHeader(ref reader);
         var resource = "";
         string? detail = null;
 
-        for (var i = 0; i < count; i++) {
-            switch (reader.ReadString()) {
+        for (var i = 0; i < count; i++)
+        {
+            switch (reader.ReadString())
+            {
                 case "resource":
                     resource = reader.ReadString() ?? "";
 
@@ -83,12 +94,18 @@ internal sealed class NotFoundFormatter : IMessagePackFormatter<NotFound?> {
     }
 }
 
-internal sealed class RateLimitedFormatter : IMessagePackFormatter<RateLimited?> {
-
+internal sealed class RateLimitedFormatter : IMessagePackFormatter<RateLimited?>
+{
     public static readonly RateLimitedFormatter Instance = new();
 
-    public void Serialize(ref MessagePackWriter writer, RateLimited? value, MessagePackSerializerOptions options) {
-        if (value == null) {
+    public void Serialize(
+        ref MessagePackWriter writer,
+        RateLimited? value,
+        MessagePackSerializerOptions options
+    )
+    {
+        if (value == null)
+        {
             writer.WriteNil();
 
             return;
@@ -102,13 +119,19 @@ internal sealed class RateLimitedFormatter : IMessagePackFormatter<RateLimited?>
         Problem.WriteTail(ref writer, value.Type, value.Title, value.Status);
     }
 
-    public RateLimited? Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options) {
+    public RateLimited? Deserialize(
+        ref MessagePackReader reader,
+        MessagePackSerializerOptions options
+    )
+    {
         var count = Problem.MapHeader(ref reader);
         var retryAfter = TimeSpan.Zero;
         string? detail = null;
 
-        for (var i = 0; i < count; i++) {
-            switch (reader.ReadString()) {
+        for (var i = 0; i < count; i++)
+        {
+            switch (reader.ReadString())
+            {
                 case "retryAfter":
                     retryAfter = WebResponseFormatters.ReadDuration(ref reader) ?? TimeSpan.Zero;
 
@@ -128,13 +151,18 @@ internal sealed class RateLimitedFormatter : IMessagePackFormatter<RateLimited?>
     }
 }
 
-internal sealed class ServiceUnavailableFormatter : IMessagePackFormatter<ServiceUnavailable?> {
-
+internal sealed class ServiceUnavailableFormatter : IMessagePackFormatter<ServiceUnavailable?>
+{
     public static readonly ServiceUnavailableFormatter Instance = new();
 
     public void Serialize(
-        ref MessagePackWriter writer, ServiceUnavailable? value, MessagePackSerializerOptions options) {
-        if (value == null) {
+        ref MessagePackWriter writer,
+        ServiceUnavailable? value,
+        MessagePackSerializerOptions options
+    )
+    {
+        if (value == null)
+        {
             writer.WriteNil();
 
             return;
@@ -143,10 +171,12 @@ internal sealed class ServiceUnavailableFormatter : IMessagePackFormatter<Servic
         writer.WriteMapHeader(5);
         writer.Write("after");
 
-        if (value.After is { } after) {
+        if (value.After is { } after)
+        {
             WebResponseFormatters.WriteDuration(ref writer, after);
         }
-        else {
+        else
+        {
             writer.WriteNil();
         }
 
@@ -156,13 +186,18 @@ internal sealed class ServiceUnavailableFormatter : IMessagePackFormatter<Servic
     }
 
     public ServiceUnavailable? Deserialize(
-        ref MessagePackReader reader, MessagePackSerializerOptions options) {
+        ref MessagePackReader reader,
+        MessagePackSerializerOptions options
+    )
+    {
         var count = Problem.MapHeader(ref reader);
         TimeSpan? after = null;
         string? detail = null;
 
-        for (var i = 0; i < count; i++) {
-            switch (reader.ReadString()) {
+        for (var i = 0; i < count; i++)
+        {
+            switch (reader.ReadString())
+            {
                 case "after":
                     after = WebResponseFormatters.ReadDuration(ref reader);
 
@@ -182,12 +217,18 @@ internal sealed class ServiceUnavailableFormatter : IMessagePackFormatter<Servic
     }
 }
 
-internal sealed class UnauthorizedFormatter : IMessagePackFormatter<Unauthorized?> {
-
+internal sealed class UnauthorizedFormatter : IMessagePackFormatter<Unauthorized?>
+{
     public static readonly UnauthorizedFormatter Instance = new();
 
-    public void Serialize(ref MessagePackWriter writer, Unauthorized? value, MessagePackSerializerOptions options) {
-        if (value == null) {
+    public void Serialize(
+        ref MessagePackWriter writer,
+        Unauthorized? value,
+        MessagePackSerializerOptions options
+    )
+    {
+        if (value == null)
+        {
             writer.WriteNil();
 
             return;
@@ -201,19 +242,28 @@ internal sealed class UnauthorizedFormatter : IMessagePackFormatter<Unauthorized
         Problem.WriteTail(ref writer, value.Type, value.Title, value.Status);
     }
 
-    public Unauthorized? Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options) {
+    public Unauthorized? Deserialize(
+        ref MessagePackReader reader,
+        MessagePackSerializerOptions options
+    )
+    {
         var count = Problem.MapHeader(ref reader);
         string? detail = null;
         AuthorizationChallenge? challenge = null;
 
-        for (var i = 0; i < count; i++) {
-            switch (reader.ReadString()) {
+        for (var i = 0; i < count; i++)
+        {
+            switch (reader.ReadString())
+            {
                 case "detail":
                     detail = reader.ReadString();
 
                     break;
                 case "challenge":
-                    challenge = AuthorizationChallengeFormatter.Instance.Deserialize(ref reader, options);
+                    challenge = AuthorizationChallengeFormatter.Instance.Deserialize(
+                        ref reader,
+                        options
+                    );
 
                     break;
                 default:
@@ -238,13 +288,19 @@ internal sealed class UnauthorizedFormatter : IMessagePackFormatter<Unauthorized
 /// reading the <c>WWW-Authenticate</c> header would use, and the other five members are written for
 /// the reader that wants them without being trusted on the way back.
 /// </remarks>
-internal sealed class AuthorizationChallengeFormatter : IMessagePackFormatter<AuthorizationChallenge?> {
-
+internal sealed class AuthorizationChallengeFormatter
+    : IMessagePackFormatter<AuthorizationChallenge?>
+{
     public static readonly AuthorizationChallengeFormatter Instance = new();
 
     public void Serialize(
-        ref MessagePackWriter writer, AuthorizationChallenge? value, MessagePackSerializerOptions options) {
-        if (value == null) {
+        ref MessagePackWriter writer,
+        AuthorizationChallenge? value,
+        MessagePackSerializerOptions options
+    )
+    {
+        if (value == null)
+        {
             writer.WriteNil();
 
             return;
@@ -262,7 +318,8 @@ internal sealed class AuthorizationChallengeFormatter : IMessagePackFormatter<Au
         writer.Write("scope");
         writer.WriteArrayHeader(value.Scope.Count);
 
-        foreach (var scope in value.Scope) {
+        foreach (var scope in value.Scope)
+        {
             writer.Write(scope);
         }
 
@@ -273,8 +330,12 @@ internal sealed class AuthorizationChallengeFormatter : IMessagePackFormatter<Au
     }
 
     public AuthorizationChallenge? Deserialize(
-        ref MessagePackReader reader, MessagePackSerializerOptions options) {
-        if (reader.TryReadNil()) {
+        ref MessagePackReader reader,
+        MessagePackSerializerOptions options
+    )
+    {
+        if (reader.TryReadNil())
+        {
             return null;
         }
 
@@ -282,8 +343,10 @@ internal sealed class AuthorizationChallengeFormatter : IMessagePackFormatter<Au
         string? headerValue = null;
         var statusCode = 401;
 
-        for (var i = 0; i < count; i++) {
-            switch (reader.ReadString()) {
+        for (var i = 0; i < count; i++)
+        {
+            switch (reader.ReadString())
+            {
                 case "headerValue":
                     headerValue = reader.ReadString();
 

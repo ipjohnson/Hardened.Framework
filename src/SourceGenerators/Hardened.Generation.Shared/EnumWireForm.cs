@@ -21,17 +21,20 @@ namespace Hardened.Generation;
 /// such an enum failed at run time on a build that was clean.
 /// </para>
 /// </remarks>
-internal static class EnumWireForm {
-
+internal static class EnumWireForm
+{
     /// <summary>Whether the declared members are numbers rather than strings.</summary>
     public static bool IsNumeric(SchemaModel schema) =>
-        schema.Type == "integer" || schema.Type == "number" ||
-        schema.Type == "int" || schema.Type == "long";
+        schema.Type == "integer"
+        || schema.Type == "number"
+        || schema.Type == "int"
+        || schema.Type == "long";
 
     /// <summary>
     /// The C# literal for a member's declared value - a quoted string, or the number itself.
     /// </summary>
-    public static string Literal(SchemaModel schema, int index) {
+    public static string Literal(SchemaModel schema, int index)
+    {
         var value = schema.EnumValues[index];
 
         return IsNumeric(schema) ? value : "\"" + Escape(value) + "\"";
@@ -45,13 +48,17 @@ internal static class EnumWireForm {
     /// its underlying type does not compile. Widened rather than reported, because the value is
     /// legitimate and the type is an implementation detail of carrying it.
     /// </remarks>
-    public static string? UnderlyingType(SchemaModel schema) {
-        if (!IsNumeric(schema)) {
+    public static string? UnderlyingType(SchemaModel schema)
+    {
+        if (!IsNumeric(schema))
+        {
             return null;
         }
 
-        foreach (var value in schema.EnumValues) {
-            if (!int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out _)) {
+        foreach (var value in schema.EnumValues)
+        {
+            if (!int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out _))
+            {
                 return "long";
             }
         }
@@ -74,7 +81,8 @@ internal static class EnumWireForm {
     /// name appears at every call site and has to be typeable.
     /// </para>
     /// </remarks>
-    public static string SynthesizedName(string value) {
+    public static string SynthesizedName(string value)
+    {
         var trimmed = value.Trim();
 
         return trimmed.StartsWith("-")
@@ -82,10 +90,12 @@ internal static class EnumWireForm {
             : "Value" + Sanitize(trimmed);
     }
 
-    private static string Sanitize(string value) {
+    private static string Sanitize(string value)
+    {
         var builder = new System.Text.StringBuilder(value.Length);
 
-        foreach (var character in value) {
+        foreach (var character in value)
+        {
             builder.Append(char.IsLetterOrDigit(character) ? character : '_');
         }
 
@@ -93,22 +103,24 @@ internal static class EnumWireForm {
     }
 
     /// <summary>The member names to emit, honouring the document's own where it gave them.</summary>
-    public static IReadOnlyList<string> MemberNames(SchemaModel schema) {
-        if (schema.EnumMemberNames.Count == schema.EnumValues.Count) {
+    public static IReadOnlyList<string> MemberNames(SchemaModel schema)
+    {
+        if (schema.EnumMemberNames.Count == schema.EnumValues.Count)
+        {
             return schema.EnumMemberNames;
         }
 
         var names = new List<string>(schema.EnumValues.Count);
 
-        foreach (var value in schema.EnumValues) {
-            names.Add(IsNumeric(schema)
-                ? SynthesizedName(value)
-                : NamingHelper.ToPascalCase(value));
+        foreach (var value in schema.EnumValues)
+        {
+            names.Add(
+                IsNumeric(schema) ? SynthesizedName(value) : NamingHelper.ToPascalCase(value)
+            );
         }
 
         return names;
     }
 
-    private static string Escape(string value) =>
-        value.Replace("\\", "\\\\").Replace("\"", "\\\"");
+    private static string Escape(string value) => value.Replace("\\", "\\\\").Replace("\"", "\\\"");
 }

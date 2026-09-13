@@ -6,10 +6,10 @@ using Hardened.Requests.Abstract.Middleware;
 using Hardened.Requests.Runtime.Caching;
 using Hardened.Requests.Runtime.Middleware;
 using Hardened.Shared.Runtime.Application;
+using Hardened.Web.Runtime.Responses;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Xunit;
-using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.Kestrel.Runtime.Tests;
 
@@ -33,8 +33,8 @@ namespace Hardened.Web.Kestrel.Runtime.Tests;
 /// an application registers.
 /// </para>
 /// </remarks>
-public class ResponseCacheOverASocketTests {
-
+public class ResponseCacheOverASocketTests
+{
     /// <summary>Long enough that a body silently truncated to nothing is unmistakable.</summary>
     private const string Answer = """{"base":"USD","rates":{"EUR":0.92,"GBP":0.79}}""";
 
@@ -45,7 +45,8 @@ public class ResponseCacheOverASocketTests {
     /// stored bytes with no chunk header and no terminator.
     /// </summary>
     [Fact]
-    public async Task AHitCarriesTheWholeBodyTheMissCarried() {
+    public async Task AHitCarriesTheWholeBodyTheMissCarried()
+    {
         await using var harness = await Harness.Start(TestContext.Current.CancellationToken);
 
         var miss = await harness.Get(TestContext.Current.CancellationToken);
@@ -59,7 +60,8 @@ public class ResponseCacheOverASocketTests {
     /// And the handler ran once, so the second answer really was the store's.
     /// </summary>
     [Fact]
-    public async Task AHitDoesNotRunTheHandler() {
+    public async Task AHitDoesNotRunTheHandler()
+    {
         await using var harness = await Harness.Start(TestContext.Current.CancellationToken);
 
         await harness.Get(TestContext.Current.CancellationToken);
@@ -80,7 +82,8 @@ public class ResponseCacheOverASocketTests {
     /// else's request in a support ticket.
     /// </remarks>
     [Fact]
-    public async Task AHitCarriesTheCallersOwnCorrelationId() {
+    public async Task AHitCarriesTheCallersOwnCorrelationId()
+    {
         await using var harness = await Harness.Start(TestContext.Current.CancellationToken);
 
         var miss = await harness.Response(TestContext.Current.CancellationToken);
@@ -96,7 +99,8 @@ public class ResponseCacheOverASocketTests {
     /// A hop-by-hop header is the host's to decide on the hit, as it was on the miss.
     /// </summary>
     [Fact]
-    public async Task AHitIsFramedByTheHostRatherThanByTheStore() {
+    public async Task AHitIsFramedByTheHostRatherThanByTheStore()
+    {
         await using var harness = await Harness.Start(TestContext.Current.CancellationToken);
 
         await harness.Get(TestContext.Current.CancellationToken);
@@ -105,8 +109,9 @@ public class ResponseCacheOverASocketTests {
 
         Assert.DoesNotContain(
             entry.Headers,
-            header => string.Equals(
-                header.Key, "Transfer-Encoding", StringComparison.OrdinalIgnoreCase));
+            header =>
+                string.Equals(header.Key, "Transfer-Encoding", StringComparison.OrdinalIgnoreCase)
+        );
     }
 
     /// <summary>
@@ -122,9 +127,12 @@ public class ResponseCacheOverASocketTests {
     /// reference stays in the log, where an unexpected 500's detail belongs.
     /// </remarks>
     [Fact]
-    public async Task NoRegisteredStoreAnswersAnEnvelopeRatherThanAnEmptyFiveHundred() {
+    public async Task NoRegisteredStoreAnswersAnEnvelopeRatherThanAnEmptyFiveHundred()
+    {
         await using var harness = await Harness.Start(
-            TestContext.Current.CancellationToken, withStore: false);
+            TestContext.Current.CancellationToken,
+            withStore: false
+        );
 
         var response = await harness.Raw(TestContext.Current.CancellationToken);
         var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
@@ -137,12 +145,14 @@ public class ResponseCacheOverASocketTests {
     /// A Hardened application on Kestrel, listening on a port the OS picked, answering one route
     /// from behind a response cache.
     /// </summary>
-    private sealed class Harness : IAsyncDisposable {
+    private sealed class Harness : IAsyncDisposable
+    {
         private readonly HttpClient _client;
 
         private HardenedKestrelApplication _app = null!;
 
-        private Harness(HttpClient client) {
+        private Harness(HttpClient client)
+        {
             _client = client;
         }
 
@@ -157,7 +167,10 @@ public class ResponseCacheOverASocketTests {
         /// referenced no store package composed theirs.
         /// </param>
         public static async Task<Harness> Start(
-            CancellationToken cancellationToken, bool withStore = true) {
+            CancellationToken cancellationToken,
+            bool withStore = true
+        )
+        {
             // A short timeout because the failure this exists for is a hang, not a bad answer: a
             // response that declares chunked framing and writes none leaves the client waiting for
             // a terminator that never comes. The default hundred seconds is a hundred seconds of
@@ -176,13 +189,15 @@ public class ResponseCacheOverASocketTests {
             return harness;
         }
 
-        public async Task<string> Get(CancellationToken cancellationToken) {
+        public async Task<string> Get(CancellationToken cancellationToken)
+        {
             var response = await Response(cancellationToken);
 
             return await response.Content.ReadAsStringAsync(cancellationToken);
         }
 
-        public async Task<HttpResponseMessage> Response(CancellationToken cancellationToken) {
+        public async Task<HttpResponseMessage> Response(CancellationToken cancellationToken)
+        {
             var response = await Raw(cancellationToken);
 
             response.EnsureSuccessStatusCode();
@@ -193,13 +208,15 @@ public class ResponseCacheOverASocketTests {
         public Task<HttpResponseMessage> Raw(CancellationToken cancellationToken) =>
             _client.GetAsync("/rates", cancellationToken);
 
-        public async ValueTask DisposeAsync() {
+        public async ValueTask DisposeAsync()
+        {
             _client.Dispose();
 
             await _app.DisposeAsync();
         }
 
-        private static HardenedKestrelApplication Build(IResponseCacheStore? store) {
+        private static HardenedKestrelApplication Build(IResponseCacheStore? store)
+        {
             var services = new ServiceCollection();
 
             services.AddLogging(builder => builder.SetMinimumLevel(LogLevel.Warning));
@@ -209,22 +226,29 @@ public class ResponseCacheOverASocketTests {
 
             // The filter resolves this from the root provider on its first request, so it has to be
             // in the collection before the application is built.
-            if (store != null) {
+            if (store != null)
+            {
                 services.AddSingleton(store);
             }
 
             // Port 0, so the OS picks one and concurrent test classes cannot collide.
             return HardenedKestrelApplication.Create(
-                services, kestrel => kestrel.Listen(IPAddress.Loopback, 0));
+                services,
+                kestrel => kestrel.Listen(IPAddress.Loopback, 0)
+            );
         }
 
         /// <summary>
         /// The cache, then the filter that answers. Registered before the server starts, so both
         /// land ahead of the routing filter the runner attaches.
         /// </summary>
-        private void Compose(IResponseCacheStore store) {
+        private void Compose(IResponseCacheStore store)
+        {
             var cache = new ResponseCacheFilter(
-                [new EveryRequest()], "GET /rates", ResponseCacheFilter.DefaultDuration);
+                [new EveryRequest()],
+                "GET /rates",
+                ResponseCacheFilter.DefaultDuration
+            );
 
             var middleware = _app.Services.GetRequiredService<IMiddlewareService>();
 
@@ -233,7 +257,8 @@ public class ResponseCacheOverASocketTests {
         }
 
         /// <summary>One entry for every request, which is what a collection endpoint has.</summary>
-        private sealed class EveryRequest : ICacheKeyProvider {
+        private sealed class EveryRequest : ICacheKeyProvider
+        {
             public static ICacheKeyProvider Create(string[] values) => new EveryRequest();
 
             public ValueTask<string?> Key(IExecutionContext context) => new("only");
@@ -243,22 +268,26 @@ public class ResponseCacheOverASocketTests {
         /// Writes the answer and stops. Nothing sets <c>ResponseValue</c>, so the response is these
         /// bytes and whatever the host frames them with - which is the point.
         /// </summary>
-        private sealed class Answering : IExecutionFilter {
+        private sealed class Answering : IExecutionFilter
+        {
             private readonly Harness _harness;
             private readonly IResponseCacheStore _store;
 
-            public Answering(Harness harness, IResponseCacheStore store) {
+            public Answering(Harness harness, IResponseCacheStore store)
+            {
                 _harness = harness;
                 _store = store;
             }
 
-            public async Task Execute(IExecutionChain chain) {
+            public async Task Execute(IExecutionChain chain)
+            {
                 var response = chain.Context.Response;
 
                 // What IoFilter does at FilterOrder.Serialization: a request already decided is
                 // not bound and its handler is not invoked, so that whatever recorded the failure
                 // is what the caller is answered with.
-                if (response.ExceptionValue != null) {
+                if (response.ExceptionValue != null)
+                {
                     return;
                 }
 
@@ -269,7 +298,9 @@ public class ResponseCacheOverASocketTests {
                 response.ShouldSerialize = false;
 
                 await response.Body.WriteAsync(
-                    Encoding.UTF8.GetBytes(Answer), chain.Context.CancellationToken);
+                    Encoding.UTF8.GetBytes(Answer),
+                    chain.Context.CancellationToken
+                );
             }
         }
 
@@ -277,30 +308,40 @@ public class ResponseCacheOverASocketTests {
         /// An in-process store that keeps what it was handed, so a test can assert on the entry as
         /// well as on the response.
         /// </summary>
-        private sealed class RecordingStore : IResponseCacheStore {
-            private readonly Dictionary<string, CachedResponse> _entries = new(StringComparer.Ordinal);
+        private sealed class RecordingStore : IResponseCacheStore
+        {
+            private readonly Dictionary<string, CachedResponse> _entries = new(
+                StringComparer.Ordinal
+            );
             private readonly List<CachedResponse> _stored;
 
-            public RecordingStore(List<CachedResponse> stored) {
+            public RecordingStore(List<CachedResponse> stored)
+            {
                 _stored = stored;
             }
 
-            public ValueTask<CachedResponse?> Get(string key, CancellationToken cancellationToken) =>
-                new(_entries.GetValueOrDefault(key));
+            public ValueTask<CachedResponse?> Get(
+                string key,
+                CancellationToken cancellationToken
+            ) => new(_entries.GetValueOrDefault(key));
 
             public ValueTask Set(
                 string key,
                 CachedResponse response,
                 TimeSpan duration,
-                CancellationToken cancellationToken) {
+                CancellationToken cancellationToken
+            )
+            {
                 _entries[key] = response;
                 _stored.Add(response);
 
                 return default;
             }
 
-            public ValueTask EvictByTag(string tag, CancellationToken cancellationToken) {
-                foreach (var entry in _entries.Where(e => e.Value.Tags.Contains(tag)).ToList()) {
+            public ValueTask EvictByTag(string tag, CancellationToken cancellationToken)
+            {
+                foreach (var entry in _entries.Where(e => e.Value.Tags.Contains(tag)).ToList())
+                {
                     _entries.Remove(entry.Key);
                 }
 

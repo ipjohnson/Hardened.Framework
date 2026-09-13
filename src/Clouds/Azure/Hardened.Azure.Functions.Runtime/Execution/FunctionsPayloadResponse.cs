@@ -15,17 +15,22 @@ namespace Hardened.Azure.Functions.Runtime.Execution;
 /// - a message whose fork set 300 or above is a failed message - so the slot is how a
 /// payload-shaped answer says it did not succeed. Nothing writes it to the host.
 /// </remarks>
-public class FunctionsPayloadResponse : IExecutionResponse {
-    private readonly IDictionary<string, StringValues> _headers =
-        new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase);
+public class FunctionsPayloadResponse : IExecutionResponse
+{
+    private readonly IDictionary<string, StringValues> _headers = new Dictionary<
+        string,
+        StringValues
+    >(StringComparer.OrdinalIgnoreCase);
 
-    public FunctionsPayloadResponse(Stream body, IHeaderCollection? headers = null) {
+    public FunctionsPayloadResponse(Stream body, IHeaderCollection? headers = null)
+    {
         Body = body;
         Headers = headers ?? new HeaderCollectionStringValues();
         Cookies = new CookieSetCollectionImpl();
     }
 
-    public string? ContentType {
+    public string? ContentType
+    {
         get => Headers.Get(KnownHeaders.ContentType);
         set => Headers.Set(KnownHeaders.ContentType, value);
     }
@@ -60,14 +65,16 @@ public class FunctionsPayloadResponse : IExecutionResponse {
 
     public object Clone() => Clone(null);
 
-    public IExecutionResponse Clone(IHeaderCollection? headerCollection) {
-        return new FunctionsPayloadResponse(Body, headerCollection ?? Headers) {
+    public IExecutionResponse Clone(IHeaderCollection? headerCollection)
+    {
+        return new FunctionsPayloadResponse(Body, headerCollection ?? Headers)
+        {
             ResponseValue = ResponseValue,
             OutputFactory = OutputFactory,
             Output = Output,
             Status = Status,
             IsBinary = IsBinary,
-            ShouldSerialize = ShouldSerialize
+            ShouldSerialize = ShouldSerialize,
         };
     }
 }

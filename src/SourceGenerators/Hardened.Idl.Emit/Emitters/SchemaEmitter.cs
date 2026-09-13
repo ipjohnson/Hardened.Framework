@@ -2,10 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CSharpAuthor;
-using Hardened.Idl.Validation;
+using Hardened.Generation;
 using Hardened.Generation.Models;
 using Hardened.Idl;
-using Hardened.Generation;
+using Hardened.Idl.Validation;
 
 namespace Hardened.Idl.Emitters;
 
@@ -17,22 +17,40 @@ namespace Hardened.Idl.Emitters;
 /// every caller. These were two emitters when each one produced a file of its own; the split was
 /// along output files rather than along input.
 /// </remarks>
-internal static class SchemaEmitter {
-
+internal static class SchemaEmitter
+{
     /// <summary>
     /// Adds the schema's type to <paramref name="container"/> and returns it, so the caller can
     /// decide anything that is not the type's own business - see <see cref="Coverage"/>.
     /// </summary>
     public static IOutputComponent? Emit(
-        IConstructContainer container, SchemaModel schema, string modelsNamespace, PatternRegistry patterns,
-        IReadOnlyList<SchemaModel>? allSchemas = null, ICollection<string>? streamedItems = null,
-        SpecSerializer serializer = SpecSerializer.Json) =>
-        schema.Kind switch {
-            SchemaKind.Object => EmitRecord(container, schema, modelsNamespace, patterns, allSchemas, serializer),
+        IConstructContainer container,
+        SchemaModel schema,
+        string modelsNamespace,
+        PatternRegistry patterns,
+        IReadOnlyList<SchemaModel>? allSchemas = null,
+        ICollection<string>? streamedItems = null,
+        SpecSerializer serializer = SpecSerializer.Json
+    ) =>
+        schema.Kind switch
+        {
+            SchemaKind.Object => EmitRecord(
+                container,
+                schema,
+                modelsNamespace,
+                patterns,
+                allSchemas,
+                serializer
+            ),
             SchemaKind.Enum => EmitEnumWithConverter(container, schema, modelsNamespace),
             SchemaKind.OneOf => EmitOneOf(
-                container, schema, modelsNamespace, allSchemas,
-                streamedItems != null && streamedItems.Contains(NamingHelper.ToPascalCase(schema.Name))),
+                container,
+                schema,
+                modelsNamespace,
+                allSchemas,
+                streamedItems != null
+                    && streamedItems.Contains(NamingHelper.ToPascalCase(schema.Name))
+            ),
             _ => null,
         };
 
@@ -40,7 +58,11 @@ internal static class SchemaEmitter {
     /// The enum and the converter that maps it to the values the description declares.
     /// </summary>
     private static IOutputComponent EmitEnumWithConverter(
-        IConstructContainer container, SchemaModel schema, string modelsNamespace) {
+        IConstructContainer container,
+        SchemaModel schema,
+        string modelsNamespace
+    )
+    {
         var type = EmitEnum(container, schema, modelsNamespace);
 
         EnumConverterEmitter.Emit(container, schema, modelsNamespace);
@@ -52,13 +74,21 @@ internal static class SchemaEmitter {
     /// The choice type and the converter that resolves it, which are one thing in two declarations.
     /// </summary>
     private static IOutputComponent EmitOneOf(
-        IConstructContainer container, SchemaModel schema, string modelsNamespace,
-        IReadOnlyList<SchemaModel>? allSchemas, bool streamed) {
+        IConstructContainer container,
+        SchemaModel schema,
+        string modelsNamespace,
+        IReadOnlyList<SchemaModel>? allSchemas,
+        bool streamed
+    )
+    {
         var type = OneOfEmitter.Emit(container, schema, modelsNamespace, streamed);
 
         OneOfConverterEmitter.Emit(
-            container, schema, modelsNamespace,
-            allSchemas ?? System.Array.Empty<SchemaModel>());
+            container,
+            schema,
+            modelsNamespace,
+            allSchemas ?? System.Array.Empty<SchemaModel>()
+        );
 
         return type;
     }
@@ -67,8 +97,14 @@ internal static class SchemaEmitter {
     /// A positional record, or a declaration-only one when the schema carries no properties.
     /// </summary>
     private static ClassDefinition EmitRecord(
-        IConstructContainer container, SchemaModel schema, string modelsNamespace, PatternRegistry patterns,
-        IReadOnlyList<SchemaModel>? allSchemas, SpecSerializer serializer) {
+        IConstructContainer container,
+        SchemaModel schema,
+        string modelsNamespace,
+        PatternRegistry patterns,
+        IReadOnlyList<SchemaModel>? allSchemas,
+        SpecSerializer serializer
+    )
+    {
         var record = container.AddClass(NamingHelper.ToPascalCase(schema.Name));
 
         record.TypeKeyword = ClassKeyword.Record;
@@ -82,7 +118,8 @@ internal static class SchemaEmitter {
         // deriving; partial permits extending in place, which is how an application adds an
         // interface or a computed member to a type it did not write. The response case types have
         // been emitted this way since headers landed.
-        if (IsLeaf(schema, allSchemas)) {
+        if (IsLeaf(schema, allSchemas))
+        {
             record.Modifiers |= ComponentModifier.Sealed;
         }
 
@@ -90,7 +127,8 @@ internal static class SchemaEmitter {
 
         EmitMessagePackObject(record, serializer);
 
-        if (schema.IsDeprecated) {
+        if (schema.IsDeprecated)
+        {
             Deprecation.Apply(record);
         }
 
@@ -104,8 +142,10 @@ internal static class SchemaEmitter {
         // carries the header, so nothing has to be wrapped to hold it.
         var headerBound = new List<PropertyModel>();
 
-        foreach (var property in schema.Properties) {
-            if (property.IsHeaderBound) {
+        foreach (var property in schema.Properties)
+        {
+            if (property.IsHeaderBound)
+            {
                 headerBound.Add(property);
             }
         }
@@ -118,17 +158,26 @@ internal static class SchemaEmitter {
         // No parameters means no parameter list at all - "record Empty;" rather than "record
         // Empty();". The two are different declarations, and the second gives the type a constructor
         // the spec did not ask for.
-        if (parameters.Count > 0) {
+        if (parameters.Count > 0)
+        {
             var constructor = record.AddConstructor();
             constructor.IsPrimary = true;
 
-            foreach (var property in parameters) {
+            foreach (var property in parameters)
+            {
                 EmitConstructorParameter(
-                    constructor, property, modelsNamespace, patterns, allSchemas, serializer);
+                    constructor,
+                    property,
+                    modelsNamespace,
+                    patterns,
+                    allSchemas,
+                    serializer
+                );
             }
         }
 
-        foreach (var property in members) {
+        foreach (var property in members)
+        {
             EmitInitOnlyMember(record, property, modelsNamespace, serializer);
         }
 
@@ -146,14 +195,19 @@ internal static class SchemaEmitter {
     /// and are excluded from serialization instead - see <c>EmitDirection</c> and
     /// <c>JsonTypeInfoEmitter</c> - because the handler still has to set them.
     /// </remarks>
-    private static void EmitApplyHeaders(ClassDefinition record, IReadOnlyList<PropertyModel> headerBound) {
-        if (headerBound.Count == 0) {
+    private static void EmitApplyHeaders(
+        ClassDefinition record,
+        IReadOnlyList<PropertyModel> headerBound
+    )
+    {
+        if (headerBound.Count == 0)
+        {
             return;
         }
 
         record.AddBaseType(
-            TypeDefinition.Get(
-                "Hardened.Requests.Abstract.Responses", "IProvidesResponseHeaders"));
+            TypeDefinition.Get("Hardened.Requests.Abstract.Responses", "IProvidesResponseHeaders")
+        );
 
         var method = record.AddMethod("ApplyHeaders");
 
@@ -161,39 +215,62 @@ internal static class SchemaEmitter {
         method.AddParameter(
             new GenericTypeDefinition(
                 typeof(IDictionary<,>),
-                new ITypeDefinition[] {
+                new ITypeDefinition[]
+                {
                     TypeDefinition.Get(typeof(string)),
-                    TypeDefinition.Get("Microsoft.Extensions.Primitives", "StringValues")
-                }),
-            "headers");
+                    TypeDefinition.Get("Microsoft.Extensions.Primitives", "StringValues"),
+                }
+            ),
+            "headers"
+        );
 
-        foreach (var property in headerBound) {
+        foreach (var property in headerBound)
+        {
             // Null is a header the handler chose not to send, which is different from sending an
             // empty one - a nullable member with no value has to leave no header behind.
-            if (property.IsNullable || !property.IsRequired) {
+            if (property.IsNullable || !property.IsRequired)
+            {
                 method.AddIndentedStatement(
-                    "if (" + property.MemberName + " is not null) headers[\"" + property.HeaderName +
-                    "\"] = " + property.MemberName);
-            } else {
+                    "if ("
+                        + property.MemberName
+                        + " is not null) headers[\""
+                        + property.HeaderName
+                        + "\"] = "
+                        + property.MemberName
+                );
+            }
+            else
+            {
                 method.AddIndentedStatement(
-                    "headers[\"" + property.HeaderName + "\"] = " + property.MemberName);
+                    "headers[\"" + property.HeaderName + "\"] = " + property.MemberName
+                );
             }
         }
     }
 
     /// <summary>One property, as a positional record parameter.</summary>
     private static void EmitConstructorParameter(
-        ConstructorDefinition constructor, PropertyModel property, string modelsNamespace,
-        PatternRegistry patterns, IReadOnlyList<SchemaModel>? allSchemas, SpecSerializer serializer) {
+        ConstructorDefinition constructor,
+        PropertyModel property,
+        string modelsNamespace,
+        PatternRegistry patterns,
+        IReadOnlyList<SchemaModel>? allSchemas,
+        SpecSerializer serializer
+    )
+    {
         var csType = TypeMapper.MapPropertyToCSharpType(property);
-        var typeDefinition = TypeMapper.GetTypeDefinition(modelsNamespace, csType, property.IsCSharpNullable);
+        var typeDefinition = TypeMapper.GetTypeDefinition(
+            modelsNamespace,
+            csType,
+            property.IsCSharpNullable
+        );
 
-        var parameter = constructor.AddParameter(
-            typeDefinition, property.MemberName);
+        var parameter = constructor.AddParameter(typeDefinition, property.MemberName);
 
         parameter.Comment = DocComment.Format(property.Description);
 
-        if (property.HasDefault) {
+        if (property.HasDefault)
+        {
             // The spec's own default where it has a constant form, and the type's otherwise.
             var literal = DefaultLiteral.Format(property.Default, csType) ?? "default";
 
@@ -204,22 +281,26 @@ internal static class SchemaEmitter {
         // syntactic position. Without the target the attribute stays on the parameter, where a
         // generator reading properties never sees it - which is what VM0051 warns about.
         EmitJsonPropertyName(parameter, property).Target = "property";
-        if (EmitDirection(parameter, property) is { } direction) {
+        if (EmitDirection(parameter, property) is { } direction)
+        {
             direction.Target = "property";
         }
 
-        if (EmitOmitWhenNull(parameter, property) is { } omit) {
+        if (EmitOmitWhenNull(parameter, property) is { } omit)
+        {
             omit.Target = "property";
         }
 
-        if (EmitMessagePackMember(parameter, property, serializer) is { } key) {
+        if (EmitMessagePackMember(parameter, property, serializer) is { } key)
+        {
             key.Target = "property";
         }
 
         // Required, except where the type already guarantees it - see
         // TypeMapper.IsNonNullableValueType.
-        var emitRequired = property.ConstrainedAsRequired &&
-                           !TypeMapper.IsNonNullableValueType(csType, allSchemas);
+        var emitRequired =
+            property.ConstrainedAsRequired
+            && !TypeMapper.IsNonNullableValueType(csType, allSchemas);
 
         // Presence is the deserializer's job; content is the validator's.
         //
@@ -240,14 +321,24 @@ internal static class SchemaEmitter {
         // read different things: the reflection-based one reads this attribute, and the
         // source-generated resolver builds JsonPropertyInfo by hand and never sees it. readOnly is
         // enforced twice for the same reason - a null Setter there, [ResponseOnly] here.
-        if (property.ConstrainedAsRequired) {
-            parameter.AddAttribute(
-                TypeDefinition.Get("System.Text.Json.Serialization", "JsonRequiredAttribute"))
+        if (property.ConstrainedAsRequired)
+        {
+            parameter
+                .AddAttribute(
+                    TypeDefinition.Get("System.Text.Json.Serialization", "JsonRequiredAttribute")
+                )
                 .Target = "property";
         }
 
-        foreach (var constraint in ConstraintAttributes.ForProperty(
-                     property, emitRequired, patterns, csType)) {
+        foreach (
+            var constraint in ConstraintAttributes.ForProperty(
+                property,
+                emitRequired,
+                patterns,
+                csType
+            )
+        )
+        {
             ValidationEmitter.Apply(parameter, constraint).Target = "property";
         }
 
@@ -261,11 +352,16 @@ internal static class SchemaEmitter {
         //
         // Guarded rather than unconditional: naming a validator the validation generator declined
         // to emit is CS0234 in a file nobody can edit. NestedValidation is where both sides ask.
-        if (NestedValidation.Descends(property, allSchemas, patterns)) {
-            ValidationEmitter.Apply(
-                parameter,
-                new ConstraintAttributes.Model(
-                    ConstraintAttributes.ValidateNested(), System.Array.Empty<string>()))
+        if (NestedValidation.Descends(property, allSchemas, patterns))
+        {
+            ValidationEmitter
+                .Apply(
+                    parameter,
+                    new ConstraintAttributes.Model(
+                        ConstraintAttributes.ValidateNested(),
+                        System.Array.Empty<string>()
+                    )
+                )
                 .Target = "property";
         }
     }
@@ -292,10 +388,18 @@ internal static class SchemaEmitter {
     /// </para>
     /// </remarks>
     private static void EmitInitOnlyMember(
-        ClassDefinition record, PropertyModel property, string modelsNamespace,
-        SpecSerializer serializer) {
+        ClassDefinition record,
+        PropertyModel property,
+        string modelsNamespace,
+        SpecSerializer serializer
+    )
+    {
         var csType = TypeMapper.MapPropertyToCSharpType(property);
-        var typeDefinition = TypeMapper.GetTypeDefinition(modelsNamespace, csType, property.IsCSharpNullable);
+        var typeDefinition = TypeMapper.GetTypeDefinition(
+            modelsNamespace,
+            csType,
+            property.IsCSharpNullable
+        );
 
         var member = record.AddProperty(typeDefinition, property.MemberName);
 
@@ -303,7 +407,8 @@ internal static class SchemaEmitter {
         member.Set = new PropertyMethodDefinition { IsInit = true };
         member.Comment = DocComment.Format(property.Description);
 
-        if (!property.IsCSharpNullable) {
+        if (!property.IsCSharpNullable)
+        {
             member.DefaultValue = new CodeOutputComponent("default!") { Indented = false };
         }
 
@@ -351,19 +456,24 @@ internal static class SchemaEmitter {
     /// so the two agree about what a reference points at rather than agreeing by inspection.
     /// </para>
     /// </remarks>
-    private static bool IsLeaf(SchemaModel schema, IReadOnlyList<SchemaModel>? allSchemas) {
-        if (allSchemas == null || schema.IsPolymorphicBase) {
+    private static bool IsLeaf(SchemaModel schema, IReadOnlyList<SchemaModel>? allSchemas)
+    {
+        if (allSchemas == null || schema.IsPolymorphicBase)
+        {
             return false;
         }
 
         var name = NamingHelper.ToPascalCase(schema.Name);
 
-        foreach (var candidate in allSchemas) {
-            if (candidate.BaseRef == null) {
+        foreach (var candidate in allSchemas)
+        {
+            if (candidate.BaseRef == null)
+            {
                 continue;
             }
 
-            if (NamingHelper.ToPascalCase(TypeMapper.GetRefName(candidate.BaseRef)) == name) {
+            if (NamingHelper.ToPascalCase(TypeMapper.GetRefName(candidate.BaseRef)) == name)
+            {
                 return false;
             }
         }
@@ -372,9 +482,14 @@ internal static class SchemaEmitter {
     }
 
     private static void EmitBaseType(
-        ClassDefinition record, SchemaModel schema, string modelsNamespace,
-        IReadOnlyList<SchemaModel>? allSchemas) {
-        if (schema.BaseRef == null) {
+        ClassDefinition record,
+        SchemaModel schema,
+        string modelsNamespace,
+        IReadOnlyList<SchemaModel>? allSchemas
+    )
+    {
+        if (schema.BaseRef == null)
+        {
             return;
         }
 
@@ -386,11 +501,11 @@ internal static class SchemaEmitter {
         // The base's own constructor parameters, which is not the same as its property list: a
         // readOnly property is a member the derived record inherits rather than an argument it
         // passes.
-        var inherited = baseSchema == null
-            ? new List<PropertyModel>()
-            : SchemaShape.Constructor(baseSchema);
+        var inherited =
+            baseSchema == null ? new List<PropertyModel>() : SchemaShape.Constructor(baseSchema);
 
-        if (inherited.Count == 0) {
+        if (inherited.Count == 0)
+        {
             record.AddBaseType(baseType);
 
             return;
@@ -398,9 +513,9 @@ internal static class SchemaEmitter {
 
         var arguments = new List<IOutputComponent>();
 
-        foreach (var property in inherited) {
-            arguments.Add(
-                new CodeOutputComponent(property.MemberName) { Indented = false });
+        foreach (var property in inherited)
+        {
+            arguments.Add(new CodeOutputComponent(property.MemberName) { Indented = false });
         }
 
         record.AddBaseType(baseType, arguments.ToArray());
@@ -441,22 +556,30 @@ internal static class SchemaEmitter {
     /// written on the way out. See <c>ResponseOnlyAttribute</c>.
     /// </remarks>
     private static AttributeDefinition? EmitDirection(
-        BaseOutputComponent target, PropertyModel property) {
+        BaseOutputComponent target,
+        PropertyModel property
+    )
+    {
         // Bound to a header, so it is not in the body in either direction. [JsonIgnore] rather than
         // one of the direction attributes, which say "one direction only" rather than "neither".
-        if (property.IsHeaderBound) {
+        if (property.IsHeaderBound)
+        {
             return target.AddAttribute(
-                TypeDefinition.Get("System.Text.Json.Serialization", "JsonIgnoreAttribute"));
+                TypeDefinition.Get("System.Text.Json.Serialization", "JsonIgnoreAttribute")
+            );
         }
 
-        if (!property.IsReadOnly && !property.IsWriteOnly) {
+        if (!property.IsReadOnly && !property.IsWriteOnly)
+        {
             return null;
         }
 
         return target.AddAttribute(
             TypeDefinition.Get(
                 "Hardened.Requests.Abstract.Attributes",
-                property.IsReadOnly ? "ResponseOnlyAttribute" : "RequestOnlyAttribute"));
+                property.IsReadOnly ? "ResponseOnlyAttribute" : "RequestOnlyAttribute"
+            )
+        );
     }
 
     /// <summary>
@@ -475,14 +598,19 @@ internal static class SchemaEmitter {
     /// </para>
     /// </remarks>
     private static AttributeDefinition? EmitMessagePackObject(
-        ClassDefinition record, SpecSerializer serializer) =>
-        serializer switch {
+        ClassDefinition record,
+        SpecSerializer serializer
+    ) =>
+        serializer switch
+        {
             SpecSerializer.MessagePackNamed => record.AddAttribute(
                 TypeDefinition.Get("MessagePack", "MessagePackObjectAttribute"),
-                new CodeOutputComponent("true") { Indented = false }),
+                new CodeOutputComponent("true") { Indented = false }
+            ),
             SpecSerializer.MessagePackKeyed => record.AddAttribute(
-                TypeDefinition.Get("MessagePack", "MessagePackObjectAttribute")),
-            _ => null
+                TypeDefinition.Get("MessagePack", "MessagePackObjectAttribute")
+            ),
+            _ => null,
         };
 
     /// <summary>
@@ -516,34 +644,50 @@ internal static class SchemaEmitter {
     /// </para>
     /// </remarks>
     private static AttributeDefinition? EmitMessagePackMember(
-        BaseOutputComponent target, PropertyModel property, SpecSerializer serializer) {
-        if (serializer == SpecSerializer.Json) {
+        BaseOutputComponent target,
+        PropertyModel property,
+        SpecSerializer serializer
+    )
+    {
+        if (serializer == SpecSerializer.Json)
+        {
             return null;
         }
 
-        if (property.IsHeaderBound) {
+        if (property.IsHeaderBound)
+        {
             return target.AddAttribute(TypeDefinition.Get("MessagePack", "IgnoreMemberAttribute"));
         }
 
-        if (serializer == SpecSerializer.MessagePackNamed) {
+        if (serializer == SpecSerializer.MessagePackNamed)
+        {
             return target.AddAttribute(
                 TypeDefinition.Get("MessagePack", "KeyAttribute"),
-                new CodeOutputComponent($"\"{property.Name}\"") { Indented = false });
+                new CodeOutputComponent($"\"{property.Name}\"") { Indented = false }
+            );
         }
 
         return property.MessagePackIndex is { } index
             ? target.AddAttribute(
                 TypeDefinition.Get("MessagePack", "KeyAttribute"),
-                new CodeOutputComponent(index.ToString(System.Globalization.CultureInfo.InvariantCulture))
-                    { Indented = false })
+                new CodeOutputComponent(
+                    index.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                )
+                {
+                    Indented = false,
+                }
+            )
             : null;
     }
 
     private static AttributeDefinition EmitJsonPropertyName(
-        BaseOutputComponent parameter, PropertyModel property) =>
+        BaseOutputComponent parameter,
+        PropertyModel property
+    ) =>
         parameter.AddAttribute(
             TypeDefinition.Get("System.Text.Json.Serialization", "JsonPropertyNameAttribute"),
-            new CodeOutputComponent($"\"{property.Name}\"") { Indented = false });
+            new CodeOutputComponent($"\"{property.Name}\"") { Indented = false }
+        );
 
     /// <summary>
     /// Absent rather than null, for a member the description declares optional and not nullable.
@@ -561,23 +705,35 @@ internal static class SchemaEmitter {
     /// </para>
     /// </remarks>
     private static AttributeDefinition? EmitOmitWhenNull(
-        BaseOutputComponent target, PropertyModel property) =>
+        BaseOutputComponent target,
+        PropertyModel property
+    ) =>
         property.OmittedWhenNull
             ? target.AddAttribute(
                 TypeDefinition.Get("System.Text.Json.Serialization", "JsonIgnoreAttribute"),
                 new CodeOutputComponent(
-                    "Condition = global::System.Text.Json.Serialization." +
-                    "JsonIgnoreCondition.WhenWritingNull") { Indented = false })
+                    "Condition = global::System.Text.Json.Serialization."
+                        + "JsonIgnoreCondition.WhenWritingNull"
+                )
+                {
+                    Indented = false,
+                }
+            )
             : null;
 
     private static EnumDefinition EmitEnum(
-        IConstructContainer container, SchemaModel schema, string modelsNamespace) {
+        IConstructContainer container,
+        SchemaModel schema,
+        string modelsNamespace
+    )
+    {
         var enumDefinition = container.AddEnum(NamingHelper.ToPascalCase(schema.Name));
 
         enumDefinition.Modifiers |= ComponentModifier.Public;
         enumDefinition.Comment = DocComment.Format(schema.Description);
 
-        if (schema.IsDeprecated) {
+        if (schema.IsDeprecated)
+        {
             Deprecation.Apply(enumDefinition);
         }
 
@@ -596,15 +752,20 @@ internal static class SchemaEmitter {
         enumDefinition.AddAttribute(
             TypeDefinition.Get("System.Text.Json.Serialization", "JsonConverterAttribute"),
             new CodeOutputComponent(
-                    $"typeof(global::{modelsNamespace}.{EnumConverterEmitter.ConverterName(schema.Name)})")
-                { Indented = false });
+                $"typeof(global::{modelsNamespace}.{EnumConverterEmitter.ConverterName(schema.Name)})"
+            )
+            {
+                Indented = false,
+            }
+        );
 
         // An integer enum's members are its declared numbers, so the C# member carries the value it
         // stands for rather than a position. A string enum's numbering is meaningless and stays
         // implicit, which keeps every existing generated enum byte-identical.
         var underlying = EnumWireForm.UnderlyingType(schema);
 
-        if (underlying != null) {
+        if (underlying != null)
+        {
             enumDefinition.BaseType = TypeDefinition.Get("System", "Int64");
         }
 
@@ -614,13 +775,16 @@ internal static class SchemaEmitter {
         // name, and deciding that here would be deciding it in one of the places that used to.
         var members = EnumWireForm.MemberNames(schema);
 
-        for (var index = 0; index < members.Count; index++) {
+        for (var index = 0; index < members.Count; index++)
+        {
             // The literal itself, not a component wrapping it - AddValue renders the argument with
             // ToString(), so a component lands in the output as its own type name.
-            if (numeric) {
+            if (numeric)
+            {
                 enumDefinition.AddValue(members[index], schema.EnumValues[index]);
             }
-            else {
+            else
+            {
                 enumDefinition.AddValue(members[index]);
             }
         }

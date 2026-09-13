@@ -1,8 +1,8 @@
 using DependencyModules.Runtime.Attributes;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
-using Microsoft.Extensions.Primitives;
 using Hardened.Web.Runtime.Responses;
+using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Web.Runtime.Handlers;
 
@@ -15,14 +15,17 @@ namespace Hardened.Web.Runtime.Handlers;
 /// replacing this is how. The <c>Allow</c> header is not optional - RFC 9110 requires it on a 405,
 /// and it is the only thing that makes the response actionable rather than merely correct.
 /// </remarks>
-public interface IMethodNotAllowedHandler {
+public interface IMethodNotAllowedHandler
+{
     Task Handle(IExecutionContext context, string allow);
 }
 
 /// <inheritdoc />
 [SingletonService(Using = RegistrationType.Try)]
-public class MethodNotAllowedHandler : IMethodNotAllowedHandler {
-    public Task Handle(IExecutionContext context, string allow) {
+public class MethodNotAllowedHandler : IMethodNotAllowedHandler
+{
+    public Task Handle(IExecutionContext context, string allow)
+    {
         context.Response.Status = 405;
         context.Response.Headers[KnownHeaders.Allow] = new StringValues(allow);
 

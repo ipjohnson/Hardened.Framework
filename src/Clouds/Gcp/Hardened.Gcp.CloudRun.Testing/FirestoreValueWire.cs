@@ -22,19 +22,25 @@ namespace Hardened.Gcp.CloudRun.Testing;
 /// because plain JSON cannot say which it meant.
 /// </para>
 /// </remarks>
-internal static class FirestoreValueWire {
-    public static void WriteFields(MapField<string, Value> fields, JsonElement element) {
-        if (element.ValueKind != JsonValueKind.Object) {
+internal static class FirestoreValueWire
+{
+    public static void WriteFields(MapField<string, Value> fields, JsonElement element)
+    {
+        if (element.ValueKind != JsonValueKind.Object)
+        {
             return;
         }
 
-        foreach (var property in element.EnumerateObject()) {
+        foreach (var property in element.EnumerateObject())
+        {
             fields[property.Name] = ToValue(property.Value);
         }
     }
 
-    public static Value ToValue(JsonElement element) {
-        switch (element.ValueKind) {
+    public static Value ToValue(JsonElement element)
+    {
+        switch (element.ValueKind)
+        {
             case JsonValueKind.String:
                 return new Value { StringValue = element.GetString() ?? "" };
 
@@ -47,7 +53,8 @@ internal static class FirestoreValueWire {
             case JsonValueKind.False:
                 return new Value { BooleanValue = element.GetBoolean() };
 
-            case JsonValueKind.Object: {
+            case JsonValueKind.Object:
+            {
                 var map = new MapValue();
 
                 WriteFields(map.Fields, element);
@@ -55,10 +62,12 @@ internal static class FirestoreValueWire {
                 return new Value { MapValue = map };
             }
 
-            case JsonValueKind.Array: {
+            case JsonValueKind.Array:
+            {
                 var array = new ArrayValue();
 
-                foreach (var item in element.EnumerateArray()) {
+                foreach (var item in element.EnumerateArray())
+                {
                     array.Values.Add(ToValue(item));
                 }
 

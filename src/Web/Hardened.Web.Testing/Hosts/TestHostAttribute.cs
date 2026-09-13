@@ -20,13 +20,19 @@ namespace Hardened.Web.Testing;
 /// beside the application's when the attribute also implements <c>IDependencyModuleProvider</c>.
 /// </para>
 /// </remarks>
-[AttributeUsage(AttributeTargets.Method | AttributeTargets.Class | AttributeTargets.Assembly, AllowMultiple = false)]
-public abstract class TestHostAttribute : Attribute {
-
+[AttributeUsage(
+    AttributeTargets.Method | AttributeTargets.Class | AttributeTargets.Assembly,
+    AllowMultiple = false
+)]
+public abstract class TestHostAttribute : Attribute
+{
     /// <summary>
     /// The host for one test. Called once per container, before it is built, so the host can
     /// register what it needs. <c>[WebTesting]</c> registers the instance and starts it once the
     /// container exists.
     /// </summary>
-    public abstract ITestHost CreateHost(ITestMethodContext testMethod, IServiceCollection services);
+    public abstract ITestHost CreateHost(
+        ITestMethodContext testMethod,
+        IServiceCollection services
+    );
 }

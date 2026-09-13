@@ -18,16 +18,28 @@ namespace Hardened.IntegrationTests.Rie.SUT;
 /// the invocation is reported failed to the runtime, so the queue redelivers.
 /// </para>
 /// </remarks>
-public sealed class ObservedOrderStore : IOrderStore {
+public sealed class ObservedOrderStore : IOrderStore
+{
     private const string Marker = "HARDENED-OBSERVED ";
 
-    public void Place(Order order) {
-        if (order.Quantity < 0) {
+    public void Place(Order order)
+    {
+        if (order.Quantity < 0)
+        {
             throw new InvalidOperationException($"refused {order.Id}: the quantity is negative");
         }
 
         Console.Out.WriteLine(
-            Marker + JsonSerializer.Serialize(new { kind = "queue", id = order.Id, quantity = order.Quantity }));
+            Marker
+                + JsonSerializer.Serialize(
+                    new
+                    {
+                        kind = "queue",
+                        id = order.Id,
+                        quantity = order.Quantity,
+                    }
+                )
+        );
         Console.Out.Flush();
     }
 }

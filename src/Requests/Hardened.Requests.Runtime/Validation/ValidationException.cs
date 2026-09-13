@@ -18,9 +18,11 @@ namespace Hardened.Requests.Runtime.Validation;
 /// shape.
 /// </para>
 /// </remarks>
-public class ValidationException : BadRequestException {
+public class ValidationException : BadRequestException
+{
     public ValidationException(ValidationModules.ValidationResult validationResult)
-        : base("One or more validation errors occurred.") {
+        : base("One or more validation errors occurred.")
+    {
         ValidationResult = validationResult;
     }
 
@@ -35,7 +37,8 @@ public class ValidationException : BadRequestException {
     /// bare assertion that something was wrong.
     /// </remarks>
     public ValidationException(ValidationModules.ValidationResult validationResult, Exception inner)
-        : base("One or more validation errors occurred.", inner) {
+        : base("One or more validation errors occurred.", inner)
+    {
         ValidationResult = validationResult;
     }
 

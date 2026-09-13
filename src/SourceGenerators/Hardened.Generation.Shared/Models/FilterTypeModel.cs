@@ -4,7 +4,8 @@ namespace Hardened.Generation.Models;
 /// Represents a filter attribute type defined in x-filter-types.
 /// The source generator emits a partial attribute class from this definition.
 /// </summary>
-internal class FilterTypeModel : IEquatable<FilterTypeModel> {
+internal class FilterTypeModel : IEquatable<FilterTypeModel>
+{
     public string Name { get; set; } = "";
     public string Namespace { get; set; } = "";
     public List<FilterTypePropertyModel> Properties { get; set; } = new();
@@ -26,20 +27,27 @@ internal class FilterTypeModel : IEquatable<FilterTypeModel> {
     /// </summary>
     public string FullTypeName => $"{Namespace}.{ClassName}";
 
-    public bool Equals(FilterTypeModel? other) {
-        if (other is null) return false;
-        if (ReferenceEquals(this, other)) return true;
-        if (Name != other.Name || Namespace != other.Namespace) return false;
+    public bool Equals(FilterTypeModel? other)
+    {
+        if (other is null)
+            return false;
+        if (ReferenceEquals(this, other))
+            return true;
+        if (Name != other.Name || Namespace != other.Namespace)
+            return false;
         return Properties.SequenceEqual(other.Properties);
     }
 
     public override bool Equals(object? obj) => Equals(obj as FilterTypeModel);
 
-    public override int GetHashCode() {
-        unchecked {
+    public override int GetHashCode()
+    {
+        unchecked
+        {
             var hash = Name.GetHashCode();
             hash = (hash * 397) ^ Namespace.GetHashCode();
-            foreach (var p in Properties) hash = (hash * 397) ^ p.GetHashCode();
+            foreach (var p in Properties)
+                hash = (hash * 397) ^ p.GetHashCode();
             return hash;
         }
     }
@@ -48,7 +56,8 @@ internal class FilterTypeModel : IEquatable<FilterTypeModel> {
 /// <summary>
 /// A single property on a filter attribute type.
 /// </summary>
-internal class FilterTypePropertyModel : IEquatable<FilterTypePropertyModel> {
+internal class FilterTypePropertyModel : IEquatable<FilterTypePropertyModel>
+{
     public string Name { get; set; } = "";
     public string CSharpType { get; set; } = "string";
     public string? Default { get; set; }
@@ -60,19 +69,25 @@ internal class FilterTypePropertyModel : IEquatable<FilterTypePropertyModel> {
     /// </summary>
     public string? EnumType { get; set; }
 
-    public bool Equals(FilterTypePropertyModel? other) {
-        if (other is null) return false;
-        if (ReferenceEquals(this, other)) return true;
+    public bool Equals(FilterTypePropertyModel? other)
+    {
+        if (other is null)
+            return false;
+        if (ReferenceEquals(this, other))
+            return true;
         return Name == other.Name && CSharpType == other.CSharpType && Default == other.Default;
     }
 
     public override bool Equals(object? obj) => Equals(obj as FilterTypePropertyModel);
 
-    public override int GetHashCode() {
-        unchecked {
+    public override int GetHashCode()
+    {
+        unchecked
+        {
             var hash = Name.GetHashCode();
             hash = (hash * 397) ^ CSharpType.GetHashCode();
-            if (Default != null) hash = (hash * 397) ^ Default.GetHashCode();
+            if (Default != null)
+                hash = (hash * 397) ^ Default.GetHashCode();
             return hash;
         }
     }

@@ -21,7 +21,8 @@ namespace Hardened.Gcp.CloudRun.Runtime.Hosting;
 /// before the server has drained; the container tier's shutdown test saw a request cut off that way.
 /// </para>
 /// </remarks>
-public static class CloudRunHost {
+public static class CloudRunHost
+{
     /// <summary>The variable Cloud Run names the port in.</summary>
     public const string PortVariable = KestrelListen.PortVariable;
 
@@ -35,7 +36,11 @@ public static class CloudRunHost {
     public static readonly TimeSpan ShutdownGrace = TimeSpan.FromSeconds(10);
 
     /// <summary>What Cloud Run sends, and what a terminal sends, both drained the same way.</summary>
-    public static readonly IReadOnlyList<PosixSignal> Signals = [PosixSignal.SIGTERM, PosixSignal.SIGINT];
+    public static readonly IReadOnlyList<PosixSignal> Signals =
+    [
+        PosixSignal.SIGTERM,
+        PosixSignal.SIGINT,
+    ];
 
     /// <summary>The port Cloud Run asked for, or <see cref="DefaultPort"/>.</summary>
     public static int Port() => Port(Environment.GetEnvironmentVariable(PortVariable));
@@ -52,13 +57,16 @@ public static class CloudRunHost {
     /// <code>
     /// await using var app = HardenedKestrelApplication.Create(services, CloudRunHost.Listen);
     /// </code>
-    public static void Listen(KestrelServerOptions kestrel) => KestrelListen.FromEnvironment(kestrel, DefaultPort);
+    public static void Listen(KestrelServerOptions kestrel) =>
+        KestrelListen.FromEnvironment(kestrel, DefaultPort);
 
     /// <summary>
     /// Starts the application if it is not already started, waits for <c>SIGTERM</c>, <c>SIGINT</c>
     /// or <paramref name="cancellationToken"/>, then stops it, letting what is in flight finish
     /// within <see cref="ShutdownGrace"/>.
     /// </summary>
-    public static Task RunAsync(HardenedKestrelApplication app, CancellationToken cancellationToken = default) =>
-        app.RunAsync(Signals, ShutdownGrace, cancellationToken);
+    public static Task RunAsync(
+        HardenedKestrelApplication app,
+        CancellationToken cancellationToken = default
+    ) => app.RunAsync(Signals, ShutdownGrace, cancellationToken);
 }

@@ -18,16 +18,19 @@ namespace Hardened.Requests.Runtime.Tests.Authorization;
 /// request never reaches the handler, and that its body is never read.
 /// </para>
 /// </summary>
-public class AuthorizationFilterTests {
-
+public class AuthorizationFilterTests
+{
     /// <summary>Resolves grants that are not in the credential - a permissions table stands in.</summary>
-    private sealed class ResolvingHandler : IActivityAuthorizationHandler {
+    private sealed class ResolvingHandler : IActivityAuthorizationHandler
+    {
         private readonly HashSet<string> _resolvable;
         private readonly AuthorizationDecision _verdict;
 
         public ResolvingHandler(
             IEnumerable<string> resolvable,
-            AuthorizationDecision verdict = AuthorizationDecision.Abstain) {
+            AuthorizationDecision verdict = AuthorizationDecision.Abstain
+        )
+        {
             _resolvable = new HashSet<string>(resolvable, StringComparer.Ordinal);
             _verdict = verdict;
         }
@@ -36,29 +39,42 @@ public class AuthorizationFilterTests {
         public int Calls { get; private set; }
 
         public ValueTask<GrantResolution> Resolve(
-            IExecutionContext context, IReadOnlyList<string> grants) {
+            IExecutionContext context,
+            IReadOnlyList<string> grants
+        )
+        {
             Calls++;
 
             return new ValueTask<GrantResolution>(
                 new GrantResolution(
                     grants.Where(_resolvable.Contains).ToHashSet(StringComparer.Ordinal),
-                    _verdict));
+                    _verdict
+                )
+            );
         }
     }
 
     private static IExecutionContext Context(
         ICallerPrincipal? principal = null,
-        params IActivityAuthorizationHandler[] handlers) {
-        var context = Pipeline.Context(configureServices: services => {
+        params IActivityAuthorizationHandler[] handlers
+    )
+    {
+        var context = Pipeline.Context(configureServices: services =>
+        {
             services.AddSingleton<IActivityAuthorizationService, ActivityAuthorizationService>();
-            services.AddSingleton<IActivityAuthorizationHandler, PrincipalGrantAuthorizationHandler>();
+            services.AddSingleton<
+                IActivityAuthorizationHandler,
+                PrincipalGrantAuthorizationHandler
+            >();
 
-            foreach (var handler in handlers) {
+            foreach (var handler in handlers)
+            {
                 services.AddSingleton(handler);
             }
         });
 
-        if (principal != null) {
+        if (principal != null)
+        {
             context.CallerPrincipal = principal;
         }
 
@@ -74,11 +90,15 @@ public class AuthorizationFilterTests {
     #region the fast path
 
     [Fact]
-    public async Task ARequirementTheCredentialSatisfiesLetsTheRequestThrough() {
+    public async Task ARequirementTheCredentialSatisfiesLetsTheRequestThrough()
+    {
         var log = new List<string>();
         var context = Context(Holding("pets:read"));
 
-        var filter = new AuthorizationFilter(Requirement.Grant("pets:read"), beforeSerialization: true);
+        var filter = new AuthorizationFilter(
+            Requirement.Grant("pets:read"),
+            beforeSerialization: true
+        );
 
         await Pipeline.Chain(context, filter, new Pipeline.Recording(log, "handler")).Next();
 
@@ -91,11 +111,15 @@ public class AuthorizationFilterTests {
     /// authorized resolves no service and awaits nothing.
     /// </summary>
     [Fact]
-    public async Task ASatisfiedRequirementConsultsNoContributor() {
+    public async Task ASatisfiedRequirementConsultsNoContributor()
+    {
         var handler = new ResolvingHandler([], AuthorizationDecision.Deny);
         var context = Context(Holding("pets:read"), handler);
 
-        var filter = new AuthorizationFilter(Requirement.Grant("pets:read"), beforeSerialization: true);
+        var filter = new AuthorizationFilter(
+            Requirement.Grant("pets:read"),
+            beforeSerialization: true
+        );
 
         await Pipeline.Chain(context, filter, new Pipeline.Recording([], "handler")).Next();
 
@@ -113,25 +137,32 @@ public class AuthorizationFilterTests {
     /// but a response is still written.
     /// </summary>
     [Fact]
-    public async Task ARefusalAheadOfTheSerializerReadsNoBodyAndRunsNoHandler() {
+    public async Task ARefusalAheadOfTheSerializerReadsNoBodyAndRunsNoHandler()
+    {
         var log = new List<string>();
         var context = Context();
         var deserialized = false;
 
-        var auth = new AuthorizationFilter(Requirement.Grant("pets:read"), beforeSerialization: true);
+        var auth = new AuthorizationFilter(
+            Requirement.Grant("pets:read"),
+            beforeSerialization: true
+        );
 
         var io = new IoFilter(
-            _ => {
+            _ =>
+            {
                 deserialized = true;
 
                 return Task.FromResult(EmptyParameters.Instance);
             },
-            _ => {
+            _ =>
+            {
                 log.Add("serialize");
 
                 return Task.CompletedTask;
             },
-            headerActions: null);
+            headerActions: null
+        );
 
         await Pipeline.Chain(context, auth, io, new Pipeline.Recording(log, "handler")).Next();
 
@@ -152,12 +183,15 @@ public class AuthorizationFilterTests {
     /// continuing - the refusal is written on the way back out.
     /// </summary>
     [Fact]
-    public async Task ARefusalBehindTheSerializerStopsTheChain() {
+    public async Task ARefusalBehindTheSerializerStopsTheChain()
+    {
         var log = new List<string>();
         var context = Context();
 
         var filter = new AuthorizationFilter(
-            Requirement.Predicate((_, _) => false, "never"), beforeSerialization: false);
+            Requirement.Predicate((_, _) => false, "never"),
+            beforeSerialization: false
+        );
 
         await Pipeline.Chain(context, filter, new Pipeline.Recording(log, "handler")).Next();
 
@@ -174,7 +208,8 @@ public class AuthorizationFilterTests {
     /// have been wrong about.
     /// </summary>
     [Fact]
-    public async Task AnAnonymousCallerIsToldToAuthenticate() {
+    public async Task AnAnonymousCallerIsToldToAuthenticate()
+    {
         var context = Context();
 
         await Run(context, Requirement.Grant("pets:read"));
@@ -189,7 +224,8 @@ public class AuthorizationFilterTests {
     /// Authenticated but short of grants: 403, naming what would have worked.
     /// </summary>
     [Fact]
-    public async Task AnAuthenticatedCallerShortOfGrantsIsToldWhichOnes() {
+    public async Task AnAuthenticatedCallerShortOfGrantsIsToldWhichOnes()
+    {
         var context = Context(Holding("pets:read"));
 
         await Run(context, Requirement.Grant("pets:read") & Requirement.Grant("pets:write"));
@@ -207,10 +243,12 @@ public class AuthorizationFilterTests {
     /// that is the contributor comparing the claim.
     /// </summary>
     [Fact]
-    public async Task AContributorAskingForAStrongerCredentialTurnsA403IntoA401() {
+    public async Task AContributorAskingForAStrongerCredentialTurnsA403IntoA401()
+    {
         var context = Context(
             Holding("pets:read"),
-            new ResolvingHandler([], AuthorizationDecision.DenyInsufficientAuthentication));
+            new ResolvingHandler([], AuthorizationDecision.DenyInsufficientAuthentication)
+        );
 
         await Run(context, Requirement.Grant("pets:admin"));
 
@@ -229,11 +267,15 @@ public class AuthorizationFilterTests {
     /// the framework does not know about.
     /// </summary>
     [Fact]
-    public async Task AGrantResolvedByAContributorSatisfiesTheRequirement() {
+    public async Task AGrantResolvedByAContributorSatisfiesTheRequirement()
+    {
         var log = new List<string>();
         var context = Context(Holding(), new ResolvingHandler(["pets:read"]));
 
-        var filter = new AuthorizationFilter(Requirement.Grant("pets:read"), beforeSerialization: true);
+        var filter = new AuthorizationFilter(
+            Requirement.Grant("pets:read"),
+            beforeSerialization: true
+        );
 
         await Pipeline.Chain(context, filter, new Pipeline.Recording(log, "handler")).Next();
 
@@ -247,16 +289,20 @@ public class AuthorizationFilterTests {
     /// resolution returns the subset held rather than a yes or no.
     /// </summary>
     [Fact]
-    public async Task EveryGrantIsResolvedInOneCall() {
+    public async Task EveryGrantIsResolvedInOneCall()
+    {
         var handler = new ResolvingHandler(["a", "b", "c"]);
         var context = Context(Holding(), handler);
 
         var requirement = Requirement.Grant("a") & Requirement.Grant("b") & Requirement.Grant("c");
 
-        await Pipeline.Chain(
-            context,
-            new AuthorizationFilter(requirement, beforeSerialization: true),
-            new Pipeline.Recording([], "handler")).Next();
+        await Pipeline
+            .Chain(
+                context,
+                new AuthorizationFilter(requirement, beforeSerialization: true),
+                new Pipeline.Recording([], "handler")
+            )
+            .Next();
 
         Assert.Equal(1, handler.Calls);
         Assert.Null(context.Response.ExceptionValue);
@@ -269,7 +315,8 @@ public class AuthorizationFilterTests {
     /// a caller who legitimately holds one branch.
     /// </summary>
     [Fact]
-    public async Task ResolvingOneBranchOfAnOrIsEnough() {
+    public async Task ResolvingOneBranchOfAnOrIsEnough()
+    {
         var log = new List<string>();
         var context = Context(Holding(), new ResolvingHandler(["admin:*"]));
 
@@ -285,7 +332,8 @@ public class AuthorizationFilterTests {
     /// And the other half of that: resolving one branch of an <em>and</em> is not enough.
     /// </summary>
     [Fact]
-    public async Task ResolvingOneBranchOfAnAndIsNotEnough() {
+    public async Task ResolvingOneBranchOfAnAndIsNotEnough()
+    {
         var context = Context(Holding(), new ResolvingHandler(["pets:read"]));
 
         await Run(context, Requirement.Grant("pets:read") & Requirement.Grant("pets:write"));
@@ -299,7 +347,8 @@ public class AuthorizationFilterTests {
     /// widen every later check in the same request.
     /// </summary>
     [Fact]
-    public async Task ResolvedGrantsDoNotStayOnThePrincipal() {
+    public async Task ResolvedGrantsDoNotStayOnThePrincipal()
+    {
         var context = Context(Holding(), new ResolvingHandler(["pets:read"]));
 
         await Run(context, Requirement.Grant("pets:read"));
@@ -311,8 +360,11 @@ public class AuthorizationFilterTests {
     #endregion
 
     private static Task Run(IExecutionContext context, Requirement requirement) =>
-        Pipeline.Chain(
-            context,
-            new AuthorizationFilter(requirement, beforeSerialization: false),
-            new Pipeline.Recording([], "handler")).Next();
+        Pipeline
+            .Chain(
+                context,
+                new AuthorizationFilter(requirement, beforeSerialization: false),
+                new Pipeline.Recording([], "handler")
+            )
+            .Next();
 }

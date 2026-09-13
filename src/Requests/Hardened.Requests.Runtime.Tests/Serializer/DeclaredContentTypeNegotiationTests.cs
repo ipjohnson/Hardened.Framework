@@ -14,12 +14,14 @@ namespace Hardened.Requests.Runtime.Tests.Serializer;
 /// <c>SerializationLocatorServiceTests</c> covers the path an operation that declares nothing takes,
 /// which is unchanged. This covers the tier above it.
 /// </remarks>
-public class DeclaredContentTypeNegotiationTests {
-
-    private static IResponseSerializer Serializer(string produces, bool isDefault = false) {
+public class DeclaredContentTypeNegotiationTests
+{
+    private static IResponseSerializer Serializer(string produces, bool isDefault = false)
+    {
         var serializer = Substitute.For<IResponseSerializer>();
 
-        serializer.CanProduce(Arg.Any<string>(), Arg.Any<IExecutionContext>())
+        serializer
+            .CanProduce(Arg.Any<string>(), Arg.Any<IExecutionContext>())
             .Returns(call => MediaType.Matches((string)call[0], produces));
         serializer.IsDefaultSerializer.Returns(isDefault);
 
@@ -27,7 +29,8 @@ public class DeclaredContentTypeNegotiationTests {
     }
 
     /// <summary>A context whose handler declares <paramref name="declared"/>.</summary>
-    private static IExecutionContext Context(string? accept, params string[] declared) {
+    private static IExecutionContext Context(string? accept, params string[] declared)
+    {
         var context = Pipeline.Context(accept: accept);
         var handlerInfo = Substitute.For<IExecutionRequestHandlerInfo>();
 
@@ -38,11 +41,13 @@ public class DeclaredContentTypeNegotiationTests {
     }
 
     private static SerializationLocatorService Locator(
-        ContentNegotiationMode mode, params IResponseSerializer[] serializers) =>
-        new(Array.Empty<IRequestDeserializer>(), serializers, new ContentNegotiationPolicy(mode));
+        ContentNegotiationMode mode,
+        params IResponseSerializer[] serializers
+    ) => new(Array.Empty<IRequestDeserializer>(), serializers, new ContentNegotiationPolicy(mode));
 
     [Fact]
-    public void AnAbsentAcceptTakesTheFirstDeclaredType() {
+    public void AnAbsentAcceptTakesTheFirstDeclaredType()
+    {
         var json = Serializer("application/json", isDefault: true);
         var text = Serializer("text/plain");
 
@@ -57,7 +62,8 @@ public class DeclaredContentTypeNegotiationTests {
     /// which is JSON, for an operation that declares plain text and nothing else.
     /// </summary>
     [Fact]
-    public void AnyMediaTypeTakesTheFirstDeclaredType() {
+    public void AnyMediaTypeTakesTheFirstDeclaredType()
+    {
         var json = Serializer("application/json", isDefault: true);
         var text = Serializer("text/plain");
 
@@ -69,7 +75,8 @@ public class DeclaredContentTypeNegotiationTests {
 
     /// <summary>Document order is the server's preference, and decides what <c>*/*</c> gets.</summary>
     [Fact]
-    public void TheFirstDeclaredTypeIsTheDocumentsOrderNotTheSerializers() {
+    public void TheFirstDeclaredTypeIsTheDocumentsOrderNotTheSerializers()
+    {
         var json = Serializer("application/json", isDefault: true);
         var text = Serializer("text/plain");
 
@@ -80,7 +87,8 @@ public class DeclaredContentTypeNegotiationTests {
     }
 
     [Fact]
-    public void AnExplicitAcceptWithinTheSetIsHonoured() {
+    public void AnExplicitAcceptWithinTheSetIsHonoured()
+    {
         var json = Serializer("application/json", isDefault: true);
         var text = Serializer("text/plain");
 
@@ -95,7 +103,8 @@ public class DeclaredContentTypeNegotiationTests {
     /// from refusing clients that said outright they could read the answer.
     /// </summary>
     [Fact]
-    public void AClientListingSeveralGetsTheOverlap() {
+    public void AClientListingSeveralGetsTheOverlap()
+    {
         var json = Serializer("application/json", isDefault: true);
         var text = Serializer("text/plain");
 
@@ -106,26 +115,31 @@ public class DeclaredContentTypeNegotiationTests {
     }
 
     [Fact]
-    public void NoOverlapIsNotAcceptableUnderStrict() {
+    public void NoOverlapIsNotAcceptableUnderStrict()
+    {
         var json = Serializer("application/json", isDefault: true);
         var text = Serializer("text/plain");
 
         var locator = Locator(ContentNegotiationMode.Strict, json, text);
 
-        Assert.Throws<NotAcceptableException>(
-            () => locator.FindResponseSerializer(Context("application/json", "text/plain")));
+        Assert.Throws<NotAcceptableException>(() =>
+            locator.FindResponseSerializer(Context("application/json", "text/plain"))
+        );
     }
 
     /// <summary>And the refusal names what the operation can produce.</summary>
     [Fact]
-    public void TheRefusalNamesWhatIsOnOffer() {
+    public void TheRefusalNamesWhatIsOnOffer()
+    {
         var locator = Locator(
             ContentNegotiationMode.Strict,
             Serializer("application/json", isDefault: true),
-            Serializer("text/plain"));
+            Serializer("text/plain")
+        );
 
-        var refusal = Assert.Throws<NotAcceptableException>(
-            () => locator.FindResponseSerializer(Context("application/json", "text/plain")));
+        var refusal = Assert.Throws<NotAcceptableException>(() =>
+            locator.FindResponseSerializer(Context("application/json", "text/plain"))
+        );
 
         Assert.Equal(406, refusal.StatusCode);
         Assert.Contains("text/plain", refusal.Message);
@@ -133,7 +147,8 @@ public class DeclaredContentTypeNegotiationTests {
 
     /// <summary>The escape hatch, for a service whose clients ask badly and must be served anyway.</summary>
     [Fact]
-    public void NoOverlapFallsBackToTheDefaultUnderLenient() {
+    public void NoOverlapFallsBackToTheDefaultUnderLenient()
+    {
         var json = Serializer("application/json", isDefault: true);
         var text = Serializer("text/plain");
 
@@ -152,12 +167,16 @@ public class DeclaredContentTypeNegotiationTests {
     /// The committed-content-type tier throws for exactly this, and so does this one.
     /// </remarks>
     [Fact]
-    public void ADeclaredTypeNothingCanWriteIsAConfigurationFault() {
+    public void ADeclaredTypeNothingCanWriteIsAConfigurationFault()
+    {
         var locator = Locator(
-            ContentNegotiationMode.Strict, Serializer("application/json", isDefault: true));
+            ContentNegotiationMode.Strict,
+            Serializer("application/json", isDefault: true)
+        );
 
-        var failure = Assert.Throws<ContentTypeNotProducibleException>(
-            () => locator.FindResponseSerializer(Context("text/html", "application/pdf")));
+        var failure = Assert.Throws<ContentTypeNotProducibleException>(() =>
+            locator.FindResponseSerializer(Context("text/html", "application/pdf"))
+        );
 
         Assert.Contains("application/pdf", failure.Message);
     }
@@ -166,7 +185,8 @@ public class DeclaredContentTypeNegotiationTests {
     /// An operation declaring nothing negotiates exactly as it did before any of this existed.
     /// </summary>
     [Fact]
-    public void AnOperationDeclaringNothingIsUnaffected() {
+    public void AnOperationDeclaringNothingIsUnaffected()
+    {
         var json = Serializer("application/json", isDefault: true);
 
         var chosen = Locator(ContentNegotiationMode.Strict, json)
@@ -179,12 +199,15 @@ public class DeclaredContentTypeNegotiationTests {
     /// The default is strict, so a service that registers no policy still refuses cleanly.
     /// </summary>
     [Fact]
-    public void TheDefaultPolicyIsStrict() {
+    public void TheDefaultPolicyIsStrict()
+    {
         var locator = new SerializationLocatorService(
             Array.Empty<IRequestDeserializer>(),
-            new[] { Serializer("application/json", isDefault: true), Serializer("text/plain") });
+            new[] { Serializer("application/json", isDefault: true), Serializer("text/plain") }
+        );
 
-        Assert.Throws<NotAcceptableException>(
-            () => locator.FindResponseSerializer(Context("application/json", "text/plain")));
+        Assert.Throws<NotAcceptableException>(() =>
+            locator.FindResponseSerializer(Context("application/json", "text/plain"))
+        );
     }
 }

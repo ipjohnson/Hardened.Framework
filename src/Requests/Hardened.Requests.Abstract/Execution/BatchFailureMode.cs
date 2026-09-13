@@ -17,7 +17,8 @@ namespace Hardened.Requests.Abstract.Execution;
 /// makes any transport redeliver.
 /// </para>
 /// </remarks>
-public enum BatchFailureMode {
+public enum BatchFailureMode
+{
     /// <summary>
     /// Each item is answered for on its own, so every item is attempted.
     /// </summary>
@@ -44,5 +45,5 @@ public enum BatchFailureMode {
     /// promise on the retry, where three is replayed after five has already been applied.
     /// </para>
     /// </remarks>
-    Checkpoint
+    Checkpoint,
 }

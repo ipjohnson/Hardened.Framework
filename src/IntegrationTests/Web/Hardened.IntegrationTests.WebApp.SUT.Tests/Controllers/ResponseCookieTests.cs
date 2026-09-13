@@ -1,4 +1,5 @@
 using Hardened.Web.Runtime.Responses;
+
 namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 
 /// <summary>
@@ -10,16 +11,19 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 /// cookie behaviour untestable — while the same call worked over HTTP. Nothing in this suite
 /// appended a cookie, which is how it stayed hidden.
 /// </remarks>
-public class ResponseCookieTests {
-
+public class ResponseCookieTests
+{
     [HardenedTest]
-    public async Task ACookieSetByAHandlerReachesTheClient(ITestWebApp testWebApp) {
+    public async Task ACookieSetByAHandlerReachesTheClient(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/cookies/set");
 
         response.Assert.Ok();
 
-        Assert.True(response.Headers.TryGetValue("Set-Cookie", out var setCookie),
-            "the handler appended a cookie and the response carries no Set-Cookie header");
+        Assert.True(
+            response.Headers.TryGetValue("Set-Cookie", out var setCookie),
+            "the handler appended a cookie and the response carries no Set-Cookie header"
+        );
         Assert.Contains(setCookie.ToArray(), value => value!.StartsWith("session=abc123"));
     }
 
@@ -28,7 +32,8 @@ public class ResponseCookieTests {
     /// dropped <c>HttpOnly</c> would let a test pass on a cookie the browser treats differently.
     /// </summary>
     [HardenedTest]
-    public async Task CookieAttributesReachTheClient(ITestWebApp testWebApp) {
+    public async Task CookieAttributesReachTheClient(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/cookies/set-with-options");
 
         response.Assert.Ok();

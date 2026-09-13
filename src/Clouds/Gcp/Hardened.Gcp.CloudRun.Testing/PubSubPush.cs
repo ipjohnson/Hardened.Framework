@@ -11,7 +11,8 @@ namespace Hardened.Gcp.CloudRun.Testing;
 /// <c>message_id</c>, which no naming policy produces, so a fixture built by round-tripping a type
 /// would agree with the type and not with Pub/Sub.
 /// </remarks>
-public static class PubSubPush {
+public static class PubSubPush
+{
     /// <summary>
     /// One push, for <paramref name="subscription"/>, carrying <paramref name="data"/>.
     /// </summary>
@@ -29,36 +30,44 @@ public static class PubSubPush {
         string? messageId = null,
         string? publishTime = null,
         string? orderingKey = null,
-        int? deliveryAttempt = null) {
+        int? deliveryAttempt = null
+    )
+    {
         var buffer = new MemoryStream();
 
-        using (var writer = new Utf8JsonWriter(buffer)) {
+        using (var writer = new Utf8JsonWriter(buffer))
+        {
             writer.WriteStartObject();
             writer.WriteStartObject("message");
 
             writer.WriteBase64String("data", data);
 
-            if (attributes is { Count: > 0 }) {
+            if (attributes is { Count: > 0 })
+            {
                 writer.WriteStartObject("attributes");
 
-                foreach (var attribute in attributes) {
+                foreach (var attribute in attributes)
+                {
                     writer.WriteString(attribute.Key, attribute.Value);
                 }
 
                 writer.WriteEndObject();
             }
 
-            if (messageId != null) {
+            if (messageId != null)
+            {
                 writer.WriteString("messageId", messageId);
                 writer.WriteString("message_id", messageId);
             }
 
-            if (publishTime != null) {
+            if (publishTime != null)
+            {
                 writer.WriteString("publishTime", publishTime);
                 writer.WriteString("publish_time", publishTime);
             }
 
-            if (orderingKey != null) {
+            if (orderingKey != null)
+            {
                 writer.WriteString("orderingKey", orderingKey);
             }
 
@@ -66,7 +75,8 @@ public static class PubSubPush {
 
             writer.WriteString("subscription", subscription);
 
-            if (deliveryAttempt != null) {
+            if (deliveryAttempt != null)
+            {
                 writer.WriteNumber("deliveryAttempt", deliveryAttempt.Value);
             }
 

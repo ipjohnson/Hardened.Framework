@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using Hardened.Idl.Emitters;
 using Hardened.Generation.Models;
+using Hardened.Idl.Emitters;
 using Hardened.Idl.Filtering;
 using Hardened.OpenApi.SourceGenerator;
 using Xunit;
@@ -26,8 +26,8 @@ namespace Hardened.OpenApi.BuildTask.Tests;
 /// is the one place the module's choice is overridden rather than obeyed.
 /// </para>
 /// </remarks>
-public class MultipleSuccessResponseTests {
-
+public class MultipleSuccessResponseTests
+{
     private const string TwoSuccesses = """
         openapi: 3.0.0
         info: { title: Jobs, version: 1.0.0 }
@@ -64,7 +64,8 @@ public class MultipleSuccessResponseTests {
             Problem: { type: object, properties: { detail: { type: string } } }
         """;
 
-    private static ServiceSpecModel Parse() {
+    private static ServiceSpecModel Parse()
+    {
         var model = OpenApiSpecParser.Parse(TwoSuccesses, "jobs", CancellationToken.None);
 
         Assert.NotNull(model);
@@ -73,13 +74,15 @@ public class MultipleSuccessResponseTests {
     }
 
     private static OperationModel Operation(string operationId) =>
-        Parse().Services.SelectMany(service => service.Operations)
+        Parse()
+            .Services.SelectMany(service => service.Operations)
             .Single(operation => operation.OperationId == operationId);
 
     #region parsing
 
     [Fact]
-    public void Parse_CarriesEveryDeclaredSuccess() {
+    public void Parse_CarriesEveryDeclaredSuccess()
+    {
         var operation = Operation("getJob");
 
         Assert.Equal(new[] { 200, 202 }, operation.SuccessResponses.Select(r => r.StatusCode));
@@ -89,7 +92,8 @@ public class MultipleSuccessResponseTests {
     /// The flat fields keep naming the lowest 2xx, so every consumer that reads them is untouched.
     /// </summary>
     [Fact]
-    public void Parse_PrimarySuccessIsStillTheLowestStatus() {
+    public void Parse_PrimarySuccessIsStillTheLowestStatus()
+    {
         var operation = Operation("getJob");
 
         Assert.Equal(200, operation.SuccessStatusCode);
@@ -98,7 +102,8 @@ public class MultipleSuccessResponseTests {
 
     /// <summary>A 204 is a declared success carrying no body, not an absent one.</summary>
     [Fact]
-    public void Parse_ABodylessSuccessIsCarriedWithNoRef() {
+    public void Parse_ABodylessSuccessIsCarriedWithNoRef()
+    {
         var success = Assert.Single(Operation("cancelJob").SuccessResponses);
 
         Assert.Equal(204, success.StatusCode);
@@ -114,10 +119,12 @@ public class MultipleSuccessResponseTests {
     /// 202 the handler has no way to produce.
     /// </summary>
     [Fact]
-    public void ServiceInterface_MultipleSuccesses_ReturnsAResponseSetEvenInThrowsMode() {
-        var service = new ServiceModel {
+    public void ServiceInterface_MultipleSuccesses_ReturnsAResponseSetEvenInThrowsMode()
+    {
+        var service = new ServiceModel
+        {
             Tag = "Jobs",
-            Operations = new List<OperationModel> { Operation("getJob") }
+            Operations = new List<OperationModel> { Operation("getJob") },
         };
 
         var result = EmitterHarness.ServiceInterface(service);
@@ -129,10 +136,12 @@ public class MultipleSuccessResponseTests {
     /// One success and one error is the case throws mode was built for, and it is unchanged.
     /// </summary>
     [Fact]
-    public void ServiceInterface_OneSuccess_StillThrowsInThrowsMode() {
-        var service = new ServiceModel {
+    public void ServiceInterface_OneSuccess_StillThrowsInThrowsMode()
+    {
+        var service = new ServiceModel
+        {
             Tag = "Jobs",
-            Operations = new List<OperationModel> { Operation("cancelJob") }
+            Operations = new List<OperationModel> { Operation("cancelJob") },
         };
 
         var result = EmitterHarness.ServiceInterface(service);
@@ -146,10 +155,17 @@ public class MultipleSuccessResponseTests {
     #region the emitted cases
 
     private static string Emit(params OperationModel[] operations) =>
-        EmitterHarness.Write(ns => UnionResponseEmitter.Emit(
-            ns,
-            new ServiceModel { Tag = "jobs", Operations = new List<OperationModel>(operations) },
-            EmitterHarness.ModelsNamespace));
+        EmitterHarness.Write(ns =>
+            UnionResponseEmitter.Emit(
+                ns,
+                new ServiceModel
+                {
+                    Tag = "jobs",
+                    Operations = new List<OperationModel>(operations),
+                },
+                EmitterHarness.ModelsNamespace
+            )
+        );
 
     /// <summary>
     /// The primary success is named by its own schema; every other one is wrapped, because the
@@ -161,14 +177,16 @@ public class MultipleSuccessResponseTests {
     /// has nothing to share, where a 404 over a schema is the same 404 wherever it is declared.
     /// </remarks>
     [Fact]
-    public void Emit_WrapsEverySuccessExceptThePrimary() {
+    public void Emit_WrapsEverySuccessExceptThePrimary()
+    {
         var result = Emit(Operation("getJob"));
 
         Assert.Contains("public GetJobResponse(Test.Api.Models.Job value)", result);
         Assert.Contains("public GetJobResponse(Test.Api.Models.GetJobAccepted value)", result);
         Assert.Contains(
             "public GetJobResponse(Hardened.Web.Runtime.Responses.NotFound<Test.Api.Models.Problem> value)",
-            result);
+            result
+        );
     }
 
     /// <summary>
@@ -176,11 +194,15 @@ public class MultipleSuccessResponseTests {
     /// error and nothing a handler could return to say it had succeeded.
     /// </summary>
     [Fact]
-    public void Emit_ABodylessSuccessGetsACaseWithNoBody() {
+    public void Emit_ABodylessSuccessGetsACaseWithNoBody()
+    {
         var result = Emit(Operation("cancelJob"));
 
         Assert.Contains("public sealed partial record CancelJobNoContent;", result);
-        Assert.Contains("public CancelJobResponse(Test.Api.Models.CancelJobNoContent value)", result);
+        Assert.Contains(
+            "public CancelJobResponse(Test.Api.Models.CancelJobNoContent value)",
+            result
+        );
     }
 
     /// <summary>
@@ -188,7 +210,8 @@ public class MultipleSuccessResponseTests {
     /// the same status reads the same in both directions.
     /// </summary>
     [Fact]
-    public void Emit_SuccessCasesAreNamedAfterTheirStatus() {
+    public void Emit_SuccessCasesAreNamedAfterTheirStatus()
+    {
         var result = Emit(Operation("getJob"), Operation("cancelJob"));
 
         Assert.Contains("GetJobAccepted", result);
@@ -209,7 +232,8 @@ public class MultipleSuccessResponseTests {
     /// schema perfectly well.
     /// </remarks>
     [Fact]
-    public void Slice_KeepsASchemaReachedOnlyByANonPrimarySuccess() {
+    public void Slice_KeepsASchemaReachedOnlyByANonPrimarySuccess()
+    {
         var model = Parse();
 
         SpecSlicer.Apply(model, new SpecSlicer.Filter());

@@ -18,9 +18,10 @@ namespace Hardened.IntegrationTests.AzureQueue.SUT.Tests;
 /// look right - and invocations run through reflection instead of the generated executor.
 /// </para>
 /// </summary>
-public class WorkerRegistrationTests {
-
-    private static ServiceProvider Worker() {
+public class WorkerRegistrationTests
+{
+    private static ServiceProvider Worker()
+    {
         var services = new ServiceCollection();
 
         // The worker's own defaults, exactly as ConfigureFunctionsWorkerDefaults registers them,
@@ -31,18 +32,23 @@ public class WorkerRegistrationTests {
     }
 
     [Fact]
-    public void TheGeneratedExecutorReplacesTheWorkersDefault() {
+    public void TheGeneratedExecutorReplacesTheWorkersDefault()
+    {
         using var worker = Worker();
 
-        Assert.IsType<AzureQueueTestAppAzureFunctionExecutor>(worker.GetRequiredService<IFunctionExecutor>());
+        Assert.IsType<AzureQueueTestAppAzureFunctionExecutor>(
+            worker.GetRequiredService<IFunctionExecutor>()
+        );
     }
 
     [Fact]
-    public void TheGeneratedMetadataProviderReplacesTheWorkersDefault() {
+    public void TheGeneratedMetadataProviderReplacesTheWorkersDefault()
+    {
         using var worker = Worker();
 
         Assert.IsType<AzureQueueTestAppAzureFunctionMetadataProvider>(
-            worker.GetRequiredService<IFunctionMetadataProvider>());
+            worker.GetRequiredService<IFunctionMetadataProvider>()
+        );
     }
 
     /// <summary>
@@ -50,7 +56,8 @@ public class WorkerRegistrationTests {
     /// built with the adapter the queue handler's trigger bound.
     /// </summary>
     [Fact]
-    public void TheInvocationHandlerIsInTheWorkerWithTheServiceBusAdapter() {
+    public void TheInvocationHandlerIsInTheWorkerWithTheServiceBusAdapter()
+    {
         using var worker = Worker();
 
         var handler = worker.GetRequiredService<FunctionsInvocationHandler>();

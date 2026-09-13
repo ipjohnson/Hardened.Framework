@@ -9,13 +9,15 @@ namespace Hardened.Shared.Runtime.Tests.Configuration;
 /// The three pieces <see cref="ConfigurationManager"/> is assembled from: the two value providers,
 /// the package that carries them, and the amender that rewrites what they produced.
 /// </summary>
-public class ConfigurationValueProviderTests {
-
-    public interface IServiceOptions {
+public class ConfigurationValueProviderTests
+{
+    public interface IServiceOptions
+    {
         string ServiceUrl { get; }
     }
 
-    public class ServiceOptions : IServiceOptions {
+    public class ServiceOptions : IServiceOptions
+    {
         public string ServiceUrl { get; set; } = "http://default";
     }
 
@@ -28,7 +30,8 @@ public class ConfigurationValueProviderTests {
     /// the interface, so getting this wrong makes the model unresolvable rather than wrong.
     /// </summary>
     [Fact]
-    public void ANewProviderNamesTheInterfaceAndTheImplementation() {
+    public void ANewProviderNamesTheInterfaceAndTheImplementation()
+    {
         var provider = new NewConfigurationValueProvider<IServiceOptions, ServiceOptions>(null);
 
         Assert.Equal(typeof(IServiceOptions), provider.InterfaceType);
@@ -36,7 +39,8 @@ public class ConfigurationValueProviderTests {
     }
 
     [Fact]
-    public void ANewProviderConstructsTheImplementation() {
+    public void ANewProviderConstructsTheImplementation()
+    {
         var provider = new NewConfigurationValueProvider<IServiceOptions, ServiceOptions>(null);
 
         Assert.IsType<ServiceOptions>(provider.ProvideValue(Environment(), NoAmenders));
@@ -47,7 +51,8 @@ public class ConfigurationValueProviderTests {
     /// environment-backed field, and it must not be treated as a missing collaborator.
     /// </summary>
     [Fact]
-    public void ANewProviderWithNoInitActionLeavesTheDefaultsAlone() {
+    public void ANewProviderWithNoInitActionLeavesTheDefaultsAlone()
+    {
         var provider = new NewConfigurationValueProvider<IServiceOptions, ServiceOptions>(null);
 
         var value = (ServiceOptions)provider.ProvideValue(Environment(), NoAmenders);
@@ -56,9 +61,11 @@ public class ConfigurationValueProviderTests {
     }
 
     [Fact]
-    public void ANewProviderRunsItsInitActionBeforeReturning() {
+    public void ANewProviderRunsItsInitActionBeforeReturning()
+    {
         var provider = new NewConfigurationValueProvider<IServiceOptions, ServiceOptions>(
-            (_, options) => options.ServiceUrl = "http://initialised");
+            (_, options) => options.ServiceUrl = "http://initialised"
+        );
 
         var value = (ServiceOptions)provider.ProvideValue(Environment(), NoAmenders);
 
@@ -66,12 +73,14 @@ public class ConfigurationValueProviderTests {
     }
 
     [Fact]
-    public void ANewProviderPassesTheEnvironmentToItsInitAction() {
+    public void ANewProviderPassesTheEnvironmentToItsInitAction()
+    {
         IHardenedEnvironment? received = null;
         var environment = Environment("staging");
 
         var provider = new NewConfigurationValueProvider<IServiceOptions, ServiceOptions>(
-            (given, _) => received = given);
+            (given, _) => received = given
+        );
 
         provider.ProvideValue(environment, NoAmenders);
 
@@ -83,11 +92,13 @@ public class ConfigurationValueProviderTests {
     /// the environment set rather than being overwritten by it.
     /// </summary>
     [Fact]
-    public void ANewProviderRunsItsInitActionBeforeTheAmenders() {
+    public void ANewProviderRunsItsInitActionBeforeTheAmenders()
+    {
         var order = new List<string>();
 
         var provider = new NewConfigurationValueProvider<IServiceOptions, ServiceOptions>(
-            (_, _) => order.Add("init"));
+            (_, _) => order.Add("init")
+        );
 
         provider.ProvideValue(Environment(), (_, _) => order.Add("amend"));
 
@@ -95,27 +106,35 @@ public class ConfigurationValueProviderTests {
     }
 
     [Fact]
-    public void AFuncProviderNamesTheInterfaceAndTheImplementation() {
-        var provider = new FuncConfigurationValueProvider<IServiceOptions, ServiceOptions>(_ => new ServiceOptions());
+    public void AFuncProviderNamesTheInterfaceAndTheImplementation()
+    {
+        var provider = new FuncConfigurationValueProvider<IServiceOptions, ServiceOptions>(
+            _ => new ServiceOptions()
+        );
 
         Assert.Equal(typeof(IServiceOptions), provider.InterfaceType);
         Assert.Equal(typeof(ServiceOptions), provider.ImplementationType);
     }
 
     [Fact]
-    public void AFuncProviderReturnsWhatItsFunctionBuilt() {
+    public void AFuncProviderReturnsWhatItsFunctionBuilt()
+    {
         var built = new ServiceOptions { ServiceUrl = "http://built" };
-        var provider = new FuncConfigurationValueProvider<IServiceOptions, ServiceOptions>(_ => built);
+        var provider = new FuncConfigurationValueProvider<IServiceOptions, ServiceOptions>(_ =>
+            built
+        );
 
         Assert.Same(built, provider.ProvideValue(Environment(), NoAmenders));
     }
 
     [Fact]
-    public void AFuncProviderPassesTheEnvironmentToItsFunction() {
+    public void AFuncProviderPassesTheEnvironmentToItsFunction()
+    {
         IHardenedEnvironment? received = null;
         var environment = Environment("staging");
 
-        var provider = new FuncConfigurationValueProvider<IServiceOptions, ServiceOptions>(given => {
+        var provider = new FuncConfigurationValueProvider<IServiceOptions, ServiceOptions>(given =>
+        {
             received = given;
             return new ServiceOptions();
         });
@@ -126,11 +145,14 @@ public class ConfigurationValueProviderTests {
     }
 
     [Fact]
-    public void AFuncProviderAmendsWhatItsFunctionBuilt() {
+    public void AFuncProviderAmendsWhatItsFunctionBuilt()
+    {
         var built = new ServiceOptions();
         object? amended = null;
 
-        var provider = new FuncConfigurationValueProvider<IServiceOptions, ServiceOptions>(_ => built);
+        var provider = new FuncConfigurationValueProvider<IServiceOptions, ServiceOptions>(_ =>
+            built
+        );
 
         provider.ProvideValue(Environment(), (_, value) => amended = value);
 
@@ -142,11 +164,15 @@ public class ConfigurationValueProviderTests {
     /// amenders for every type, and every one of them is offered every value.
     /// </summary>
     [Fact]
-    public void AnAmenderAppliesToItsOwnType() {
-        var amender = new SimpleConfigurationValueAmender<ServiceOptions>((_, options) => {
-            options.ServiceUrl = "http://amended";
-            return options;
-        });
+    public void AnAmenderAppliesToItsOwnType()
+    {
+        var amender = new SimpleConfigurationValueAmender<ServiceOptions>(
+            (_, options) =>
+            {
+                options.ServiceUrl = "http://amended";
+                return options;
+            }
+        );
 
         var value = new ServiceOptions();
 
@@ -155,13 +181,17 @@ public class ConfigurationValueProviderTests {
     }
 
     [Fact]
-    public void AnAmenderLeavesAValueOfAnotherTypeUntouched() {
+    public void AnAmenderLeavesAValueOfAnotherTypeUntouched()
+    {
         var ran = false;
 
-        var amender = new SimpleConfigurationValueAmender<ServiceOptions>((_, options) => {
-            ran = true;
-            return options;
-        });
+        var amender = new SimpleConfigurationValueAmender<ServiceOptions>(
+            (_, options) =>
+            {
+                ran = true;
+                return options;
+            }
+        );
 
         var unrelated = new object();
 
@@ -170,21 +200,26 @@ public class ConfigurationValueProviderTests {
     }
 
     [Fact]
-    public void AnAmenderNamesTheTypeItAmends() {
+    public void AnAmenderNamesTheTypeItAmends()
+    {
         var amender = new SimpleConfigurationValueAmender<ServiceOptions>((_, options) => options);
 
         Assert.Equal(typeof(ServiceOptions), amender.ConfigurationType);
     }
 
     [Fact]
-    public void AnAmenderReceivesTheEnvironment() {
+    public void AnAmenderReceivesTheEnvironment()
+    {
         IHardenedEnvironment? received = null;
         var environment = Environment("staging");
 
-        var amender = new SimpleConfigurationValueAmender<ServiceOptions>((given, options) => {
-            received = given;
-            return options;
-        });
+        var amender = new SimpleConfigurationValueAmender<ServiceOptions>(
+            (given, options) =>
+            {
+                received = given;
+                return options;
+            }
+        );
 
         amender.ApplyConfiguration(environment, new ServiceOptions());
 
@@ -196,7 +231,8 @@ public class ConfigurationValueProviderTests {
     /// iterating them does not have to check.
     /// </summary>
     [Fact]
-    public void APackageOfProvidersAloneReportsNoAmenders() {
+    public void APackageOfProvidersAloneReportsNoAmenders()
+    {
         var provider = new NewConfigurationValueProvider<IServiceOptions, ServiceOptions>(null);
         var package = new SimpleConfigurationPackage([provider]);
         var environment = Environment();
@@ -206,7 +242,8 @@ public class ConfigurationValueProviderTests {
     }
 
     [Fact]
-    public void APackageCarriesBothItsProvidersAndItsAmenders() {
+    public void APackageCarriesBothItsProvidersAndItsAmenders()
+    {
         var provider = new NewConfigurationValueProvider<IServiceOptions, ServiceOptions>(null);
         var amender = Substitute.For<IConfigurationValueAmender>();
 
@@ -224,10 +261,14 @@ public class ConfigurationValueProviderTests {
     [Theory]
     [InlineData("development")]
     [InlineData("production")]
-    public void APackageReportsTheSameContentsInEveryEnvironment(string environment) {
+    public void APackageReportsTheSameContentsInEveryEnvironment(string environment)
+    {
         var provider = new NewConfigurationValueProvider<IServiceOptions, ServiceOptions>(null);
         var package = new SimpleConfigurationPackage([provider]);
 
-        Assert.Same(provider, Assert.Single(package.ConfigurationValueProviders(Environment(environment))));
+        Assert.Same(
+            provider,
+            Assert.Single(package.ConfigurationValueProviders(Environment(environment)))
+        );
     }
 }

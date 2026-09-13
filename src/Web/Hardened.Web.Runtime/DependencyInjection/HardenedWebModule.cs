@@ -1,16 +1,16 @@
 using DependencyModules.Runtime.Attributes;
 using DependencyModules.Runtime.Interfaces;
+using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Abstract.RequestFilter;
 using Hardened.Requests.Runtime.DependencyInjection;
 using Hardened.Shared.Runtime.Application;
 using Hardened.Shared.Runtime.Configuration;
-using Hardened.Web.Runtime.Configuration;
-using Hardened.Requests.Abstract.RequestFilter;
 using Hardened.Web.Runtime.Compression;
+using Hardened.Web.Runtime.Configuration;
 using Hardened.Web.Runtime.Cors;
-using Hardened.Web.Runtime.Links;
-using Hardened.Requests.Abstract.Execution;
 using Hardened.Web.Runtime.Handlers;
 using Hardened.Web.Runtime.Health;
+using Hardened.Web.Runtime.Links;
 using Hardened.Web.Runtime.OpenApi;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -19,16 +19,19 @@ namespace Hardened.Web.Runtime.DependencyInjection;
 
 [DependencyModule]
 [HardenedRequestModule]
-public partial class HardenedWebModule : IServiceCollectionConfiguration {
-    public void ConfigureServices(IServiceCollection services) {
+public partial class HardenedWebModule : IServiceCollectionConfiguration
+{
+    public void ConfigureServices(IServiceCollection services)
+    {
         // Web routing published as the application's dispatch, so a host can install it without
         // referencing this package. WebExecutionHandlerService registers against
         // IWebExecutionHandlerService and dependency injection resolves exact types, so an
         // IHandlerDispatch lookup would otherwise find nothing however many interfaces it derives
         // from. Resolved through the existing registration rather than added a second time, so
         // there is still one instance of it.
-        services.AddSingleton<IHandlerDispatch>(
-            serviceProvider => serviceProvider.GetRequiredService<IWebExecutionHandlerService>());
+        services.AddSingleton<IHandlerDispatch>(serviceProvider =>
+            serviceProvider.GetRequiredService<IWebExecutionHandlerService>()
+        );
 
         // Compression and links joined routing here when they left HardenedRequestModule. Both are
         // HTTP: a Content-Encoding to negotiate and a Link header to write, neither of which a
@@ -37,32 +40,52 @@ public partial class HardenedWebModule : IServiceCollectionConfiguration {
         // where every host can reach it.
         services.AddSingleton<IConfigurationPackage>(
             new SimpleConfigurationPackage(
-                new IConfigurationValueProvider[] {
-                    new NewConfigurationValueProvider<IWebRoutingConfiguration, WebRoutingConfiguration>(null),
+                new IConfigurationValueProvider[]
+                {
+                    new NewConfigurationValueProvider<
+                        IWebRoutingConfiguration,
+                        WebRoutingConfiguration
+                    >(null),
                     new NewConfigurationValueProvider<ILinkConfiguration, LinkConfiguration>(null),
-                    new NewConfigurationValueProvider<ICompressionConfiguration, CompressionConfiguration>(null)
-                }, Array.Empty<IConfigurationValueAmender>())
+                    new NewConfigurationValueProvider<
+                        ICompressionConfiguration,
+                        CompressionConfiguration
+                    >(null),
+                },
+                Array.Empty<IConfigurationValueAmender>()
+            )
         );
 
-        services.TryAddSingleton(
-            serviceProvider => Microsoft.Extensions.Options.Options.Create(
-                serviceProvider.GetRequiredService<IConfigurationManager>()
-                    .GetConfiguration<IWebRoutingConfiguration>()));
+        services.TryAddSingleton(serviceProvider =>
+            Microsoft.Extensions.Options.Options.Create(
+                serviceProvider
+                    .GetRequiredService<IConfigurationManager>()
+                    .GetConfiguration<IWebRoutingConfiguration>()
+            )
+        );
 
-        services.AddSingleton(
-            serviceProvider => Microsoft.Extensions.Options.Options.Create(
-                serviceProvider.GetRequiredService<IConfigurationManager>()
-                    .GetConfiguration<ILinkConfiguration>()));
+        services.AddSingleton(serviceProvider =>
+            Microsoft.Extensions.Options.Options.Create(
+                serviceProvider
+                    .GetRequiredService<IConfigurationManager>()
+                    .GetConfiguration<ILinkConfiguration>()
+            )
+        );
 
-        services.AddSingleton(
-            serviceProvider => Microsoft.Extensions.Options.Options.Create(
-                serviceProvider.GetRequiredService<IConfigurationManager>()
-                    .GetConfiguration<ICompressionConfiguration>()));
+        services.AddSingleton(serviceProvider =>
+            Microsoft.Extensions.Options.Options.Create(
+                serviceProvider
+                    .GetRequiredService<IConfigurationManager>()
+                    .GetConfiguration<ICompressionConfiguration>()
+            )
+        );
 
         services.TryAddEnumerable(
-            ServiceDescriptor.Singleton<IRequestFilterProvider, RequestDecompressionProvider>());
+            ServiceDescriptor.Singleton<IRequestFilterProvider, RequestDecompressionProvider>()
+        );
 
-        services.AddSingleton<CorsConfiguration>(sp => {
+        services.AddSingleton<CorsConfiguration>(sp =>
+        {
             var config = new CorsConfiguration();
             config.LoadFromEnvironment();
             return config;
@@ -74,7 +97,8 @@ public partial class HardenedWebModule : IServiceCollectionConfiguration {
         // filter on every request, with the "no allowed origins" notice logged beside it once per
         // copy. An application composing two web modules saw both.
         services.TryAddEnumerable(
-            ServiceDescriptor.Singleton<IStartupService, CorsStartupService>());
+            ServiceDescriptor.Singleton<IStartupService, CorsStartupService>()
+        );
 
         services.TryAddSingleton<HealthCheckConfiguration>();
 
@@ -90,6 +114,9 @@ public partial class HardenedWebModule : IServiceCollectionConfiguration {
         // path shadows this rather than colliding with it.
         services.AddSingleton<IWebExecutionRequestHandlerProvider>(
             serviceProvider => new HealthCheckProvider(
-                serviceProvider.GetRequiredService<HealthCheckConfiguration>(), serviceProvider));
+                serviceProvider.GetRequiredService<HealthCheckConfiguration>(),
+                serviceProvider
+            )
+        );
     }
 }

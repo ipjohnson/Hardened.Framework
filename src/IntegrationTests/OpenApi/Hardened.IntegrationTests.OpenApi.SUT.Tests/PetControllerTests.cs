@@ -1,8 +1,10 @@
 ﻿namespace Hardened.IntegrationTests.OpenApi.SUT.Tests;
 
-public class PetControllerTests {
+public class PetControllerTests
+{
     [HardenedTest]
-    public async Task ListPets_ReturnsListOfPets(ITestWebApp testWebApp) {
+    public async Task ListPets_ReturnsListOfPets(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/pets");
 
         response.Assert.Ok();
@@ -15,7 +17,8 @@ public class PetControllerTests {
     }
 
     [HardenedTest]
-    public async Task ListPets_WithQueryParameter_ReturnsOk(ITestWebApp testWebApp) {
+    public async Task ListPets_WithQueryParameter_ReturnsOk(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/pets?limit=1");
 
         response.Assert.Ok();
@@ -38,7 +41,8 @@ public class PetControllerTests {
     /// implements the generated interface, and a widened one would not match.
     /// </remarks>
     [HardenedTest]
-    public async Task ListPets_WhenThrottled_AnswersTheDeclaredStatus(ITestWebApp testWebApp) {
+    public async Task ListPets_WhenThrottled_AnswersTheDeclaredStatus(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/pets?tags=throttled");
 
         Assert.Equal(429, response.StatusCode);
@@ -50,7 +54,8 @@ public class PetControllerTests {
     /// was standing in for, at the cost of every signature that mentioned the error.
     /// </summary>
     [HardenedTest]
-    public async Task ListPets_WhenThrottled_SendsTheDeclaredHeader(ITestWebApp testWebApp) {
+    public async Task ListPets_WhenThrottled_SendsTheDeclaredHeader(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/pets?tags=throttled");
 
         Assert.Equal("30", response.Headers["Retry-After"].ToString());
@@ -66,7 +71,10 @@ public class PetControllerTests {
     /// binder handed whatever survived to a scalar <c>Parse</c> that threw for a list.
     /// </summary>
     [HardenedTest]
-    public async Task ListPets_WithARepeatedArrayParameter_FiltersByEveryValue(ITestWebApp testWebApp) {
+    public async Task ListPets_WithARepeatedArrayParameter_FiltersByEveryValue(
+        ITestWebApp testWebApp
+    )
+    {
         var response = await testWebApp.Get("/pets?tags=dog&tags=cat");
 
         response.Assert.Ok();
@@ -79,7 +87,10 @@ public class PetControllerTests {
 
     /// <summary>The same parameter written as <c>explode: false</c>.</summary>
     [HardenedTest]
-    public async Task ListPets_WithACommaJoinedArrayParameter_FiltersByEveryValue(ITestWebApp testWebApp) {
+    public async Task ListPets_WithACommaJoinedArrayParameter_FiltersByEveryValue(
+        ITestWebApp testWebApp
+    )
+    {
         var response = await testWebApp.Get("/pets?tags=dog,cat");
 
         response.Assert.Ok();
@@ -91,7 +102,8 @@ public class PetControllerTests {
     }
 
     [HardenedTest]
-    public async Task ListPets_WithNoArrayParameter_FiltersNothing(ITestWebApp testWebApp) {
+    public async Task ListPets_WithNoArrayParameter_FiltersNothing(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/pets");
 
         response.Assert.Ok();
@@ -101,7 +113,8 @@ public class PetControllerTests {
 
     /// <summary>Both parameters on one operation, neither disturbing the other's binding.</summary>
     [HardenedTest]
-    public async Task ListPets_WithBothParameters_BindsBoth(ITestWebApp testWebApp) {
+    public async Task ListPets_WithBothParameters_BindsBoth(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/pets?tags=dog&tags=cat&limit=1");
 
         response.Assert.Ok();
@@ -115,7 +128,10 @@ public class PetControllerTests {
     /// with it.
     /// </summary>
     [HardenedTest]
-    public async Task ListPets_WithAnArrayParameterAndAnOutOfRangeLimit_IsRefused(ITestWebApp testWebApp) {
+    public async Task ListPets_WithAnArrayParameterAndAnOutOfRangeLimit_IsRefused(
+        ITestWebApp testWebApp
+    )
+    {
         var response = await testWebApp.Get("/pets?tags=dog&limit=500");
 
         response.Assert.BadRequest();
@@ -124,7 +140,8 @@ public class PetControllerTests {
     #endregion
 
     [HardenedTest]
-    public async Task CreatePet_WithBody_ReturnsPet(ITestWebApp testWebApp) {
+    public async Task CreatePet_WithBody_ReturnsPet(ITestWebApp testWebApp)
+    {
         var request = new CreatePetRequest("Whiskers", "cat");
         var response = await testWebApp.Post(request, "/pets");
 
@@ -137,7 +154,8 @@ public class PetControllerTests {
     }
 
     [HardenedTest]
-    public async Task GetPet_WithPathParameter_ReturnsPet(ITestWebApp testWebApp) {
+    public async Task GetPet_WithPathParameter_ReturnsPet(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/pets/42");
 
         response.Assert.Ok();
@@ -149,7 +167,8 @@ public class PetControllerTests {
     }
 
     [HardenedTest]
-    public async Task DeletePet_ReturnsOk(ITestWebApp testWebApp) {
+    public async Task DeletePet_ReturnsOk(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Delete("/pets/42");
 
         response.Assert.Ok();
@@ -167,7 +186,8 @@ public class PetControllerTests {
     /// </para>
     /// </summary>
     [HardenedTest]
-    public async Task GetPet_WithADeeperPath_IsNotFound(ITestWebApp testWebApp) {
+    public async Task GetPet_WithADeeperPath_IsNotFound(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/pets/42/anything/at/all");
 
         response.Assert.NotFound();

@@ -1,5 +1,5 @@
-using Hardened.Generation;
 using CSharpAuthor;
+using Hardened.Generation;
 using Hardened.Generation.Models;
 
 namespace Hardened.Idl.Emitters;
@@ -27,10 +27,15 @@ namespace Hardened.Idl.Emitters;
 /// this exists to remove.
 /// </para>
 /// </remarks>
-internal static class SpecificationDocumentEmitter {
-
+internal static class SpecificationDocumentEmitter
+{
     public static ClassDefinition Emit(
-        NamespaceDefinition container, ServiceSpecModel model, string document, string specPath) {
+        NamespaceDefinition container,
+        ServiceSpecModel model,
+        string document,
+        string specPath
+    )
+    {
         var definition = container.AddClass(TypeName(model.FileName));
 
         definition.Modifiers |= ComponentModifier.Public | ComponentModifier.Static;
@@ -38,9 +43,12 @@ internal static class SpecificationDocumentEmitter {
 
         var contentType = definition.AddField(typeof(string), "ContentType");
 
-        contentType.Modifiers |= ComponentModifier.Public | ComponentModifier.Static | ComponentModifier.Readonly;
-        contentType.InitializeValue =
-            new CodeOutputComponent(Quote(ContentType(specPath))) { Indented = false };
+        contentType.Modifiers |=
+            ComponentModifier.Public | ComponentModifier.Static | ComponentModifier.Readonly;
+        contentType.InitializeValue = new CodeOutputComponent(Quote(ContentType(specPath)))
+        {
+            Indented = false,
+        };
 
         var text = definition.AddProperty(ReadOnlySpanOfByte, "DocumentGZip");
 
@@ -62,22 +70,26 @@ internal static class SpecificationDocumentEmitter {
 
     private static ITypeDefinition ReadOnlySpanOfByte =>
         new GenericTypeDefinition(
-            TypeDefinitionEnum.ClassDefinition, "System", "ReadOnlySpan",
-            new[] { TypeDefinition.Get(typeof(byte)) });
+            TypeDefinitionEnum.ClassDefinition,
+            "System",
+            "ReadOnlySpan",
+            new[] { TypeDefinition.Get(typeof(byte)) }
+        );
 
-    public static string TypeName(string fileName) =>
-        NamingHelper.SpecificationTypeName(fileName);
+    public static string TypeName(string fileName) => NamingHelper.SpecificationTypeName(fileName);
 
     /// <summary>
     /// From the extension, since that is the only thing that says which of the two interchangeable
     /// forms the author wrote. Unknown extensions are JSON because that is what an OpenAPI document
     /// is unless it says otherwise.
     /// </summary>
-    private static string ContentType(string specPath) {
+    private static string ContentType(string specPath)
+    {
         var extension = Path.GetExtension(specPath);
 
-        return string.Equals(extension, ".yaml", StringComparison.OrdinalIgnoreCase) ||
-               string.Equals(extension, ".yml", StringComparison.OrdinalIgnoreCase)
+        return
+            string.Equals(extension, ".yaml", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(extension, ".yml", StringComparison.OrdinalIgnoreCase)
             ? "application/yaml"
             : "application/json";
     }

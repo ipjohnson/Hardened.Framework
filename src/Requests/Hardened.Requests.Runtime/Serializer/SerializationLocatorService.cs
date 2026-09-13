@@ -6,7 +6,8 @@ using Hardened.Requests.Abstract.Serializer;
 namespace Hardened.Requests.Runtime.Serializer;
 
 [SingletonService(Using = RegistrationType.Try)]
-public class SerializationLocatorService : ISerializationLocatorService {
+public class SerializationLocatorService : ISerializationLocatorService
+{
     private readonly IRequestDeserializer[] _requestDeserializers;
     private readonly IResponseSerializer[] _responseSerializers;
     private readonly Dictionary<string, IResponseSerializer> _byContentType;
@@ -18,7 +19,9 @@ public class SerializationLocatorService : ISerializationLocatorService {
         IEnumerable<IRequestDeserializer> requestDeserializers,
         IEnumerable<IResponseSerializer> responseSerializers,
         IContentNegotiationPolicy? negotiationPolicy = null,
-        IErrorBodyPolicy? errorBodyPolicy = null) {
+        IErrorBodyPolicy? errorBodyPolicy = null
+    )
+    {
         _negotiationPolicy = negotiationPolicy ?? new ContentNegotiationPolicy();
         _errorBodyPolicy = errorBodyPolicy ?? new ErrorBodyPolicy();
 
@@ -47,24 +50,29 @@ public class SerializationLocatorService : ISerializationLocatorService {
         // the handler's pipeline is composed - so there is nothing left for an order to adjudicate.
         //
         // Reversed here rather than per request - this service is a singleton, so it happens once.
-        _responseSerializers = responseSerializers
-            .Reverse()
-            .ToArray();
+        _responseSerializers = responseSerializers.Reverse().ToArray();
 
         // One entry per content type, first writer wins - and the array is already reversed, so the
         // first is the last registration. Built here rather than per lookup: this service is a
         // singleton, and the lookups happen as handlers are composed.
-        _byContentType = new Dictionary<string, IResponseSerializer>(StringComparer.OrdinalIgnoreCase);
+        _byContentType = new Dictionary<string, IResponseSerializer>(
+            StringComparer.OrdinalIgnoreCase
+        );
 
-        for (var i = 0; i < _responseSerializers.Length; i++) {
+        for (var i = 0; i < _responseSerializers.Length; i++)
+        {
             var serializer = _responseSerializers[i];
 
-            if (!string.IsNullOrEmpty(serializer.ContentType) &&
-                !_byContentType.ContainsKey(serializer.ContentType)) {
+            if (
+                !string.IsNullOrEmpty(serializer.ContentType)
+                && !_byContentType.ContainsKey(serializer.ContentType)
+            )
+            {
                 _byContentType[serializer.ContentType] = serializer;
             }
 
-            if (_defaultSerializer == null && serializer.IsDefaultSerializer) {
+            if (_defaultSerializer == null && serializer.IsDefaultSerializer)
+            {
                 _defaultSerializer = serializer;
             }
         }
@@ -77,22 +85,27 @@ public class SerializationLocatorService : ISerializationLocatorService {
     /// <inheritdoc />
     public IResponseSerializer? DefaultSerializer => _defaultSerializer;
 
-    public IRequestDeserializer FindRequestDeserializer(IExecutionContext context) {
+    public IRequestDeserializer FindRequestDeserializer(IExecutionContext context)
+    {
         IRequestDeserializer? defaultSerializer = null;
 
-        for (var i = 0; i < _requestDeserializers.Length; i++) {
+        for (var i = 0; i < _requestDeserializers.Length; i++)
+        {
             var requestDeserializer = _requestDeserializers[i];
 
-            if (requestDeserializer.CanProcessContext(context)) {
+            if (requestDeserializer.CanProcessContext(context))
+            {
                 return requestDeserializer;
             }
 
-            if (requestDeserializer.IsDefaultSerializer) {
+            if (requestDeserializer.IsDefaultSerializer)
+            {
                 defaultSerializer ??= requestDeserializer;
             }
         }
 
-        if (defaultSerializer != null) {
+        if (defaultSerializer != null)
+        {
             return defaultSerializer;
         }
 
@@ -117,12 +130,14 @@ public class SerializationLocatorService : ISerializationLocatorService {
     /// ranking is the only thing left - which is exactly the case it should decide.
     /// </para>
     /// </remarks>
-    public IResponseSerializer FindResponseSerializer(IExecutionContext context) {
+    public IResponseSerializer FindResponseSerializer(IExecutionContext context)
+    {
         // Before anything the request asked for, because that is the point of the setting: a
         // service on [ErrorBodies(Json)] answers every failure as JSON whatever was negotiated.
         // Ahead of the committed content type as well - a raw handler that committed image/png and
         // then failed has no PNG to send, and its error model is not one either.
-        if (JsonErrorBody(context) is { } jsonErrors) {
+        if (JsonErrorBody(context) is { } jsonErrors)
+        {
             return jsonErrors;
         }
 
@@ -131,10 +146,12 @@ public class SerializationLocatorService : ISerializationLocatorService {
         // saying "this is a PDF" is that it is a PDF.
         var committedContentType = context.Response.ContentType;
 
-        if (!string.IsNullOrEmpty(committedContentType)) {
+        if (!string.IsNullOrEmpty(committedContentType))
+        {
             var committed = FindProducerOf(committedContentType!, context);
 
-            if (committed != null) {
+            if (committed != null)
+            {
                 return committed;
             }
 
@@ -142,8 +159,9 @@ public class SerializationLocatorService : ISerializationLocatorService {
             // document and no indication anything went wrong. Nothing registered can write what this
             // response promised, which is a configuration problem rather than a client one.
             throw new ContentTypeNotProducibleException(
-                $"Response committed to content type '{committedContentType}' but no registered " +
-                "serializer can produce it.");
+                $"Response committed to content type '{committedContentType}' but no registered "
+                    + "serializer can produce it."
+            );
         }
 
         var accept = context.Request.Accept;
@@ -157,30 +175,36 @@ public class SerializationLocatorService : ISerializationLocatorService {
         // sends by default: the declared string, wrapped in quotes with its newlines escaped.
         var declared = context.HandlerInfo?.ProducedContentTypes;
 
-        if (declared is { Count: > 0 }) {
+        if (declared is { Count: > 0 })
+        {
             return FindDeclaredProducer(declared, accept, context);
         }
 
         // Nothing declared, so every registered serializer is a candidate - which is what this did
         // for every response before an operation could say what it produces, and still does for a
         // handler that says nothing.
-        foreach (var requested in MediaType.Enumerate(accept)) {
+        foreach (var requested in MediaType.Enumerate(accept))
+        {
             var serializer = FindProducerOf(requested, context);
 
-            if (serializer != null) {
+            if (serializer != null)
+            {
                 return serializer;
             }
         }
 
-        for (var i = 0; i < _responseSerializers.Length; i++) {
-            if (_responseSerializers[i].IsDefaultSerializer) {
+        for (var i = 0; i < _responseSerializers.Length; i++)
+        {
+            if (_responseSerializers[i].IsDefaultSerializer)
+            {
                 return _responseSerializers[i];
             }
         }
 
-        throw new Exception("Could not locate response serializer for accept: " + context.Request.Accept);
+        throw new Exception(
+            "Could not locate response serializer for accept: " + context.Request.Accept
+        );
     }
-
 
     /// <summary>
     /// The JSON serializer, for a failed request under <see cref="ErrorBodyFormat.Json"/>.
@@ -202,9 +226,9 @@ public class SerializationLocatorService : ISerializationLocatorService {
     /// </para>
     /// </remarks>
     private IResponseSerializer? JsonErrorBody(IExecutionContext context) =>
-        _errorBodyPolicy.Format == ErrorBodyFormat.Json &&
-        context.Response.Status is { } status &&
-        status >= 400
+        _errorBodyPolicy.Format == ErrorBodyFormat.Json
+        && context.Response.Status is { } status
+        && status >= 400
             ? ProducerOf(KnownContentType.Json)
             : null;
 
@@ -227,17 +251,23 @@ public class SerializationLocatorService : ISerializationLocatorService {
     private IResponseSerializer FindDeclaredProducer(
         IReadOnlyList<string> declared,
         string? accept,
-        IExecutionContext context) {
+        IExecutionContext context
+    )
+    {
         // The client's preferences decide the order, the declared set decides what is on offer.
-        foreach (var requested in MediaType.Enumerate(accept)) {
-            for (var j = 0; j < declared.Count; j++) {
-                if (!MediaType.Matches(requested, declared[j])) {
+        foreach (var requested in MediaType.Enumerate(accept))
+        {
+            for (var j = 0; j < declared.Count; j++)
+            {
+                if (!MediaType.Matches(requested, declared[j]))
+                {
                     continue;
                 }
 
                 var serializer = FindProducerOf(declared[j], context);
 
-                if (serializer != null) {
+                if (serializer != null)
+                {
                     context.Response.ContentType = declared[j];
 
                     return serializer;
@@ -252,19 +282,25 @@ public class SerializationLocatorService : ISerializationLocatorService {
         // does this.
         var producible = false;
 
-        for (var j = 0; j < declared.Count && !producible; j++) {
+        for (var j = 0; j < declared.Count && !producible; j++)
+        {
             producible = FindProducerOf(declared[j], context) != null;
         }
 
-        if (!producible) {
+        if (!producible)
+        {
             throw new ContentTypeNotProducibleException(
-                $"This operation declares {string.Join(", ", declared)} and no registered " +
-                "serializer can produce any of them.");
+                $"This operation declares {string.Join(", ", declared)} and no registered "
+                    + "serializer can produce any of them."
+            );
         }
 
-        if (_negotiationPolicy.Mode == ContentNegotiationMode.Lenient) {
-            for (var i = 0; i < _responseSerializers.Length; i++) {
-                if (_responseSerializers[i].IsDefaultSerializer) {
+        if (_negotiationPolicy.Mode == ContentNegotiationMode.Lenient)
+        {
+            for (var i = 0; i < _responseSerializers.Length; i++)
+            {
+                if (_responseSerializers[i].IsDefaultSerializer)
+                {
                     return _responseSerializers[i];
                 }
             }
@@ -273,9 +309,12 @@ public class SerializationLocatorService : ISerializationLocatorService {
         throw new NotAcceptableException(declared);
     }
 
-    private IResponseSerializer? FindProducerOf(string mediaType, IExecutionContext context) {
-        for (var i = 0; i < _responseSerializers.Length; i++) {
-            if (_responseSerializers[i].CanProduce(mediaType, context)) {
+    private IResponseSerializer? FindProducerOf(string mediaType, IExecutionContext context)
+    {
+        for (var i = 0; i < _responseSerializers.Length; i++)
+        {
+            if (_responseSerializers[i].CanProduce(mediaType, context))
+            {
                 return _responseSerializers[i];
             }
         }
@@ -293,12 +332,20 @@ public class SerializationLocatorService : ISerializationLocatorService {
     /// they are asked about their own. That is what lets the header stay a span all the way down:
     /// the interface no longer reaches back up the call stack and demands a substring per candidate.
     /// </remarks>
-    private IResponseSerializer? FindProducerOf(ReadOnlySpan<char> mediaType, IExecutionContext context) {
-        for (var i = 0; i < _responseSerializers.Length; i++) {
+    private IResponseSerializer? FindProducerOf(
+        ReadOnlySpan<char> mediaType,
+        IExecutionContext context
+    )
+    {
+        for (var i = 0; i < _responseSerializers.Length; i++)
+        {
             var serializer = _responseSerializers[i];
 
-            if (MediaType.Matches(mediaType, serializer.ContentType) &&
-                serializer.CanProduce(serializer.ContentType, context)) {
+            if (
+                MediaType.Matches(mediaType, serializer.ContentType)
+                && serializer.CanProduce(serializer.ContentType, context)
+            )
+            {
                 return serializer;
             }
         }

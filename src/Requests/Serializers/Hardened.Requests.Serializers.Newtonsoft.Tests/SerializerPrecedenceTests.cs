@@ -34,17 +34,18 @@ namespace Hardened.Requests.Serializers.Newtonsoft.Tests;
 /// against a real container, because it is now the whole of response-side precedence.
 /// </para>
 /// </remarks>
-public class SerializerPrecedenceTests {
-
+public class SerializerPrecedenceTests
+{
     private static IOptions<IJsonSerializerConfiguration> JsonConfiguration() =>
         Options.Create<IJsonSerializerConfiguration>(new JsonSerializerConfiguration());
 
-    private static IResponseSerializer Newtonsoft() =>
-        Pipeline.ResponseSerializer(Pipeline.Pool());
+    private static IResponseSerializer Newtonsoft() => Pipeline.ResponseSerializer(Pipeline.Pool());
 
     private static IResponseSerializer SystemTextJson() =>
         new SystemTextJsonResponseSerializer(
-            JsonConfiguration(), Array.Empty<IJsonTypeInfoResolver>());
+            JsonConfiguration(),
+            Array.Empty<IJsonTypeInfoResolver>()
+        );
 
     private static IRequestDeserializer NewtonsoftReader() =>
         Pipeline.Deserializer(Pipeline.Pool());
@@ -52,21 +53,22 @@ public class SerializerPrecedenceTests {
     private static IRequestDeserializer SystemTextJsonReader() =>
         new SystemTextJsonRequestDeserializer(
             JsonConfiguration(),
-            Array.Empty<IJsonTypeInfoResolver>());
+            Array.Empty<IJsonTypeInfoResolver>()
+        );
 
     private static SerializationLocatorService Locator(
         IEnumerable<IRequestDeserializer> deserializers,
-        IEnumerable<IResponseSerializer> serializers) =>
-        new(deserializers, serializers);
+        IEnumerable<IResponseSerializer> serializers
+    ) => new(deserializers, serializers);
 
     #region responses
 
     [Fact]
-    public void NewtonsoftWritesTheResponseWhenItRegisteredLast() {
+    public void NewtonsoftWritesTheResponseWhenItRegisteredLast()
+    {
         var locator = Locator([], [SystemTextJson(), Newtonsoft()]);
 
-        Assert.IsType<NewtonsoftSerializer>(
-            locator.FindResponseSerializer(Pipeline.Context()));
+        Assert.IsType<NewtonsoftSerializer>(locator.FindResponseSerializer(Pipeline.Context()));
     }
 
     /// <summary>
@@ -80,21 +82,25 @@ public class SerializerPrecedenceTests {
     /// <c>HardenedRequestModule</c>, not anything either class declares.
     /// </remarks>
     [Fact]
-    public void SystemTextJsonWritesTheResponseWhenNewtonsoftRegisteredFirst() {
+    public void SystemTextJsonWritesTheResponseWhenNewtonsoftRegisteredFirst()
+    {
         var locator = Locator([], [Newtonsoft(), SystemTextJson()]);
 
         Assert.IsType<SystemTextJsonResponseSerializer>(
-            locator.FindResponseSerializer(Pipeline.Context()));
+            locator.FindResponseSerializer(Pipeline.Context())
+        );
     }
 
     [Fact]
-    public void NewtonsoftIsTheDefaultResponseSerializerForAClientWithNoPreference() {
+    public void NewtonsoftIsTheDefaultResponseSerializerForAClientWithNoPreference()
+    {
         var context = Pipeline.Context();
 
         context.Request.Headers["Accept"] = "*/*";
 
         Assert.IsType<NewtonsoftSerializer>(
-            Locator([], [SystemTextJson(), Newtonsoft()]).FindResponseSerializer(context));
+            Locator([], [SystemTextJson(), Newtonsoft()]).FindResponseSerializer(context)
+        );
     }
 
     #endregion
@@ -102,19 +108,23 @@ public class SerializerPrecedenceTests {
     #region requests
 
     [Fact]
-    public void NewtonsoftReadsTheRequestWhenItRegisteredLast() {
+    public void NewtonsoftReadsTheRequestWhenItRegisteredLast()
+    {
         var locator = Locator([SystemTextJsonReader(), NewtonsoftReader()], []);
 
         Assert.IsType<NewtonsoftDeserializer>(
-            locator.FindRequestDeserializer(Pipeline.Context("{}")));
+            locator.FindRequestDeserializer(Pipeline.Context("{}"))
+        );
     }
 
     [Fact]
-    public void NewtonsoftReadsTheRequestWhenItRegisteredFirst() {
+    public void NewtonsoftReadsTheRequestWhenItRegisteredFirst()
+    {
         var locator = Locator([NewtonsoftReader(), SystemTextJsonReader()], []);
 
         Assert.IsType<NewtonsoftDeserializer>(
-            locator.FindRequestDeserializer(Pipeline.Context("{}")));
+            locator.FindRequestDeserializer(Pipeline.Context("{}"))
+        );
     }
 
     /// <summary>
@@ -123,11 +133,13 @@ public class SerializerPrecedenceTests {
     /// the next by System.Text.Json depending on a header.
     /// </summary>
     [Fact]
-    public void NewtonsoftIsAlsoTheDefaultForABodyWithNoContentType() {
+    public void NewtonsoftIsAlsoTheDefaultForABodyWithNoContentType()
+    {
         var locator = Locator([SystemTextJsonReader(), NewtonsoftReader()], []);
 
         Assert.IsType<NewtonsoftDeserializer>(
-            locator.FindRequestDeserializer(Pipeline.Context("{}", contentType: null)));
+            locator.FindRequestDeserializer(Pipeline.Context("{}", contentType: null))
+        );
     }
 
     #endregion
@@ -137,15 +149,17 @@ public class SerializerPrecedenceTests {
     /// read the requests would apply one naming strategy on the way out and another on the way in.
     /// </summary>
     [Fact]
-    public void BothDirectionsResolveToNewtonsoft() {
+    public void BothDirectionsResolveToNewtonsoft()
+    {
         var locator = Locator(
             [SystemTextJsonReader(), NewtonsoftReader()],
-            [SystemTextJson(), Newtonsoft()]);
+            [SystemTextJson(), Newtonsoft()]
+        );
 
         Assert.IsType<NewtonsoftDeserializer>(
-            locator.FindRequestDeserializer(Pipeline.Context("{}")));
-        Assert.IsType<NewtonsoftSerializer>(
-            locator.FindResponseSerializer(Pipeline.Context()));
+            locator.FindRequestDeserializer(Pipeline.Context("{}"))
+        );
+        Assert.IsType<NewtonsoftSerializer>(locator.FindResponseSerializer(Pipeline.Context()));
     }
 
     #region the AOT serializers
@@ -167,15 +181,23 @@ public class SerializerPrecedenceTests {
     /// </para>
     /// </remarks>
     [Fact]
-    public void TheAotResponseSerializerAnswersWhenItRegisteredLast() {
-        var locator = Locator([], [Newtonsoft(), new AotResponseSerializer(JsonConfiguration(), [])]);
+    public void TheAotResponseSerializerAnswersWhenItRegisteredLast()
+    {
+        var locator = Locator(
+            [],
+            [Newtonsoft(), new AotResponseSerializer(JsonConfiguration(), [])]
+        );
 
         Assert.IsType<AotResponseSerializer>(locator.FindResponseSerializer(Pipeline.Context()));
     }
 
     [Fact]
-    public void NewtonsoftAnswersWhenItRegisteredAfterTheAotSerializer() {
-        var locator = Locator([], [new AotResponseSerializer(JsonConfiguration(), []), Newtonsoft()]);
+    public void NewtonsoftAnswersWhenItRegisteredAfterTheAotSerializer()
+    {
+        var locator = Locator(
+            [],
+            [new AotResponseSerializer(JsonConfiguration(), []), Newtonsoft()]
+        );
 
         Assert.IsType<NewtonsoftSerializer>(locator.FindResponseSerializer(Pipeline.Context()));
     }
@@ -185,13 +207,18 @@ public class SerializerPrecedenceTests {
     /// two are registered.
     /// </summary>
     [Fact]
-    public void TheAotRequestDeserializerStillOutranksNewtonsoft() {
+    public void TheAotRequestDeserializerStillOutranksNewtonsoft()
+    {
         var aot = new AotRequestDeserializer(
-            JsonConfiguration(), NullLogger<AotRequestDeserializer>.Instance, []);
+            JsonConfiguration(),
+            NullLogger<AotRequestDeserializer>.Instance,
+            []
+        );
 
         Assert.True(
             aot.Order < NewtonsoftReader().Order,
-            "the AOT request deserializer must stay ahead of Newtonsoft");
+            "the AOT request deserializer must stay ahead of Newtonsoft"
+        );
     }
 
     #endregion
@@ -201,7 +228,8 @@ public class SerializerPrecedenceTests {
     /// the built-in pair in the first place.
     /// </summary>
     [Fact]
-    public void NewtonsoftClaimsApplicationJson() {
+    public void NewtonsoftClaimsApplicationJson()
+    {
         Assert.Equal("application/json", Newtonsoft().ContentType);
         Assert.Equal(SystemTextJson().ContentType, Newtonsoft().ContentType);
     }
@@ -211,10 +239,12 @@ public class SerializerPrecedenceTests {
     /// being ahead of a deserializer that claims one specific content type.
     /// </summary>
     [Fact]
-    public void TheNewtonsoftReaderSitsBetweenSpecializedAndNormal() {
+    public void TheNewtonsoftReaderSitsBetweenSpecializedAndNormal()
+    {
         Assert.InRange(
             NewtonsoftReader().Order,
             (int)RequestDeserializerOrder.Specialized + 1,
-            (int)RequestDeserializerOrder.Normal - 1);
+            (int)RequestDeserializerOrder.Normal - 1
+        );
     }
 }

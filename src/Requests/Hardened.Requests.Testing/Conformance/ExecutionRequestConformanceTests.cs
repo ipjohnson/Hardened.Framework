@@ -31,11 +31,13 @@ namespace Hardened.Requests.Testing.Conformance;
 /// }
 /// </code>
 /// </summary>
-public abstract class ExecutionRequestConformanceTests : PayloadExecutionRequestConformanceTests {
-
+public abstract class ExecutionRequestConformanceTests : PayloadExecutionRequestConformanceTests
+{
     [Fact]
-    public void QueryStringIsSurfaced() {
-        var request = Create(s => {
+    public void QueryStringIsSurfaced()
+    {
+        var request = Create(s =>
+        {
             s.QueryString["page"] = "2";
             s.QueryString["size"] = "50";
         });
@@ -55,8 +57,10 @@ public abstract class ExecutionRequestConformanceTests : PayloadExecutionRequest
     /// answered 200.
     /// </remarks>
     [Fact]
-    public void QueryStringValuesArriveDecoded() {
-        var request = Create(s => {
+    public void QueryStringValuesArriveDecoded()
+    {
+        var request = Create(s =>
+        {
             s.QueryString["asOf"] = "2026-09-10T09:00:00+00:00";
             s.QueryString["cursor"] = "YWJjZA==";
             s.QueryString["title"] = "East of Eden";
@@ -68,8 +72,10 @@ public abstract class ExecutionRequestConformanceTests : PayloadExecutionRequest
     }
 
     [Fact]
-    public void CookiesAreSurfaced() {
-        var request = Create(s => {
+    public void CookiesAreSurfaced()
+    {
+        var request = Create(s =>
+        {
             s.Cookies.Add("session=abc123");
             s.Cookies.Add("theme=dark");
         });

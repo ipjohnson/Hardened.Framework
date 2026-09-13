@@ -18,12 +18,16 @@ namespace Hardened.Requests.Serializers.MessagePack.Impl;
 /// </para>
 /// </remarks>
 [TransientService]
-public class MessagePackResponseSerializer : IResponseSerializer {
+public class MessagePackResponseSerializer : IResponseSerializer
+{
     private readonly ISharedMessagePackOptions _options;
     private readonly IMemoryStreamPool _memoryStreamPool;
 
     public MessagePackResponseSerializer(
-        ISharedMessagePackOptions options, IMemoryStreamPool memoryStreamPool) {
+        ISharedMessagePackOptions options,
+        IMemoryStreamPool memoryStreamPool
+    )
+    {
         _options = options;
         _memoryStreamPool = memoryStreamPool;
     }
@@ -51,10 +55,12 @@ public class MessagePackResponseSerializer : IResponseSerializer {
     /// also what <c>ConditionalResponseStream</c> needs to compute an ETag over a complete body.
     /// </para>
     /// </remarks>
-    public async Task SerializeResponse(IExecutionContext context) {
+    public async Task SerializeResponse(IExecutionContext context)
+    {
         context.Response.ContentType = MessagePackContentType.Value;
 
-        if (context.Response.ResponseValue == null) {
+        if (context.Response.ResponseValue == null)
+        {
             return;
         }
 
@@ -68,7 +74,8 @@ public class MessagePackResponseSerializer : IResponseSerializer {
             buffer.Item,
             context.Response.ResponseValue,
             _options.Options,
-            context.CancellationToken);
+            context.CancellationToken
+        );
 
         buffer.Item.Position = 0;
 

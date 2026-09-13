@@ -19,11 +19,8 @@ namespace Hardened.Web.SourceGenerator.Tests;
 /// claims, and only the second one is worth a consumer's time.
 /// </para>
 /// </summary>
-public class HandlerOptionTests {
-
-
-
-
+public class HandlerOptionTests
+{
     /// <summary>
     /// <c>[CacheControl]</c> is not read by the generator as an output option — it travels as
     /// handler metadata, which is where a filter reading it has to find it. Its values have to
@@ -31,8 +28,10 @@ public class HandlerOptionTests {
     /// defaults.
     /// </summary>
     [Fact]
-    public void CacheControlReachesTheHandlerMetadataWithItsMaxAge() {
-        var routing = GeneratedRoutingTable.For("""
+    public void CacheControlReachesTheHandlerMetadataWithItsMaxAge()
+    {
+        var routing = GeneratedRoutingTable.For(
+            """
             using Hardened.Shared.Runtime.Attributes;
             using Hardened.Web.Runtime.Attributes;
 
@@ -46,7 +45,8 @@ public class HandlerOptionTests {
                 [CacheControl(MaxAge = 86400)]
                 public string Asset(string name) => name;
             }
-            """);
+            """
+        );
 
         var metadata = routing.Handler("GET", "/assets/logo.png").Metadata;
 
@@ -68,8 +68,10 @@ public class HandlerOptionTests {
     /// </para>
     /// </summary>
     [Fact]
-    public void CacheControlFlagsReachTheHandlerMetadata() {
-        var routing = GeneratedRoutingTable.For("""
+    public void CacheControlFlagsReachTheHandlerMetadata()
+    {
+        var routing = GeneratedRoutingTable.For(
+            """
             using Hardened.Shared.Runtime.Attributes;
             using Hardened.Web.Runtime.Attributes;
             using Hardened.Web.Runtime.CacheControl;
@@ -84,7 +86,8 @@ public class HandlerOptionTests {
                 [CacheControl(Type = CacheControlEnum.NoStore)]
                 public string Asset(string name) => name;
             }
-            """);
+            """
+        );
 
         var metadata = routing.Handler("GET", "/assets/logo.png").Metadata;
 
@@ -98,8 +101,10 @@ public class HandlerOptionTests {
     /// independently.
     /// </summary>
     [Fact]
-    public void CombinedCacheControlFlagsAreQualifiedOnBothSidesOfTheOperator() {
-        var routing = GeneratedRoutingTable.For("""
+    public void CombinedCacheControlFlagsAreQualifiedOnBothSidesOfTheOperator()
+    {
+        var routing = GeneratedRoutingTable.For(
+            """
             using Hardened.Shared.Runtime.Attributes;
             using Hardened.Web.Runtime.Attributes;
             using Hardened.Web.Runtime.CacheControl;
@@ -114,7 +119,8 @@ public class HandlerOptionTests {
                 [CacheControl(MaxAge = 3600, Type = CacheControlEnum.MaxAge | CacheControlEnum.Public)]
                 public string Asset(string name) => name;
             }
-            """);
+            """
+        );
 
         var metadata = routing.Handler("GET", "/assets/logo.png").Metadata;
 
@@ -131,8 +137,10 @@ public class HandlerOptionTests {
     /// the parameters slot and emitted code that did not compile, before the 2026-08-11 fix.
     /// </summary>
     [Fact]
-    public void AHandlerWithNoAttributesCarriesNoMetadata() {
-        var routing = GeneratedRoutingTable.For("""
+    public void AHandlerWithNoAttributesCarriesNoMetadata()
+    {
+        var routing = GeneratedRoutingTable.For(
+            """
             using Hardened.Shared.Runtime.Attributes;
             using Hardened.Web.Runtime.Attributes;
 
@@ -145,7 +153,8 @@ public class HandlerOptionTests {
                 [Get("/health")]
                 public string Health() => "ok";
             }
-            """);
+            """
+        );
 
         Assert.Empty(routing.Handler("GET", "/health").Metadata);
     }
@@ -155,8 +164,10 @@ public class HandlerOptionTests {
     /// attributes are collected alongside the method's own.
     /// </summary>
     [Fact]
-    public void CacheControlOnTheControllerReachesEveryHandlerOnIt() {
-        var routing = GeneratedRoutingTable.For("""
+    public void CacheControlOnTheControllerReachesEveryHandlerOnIt()
+    {
+        var routing = GeneratedRoutingTable.For(
+            """
             using Hardened.Shared.Runtime.Attributes;
             using Hardened.Web.Runtime.Attributes;
 
@@ -173,11 +184,14 @@ public class HandlerOptionTests {
                 [Get("/two")]
                 public string Two() => "two";
             }
-            """);
+            """
+        );
 
-        foreach (var path in new[] { "/one", "/two" }) {
+        foreach (var path in new[] { "/one", "/two" })
+        {
             var cacheControl = Assert.IsType<CacheControlAttribute>(
-                Assert.Single(routing.Handler("GET", path).Metadata));
+                Assert.Single(routing.Handler("GET", path).Metadata)
+            );
 
             Assert.Equal(60, cacheControl.MaxAge);
         }
@@ -187,7 +201,10 @@ public class HandlerOptionTests {
     /// A response context with a value already set, so a default output function can be invoked
     /// directly. Only the members the raw output path touches are stood up.
     /// </summary>
-    private static (IExecutionContext context, MemoryStream body) RawResponseContext(string responseValue) {
+    private static (IExecutionContext context, MemoryStream body) RawResponseContext(
+        string responseValue
+    )
+    {
         var context = Substitute.For<IExecutionContext>();
         var response = Substitute.For<IExecutionResponse>();
         var body = new MemoryStream();
@@ -196,7 +213,9 @@ public class HandlerOptionTests {
         // function's assignment to ContentType is observable without recording it by hand.
         response.ResponseValue = responseValue;
         response.Body = body;
-        response.Headers.Returns(new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase));
+        response.Headers.Returns(
+            new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase)
+        );
 
         context.Response.Returns(response);
 

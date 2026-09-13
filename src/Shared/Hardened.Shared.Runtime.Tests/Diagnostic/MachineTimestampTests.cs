@@ -27,8 +27,8 @@ namespace Hardened.Shared.Runtime.Tests.Diagnostic;
 /// not.
 /// </para>
 /// </remarks>
-public class MachineTimestampTests {
-
+public class MachineTimestampTests
+{
     /// <summary>
     /// Long enough that the wall clock's own resolution is small against it - roughly a millisecond
     /// here and about fifteen on Windows - and short enough not to slow the suite.
@@ -50,7 +50,8 @@ public class MachineTimestampTests {
     private const double ToleranceMilliseconds = 50;
 
     [Fact]
-    public void GetElapsedMilliseconds_AgreesWithTheWallClock() {
+    public void GetElapsedMilliseconds_AgreesWithTheWallClock()
+    {
         var wallStart = DateTime.UtcNow;
         var timestamp = MachineTimestamp.Now;
 
@@ -62,11 +63,13 @@ public class MachineTimestampTests {
         Assert.InRange(
             measured,
             wallElapsed - ToleranceMilliseconds,
-            wallElapsed + ToleranceMilliseconds);
+            wallElapsed + ToleranceMilliseconds
+        );
     }
 
     [Fact]
-    public void GetElapsedTime_AgreesWithTheWallClock() {
+    public void GetElapsedTime_AgreesWithTheWallClock()
+    {
         var wallStart = DateTime.UtcNow;
         var timestamp = MachineTimestamp.Now;
 
@@ -78,7 +81,8 @@ public class MachineTimestampTests {
         Assert.InRange(
             measured.TotalMilliseconds,
             wallElapsed.TotalMilliseconds - ToleranceMilliseconds,
-            wallElapsed.TotalMilliseconds + ToleranceMilliseconds);
+            wallElapsed.TotalMilliseconds + ToleranceMilliseconds
+        );
     }
 
     /// <summary>
@@ -87,7 +91,8 @@ public class MachineTimestampTests {
     /// of its own to find one.
     /// </summary>
     [Fact]
-    public void TheTwoAccessorsReportTheSameElapsedTime() {
+    public void TheTwoAccessorsReportTheSameElapsedTime()
+    {
         var timestamp = MachineTimestamp.Now;
 
         Thread.Sleep(20);
@@ -98,7 +103,8 @@ public class MachineTimestampTests {
         Assert.InRange(
             elapsed.TotalMilliseconds,
             milliseconds - ToleranceMilliseconds,
-            milliseconds + ToleranceMilliseconds);
+            milliseconds + ToleranceMilliseconds
+        );
     }
 
     /// <summary>
@@ -107,7 +113,8 @@ public class MachineTimestampTests {
     /// to give over a wall clock, and the one thing the wall clock above cannot be asked to confirm.
     /// </summary>
     [Fact]
-    public void ElapsedTimeIsMonotonic() {
+    public void ElapsedTimeIsMonotonic()
+    {
         var timestamp = MachineTimestamp.Now;
 
         var first = timestamp.GetElapsedMilliseconds();
@@ -123,7 +130,8 @@ public class MachineTimestampTests {
     /// the machine started.
     /// </summary>
     [Fact]
-    public void ADefaultTimestampRefusesToBeRead() {
+    public void ADefaultTimestampRefusesToBeRead()
+    {
         Assert.Throws<Exception>(() => default(MachineTimestamp).GetElapsedMilliseconds());
         Assert.Throws<Exception>(() => default(MachineTimestamp).GetElapsedTime());
         Assert.Throws<Exception>(() => default(MachineTimestamp).GetRemainingMilliseconds());
@@ -139,7 +147,8 @@ public class MachineTimestampTests {
     /// says <c>Now</c> reads the clock rather than returning a constant.
     /// </summary>
     [Fact]
-    public void ALaterTimestampHasElapsedLess() {
+    public void ALaterTimestampHasElapsedLess()
+    {
         var earlier = MachineTimestamp.Now;
 
         Thread.Sleep(20);
@@ -148,7 +157,8 @@ public class MachineTimestampTests {
 
         Assert.True(
             later.GetElapsedMilliseconds() < earlier.GetElapsedMilliseconds(),
-            "A timestamp taken later must have less elapsed time than one taken earlier.");
+            "A timestamp taken later must have less elapsed time than one taken earlier."
+        );
     }
 
     /// <summary>
@@ -156,7 +166,8 @@ public class MachineTimestampTests {
     /// compare them directly rather than comparing two readings taken at different moments.
     /// </summary>
     [Fact]
-    public void TimestampsOfTheSameTickCountAreEqual() {
+    public void TimestampsOfTheSameTickCountAreEqual()
+    {
         var ticks = Stopwatch.GetTimestamp();
 
         Assert.Equal(MachineTimestamp.FromTicks(ticks), MachineTimestamp.FromTicks(ticks));
@@ -165,15 +176,21 @@ public class MachineTimestampTests {
         Assert.True(MachineTimestamp.FromTicks(ticks) != MachineTimestamp.FromTicks(ticks + 1));
         Assert.Equal(
             MachineTimestamp.FromTicks(ticks).GetHashCode(),
-            MachineTimestamp.FromTicks(ticks).GetHashCode());
+            MachineTimestamp.FromTicks(ticks).GetHashCode()
+        );
 
         // The boxed overload is the one a non-generic collection reaches, and it is reached by
         // nothing else in this file.
-        Assert.True(MachineTimestamp.FromTicks(ticks).Equals((object)MachineTimestamp.FromTicks(ticks)));
-        Assert.False(MachineTimestamp.FromTicks(ticks).Equals((object)MachineTimestamp.FromTicks(ticks + 1)));
+        Assert.True(
+            MachineTimestamp.FromTicks(ticks).Equals((object)MachineTimestamp.FromTicks(ticks))
+        );
+        Assert.False(
+            MachineTimestamp.FromTicks(ticks).Equals((object)MachineTimestamp.FromTicks(ticks + 1))
+        );
         Assert.False(MachineTimestamp.FromTicks(ticks).Equals("not a timestamp"));
         Assert.False(MachineTimestamp.FromTicks(ticks).Equals(null));
     }
+
     /// <summary>
     /// Adding milliseconds puts the timestamp that far ahead of where it was. The conversion runs
     /// the other way from the elapsed readings above, milliseconds into machine ticks, so it is its
@@ -186,7 +203,8 @@ public class MachineTimestampTests {
     /// stays put.
     /// </remarks>
     [Fact]
-    public void AddMsPutsTheTimestampThatFarAhead() {
+    public void AddMsPutsTheTimestampThatFarAhead()
+    {
         var wallStart = DateTime.UtcNow;
         var deadline = MachineTimestamp.Now.AddMs(DeadlineMilliseconds);
 
@@ -196,7 +214,8 @@ public class MachineTimestampTests {
         Assert.InRange(
             remaining + wallElapsed,
             DeadlineMilliseconds - ToleranceMilliseconds,
-            DeadlineMilliseconds + ToleranceMilliseconds);
+            DeadlineMilliseconds + ToleranceMilliseconds
+        );
     }
 
     /// <summary>
@@ -204,7 +223,8 @@ public class MachineTimestampTests {
     /// says so.
     /// </summary>
     [Fact]
-    public void AddingNegativeMillisecondsPutsTheTimestampBehind() {
+    public void AddingNegativeMillisecondsPutsTheTimestampBehind()
+    {
         var wallStart = DateTime.UtcNow;
         var passed = MachineTimestamp.Now.AddMs(-DeadlineMilliseconds);
 
@@ -214,7 +234,8 @@ public class MachineTimestampTests {
         Assert.InRange(
             remaining + wallElapsed,
             -DeadlineMilliseconds - ToleranceMilliseconds,
-            -DeadlineMilliseconds + ToleranceMilliseconds);
+            -DeadlineMilliseconds + ToleranceMilliseconds
+        );
     }
 
     /// <summary>
@@ -223,7 +244,8 @@ public class MachineTimestampTests {
     /// only makes it more true.
     /// </summary>
     [Fact]
-    public void ADeadlineIsPastOnceItsSpanHasElapsed() {
+    public void ADeadlineIsPastOnceItsSpanHasElapsed()
+    {
         var deadline = MachineTimestamp.Now.AddMs(SleepMilliseconds);
 
         Assert.True(deadline.Future, "A deadline is in the future before its span elapses.");
@@ -233,7 +255,8 @@ public class MachineTimestampTests {
         Assert.True(deadline.Past, "A deadline is in the past once its span has elapsed.");
         Assert.True(
             deadline.GetRemainingMilliseconds() < 0,
-            $"{deadline.GetRemainingMilliseconds()} was not negative for an elapsed deadline.");
+            $"{deadline.GetRemainingMilliseconds()} was not negative for an elapsed deadline."
+        );
     }
 
     /// <summary>
@@ -241,12 +264,17 @@ public class MachineTimestampTests {
     /// them in turn either takes two branches or takes none.
     /// </summary>
     [Fact]
-    public void ATimestampIsPastPresentOrFutureAndOnlyOne() {
-        foreach (var timestamp in new[] {
-                     MachineTimestamp.Now.AddMs(DeadlineMilliseconds),
-                     MachineTimestamp.Now.AddMs(-DeadlineMilliseconds),
-                     MachineTimestamp.Now
-                 }) {
+    public void ATimestampIsPastPresentOrFutureAndOnlyOne()
+    {
+        foreach (
+            var timestamp in new[]
+            {
+                MachineTimestamp.Now.AddMs(DeadlineMilliseconds),
+                MachineTimestamp.Now.AddMs(-DeadlineMilliseconds),
+                MachineTimestamp.Now,
+            }
+        )
+        {
             var held = new[] { timestamp.Past, timestamp.Present, timestamp.Future }.Count(x => x);
 
             Assert.True(held == 1, $"{held} of Past, Present and Future held at once.");
@@ -258,7 +286,8 @@ public class MachineTimestampTests {
     /// a thousand between a right answer and a wrong one.
     /// </summary>
     [Fact]
-    public void TheTwoRemainingAccessorsReportTheSameTime() {
+    public void TheTwoRemainingAccessorsReportTheSameTime()
+    {
         var deadline = MachineTimestamp.Now.AddMs(DeadlineMilliseconds);
 
         var milliseconds = deadline.GetRemainingMilliseconds();
@@ -267,7 +296,8 @@ public class MachineTimestampTests {
         Assert.InRange(
             seconds * 1000,
             milliseconds - ToleranceMilliseconds,
-            milliseconds + ToleranceMilliseconds);
+            milliseconds + ToleranceMilliseconds
+        );
     }
 
     /// <summary>
@@ -275,7 +305,8 @@ public class MachineTimestampTests {
     /// timestamp that has gone by they differ only in sign.
     /// </summary>
     [Fact]
-    public void RemainingIsElapsedNegated() {
+    public void RemainingIsElapsedNegated()
+    {
         var timestamp = MachineTimestamp.Now;
 
         Thread.Sleep(20);
@@ -286,14 +317,17 @@ public class MachineTimestampTests {
         Assert.InRange(
             remaining,
             -elapsed - ToleranceMilliseconds,
-            -elapsed + ToleranceMilliseconds);
+            -elapsed + ToleranceMilliseconds
+        );
     }
+
     /// <summary>
     /// Timestamps order by the moment they were taken, which is what lets a caller hold several and
     /// ask which came first without reading elapsed time off each one at some later moment.
     /// </summary>
     [Fact]
-    public void TimestampsOrderByWhenTheyWereTaken() {
+    public void TimestampsOrderByWhenTheyWereTaken()
+    {
         var ticks = Stopwatch.GetTimestamp();
         var earlier = MachineTimestamp.FromTicks(ticks);
         var later = MachineTimestamp.FromTicks(ticks + 1);
@@ -317,7 +351,8 @@ public class MachineTimestampTests {
     /// the same pair, so it is what says the machine ticks were converted to a time span correctly.
     /// </summary>
     [Fact]
-    public void SubtractingTwoTimestampsGivesTheTimeBetweenThem() {
+    public void SubtractingTwoTimestampsGivesTheTimeBetweenThem()
+    {
         var wallStart = DateTime.UtcNow;
         var earlier = MachineTimestamp.Now;
 
@@ -329,7 +364,8 @@ public class MachineTimestampTests {
         Assert.InRange(
             (later - earlier).TotalMilliseconds,
             wallElapsed.TotalMilliseconds - ToleranceMilliseconds,
-            wallElapsed.TotalMilliseconds + ToleranceMilliseconds);
+            wallElapsed.TotalMilliseconds + ToleranceMilliseconds
+        );
     }
 
     /// <summary>
@@ -337,7 +373,8 @@ public class MachineTimestampTests {
     /// is told rather than handed a plausible positive number.
     /// </summary>
     [Fact]
-    public void SubtractingInTheOtherOrderIsNegated() {
+    public void SubtractingInTheOtherOrderIsNegated()
+    {
         var ticks = Stopwatch.GetTimestamp();
         var earlier = MachineTimestamp.FromTicks(ticks);
         var later = earlier.AddMs(DeadlineMilliseconds);
@@ -351,7 +388,8 @@ public class MachineTimestampTests {
     /// gives, negated. Two ways to the same measurement, so they must not disagree about it.
     /// </summary>
     [Fact]
-    public void TheDifferenceFromNowIsTheElapsedTime() {
+    public void TheDifferenceFromNowIsTheElapsedTime()
+    {
         var timestamp = MachineTimestamp.Now;
 
         Thread.Sleep(20);
@@ -362,7 +400,8 @@ public class MachineTimestampTests {
         Assert.InRange(
             difference.TotalMilliseconds,
             elapsed.TotalMilliseconds - ToleranceMilliseconds,
-            elapsed.TotalMilliseconds + ToleranceMilliseconds);
+            elapsed.TotalMilliseconds + ToleranceMilliseconds
+        );
     }
 
     /// <summary>
@@ -371,7 +410,8 @@ public class MachineTimestampTests {
     /// are deliberately not guarded this way, because a sort or a dictionary must not throw.
     /// </summary>
     [Fact]
-    public void SubtractingADefaultTimestampThrows() {
+    public void SubtractingADefaultTimestampThrows()
+    {
         var timestamp = MachineTimestamp.Now;
 
         Assert.Throws<Exception>(() => timestamp - default(MachineTimestamp));

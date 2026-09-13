@@ -20,50 +20,71 @@ namespace Hardened.OpenApi.BuildTask.Tests;
 /// <c>ValidationContext.PushIndex</c>.
 /// </para>
 /// </remarks>
-public class NestedValidationTests {
-
+public class NestedValidationTests
+{
     /// <summary>A line item with a constraint of its own, and so a validator of its own.</summary>
-    private static SchemaModel ConstrainedLine() => new() {
-        Name = "OrderLine",
-        Kind = SchemaKind.Object,
-        Required = new List<string> { "sku", "quantity" },
-        Properties = new List<PropertyModel> {
-            new() { Name = "sku", Type = "string", IsRequired = true },
-            new() { Name = "quantity", Type = "integer", IsRequired = true, Minimum = 1 }
-        }
-    };
+    private static SchemaModel ConstrainedLine() =>
+        new()
+        {
+            Name = "OrderLine",
+            Kind = SchemaKind.Object,
+            Required = new List<string> { "sku", "quantity" },
+            Properties = new List<PropertyModel>
+            {
+                new()
+                {
+                    Name = "sku",
+                    Type = "string",
+                    IsRequired = true,
+                },
+                new()
+                {
+                    Name = "quantity",
+                    Type = "integer",
+                    IsRequired = true,
+                    Minimum = 1,
+                },
+            },
+        };
 
     /// <summary>The same shape with nothing to check, so no validator is generated for it.</summary>
-    private static SchemaModel UnconstrainedLine() => new() {
-        Name = "OrderLine",
-        Kind = SchemaKind.Object,
-        Properties = new List<PropertyModel> {
-            new() { Name = "sku", Type = "string" },
-            new() { Name = "note", Type = "string" }
-        }
-    };
+    private static SchemaModel UnconstrainedLine() =>
+        new()
+        {
+            Name = "OrderLine",
+            Kind = SchemaKind.Object,
+            Properties = new List<PropertyModel>
+            {
+                new() { Name = "sku", Type = "string" },
+                new() { Name = "note", Type = "string" },
+            },
+        };
 
-    private static SchemaModel OrderWith(PropertyModel lines) => new() {
-        Name = "Order",
-        Kind = SchemaKind.Object,
-        Required = new List<string> { "lines" },
-        Properties = new List<PropertyModel> { lines }
-    };
+    private static SchemaModel OrderWith(PropertyModel lines) =>
+        new()
+        {
+            Name = "Order",
+            Kind = SchemaKind.Object,
+            Required = new List<string> { "lines" },
+            Properties = new List<PropertyModel> { lines },
+        };
 
-    private static PropertyModel ArrayOfLines() => new() {
-        Name = "lines",
-        IsArray = true,
-        ArrayItemsRef = "#/components/schemas/OrderLine",
-        IsRequired = true
-    };
+    private static PropertyModel ArrayOfLines() =>
+        new()
+        {
+            Name = "lines",
+            IsArray = true,
+            ArrayItemsRef = "#/components/schemas/OrderLine",
+            IsRequired = true,
+        };
 
     /// <summary>
     /// An array whose items carry constraints is descended into. The exact D2 repro.
     /// </summary>
     [Fact]
-    public void AnArrayOfConstrainedObjectsIsDescendedInto() {
-        var result = EmitterHarness.Schema(
-            OrderWith(ArrayOfLines()), [ConstrainedLine()]);
+    public void AnArrayOfConstrainedObjectsIsDescendedInto()
+    {
+        var result = EmitterHarness.Schema(OrderWith(ArrayOfLines()), [ConstrainedLine()]);
 
         Assert.Contains("ValidateNested", result);
     }
@@ -72,13 +93,19 @@ public class NestedValidationTests {
     /// A nested object carrying constraints is descended into, the same as an array's items.
     /// </summary>
     [Fact]
-    public void ANestedConstrainedObjectIsDescendedInto() {
-        var property = new PropertyModel {
-            Name = "line", Ref = "#/components/schemas/OrderLine", IsRequired = true
+    public void ANestedConstrainedObjectIsDescendedInto()
+    {
+        var property = new PropertyModel
+        {
+            Name = "line",
+            Ref = "#/components/schemas/OrderLine",
+            IsRequired = true,
         };
 
-        Assert.Contains("ValidateNested", EmitterHarness.Schema(
-            OrderWith(property), [ConstrainedLine()]));
+        Assert.Contains(
+            "ValidateNested",
+            EmitterHarness.Schema(OrderWith(property), [ConstrainedLine()])
+        );
     }
 
     /// <summary>
@@ -86,16 +113,20 @@ public class NestedValidationTests {
     /// <c>map[key]</c>.
     /// </summary>
     [Fact]
-    public void ADictionaryOfConstrainedObjectsIsDescendedInto() {
-        var property = new PropertyModel {
+    public void ADictionaryOfConstrainedObjectsIsDescendedInto()
+    {
+        var property = new PropertyModel
+        {
             Name = "lines",
             IsDictionary = true,
             DictionaryValueRef = "#/components/schemas/OrderLine",
-            IsRequired = true
+            IsRequired = true,
         };
 
-        Assert.Contains("ValidateNested", EmitterHarness.Schema(
-            OrderWith(property), [ConstrainedLine()]));
+        Assert.Contains(
+            "ValidateNested",
+            EmitterHarness.Schema(OrderWith(property), [ConstrainedLine()])
+        );
     }
 
     /// <summary>
@@ -107,9 +138,9 @@ public class NestedValidationTests {
     /// cannot open, from a specification that is not wrong.
     /// </remarks>
     [Fact]
-    public void AnArrayOfUnconstrainedObjectsIsNotDescendedInto() {
-        var result = EmitterHarness.Schema(
-            OrderWith(ArrayOfLines()), [UnconstrainedLine()]);
+    public void AnArrayOfUnconstrainedObjectsIsNotDescendedInto()
+    {
+        var result = EmitterHarness.Schema(OrderWith(ArrayOfLines()), [UnconstrainedLine()]);
 
         Assert.DoesNotContain("ValidateNested", result);
     }
@@ -119,13 +150,20 @@ public class NestedValidationTests {
     /// which has no validator and no members to check.
     /// </summary>
     [Fact]
-    public void AnArrayOfPrimitivesIsNotDescendedInto() {
-        var property = new PropertyModel {
-            Name = "tags", IsArray = true, ArrayItemsType = "string", IsRequired = true
+    public void AnArrayOfPrimitivesIsNotDescendedInto()
+    {
+        var property = new PropertyModel
+        {
+            Name = "tags",
+            IsArray = true,
+            ArrayItemsType = "string",
+            IsRequired = true,
         };
 
-        Assert.DoesNotContain("ValidateNested", EmitterHarness.Schema(
-            OrderWith(property), [ConstrainedLine()]));
+        Assert.DoesNotContain(
+            "ValidateNested",
+            EmitterHarness.Schema(OrderWith(property), [ConstrainedLine()])
+        );
     }
 
     /// <summary>
@@ -133,12 +171,15 @@ public class NestedValidationTests {
     /// elsewhere; what it must not do is name a validator that was never emitted.
     /// </summary>
     [Fact]
-    public void AnUnresolvableRefIsNotDescendedInto() {
+    public void AnUnresolvableRefIsNotDescendedInto()
+    {
         var unrelated = UnconstrainedLine();
         unrelated.Name = "SomethingElse";
 
-        Assert.DoesNotContain("ValidateNested", EmitterHarness.Schema(
-            OrderWith(ArrayOfLines()), [unrelated]));
+        Assert.DoesNotContain(
+            "ValidateNested",
+            EmitterHarness.Schema(OrderWith(ArrayOfLines()), [unrelated])
+        );
     }
 
     /// <summary>
@@ -147,13 +188,19 @@ public class NestedValidationTests {
     /// and validation runs on request binding.
     /// </summary>
     [Fact]
-    public void AReadOnlyNestedObjectIsNotDescendedInto() {
-        var property = new PropertyModel {
-            Name = "line", Ref = "#/components/schemas/OrderLine", IsReadOnly = true
+    public void AReadOnlyNestedObjectIsNotDescendedInto()
+    {
+        var property = new PropertyModel
+        {
+            Name = "line",
+            Ref = "#/components/schemas/OrderLine",
+            IsReadOnly = true,
         };
 
-        Assert.DoesNotContain("ValidateNested", EmitterHarness.Schema(
-            OrderWith(property), [ConstrainedLine()]));
+        Assert.DoesNotContain(
+            "ValidateNested",
+            EmitterHarness.Schema(OrderWith(property), [ConstrainedLine()])
+        );
     }
 
     /// <summary>
@@ -165,16 +212,24 @@ public class NestedValidationTests {
     /// here to cycle.
     /// </remarks>
     [Fact]
-    public void DescentComposesOneLevelAtATime() {
+    public void DescentComposesOneLevelAtATime()
+    {
         var line = ConstrainedLine();
 
-        var basket = new SchemaModel {
+        var basket = new SchemaModel
+        {
             Name = "Basket",
             Kind = SchemaKind.Object,
             Required = new List<string> { "order" },
-            Properties = new List<PropertyModel> {
-                new() { Name = "order", Ref = "#/components/schemas/Order", IsRequired = true }
-            }
+            Properties = new List<PropertyModel>
+            {
+                new()
+                {
+                    Name = "order",
+                    Ref = "#/components/schemas/Order",
+                    IsRequired = true,
+                },
+            },
         };
 
         var order = OrderWith(ArrayOfLines());
@@ -188,17 +243,29 @@ public class NestedValidationTests {
     /// A self-referencing schema is marked and does not hang the build.
     /// </summary>
     [Fact]
-    public void ASelfReferencingSchemaIsMarkedWithoutRecursing() {
-        var node = new SchemaModel {
+    public void ASelfReferencingSchemaIsMarkedWithoutRecursing()
+    {
+        var node = new SchemaModel
+        {
             Name = "Node",
             Kind = SchemaKind.Object,
             Required = new List<string> { "name" },
-            Properties = new List<PropertyModel> {
-                new() { Name = "name", Type = "string", IsRequired = true, MinLength = 1 },
-                new() {
-                    Name = "children", IsArray = true, ArrayItemsRef = "#/components/schemas/Node"
-                }
-            }
+            Properties = new List<PropertyModel>
+            {
+                new()
+                {
+                    Name = "name",
+                    Type = "string",
+                    IsRequired = true,
+                    MinLength = 1,
+                },
+                new()
+                {
+                    Name = "children",
+                    IsArray = true,
+                    ArrayItemsRef = "#/components/schemas/Node",
+                },
+            },
         };
 
         Assert.Contains("ValidateNested", EmitterHarness.Schema(node, [node]));

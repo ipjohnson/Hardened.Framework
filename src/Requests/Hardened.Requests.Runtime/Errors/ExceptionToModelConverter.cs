@@ -4,33 +4,41 @@ using Hardened.Requests.Abstract.Errors;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.Responses;
-using Hardened.Requests.Runtime.Validation;
 using Hardened.Requests.Runtime.RateLimiting;
+using Hardened.Requests.Runtime.Validation;
 
 namespace Hardened.Requests.Runtime.Errors;
 
 [SingletonService(Using = RegistrationType.Try)]
-public class ExceptionToModelConverter : IExceptionToModelConverter {
-    public (int, object) ConvertExceptionToModel(IExecutionContext context, Exception exp) {
+public class ExceptionToModelConverter : IExceptionToModelConverter
+{
+    public (int, object) ConvertExceptionToModel(IExecutionContext context, Exception exp)
+    {
         // Both routes to a validation failure land here. The filter throws Hardened's exception,
         // which is a BadRequestException; a handler calling ValidateAndThrow itself throws
         // ValidationModules'. One mapper, rather than two shapes that agree by duplication - which
         // is what that type's own documentation asks a framework to do.
-        var validationResult = exp switch {
+        var validationResult = exp switch
+        {
             ValidationException hardened => hardened.ValidationResult,
             ValidationModules.ValidationException validationModules => validationModules.Result,
-            _ => null
+            _ => null,
         };
 
-        if (validationResult != null) {
-            var errorModel = new RequestValidationError {
+        if (validationResult != null)
+        {
+            var errorModel = new RequestValidationError
+            {
                 Type = "ValidationError",
                 Message = exp.Message,
-                Errors = validationResult.Errors.Select(e => new RequestValidationFieldError {
-                    Field = e.Field,
-                    Code = e.Code,
-                    Message = e.Message
-                }).ToList()
+                Errors = validationResult
+                    .Errors.Select(e => new RequestValidationFieldError
+                    {
+                        Field = e.Field,
+                        Code = e.Code,
+                        Message = e.Message,
+                    })
+                    .ToList(),
             };
 
             // The status the contract declared for validation failures, where it declared one.
@@ -47,7 +55,8 @@ public class ExceptionToModelConverter : IExceptionToModelConverter {
         // header - a 401 and its WWW-Authenticate challenge - gets to add one. The body still comes
         // from StatusCodeException.Value when the exception is one, which keeps a declared payload
         // working exactly as it did.
-        if (exp is IStatusCodeException statusCodeException) {
+        if (exp is IStatusCodeException statusCodeException)
+        {
             statusCodeException.ApplyHeaders(context.Response.Headers);
 
             var declaredValue = exp is StatusCodeException { Value: { } value } ? value : null;
@@ -65,9 +74,8 @@ public class ExceptionToModelConverter : IExceptionToModelConverter {
 
             return (
                 statusCodeException.StatusCode,
-                declaredValue ?? new ErrorModel {
-                    Type = exp.GetType().Name, Message = exp.Message
-                });
+                declaredValue ?? new ErrorModel { Type = exp.GetType().Name, Message = exp.Message }
+            );
         }
 
         // A body the caller sent that this service cannot read. System.Text.Json raises it for
@@ -83,10 +91,12 @@ public class ExceptionToModelConverter : IExceptionToModelConverter {
         // declaring 422 answered 422 from its filter and 400 from its deserializer - one refusal
         // split across two statuses by which layer happened to catch the value, and the 400 was
         // absent from the document the operation published.
-        if (exp is JsonException jsonException) {
+        if (exp is JsonException jsonException)
+        {
             return (
                 context.HandlerInfo?.ValidationErrorStatus ?? 400,
-                BodyReadError(jsonException, BodyField(context)));
+                BodyReadError(jsonException, BodyField(context))
+            );
         }
 
         // A cancellation on a handler something bounded, which is what a deadline expiring looks
@@ -116,16 +126,23 @@ public class ExceptionToModelConverter : IExceptionToModelConverter {
         // identically, so a disconnect reads as the deadline's status too. Nobody receives that
         // response either way, and TimeoutFilter counts the distinction as a metric, where it is
         // free.
-        if (exp is OperationCanceledException && context.HandlerInfo?.Timeout is { } declared) {
-            if (declared is { RetryAfterSeconds: > 0 }) {
-                context.Response.Headers[KnownHeaders.RetryAfter] =
-                    RetryAfter.HeaderValue(TimeSpan.FromSeconds(declared.RetryAfterSeconds));
+        if (exp is OperationCanceledException && context.HandlerInfo?.Timeout is { } declared)
+        {
+            if (declared is { RetryAfterSeconds: > 0 })
+            {
+                context.Response.Headers[KnownHeaders.RetryAfter] = RetryAfter.HeaderValue(
+                    TimeSpan.FromSeconds(declared.RetryAfterSeconds)
+                );
             }
 
-            return (declared.Status, new ErrorModel {
-                Type = declared.Status == 503 ? "ServiceUnavailable" : "GatewayTimeout",
-                Message = "The server did not finish this request in time."
-            });
+            return (
+                declared.Status,
+                new ErrorModel
+                {
+                    Type = declared.Status == 503 ? "ServiceUnavailable" : "GatewayTimeout",
+                    Message = "The server did not finish this request in time.",
+                }
+            );
         }
 
         // Client errors are identified by type, not by the shape of the type's name.
@@ -136,7 +153,8 @@ public class ExceptionToModelConverter : IExceptionToModelConverter {
         //
         // To have an exception treated as a client error, derive it from
         // BadRequestException.
-        if (exp is BadRequestException or FormatException) {
+        if (exp is BadRequestException or FormatException)
+        {
             // The message is kept here and dropped below, which is the whole distinction: these are
             // raised about the caller's own request, by code that chose the wording for them.
             return (400, new ErrorModel { Type = exp.GetType().Name, Message = exp.Message });
@@ -166,8 +184,8 @@ public class ExceptionToModelConverter : IExceptionToModelConverter {
     /// generated exception type, which carries a body it wrote.
     /// </remarks>
     private static object? Declared(IExecutionContext context, int statusCode) =>
-        context.HandlerInfo is { } handlerInfo &&
-        handlerInfo.DeclaredErrorBodies.TryGetValue(statusCode, out var body)
+        context.HandlerInfo is { } handlerInfo
+        && handlerInfo.DeclaredErrorBodies.TryGetValue(statusCode, out var body)
             ? body
             : null;
 
@@ -178,9 +196,10 @@ public class ExceptionToModelConverter : IExceptionToModelConverter {
     /// Shared rather than constructed per request - it holds nothing about the request, which is
     /// the point of it.
     /// </remarks>
-    private static readonly ErrorModel ServerError = new() {
+    private static readonly ErrorModel ServerError = new()
+    {
         Type = "ServerError",
-        Message = "The server could not complete this request."
+        Message = "The server could not complete this request.",
     };
 
     /// <summary>
@@ -193,20 +212,30 @@ public class ExceptionToModelConverter : IExceptionToModelConverter {
     /// is the field rather than prose.
     /// </remarks>
     private static RequestValidationError BodyReadError(JsonException exception, string body) =>
-        new() {
+        new()
+        {
             Type = "ValidationError",
             Message = "One or more validation errors occurred.",
-            Errors = MissingMembers(exception, body) ?? [
-                EmptyBody(exception)
-                    ? new RequestValidationFieldError {
-                        Field = body, Code = "required", Message = body + " is required."
-                    }
-                    : new RequestValidationFieldError {
-                        Field = NotWellFormed(exception) ? body : FieldFrom(exception.Path, body),
-                        Code = "invalid",
-                        Message = WithoutPositionSuffix(exception.Message)
-                    }
-            ]
+            Errors =
+                MissingMembers(exception, body)
+                ??
+                [
+                    EmptyBody(exception)
+                        ? new RequestValidationFieldError
+                        {
+                            Field = body,
+                            Code = "required",
+                            Message = body + " is required.",
+                        }
+                        : new RequestValidationFieldError
+                        {
+                            Field = NotWellFormed(exception)
+                                ? body
+                                : FieldFrom(exception.Path, body),
+                            Code = "invalid",
+                            Message = WithoutPositionSuffix(exception.Message),
+                        },
+                ],
         };
 
     /// <summary>
@@ -245,14 +274,18 @@ public class ExceptionToModelConverter : IExceptionToModelConverter {
     /// reported the same way.
     /// </remarks>
     private static bool EmptyBody(JsonException exception) =>
-        NotWellFormed(exception) &&
-        exception.Message.StartsWith("The input does not contain any JSON tokens", StringComparison.Ordinal);
+        NotWellFormed(exception)
+        && exception.Message.StartsWith(
+            "The input does not contain any JSON tokens",
+            StringComparison.Ordinal
+        );
 
     /// <summary>
     /// The prefix a body field is reported under: the handler's own parameter identifier, which is
     /// what the generated validators use. "body" only where nothing says otherwise.
     /// </summary>
-    private static string BodyField(IExecutionContext context) {
+    private static string BodyField(IExecutionContext context)
+    {
         var name = context.HandlerInfo?.BodyParameterName;
 
         return string.IsNullOrEmpty(name) ? "body" : name!;
@@ -288,21 +321,31 @@ public class ExceptionToModelConverter : IExceptionToModelConverter {
     /// </para>
     /// </remarks>
     private static List<RequestValidationFieldError>? MissingMembers(
-        JsonException exception, string body) {
+        JsonException exception,
+        string body
+    )
+    {
         const string prefix = "JSON deserialization for type ";
         const string marker = "missing required properties";
 
         var message = exception.Message;
 
-        if (!message.StartsWith(prefix, StringComparison.Ordinal) ||
-            message.IndexOf(marker, StringComparison.Ordinal) == -1) {
+        if (
+            !message.StartsWith(prefix, StringComparison.Ordinal)
+            || message.IndexOf(marker, StringComparison.Ordinal) == -1
+        )
+        {
             return null;
         }
 
-        var listStart = message.IndexOf(": ", message.IndexOf(marker, StringComparison.Ordinal),
-            StringComparison.Ordinal);
+        var listStart = message.IndexOf(
+            ": ",
+            message.IndexOf(marker, StringComparison.Ordinal),
+            StringComparison.Ordinal
+        );
 
-        if (listStart == -1) {
+        if (listStart == -1)
+        {
             return null;
         }
 
@@ -314,29 +357,35 @@ public class ExceptionToModelConverter : IExceptionToModelConverter {
         // `body.'code'.` field. Every piece of dressing comes off before the member is a field.
         var separator = System.Globalization.CultureInfo.CurrentCulture.TextInfo.ListSeparator;
 
-        var names = separator == ","
-            ? message.Substring(listStart + 2).Split(',')
-            : message.Substring(listStart + 2).Split([separator, ","], StringSplitOptions.None);
+        var names =
+            separator == ","
+                ? message.Substring(listStart + 2).Split(',')
+                : message.Substring(listStart + 2).Split([separator, ","], StringSplitOptions.None);
 
-        foreach (var name in names) {
+        foreach (var name in names)
+        {
             var member = name.Trim().TrimEnd('.').Trim('\'', '"');
 
-            if (member.Length == 0) {
+            if (member.Length == 0)
+            {
                 continue;
             }
 
-            errors.Add(new RequestValidationFieldError {
-                // The object that was missing it, not the body: a member of an array element is
-                // body.lines[0].sku, which is the path a validator reports and the only one a
-                // caller with fifty lines can act on. The exception's Path is that object -
-                // $.lines[0] - and $ for the body itself.
-                Field = FieldFrom(exception.Path, body) + "." + member,
-                Code = "required",
-                // The member, not the path, which is what ValidationModules puts in this sentence:
-                // the field is already carried beside it, and repeating the prefix read as though
-                // the caller had sent a member called "body.sku".
-                Message = member + " is required."
-            });
+            errors.Add(
+                new RequestValidationFieldError
+                {
+                    // The object that was missing it, not the body: a member of an array element is
+                    // body.lines[0].sku, which is the path a validator reports and the only one a
+                    // caller with fifty lines can act on. The exception's Path is that object -
+                    // $.lines[0] - and $ for the body itself.
+                    Field = FieldFrom(exception.Path, body) + "." + member,
+                    Code = "required",
+                    // The member, not the path, which is what ValidationModules puts in this sentence:
+                    // the field is already carried beside it, and repeating the prefix read as though
+                    // the caller had sent a member called "body.sku".
+                    Message = member + " is required.",
+                }
+            );
         }
 
         return errors.Count == 0 ? null : errors;
@@ -346,8 +395,10 @@ public class ExceptionToModelConverter : IExceptionToModelConverter {
     /// <c>$.genre</c>, as <c>body.genre</c> - the spelling the constraint validators use, under
     /// the handler's own parameter identifier.
     /// </summary>
-    private static string FieldFrom(string? path, string body) {
-        if (string.IsNullOrEmpty(path) || path == "$") {
+    private static string FieldFrom(string? path, string body)
+    {
+        if (string.IsNullOrEmpty(path) || path == "$")
+        {
             return body;
         }
 
@@ -356,7 +407,8 @@ public class ExceptionToModelConverter : IExceptionToModelConverter {
             : body + path.Substring(1);
     }
 
-    private static string WithoutPositionSuffix(string message) {
+    private static string WithoutPositionSuffix(string message)
+    {
         var marker = message.IndexOf(" Path: ", StringComparison.Ordinal);
 
         return marker == -1 ? message : message.Substring(0, marker);

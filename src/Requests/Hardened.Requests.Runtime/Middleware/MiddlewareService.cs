@@ -6,7 +6,8 @@ using Hardened.Requests.Runtime.Execution;
 namespace Hardened.Requests.Runtime.Middleware;
 
 [SingletonService(Using = RegistrationType.Try)]
-public class MiddlewareService : IMiddlewareService {
+public class MiddlewareService : IMiddlewareService
+{
     private static readonly ResponseFinalizerFilter Finalizer = new();
 
     private static readonly CorrelationHeaderFilter CorrelationHeader = new();
@@ -21,14 +22,19 @@ public class MiddlewareService : IMiddlewareService {
     /// the second one, stop returning an id on exactly the refusals somebody wants to ask about.
     /// Neither holds state, so one instance of each serves every request.
     /// </remarks>
-    private readonly List<Func<IExecutionContext, IExecutionFilter>> _filters =
-        new() { _ => Finalizer, _ => CorrelationHeader };
+    private readonly List<Func<IExecutionContext, IExecutionFilter>> _filters = new()
+    {
+        _ => Finalizer,
+        _ => CorrelationHeader,
+    };
 
-    public void Use(Func<IExecutionContext, IExecutionFilter> middlewareFunc) {
+    public void Use(Func<IExecutionContext, IExecutionFilter> middlewareFunc)
+    {
         _filters.Add(middlewareFunc);
     }
 
-    public IExecutionChain GetExecutionChain(IExecutionContext context) {
+    public IExecutionChain GetExecutionChain(IExecutionContext context)
+    {
         return new ExecutionChain(_filters, context);
     }
 }

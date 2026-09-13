@@ -12,11 +12,16 @@ namespace Hardened.Web.Runtime.Compression;
 /// way the response filter and the response cache do. One filter instance serves the whole
 /// application, since it holds nothing but that.
 /// </remarks>
-internal sealed class RequestDecompressionProvider : IRequestFilterProvider {
+internal sealed class RequestDecompressionProvider : IRequestFilterProvider
+{
     private readonly RequestDecompressionFilter _filter = new();
 
-    public IEnumerable<RequestFilterInfo> GetFilters(IExecutionRequestHandlerInfo handlerInfo) {
+    public IEnumerable<RequestFilterInfo> GetFilters(IExecutionRequestHandlerInfo handlerInfo)
+    {
         yield return new RequestFilterInfo(
-            _ => _filter, FilterOrder.Before + FilterOrder.ResponseCache, nameof(RequestDecompressionFilter));
+            _ => _filter,
+            FilterOrder.Before + FilterOrder.ResponseCache,
+            nameof(RequestDecompressionFilter)
+        );
     }
 }

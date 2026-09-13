@@ -27,8 +27,8 @@ namespace Hardened.SourceGenerator.Validation;
 /// drifts.
 /// </para>
 /// </remarks>
-public static class HandlerValidationGenerator {
-
+public static class HandlerValidationGenerator
+{
     /// <summary>
     /// The handler models for a front-end, with validation attached, plus the source output that
     /// emits the validators they name.
@@ -36,38 +36,54 @@ public static class HandlerValidationGenerator {
     public static IncrementalValuesProvider<RequestHandlerModel> Setup(
         IncrementalGeneratorInitializationContext initializationContext,
         BaseRequestModelGenerator modelGenerator,
-        Func<SyntaxNode, CancellationToken, bool> selector) {
-
+        Func<SyntaxNode, CancellationToken, bool> selector
+    )
+    {
         // Selected down to a bool before it reaches the pipeline, so an edit anywhere in the
         // project does not invalidate every handler along with the compilation.
         var validationAvailable = initializationContext.CompilationProvider.Select(
             static (compilation, _) =>
-                compilation.GetTypeByMetadataName(ValidationGeneratorOptions.MarkerTypeName) is not null);
+                compilation.GetTypeByMetadataName(ValidationGeneratorOptions.MarkerTypeName)
+                    is not null
+        );
 
-        var options = initializationContext.AnalyzerConfigOptionsProvider
-            .Select(static (provider, _) => ValidationGeneratorOptions.Read(provider))
+        var options = initializationContext
+            .AnalyzerConfigOptionsProvider.Select(
+                static (provider, _) => ValidationGeneratorOptions.Read(provider)
+            )
             .Combine(validationAvailable);
 
-        var resolved = initializationContext.SyntaxProvider
-            .CreateSyntaxProvider(
+        var resolved = initializationContext
+            .SyntaxProvider.CreateSyntaxProvider(
                 (node, token) => selector(node, token),
-                (context, token) => Analyze(modelGenerator, context, token))
+                (context, token) => Analyze(modelGenerator, context, token)
+            )
             .Combine(options)
-            .Select(static (pair, token) =>
-                Resolve(pair.Left, pair.Right.Left, pair.Right.Right, token))
+            .Select(
+                static (pair, token) => Resolve(pair.Left, pair.Right.Left, pair.Right.Right, token)
+            )
             .WithComparer(ResolvedComparer.Instance);
 
         initializationContext.RegisterSourceOutput(
-            resolved.Where(static result => result.Validator is not null || !result.Diagnostics.IsEmpty),
-            static (production, result) => {
-                foreach (var diagnostic in result.Diagnostics) {
+            resolved.Where(static result =>
+                result.Validator is not null || !result.Diagnostics.IsEmpty
+            ),
+            static (production, result) =>
+            {
+                foreach (var diagnostic in result.Diagnostics)
+                {
                     production.ReportDiagnostic(diagnostic);
                 }
 
-                if (result.Validator is { } validator) {
-                    production.AddSource($"{validator.Namespace}.{validator.ValidatorName}.g.cs", GeneratedSource.Header(new ValidatorEmitter().Emit(validator)));
+                if (result.Validator is { } validator)
+                {
+                    production.AddSource(
+                        $"{validator.Namespace}.{validator.ValidatorName}.g.cs",
+                        GeneratedSource.Header(new ValidatorEmitter().Emit(validator))
+                    );
                 }
-            });
+            }
+        );
 
         // Collected, because the missing package reference is a single thing to fix and an
         // assembly with forty constrained handlers would otherwise report it forty times.
@@ -76,8 +92,10 @@ public static class HandlerValidationGenerator {
                 .Where(static result => result.ConstrainedWithoutValidation is not null)
                 .Select(static (result, _) => result.ConstrainedWithoutValidation!)
                 .Collect(),
-            static (production, constrained) => {
-                if (constrained.IsEmpty) {
+            static (production, constrained) =>
+            {
+                if (constrained.IsEmpty)
+                {
                     return;
                 }
 
@@ -85,8 +103,11 @@ public static class HandlerValidationGenerator {
                     Diagnostic.Create(
                         HandlerValidationDiagnostics.NoValidationGenerator(),
                         Location.None,
-                        constrained.OrderBy(static name => name, StringComparer.Ordinal).First()));
-            });
+                        constrained.OrderBy(static name => name, StringComparer.Ordinal).First()
+                    )
+                );
+            }
+        );
 
         return resolved
             .Select(static (result, _) => result.Handler)
@@ -108,8 +129,9 @@ public static class HandlerValidationGenerator {
     private static Candidate Analyze(
         BaseRequestModelGenerator modelGenerator,
         GeneratorSyntaxContext context,
-        CancellationToken cancellationToken) {
-
+        CancellationToken cancellationToken
+    )
+    {
         var methodDeclaration = (MethodDeclarationSyntax)context.Node;
         var handler = modelGenerator.GenerateRequestModel(context, cancellationToken);
 
@@ -119,18 +141,24 @@ public static class HandlerValidationGenerator {
         return new Candidate(
             handler,
             HandlerValidationFrontEnd.ParameterSymbolsOf(context, methodDeclaration),
-            context.SemanticModel.Compilation);
+            context.SemanticModel.Compilation
+        );
     }
 
     private static Resolved Resolve(
         Candidate candidate,
         ValidationGeneratorOptions options,
         bool validationAvailable,
-        CancellationToken cancellationToken) {
-
+        CancellationToken cancellationToken
+    )
+    {
         var built = HandlerValidationFrontEnd.Build(
-            candidate.Handler, candidate.Parameters, candidate.Compilation, options,
-            cancellationToken);
+            candidate.Handler,
+            candidate.Parameters,
+            candidate.Compilation,
+            options,
+            cancellationToken
+        );
 
         // Nothing emits validators for this compilation, so there is nothing to attach to. A
         // handler that declares constraints anyway is worth saying so about: the same Build decides
@@ -139,19 +167,26 @@ public static class HandlerValidationGenerator {
         //
         // Its diagnostics are dropped here. They are about how a constraint is written, and the
         // answer to all of them is that nothing is compiling any of them - which HRDV006 says once.
-        if (!validationAvailable) {
+        if (!validationAvailable)
+        {
             return new Resolved(
                 candidate.Handler,
                 null,
                 ImmutableArray<Diagnostic>.Empty,
-                built.Model is null ? null : Name(candidate.Handler));
+                built.Model is null ? null : Name(candidate.Handler)
+            );
         }
 
-        if (built.Model is null) {
+        if (built.Model is null)
+        {
             return new Resolved(candidate.Handler, null, built.Diagnostics);
         }
 
-        return new Resolved(WithFilter(candidate.Handler, built.Model), built.Model, built.Diagnostics);
+        return new Resolved(
+            WithFilter(candidate.Handler, built.Model),
+            built.Model,
+            built.Diagnostics
+        );
     }
 
     /// <summary>
@@ -170,16 +205,23 @@ public static class HandlerValidationGenerator {
     /// attribute would need its arguments to be compile-time constants.
     /// </para>
     /// </remarks>
-    private static RequestHandlerModel WithFilter(RequestHandlerModel handler, ValidatedTypeModel validator) {
-        var filters = new List<AttributeModel>(handler.Filters) {
+    private static RequestHandlerModel WithFilter(
+        RequestHandlerModel handler,
+        ValidatedTypeModel validator
+    )
+    {
+        var filters = new List<AttributeModel>(handler.Filters)
+        {
             new(
                 new GenericTypeDefinition(
                     TypeDefinitionEnum.ClassDefinition,
                     "Hardened.Requests.Runtime.Validation",
                     "ValidationFilterProvider",
-                    new[] { InvokeClassGenerator.ParametersType(handler) }),
+                    new[] { InvokeClassGenerator.ParametersType(handler) }
+                ),
                 "",
-                "")
+                ""
+            ),
         };
 
         // Through WithFilters rather than a fresh construction. Rebuilt by hand this carried two of
@@ -188,7 +230,10 @@ public static class HandlerValidationGenerator {
         // document described its best-specified operations as having no body and no response.
         var withFilter = handler.WithFilters(filters);
 
-        withFilter.ParametersValidator = TypeDefinition.Get(validator.Namespace, validator.ValidatorName);
+        withFilter.ParametersValidator = TypeDefinition.Get(
+            validator.Namespace,
+            validator.ValidatorName
+        );
 
         return withFilter;
     }
@@ -196,7 +241,8 @@ public static class HandlerValidationGenerator {
     private sealed record Candidate(
         RequestHandlerModel Handler,
         ImmutableArray<IParameterSymbol?> Parameters,
-        Compilation Compilation);
+        Compilation Compilation
+    );
 
     /// <param name="ConstrainedWithoutValidation">
     /// The handler's name when it declares constraints and nothing in this compilation compiles
@@ -207,7 +253,8 @@ public static class HandlerValidationGenerator {
         RequestHandlerModel Handler,
         ValidatedTypeModel? Validator,
         ImmutableArray<Diagnostic> Diagnostics,
-        string? ConstrainedWithoutValidation = null);
+        string? ConstrainedWithoutValidation = null
+    );
 
     /// <summary>
     /// Value equality for the resolved model, so an edit elsewhere in the file does not re-run
@@ -218,32 +265,39 @@ public static class HandlerValidationGenerator {
     /// equatable arrays. Diagnostics are compared on what they say rather than by reference,
     /// because they are rebuilt on every keystroke.
     /// </remarks>
-    public sealed class ResolvedComparer : IEqualityComparer<Resolved> {
+    public sealed class ResolvedComparer : IEqualityComparer<Resolved>
+    {
         public static readonly ResolvedComparer Instance = new();
 
         private static readonly RequestHandlerModelComparer Handlers = new();
 
-        public bool Equals(Resolved? x, Resolved? y) {
-            if (ReferenceEquals(x, y)) {
+        public bool Equals(Resolved? x, Resolved? y)
+        {
+            if (ReferenceEquals(x, y))
+            {
                 return true;
             }
 
-            if (x is null || y is null) {
+            if (x is null || y is null)
+            {
                 return false;
             }
 
-            return Handlers.Equals(x.Handler, y.Handler) &&
-                Equals(x.Validator, y.Validator) &&
-                x.ConstrainedWithoutValidation == y.ConstrainedWithoutValidation &&
-                x.Diagnostics.Select(Describe).SequenceEqual(y.Diagnostics.Select(Describe));
+            return Handlers.Equals(x.Handler, y.Handler)
+                && Equals(x.Validator, y.Validator)
+                && x.ConstrainedWithoutValidation == y.ConstrainedWithoutValidation
+                && x.Diagnostics.Select(Describe).SequenceEqual(y.Diagnostics.Select(Describe));
         }
 
-        public int GetHashCode(Resolved obj) {
-            unchecked {
+        public int GetHashCode(Resolved obj)
+        {
+            unchecked
+            {
                 var hashCode = Handlers.GetHashCode(obj.Handler);
 
                 hashCode = (hashCode * 397) ^ (obj.Validator?.GetHashCode() ?? 0);
-                hashCode = (hashCode * 397) ^ (obj.ConstrainedWithoutValidation?.GetHashCode() ?? 0);
+                hashCode =
+                    (hashCode * 397) ^ (obj.ConstrainedWithoutValidation?.GetHashCode() ?? 0);
                 hashCode = (hashCode * 397) ^ obj.Diagnostics.Length;
 
                 return hashCode;

@@ -25,9 +25,9 @@ namespace Hardened.Aws.DynamoDbClient.Tests;
 /// </summary>
 public sealed class RequiresDockerFactAttribute(
     [CallerFilePath] string? sourceFilePath = null,
-    [CallerLineNumber] int sourceLineNumber = -1)
-    : FactAttribute(sourceFilePath, sourceLineNumber), ITraitAttribute {
-
+    [CallerLineNumber] int sourceLineNumber = -1
+) : FactAttribute(sourceFilePath, sourceLineNumber), ITraitAttribute
+{
     /// <summary>The trait every Docker-dependent test in this repository carries.</summary>
     public const string Category = "RequiresDocker";
 
@@ -39,26 +39,36 @@ public sealed class RequiresDockerFactAttribute(
 /// Whether a Docker daemon is reachable. Public so a fixture can say why a container did not start,
 /// rather than leaving a connection failure to be read as a defect in the code under test.
 /// </summary>
-public static class DockerDaemon {
-    private static readonly Lazy<bool> Available =
-        new(Detect, LazyThreadSafetyMode.ExecutionAndPublication);
+public static class DockerDaemon
+{
+    private static readonly Lazy<bool> Available = new(
+        Detect,
+        LazyThreadSafetyMode.ExecutionAndPublication
+    );
 
     public static bool IsAvailable => Available.Value;
 
-    private static bool Detect() {
-        try {
+    private static bool Detect()
+    {
+        try
+        {
             // `docker info` talks to the daemon, unlike `docker version`, which answers from the
             // client alone and so reports success with nothing running.
-            using var probe = Process.Start(new ProcessStartInfo("docker", "info") {
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-            });
+            using var probe = Process.Start(
+                new ProcessStartInfo("docker", "info")
+                {
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                }
+            );
 
-            if (probe is null) {
+            if (probe is null)
+            {
                 return false;
             }
 
-            if (!probe.WaitForExit(milliseconds: 15_000)) {
+            if (!probe.WaitForExit(milliseconds: 15_000))
+            {
                 probe.Kill(entireProcessTree: true);
 
                 return false;
@@ -66,7 +76,8 @@ public static class DockerDaemon {
 
             return probe.ExitCode == 0;
         }
-        catch (Exception) {
+        catch (Exception)
+        {
             // Docker is not on the path, or cannot be run. Either way there is no daemon to use.
             return false;
         }

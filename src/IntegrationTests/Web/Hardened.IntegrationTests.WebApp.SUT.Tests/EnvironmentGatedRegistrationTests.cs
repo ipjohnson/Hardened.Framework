@@ -18,11 +18,12 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests;
 /// xunit extension model was exactly the part a hand-driven test cannot see. These two run through
 /// <c>[HardenedTest]</c> itself, against the SUT's own generated module, which is what the arm did.
 /// </remarks>
-public class EnvironmentGatedRegistrationTests {
-
+public class EnvironmentGatedRegistrationTests
+{
     [HardenedTest]
     [EnvironmentName("environment-gated")]
-    public void ARegistrationGatedOnTheTestsEnvironmentResolves(IApplicationRoot application) {
+    public void ARegistrationGatedOnTheTestsEnvironmentResolves(IApplicationRoot application)
+    {
         var service = application.Provider.GetService<IEnvironmentGatedService>();
 
         Assert.NotNull(service);
@@ -34,7 +35,8 @@ public class EnvironmentGatedRegistrationTests {
     /// registration is unconditional and the condition was never compiled in.
     /// </summary>
     [HardenedTest]
-    public void TheSameRegistrationIsAbsentUnderTheDefaultEnvironment(IApplicationRoot application) {
+    public void TheSameRegistrationIsAbsentUnderTheDefaultEnvironment(IApplicationRoot application)
+    {
         Assert.Null(application.Provider.GetService<IEnvironmentGatedService>());
     }
 }

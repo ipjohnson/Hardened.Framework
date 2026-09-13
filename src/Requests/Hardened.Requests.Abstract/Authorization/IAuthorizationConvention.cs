@@ -40,7 +40,8 @@ namespace Hardened.Requests.Abstract.Authorization;
 /// most handlers and costs nothing.
 /// </para>
 /// </remarks>
-public interface IAuthorizationConvention {
+public interface IAuthorizationConvention
+{
     /// <summary>
     /// What this convention requires of <paramref name="handlerInfo"/>, or null if it has nothing
     /// to say about it.

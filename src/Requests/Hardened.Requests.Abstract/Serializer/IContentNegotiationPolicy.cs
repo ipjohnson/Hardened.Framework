@@ -8,13 +8,16 @@ namespace Hardened.Requests.Abstract.Serializer;
 /// <c>x-hardened-content-negotiation</c> at a description's root, and defaulted to
 /// <see cref="ContentNegotiationMode.Strict"/> where neither says otherwise.
 /// </remarks>
-public interface IContentNegotiationPolicy {
+public interface IContentNegotiationPolicy
+{
     ContentNegotiationMode Mode { get; }
 }
 
 /// <inheritdoc />
-public sealed class ContentNegotiationPolicy : IContentNegotiationPolicy {
-    public ContentNegotiationPolicy(ContentNegotiationMode mode = ContentNegotiationMode.Strict) {
+public sealed class ContentNegotiationPolicy : IContentNegotiationPolicy
+{
+    public ContentNegotiationPolicy(ContentNegotiationMode mode = ContentNegotiationMode.Strict)
+    {
         Mode = mode;
     }
 

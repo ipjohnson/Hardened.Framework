@@ -25,8 +25,8 @@ namespace Hardened.SourceGenerator.Web.Routing;
 /// <c>NoWarn</c> is how they say so.
 /// </para>
 /// </remarks>
-public static class BodyParameterDiagnostics {
-
+public static class BodyParameterDiagnostics
+{
     /// <summary>
     /// <c>HRDR009</c>. <c>HRDR007</c> reports a body parameter that is a service; this reports a
     /// second body parameter of any kind.
@@ -40,39 +40,48 @@ public static class BodyParameterDiagnostics {
     public const string BodylessVerbDiagnosticId = "HRDR010";
 
     /// <summary>Verbs whose requests carry no body to read a parameter out of. As HRDR005 lists them.</summary>
-    private static readonly HashSet<string> BodylessVerbs =
-        new(StringComparer.OrdinalIgnoreCase) { "GET", "HEAD", "OPTIONS", "TRACE" };
+    private static readonly HashSet<string> BodylessVerbs = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "GET",
+        "HEAD",
+        "OPTIONS",
+        "TRACE",
+    };
 
     /// <summary>
     /// Built per call rather than held in a static field, for the reason
     /// <c>RouteBindingDiagnostics.Descriptor</c> is: RS2008 looks for the field, and these projects
     /// set <c>EnforceExtendedAnalyzerRules</c>.
     /// </summary>
-    private static DiagnosticDescriptor SeveralBodies() => new(
-        id: SeveralBodiesDiagnosticId,
-        title: "More than one parameter binds from the request body",
-        messageFormat:
-        "'{0}.{1}' reads {2} from the request body, and a request carries one body. A parameter " +
-        "that names no route token and is not an interface binds from the body: mark a service " +
-        "[FromServices] or type it as the interface it is registered against, and bind a value " +
-        "with [FromQueryString], [FromHeader], [FromForm] or a route token.",
-        category: "Hardened.Routing",
-        defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+    private static DiagnosticDescriptor SeveralBodies() =>
+        new(
+            id: SeveralBodiesDiagnosticId,
+            title: "More than one parameter binds from the request body",
+            messageFormat: "'{0}.{1}' reads {2} from the request body, and a request carries one body. A parameter "
+                + "that names no route token and is not an interface binds from the body: mark a service "
+                + "[FromServices] or type it as the interface it is registered against, and bind a value "
+                + "with [FromQueryString], [FromHeader], [FromForm] or a route token.",
+            category: "Hardened.Routing",
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true
+        );
 
-    private static DiagnosticDescriptor BodylessVerb() => new(
-        id: BodylessVerbDiagnosticId,
-        title: "Parameter binds from the body of a request that carries none",
-        messageFormat:
-        "Parameter '{0}' of '{1}.{2}' is read from the request body, and a {3} carries none, so a " +
-        "request that sends no body is refused before the handler runs and the published " +
-        "document gives the operation a body it should not have. Bind '{0}' with " +
-        "[FromQueryString] or [FromHeader], mark it [FromServices] if it is a service, or " +
-        "suppress " + BodylessVerbDiagnosticId + " if this operation deliberately reads a body " +
-        "from a {3}.",
-        category: "Hardened.Routing",
-        defaultSeverity: DiagnosticSeverity.Warning,
-        isEnabledByDefault: true);
+    private static DiagnosticDescriptor BodylessVerb() =>
+        new(
+            id: BodylessVerbDiagnosticId,
+            title: "Parameter binds from the body of a request that carries none",
+            messageFormat: "Parameter '{0}' of '{1}.{2}' is read from the request body, and a {3} carries none, so a "
+                + "request that sends no body is refused before the handler runs and the published "
+                + "document gives the operation a body it should not have. Bind '{0}' with "
+                + "[FromQueryString] or [FromHeader], mark it [FromServices] if it is a service, or "
+                + "suppress "
+                + BodylessVerbDiagnosticId
+                + " if this operation deliberately reads a body "
+                + "from a {3}.",
+            category: "Hardened.Routing",
+            defaultSeverity: DiagnosticSeverity.Warning,
+            isEnabledByDefault: true
+        );
 
     /// <summary>
     /// The body parameters a bodyless verb reads that nothing else reports.
@@ -83,24 +92,33 @@ public static class BodyParameterDiagnostics {
     /// <c>HRDR005</c> or <c>HRDR007</c> already names is left to that report, which says more
     /// about why it is where it is.
     /// </remarks>
-    public static IReadOnlyList<RequestParameterInformation> FindOnBodylessVerb(RequestHandlerModel model) {
-        if (model.Name.IsDispatched || !BodylessVerbs.Contains(model.Name.Method)) {
+    public static IReadOnlyList<RequestParameterInformation> FindOnBodylessVerb(
+        RequestHandlerModel model
+    )
+    {
+        if (model.Name.IsDispatched || !BodylessVerbs.Contains(model.Name.Method))
+        {
             return Array.Empty<RequestParameterInformation>();
         }
 
         HashSet<string>? displaced = null;
 
-        foreach (var finding in RouteBindingDiagnostics.Find(model)) {
+        foreach (var finding in RouteBindingDiagnostics.Find(model))
+        {
             (displaced ??= new HashSet<string>(StringComparer.Ordinal)).Add(finding.BodyParameter);
         }
 
         List<RequestParameterInformation>? found = null;
 
-        foreach (var parameter in model.RequestParameterInformationList) {
-            if (parameter.BindingType != ParameterBindType.Body ||
-                parameter.ConstructorRequiresServices ||
-                parameter.RegisteredAsService ||
-                displaced?.Contains(parameter.Name) == true) {
+        foreach (var parameter in model.RequestParameterInformationList)
+        {
+            if (
+                parameter.BindingType != ParameterBindType.Body
+                || parameter.ConstructorRequiresServices
+                || parameter.RegisteredAsService
+                || displaced?.Contains(parameter.Name) == true
+            )
+            {
                 continue;
             }
 
@@ -108,47 +126,60 @@ public static class BodyParameterDiagnostics {
         }
 
         return (IReadOnlyList<RequestParameterInformation>?)found
-               ?? Array.Empty<RequestParameterInformation>();
+            ?? Array.Empty<RequestParameterInformation>();
     }
 
     /// <summary>Reports both findings, if the handler has either.</summary>
-    public static void Report(SourceProductionContext context, RequestHandlerModel model) {
+    public static void Report(SourceProductionContext context, RequestHandlerModel model)
+    {
         // Location.None, as everywhere else models are reported from: a syntax location would
         // travel with the model through the incremental caches, which compare models for
         // equality to decide whether to regenerate. The message carries the handler instead.
-        if (model.AdditionalBodyParameters.Count > 0) {
-            context.ReportDiagnostic(Diagnostic.Create(
-                SeveralBodies(),
-                Location.None,
-                model.ControllerType.Name,
-                model.HandlerMethod,
-                BodyNames(model)));
+        if (model.AdditionalBodyParameters.Count > 0)
+        {
+            context.ReportDiagnostic(
+                Diagnostic.Create(
+                    SeveralBodies(),
+                    Location.None,
+                    model.ControllerType.Name,
+                    model.HandlerMethod,
+                    BodyNames(model)
+                )
+            );
         }
 
-        foreach (var parameter in FindOnBodylessVerb(model)) {
-            context.ReportDiagnostic(Diagnostic.Create(
-                BodylessVerb(),
-                Location.None,
-                parameter.Name,
-                model.ControllerType.Name,
-                model.HandlerMethod,
-                model.Name.Method.ToUpperInvariant()));
+        foreach (var parameter in FindOnBodylessVerb(model))
+        {
+            context.ReportDiagnostic(
+                Diagnostic.Create(
+                    BodylessVerb(),
+                    Location.None,
+                    parameter.Name,
+                    model.ControllerType.Name,
+                    model.HandlerMethod,
+                    model.Name.Method.ToUpperInvariant()
+                )
+            );
         }
     }
 
     /// <summary>Every body parameter, quoted: "'counter' and 'reading'".</summary>
-    private static string BodyNames(RequestHandlerModel model) {
+    private static string BodyNames(RequestHandlerModel model)
+    {
         var names = new List<string>();
 
-        foreach (var parameter in model.RequestParameterInformationList) {
-            if (parameter.BindingType == ParameterBindType.Body) {
+        foreach (var parameter in model.RequestParameterInformationList)
+        {
+            if (parameter.BindingType == ParameterBindType.Body)
+            {
                 names.Add("'" + parameter.Name + "'");
 
                 break;
             }
         }
 
-        foreach (var name in model.AdditionalBodyParameters) {
+        foreach (var name in model.AdditionalBodyParameters)
+        {
             names.Add("'" + name + "'");
         }
 

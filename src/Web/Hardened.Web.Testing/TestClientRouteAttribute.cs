@@ -11,8 +11,8 @@ namespace Hardened.Web.Testing;
 /// both, and each route answers for the clients it recognises.
 /// </remarks>
 [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
-public class TestClientRouteAttribute(Type routeType) : Attribute {
-
+public class TestClientRouteAttribute(Type routeType) : Attribute
+{
     /// <summary>
     /// The route: a public, concrete <see cref="ITestClientRoute"/> with a parameterless
     /// constructor.

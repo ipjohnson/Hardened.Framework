@@ -11,11 +11,14 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Services;
 /// which is exactly what a cache is supposed to avoid.
 /// </remarks>
 [SingletonService]
-public class HandlerCallCounter {
+public class HandlerCallCounter
+{
     private readonly Dictionary<string, int> _calls = new(StringComparer.Ordinal);
 
-    public int Next(string handler) {
-        lock (_calls) {
+    public int Next(string handler)
+    {
+        lock (_calls)
+        {
             _calls.TryGetValue(handler, out var count);
 
             _calls[handler] = ++count;
@@ -31,8 +34,10 @@ public class HandlerCallCounter {
     /// For a handler whose answer cannot carry the number - one that always throws, so that what a
     /// retry or a deadline did to it is only visible from outside.
     /// </remarks>
-    public int Count(string handler) {
-        lock (_calls) {
+    public int Count(string handler)
+    {
+        lock (_calls)
+        {
             return _calls.GetValueOrDefault(handler);
         }
     }

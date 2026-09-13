@@ -12,18 +12,21 @@ namespace Hardened.IntegrationTests.CloudRunEvent.SUT;
 [CloudRunRuntime]
 public partial class CloudRunEventApp;
 
-public class Order {
+public class Order
+{
     public string Id { get; set; } = "";
 
     public int Quantity { get; set; }
 }
 
 /// <summary>What the handlers in this application did; injected so each test observes only its own.</summary>
-public interface ITriggerLog {
+public interface ITriggerLog
+{
     void Record(string entry);
 }
 
-public class EventHandlers {
+public class EventHandlers
+{
     /// <summary>
     /// Bound from the event's data rather than its envelope, so a change to the CloudEvent
     /// attributes does not reach this signature. The source and type are the two halves of the
@@ -34,9 +37,14 @@ public class EventHandlers {
 }
 
 /// <summary>A log that reports every entry on the process's output, for the container tier.</summary>
-public sealed class ObservedTriggerLog : ITriggerLog {
-    public void Record(string entry) {
-        Console.Out.WriteLine("HARDENED-OBSERVED " + System.Text.Json.JsonSerializer.Serialize(new { kind = "event", entry }));
+public sealed class ObservedTriggerLog : ITriggerLog
+{
+    public void Record(string entry)
+    {
+        Console.Out.WriteLine(
+            "HARDENED-OBSERVED "
+                + System.Text.Json.JsonSerializer.Serialize(new { kind = "event", entry })
+        );
         Console.Out.Flush();
     }
 }

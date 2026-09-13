@@ -1,16 +1,16 @@
 using System.IO.Compression;
 using System.Text;
 using Hardened.Requests.Abstract.Execution;
-using Hardened.Web.Runtime.CacheControl;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Shared.Runtime.Collections;
 using Hardened.Shared.Runtime.Utilities;
+using Hardened.Web.Runtime.CacheControl;
+using Hardened.Web.Runtime.Responses;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 using NSubstitute;
 using Xunit;
-using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.StaticContent.Tests;
 
@@ -26,8 +26,8 @@ namespace Hardened.Web.StaticContent.Tests;
 /// encoding, or an ETag match answered with the body anyway.
 /// </para>
 /// </summary>
-public class StaticContentHandlerTests : IDisposable {
-
+public class StaticContentHandlerTests : IDisposable
+{
     private readonly string _tempRoot;
     private readonly string _staticRoot;
 
@@ -37,18 +37,25 @@ public class StaticContentHandlerTests : IDisposable {
     // StaticContentPathTraversalTests, failing a different subset of tests on each run.
     // Configuring an absolute root instead removes the shared state - Path.Combine returns a
     // rooted second argument unchanged, so the handler never consults the current directory.
-    public StaticContentHandlerTests() {
-        _tempRoot = Path.Combine(Path.GetTempPath(), "hardened-static-" + Guid.NewGuid().ToString("N"));
+    public StaticContentHandlerTests()
+    {
+        _tempRoot = Path.Combine(
+            Path.GetTempPath(),
+            "hardened-static-" + Guid.NewGuid().ToString("N")
+        );
         _staticRoot = Path.Combine(_tempRoot, "wwwroot");
 
         Directory.CreateDirectory(_staticRoot);
     }
 
-    public void Dispose() {
-        try {
+    public void Dispose()
+    {
+        try
+        {
             Directory.Delete(_tempRoot, true);
         }
-        catch {
+        catch
+        {
             // Best effort — a leftover temp directory is not worth failing a test over.
         }
 
@@ -58,7 +65,8 @@ public class StaticContentHandlerTests : IDisposable {
     private void WriteFile(string name, string content) =>
         File.WriteAllText(Path.Combine(_staticRoot, name), content);
 
-    private void WriteGZipFile(string name, string content) {
+    private void WriteGZipFile(string name, string content)
+    {
         using var file = File.Create(Path.Combine(_staticRoot, name));
         using var gzip = new GZipStream(file, CompressionLevel.Fastest);
 
@@ -67,7 +75,8 @@ public class StaticContentHandlerTests : IDisposable {
         gzip.Write(bytes, 0, bytes.Length);
     }
 
-    private void WriteBrotliFile(string name, string content) {
+    private void WriteBrotliFile(string name, string content)
+    {
         using var file = File.Create(Path.Combine(_staticRoot, name));
         using var brotli = new BrotliStream(file, CompressionLevel.Fastest);
 
@@ -82,13 +91,14 @@ public class StaticContentHandlerTests : IDisposable {
     /// </summary>
     private StaticContentPipeline Handler(
         Action<IStaticContentConfiguration>? configure = null,
-        string? path = null) {
+        string? path = null
+    )
+    {
         var configuration = Substitute.For<IStaticContentConfiguration>();
 
         configuration.Path.Returns(path ?? _staticRoot);
         configuration.CacheContent.Returns(true);
-        configuration.CacheControlType.Returns(
-            CacheControlEnum.MaxAge | CacheControlEnum.Public);
+        configuration.CacheControlType.Returns(CacheControlEnum.MaxAge | CacheControlEnum.Public);
         configuration.EnableRangeRequests.Returns(true);
         configuration.EnableETag.Returns(true);
         configuration.CompressTextContent.Returns(false);
@@ -109,12 +119,19 @@ public class StaticContentHandlerTests : IDisposable {
                 mimeHelper,
                 new GZipStaticContentCompressor(new MemoryStreamPool()),
                 new ETagProvider(new TestHashPool()),
-                NullLogger<FileSystemContentSource>.Instance),
-            configuration);
+                NullLogger<FileSystemContentSource>.Instance
+            ),
+            configuration
+        );
     }
 
-    private static (IExecutionContext context, MemoryStream body, IExecutionResponse response, IDictionary<string, StringValues> responseHeaders)
-        Context(string path, params (string Name, string Value)[] requestHeaders) {
+    private static (
+        IExecutionContext context,
+        MemoryStream body,
+        IExecutionResponse response,
+        IDictionary<string, StringValues> responseHeaders
+    ) Context(string path, params (string Name, string Value)[] requestHeaders)
+    {
         var context = Substitute.For<IExecutionContext>();
         var request = Substitute.For<IExecutionRequest>();
         var response = Substitute.For<IExecutionResponse>();
@@ -122,7 +139,8 @@ public class StaticContentHandlerTests : IDisposable {
 
         var headers = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var (name, value) in requestHeaders) {
+        foreach (var (name, value) in requestHeaders)
+        {
             headers[name] = value;
         }
 
@@ -146,10 +164,13 @@ public class StaticContentHandlerTests : IDisposable {
     /// there.
     /// </summary>
     [Fact]
-    public async Task AHandlerWhoseRootDoesNotExistServesNothing() {
+    public async Task AHandlerWhoseRootDoesNotExistServesNothing()
+    {
         var (context, _, _, _) = Context("/anything.txt");
 
-        Assert.False(await Handler(path: Path.Combine(_tempRoot, "no-such-directory")).Handle(context));
+        Assert.False(
+            await Handler(path: Path.Combine(_tempRoot, "no-such-directory")).Handle(context)
+        );
     }
 
     /// <summary>
@@ -157,7 +178,8 @@ public class StaticContentHandlerTests : IDisposable {
     /// the root is — quietly, before the filesystem is touched.
     /// </summary>
     [Fact]
-    public async Task AMalformedRequestPathIsRefusedRatherThanThrown() {
+    public async Task AMalformedRequestPathIsRefusedRatherThanThrown()
+    {
         WriteFile("public.txt", "public");
 
         var (context, _, _, _) = Context("/bad\0name.txt");
@@ -170,7 +192,8 @@ public class StaticContentHandlerTests : IDisposable {
     /// between the two is how the test tells the cache apart from a second read.
     /// </summary>
     [Fact]
-    public async Task ASecondRequestIsAnsweredFromTheCacheRatherThanTheFilesystem() {
+    public async Task ASecondRequestIsAnsweredFromTheCacheRatherThanTheFilesystem()
+    {
         WriteFile("cached.txt", "cached content");
 
         var handler = Handler();
@@ -193,11 +216,14 @@ public class StaticContentHandlerTests : IDisposable {
     /// The client asked for the uncompressed name and the handler has to find the sibling.
     /// </summary>
     [Fact]
-    public async Task APreCompressedGZipSiblingIsServedForTheUncompressedName() {
+    public async Task APreCompressedGZipSiblingIsServedForTheUncompressedName()
+    {
         WriteGZipFile("app.js.gz", "console.log('hi');");
 
         var (context, body, _, headers) = Context(
-            "/app.js", (KnownHeaders.AcceptEncoding, KnownEncoding.GZip));
+            "/app.js",
+            (KnownHeaders.AcceptEncoding, KnownEncoding.GZip)
+        );
 
         Assert.True(await Handler().Handle(context));
         Assert.Equal(KnownEncoding.GZip, headers[KnownHeaders.ContentEncoding].ToString());
@@ -217,7 +243,8 @@ public class StaticContentHandlerTests : IDisposable {
     /// body it cannot read. This is the branch that makes a pre-compressed asset safe to ship.
     /// </summary>
     [Fact]
-    public async Task AGZipSiblingIsDecompressedForAClientThatDidNotAskForIt() {
+    public async Task AGZipSiblingIsDecompressedForAClientThatDidNotAskForIt()
+    {
         WriteGZipFile("app.js.gz", "console.log('hi');");
 
         var (context, body, _, headers) = Context("/app.js");
@@ -229,7 +256,8 @@ public class StaticContentHandlerTests : IDisposable {
 
     /// <summary>Brotli siblings are found the same way, and decompressed the same way.</summary>
     [Fact]
-    public async Task ABrotliSiblingIsDecompressedForAClientThatDidNotAskForIt() {
+    public async Task ABrotliSiblingIsDecompressedForAClientThatDidNotAskForIt()
+    {
         WriteBrotliFile("styles.css.br", "body { color: red; }");
 
         var (context, body, _, _) = Context("/styles.css");
@@ -245,11 +273,14 @@ public class StaticContentHandlerTests : IDisposable {
     /// precisely the clients able to use them.
     /// </summary>
     [Fact]
-    public async Task ABrotliSiblingIsServedCompressedToAClientThatAskedForIt() {
+    public async Task ABrotliSiblingIsServedCompressedToAClientThatAskedForIt()
+    {
         WriteBrotliFile("styles.css.br", "body { color: red; }");
 
         var (context, body, _, headers) = Context(
-            "/styles.css", (KnownHeaders.AcceptEncoding, KnownEncoding.Br));
+            "/styles.css",
+            (KnownHeaders.AcceptEncoding, KnownEncoding.Br)
+        );
 
         Assert.True(await Handler().Handle(context));
         Assert.Equal(KnownEncoding.Br, headers[KnownHeaders.ContentEncoding].ToString());
@@ -273,11 +304,14 @@ public class StaticContentHandlerTests : IDisposable {
     [InlineData("gzip, deflate, br, zstd")]
     [InlineData("gzip, deflate")]
     [InlineData("gzip")]
-    public async Task ABrowserAcceptEncodingHeaderGetsTheStoredBytes(string acceptEncoding) {
+    public async Task ABrowserAcceptEncodingHeaderGetsTheStoredBytes(string acceptEncoding)
+    {
         WriteGZipFile("app.js.gz", "console.log('hi');");
 
         var (context, body, _, headers) = Context(
-            "/app.js", (KnownHeaders.AcceptEncoding, acceptEncoding));
+            "/app.js",
+            (KnownHeaders.AcceptEncoding, acceptEncoding)
+        );
 
         Assert.True(await Handler().Handle(context));
         Assert.Equal(KnownEncoding.GZip, headers[KnownHeaders.ContentEncoding].ToString());
@@ -296,11 +330,14 @@ public class StaticContentHandlerTests : IDisposable {
     /// so the same file reported a size or did not depending on what the client offered.
     /// </summary>
     [Fact]
-    public async Task AnEncodedResponseDeclaresItsLength() {
+    public async Task AnEncodedResponseDeclaresItsLength()
+    {
         WriteGZipFile("app.js.gz", "console.log('hi');");
 
         var (context, body, _, headers) = Context(
-            "/app.js", (KnownHeaders.AcceptEncoding, "gzip, deflate, br"));
+            "/app.js",
+            (KnownHeaders.AcceptEncoding, "gzip, deflate, br")
+        );
 
         Assert.True(await Handler().Handle(context));
         Assert.Equal(body.Length.ToString(), headers[KnownHeaders.ContentLength].ToString());
@@ -311,7 +348,8 @@ public class StaticContentHandlerTests : IDisposable {
     /// makes client-side routing work: every unknown path serves the application shell.
     /// </summary>
     [Fact]
-    public async Task AnUnknownPathServesTheConfiguredFallbackFile() {
+    public async Task AnUnknownPathServesTheConfiguredFallbackFile()
+    {
         WriteFile("index.html", "<html>shell</html>");
 
         var (context, body, _, _) = Context("/app/deep/route");
@@ -334,7 +372,8 @@ public class StaticContentHandlerTests : IDisposable {
     /// </para>
     /// </summary>
     [Fact]
-    public async Task AFallbackFileThatDoesNotExistIsDisabledRatherThanThrown() {
+    public async Task AFallbackFileThatDoesNotExistIsDisabledRatherThanThrown()
+    {
         WriteFile("real.txt", "real");
 
         var handler = Handler(configuration => configuration.FallBackFile.Returns("/missing.html"));
@@ -362,7 +401,8 @@ public class StaticContentHandlerTests : IDisposable {
     /// </para>
     /// </summary>
     [Fact]
-    public async Task AMatchingIfNoneMatchIsAnsweredWith304AndNoBody() {
+    public async Task AMatchingIfNoneMatchIsAnsweredWith304AndNoBody()
+    {
         WriteFile("logo.txt", "image bytes");
 
         var handler = Handler();
@@ -389,7 +429,8 @@ public class StaticContentHandlerTests : IDisposable {
     /// property claims to do, and did not do at all until the handler started reading it.
     /// </summary>
     [Fact]
-    public async Task ETagsCanBeTurnedOff() {
+    public async Task ETagsCanBeTurnedOff()
+    {
         WriteFile("logo.txt", "image bytes");
 
         var handler = Handler(configuration => configuration.EnableETag.Returns(false));
@@ -402,7 +443,9 @@ public class StaticContentHandlerTests : IDisposable {
 
         // Nothing to match against, so a client claiming anything still gets the body.
         var (second, body, response, _) = Context(
-            "/logo.txt", (KnownHeaders.IfNoneMatch, "\"anything\""));
+            "/logo.txt",
+            (KnownHeaders.IfNoneMatch, "\"anything\"")
+        );
 
         Assert.True(await handler.Handle(second));
 
@@ -412,11 +455,14 @@ public class StaticContentHandlerTests : IDisposable {
 
     /// <summary>A conditional request whose ETag does not match gets the file.</summary>
     [Fact]
-    public async Task ANonMatchingIfNoneMatchGetsTheFile() {
+    public async Task ANonMatchingIfNoneMatchGetsTheFile()
+    {
         WriteFile("logo.txt", "image bytes");
 
         var (context, body, response, _) = Context(
-            "/logo.txt", (KnownHeaders.IfNoneMatch, "\"some-other-etag\""));
+            "/logo.txt",
+            (KnownHeaders.IfNoneMatch, "\"some-other-etag\"")
+        );
 
         Assert.True(await Handler().Handle(context));
 
@@ -429,7 +475,8 @@ public class StaticContentHandlerTests : IDisposable {
     /// revalidates every asset on every navigation.
     /// </summary>
     [Fact]
-    public async Task AConfiguredMaxAgeIsSentAsCacheControl() {
+    public async Task AConfiguredMaxAgeIsSentAsCacheControl()
+    {
         WriteFile("asset.txt", "asset");
 
         var (context, _, _, headers) = Context("/asset.txt");
@@ -445,23 +492,29 @@ public class StaticContentHandlerTests : IDisposable {
     /// asset is both cacheable for a long time and never revalidated.
     /// </summary>
     [Fact]
-    public async Task AnImmutableAssetSaysSoAlongsideItsMaxAge() {
+    public async Task AnImmutableAssetSaysSoAlongsideItsMaxAge()
+    {
         WriteFile("asset.txt", "asset");
 
         var (context, _, _, headers) = Context("/asset.txt");
 
-        var handler = Handler(configuration => {
+        var handler = Handler(configuration =>
+        {
             configuration.CacheMaxAge.Returns(31536000);
             configuration.Immutable.Returns(true);
         });
 
         Assert.True(await handler.Handle(context));
-        Assert.Equal("public, max-age=31536000, immutable", headers[KnownHeaders.CacheControl].ToString());
+        Assert.Equal(
+            "public, max-age=31536000, immutable",
+            headers[KnownHeaders.CacheControl].ToString()
+        );
     }
 
     /// <summary>No configured max age means no Cache-Control header at all, not an empty one.</summary>
     [Fact]
-    public async Task NoConfiguredMaxAgeSendsNoCacheControlHeader() {
+    public async Task NoConfiguredMaxAgeSendsNoCacheControlHeader()
+    {
         WriteFile("asset.txt", "asset");
 
         var (context, _, _, headers) = Context("/asset.txt");
@@ -475,7 +528,8 @@ public class StaticContentHandlerTests : IDisposable {
     /// runs for a served file.
     /// </summary>
     [Fact]
-    public async Task ThePrepareResponseCallbackRunsForAServedFile() {
+    public async Task ThePrepareResponseCallbackRunsForAServedFile()
+    {
         WriteFile("asset.txt", "asset");
 
         var (context, _, _, _) = Context("/asset.txt");
@@ -483,7 +537,8 @@ public class StaticContentHandlerTests : IDisposable {
         var calls = 0;
 
         var handler = Handler(configuration =>
-            configuration.OnPrepareResponse.Returns(new Action<IExecutionContext>(_ => calls++)));
+            configuration.OnPrepareResponse.Returns(new Action<IExecutionContext>(_ => calls++))
+        );
 
         Assert.True(await handler.Handle(context));
         Assert.Equal(1, calls);
@@ -495,20 +550,24 @@ public class StaticContentHandlerTests : IDisposable {
     /// client starts caching.
     /// </summary>
     [Fact]
-    public async Task ThePrepareResponseCallbackRunsForANotModifiedResponse() {
+    public async Task ThePrepareResponseCallbackRunsForANotModifiedResponse()
+    {
         WriteFile("asset.txt", "asset");
 
         var calls = 0;
 
         var handler = Handler(configuration =>
-            configuration.OnPrepareResponse.Returns(new Action<IExecutionContext>(_ => calls++)));
+            configuration.OnPrepareResponse.Returns(new Action<IExecutionContext>(_ => calls++))
+        );
 
         var (first, _, _, firstHeaders) = Context("/asset.txt");
 
         await handler.Handle(first);
 
         var (second, _, response, _) = Context(
-            "/asset.txt", (KnownHeaders.IfNoneMatch, firstHeaders[KnownHeaders.ETag].ToString()));
+            "/asset.txt",
+            (KnownHeaders.IfNoneMatch, firstHeaders[KnownHeaders.ETag].ToString())
+        );
 
         await handler.Handle(second);
 
@@ -521,13 +580,16 @@ public class StaticContentHandlerTests : IDisposable {
     /// every later request is served from the compressed copy.
     /// </summary>
     [Fact]
-    public async Task LargeTextContentIsCompressedOnTheWayIntoTheCache() {
+    public async Task LargeTextContentIsCompressedOnTheWayIntoTheCache()
+    {
         var large = new string('a', 2000);
 
         WriteFile("large.txt", large);
 
         var (context, body, _, headers) = Context(
-            "/large.txt", (KnownHeaders.AcceptEncoding, KnownEncoding.GZip));
+            "/large.txt",
+            (KnownHeaders.AcceptEncoding, KnownEncoding.GZip)
+        );
 
         var handler = Handler(configuration => configuration.CompressTextContent.Returns(true));
 
@@ -541,11 +603,14 @@ public class StaticContentHandlerTests : IDisposable {
     /// it saves, and the header would make the client inflate it for nothing.
     /// </summary>
     [Fact]
-    public async Task SmallTextContentIsNotCompressed() {
+    public async Task SmallTextContentIsNotCompressed()
+    {
         WriteFile("small.txt", "small");
 
         var (context, body, _, headers) = Context(
-            "/small.txt", (KnownHeaders.AcceptEncoding, KnownEncoding.GZip));
+            "/small.txt",
+            (KnownHeaders.AcceptEncoding, KnownEncoding.GZip)
+        );
 
         var handler = Handler(configuration => configuration.CompressTextContent.Returns(true));
 
@@ -559,7 +624,8 @@ public class StaticContentHandlerTests : IDisposable {
     /// grows.
     /// </summary>
     [Fact]
-    public async Task LargeBinaryContentIsNotCompressed() {
+    public async Task LargeBinaryContentIsNotCompressed()
+    {
         WriteFile("large.bin", new string('a', 2000));
 
         var configuration = Substitute.For<IStaticContentConfiguration>();
@@ -579,11 +645,15 @@ public class StaticContentHandlerTests : IDisposable {
                 mimeHelper,
                 new GZipStaticContentCompressor(new MemoryStreamPool()),
                 new ETagProvider(new TestHashPool()),
-                NullLogger<FileSystemContentSource>.Instance),
-            configuration);
+                NullLogger<FileSystemContentSource>.Instance
+            ),
+            configuration
+        );
 
         var (context, body, response, headers) = Context(
-            "/large.bin", (KnownHeaders.AcceptEncoding, KnownEncoding.GZip));
+            "/large.bin",
+            (KnownHeaders.AcceptEncoding, KnownEncoding.GZip)
+        );
 
         Assert.True(await handler.Handle(context));
         Assert.Equal(2000, body.Length);
@@ -597,7 +667,8 @@ public class StaticContentHandlerTests : IDisposable {
     /// what was written is declared. A transport that streams the body relies on the header.
     /// </summary>
     [Fact]
-    public async Task AServedFileDeclaresItsContentTypeAndLength() {
+    public async Task AServedFileDeclaresItsContentTypeAndLength()
+    {
         WriteFile("page.txt", "0123456789");
 
         var (context, _, response, headers) = Context("/page.txt");
@@ -616,7 +687,8 @@ public class StaticContentHandlerTests : IDisposable {
     /// path was unreachable from a browser however correct the comparison was.
     /// </summary>
     [Fact]
-    public async Task AServedFileCarriesAQuotedETag() {
+    public async Task AServedFileCarriesAQuotedETag()
+    {
         WriteFile("logo.txt", "image bytes");
 
         var (context, _, _, headers) = Context("/logo.txt");
@@ -636,11 +708,14 @@ public class StaticContentHandlerTests : IDisposable {
     /// need it.
     /// </summary>
     [Fact]
-    public async Task ACompressedRepresentationSaysItVariesOnAcceptEncoding() {
+    public async Task ACompressedRepresentationSaysItVariesOnAcceptEncoding()
+    {
         WriteGZipFile("app.js.gz", "console.log('hi');");
 
         var (compressedClient, _, _, compressedHeaders) = Context(
-            "/app.js", (KnownHeaders.AcceptEncoding, "gzip, deflate, br"));
+            "/app.js",
+            (KnownHeaders.AcceptEncoding, "gzip, deflate, br")
+        );
 
         Assert.True(await Handler().Handle(compressedClient));
         Assert.Equal(KnownHeaders.AcceptEncoding, compressedHeaders[KnownHeaders.Vary].ToString());
@@ -657,11 +732,14 @@ public class StaticContentHandlerTests : IDisposable {
     /// have a CDN store a copy per coding of a file that is byte-identical for all of them.
     /// </summary>
     [Fact]
-    public async Task AnUncompressedResourceDoesNotSayItVaries() {
+    public async Task AnUncompressedResourceDoesNotSayItVaries()
+    {
         WriteFile("small.txt", "small");
 
         var (context, _, _, headers) = Context(
-            "/small.txt", (KnownHeaders.AcceptEncoding, "gzip, deflate, br"));
+            "/small.txt",
+            (KnownHeaders.AcceptEncoding, "gzip, deflate, br")
+        );
 
         Assert.True(await Handler().Handle(context));
         Assert.DoesNotContain(KnownHeaders.Vary, headers.Keys);
@@ -673,13 +751,16 @@ public class StaticContentHandlerTests : IDisposable {
     /// on the strength of it.
     /// </summary>
     [Fact]
-    public async Task TheCompressedAndInflatedRepresentationsHaveDifferentETags() {
+    public async Task TheCompressedAndInflatedRepresentationsHaveDifferentETags()
+    {
         WriteGZipFile("app.js.gz", "console.log('hi');");
 
         var handler = Handler();
 
         var (compressedClient, _, _, compressedHeaders) = Context(
-            "/app.js", (KnownHeaders.AcceptEncoding, "gzip, deflate, br"));
+            "/app.js",
+            (KnownHeaders.AcceptEncoding, "gzip, deflate, br")
+        );
 
         await handler.Handle(compressedClient);
 
@@ -689,7 +770,8 @@ public class StaticContentHandlerTests : IDisposable {
 
         Assert.NotEqual(
             plainHeaders[KnownHeaders.ETag].ToString(),
-            compressedHeaders[KnownHeaders.ETag].ToString());
+            compressedHeaders[KnownHeaders.ETag].ToString()
+        );
     }
 
     /// <summary>
@@ -699,16 +781,20 @@ public class StaticContentHandlerTests : IDisposable {
     /// immutable exists to prevent.
     /// </summary>
     [Fact]
-    public async Task ANotModifiedResponseRepeatsTheCacheHeaders() {
+    public async Task ANotModifiedResponseRepeatsTheCacheHeaders()
+    {
         WriteGZipFile("app.js.gz", "console.log('hi');");
 
-        var handler = Handler(configuration => {
+        var handler = Handler(configuration =>
+        {
             configuration.CacheMaxAge.Returns(31536000);
             configuration.Immutable.Returns(true);
         });
 
         var (first, _, _, firstHeaders) = Context(
-            "/app.js", (KnownHeaders.AcceptEncoding, "gzip, deflate, br"));
+            "/app.js",
+            (KnownHeaders.AcceptEncoding, "gzip, deflate, br")
+        );
 
         await handler.Handle(first);
 
@@ -717,7 +803,8 @@ public class StaticContentHandlerTests : IDisposable {
         var (second, body, response, headers) = Context(
             "/app.js",
             (KnownHeaders.AcceptEncoding, "gzip, deflate, br"),
-            (KnownHeaders.IfNoneMatch, etag));
+            (KnownHeaders.IfNoneMatch, etag)
+        );
 
         Assert.True(await handler.Handle(second));
 
@@ -726,7 +813,9 @@ public class StaticContentHandlerTests : IDisposable {
 
         Assert.Equal(etag, headers[KnownHeaders.ETag].ToString());
         Assert.Equal(
-            "public, max-age=31536000, immutable", headers[KnownHeaders.CacheControl].ToString());
+            "public, max-age=31536000, immutable",
+            headers[KnownHeaders.CacheControl].ToString()
+        );
         Assert.Equal(KnownHeaders.AcceptEncoding, headers[KnownHeaders.Vary].ToString());
     }
 
@@ -735,7 +824,8 @@ public class StaticContentHandlerTests : IDisposable {
     /// string equality all three miss, and the client is sent a body it already holds.
     /// </summary>
     [Fact]
-    public async Task TheOtherShapesOfIfNoneMatchAreHonoured() {
+    public async Task TheOtherShapesOfIfNoneMatchAreHonoured()
+    {
         WriteFile("logo.txt", "image bytes");
 
         var handler = Handler();
@@ -746,9 +836,12 @@ public class StaticContentHandlerTests : IDisposable {
 
         var etag = warmHeaders[KnownHeaders.ETag].ToString();
 
-        foreach (var header in new[] { "*", "\"other\", " + etag, "W/" + etag }) {
+        foreach (var header in new[] { "*", "\"other\", " + etag, "W/" + etag })
+        {
             var (context, body, response, _) = Context(
-                "/logo.txt", (KnownHeaders.IfNoneMatch, header));
+                "/logo.txt",
+                (KnownHeaders.IfNoneMatch, header)
+            );
 
             Assert.True(await handler.Handle(context));
 
@@ -774,7 +867,8 @@ public class StaticContentHandlerTests : IDisposable {
     /// </para>
     /// </summary>
     [Fact]
-    public async Task EveryUrlTheFallbackAnswersSharesOneCacheEntry() {
+    public async Task EveryUrlTheFallbackAnswersSharesOneCacheEntry()
+    {
         WriteFile("index.html", "<html>shell</html>");
 
         var handler = Handler(configuration => configuration.FallBackFile.Returns("/index.html"));
@@ -797,7 +891,8 @@ public class StaticContentHandlerTests : IDisposable {
     /// it never was - a request for it directly always went back to disk.
     /// </summary>
     [Fact]
-    public async Task TheFallbackFileIsCachedUnderItsOwnName() {
+    public async Task TheFallbackFileIsCachedUnderItsOwnName()
+    {
         WriteFile("index.html", "<html>shell</html>");
 
         var handler = Handler(configuration => configuration.FallBackFile.Returns("/index.html"));

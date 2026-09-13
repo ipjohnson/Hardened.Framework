@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using CSharpAuthor;
-using Hardened.Idl;
 using Hardened.Generation;
 using Hardened.Generation.Models;
+using Hardened.Idl;
 
 namespace Hardened.Idl.Emitters;
 
@@ -28,13 +28,17 @@ namespace Hardened.Idl.Emitters;
 /// of generating a resolver at all.
 /// </para>
 /// </remarks>
-internal static class OneOfConverterEmitter {
+internal static class OneOfConverterEmitter
+{
+    private static readonly ITypeDefinition Reader = TypeDefinition.Get(
+        "System.Text.Json",
+        "Utf8JsonReader"
+    );
 
-    private static readonly ITypeDefinition Reader =
-        TypeDefinition.Get("System.Text.Json", "Utf8JsonReader");
-
-    private static readonly ITypeDefinition Writer =
-        TypeDefinition.Get("System.Text.Json", "Utf8JsonWriter");
+    private static readonly ITypeDefinition Writer = TypeDefinition.Get(
+        "System.Text.Json",
+        "Utf8JsonWriter"
+    );
 
     /// <summary>
     /// The helpers' type parameter, which is a name rather than a type - and a
@@ -43,12 +47,18 @@ internal static class OneOfConverterEmitter {
     /// </summary>
     private static readonly ITypeDefinition Generic = new TypeParameterDefinition("T");
 
-    private static readonly ITypeDefinition Options =
-        TypeDefinition.Get("System.Text.Json", "JsonSerializerOptions");
+    private static readonly ITypeDefinition Options = TypeDefinition.Get(
+        "System.Text.Json",
+        "JsonSerializerOptions"
+    );
 
     public static ClassDefinition Emit(
-        IConstructContainer container, SchemaModel schema, string modelsNamespace,
-        IReadOnlyList<SchemaModel> allSchemas) {
+        IConstructContainer container,
+        SchemaModel schema,
+        string modelsNamespace,
+        IReadOnlyList<SchemaModel> allSchemas
+    )
+    {
         var name = NamingHelper.ToPascalCase(schema.Name);
         var converterName = OneOfEmitter.ConverterName(schema.Name);
         var wrapper = TypeDefinition.Get(modelsNamespace, name);
@@ -62,12 +72,16 @@ internal static class OneOfConverterEmitter {
                 TypeDefinitionEnum.ClassDefinition,
                 "System.Text.Json.Serialization",
                 "JsonConverter",
-                new[] { wrapper }));
+                new[] { wrapper }
+            )
+        );
 
         converter.Comment = $"Reads and writes {name}, resolving which type a payload is.";
 
         var instance = converter.AddField(
-            TypeDefinition.Get(modelsNamespace, converterName), "Instance");
+            TypeDefinition.Get(modelsNamespace, converterName),
+            "Instance"
+        );
 
         instance.Modifiers |=
             ComponentModifier.Public | ComponentModifier.Static | ComponentModifier.Readonly;
@@ -81,8 +95,14 @@ internal static class OneOfConverterEmitter {
     }
 
     private static void EmitRead(
-        ClassDefinition converter, SchemaModel schema, ITypeDefinition wrapper,
-        List<string> branches, string modelsNamespace, IReadOnlyList<SchemaModel> allSchemas) {
+        ClassDefinition converter,
+        SchemaModel schema,
+        ITypeDefinition wrapper,
+        List<string> branches,
+        string modelsNamespace,
+        IReadOnlyList<SchemaModel> allSchemas
+    )
+    {
         var method = converter.AddMethod("Read");
 
         method.Modifiers |= ComponentModifier.Public | ComponentModifier.Override;
@@ -91,17 +111,21 @@ internal static class OneOfConverterEmitter {
         method.AddParameter(TypeDefinition.Get(typeof(System.Type)), "typeToConvert");
         method.AddParameter(Options, "options");
 
-        var lines = new List<string> {
+        var lines = new List<string>
+        {
             // Buffered, because deciding the branch means looking at the payload before reading it,
             // and a reader cannot be rewound.
             "using var document = global::System.Text.Json.JsonDocument.ParseValue(ref reader);",
             "var element = document.RootElement;",
-            ""
+            "",
         };
 
-        if (schema.DiscriminatorPropertyName != null && schema.DiscriminatorMapping.Count > 0) {
+        if (schema.DiscriminatorPropertyName != null && schema.DiscriminatorMapping.Count > 0)
+        {
             Discriminated(lines, schema, modelsNamespace);
-        } else {
+        }
+        else
+        {
             ShapeMatched(lines, schema, modelsNamespace, allSchemas);
         }
 
@@ -109,7 +133,11 @@ internal static class OneOfConverterEmitter {
     }
 
     private static void Discriminated(
-        List<string> lines, SchemaModel schema, string modelsNamespace) {
+        List<string> lines,
+        SchemaModel schema,
+        string modelsNamespace
+    )
+    {
         var property = Escape(schema.DiscriminatorPropertyName!);
 
         lines.Add($"if (!element.TryGetProperty(\"{property}\", out var discriminator))");
@@ -123,9 +151,13 @@ internal static class OneOfConverterEmitter {
         lines.Add("return kind switch");
         lines.Add("{");
 
-        foreach (var mapping in schema.DiscriminatorMapping) {
+        foreach (var mapping in schema.DiscriminatorMapping)
+        {
             var branch = TypeMapper.QualifiedName(
-                modelsNamespace, NamingHelper.ToPascalCase(TypeMapper.GetRefName(mapping.Ref)), false);
+                modelsNamespace,
+                NamingHelper.ToPascalCase(TypeMapper.GetRefName(mapping.Ref)),
+                false
+            );
 
             lines.Add($"    \"{Escape(mapping.Value)}\" => new(Read<{branch}>(element, options)),");
         }
@@ -156,57 +188,79 @@ internal static class OneOfConverterEmitter {
     /// branches that needed it.
     /// </remarks>
     private static void ShapeMatched(
-        List<string> lines, SchemaModel schema, string modelsNamespace,
-        IReadOnlyList<SchemaModel> allSchemas) {
+        List<string> lines,
+        SchemaModel schema,
+        string modelsNamespace,
+        IReadOnlyList<SchemaModel> allSchemas
+    )
+    {
         var plan = ChoiceResolution.Resolve(schema.OneOf, allSchemas);
 
         var tag = 0;
         var fallback = (ChoiceResolution.Branch?)null;
 
-        foreach (var branch in plan.Branches) {
-            if (!branch.Proved) {
+        foreach (var branch in plan.Branches)
+        {
+            if (!branch.Proved)
+            {
                 continue;
             }
 
             // Accepts everything a narrower branch of its kind does, so a test for it would claim
             // that branch's payloads too. Emitted last, after those have had their turn.
-            if (branch.IsWiderFallback) {
+            if (branch.IsWiderFallback)
+            {
                 fallback = branch;
                 continue;
             }
 
             var type = TypeMapper.QualifiedName(
-                modelsNamespace, ChoiceResolution.CSharpType(branch.Model), false);
+                modelsNamespace,
+                ChoiceResolution.CSharpType(branch.Model),
+                false
+            );
 
-            if (branch.ValueKind != null) {
+            if (branch.ValueKind != null)
+            {
                 // Boolean is two kinds in System.Text.Json and one type here.
-                var test = branch.ValueKind == "Boolean"
-                    ? "element.ValueKind is global::System.Text.Json.JsonValueKind.True or " +
-                      "global::System.Text.Json.JsonValueKind.False"
-                    : $"element.ValueKind == global::System.Text.Json.JsonValueKind.{branch.ValueKind}";
+                var test =
+                    branch.ValueKind == "Boolean"
+                        ? "element.ValueKind is global::System.Text.Json.JsonValueKind.True or "
+                            + "global::System.Text.Json.JsonValueKind.False"
+                        : $"element.ValueKind == global::System.Text.Json.JsonValueKind.{branch.ValueKind}";
 
                 lines.Add($"if ({test})");
-            } else if (branch.ValueSet != null) {
+            }
+            else if (branch.ValueSet != null)
+            {
                 // A membership test rather than a trial read: the values are known here, so this
                 // decides the branch outright instead of leaning on a failed parse.
                 var values = new List<string>();
 
-                foreach (var value in branch.ValueSet) {
+                foreach (var value in branch.ValueSet)
+                {
                     values.Add($"\"{Escape(value)}\"");
                 }
 
                 lines.Add($"if (element.GetString() is {string.Join(" or ", values)})");
-            } else if (branch.ConstProperty != null) {
+            }
+            else if (branch.ConstProperty != null)
+            {
                 // Numbered, because several branches in one method each declare one and C# scopes
                 // an out variable to the whole method body rather than to its if.
-                var name = "tag" + tag++.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                var name =
+                    "tag" + tag++.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
                 lines.Add(
-                    $"if (element.TryGetProperty(\"{Escape(branch.ConstProperty)}\", out var {name}) && " +
-                    $"{name}.ValueEquals(\"{Escape(branch.ConstValue!)}\"))");
-            } else {
+                    $"if (element.TryGetProperty(\"{Escape(branch.ConstProperty)}\", out var {name}) && "
+                        + $"{name}.ValueEquals(\"{Escape(branch.ConstValue!)}\"))"
+                );
+            }
+            else
+            {
                 lines.Add(
-                    $"if (element.TryGetProperty(\"{Escape(branch.DistinctProperty!)}\", out _))");
+                    $"if (element.TryGetProperty(\"{Escape(branch.DistinctProperty!)}\", out _))"
+                );
             }
 
             lines.Add("{");
@@ -215,19 +269,25 @@ internal static class OneOfConverterEmitter {
             lines.Add("");
         }
 
-        if (fallback != null) {
+        if (fallback != null)
+        {
             var type = TypeMapper.QualifiedName(
-                modelsNamespace, ChoiceResolution.CSharpType(fallback.Model), false);
+                modelsNamespace,
+                ChoiceResolution.CSharpType(fallback.Model),
+                false
+            );
 
             lines.Add($"return new(Read<{type}>(element, options));");
 
             return;
         }
 
-        if (plan.Overlapping.Count == 0) {
+        if (plan.Overlapping.Count == 0)
+        {
             lines.Add("throw new global::System.Text.Json.JsonException(");
             lines.Add(
-                $"    \"The payload matched none of the {plan.Branches.Count} permitted types.\");");
+                $"    \"The payload matched none of the {plan.Branches.Count} permitted types.\");"
+            );
 
             return;
         }
@@ -243,15 +303,22 @@ internal static class OneOfConverterEmitter {
         // for a union. Read<T> throws rather than returning null, so a caught branch never stored
         // one, and `matches` is what says whether `matched` was ever assigned.
         var wrapper = TypeMapper.QualifiedName(
-            modelsNamespace, NamingHelper.ToPascalCase(schema.Name), false);
+            modelsNamespace,
+            NamingHelper.ToPascalCase(schema.Name),
+            false
+        );
 
         lines.Add($"{wrapper} matched = default;");
         lines.Add("var matches = 0;");
         lines.Add("");
 
-        foreach (var branch in plan.Overlapping) {
+        foreach (var branch in plan.Overlapping)
+        {
             var type = TypeMapper.QualifiedName(
-                modelsNamespace, ChoiceResolution.CSharpType(branch.Model), false);
+                modelsNamespace,
+                ChoiceResolution.CSharpType(branch.Model),
+                false
+            );
 
             lines.Add("try");
             lines.Add("{");
@@ -275,15 +342,22 @@ internal static class OneOfConverterEmitter {
         lines.Add("throw new global::System.Text.Json.JsonException(");
         lines.Add("    matches == 0");
         lines.Add(
-            $"        ? \"The payload matched none of the {plan.Branches.Count} permitted types.\"");
+            $"        ? \"The payload matched none of the {plan.Branches.Count} permitted types.\""
+        );
         lines.Add(
-            "        : \"The payload matched \" + matches + \" permitted types at once, so which " +
-            "one it is cannot be decided.\");");
+            "        : \"The payload matched \" + matches + \" permitted types at once, so which "
+                + "one it is cannot be decided.\");"
+        );
     }
 
     private static void EmitWrite(
-        ClassDefinition converter, SchemaModel schema, ITypeDefinition wrapper,
-        List<string> branches, string modelsNamespace) {
+        ClassDefinition converter,
+        SchemaModel schema,
+        ITypeDefinition wrapper,
+        List<string> branches,
+        string modelsNamespace
+    )
+    {
         var method = converter.AddMethod("Write");
 
         method.Modifiers |= ComponentModifier.Public | ComponentModifier.Override;
@@ -294,15 +368,22 @@ internal static class OneOfConverterEmitter {
         var discriminator = Discriminators(schema, modelsNamespace);
         var lines = new List<string> { "switch (value.Value)", "{" };
 
-        foreach (var branch in branches) {
+        foreach (var branch in branches)
+        {
             lines.Add($"    case {branch} branch:");
 
-            if (schema.DiscriminatorPropertyName != null &&
-                discriminator.TryGetValue(branch, out var value)) {
+            if (
+                schema.DiscriminatorPropertyName != null
+                && discriminator.TryGetValue(branch, out var value)
+            )
+            {
                 lines.Add(
-                    "        Write(writer, branch, options, " +
-                    $"\"{Escape(schema.DiscriminatorPropertyName)}\", \"{Escape(value)}\");");
-            } else {
+                    "        Write(writer, branch, options, "
+                        + $"\"{Escape(schema.DiscriminatorPropertyName)}\", \"{Escape(value)}\");"
+                );
+            }
+            else
+            {
                 lines.Add("        Write(writer, branch, options, null, null);");
             }
 
@@ -321,16 +402,24 @@ internal static class OneOfConverterEmitter {
 
     /// <summary>The discriminator value for each branch, by the branch's qualified name.</summary>
     private static Dictionary<string, string> Discriminators(
-        SchemaModel schema, string modelsNamespace) {
+        SchemaModel schema,
+        string modelsNamespace
+    )
+    {
         var values = new Dictionary<string, string>(System.StringComparer.Ordinal);
 
-        foreach (var mapping in schema.DiscriminatorMapping) {
+        foreach (var mapping in schema.DiscriminatorMapping)
+        {
             var branch = TypeMapper.QualifiedName(
-                modelsNamespace, NamingHelper.ToPascalCase(TypeMapper.GetRefName(mapping.Ref)), false);
+                modelsNamespace,
+                NamingHelper.ToPascalCase(TypeMapper.GetRefName(mapping.Ref)),
+                false
+            );
 
             // First wins: a document may map two values onto one schema, and the payload can only
             // carry one of them.
-            if (!values.ContainsKey(branch)) {
+            if (!values.ContainsKey(branch))
+            {
                 values[branch] = mapping.Value;
             }
         }
@@ -341,7 +430,8 @@ internal static class OneOfConverterEmitter {
     /// <summary>
     /// Reading and writing one branch, through the resolver rather than the reflection overloads.
     /// </summary>
-    private static void EmitHelpers(ClassDefinition converter) {
+    private static void EmitHelpers(ClassDefinition converter)
+    {
         var read = converter.AddMethod("Read");
 
         read.Modifiers |= ComponentModifier.Private | ComponentModifier.Static;
@@ -350,20 +440,24 @@ internal static class OneOfConverterEmitter {
         read.AddParameter(TypeDefinition.Get("System.Text.Json", "JsonElement"), "element");
         read.AddParameter(Options, "options");
 
-        Write(read, new List<string> {
-            "var typeInfo = (global::System.Text.Json.Serialization.Metadata.JsonTypeInfo<T>)",
-            "    options.GetTypeInfo(typeof(T));",
-            "",
-            "var value = global::System.Text.Json.JsonSerializer.Deserialize(element, typeInfo);",
-            "",
-            "if (value is null)",
-            "{",
-            "    throw new global::System.Text.Json.JsonException(",
-            "        \"Expected \" + typeof(T).Name + \", found null.\");",
-            "}",
-            "",
-            "return value;"
-        });
+        Write(
+            read,
+            new List<string>
+            {
+                "var typeInfo = (global::System.Text.Json.Serialization.Metadata.JsonTypeInfo<T>)",
+                "    options.GetTypeInfo(typeof(T));",
+                "",
+                "var value = global::System.Text.Json.JsonSerializer.Deserialize(element, typeInfo);",
+                "",
+                "if (value is null)",
+                "{",
+                "    throw new global::System.Text.Json.JsonException(",
+                "        \"Expected \" + typeof(T).Name + \", found null.\");",
+                "}",
+                "",
+                "return value;",
+            }
+        );
 
         var write = converter.AddMethod("Write");
 
@@ -375,43 +469,47 @@ internal static class OneOfConverterEmitter {
         write.AddParameter(TypeDefinition.Get(typeof(string)).MakeNullable(), "discriminator");
         write.AddParameter(TypeDefinition.Get(typeof(string)).MakeNullable(), "kind");
 
-        Write(write, new List<string> {
-            "var typeInfo = (global::System.Text.Json.Serialization.Metadata.JsonTypeInfo<T>)",
-            "    options.GetTypeInfo(typeof(T));",
-            "",
-            "if (discriminator is null || kind is null)",
-            "{",
-            "    global::System.Text.Json.JsonSerializer.Serialize(writer, value, typeInfo);",
-            "    return;",
-            "}",
-            "",
-            "var element = global::System.Text.Json.JsonSerializer.SerializeToElement(value, typeInfo);",
-            "",
-            "// A branch that is not an object has nowhere to carry a discriminator; the document",
-            "// declaring one on it is a contradiction this cannot resolve, so the value goes out",
-            "// as it is rather than being wrapped in something the schema does not describe.",
-            "if (element.ValueKind != global::System.Text.Json.JsonValueKind.Object)",
-            "{",
-            "    element.WriteTo(writer);",
-            "    return;",
-            "}",
-            "",
-            "writer.WriteStartObject();",
-            "writer.WriteString(discriminator, kind);",
-            "",
-            "foreach (var property in element.EnumerateObject())",
-            "{",
-            "    // Skipped rather than written twice - the value above is the authority.",
-            "    if (property.NameEquals(discriminator))",
-            "    {",
-            "        continue;",
-            "    }",
-            "",
-            "    property.WriteTo(writer);",
-            "}",
-            "",
-            "writer.WriteEndObject();"
-        });
+        Write(
+            write,
+            new List<string>
+            {
+                "var typeInfo = (global::System.Text.Json.Serialization.Metadata.JsonTypeInfo<T>)",
+                "    options.GetTypeInfo(typeof(T));",
+                "",
+                "if (discriminator is null || kind is null)",
+                "{",
+                "    global::System.Text.Json.JsonSerializer.Serialize(writer, value, typeInfo);",
+                "    return;",
+                "}",
+                "",
+                "var element = global::System.Text.Json.JsonSerializer.SerializeToElement(value, typeInfo);",
+                "",
+                "// A branch that is not an object has nowhere to carry a discriminator; the document",
+                "// declaring one on it is a contradiction this cannot resolve, so the value goes out",
+                "// as it is rather than being wrapped in something the schema does not describe.",
+                "if (element.ValueKind != global::System.Text.Json.JsonValueKind.Object)",
+                "{",
+                "    element.WriteTo(writer);",
+                "    return;",
+                "}",
+                "",
+                "writer.WriteStartObject();",
+                "writer.WriteString(discriminator, kind);",
+                "",
+                "foreach (var property in element.EnumerateObject())",
+                "{",
+                "    // Skipped rather than written twice - the value above is the authority.",
+                "    if (property.NameEquals(discriminator))",
+                "    {",
+                "        continue;",
+                "    }",
+                "",
+                "    property.WriteTo(writer);",
+                "}",
+                "",
+                "writer.WriteEndObject();",
+            }
+        );
     }
 
     /// <summary>
@@ -419,12 +517,13 @@ internal static class OneOfConverterEmitter {
     /// <c>;</c> per component, which turns a brace into <c>{;</c> and an <c>if</c> into a statement
     /// that guards nothing - code that compiles and does the opposite of what it says.
     /// </summary>
-    private static void Write(MethodDefinition method, List<string> lines) {
-        foreach (var line in lines) {
+    private static void Write(MethodDefinition method, List<string> lines)
+    {
+        foreach (var line in lines)
+        {
             method.Add(new CodeOutputComponent(line) { Indented = true });
         }
     }
 
-    private static string Escape(string value) =>
-        value.Replace("\\", "\\\\").Replace("\"", "\\\"");
+    private static string Escape(string value) => value.Replace("\\", "\\\\").Replace("\"", "\\\"");
 }

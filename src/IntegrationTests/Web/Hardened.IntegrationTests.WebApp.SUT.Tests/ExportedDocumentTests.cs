@@ -19,13 +19,14 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests;
 /// this test fails on a checkout whose file is stale.
 /// </para>
 /// </remarks>
-public class ExportedDocumentTests {
-
+public class ExportedDocumentTests
+{
     private static string Exported() =>
         File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "openapi", "Application.json"));
 
     [HardenedTest]
-    public async Task TheExportedFileIsTheServedDocument(ITestWebApp app) {
+    public async Task TheExportedFileIsTheServedDocument(ITestWebApp app)
+    {
         var response = await app.Get("/openapi.json");
 
         response.Assert.Ok();
@@ -37,7 +38,8 @@ public class ExportedDocumentTests {
 
     /// <summary>The file is what a reviewer and a generator read: indented, not the compact literal.</summary>
     [HardenedTest]
-    public async Task TheExportedFileIsIndented(ITestWebApp app) {
+    public async Task TheExportedFileIsIndented(ITestWebApp app)
+    {
         var response = await app.Get("/openapi.json");
 
         response.Assert.Ok();

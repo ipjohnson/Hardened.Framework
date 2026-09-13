@@ -1,11 +1,12 @@
 using Hardened.Requests.Abstract.Authorization;
+
 namespace Hardened.Web.Runtime.Health;
 
 /// <summary>
 /// Where the health endpoints live and how long they may take.
 /// </summary>
-public class HealthCheckConfiguration {
-
+public class HealthCheckConfiguration
+{
     /// <summary>
     /// "Is this process wedged?" Runs no checks and answers 200 if the pipeline runs at all.
     /// </summary>

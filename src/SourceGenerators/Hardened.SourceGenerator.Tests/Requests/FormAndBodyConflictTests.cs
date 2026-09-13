@@ -22,13 +22,14 @@ namespace Hardened.SourceGenerator.Tests.Requests;
 /// either way.
 /// </para>
 /// </remarks>
-public class FormAndBodyConflictTests {
-
+public class FormAndBodyConflictTests
+{
     private static ITypeDefinition Type(string name) => TypeDefinition.Get("System", name);
 
     private static RequestParameterInformation Parameter(
-        ParameterBindType bindingType, string name) =>
-        new(Type("String"), name, true, null, bindingType, name, 0, null);
+        ParameterBindType bindingType,
+        string name
+    ) => new(Type("String"), name, true, null, bindingType, name, 0, null);
 
     private static RequestHandlerModel Handler(params RequestParameterInformation[] parameters) =>
         new(
@@ -38,14 +39,18 @@ public class FormAndBodyConflictTests {
             TypeDefinition.Get("TestApp.Generated", "SignInController_SignIn"),
             parameters,
             new ResponseInformationModel { ReturnType = Type("String") },
-            []);
+            []
+        );
 
     [Fact]
-    public void AFormAndABodyTogetherConflict() {
+    public void AFormAndABodyTogetherConflict()
+    {
         var conflict = FormAndBodyDiagnostics.FindConflict(
             Handler(
                 Parameter(ParameterBindType.Form, "username"),
-                Parameter(ParameterBindType.Body, "credentials")));
+                Parameter(ParameterBindType.Body, "credentials")
+            )
+        );
 
         Assert.NotNull(conflict);
         Assert.Equal("username", conflict!.Value.Form.Name);
@@ -54,11 +59,14 @@ public class FormAndBodyConflictTests {
 
     /// <summary>Order does not matter - the body may be declared first.</summary>
     [Fact]
-    public void TheDeclarationOrderDoesNotMatter() {
+    public void TheDeclarationOrderDoesNotMatter()
+    {
         var conflict = FormAndBodyDiagnostics.FindConflict(
             Handler(
                 Parameter(ParameterBindType.Body, "credentials"),
-                Parameter(ParameterBindType.Form, "username")));
+                Parameter(ParameterBindType.Form, "username")
+            )
+        );
 
         Assert.NotNull(conflict);
         Assert.Equal("username", conflict!.Value.Form.Name);
@@ -68,9 +76,9 @@ public class FormAndBodyConflictTests {
     [Theory]
     [InlineData(ParameterBindType.Form)]
     [InlineData(ParameterBindType.Body)]
-    public void OneOrTheOtherAloneIsFine(ParameterBindType bindingType) {
-        Assert.Null(
-            FormAndBodyDiagnostics.FindConflict(Handler(Parameter(bindingType, "only"))));
+    public void OneOrTheOtherAloneIsFine(ParameterBindType bindingType)
+    {
+        Assert.Null(FormAndBodyDiagnostics.FindConflict(Handler(Parameter(bindingType, "only"))));
     }
 
     /// <summary>
@@ -81,21 +89,29 @@ public class FormAndBodyConflictTests {
     /// the body" rule would reject. They all read one form, which is read once.
     /// </remarks>
     [Fact]
-    public void SeveralFormFieldsAreNotAConflict() {
+    public void SeveralFormFieldsAreNotAConflict()
+    {
         Assert.Null(
             FormAndBodyDiagnostics.FindConflict(
                 Handler(
                     Parameter(ParameterBindType.Form, "username"),
                     Parameter(ParameterBindType.Form, "password"),
-                    Parameter(ParameterBindType.Form, "totp"))));
+                    Parameter(ParameterBindType.Form, "totp")
+                )
+            )
+        );
     }
 
     [Fact]
-    public void AHandlerBindingNeitherIsFine() {
+    public void AHandlerBindingNeitherIsFine()
+    {
         Assert.Null(
             FormAndBodyDiagnostics.FindConflict(
                 Handler(
                     Parameter(ParameterBindType.Path, "id"),
-                    Parameter(ParameterBindType.QueryString, "filter"))));
+                    Parameter(ParameterBindType.QueryString, "filter")
+                )
+            )
+        );
     }
 }

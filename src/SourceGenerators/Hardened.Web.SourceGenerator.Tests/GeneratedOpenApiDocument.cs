@@ -14,8 +14,8 @@ namespace Hardened.Web.SourceGenerator.Tests;
 /// Every test that asserts on the document has to undo that first, so it is undone in one place -
 /// and the same reading is done by <c>scripts/extract-openapi.py</c> for the Spectral step in CI.
 /// </remarks>
-internal static class GeneratedOpenApiDocument {
-
+internal static class GeneratedOpenApiDocument
+{
     /// <summary>
     /// What a fixture application has to carry for a document to be emitted at all.
     /// </summary>
@@ -25,18 +25,26 @@ internal static class GeneratedOpenApiDocument {
     /// document itself.
     /// </remarks>
     public const string EnableAttribute =
-        "[Hardened.Shared.Runtime.Attributes.Enable<" +
-        "Hardened.Web.Runtime.OpenApi.OpenApiDocumentPublishing>]";
+        "[Hardened.Shared.Runtime.Attributes.Enable<"
+        + "Hardened.Web.Runtime.OpenApi.OpenApiDocumentPublishing>]";
 
     /// <summary>The JSON the generated source carries.</summary>
-    public static string Extract(string generatedSource) {
+    public static string Extract(string generatedSource)
+    {
         var match = Regex.Match(
-            generatedSource, @"new byte\[\]\s*\{(.*?)\}\s*;", RegexOptions.Singleline);
+            generatedSource,
+            @"new byte\[\]\s*\{(.*?)\}\s*;",
+            RegexOptions.Singleline
+        );
 
         Assert.True(match.Success, "No document byte array in the generated source.");
 
-        var bytes = match.Groups[1].Value
-            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        var bytes = match
+            .Groups[1]
+            .Value.Split(
+                ',',
+                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries
+            )
             .Select(byte.Parse)
             .ToArray();
 

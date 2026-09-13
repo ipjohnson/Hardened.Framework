@@ -18,8 +18,8 @@ namespace Hardened.Requests.Abstract.Responses;
 /// <see cref="IProvidesResponseHeaders"/> gets, and for the same reason.
 /// </para>
 /// </remarks>
-public interface ICarriesResponseBody {
-
+public interface ICarriesResponseBody
+{
     /// <summary>
     /// What is serialized for this response, or null to send nothing.
     /// </summary>

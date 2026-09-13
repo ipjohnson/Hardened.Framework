@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using System.Linq;
-using Hardened.Idl;
 using Hardened.Generation;
-using Hardened.Idl.Emitters;
 using Hardened.Generation.Models;
+using Hardened.Idl;
+using Hardened.Idl.Emitters;
 
 namespace Hardened.Idl.Validation;
 
@@ -31,14 +31,19 @@ namespace Hardened.Idl.Validation;
 /// <c>map[key]</c>. Nothing here has to know which of the three it marked.
 /// </para>
 /// </remarks>
-internal static class NestedValidation {
-
+internal static class NestedValidation
+{
     /// <summary>
     /// Whether this property's value is worth descending into.
     /// </summary>
     public static bool Descends(
-        PropertyModel property, IReadOnlyList<SchemaModel>? allSchemas, PatternRegistry patterns) {
-        if (!property.Constrained) {
+        PropertyModel property,
+        IReadOnlyList<SchemaModel>? allSchemas,
+        PatternRegistry patterns
+    )
+    {
+        if (!property.Constrained)
+        {
             return false;
         }
 
@@ -66,22 +71,27 @@ internal static class NestedValidation {
     /// </para>
     /// </remarks>
     public static SchemaModel? Nested(
-        PropertyModel property, IReadOnlyList<SchemaModel>? allSchemas) {
-        if (property.OneOf.Count > 0) {
+        PropertyModel property,
+        IReadOnlyList<SchemaModel>? allSchemas
+    )
+    {
+        if (property.OneOf.Count > 0)
+        {
             return null;
         }
 
         var reference = property.Ref ?? property.ArrayItemsRef ?? property.DictionaryValueRef;
 
-        if (reference == null) {
+        if (reference == null)
+        {
             return null;
         }
 
         var name = NamingHelper.ToPascalCase(TypeMapper.GetRefName(reference));
 
-        return allSchemas?.FirstOrDefault(
-            candidate => candidate.Kind == SchemaKind.Object &&
-                         NamingHelper.ToPascalCase(candidate.Name) == name);
+        return allSchemas?.FirstOrDefault(candidate =>
+            candidate.Kind == SchemaKind.Object && NamingHelper.ToPascalCase(candidate.Name) == name
+        );
     }
 
     /// <summary>
@@ -98,23 +108,34 @@ internal static class NestedValidation {
     /// declined to generate.
     /// </remarks>
     public static bool HasGeneratedValidator(
-        SchemaModel schema, IReadOnlyList<SchemaModel>? allSchemas, PatternRegistry patterns) =>
-        SchemaShape.Declared(schema, allSchemas).Any(
-            property => property.Constrained &&
-                        Attributes(property, allSchemas, patterns).Count > 0);
+        SchemaModel schema,
+        IReadOnlyList<SchemaModel>? allSchemas,
+        PatternRegistry patterns
+    ) =>
+        SchemaShape
+            .Declared(schema, allSchemas)
+            .Any(property =>
+                property.Constrained && Attributes(property, allSchemas, patterns).Count > 0
+            );
 
     /// <summary>
     /// The constraint attributes a property would carry, by the same rules the model emitter
     /// applies.
     /// </summary>
     public static IReadOnlyList<ConstraintAttributes.Model> Attributes(
-        PropertyModel property, IReadOnlyList<SchemaModel>? allSchemas, PatternRegistry patterns) {
+        PropertyModel property,
+        IReadOnlyList<SchemaModel>? allSchemas,
+        PatternRegistry patterns
+    )
+    {
         var csType = TypeMapper.MapPropertyToCSharpType(property);
 
         return ConstraintAttributes.ForProperty(
             property,
-            property.ConstrainedAsRequired && !TypeMapper.IsNonNullableValueType(csType, allSchemas),
+            property.ConstrainedAsRequired
+                && !TypeMapper.IsNonNullableValueType(csType, allSchemas),
             patterns,
-            csType);
+            csType
+        );
     }
 }

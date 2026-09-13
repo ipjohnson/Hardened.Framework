@@ -14,21 +14,22 @@ namespace Hardened.SourceGenerator.Requests;
 /// accepted that silently, and the second trial's code-first arm concluded from the silence that
 /// the emission did not exist - the working spelling was never suggested to them.
 /// </remarks>
-public static class SecuritySchemeDiagnostics {
-
+public static class SecuritySchemeDiagnostics
+{
     public const string MisplacedSchemeId = "HRDSC001";
 
-    internal static DiagnosticDescriptor MisplacedSchemeDescriptor() => new(
-        id: MisplacedSchemeId,
-        title: "An authentication scheme attribute is not read here",
-        messageFormat:
-            "'{0}' carries [{1}], which nothing reads in this position. The attribute describes " +
-            "an authentication scheme type: declare a class implementing IAuthenticationScheme, " +
-            "put the attribute on it, and name it as [Authorize<TScheme>] on the handler or " +
-            "controller. Where it is now, it publishes no securitySchemes and enforces nothing.",
-        category: "Hardened.Security",
-        defaultSeverity: DiagnosticSeverity.Warning,
-        isEnabledByDefault: true);
+    internal static DiagnosticDescriptor MisplacedSchemeDescriptor() =>
+        new(
+            id: MisplacedSchemeId,
+            title: "An authentication scheme attribute is not read here",
+            messageFormat: "'{0}' carries [{1}], which nothing reads in this position. The attribute describes "
+                + "an authentication scheme type: declare a class implementing IAuthenticationScheme, "
+                + "put the attribute on it, and name it as [Authorize<TScheme>] on the handler or "
+                + "controller. Where it is now, it publishes no securitySchemes and enforces nothing.",
+            category: "Hardened.Security",
+            defaultSeverity: DiagnosticSeverity.Warning,
+            isEnabledByDefault: true
+        );
 
     /// <summary>
     /// Reports each misplaced attribute once, however many handlers saw it.
@@ -41,25 +42,35 @@ public static class SecuritySchemeDiagnostics {
     /// </remarks>
     public static void ReportMisplacedSchemes(
         SourceProductionContext context,
-        IEnumerable<IReadOnlyList<string>> findings) {
+        IEnumerable<IReadOnlyList<string>> findings
+    )
+    {
         var reported = new HashSet<string>();
 
-        foreach (var handlerFindings in findings) {
-            foreach (var finding in handlerFindings) {
-                if (!reported.Add(finding)) {
+        foreach (var handlerFindings in findings)
+        {
+            foreach (var finding in handlerFindings)
+            {
+                if (!reported.Add(finding))
+                {
                     continue;
                 }
 
                 var separator = finding.IndexOf('|');
 
-                if (separator <= 0) {
+                if (separator <= 0)
+                {
                     continue;
                 }
 
-                context.ReportDiagnostic(Diagnostic.Create(
-                    MisplacedSchemeDescriptor(), Location.None,
-                    finding.Substring(0, separator),
-                    Short(finding.Substring(separator + 1))));
+                context.ReportDiagnostic(
+                    Diagnostic.Create(
+                        MisplacedSchemeDescriptor(),
+                        Location.None,
+                        finding.Substring(0, separator),
+                        Short(finding.Substring(separator + 1))
+                    )
+                );
             }
         }
     }

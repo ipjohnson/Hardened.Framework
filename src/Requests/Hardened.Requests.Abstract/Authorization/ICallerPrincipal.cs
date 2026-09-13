@@ -24,7 +24,8 @@ namespace Hardened.Requests.Abstract.Authorization;
 /// authenticated with no scheme, and none that carries a scheme without being authenticated.
 /// </para>
 /// </remarks>
-public interface ICallerPrincipal {
+public interface ICallerPrincipal
+{
     /// <summary>
     /// The scheme that authenticated this caller, or null when anonymous.
     /// </summary>

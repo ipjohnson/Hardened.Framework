@@ -1,16 +1,16 @@
 using System.IO.Compression;
 using System.Text;
 using Hardened.Requests.Abstract.Execution;
-using Hardened.Web.Runtime.CacheControl;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Shared.Runtime.Collections;
 using Hardened.Shared.Runtime.Utilities;
+using Hardened.Web.Runtime.CacheControl;
+using Hardened.Web.Runtime.Responses;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 using NSubstitute;
 using Xunit;
-using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.StaticContent.Tests;
 
@@ -24,20 +24,31 @@ namespace Hardened.Web.StaticContent.Tests;
 /// not grow, so no sequence of requests can make it.
 /// </para>
 /// </summary>
-public class ManifestContentSourceTests : IDisposable {
-
+public class ManifestContentSourceTests : IDisposable
+{
     private readonly string _tempRoot;
     private readonly string _staticRoot;
 
-    public ManifestContentSourceTests() {
-        _tempRoot = Path.Combine(Path.GetTempPath(), "hardened-manifest-" + Guid.NewGuid().ToString("N"));
+    public ManifestContentSourceTests()
+    {
+        _tempRoot = Path.Combine(
+            Path.GetTempPath(),
+            "hardened-manifest-" + Guid.NewGuid().ToString("N")
+        );
         _staticRoot = Path.Combine(_tempRoot, "wwwroot");
 
         Directory.CreateDirectory(_staticRoot);
     }
 
-    public void Dispose() {
-        try { Directory.Delete(_tempRoot, true); } catch { /* best effort */ }
+    public void Dispose()
+    {
+        try
+        {
+            Directory.Delete(_tempRoot, true);
+        }
+        catch
+        { /* best effort */
+        }
 
         GC.SuppressFinalize(this);
     }
@@ -45,13 +56,16 @@ public class ManifestContentSourceTests : IDisposable {
     #region harness
 
     private sealed record Manifest(
-        IReadOnlyList<StaticContentManifestEntry> Entries, string? FallBackRoute)
-        : IStaticContentManifest;
+        IReadOnlyList<StaticContentManifestEntry> Entries,
+        string? FallBackRoute
+    ) : IStaticContentManifest;
 
-    private static byte[] GZip(byte[] bytes) {
+    private static byte[] GZip(byte[] bytes)
+    {
         using var output = new MemoryStream();
 
-        using (var gzip = new GZipStream(output, CompressionLevel.Optimal, leaveOpen: true)) {
+        using (var gzip = new GZipStream(output, CompressionLevel.Optimal, leaveOpen: true))
+        {
             gzip.Write(bytes, 0, bytes.Length);
         }
 
@@ -59,23 +73,34 @@ public class ManifestContentSourceTests : IDisposable {
     }
 
     private static StaticContentManifestEntry Embedded(
-        string route, string content, bool compress = false) {
+        string route,
+        string content,
+        bool compress = false
+    )
+    {
         var bytes = Encoding.UTF8.GetBytes(content);
 
         return new StaticContentManifestEntry(
-            route, "hash-of-" + route, bytes.LongLength, new DateTimeOffset(
-                2026, 8, 18, 10, 30, 0, TimeSpan.Zero).UtcTicks,
-            bytes, compress ? GZip(bytes) : null, null);
+            route,
+            "hash-of-" + route,
+            bytes.LongLength,
+            new DateTimeOffset(2026, 8, 18, 10, 30, 0, TimeSpan.Zero).UtcTicks,
+            bytes,
+            compress ? GZip(bytes) : null,
+            null
+        );
     }
 
     private StaticContentPipeline Pipeline(
-        IStaticContentManifest manifest, Action<IStaticContentConfiguration>? configure = null) {
+        IStaticContentManifest manifest,
+        Action<IStaticContentConfiguration>? configure = null
+    )
+    {
         var configuration = Substitute.For<IStaticContentConfiguration>();
 
         configuration.Path.Returns(_staticRoot);
         configuration.CacheContent.Returns(true);
-        configuration.CacheControlType.Returns(
-            CacheControlEnum.MaxAge | CacheControlEnum.Public);
+        configuration.CacheControlType.Returns(CacheControlEnum.MaxAge | CacheControlEnum.Public);
         configuration.EnableRangeRequests.Returns(true);
         configuration.EnableETag.Returns(true);
         configuration.CompressTextContent.Returns(false);
@@ -89,14 +114,22 @@ public class ManifestContentSourceTests : IDisposable {
 
         return new StaticContentPipeline(
             new ManifestContentSource(
-                manifest, Options.Create(configuration), mimeHelper,
-                NullLogger<ManifestContentSource>.Instance),
-            configuration);
+                manifest,
+                Options.Create(configuration),
+                mimeHelper,
+                NullLogger<ManifestContentSource>.Instance
+            ),
+            configuration
+        );
     }
 
-    private static (IExecutionContext context, MemoryStream body, IExecutionResponse response,
-        IDictionary<string, StringValues> headers)
-        Context(string path, params (string Name, string Value)[] requestHeaders) {
+    private static (
+        IExecutionContext context,
+        MemoryStream body,
+        IExecutionResponse response,
+        IDictionary<string, StringValues> headers
+    ) Context(string path, params (string Name, string Value)[] requestHeaders)
+    {
         var context = Substitute.For<IExecutionContext>();
         var request = Substitute.For<IExecutionRequest>();
         var response = Substitute.For<IExecutionResponse>();
@@ -104,7 +137,8 @@ public class ManifestContentSourceTests : IDisposable {
 
         var headers = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var (name, value) in requestHeaders) {
+        foreach (var (name, value) in requestHeaders)
+        {
             headers[name] = value;
         }
 
@@ -112,7 +146,9 @@ public class ManifestContentSourceTests : IDisposable {
         request.Method.Returns("GET");
         request.Headers.Returns(headers);
         response.Body.Returns(body);
-        response.Headers.Returns(new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase));
+        response.Headers.Returns(
+            new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase)
+        );
         context.Request.Returns(request);
         context.Response.Returns(response);
 
@@ -126,7 +162,8 @@ public class ManifestContentSourceTests : IDisposable {
     #region serving
 
     [Fact]
-    public async Task AnEmbeddedEntryIsServedFromTheAssembly() {
+    public async Task AnEmbeddedEntryIsServedFromTheAssembly()
+    {
         var pipeline = Pipeline(new Manifest([Embedded("/app.js", "console.log('hi');")], null));
 
         var (context, body, _, _) = Context("/app.js");
@@ -137,7 +174,8 @@ public class ManifestContentSourceTests : IDisposable {
 
     /// <summary>The validator comes from the build, so nothing is hashed on the request path.</summary>
     [Fact]
-    public async Task TheValidatorComesFromTheManifest() {
+    public async Task TheValidatorComesFromTheManifest()
+    {
         var pipeline = Pipeline(new Manifest([Embedded("/app.js", "x")], null));
 
         var (context, _, _, headers) = Context("/app.js");
@@ -149,7 +187,8 @@ public class ManifestContentSourceTests : IDisposable {
 
     /// <summary>And so does the timestamp, so the date conditional works with no file access.</summary>
     [Fact]
-    public async Task TheTimestampComesFromTheManifest() {
+    public async Task TheTimestampComesFromTheManifest()
+    {
         var pipeline = Pipeline(new Manifest([Embedded("/app.js", "x")], null));
 
         var (context, _, _, headers) = Context("/app.js");
@@ -157,7 +196,9 @@ public class ManifestContentSourceTests : IDisposable {
         await pipeline.Handle(context);
 
         Assert.Equal(
-            "Tue, 18 Aug 2026 10:30:00 GMT", headers[KnownHeaders.LastModified].ToString());
+            "Tue, 18 Aug 2026 10:30:00 GMT",
+            headers[KnownHeaders.LastModified].ToString()
+        );
     }
 
     /// <summary>
@@ -166,12 +207,16 @@ public class ManifestContentSourceTests : IDisposable {
     /// concurrent request that beats it to the cache.
     /// </summary>
     [Fact]
-    public async Task ACompressedEntryIsServedWithoutCompressingAnything() {
+    public async Task ACompressedEntryIsServedWithoutCompressingAnything()
+    {
         var pipeline = Pipeline(
-            new Manifest([Embedded("/big.txt", new string('a', 4000), compress: true)], null));
+            new Manifest([Embedded("/big.txt", new string('a', 4000), compress: true)], null)
+        );
 
         var (context, body, _, headers) = Context(
-            "/big.txt", (KnownHeaders.AcceptEncoding, "gzip, deflate, br"));
+            "/big.txt",
+            (KnownHeaders.AcceptEncoding, "gzip, deflate, br")
+        );
 
         Assert.True(await pipeline.Handle(context));
 
@@ -182,9 +227,11 @@ public class ManifestContentSourceTests : IDisposable {
 
     /// <summary>And a client that cannot take the coding still gets the resource.</summary>
     [Fact]
-    public async Task ACompressedEntryIsInflatedForAClientThatDidNotAskForIt() {
+    public async Task ACompressedEntryIsInflatedForAClientThatDidNotAskForIt()
+    {
         var pipeline = Pipeline(
-            new Manifest([Embedded("/big.txt", new string('a', 4000), compress: true)], null));
+            new Manifest([Embedded("/big.txt", new string('a', 4000), compress: true)], null)
+        );
 
         var (context, body, _, headers) = Context("/big.txt");
 
@@ -199,11 +246,19 @@ public class ManifestContentSourceTests : IDisposable {
     /// rather than from the request - so there is nothing a request can steer.
     /// </summary>
     [Fact]
-    public async Task AnEntryLeftOnDiskIsReadFromDisk() {
+    public async Task AnEntryLeftOnDiskIsReadFromDisk()
+    {
         File.WriteAllText(Path.Combine(_staticRoot, "big.bin"), "on disk");
 
         var entry = new StaticContentManifestEntry(
-            "/big.bin", "hash", 7, DateTimeOffset.UtcNow.UtcTicks, null, null, "big.bin");
+            "/big.bin",
+            "hash",
+            7,
+            DateTimeOffset.UtcNow.UtcTicks,
+            null,
+            null,
+            "big.bin"
+        );
 
         var (context, body, _, _) = Context("/big.bin");
 
@@ -216,9 +271,17 @@ public class ManifestContentSourceTests : IDisposable {
     /// deployment that shipped the assembly without its content.
     /// </summary>
     [Fact]
-    public async Task AnEntryWhoseFileIsMissingIsNotFound() {
+    public async Task AnEntryWhoseFileIsMissingIsNotFound()
+    {
         var entry = new StaticContentManifestEntry(
-            "/gone.bin", "hash", 7, DateTimeOffset.UtcNow.UtcTicks, null, null, "gone.bin");
+            "/gone.bin",
+            "hash",
+            7,
+            DateTimeOffset.UtcNow.UtcTicks,
+            null,
+            null,
+            "gone.bin"
+        );
 
         var (context, body, response, _) = Context("/gone.bin");
 
@@ -242,7 +305,8 @@ public class ManifestContentSourceTests : IDisposable {
     [InlineData("/assets/../../secret.txt")]
     [InlineData("/does-not-exist.js")]
     [InlineData("/.env")]
-    public async Task APathNotInTheManifestIsNotServed(string path) {
+    public async Task APathNotInTheManifestIsNotServed(string path)
+    {
         File.WriteAllText(Path.Combine(_tempRoot, "secret.txt"), "SECRET");
 
         var pipeline = Pipeline(new Manifest([Embedded("/app.js", "x")], null));
@@ -258,7 +322,8 @@ public class ManifestContentSourceTests : IDisposable {
     /// a site in development that 404s in production, or the reverse.
     /// </summary>
     [Fact]
-    public async Task RouteMatchingIsCaseSensitive() {
+    public async Task RouteMatchingIsCaseSensitive()
+    {
         var pipeline = Pipeline(new Manifest([Embedded("/app.js", "x")], null));
 
         var (context, _, _, _) = Context("/App.js");
@@ -272,11 +337,14 @@ public class ManifestContentSourceTests : IDisposable {
     /// the table is fixed before the process starts.
     /// </summary>
     [Fact]
-    public async Task EveryUnknownPathSharesTheOneFallbackEntry() {
+    public async Task EveryUnknownPathSharesTheOneFallbackEntry()
+    {
         var pipeline = Pipeline(
-            new Manifest([Embedded("/index.html", "<html>shell</html>")], "/index.html"));
+            new Manifest([Embedded("/index.html", "<html>shell</html>")], "/index.html")
+        );
 
-        foreach (var path in new[] { "/a", "/b/c", "/deep/spa/route" }) {
+        foreach (var path in new[] { "/a", "/b/c", "/deep/spa/route" })
+        {
             var (context, body, _, _) = Context(path);
 
             Assert.True(await pipeline.Handle(context));
@@ -286,7 +354,8 @@ public class ManifestContentSourceTests : IDisposable {
 
     /// <summary>An empty manifest disables the mount rather than answering everything with nothing.</summary>
     [Fact]
-    public async Task AnEmptyManifestServesNothing() {
+    public async Task AnEmptyManifestServesNothing()
+    {
         var pipeline = Pipeline(new Manifest([], null));
 
         var (context, _, _, _) = Context("/app.js");

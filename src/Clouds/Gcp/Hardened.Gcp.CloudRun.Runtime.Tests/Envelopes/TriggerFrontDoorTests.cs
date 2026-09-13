@@ -13,10 +13,11 @@ namespace Hardened.Gcp.CloudRun.Runtime.Tests.Envelopes;
 /// <summary>
 /// What the front door does with a request: passes it on, gives its body back, or forks.
 /// </summary>
-public class TriggerFrontDoorTests {
-
+public class TriggerFrontDoorTests
+{
     [Fact]
-    public async Task ARequestNoEnvelopeRecognisesGoesOnUntouched() {
+    public async Task ARequestNoEnvelopeRecognisesGoesOnUntouched()
+    {
         var harness = new Harness("POST", "text/plain", "hello");
         var envelope = new StubEnvelope(recognises: false);
 
@@ -30,7 +31,8 @@ public class TriggerFrontDoorTests {
 
     /// <summary>A JSON POST that is not a push after all is served as if nothing had looked: the bytes are back, rewound.</summary>
     [Fact]
-    public async Task ARecognisedRequestThatIsNotAnEnvelopeGetsItsBodyBack() {
+    public async Task ARecognisedRequestThatIsNotAnEnvelopeGetsItsBodyBack()
+    {
         var harness = new Harness("POST", "application/json", "{\"title\":\"a todo\"}");
 
         await new TriggerFrontDoor([new StubEnvelope(recognises: true)]).Execute(harness.Chain);
@@ -43,9 +45,13 @@ public class TriggerFrontDoorTests {
     }
 
     [Fact]
-    public async Task AnUnwrappedEnvelopeForksTheChainAndDoesNotContinueTheOriginal() {
+    public async Task AnUnwrappedEnvelopeForksTheChainAndDoesNotContinueTheOriginal()
+    {
         var harness = new Harness("POST", "application/json", "{\"message\":{}}");
-        var envelope = new StubEnvelope(recognises: true, unwrap: (delivery, _) => Trigger(delivery));
+        var envelope = new StubEnvelope(
+            recognises: true,
+            unwrap: (delivery, _) => Trigger(delivery)
+        );
 
         await new TriggerFrontDoor([envelope]).Execute(harness.Chain);
 
@@ -60,7 +66,8 @@ public class TriggerFrontDoorTests {
 
     /// <summary>The first envelope to unwrap wins; the ones after it are not asked.</summary>
     [Fact]
-    public async Task TheFirstEnvelopeToUnwrapWins() {
+    public async Task TheFirstEnvelopeToUnwrapWins()
+    {
         var harness = new Harness("POST", "application/json", "{}");
         var declines = new StubEnvelope(recognises: true);
         var first = new StubEnvelope(recognises: true, unwrap: (delivery, _) => Trigger(delivery));
@@ -75,13 +82,28 @@ public class TriggerFrontDoorTests {
 
     /// <summary>The envelopes read one buffered body, not one each.</summary>
     [Fact]
-    public async Task TheBodyIsBufferedOnceForEveryEnvelope() {
+    public async Task TheBodyIsBufferedOnceForEveryEnvelope()
+    {
         var harness = new Harness("POST", "application/json", "{\"a\":1}");
         TriggerPayload? seenByFirst = null;
         TriggerPayload? seenBySecond = null;
 
-        var first = new StubEnvelope(recognises: true, unwrap: (_, payload) => { seenByFirst = payload; return null; });
-        var second = new StubEnvelope(recognises: true, unwrap: (_, payload) => { seenBySecond = payload; return null; });
+        var first = new StubEnvelope(
+            recognises: true,
+            unwrap: (_, payload) =>
+            {
+                seenByFirst = payload;
+                return null;
+            }
+        );
+        var second = new StubEnvelope(
+            recognises: true,
+            unwrap: (_, payload) =>
+            {
+                seenBySecond = payload;
+                return null;
+            }
+        );
 
         await new TriggerFrontDoor([first, second]).Execute(harness.Chain);
 
@@ -90,9 +112,13 @@ public class TriggerFrontDoorTests {
     }
 
     [Fact]
-    public async Task ATriggerRequestIsNotUnwrappedAgain() {
+    public async Task ATriggerRequestIsNotUnwrappedAgain()
+    {
         var harness = new Harness("POST", "application/json", "{}");
-        var envelope = new StubEnvelope(recognises: true, unwrap: (delivery, _) => Trigger(delivery));
+        var envelope = new StubEnvelope(
+            recognises: true,
+            unwrap: (delivery, _) => Trigger(delivery)
+        );
         var alreadyUnwrapped = Trigger(harness.Request);
 
         harness.Context.Request.Returns(alreadyUnwrapped);
@@ -104,7 +130,8 @@ public class TriggerFrontDoorTests {
     }
 
     [Fact]
-    public async Task ADeclaredLengthOverTheLimitIsNotBuffered() {
+    public async Task ADeclaredLengthOverTheLimitIsNotBuffered()
+    {
         var harness = new Harness("POST", "application/json", "{}");
         var envelope = new StubEnvelope(recognises: true);
 
@@ -118,8 +145,13 @@ public class TriggerFrontDoorTests {
 
     /// <summary>An undeclared body that turns out too large has been consumed, so 413 is the only honest answer.</summary>
     [Fact]
-    public async Task AnUndeclaredBodyOverTheLimitIsAnsweredTooLarge() {
-        var harness = new Harness("POST", "application/json", body: new ZeroStream(TriggerFrontDoor.BufferLimit + 1L));
+    public async Task AnUndeclaredBodyOverTheLimitIsAnsweredTooLarge()
+    {
+        var harness = new Harness(
+            "POST",
+            "application/json",
+            body: new ZeroStream(TriggerFrontDoor.BufferLimit + 1L)
+        );
         var envelope = new StubEnvelope(recognises: true);
 
         await new TriggerFrontDoor([envelope]).Execute(harness.Chain);
@@ -133,11 +165,16 @@ public class TriggerFrontDoorTests {
     private static CloudRunTriggerRequest Trigger(IExecutionRequest delivery) =>
         new("QUEUE", "/orders", Stream.Null, new Dictionary<string, StringValues>(), delivery);
 
-    private sealed class StubEnvelope : ITriggerEnvelope {
+    private sealed class StubEnvelope : ITriggerEnvelope
+    {
         private readonly bool _recognises;
         private readonly Func<IExecutionRequest, TriggerPayload, CloudRunTriggerRequest?>? _unwrap;
 
-        public StubEnvelope(bool recognises, Func<IExecutionRequest, TriggerPayload, CloudRunTriggerRequest?>? unwrap = null) {
+        public StubEnvelope(
+            bool recognises,
+            Func<IExecutionRequest, TriggerPayload, CloudRunTriggerRequest?>? unwrap = null
+        )
+        {
             _recognises = recognises;
             _unwrap = unwrap;
         }
@@ -146,7 +183,8 @@ public class TriggerFrontDoorTests {
 
         public bool Recognises(IExecutionRequest request) => _recognises;
 
-        public CloudRunTriggerRequest? Unwrap(IExecutionRequest request, TriggerPayload payload) {
+        public CloudRunTriggerRequest? Unwrap(IExecutionRequest request, TriggerPayload payload)
+        {
             Unwrapped++;
 
             return _unwrap?.Invoke(request, payload);
@@ -154,17 +192,25 @@ public class TriggerFrontDoorTests {
     }
 
     /// <summary>A real request and response on a substituted chain, so the fork can be observed.</summary>
-    private sealed class Harness {
+    private sealed class Harness
+    {
         public Harness(string method, string contentType, string body)
-            : this(method, contentType, new MemoryStream(Encoding.UTF8.GetBytes(body))) {
-        }
+            : this(method, contentType, new MemoryStream(Encoding.UTF8.GetBytes(body))) { }
 
-        public Harness(string method, string contentType, Stream body) {
-            Request = new TestExecutionRequest(method, "/", null, EmptyQueryStringCollection.Instance) {
-                Headers = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase) {
-                    ["Content-Type"] = contentType
+        public Harness(string method, string contentType, Stream body)
+        {
+            Request = new TestExecutionRequest(
+                method,
+                "/",
+                null,
+                EmptyQueryStringCollection.Instance
+            )
+            {
+                Headers = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["Content-Type"] = contentType,
                 },
-                Body = body
+                Body = body,
             };
 
             Response = new TestExecutionResponse(new MemoryStream());
@@ -176,8 +222,15 @@ public class TriggerFrontDoorTests {
 
             Forked = Substitute.For<IExecutionChain>();
 
-            Context.Clone(Arg.Any<IExecutionRequest?>(), Arg.Any<IExecutionResponse?>(), Arg.Any<IServiceProvider?>(), Arg.Any<Hardened.Shared.Runtime.Metrics.IMetricLogger?>())
-                .Returns(call => {
+            Context
+                .Clone(
+                    Arg.Any<IExecutionRequest?>(),
+                    Arg.Any<IExecutionResponse?>(),
+                    Arg.Any<IServiceProvider?>(),
+                    Arg.Any<Hardened.Shared.Runtime.Metrics.IMetricLogger?>()
+                )
+                .Returns(call =>
+                {
                     var clone = Substitute.For<IExecutionContext>();
                     clone.Request.Returns(call.ArgAt<IExecutionRequest?>(0) ?? Request);
                     clone.Response.Returns(Response);
@@ -204,11 +257,13 @@ public class TriggerFrontDoorTests {
     }
 
     /// <summary>A body of zeros of any length, without the memory.</summary>
-    private sealed class ZeroStream : Stream {
+    private sealed class ZeroStream : Stream
+    {
         private readonly long _length;
         private long _position;
 
-        public ZeroStream(long length) {
+        public ZeroStream(long length)
+        {
             _length = length;
         }
 
@@ -216,9 +271,14 @@ public class TriggerFrontDoorTests {
         public override bool CanSeek => false;
         public override bool CanWrite => false;
         public override long Length => _length;
-        public override long Position { get => _position; set => throw new NotSupportedException(); }
+        public override long Position
+        {
+            get => _position;
+            set => throw new NotSupportedException();
+        }
 
-        public override int Read(byte[] buffer, int offset, int count) {
+        public override int Read(byte[] buffer, int offset, int count)
+        {
             var remaining = (int)Math.Min(count, _length - _position);
 
             Array.Clear(buffer, offset, remaining);
@@ -228,8 +288,13 @@ public class TriggerFrontDoorTests {
         }
 
         public override void Flush() { }
-        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+
+        public override long Seek(long offset, SeekOrigin origin) =>
+            throw new NotSupportedException();
+
         public override void SetLength(long value) => throw new NotSupportedException();
-        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+        public override void Write(byte[] buffer, int offset, int count) =>
+            throw new NotSupportedException();
     }
 }

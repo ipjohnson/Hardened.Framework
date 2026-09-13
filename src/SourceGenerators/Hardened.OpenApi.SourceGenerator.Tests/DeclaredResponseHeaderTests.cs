@@ -2,8 +2,8 @@
 using System.Threading;
 using Hardened.Generation;
 using Hardened.Generation.Models;
-using Xunit;
 using Hardened.Web.Runtime.Responses;
+using Xunit;
 
 namespace Hardened.OpenApi.SourceGenerator.Tests;
 
@@ -24,8 +24,8 @@ namespace Hardened.OpenApi.SourceGenerator.Tests;
 /// that survives the parser and dies in the serializer is the same silence from a consumer's side.
 /// </para>
 /// </remarks>
-public class DeclaredResponseHeaderTests {
-
+public class DeclaredResponseHeaderTests
+{
     private static ServiceSpecModel Parse() =>
         OpenApiSpecParser.Parse(Specs.DeclaredResponseHeaders, "test", CancellationToken.None)!;
 
@@ -36,15 +36,16 @@ public class DeclaredResponseHeaderTests {
     /// One success and the shared 429 - so an error's header is the only thing that could force a
     /// response set, which <c>createPet</c> cannot show because it declares two successes.
     /// </summary>
-    private static OperationModel ListPets(ServiceSpecModel model) =>
-        Operation(model, "listPets");
+    private static OperationModel ListPets(ServiceSpecModel model) => Operation(model, "listPets");
 
     private static OperationModel Operation(ServiceSpecModel model, string operationId) =>
-        model.Services.SelectMany(service => service.Operations)
+        model
+            .Services.SelectMany(service => service.Operations)
             .Single(operation => operation.OperationId == operationId);
 
     [Fact]
-    public void TheParserReadsAHeaderDeclaredOnASuccess() {
+    public void TheParserReadsAHeaderDeclaredOnASuccess()
+    {
         var operation = CreatePet(Parse());
 
         var created = operation.SuccessResponses.Single(response => response.StatusCode == 201);
@@ -57,7 +58,8 @@ public class DeclaredResponseHeaderTests {
     }
 
     [Fact]
-    public void TheParserReadsAHeaderDeclaredOnAnError() {
+    public void TheParserReadsAHeaderDeclaredOnAnError()
+    {
         var operation = CreatePet(Parse());
 
         var throttled = operation.ErrorResponses.Single(response => response.StatusCode == 429);
@@ -70,19 +72,30 @@ public class DeclaredResponseHeaderTests {
     }
 
     [Fact]
-    public void HeadersSurviveTheModelFileTheBuildTaskWritesForTheGenerator() {
+    public void HeadersSurviveTheModelFileTheBuildTaskWritesForTheGenerator()
+    {
         var written = SpecModelSerializer.Write(Parse());
         var read = SpecModelSerializer.Read(written);
 
         var operation = CreatePet(read);
 
-        Assert.Equal("Location", operation.SuccessResponses.Single(r => r.StatusCode == 201).Headers.Single().Name);
-        Assert.Equal("ETag", operation.SuccessResponses.Single(r => r.StatusCode == 202).Headers.Single().Name);
-        Assert.Equal("Retry-After", operation.ErrorResponses.Single(r => r.StatusCode == 429).Headers.Single().Name);
+        Assert.Equal(
+            "Location",
+            operation.SuccessResponses.Single(r => r.StatusCode == 201).Headers.Single().Name
+        );
+        Assert.Equal(
+            "ETag",
+            operation.SuccessResponses.Single(r => r.StatusCode == 202).Headers.Single().Name
+        );
+        Assert.Equal(
+            "Retry-After",
+            operation.ErrorResponses.Single(r => r.StatusCode == 429).Headers.Single().Name
+        );
     }
 
     [Fact]
-    public void AHeaderOnAResponseIsPartOfWhatMakesTwoModelsDiffer() {
+    public void AHeaderOnAResponseIsPartOfWhatMakesTwoModelsDiffer()
+    {
         var withHeader = Parse();
         var withoutHeader = Parse();
 
@@ -93,22 +106,29 @@ public class DeclaredResponseHeaderTests {
         // else changed.
         Assert.NotEqual(
             CreatePet(withHeader).SuccessResponses.Single(r => r.StatusCode == 201),
-            CreatePet(withoutHeader).SuccessResponses.Single(r => r.StatusCode == 201));
+            CreatePet(withoutHeader).SuccessResponses.Single(r => r.StatusCode == 201)
+        );
     }
 
     [Fact]
-    public void APrimarySuccessDeclaringAHeaderIsWrappedRatherThanLeftAsTheBarePayload() {
+    public void APrimarySuccessDeclaringAHeaderIsWrappedRatherThanLeftAsTheBarePayload()
+    {
         var operation = CreatePet(Parse());
 
         // Pet is the type a 200 with no Location answers with too, so the header cannot live on it.
         Assert.False(ResponseSetPlan.PrimarySuccessIsBarePayload(operation));
 
-        Assert.True(ResponseSetPlan.NeedsSuccessCaseType(
-            operation, operation.SuccessResponses.Single(r => r.StatusCode == 201)));
+        Assert.True(
+            ResponseSetPlan.NeedsSuccessCaseType(
+                operation,
+                operation.SuccessResponses.Single(r => r.StatusCode == 201)
+            )
+        );
     }
 
     [Fact]
-    public void APrimarySuccessDeclaringNoHeaderKeepsTheSignatureItAlreadyHad() {
+    public void APrimarySuccessDeclaringNoHeaderKeepsTheSignatureItAlreadyHad()
+    {
         var model = Parse();
         var operation = CreatePet(model);
 
@@ -116,8 +136,12 @@ public class DeclaredResponseHeaderTests {
 
         Assert.True(ResponseSetPlan.PrimarySuccessIsBarePayload(operation));
 
-        Assert.False(ResponseSetPlan.NeedsSuccessCaseType(
-            operation, operation.SuccessResponses.Single(r => r.StatusCode == 201)));
+        Assert.False(
+            ResponseSetPlan.NeedsSuccessCaseType(
+                operation,
+                operation.SuccessResponses.Single(r => r.StatusCode == 201)
+            )
+        );
     }
 
     #region what an error's header does to the signature
@@ -129,7 +153,8 @@ public class DeclaredResponseHeaderTests {
     /// <c>components.responses</c> entry change the signature of every operation that named it.
     /// </summary>
     [Fact]
-    public void AnErrorDeclaringAHeaderDoesNotForceAResponseSetInThrowsMode() {
+    public void AnErrorDeclaringAHeaderDoesNotForceAResponseSetInThrowsMode()
+    {
         var operation = ListPets(Parse());
 
         Assert.True(operation.ErrorResponses.Single(r => r.StatusCode == 429).Headers.Count > 0);
@@ -141,7 +166,8 @@ public class DeclaredResponseHeaderTests {
     /// And a success's header still does, because a returned Pet has nowhere to put a Location.
     /// </summary>
     [Fact]
-    public void ASuccessDeclaringAHeaderStillForcesAResponseSetInThrowsMode() {
+    public void ASuccessDeclaringAHeaderStillForcesAResponseSetInThrowsMode()
+    {
         var operation = CreatePet(Parse());
 
         Assert.True(ResponseSetPlan.RequiresResponseSet(operation, SpecResponseModel.Throws));
@@ -152,9 +178,11 @@ public class DeclaredResponseHeaderTests {
     /// the header is the right answer there.
     /// </summary>
     [Fact]
-    public void AnErrorDeclaringAHeaderStillBelongsToASetInResponseMode() {
+    public void AnErrorDeclaringAHeaderStillBelongsToASetInResponseMode()
+    {
         Assert.True(
-            ResponseSetPlan.RequiresResponseSet(ListPets(Parse()), SpecResponseModel.Response));
+            ResponseSetPlan.RequiresResponseSet(ListPets(Parse()), SpecResponseModel.Response)
+        );
     }
 
     /// <summary>
@@ -162,7 +190,8 @@ public class DeclaredResponseHeaderTests {
     /// anything to put in a set at all.
     /// </summary>
     [Fact]
-    public void TheWholeOperationPredicateStillCountsAnErrorHeader() {
+    public void TheWholeOperationPredicateStillCountsAnErrorHeader()
+    {
         var operation = ListPets(Parse());
 
         Assert.True(ResponseSetPlan.DeclaresResponseHeaders(operation));
@@ -172,15 +201,23 @@ public class DeclaredResponseHeaderTests {
     #endregion
 
     [Fact]
-    public void TheEmittedCaseTypeTakesTheHeaderAndWritesIt() {
-        var generated = OpenApiGenerator.Run(Specs.DeclaredResponseHeaders).AssertNoErrors()
+    public void TheEmittedCaseTypeTakesTheHeaderAndWritesIt()
+    {
+        var generated = OpenApiGenerator
+            .Run(Specs.DeclaredResponseHeaders)
+            .AssertNoErrors()
             .SourceContaining("petstore.g.cs");
 
         // The wrapper the header forced into existence, carrying the payload and the header value.
-        Assert.Contains("CreatePetCreated(global::TestNamespace.Models.Pet Body, string Location)", generated);
+        Assert.Contains(
+            "CreatePetCreated(global::TestNamespace.Models.Pet Body, string Location)",
+            generated
+        );
 
         Assert.Contains(
-            "global::Hardened.Requests.Abstract.Responses.IProvidesResponseHeaders", generated);
+            "global::Hardened.Requests.Abstract.Responses.IProvidesResponseHeaders",
+            generated
+        );
 
         Assert.Contains("headers[\"Location\"] = Location", generated);
         Assert.Contains("headers[\"ETag\"] = ETag", generated);
@@ -191,8 +228,11 @@ public class DeclaredResponseHeaderTests {
     }
 
     [Fact]
-    public void TheEmittedCaseTypesArePartialSoAnApplicationCanExtendThem() {
-        var generated = OpenApiGenerator.Run(Specs.DeclaredResponseHeaders).AssertNoErrors()
+    public void TheEmittedCaseTypesArePartialSoAnApplicationCanExtendThem()
+    {
+        var generated = OpenApiGenerator
+            .Run(Specs.DeclaredResponseHeaders)
+            .AssertNoErrors()
             .SourceContaining("petstore.g.cs");
 
         // Sealed keeps the union's match order unambiguous; partial is a different question, and
@@ -201,14 +241,18 @@ public class DeclaredResponseHeaderTests {
     }
 
     [Fact]
-    public void ADeclaredHeaderTurnsOnTheDispatchThatAppliesIt() {
+    public void ADeclaredHeaderTurnsOnTheDispatchThatAppliesIt()
+    {
         // Across every generated file, because the two halves live in different ones: the build
         // task writes the case type into the models file and the Idl generator writes the switch
         // that calls it into the controller.
         var all = string.Join(
             "\n",
-            OpenApiGenerator.Run(Specs.DeclaredResponseHeaders).AssertNoErrors()
-                .GeneratedSources.Values);
+            OpenApiGenerator
+                .Run(Specs.DeclaredResponseHeaders)
+                .AssertNoErrors()
+                .GeneratedSources.Values
+        );
 
         // The switch arm binds the case rather than discarding it, and calls through the interface.
         // This is the assertion that would have failed against the hard-coded `appliesHeaders:

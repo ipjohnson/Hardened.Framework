@@ -1,4 +1,5 @@
 using Hardened.Web.Runtime.Responses;
+
 namespace Hardened.IntegrationTests.WebApp.SUT.Tests;
 
 /// <summary>
@@ -10,10 +11,11 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests;
 /// except Express returns 405, it is in RFC 9110, API Gateway and CloudFront cache the two
 /// differently, and generated clients expect it.
 /// </remarks>
-public class MethodNotAllowedTests {
-
+public class MethodNotAllowedTests
+{
     [HardenedTest]
-    public async Task AVerbWithNoRouteOnAKnownPathIs405(ITestWebApp testWebApp) {
+    public async Task AVerbWithNoRouteOnAKnownPathIs405(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Request("PUT", null, "/binding/path/42");
 
         Assert.Equal(405, response.StatusCode);
@@ -24,7 +26,8 @@ public class MethodNotAllowedTests {
     /// actionable rather than merely correct.
     /// </summary>
     [HardenedTest]
-    public async Task The405CarriesTheVerbsThePathDoesAnswer(ITestWebApp testWebApp) {
+    public async Task The405CarriesTheVerbsThePathDoesAnswer(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Request("PUT", null, "/verbs/item/abc123");
 
         var allow = response.Headers["Allow"].ToString();
@@ -39,7 +42,8 @@ public class MethodNotAllowedTests {
     /// HEAD is in it, because the fall-through means a client may call it.
     /// </summary>
     [HardenedTest]
-    public async Task TheAllowHeaderIncludesHead(ITestWebApp testWebApp) {
+    public async Task TheAllowHeaderIncludesHead(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Request("PUT", null, "/binding/path/42");
 
         Assert.Contains("HEAD", response.Headers["Allow"].ToString());
@@ -50,7 +54,8 @@ public class MethodNotAllowedTests {
     /// that verb" is the whole point of the change.
     /// </summary>
     [HardenedTest]
-    public async Task AnUndeclaredPathIsStill404(ITestWebApp testWebApp) {
+    public async Task AnUndeclaredPathIsStill404(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Request("PUT", null, "/nothing/here/at/all");
 
         response.Assert.NotFound();
@@ -62,7 +67,8 @@ public class MethodNotAllowedTests {
     /// tested.
     /// </summary>
     [HardenedTest]
-    public async Task AVerbThatDoesHaveARouteStillReachesIt(ITestWebApp testWebApp) {
+    public async Task AVerbThatDoesHaveARouteStillReachesIt(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Delete("/verbs/item/abc123");
 
         response.Assert.Ok();
@@ -74,7 +80,8 @@ public class MethodNotAllowedTests {
     /// answer with whatever the client's Accept happened to match.
     /// </summary>
     [HardenedTest]
-    public async Task The405WritesNoBody(ITestWebApp testWebApp) {
+    public async Task The405WritesNoBody(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Request("PUT", null, "/binding/path/42");
 
         Assert.Equal(0, response.Body.Length);

@@ -1,7 +1,6 @@
 using Hardened.Requests.Abstract.Headers;
-using Microsoft.Extensions.Primitives;
-
 using Hardened.Requests.Abstract.Responses;
+using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Web.Runtime.Responses;
 
@@ -25,21 +24,26 @@ namespace Hardened.Web.Runtime.Responses;
 /// </remarks>
 [HttpStatus(304)]
 public sealed record NotModified(string? ETag = null)
-    : IHttpStatusResponse, IProvidesResponseHeaders, IResponseExpectation<NotModified> {
-
+    : IHttpStatusResponse,
+        IProvidesResponseHeaders,
+        IResponseExpectation<NotModified>
+{
     public static int StatusCode => 304;
 
     public int Status => StatusCode;
 
     public bool HasBody => false;
 
-    public void ApplyHeaders(IDictionary<string, StringValues> headers) {
-        if (!string.IsNullOrEmpty(ETag)) {
+    public void ApplyHeaders(IDictionary<string, StringValues> headers)
+    {
+        if (!string.IsNullOrEmpty(ETag))
+        {
             headers[KnownHeaders.ETag] = ETag!;
         }
     }
 
     public static NotModified FromResponse(
-        object? body, IReadOnlyDictionary<string, string> headers) =>
-        new(ResponseExpectation.OptionalHeader(headers, KnownHeaders.ETag));
+        object? body,
+        IReadOnlyDictionary<string, string> headers
+    ) => new(ResponseExpectation.OptionalHeader(headers, KnownHeaders.ETag));
 }

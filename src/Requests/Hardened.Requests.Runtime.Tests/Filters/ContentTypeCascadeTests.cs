@@ -28,15 +28,17 @@ namespace Hardened.Requests.Runtime.Tests.Filters;
 /// <see cref="IExecutionRequestHandlerInfo.ProducedContentTypes"/> and has no other source.
 /// </para>
 /// </remarks>
-public class ContentTypeCascadeTests {
-
+public class ContentTypeCascadeTests
+{
     private class Controller;
 
-    private sealed class IoStandIn : IExecutionFilter {
+    private sealed class IoStandIn : IExecutionFilter
+    {
         public Task Execute(IExecutionChain chain) => chain.Next();
     }
 
-    private sealed class InstanceStandIn : IExecutionFilter {
+    private sealed class InstanceStandIn : IExecutionFilter
+    {
         public Task Execute(IExecutionChain chain) => chain.Next();
     }
 
@@ -45,20 +47,27 @@ public class ContentTypeCascadeTests {
     /// </summary>
     private static IReadOnlyList<string> Compose(
         IReadOnlyList<string>? declared = null,
-        Action<ServiceCollection>? configureServices = null) {
+        Action<ServiceCollection>? configureServices = null
+    )
+    {
         var ioProvider = Substitute.For<IIOFilterProvider>();
-        ioProvider.ProvideFilter(
+        ioProvider
+            .ProvideFilter(
                 Arg.Any<IExecutionRequestHandlerInfo>(),
-                Arg.Any<Func<IExecutionContext, Task<IExecutionRequestParameters>>>())
+                Arg.Any<Func<IExecutionContext, Task<IExecutionRequestParameters>>>()
+            )
             .Returns(new IoStandIn());
 
         var instanceProvider = Substitute.For<IInstanceFilterProvider>();
-        instanceProvider.ProvideFilter<Controller>(Arg.Any<IServiceProvider>())
+        instanceProvider
+            .ProvideFilter<Controller>(Arg.Any<IServiceProvider>())
             .Returns(new InstanceStandIn());
 
-        var context = Pipeline.Context(configureServices: services => {
+        var context = Pipeline.Context(configureServices: services =>
+        {
             services.AddSingleton<IGlobalFilterRegistry>(
-                new GlobalFilterRegistry(Array.Empty<IRequestFilterProvider>()));
+                new GlobalFilterRegistry(Array.Empty<IRequestFilterProvider>())
+            );
             services.AddSingleton(ioProvider);
             services.AddSingleton(instanceProvider);
 
@@ -66,10 +75,20 @@ public class ContentTypeCascadeTests {
         });
 
         var handlerInfo = new ExecutionRequestHandlerInfo(
-            "/orders", "GET", typeof(Controller), "Read", producedContentTypes: declared);
+            "/orders",
+            "GET",
+            typeof(Controller),
+            "Read",
+            producedContentTypes: declared
+        );
 
-        return ExecutionHelper.StandardFilterEmptyParameters<Controller>(
-                context.RequestServices, handlerInfo, (_, _) => { }, [])
+        return ExecutionHelper
+            .StandardFilterEmptyParameters<Controller>(
+                context.RequestServices,
+                handlerInfo,
+                (_, _) => { },
+                []
+            )
             .HandlerInfo.ProducedContentTypes;
     }
 
@@ -78,7 +97,8 @@ public class ContentTypeCascadeTests {
     /// service's default serializer rather than declare that it produces nothing.
     /// </summary>
     [Fact]
-    public void NothingDeclaredAnywhereIsEmpty() {
+    public void NothingDeclaredAnywhereIsEmpty()
+    {
         Assert.Empty(Compose());
     }
 
@@ -86,11 +106,13 @@ public class ContentTypeCascadeTests {
     /// The operation's own declaration is the answer, whatever is registered below it.
     /// </summary>
     [Fact]
-    public void TheOperationBeatsTheRegisteredDefault() {
+    public void TheOperationBeatsTheRegisteredDefault()
+    {
         var resolved = Compose(
             declared: new[] { "text/csv" },
-            configureServices: services => services.AddSingleton(
-                new ResponseContentTypeDefault("application/vnd.msgpack")));
+            configureServices: services =>
+                services.AddSingleton(new ResponseContentTypeDefault("application/vnd.msgpack"))
+        );
 
         Assert.Equal(new[] { "text/csv" }, resolved);
     }
@@ -100,10 +122,11 @@ public class ContentTypeCascadeTests {
     /// package makes itself the default for a whole service.
     /// </summary>
     [Fact]
-    public void TheRegisteredDefaultReachesAHandlerThatDeclaredNothing() {
-        var resolved = Compose(
-            configureServices: services => services.AddSingleton(
-                new ResponseContentTypeDefault("application/vnd.msgpack")));
+    public void TheRegisteredDefaultReachesAHandlerThatDeclaredNothing()
+    {
+        var resolved = Compose(configureServices: services =>
+            services.AddSingleton(new ResponseContentTypeDefault("application/vnd.msgpack"))
+        );
 
         Assert.Equal(new[] { "application/vnd.msgpack" }, resolved);
     }
@@ -113,12 +136,13 @@ public class ContentTypeCascadeTests {
     /// serializers themselves follow.
     /// </summary>
     [Fact]
-    public void TheLastRegisteredDefaultWins() {
-        var resolved = Compose(
-            configureServices: services => {
-                services.AddSingleton(new ResponseContentTypeDefault("application/xml"));
-                services.AddSingleton(new ResponseContentTypeDefault("application/vnd.msgpack"));
-            });
+    public void TheLastRegisteredDefaultWins()
+    {
+        var resolved = Compose(configureServices: services =>
+        {
+            services.AddSingleton(new ResponseContentTypeDefault("application/xml"));
+            services.AddSingleton(new ResponseContentTypeDefault("application/vnd.msgpack"));
+        });
 
         Assert.Equal(new[] { "application/vnd.msgpack" }, resolved);
     }
@@ -136,7 +160,8 @@ public class ContentTypeCascadeTests {
     /// for the same rung.
     /// </remarks>
     [Fact]
-    public void AnAssemblyThatDeclaresNothingFallsThrough() {
+    public void AnAssemblyThatDeclaresNothingFallsThrough()
+    {
         Assert.Empty(Compose());
     }
 }

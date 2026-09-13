@@ -23,9 +23,10 @@ namespace Hardened.Generation.Models;
 /// any - and a diagnostic in a cache key is a cache miss for a build that generates identical code.
 /// </para>
 /// </remarks>
-internal sealed class DanglingReferenceModel {
-
-    public DanglingReferenceModel(string reference, string location) {
+internal sealed class DanglingReferenceModel
+{
+    public DanglingReferenceModel(string reference, string location)
+    {
         Reference = reference;
         Location = location;
     }

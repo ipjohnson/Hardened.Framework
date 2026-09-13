@@ -17,10 +17,9 @@ namespace Hardened.OpenApi.SourceGenerator.Tests;
 /// member, that name as <c>event:</c>. An OpenAPI <c>oneOf</c> names nothing, so the event field
 /// stays empty here; the Smithy fixture in the integration suite carries the named case.
 /// </remarks>
-public class StreamedUnionTests {
-
-    private const string Spec =
-        """
+public class StreamedUnionTests
+{
+    private const string Spec = """
         openapi: "3.2.0"
         info: { title: Pets, version: "1.0" }
         paths:
@@ -58,8 +57,7 @@ public class StreamedUnionTests {
                 grams: { type: integer }
         """;
 
-    private const string Implementation =
-        """
+    private const string Implementation = """
         [Handler]
         public class PetServiceImpl : IPetService {
             public async IAsyncEnumerable<PetEvent> PetEvents(string petId) {
@@ -72,17 +70,27 @@ public class StreamedUnionTests {
         """;
 
     [Fact]
-    public void TheStreamedUnionIsAnEvent() {
-        var generated = OpenApiGenerator.Run(Spec).AssertNoErrors().SourceContaining("petstore.g.cs");
+    public void TheStreamedUnionIsAnEvent()
+    {
+        var generated = OpenApiGenerator
+            .Run(Spec)
+            .AssertNoErrors()
+            .SourceContaining("petstore.g.cs");
 
-        Assert.Contains("partial struct PetEvent : global::Hardened.Requests.Abstract.Serializer.ISseEvent", generated);
+        Assert.Contains(
+            "partial struct PetEvent : global::Hardened.Requests.Abstract.Serializer.ISseEvent",
+            generated
+        );
         Assert.Contains("ISseEvent.Data => Value;", generated);
         Assert.Contains("ISseEvent.Event => Value switch { _ => null };", generated);
     }
 
     [Fact]
-    public void AStreamingImplementationCompiles() {
-        OpenApiGenerator.Run(Spec, OpenApiGenerator.EntryPointWithHandler(Implementation)).AssertNoErrors();
+    public void AStreamingImplementationCompiles()
+    {
+        OpenApiGenerator
+            .Run(Spec, OpenApiGenerator.EntryPointWithHandler(Implementation))
+            .AssertNoErrors();
     }
 
     /// <summary>
@@ -90,29 +98,40 @@ public class StreamedUnionTests {
     /// as a bare object, because its branches never crossed the intermediate file.
     /// </summary>
     [Fact]
-    public void TheDocumentPublishesTheUnionAsAChoice() {
-        var result = OpenApiGenerator.Run(Spec, OpenApiGenerator.EntryPointWithHandler(Implementation))
+    public void TheDocumentPublishesTheUnionAsAChoice()
+    {
+        var result = OpenApiGenerator
+            .Run(Spec, OpenApiGenerator.EntryPointWithHandler(Implementation))
             .AssertNoErrors();
 
         using var document = JsonDocument.Parse(ServedDocument(result));
 
-        var union = document.RootElement.GetProperty("components").GetProperty("schemas")
-            .GetProperty("PetEvent").GetProperty("oneOf");
+        var union = document
+            .RootElement.GetProperty("components")
+            .GetProperty("schemas")
+            .GetProperty("PetEvent")
+            .GetProperty("oneOf");
 
         Assert.Equal(
             ["#/components/schemas/PetAdopted", "#/components/schemas/PetWeighed"],
-            union.EnumerateArray().Select(branch => branch.GetProperty("$ref").GetString()));
+            union.EnumerateArray().Select(branch => branch.GetProperty("$ref").GetString())
+        );
     }
 
-    private static string ServedDocument(GeneratorResult result) {
+    private static string ServedDocument(GeneratorResult result)
+    {
         var source = result.SourceContaining("OpenApiDocument");
 
         var match = Regex.Match(source, @"new byte\[\]\s*\{(.*?)\}\s*;", RegexOptions.Singleline);
 
         Assert.True(match.Success, "No document byte array in the generated source.");
 
-        var bytes = match.Groups[1].Value
-            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        var bytes = match
+            .Groups[1]
+            .Value.Split(
+                ',',
+                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries
+            )
             .Select(byte.Parse)
             .ToArray();
 

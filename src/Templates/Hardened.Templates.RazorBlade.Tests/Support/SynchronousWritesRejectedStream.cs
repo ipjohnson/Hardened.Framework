@@ -17,7 +17,8 @@ namespace Hardened.Templates.RazorBlade.Tests.Support;
 /// here and returned an empty 200 in production.
 /// </para>
 /// </remarks>
-public sealed class SynchronousWritesRejectedStream : Stream {
+public sealed class SynchronousWritesRejectedStream : Stream
+{
     private readonly MemoryStream _written = new();
 
     public byte[] ToArray() => _written.ToArray();
@@ -27,15 +28,17 @@ public sealed class SynchronousWritesRejectedStream : Stream {
     public override bool CanWrite => true;
     public override long Length => _written.Length;
 
-    public override long Position {
+    public override long Position
+    {
         get => _written.Position;
         set => throw new NotSupportedException();
     }
 
     private static Exception Rejected() =>
         new InvalidOperationException(
-            "Synchronous operations are disallowed. Call WriteAsync or set AllowSynchronousIO " +
-            "to true instead.");
+            "Synchronous operations are disallowed. Call WriteAsync or set AllowSynchronousIO "
+                + "to true instead."
+        );
 
     public override void Write(byte[] buffer, int offset, int count) => throw Rejected();
 
@@ -43,20 +46,29 @@ public sealed class SynchronousWritesRejectedStream : Stream {
 
     public override void WriteByte(byte value) => throw Rejected();
 
-    public override void Flush() {
+    public override void Flush()
+    {
         // Kestrel allows a synchronous Flush that writes nothing; only writes are rejected.
     }
 
-    public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken token) =>
-        _written.WriteAsync(buffer, offset, count, token);
+    public override Task WriteAsync(
+        byte[] buffer,
+        int offset,
+        int count,
+        CancellationToken token
+    ) => _written.WriteAsync(buffer, offset, count, token);
 
     public override ValueTask WriteAsync(
-        ReadOnlyMemory<byte> buffer, CancellationToken token = default) =>
-        _written.WriteAsync(buffer, token);
+        ReadOnlyMemory<byte> buffer,
+        CancellationToken token = default
+    ) => _written.WriteAsync(buffer, token);
 
     public override Task FlushAsync(CancellationToken token) => _written.FlushAsync(token);
 
-    public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+    public override int Read(byte[] buffer, int offset, int count) =>
+        throw new NotSupportedException();
+
     public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+
     public override void SetLength(long value) => throw new NotSupportedException();
 }

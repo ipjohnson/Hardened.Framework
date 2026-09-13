@@ -22,8 +22,8 @@ namespace Hardened.Web.Kestrel.Runtime.Tests;
 /// holds is the contract around it, and the container tier under <c>src/Clouds/Gcp</c> is where a
 /// real <c>docker stop</c> shows the drain: a three-second request in flight finishes with a 200.
 /// </remarks>
-public class ShutdownTests {
-
+public class ShutdownTests
+{
     [Theory]
     [InlineData(null, 8080)]
     [InlineData("", 8080)]
@@ -32,12 +32,14 @@ public class ShutdownTests {
     [InlineData("0", 8080)]
     [InlineData("70000", 8080)]
     [InlineData(" 9090", 8080)]
-    public void PortIsTheVariableWhenItNamesOne(string? configured, int expected) {
+    public void PortIsTheVariableWhenItNamesOne(string? configured, int expected)
+    {
         Assert.Equal(expected, KestrelListen.Port(configured));
     }
 
     [Fact]
-    public void PortHonoursTheDefaultItIsGiven() {
+    public void PortHonoursTheDefaultItIsGiven()
+    {
         Assert.Equal(5000, KestrelListen.Port(null, 5000));
     }
 
@@ -46,23 +48,31 @@ public class ShutdownTests {
     /// variable is put back afterwards; no other test reads it.
     /// </summary>
     [Fact]
-    public async Task FromEnvironmentListensOnThePortTheVariableNames() {
+    public async Task FromEnvironmentListensOnThePortTheVariableNames()
+    {
         var port = FreePort();
         var previous = Environment.GetEnvironmentVariable(KestrelListen.PortVariable);
 
         Environment.SetEnvironmentVariable(KestrelListen.PortVariable, port.ToString());
 
-        try {
+        try
+        {
             await using var app = HardenedKestrelApplication.Create(
-                new Harness().CreateServices(), kestrel => KestrelListen.FromEnvironment(kestrel));
+                new Harness().CreateServices(),
+                kestrel => KestrelListen.FromEnvironment(kestrel)
+            );
 
             await app.StartAsync(TestContext.Current.CancellationToken);
 
-            Assert.Contains(app.Addresses, address => address.EndsWith(":" + port, StringComparison.Ordinal));
+            Assert.Contains(
+                app.Addresses,
+                address => address.EndsWith(":" + port, StringComparison.Ordinal)
+            );
 
             await app.StopAsync(TestContext.Current.CancellationToken);
         }
-        finally {
+        finally
+        {
             Environment.SetEnvironmentVariable(KestrelListen.PortVariable, previous);
         }
     }
@@ -72,11 +82,14 @@ public class ShutdownTests {
     /// server has stopped by the time it returns: the address it bound refuses a connection.
     /// </summary>
     [Fact]
-    public async Task RunAsyncWithSignalsReturnsOnTheTokenAndStopsTheServer() {
+    public async Task RunAsyncWithSignalsReturnsOnTheTokenAndStopsTheServer()
+    {
         var harness = new Harness();
 
         await using var app = HardenedKestrelApplication.Create(
-            harness.CreateServices(), kestrel => kestrel.Listen(IPAddress.Loopback, 0));
+            harness.CreateServices(),
+            kestrel => kestrel.Listen(IPAddress.Loopback, 0)
+        );
 
         using var shutdown = new CancellationTokenSource();
 
@@ -89,12 +102,18 @@ public class ShutdownTests {
         await run;
 
         await harness.StartupService.Received(1).Startup(Arg.Any<IServiceProvider>());
-        Assert.True(await Refuses(address), $"{address} still accepted a connection after RunAsync returned.");
+        Assert.True(
+            await Refuses(address),
+            $"{address} still accepted a connection after RunAsync returned."
+        );
     }
 
-    private static async Task<Uri> Bound(HardenedKestrelApplication app) {
-        for (var attempt = 0; attempt < 100; attempt++) {
-            if (app.Addresses.Count > 0) {
+    private static async Task<Uri> Bound(HardenedKestrelApplication app)
+    {
+        for (var attempt = 0; attempt < 100; attempt++)
+        {
+            if (app.Addresses.Count > 0)
+            {
                 return new Uri(app.Addresses.First());
             }
 
@@ -104,20 +123,28 @@ public class ShutdownTests {
         throw new TimeoutException("RunAsync did not start the server.");
     }
 
-    private static async Task<bool> Refuses(Uri address) {
+    private static async Task<bool> Refuses(Uri address)
+    {
         using var client = new TcpClient();
 
-        try {
-            await client.ConnectAsync(address.Host, address.Port, TestContext.Current.CancellationToken);
+        try
+        {
+            await client.ConnectAsync(
+                address.Host,
+                address.Port,
+                TestContext.Current.CancellationToken
+            );
 
             return false;
         }
-        catch (SocketException) {
+        catch (SocketException)
+        {
             return true;
         }
     }
 
-    private static int FreePort() {
+    private static int FreePort()
+    {
         var probe = new TcpListener(IPAddress.Loopback, 0);
 
         probe.Start();
@@ -130,21 +157,26 @@ public class ShutdownTests {
     }
 
     /// <summary>The registrations a Hardened module would supply, as <c>KestrelHostingTests</c> stands them in.</summary>
-    private sealed class Harness {
-        public Harness() {
+    private sealed class Harness
+    {
+        public Harness()
+        {
             StartupService = Substitute.For<IStartupService>();
             StartupService.Startup(Arg.Any<IServiceProvider>()).Returns(true);
         }
 
         public IStartupService StartupService { get; }
 
-        public IServiceCollection CreateServices() {
+        public IServiceCollection CreateServices()
+        {
             var services = new ServiceCollection();
 
             services.AddSingleton(StartupService);
             services.AddSingleton(Substitute.For<IMiddlewareService>());
             services.AddSingleton(Substitute.For<IWebExecutionHandlerService>());
-            services.AddSingleton(Substitute.For<IHttpApplication<HardenedHttpApplication.RequestContext>>());
+            services.AddSingleton(
+                Substitute.For<IHttpApplication<HardenedHttpApplication.RequestContext>>()
+            );
 
             return services;
         }

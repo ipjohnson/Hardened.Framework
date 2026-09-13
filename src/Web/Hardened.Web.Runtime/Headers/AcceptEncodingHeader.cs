@@ -1,6 +1,5 @@
-using Microsoft.Extensions.Primitives;
-
 using Hardened.Requests.Abstract.Headers;
+using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Web.Runtime.Headers;
 
@@ -28,28 +27,36 @@ namespace Hardened.Web.Runtime.Headers;
 /// compressed for a client that would rather have had it plain.
 /// </para>
 /// </remarks>
-public static class AcceptEncodingHeader {
-
+public static class AcceptEncodingHeader
+{
     /// <summary>
     /// Whether <paramref name="acceptEncoding"/> names <paramref name="coding"/>.
     /// </summary>
-    public static bool Accepts(StringValues acceptEncoding, string coding) {
-        if (string.IsNullOrEmpty(coding)) {
+    public static bool Accepts(StringValues acceptEncoding, string coding)
+    {
+        if (string.IsNullOrEmpty(coding))
+        {
             return false;
         }
 
-        foreach (var value in acceptEncoding) {
-            if (value == null) {
+        foreach (var value in acceptEncoding)
+        {
+            if (value == null)
+            {
                 continue;
             }
 
             var index = value.IndexOf(coding, StringComparison.OrdinalIgnoreCase);
 
-            while (index >= 0) {
+            while (index >= 0)
+            {
                 var after = index + coding.Length;
 
-                if ((index == 0 || !IsTokenCharacter(value[index - 1])) &&
-                    (after == value.Length || !IsTokenCharacter(value[after]))) {
+                if (
+                    (index == 0 || !IsTokenCharacter(value[index - 1]))
+                    && (after == value.Length || !IsTokenCharacter(value[after]))
+                )
+                {
                     return true;
                 }
 

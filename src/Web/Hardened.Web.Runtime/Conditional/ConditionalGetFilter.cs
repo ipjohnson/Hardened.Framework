@@ -1,7 +1,7 @@
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
-using Microsoft.Extensions.Primitives;
 using Hardened.Web.Runtime.Headers;
+using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Web.Runtime.Conditional;
 
@@ -42,9 +42,10 @@ namespace Hardened.Web.Runtime.Conditional;
 /// pipeline knows it then. The rule for what matches is <see cref="Precondition"/>.
 /// </para>
 /// </remarks>
-public sealed class ConditionalGetFilter : IExecutionFilter {
-
-    public async Task Execute(IExecutionChain chain) {
+public sealed class ConditionalGetFilter : IExecutionFilter
+{
+    public async Task Execute(IExecutionChain chain)
+    {
         var context = chain.Context;
         var request = context.Request;
         var response = context.Response;
@@ -52,9 +53,12 @@ public sealed class ConditionalGetFilter : IExecutionFilter {
         // A method the conditionals are not defined for, a response something ahead of this stage
         // already started and so can neither be tagged nor turned into a 304, and a second
         // registration on one handler.
-        if (!IsGetOrHead(request.Method) ||
-            response.ResponseStarted ||
-            response.Body is ConditionalResponseStream) {
+        if (
+            !IsGetOrHead(request.Method)
+            || response.ResponseStarted
+            || response.Body is ConditionalResponseStream
+        )
+        {
             await chain.Next();
 
             return;
@@ -65,18 +69,21 @@ public sealed class ConditionalGetFilter : IExecutionFilter {
             response,
             transport,
             Read(request.Headers, KnownHeaders.IfNoneMatch),
-            Read(request.Headers, KnownHeaders.IfModifiedSince));
+            Read(request.Headers, KnownHeaders.IfModifiedSince)
+        );
 
         response.Body = body;
 
         var completed = false;
 
-        try {
+        try
+        {
             await chain.Next();
 
             completed = true;
         }
-        finally {
+        finally
+        {
             response.Body = transport;
 
             // Whatever was held back is written whether the chain completed or threw: the error
@@ -92,20 +99,24 @@ public sealed class ConditionalGetFilter : IExecutionFilter {
     /// here.
     /// </summary>
     internal static bool IsGetOrHead(string method) =>
-        string.Equals(method, "GET", StringComparison.OrdinalIgnoreCase) ||
-        string.Equals(method, "HEAD", StringComparison.OrdinalIgnoreCase);
+        string.Equals(method, "GET", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(method, "HEAD", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// A header value, looked up the way HTTP defines header names, because API Gateway delivers
     /// them lowercased and a forked request carries whatever dictionary it was handed.
     /// </summary>
-    private static StringValues Read(IDictionary<string, StringValues> headers, string name) {
-        if (headers.TryGetValue(name, out var value)) {
+    private static StringValues Read(IDictionary<string, StringValues> headers, string name)
+    {
+        if (headers.TryGetValue(name, out var value))
+        {
             return value;
         }
 
-        foreach (var header in headers) {
-            if (string.Equals(header.Key, name, StringComparison.OrdinalIgnoreCase)) {
+        foreach (var header in headers)
+        {
+            if (string.Equals(header.Key, name, StringComparison.OrdinalIgnoreCase))
+            {
                 return header.Value;
             }
         }

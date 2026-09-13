@@ -13,27 +13,36 @@ namespace Hardened.SourceGenerator.Tests.Function;
 /// this wrong does not fail to compile, it deserialises the request body into a service.
 /// </para>
 /// </summary>
-public class FunctionParameterBindingTests {
-
+public class FunctionParameterBindingTests
+{
     /// <summary>
     /// The payload. Anything that is not an interface and not one of the execution types is
     /// deserialised from the request body — this is the parameter SqsTest's <c>DataModel</c> is.
     /// </summary>
     [Fact]
-    public void AModelParameterIsDeserialisedFromTheRequestBody() {
-        var source = FunctionGeneratorHarness.Generate(FunctionGeneratorHarness.Application("""
-                [HardenedFunction]
-                public void Process(DataModel model) { }
-            """, FunctionGeneratorHarness.SupportTypes))
+    public void AModelParameterIsDeserialisedFromTheRequestBody()
+    {
+        var source = FunctionGeneratorHarness
+            .Generate(
+                FunctionGeneratorHarness.Application(
+                    """
+                        [HardenedFunction]
+                        public void Process(DataModel model) { }
+                    """,
+                    FunctionGeneratorHarness.SupportTypes
+                )
+            )
             .AssertNoErrors()
             .SourceContaining("Process.FunctionHandler");
 
         Assert.Contains(
             "parameters.model = global::Hardened.Requests.Runtime.Validation.RequestBody.Required(",
-            source);
+            source
+        );
         Assert.Contains(
             "await contentSerializationService.DeserializeRequestBody<global::TestApp.DataModel>(context)",
-            source);
+            source
+        );
     }
 
     /// <summary>
@@ -41,11 +50,18 @@ public class FunctionParameterBindingTests {
     /// payload is a case it handles, so nothing refuses one on its behalf.
     /// </summary>
     [Fact]
-    public void ANullableModelParameterIsNotGuarded() {
-        var source = FunctionGeneratorHarness.Generate(FunctionGeneratorHarness.Application("""
-                [HardenedFunction]
-                public void Process(DataModel? model) { }
-            """, FunctionGeneratorHarness.SupportTypes))
+    public void ANullableModelParameterIsNotGuarded()
+    {
+        var source = FunctionGeneratorHarness
+            .Generate(
+                FunctionGeneratorHarness.Application(
+                    """
+                        [HardenedFunction]
+                        public void Process(DataModel? model) { }
+                    """,
+                    FunctionGeneratorHarness.SupportTypes
+                )
+            )
             .AssertNoErrors()
             .SourceContaining("Process.FunctionHandler");
 
@@ -57,17 +73,25 @@ public class FunctionParameterBindingTests {
     /// A payload model is a class and a service is an interface, and that is the whole distinction.
     /// </summary>
     [Fact]
-    public void AnInterfaceParameterIsResolvedFromTheServiceProvider() {
-        var source = FunctionGeneratorHarness.Generate(FunctionGeneratorHarness.Application("""
-                [HardenedFunction]
-                public void Process(IThing thing) { }
-            """, FunctionGeneratorHarness.SupportTypes))
+    public void AnInterfaceParameterIsResolvedFromTheServiceProvider()
+    {
+        var source = FunctionGeneratorHarness
+            .Generate(
+                FunctionGeneratorHarness.Application(
+                    """
+                        [HardenedFunction]
+                        public void Process(IThing thing) { }
+                    """,
+                    FunctionGeneratorHarness.SupportTypes
+                )
+            )
             .AssertNoErrors()
             .SourceContaining("Process.FunctionHandler");
 
         Assert.Contains(
             "parameters.thing = context.RequestServices.GetRequiredService<global::TestApp.IThing>();",
-            source);
+            source
+        );
 
         Assert.DoesNotContain("DeserializeRequestBody<global::TestApp.IThing>", source);
     }
@@ -78,43 +102,77 @@ public class FunctionParameterBindingTests {
     /// resolved from DI — where nothing registers it.
     /// </summary>
     [Fact]
-    public void AnExecutionContextParameterIsHandedTheContextItself() {
-        var source = FunctionGeneratorHarness.Generate(FunctionGeneratorHarness.Application("""
-                [HardenedFunction]
-                public void Process(IExecutionContext context) { }
-            """)).AssertNoErrors().SourceContaining("Process.FunctionHandler");
+    public void AnExecutionContextParameterIsHandedTheContextItself()
+    {
+        var source = FunctionGeneratorHarness
+            .Generate(
+                FunctionGeneratorHarness.Application(
+                    """
+                        [HardenedFunction]
+                        public void Process(IExecutionContext context) { }
+                    """
+                )
+            )
+            .AssertNoErrors()
+            .SourceContaining("Process.FunctionHandler");
 
         Assert.Contains("parameters.context = context;", source);
-        Assert.DoesNotContain("GetRequiredService<global::Hardened.Requests.Abstract.Execution.IExecutionContext>",
-            source);
+        Assert.DoesNotContain(
+            "GetRequiredService<global::Hardened.Requests.Abstract.Execution.IExecutionContext>",
+            source
+        );
     }
 
     [Fact]
-    public void AServiceProviderParameterIsHandedTheRequestServices() {
-        var source = FunctionGeneratorHarness.Generate(FunctionGeneratorHarness.Application("""
-                [HardenedFunction]
-                public void Process(IServiceProvider provider) { }
-            """)).AssertNoErrors().SourceContaining("Process.FunctionHandler");
+    public void AServiceProviderParameterIsHandedTheRequestServices()
+    {
+        var source = FunctionGeneratorHarness
+            .Generate(
+                FunctionGeneratorHarness.Application(
+                    """
+                        [HardenedFunction]
+                        public void Process(IServiceProvider provider) { }
+                    """
+                )
+            )
+            .AssertNoErrors()
+            .SourceContaining("Process.FunctionHandler");
 
         Assert.Contains("parameters.provider = context.RequestServices;", source);
     }
 
     [Fact]
-    public void AnExecutionRequestParameterIsHandedTheRequest() {
-        var source = FunctionGeneratorHarness.Generate(FunctionGeneratorHarness.Application("""
-                [HardenedFunction]
-                public void Process(IExecutionRequest request) { }
-            """)).AssertNoErrors().SourceContaining("Process.FunctionHandler");
+    public void AnExecutionRequestParameterIsHandedTheRequest()
+    {
+        var source = FunctionGeneratorHarness
+            .Generate(
+                FunctionGeneratorHarness.Application(
+                    """
+                        [HardenedFunction]
+                        public void Process(IExecutionRequest request) { }
+                    """
+                )
+            )
+            .AssertNoErrors()
+            .SourceContaining("Process.FunctionHandler");
 
         Assert.Contains("parameters.request = context.Request;", source);
     }
 
     [Fact]
-    public void AnExecutionResponseParameterIsHandedTheResponse() {
-        var source = FunctionGeneratorHarness.Generate(FunctionGeneratorHarness.Application("""
-                [HardenedFunction]
-                public void Process(IExecutionResponse response) { }
-            """)).AssertNoErrors().SourceContaining("Process.FunctionHandler");
+    public void AnExecutionResponseParameterIsHandedTheResponse()
+    {
+        var source = FunctionGeneratorHarness
+            .Generate(
+                FunctionGeneratorHarness.Application(
+                    """
+                        [HardenedFunction]
+                        public void Process(IExecutionResponse response) { }
+                    """
+                )
+            )
+            .AssertNoErrors()
+            .SourceContaining("Process.FunctionHandler");
 
         Assert.Contains("parameters.response = context.Response;", source);
     }
@@ -125,15 +183,22 @@ public class FunctionParameterBindingTests {
     /// shape a real handler that needs both its payload and a service actually has.
     /// </summary>
     [Fact]
-    public void AllBindingSourcesCombineInASingleHandler() {
-        var source = FunctionGeneratorHarness.Generate(FunctionGeneratorHarness.Application("""
-                [HardenedFunction]
-                public async Task<string> Process(
-                    DataModel model, IThing thing, IExecutionContext context, IServiceProvider provider) {
-                    await Task.Yield();
-                    return model.Value + thing.Describe();
-                }
-            """, FunctionGeneratorHarness.SupportTypes))
+    public void AllBindingSourcesCombineInASingleHandler()
+    {
+        var source = FunctionGeneratorHarness
+            .Generate(
+                FunctionGeneratorHarness.Application(
+                    """
+                        [HardenedFunction]
+                        public async Task<string> Process(
+                            DataModel model, IThing thing, IExecutionContext context, IServiceProvider provider) {
+                            await Task.Yield();
+                            return model.Value + thing.Describe();
+                        }
+                    """,
+                    FunctionGeneratorHarness.SupportTypes
+                )
+            )
             .AssertNoErrors()
             .SourceContaining("Process.FunctionHandler");
 
@@ -153,11 +218,18 @@ public class FunctionParameterBindingTests {
     /// a defect that shipped once already.
     /// </summary>
     [Fact]
-    public void AFromContextParameterBindsFromTheNamedHeader() {
-        var source = FunctionGeneratorHarness.Generate(FunctionGeneratorHarness.Application("""
-                [HardenedFunction]
-                public void Process([FromContext("awsRequestId")] string id) { }
-            """, FunctionGeneratorHarness.FromContextAttributeDeclaration))
+    public void AFromContextParameterBindsFromTheNamedHeader()
+    {
+        var source = FunctionGeneratorHarness
+            .Generate(
+                FunctionGeneratorHarness.Application(
+                    """
+                        [HardenedFunction]
+                        public void Process([FromContext("awsRequestId")] string id) { }
+                    """,
+                    FunctionGeneratorHarness.FromContextAttributeDeclaration
+                )
+            )
             .AssertNoErrors()
             .SourceContaining("Process.FunctionHandler");
 
@@ -169,11 +241,18 @@ public class FunctionParameterBindingTests {
     /// every other named binding attribute does.
     /// </summary>
     [Fact]
-    public void AFromContextParameterWithNoNameUsesTheParameterName() {
-        var source = FunctionGeneratorHarness.Generate(FunctionGeneratorHarness.Application("""
-                [HardenedFunction]
-                public void Process([FromContext] string awsRequestId) { }
-            """, FunctionGeneratorHarness.FromContextAttributeDeclaration))
+    public void AFromContextParameterWithNoNameUsesTheParameterName()
+    {
+        var source = FunctionGeneratorHarness
+            .Generate(
+                FunctionGeneratorHarness.Application(
+                    """
+                        [HardenedFunction]
+                        public void Process([FromContext] string awsRequestId) { }
+                    """,
+                    FunctionGeneratorHarness.FromContextAttributeDeclaration
+                )
+            )
             .AssertNoErrors()
             .SourceContaining("Process.FunctionHandler");
 
@@ -185,11 +264,18 @@ public class FunctionParameterBindingTests {
     /// missing header leaves the handler with the declared value instead of throwing.
     /// </summary>
     [Fact]
-    public void AFromContextParameterWithADefaultIsParsedWithThatDefault() {
-        var source = FunctionGeneratorHarness.Generate(FunctionGeneratorHarness.Application("""
-                [HardenedFunction]
-                public void Process([FromContext("retry")] int retry = 3) { }
-            """, FunctionGeneratorHarness.FromContextAttributeDeclaration))
+    public void AFromContextParameterWithADefaultIsParsedWithThatDefault()
+    {
+        var source = FunctionGeneratorHarness
+            .Generate(
+                FunctionGeneratorHarness.Application(
+                    """
+                        [HardenedFunction]
+                        public void Process([FromContext("retry")] int retry = 3) { }
+                    """,
+                    FunctionGeneratorHarness.FromContextAttributeDeclaration
+                )
+            )
             .AssertNoErrors()
             .SourceContaining("Process.FunctionHandler");
 
@@ -202,15 +288,25 @@ public class FunctionParameterBindingTests {
     /// the declared name, position and type.
     /// </summary>
     [Fact]
-    public void ParameterMetadataRecordsEachParameterNamePositionAndType() {
-        var source = FunctionGeneratorHarness.Generate(FunctionGeneratorHarness.Application("""
-                [HardenedFunction]
-                public void Process(DataModel model, IThing thing) { }
-            """, FunctionGeneratorHarness.SupportTypes))
+    public void ParameterMetadataRecordsEachParameterNamePositionAndType()
+    {
+        var source = FunctionGeneratorHarness
+            .Generate(
+                FunctionGeneratorHarness.Application(
+                    """
+                        [HardenedFunction]
+                        public void Process(DataModel model, IThing thing) { }
+                    """,
+                    FunctionGeneratorHarness.SupportTypes
+                )
+            )
             .AssertNoErrors()
             .SourceContaining("Process.FunctionHandler");
 
-        Assert.Contains("new global::Hardened.Requests.Abstract.Execution.IExecutionRequestParameter[2]", source);
+        Assert.Contains(
+            "new global::Hardened.Requests.Abstract.Execution.IExecutionRequestParameter[2]",
+            source
+        );
         Assert.Contains("\"model\"", source);
         Assert.Contains("typeof(global::TestApp.DataModel)", source);
         Assert.Contains("\"thing\"", source);
@@ -224,11 +320,18 @@ public class FunctionParameterBindingTests {
     /// carry, on a service that is a class rather than an interface.
     /// </summary>
     [Fact]
-    public void AFromServicesParameterBindsThroughTheCustomAttributePath() {
-        var source = FunctionGeneratorHarness.Generate(FunctionGeneratorHarness.Application("""
-                [HardenedFunction]
-                public void Process([FromServices] IThing thing) { }
-            """, FunctionGeneratorHarness.SupportTypes))
+    public void AFromServicesParameterBindsThroughTheCustomAttributePath()
+    {
+        var source = FunctionGeneratorHarness
+            .Generate(
+                FunctionGeneratorHarness.Application(
+                    """
+                        [HardenedFunction]
+                        public void Process([FromServices] IThing thing) { }
+                    """,
+                    FunctionGeneratorHarness.SupportTypes
+                )
+            )
             .AssertNoErrors()
             .SourceContaining("Process.FunctionHandler");
 
@@ -241,11 +344,18 @@ public class FunctionParameterBindingTests {
     /// must not produce something different.
     /// </summary>
     [Fact]
-    public void AnExplicitFromBodyParameterBindsThroughTheCustomAttributePath() {
-        var source = FunctionGeneratorHarness.Generate(FunctionGeneratorHarness.Application("""
-                [HardenedFunction]
-                public void Process([FromBody] DataModel model) { }
-            """, FunctionGeneratorHarness.SupportTypes))
+    public void AnExplicitFromBodyParameterBindsThroughTheCustomAttributePath()
+    {
+        var source = FunctionGeneratorHarness
+            .Generate(
+                FunctionGeneratorHarness.Application(
+                    """
+                        [HardenedFunction]
+                        public void Process([FromBody] DataModel model) { }
+                    """,
+                    FunctionGeneratorHarness.SupportTypes
+                )
+            )
             .AssertNoErrors()
             .SourceContaining("Process.FunctionHandler");
 
@@ -257,10 +367,18 @@ public class FunctionParameterBindingTests {
     /// the assignment from a nullable deserialise result warns — and CI treats warnings as errors.
     /// </summary>
     [Fact]
-    public void ANullablePayloadParameterCompiles() {
-        FunctionGeneratorHarness.Generate(FunctionGeneratorHarness.Application("""
-                [HardenedFunction]
-                public void Process(DataModel? model) { }
-            """, FunctionGeneratorHarness.SupportTypes)).AssertNoErrors();
+    public void ANullablePayloadParameterCompiles()
+    {
+        FunctionGeneratorHarness
+            .Generate(
+                FunctionGeneratorHarness.Application(
+                    """
+                        [HardenedFunction]
+                        public void Process(DataModel? model) { }
+                    """,
+                    FunctionGeneratorHarness.SupportTypes
+                )
+            )
+            .AssertNoErrors();
     }
 }

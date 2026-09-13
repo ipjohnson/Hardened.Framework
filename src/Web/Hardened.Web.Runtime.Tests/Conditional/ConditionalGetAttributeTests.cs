@@ -12,8 +12,8 @@ namespace Hardened.Web.Runtime.Tests.Conditional;
 /// application-wide default that <c>[Enable&lt;ConditionalGet&gt;]</c> installs and that stands
 /// down for a handler carrying the attribute, and nothing at all otherwise.
 /// </summary>
-public class ConditionalGetAttributeTests {
-
+public class ConditionalGetAttributeTests
+{
     private class Controller;
 
     private static ExecutionRequestHandlerInfo Handler(string method, params object[] metadata) =>
@@ -31,7 +31,8 @@ public class ConditionalGetAttributeTests {
     [InlineData("GET")]
     [InlineData("get")]
     [InlineData("HEAD")]
-    public void TheAttributeInstallsOneFilterAtTheConditionalStageOfAReadHandler(string method) {
+    public void TheAttributeInstallsOneFilterAtTheConditionalStageOfAReadHandler(string method)
+    {
         var info = Assert.Single(new ConditionalGetAttribute().GetFilters(Handler(method)));
 
         Assert.Equal(FilterOrder.Conditional, info.Order);
@@ -47,13 +48,15 @@ public class ConditionalGetAttributeTests {
     [InlineData("PUT")]
     [InlineData("PATCH")]
     [InlineData("DELETE")]
-    public void AWriteHandlerGetsNoFilter(string method) {
+    public void AWriteHandlerGetsNoFilter(string method)
+    {
         Assert.Empty(new ConditionalGetAttribute().GetFilters(Handler(method)));
     }
 
     /// <summary>One instance per declaration, shared by every request, the way the cache filter is.</summary>
     [Fact]
-    public void TheFilterIsBuiltOncePerDeclaration() {
+    public void TheFilterIsBuiltOncePerDeclaration()
+    {
         var attribute = new ConditionalGetAttribute();
 
         var first = Assert.Single(attribute.GetFilters(Handler("GET"))).FilterFunc(null!);
@@ -63,9 +66,16 @@ public class ConditionalGetAttributeTests {
     }
 
     [Fact]
-    public void AHandlerDeclaresConditionalGetOnTheMethodOrTheClass() {
-        Assert.True(ConditionalGetAttribute.Declares(Handler("GET", new ConditionalGetAttribute())));
-        Assert.True(ConditionalGetAttribute.Declares(Handler("GET", new object(), new ConditionalGetAttribute())));
+    public void AHandlerDeclaresConditionalGetOnTheMethodOrTheClass()
+    {
+        Assert.True(
+            ConditionalGetAttribute.Declares(Handler("GET", new ConditionalGetAttribute()))
+        );
+        Assert.True(
+            ConditionalGetAttribute.Declares(
+                Handler("GET", new object(), new ConditionalGetAttribute())
+            )
+        );
         Assert.False(ConditionalGetAttribute.Declares(Handler("GET", new object())));
         Assert.False(ConditionalGetAttribute.Declares(Handler("GET")));
     }
@@ -76,12 +86,15 @@ public class ConditionalGetAttributeTests {
     /// nothing for a write.
     /// </summary>
     [Fact]
-    public void TheModuleDefaultCoversEveryReadHandlerThatDoesNotDeclareItsOwn() {
+    public void TheModuleDefaultCoversEveryReadHandlerThatDoesNotDeclareItsOwn()
+    {
         var services = new ServiceCollection();
 
         new ConditionalGet().ConfigureServices(services);
 
-        var provider = Assert.Single(services.BuildServiceProvider().GetServices<IRequestFilterProvider>());
+        var provider = Assert.Single(
+            services.BuildServiceProvider().GetServices<IRequestFilterProvider>()
+        );
 
         Assert.Single(provider.GetFilters(Handler("GET")));
         Assert.Empty(provider.GetFilters(Handler("GET", new ConditionalGetAttribute())));
@@ -95,25 +108,30 @@ public class ConditionalGetAttributeTests {
     /// streams, and so does a declaration reaching one from its class.
     /// </summary>
     [Fact]
-    public void AStreamingHandlerGetsNothingFromTheModuleDefault() {
+    public void AStreamingHandlerGetsNothingFromTheModuleDefault()
+    {
         var services = new ServiceCollection();
 
         new ConditionalGet().ConfigureServices(services);
 
-        var provider = Assert.Single(services.BuildServiceProvider().GetServices<IRequestFilterProvider>());
+        var provider = Assert.Single(
+            services.BuildServiceProvider().GetServices<IRequestFilterProvider>()
+        );
 
         Assert.Empty(provider.GetFilters(Streaming("GET")));
         Assert.Single(provider.GetFilters(Handler("GET")));
     }
 
     [Fact]
-    public void AStreamingHandlerGetsNothingFromTheAttribute() {
+    public void AStreamingHandlerGetsNothingFromTheAttribute()
+    {
         Assert.Empty(new ConditionalGetAttribute().GetFilters(Streaming("GET")));
         Assert.Empty(new ConditionalGetAttribute().GetFilters(Streaming("HEAD")));
     }
 
     [Fact]
-    public void EveryInstallOfTheModuleIsTheSameInstall() {
+    public void EveryInstallOfTheModuleIsTheSameInstall()
+    {
         Assert.Equal(new ConditionalGet(), new ConditionalGet());
         Assert.Equal(new ConditionalGet().GetHashCode(), new ConditionalGet().GetHashCode());
         Assert.NotEqual<object>(new ConditionalGet(), new object());
@@ -130,7 +148,8 @@ public class ConditionalGetAttributeTests {
     /// that the module installs nothing at all.
     /// </remarks>
     [Fact]
-    public void TheWebModuleInstallsNothingWithoutADeclaration() {
+    public void TheWebModuleInstallsNothingWithoutADeclaration()
+    {
         var services = new ServiceCollection();
 
         new HardenedWebModule().ConfigureServices(services);
@@ -139,7 +158,10 @@ public class ConditionalGetAttributeTests {
         // there is one and it is not a conditional GET one.
         Assert.Equal(
             ["RequestDecompressionProvider"],
-            services.BuildServiceProvider().GetServices<IRequestFilterProvider>()
-                .Select(provider => provider.GetType().Name));
+            services
+                .BuildServiceProvider()
+                .GetServices<IRequestFilterProvider>()
+                .Select(provider => provider.GetType().Name)
+        );
     }
 }

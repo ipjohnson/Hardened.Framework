@@ -1,8 +1,8 @@
 using Hardened.Requests.Abstract.Authorization;
 using Hardened.Requests.Abstract.Errors;
 using Hardened.Requests.Abstract.Responses;
-using Microsoft.Extensions.Primitives;
 using Hardened.Web.Runtime.Responses;
+using Microsoft.Extensions.Primitives;
 using Xunit;
 
 namespace Hardened.Web.Runtime.Tests.Responses;
@@ -17,8 +17,8 @@ namespace Hardened.Web.Runtime.Tests.Responses;
 /// types did, and a client must not be able to tell which one answered.
 /// </para>
 /// </summary>
-public class ResponseHeaderTests {
-
+public class ResponseHeaderTests
+{
     #region Unauthorized
 
     /// <summary>
@@ -26,7 +26,8 @@ public class ResponseHeaderTests {
     /// the default is a challenge rather than no header.
     /// </summary>
     [Fact]
-    public void Unauthorized_ChallengesEvenWhenNoneWasGiven() {
+    public void Unauthorized_ChallengesEvenWhenNoneWasGiven()
+    {
         var headers = HeadersOf(new Unauthorized());
 
         Assert.Equal("Bearer", headers[AuthorizationChallenge.HeaderName]);
@@ -37,7 +38,8 @@ public class ResponseHeaderTests {
     /// from a filter and from a thrown refusal, and only one formatter guarantees they agree.
     /// </summary>
     [Fact]
-    public void Unauthorized_UsesTheChallengeItWasGiven() {
+    public void Unauthorized_UsesTheChallengeItWasGiven()
+    {
         var challenge = AuthorizationChallenge.InvalidToken(realm: "pets");
 
         var headers = HeadersOf(new Unauthorized(Challenge: challenge));
@@ -50,7 +52,8 @@ public class ResponseHeaderTests {
     #region Retry-After
 
     [Fact]
-    public void RateLimited_WritesRetryAfterInWholeSeconds() {
+    public void RateLimited_WritesRetryAfterInWholeSeconds()
+    {
         var headers = HeadersOf(new RateLimited(TimeSpan.FromSeconds(30)));
 
         Assert.Equal("30", headers["Retry-After"]);
@@ -62,7 +65,8 @@ public class ResponseHeaderTests {
     /// rounded this way, and why both now go through one function.
     /// </summary>
     [Fact]
-    public void RateLimited_RoundsAPartialSecondUp() {
+    public void RateLimited_RoundsAPartialSecondUp()
+    {
         var headers = HeadersOf(new RateLimited(TimeSpan.FromMilliseconds(1200)));
 
         Assert.Equal("2", headers["Retry-After"]);
@@ -73,7 +77,8 @@ public class ResponseHeaderTests {
     /// whole reason for the header is that the caller must wait.
     /// </summary>
     [Fact]
-    public void RateLimited_NeverWritesZero() {
+    public void RateLimited_NeverWritesZero()
+    {
         var headers = HeadersOf(new RateLimited(TimeSpan.Zero));
 
         Assert.Equal("1", headers["Retry-After"]);
@@ -84,14 +89,16 @@ public class ResponseHeaderTests {
     /// not, and a fabricated number would be a guess presented as a fact.
     /// </summary>
     [Fact]
-    public void ServiceUnavailable_WritesNoRetryAfterWhenItHasNothingToSay() {
+    public void ServiceUnavailable_WritesNoRetryAfterWhenItHasNothingToSay()
+    {
         var headers = HeadersOf(new ServiceUnavailable());
 
         Assert.False(headers.ContainsKey("Retry-After"));
     }
 
     [Fact]
-    public void ServiceUnavailable_WritesRetryAfterWhenItDoes() {
+    public void ServiceUnavailable_WritesRetryAfterWhenItDoes()
+    {
         var headers = HeadersOf(new ServiceUnavailable(TimeSpan.FromMinutes(2)));
 
         Assert.Equal("120", headers["Retry-After"]);
@@ -102,14 +109,16 @@ public class ResponseHeaderTests {
     #region Location
 
     [Fact]
-    public void Created_WritesTheLocationOfWhatItMade() {
+    public void Created_WritesTheLocationOfWhatItMade()
+    {
         var headers = HeadersOf(new Created<string>("value", "/todos/7"));
 
         Assert.Equal("/todos/7", headers["Location"]);
     }
 
     [Fact]
-    public void Accepted_WritesLocationOnlyWhenThereIsSomewhereToWatch() {
+    public void Accepted_WritesLocationOnlyWhenThereIsSomewhereToWatch()
+    {
         Assert.False(HeadersOf(new Accepted()).ContainsKey("Location"));
         Assert.Equal("/jobs/7", HeadersOf(new Accepted("/jobs/7"))["Location"]);
     }
@@ -123,7 +132,8 @@ public class ResponseHeaderTests {
     /// twice must not send the header twice.
     /// </summary>
     [Fact]
-    public void ApplyHeaders_AssignsRatherThanAppends() {
+    public void ApplyHeaders_AssignsRatherThanAppends()
+    {
         var headers = new Dictionary<string, StringValues>();
         var response = new RateLimited(TimeSpan.FromSeconds(5));
 
@@ -142,7 +152,8 @@ public class ResponseHeaderTests {
     /// that would be a second place one is written, and the two would drift.
     /// </summary>
     [Fact]
-    public void ResponseException_ContributesTheSameHeadersAsTheResponse() {
+    public void ResponseException_ContributesTheSameHeadersAsTheResponse()
+    {
         var response = new Unauthorized(Challenge: AuthorizationChallenge.InvalidToken());
 
         var returned = new Dictionary<string, StringValues>();
@@ -155,7 +166,8 @@ public class ResponseHeaderTests {
     }
 
     [Fact]
-    public void ResponseException_AddsNothingForAResponseThatContributesNoHeaders() {
+    public void ResponseException_AddsNothingForAResponseThatContributesNoHeaders()
+    {
         var headers = new Dictionary<string, StringValues>();
 
         new ResponseException(new Conflict()).ApplyHeaders(headers);
@@ -165,7 +177,8 @@ public class ResponseHeaderTests {
 
     #endregion
 
-    private static Dictionary<string, StringValues> HeadersOf(IProvidesResponseHeaders response) {
+    private static Dictionary<string, StringValues> HeadersOf(IProvidesResponseHeaders response)
+    {
         var headers = new Dictionary<string, StringValues>();
 
         response.ApplyHeaders(headers);

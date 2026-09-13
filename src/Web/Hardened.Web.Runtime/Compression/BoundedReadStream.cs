@@ -8,12 +8,14 @@ namespace Hardened.Web.Runtime.Compression;
 /// one number a hostile client controls: a gzip member of a few hundred bytes decodes to gigabytes.
 /// The limit is inclusive, so a body of exactly the cap is read in full.
 /// </remarks>
-internal sealed class BoundedReadStream : Stream {
+internal sealed class BoundedReadStream : Stream
+{
     private readonly Stream _inner;
     private readonly long _limit;
     private long _read;
 
-    public BoundedReadStream(Stream inner, long limit) {
+    public BoundedReadStream(Stream inner, long limit)
+    {
         _inner = inner;
         _limit = limit;
     }
@@ -26,7 +28,8 @@ internal sealed class BoundedReadStream : Stream {
 
     public override long Length => throw new NotSupportedException();
 
-    public override long Position {
+    public override long Position
+    {
         get => _read;
         set => throw new NotSupportedException();
     }
@@ -44,23 +47,30 @@ internal sealed class BoundedReadStream : Stream {
     /// <c>ReadByte</c> and the span overload go through <c>Read</c> already and are left to it.
     /// </summary>
     public override async Task<int> ReadAsync(
-        byte[] buffer, int offset, int count, CancellationToken cancellationToken) =>
-        Count(await _inner.ReadAsync(buffer.AsMemory(offset, count), cancellationToken));
+        byte[] buffer,
+        int offset,
+        int count,
+        CancellationToken cancellationToken
+    ) => Count(await _inner.ReadAsync(buffer.AsMemory(offset, count), cancellationToken));
 
     public override async ValueTask<int> ReadAsync(
-        Memory<byte> buffer, CancellationToken cancellationToken = default) =>
-        Count(await _inner.ReadAsync(buffer, cancellationToken));
+        Memory<byte> buffer,
+        CancellationToken cancellationToken = default
+    ) => Count(await _inner.ReadAsync(buffer, cancellationToken));
 
     public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
 
     public override void SetLength(long value) => throw new NotSupportedException();
 
-    public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+    public override void Write(byte[] buffer, int offset, int count) =>
+        throw new NotSupportedException();
 
-    private int Count(int read) {
+    private int Count(int read)
+    {
         _read += read;
 
-        if (_read > _limit) {
+        if (_read > _limit)
+        {
             throw new DecompressedBodyTooLargeException(_limit);
         }
 

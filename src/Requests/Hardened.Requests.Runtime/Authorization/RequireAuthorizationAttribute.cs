@@ -36,5 +36,9 @@ namespace Hardened.Requests.Runtime.Authorization;
 /// diagnostic a source generator reports.
 /// </para>
 /// </remarks>
-[AttributeUsage(AttributeTargets.Class | AttributeTargets.Assembly, AllowMultiple = false, Inherited = false)]
+[AttributeUsage(
+    AttributeTargets.Class | AttributeTargets.Assembly,
+    AllowMultiple = false,
+    Inherited = false
+)]
 public class RequireAuthorizationAttribute : Attribute;

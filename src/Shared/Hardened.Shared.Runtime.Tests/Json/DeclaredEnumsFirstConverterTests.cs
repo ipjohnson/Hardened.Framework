@@ -21,23 +21,40 @@ namespace Hardened.Shared.Runtime.Tests.Json;
 /// application then refused, and every test posting a record with an enum in it got a 500.
 /// </para>
 /// </remarks>
-public class DeclaredEnumsFirstConverterTests {
-
+public class DeclaredEnumsFirstConverterTests
+{
     [JsonConverter(typeof(GenreConverter))]
-    private enum Genre { ScienceFiction, Fiction }
+    private enum Genre
+    {
+        ScienceFiction,
+        Fiction,
+    }
 
-    private enum Plain { Draft, Published }
+    private enum Plain
+    {
+        Draft,
+        Published,
+    }
 
-    private class GenreConverter : JsonConverter<Genre> {
-        public override Genre Read(ref Utf8JsonReader reader, Type type, JsonSerializerOptions options) =>
-            reader.GetString() switch {
+    private class GenreConverter : JsonConverter<Genre>
+    {
+        public override Genre Read(
+            ref Utf8JsonReader reader,
+            Type type,
+            JsonSerializerOptions options
+        ) =>
+            reader.GetString() switch
+            {
                 "science-fiction" => Genre.ScienceFiction,
                 "fiction" => Genre.Fiction,
-                var other => throw new JsonException($"'{other}' is not a value Genre declares.")
+                var other => throw new JsonException($"'{other}' is not a value Genre declares."),
             };
 
-        public override void Write(Utf8JsonWriter writer, Genre value, JsonSerializerOptions options) =>
-            writer.WriteStringValue(value == Genre.ScienceFiction ? "science-fiction" : "fiction");
+        public override void Write(
+            Utf8JsonWriter writer,
+            Genre value,
+            JsonSerializerOptions options
+        ) => writer.WriteStringValue(value == Genre.ScienceFiction ? "science-fiction" : "fiction");
     }
 
     private static JsonSerializerOptions Shared() => new JsonSerializerConfiguration().Options;
@@ -47,30 +64,37 @@ public class DeclaredEnumsFirstConverterTests {
     /// superstition. A converter in the collection wins over the attribute on the type.
     /// </summary>
     [Fact]
-    public void AConverterInTheCollectionOutranksATypeAttribute() {
+    public void AConverterInTheCollectionOutranksATypeAttribute()
+    {
         var options = new JsonSerializerOptions { Converters = { new JsonStringEnumConverter() } };
 
         Assert.Equal("\"ScienceFiction\"", JsonSerializer.Serialize(Genre.ScienceFiction, options));
     }
 
     [Fact]
-    public void AnEnumWithItsOwnConverterKeepsIt() {
+    public void AnEnumWithItsOwnConverterKeepsIt()
+    {
         Assert.Equal(
-            "\"science-fiction\"", JsonSerializer.Serialize(Genre.ScienceFiction, Shared()));
+            "\"science-fiction\"",
+            JsonSerializer.Serialize(Genre.ScienceFiction, Shared())
+        );
     }
 
     [Fact]
-    public void AnEnumWithItsOwnConverterReadsBack() {
+    public void AnEnumWithItsOwnConverterReadsBack()
+    {
         Assert.Equal(
             Genre.ScienceFiction,
-            JsonSerializer.Deserialize<Genre>("\"science-fiction\"", Shared()));
+            JsonSerializer.Deserialize<Genre>("\"science-fiction\"", Shared())
+        );
     }
 
     /// <summary>
     /// A round trip through the shared options alone, which is what the harness does and what threw.
     /// </summary>
     [Fact]
-    public void AnEnumWithItsOwnConverterRoundTrips() {
+    public void AnEnumWithItsOwnConverterRoundTrips()
+    {
         var options = Shared();
 
         var json = JsonSerializer.Serialize(Genre.ScienceFiction, options);
@@ -87,20 +111,25 @@ public class DeclaredEnumsFirstConverterTests {
     /// regression in the same place.
     /// </remarks>
     [Fact]
-    public void AnEnumWithNoConverterOfItsOwnIsStillNamed() {
+    public void AnEnumWithNoConverterOfItsOwnIsStillNamed()
+    {
         Assert.Equal("\"Published\"", JsonSerializer.Serialize(Plain.Published, Shared()));
     }
 
     [Fact]
-    public void AnEnumWithNoConverterOfItsOwnReadsItsNameBack() {
+    public void AnEnumWithNoConverterOfItsOwnReadsItsNameBack()
+    {
         Assert.Equal(Plain.Draft, JsonSerializer.Deserialize<Plain>("\"Draft\"", Shared()));
     }
 
     /// <summary>Nullable forms follow the type they wrap, in both directions.</summary>
     [Fact]
-    public void ANullableEnumFollowsItsUnderlyingType() {
+    public void ANullableEnumFollowsItsUnderlyingType()
+    {
         Assert.Equal(
-            "\"science-fiction\"", JsonSerializer.Serialize((Genre?)Genre.ScienceFiction, Shared()));
+            "\"science-fiction\"",
+            JsonSerializer.Serialize((Genre?)Genre.ScienceFiction, Shared())
+        );
         Assert.Equal("\"Published\"", JsonSerializer.Serialize((Plain?)Plain.Published, Shared()));
     }
 }

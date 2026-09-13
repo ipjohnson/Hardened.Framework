@@ -1,6 +1,6 @@
-using Hardened.Generation;
 using System.Collections.Generic;
 using CSharpAuthor;
+using Hardened.Generation;
 using Hardened.Generation.Models;
 
 namespace Hardened.Idl.Emitters;
@@ -41,8 +41,8 @@ namespace Hardened.Idl.Emitters;
 /// dispatch generator needs to know nothing about where the type came from.
 /// </para>
 /// </remarks>
-internal static class UnionResponseEmitter {
-
+internal static class UnionResponseEmitter
+{
     /// <summary>Where the response contracts a generated case implements live.</summary>
     private const string ResponsesNamespace = ShippedResponses.Namespace;
 
@@ -55,13 +55,21 @@ internal static class UnionResponseEmitter {
     /// them, because a branch is a name whether or not this emitter is the thing that wrote it.
     /// </remarks>
     public static IReadOnlyList<ClassDefinition> Emit(
-        IConstructContainer container, ServiceModel service, string modelsNamespace,
-        bool asLanguageUnion = false, SpecResponseModel responseModel = SpecResponseModel.Response,
-        IReadOnlyList<SchemaModel>? schemas = null, string? specFileName = null) {
+        IConstructContainer container,
+        ServiceModel service,
+        string modelsNamespace,
+        bool asLanguageUnion = false,
+        SpecResponseModel responseModel = SpecResponseModel.Response,
+        IReadOnlyList<SchemaModel>? schemas = null,
+        string? specFileName = null
+    )
+    {
         var emitted = new List<ClassDefinition>();
 
-        foreach (var operation in service.Operations) {
-            if (!ResponseSetPlan.RequiresResponseSet(operation, responseModel)) {
+        foreach (var operation in service.Operations)
+        {
+            if (!ResponseSetPlan.RequiresResponseSet(operation, responseModel))
+            {
                 continue;
             }
 
@@ -69,7 +77,8 @@ internal static class UnionResponseEmitter {
 
             var success = SuccessBranchType(operation, modelsNamespace);
 
-            if (success != null) {
+            if (success != null)
+            {
                 branches.Add(success);
             }
 
@@ -80,23 +89,33 @@ internal static class UnionResponseEmitter {
             //
             // Still per operation, unlike the errors. A success case carries the operation's own
             // payload shape, so two operations declaring a 200 have nothing to share.
-            foreach (var response in operation.SuccessResponses) {
-                if (!ResponseSetPlan.NeedsSuccessCaseType(operation, response)) {
+            foreach (var response in operation.SuccessResponses)
+            {
+                if (!ResponseSetPlan.NeedsSuccessCaseType(operation, response))
+                {
                     continue;
                 }
 
                 var name = ResponseSetPlan.CaseName(operation, response.StatusCode);
 
                 var successCase = EmitCaseType(
-                    container, name, response.StatusCode,
+                    container,
+                    name,
+                    response.StatusCode,
                     PayloadType(
-                        response.Ref, response.Type, response.Format,
-                        response.IsArray, response.ArrayItemsRef, response.ArrayItemsType,
-                        modelsNamespace),
+                        response.Ref,
+                        response.Type,
+                        response.Format,
+                        response.IsArray,
+                        response.ArrayItemsRef,
+                        response.ArrayItemsType,
+                        modelsNamespace
+                    ),
                     response.Description,
-                    $"The {response.StatusCode} response declared for " +
-                    $"{operation.HttpMethod} {operation.Path}.",
-                    response.Headers);
+                    $"The {response.StatusCode} response declared for "
+                        + $"{operation.HttpMethod} {operation.Path}.",
+                    response.Headers
+                );
 
                 emitted.Add(successCase);
                 branches.Add(TypeDefinition.Get(modelsNamespace, name));
@@ -104,22 +123,34 @@ internal static class UnionResponseEmitter {
 
             var conversions = new List<ProblemConversion.Plan>();
 
-            foreach (var error in operation.ErrorResponses) {
+            foreach (var error in operation.ErrorResponses)
+            {
                 branches.Add(ErrorBranchType(error, modelsNamespace));
 
                 // The shorthand from the bare record, where the build can fill the body: the
                 // schemas say which bodies are problem shaped, and the file name says where the
                 // method that fills one lives. A caller passing neither gets the set without it.
-                if (schemas != null && specFileName != null &&
-                    ProblemConversion.For(error, schemas) is { } plan) {
+                if (
+                    schemas != null
+                    && specFileName != null
+                    && ProblemConversion.For(error, schemas) is { } plan
+                )
+                {
                     conversions.Add(plan);
                 }
             }
 
-            emitted.Add(EmitContainer(
-                container, operation, branches, asLanguageUnion, conversions,
-                specFileName == null ? null : ProblemConversion.HolderName(specFileName),
-                modelsNamespace));
+            emitted.Add(
+                EmitContainer(
+                    container,
+                    operation,
+                    branches,
+                    asLanguageUnion,
+                    conversions,
+                    specFileName == null ? null : ProblemConversion.HolderName(specFileName),
+                    modelsNamespace
+                )
+            );
         }
 
         return emitted;
@@ -135,20 +166,29 @@ internal static class UnionResponseEmitter {
     /// <c>ArchiveLabelNotFound</c> two names for one record.
     /// </param>
     public static IReadOnlyList<ClassDefinition> EmitErrorCaseTypes(
-        IConstructContainer container, IReadOnlyList<ErrorResponseModel> errors,
-        string modelsNamespace) {
+        IConstructContainer container,
+        IReadOnlyList<ErrorResponseModel> errors,
+        string modelsNamespace
+    )
+    {
         var emitted = new List<ClassDefinition>();
 
-        foreach (var error in errors) {
-            emitted.Add(EmitCaseType(
-                container, error.TypeName!, error.StatusCode,
-                PayloadType(error.Ref, null, null, false, null, null, modelsNamespace),
-                error.Description,
-                // No operation in the fallback, and there cannot be one: this case is shared by
-                // every operation that declares the error.
-                $"The {error.StatusCode} response the description declares" +
-                (error.Name == null ? "." : $" as '{error.Name}'."),
-                error.Headers));
+        foreach (var error in errors)
+        {
+            emitted.Add(
+                EmitCaseType(
+                    container,
+                    error.TypeName!,
+                    error.StatusCode,
+                    PayloadType(error.Ref, null, null, false, null, null, modelsNamespace),
+                    error.Description,
+                    // No operation in the fallback, and there cannot be one: this case is shared by
+                    // every operation that declares the error.
+                    $"The {error.StatusCode} response the description declares"
+                        + (error.Name == null ? "." : $" as '{error.Name}'."),
+                    error.Headers
+                )
+            );
         }
 
         return emitted;
@@ -163,11 +203,12 @@ internal static class UnionResponseEmitter {
     /// meet only in the generated code, so a second derivation of it is a switch arm naming a type
     /// nothing emitted.
     /// </remarks>
-    private static ITypeDefinition ErrorBranchType(
-        ErrorResponseModel error, string modelsNamespace) {
+    private static ITypeDefinition ErrorBranchType(ErrorResponseModel error, string modelsNamespace)
+    {
         var binding = ShippedResponses.For(error);
 
-        if (binding == null) {
+        if (binding == null)
+        {
             return TypeDefinition.Get(modelsNamespace, error.TypeName!);
         }
 
@@ -177,10 +218,12 @@ internal static class UnionResponseEmitter {
         // Status<Http.Locked, Problem> - the escape hatch, for a registered status the framework
         // ships no record for. Two statuses are two closed types, so CS0457 never fires and the
         // framework does not have to know the number in advance.
-        if (shipped.Marker != null) {
+        if (shipped.Marker != null)
+        {
             var marker = TypeDefinition.Get(
                 ShippedResponses.Namespace,
-                ShippedResponses.MarkerHolderName + "." + shipped.Marker);
+                ShippedResponses.MarkerHolderName + "." + shipped.Marker
+            );
 
             return shipped.TakesBody && payload != null
                 ? Shipped(shipped.TypeName, marker, payload)
@@ -194,7 +237,11 @@ internal static class UnionResponseEmitter {
 
     private static ITypeDefinition Shipped(string name, params ITypeDefinition[] arguments) =>
         new GenericTypeDefinition(
-            TypeDefinitionEnum.ClassDefinition, ShippedResponses.Namespace, name, arguments);
+            TypeDefinitionEnum.ClassDefinition,
+            ShippedResponses.Namespace,
+            name,
+            arguments
+        );
 
     /// <summary>
     /// One record per declared status, carrying the body that status declares, or nothing.
@@ -209,13 +256,20 @@ internal static class UnionResponseEmitter {
     /// unambiguous never required refusing that.
     /// </remarks>
     private static ClassDefinition EmitCaseType(
-        IConstructContainer container, string name, int statusCode, ITypeDefinition? payload,
-        string? description, string fallbackComment,
-        IReadOnlyList<ResponseHeaderModel>? headers = null) {
+        IConstructContainer container,
+        string name,
+        int statusCode,
+        ITypeDefinition? payload,
+        string? description,
+        string fallbackComment,
+        IReadOnlyList<ResponseHeaderModel>? headers = null
+    )
+    {
         var definition = container.AddClass(name);
 
         definition.TypeKeyword = ClassKeyword.Record;
-        definition.Modifiers |= ComponentModifier.Public | ComponentModifier.Sealed | ComponentModifier.Partial;
+        definition.Modifiers |=
+            ComponentModifier.Public | ComponentModifier.Sealed | ComponentModifier.Partial;
 
         // A case type declares everything in its header, so it ends at the semicolon rather than
         // carrying an empty body. Legal either way; this is what anyone writing it by hand writes,
@@ -230,17 +284,22 @@ internal static class UnionResponseEmitter {
         definition.AddAttribute(
             TypeDefinition.Get(ResponsesNamespace, "HttpStatusAttribute"),
             new CodeOutputComponent(
-                statusCode.ToString(System.Globalization.CultureInfo.InvariantCulture)) {
-                Indented = false
-            });
+                statusCode.ToString(System.Globalization.CultureInfo.InvariantCulture)
+            )
+            {
+                Indented = false,
+            }
+        );
 
         var headerParameters = ResolveHeaderParameters(headers, carriesBody: payload != null);
 
-        if (payload == null) {
+        if (payload == null)
+        {
             // A 204 declaring a Location, or a 304 declaring an ETag - a case with nothing to
             // serialize and something to send. The constructor exists only where there are headers
             // to take, so a bodyless case that declares none is the parameterless record it was.
-            if (headerParameters.Count > 0) {
+            if (headerParameters.Count > 0)
+            {
                 var headerOnlyConstructor = definition.AddConstructor();
 
                 headerOnlyConstructor.IsPrimary = true;
@@ -272,7 +331,8 @@ internal static class UnionResponseEmitter {
         // emitted at all, the wrapper went on the wire whole, putting the declared payload under a
         // Body member no client was told about.
         definition.AddBaseType(
-            TypeDefinition.Get(ShippedResponses.ContractNamespace, "ICarriesResponseBody"));
+            TypeDefinition.Get(ShippedResponses.ContractNamespace, "ICarriesResponseBody")
+        );
 
         // A body to put it in. The header-only form above is what a case with no payload wants, and
         // it is what this was until the interface arrived - a record ending at its semicolon has
@@ -284,9 +344,14 @@ internal static class UnionResponseEmitter {
         // collision the same way.
         definition.AddComponent(
             new CodeOutputComponent(
-                "object? " + ShippedResponses.ContractNamespace + ".ICarriesResponseBody.Body => Body;") {
-                Indented = true
-            });
+                "object? "
+                    + ShippedResponses.ContractNamespace
+                    + ".ICarriesResponseBody.Body => Body;"
+            )
+            {
+                Indented = true,
+            }
+        );
 
         EmitApplyHeaders(definition, headerParameters);
 
@@ -304,41 +369,53 @@ internal static class UnionResponseEmitter {
     /// imposing a C# rule on a wire format.
     /// </remarks>
     private static List<ResponseHeaderModel> ResolveHeaderParameters(
-        IReadOnlyList<ResponseHeaderModel>? headers, bool carriesBody) {
+        IReadOnlyList<ResponseHeaderModel>? headers,
+        bool carriesBody
+    )
+    {
         var resolved = new List<ResponseHeaderModel>();
 
-        if (headers == null || headers.Count == 0) {
+        if (headers == null || headers.Count == 0)
+        {
             return resolved;
         }
 
         var taken = new HashSet<string>(System.StringComparer.Ordinal);
 
-        if (carriesBody) {
+        if (carriesBody)
+        {
             taken.Add("Body");
         }
 
-        foreach (var header in headers) {
+        foreach (var header in headers)
+        {
             var candidate = string.IsNullOrEmpty(header.ParameterName)
                 ? NamingHelper.ToPascalCase(header.Name)
                 : header.ParameterName;
 
-            if (string.IsNullOrEmpty(candidate)) {
+            if (string.IsNullOrEmpty(candidate))
+            {
                 continue;
             }
 
             var unique = candidate;
             var suffix = 2;
 
-            while (!taken.Add(unique)) {
-                unique = candidate + suffix.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            while (!taken.Add(unique))
+            {
+                unique =
+                    candidate + suffix.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 suffix++;
             }
 
-            resolved.Add(new ResponseHeaderModel {
-                Name = header.Name,
-                ParameterName = unique,
-                Description = header.Description
-            });
+            resolved.Add(
+                new ResponseHeaderModel
+                {
+                    Name = header.Name,
+                    ParameterName = unique,
+                    Description = header.Description,
+                }
+            );
         }
 
         return resolved;
@@ -354,8 +431,12 @@ internal static class UnionResponseEmitter {
     /// from the only code that can make it.
     /// </remarks>
     private static void AddHeaderParameters(
-        ConstructorDefinition constructor, IReadOnlyList<ResponseHeaderModel> headers) {
-        foreach (var header in headers) {
+        ConstructorDefinition constructor,
+        IReadOnlyList<ResponseHeaderModel> headers
+    )
+    {
+        foreach (var header in headers)
+        {
             constructor.AddParameter(TypeDefinition.Get(typeof(string)), header.ParameterName);
         }
     }
@@ -371,8 +452,12 @@ internal static class UnionResponseEmitter {
     /// of answering it with a literal.
     /// </remarks>
     private static void EmitApplyHeaders(
-        ClassDefinition definition, IReadOnlyList<ResponseHeaderModel> headers) {
-        if (headers.Count == 0) {
+        ClassDefinition definition,
+        IReadOnlyList<ResponseHeaderModel> headers
+    )
+    {
+        if (headers.Count == 0)
+        {
             return;
         }
 
@@ -381,7 +466,8 @@ internal static class UnionResponseEmitter {
         definition.TerminateWithSemicolon = false;
 
         definition.AddBaseType(
-            TypeDefinition.Get(ShippedResponses.ContractNamespace, "IProvidesResponseHeaders"));
+            TypeDefinition.Get(ShippedResponses.ContractNamespace, "IProvidesResponseHeaders")
+        );
 
         var method = definition.AddMethod("ApplyHeaders");
 
@@ -389,15 +475,20 @@ internal static class UnionResponseEmitter {
         method.AddParameter(
             new GenericTypeDefinition(
                 typeof(IDictionary<,>),
-                new ITypeDefinition[] {
+                new ITypeDefinition[]
+                {
                     TypeDefinition.Get(typeof(string)),
-                    TypeDefinition.Get("Microsoft.Extensions.Primitives", "StringValues")
-                }),
-            "headers");
+                    TypeDefinition.Get("Microsoft.Extensions.Primitives", "StringValues"),
+                }
+            ),
+            "headers"
+        );
 
-        foreach (var header in headers) {
+        foreach (var header in headers)
+        {
             method.AddIndentedStatement(
-                "headers[\"" + header.Name + "\"] = " + header.ParameterName);
+                "headers[\"" + header.Name + "\"] = " + header.ParameterName
+            );
         }
     }
 
@@ -410,15 +501,21 @@ internal static class UnionResponseEmitter {
     /// only they can collide with each other on a shared schema.
     /// </remarks>
     private static ClassDefinition EmitContainer(
-        IConstructContainer container, OperationModel operation,
-        IReadOnlyList<ITypeDefinition> branchTypes, bool asLanguageUnion,
-        IReadOnlyList<ProblemConversion.Plan> conversions, string? problemsHolder,
-        string modelsNamespace) {
+        IConstructContainer container,
+        OperationModel operation,
+        IReadOnlyList<ITypeDefinition> branchTypes,
+        bool asLanguageUnion,
+        IReadOnlyList<ProblemConversion.Plan> conversions,
+        string? problemsHolder,
+        string modelsNamespace
+    )
+    {
         var name = ResponseSetPlan.ContainerName(operation);
 
         var branches = new List<string>();
 
-        foreach (var branchType in branchTypes) {
+        foreach (var branchType in branchTypes)
+        {
             branches.Add(QualifiedName(branchType));
         }
 
@@ -436,10 +533,12 @@ internal static class UnionResponseEmitter {
         // same structural check. Moving between the modes rewrites no handler. What can break is
         // code pattern-matching on the wrapper, because patterns on a language union unwrap to
         // Value, and that is why the modes are named rather than inferred.
-        if (asLanguageUnion) {
+        if (asLanguageUnion)
+        {
             type.TypeKeyword = ClassKeyword.Union;
 
-            foreach (var branchType in branchTypes) {
+            foreach (var branchType in branchTypes)
+            {
                 type.AddUnionCase(branchType);
             }
 
@@ -447,7 +546,8 @@ internal static class UnionResponseEmitter {
             // otherwise does without. The compiler synthesises a constructor and a conversion per
             // case from the header, so the body carries only these - and a set with none to write
             // stays the one-line declaration.
-            if (problemsHolder != null && conversions.Count > 0) {
+            if (problemsHolder != null && conversions.Count > 0)
+            {
                 type.TerminateWithSemicolon = false;
 
                 EmitConversions(type, name, conversions, problemsHolder, modelsNamespace);
@@ -467,19 +567,26 @@ internal static class UnionResponseEmitter {
         // Constructors and conversions from one list, for the reason OneOfEmitter gives: a branch is
         // a qualified name rather than a type this assembly can reference, and taking both from the
         // same list is what keeps a constructor and its conversion from disagreeing about the set.
-        foreach (var branch in branches) {
+        foreach (var branch in branches)
+        {
             type.AddComponent(
-                new CodeOutputComponent($"public {name}({branch} value) => Value = value;") {
-                    Indented = true
-                });
+                new CodeOutputComponent($"public {name}({branch} value) => Value = value;")
+                {
+                    Indented = true,
+                }
+            );
         }
 
-        foreach (var branch in branches) {
+        foreach (var branch in branches)
+        {
             type.AddComponent(
                 new CodeOutputComponent(
-                    $"public static implicit operator {name}({branch} value) => new(value);") {
-                    Indented = true
-                });
+                    $"public static implicit operator {name}({branch} value) => new(value);"
+                )
+                {
+                    Indented = true,
+                }
+            );
         }
 
         EmitConversions(type, name, conversions, problemsHolder, modelsNamespace);
@@ -504,21 +611,31 @@ internal static class UnionResponseEmitter {
     /// conversions.
     /// </remarks>
     private static void EmitConversions(
-        ClassDefinition type, string name, IReadOnlyList<ProblemConversion.Plan> conversions,
-        string? problemsHolder, string modelsNamespace) {
-        if (problemsHolder == null) {
+        ClassDefinition type,
+        string name,
+        IReadOnlyList<ProblemConversion.Plan> conversions,
+        string? problemsHolder,
+        string modelsNamespace
+    )
+    {
+        if (problemsHolder == null)
+        {
             return;
         }
 
-        foreach (var conversion in conversions) {
+        foreach (var conversion in conversions)
+        {
             var record = ShippedResponses.Namespace + "." + conversion.BareRecord;
 
             type.AddComponent(
                 new CodeOutputComponent(
-                    $"public static implicit operator {name}({record} value) => " +
-                    $"new(global::{modelsNamespace}.{problemsHolder}.{conversion.MethodName}(value));") {
-                    Indented = true
-                });
+                    $"public static implicit operator {name}({record} value) => "
+                        + $"new(global::{modelsNamespace}.{problemsHolder}.{conversion.MethodName}(value));"
+                )
+                {
+                    Indented = true,
+                }
+            );
         }
     }
 
@@ -533,29 +650,43 @@ internal static class UnionResponseEmitter {
     /// yields null and the bodyless case, which is at least visible at the handler.
     /// </remarks>
     private static ITypeDefinition? PayloadType(
-        string? bodyRef, string? type, string? format,
-        bool isArray, string? itemsRef, string? itemsType, string modelsNamespace) {
-        if (bodyRef != null) {
+        string? bodyRef,
+        string? type,
+        string? format,
+        bool isArray,
+        string? itemsRef,
+        string? itemsType,
+        string modelsNamespace
+    )
+    {
+        if (bodyRef != null)
+        {
             return TypeDefinition.Get(
-                modelsNamespace, NamingHelper.ToPascalCase(TypeMapper.GetRefName(bodyRef)));
+                modelsNamespace,
+                NamingHelper.ToPascalCase(TypeMapper.GetRefName(bodyRef))
+            );
         }
 
-        if (isArray) {
-            var item = itemsRef != null
-                ? TypeDefinition.Get(
-                    modelsNamespace, NamingHelper.ToPascalCase(TypeMapper.GetRefName(itemsRef)))
-                : ScalarType(itemsType, null);
+        if (isArray)
+        {
+            var item =
+                itemsRef != null
+                    ? TypeDefinition.Get(
+                        modelsNamespace,
+                        NamingHelper.ToPascalCase(TypeMapper.GetRefName(itemsRef))
+                    )
+                    : ScalarType(itemsType, null);
 
-            return item == null
-                ? null
-                : new GenericTypeDefinition(typeof(List<>), new[] { item });
+            return item == null ? null : new GenericTypeDefinition(typeof(List<>), new[] { item });
         }
 
         return ScalarType(type, format);
     }
 
-    private static ITypeDefinition? ScalarType(string? type, string? format) {
-        if (string.IsNullOrEmpty(type) || type == "object") {
+    private static ITypeDefinition? ScalarType(string? type, string? format)
+    {
+        if (string.IsNullOrEmpty(type) || type == "object")
+        {
             return null;
         }
 
@@ -576,14 +707,17 @@ internal static class UnionResponseEmitter {
     /// generated code, for a contract the parser accepted. The language-union path never had the
     /// bug because CSharpAuthor renders the type itself; this is the struct path catching up.
     /// </remarks>
-    private static string QualifiedName(ITypeDefinition type) {
-        if (type.TypeArguments.Count == 0) {
+    private static string QualifiedName(ITypeDefinition type)
+    {
+        if (type.TypeArguments.Count == 0)
+        {
             return type.Namespace + "." + type.Name;
         }
 
         var arguments = new List<string>();
 
-        foreach (var argument in type.TypeArguments) {
+        foreach (var argument in type.TypeArguments)
+        {
             arguments.Add(QualifiedName(argument));
         }
 
@@ -599,27 +733,40 @@ internal static class UnionResponseEmitter {
     /// application already holds encoded - and neither belongs in a union of statuses.
     /// </remarks>
     private static ITypeDefinition? SuccessBranchType(
-        OperationModel operation, string modelsNamespace) {
+        OperationModel operation,
+        string modelsNamespace
+    )
+    {
         // Not HasNamedSuccessPayload: a primary success that declares headers is emitted as a
         // wrapper by the success loop and is already a branch, so naming the payload here too would
         // give the union two branches for one status.
-        if (!ResponseSetPlan.PrimarySuccessIsBarePayload(operation)) {
+        if (!ResponseSetPlan.PrimarySuccessIsBarePayload(operation))
+        {
             return null;
         }
 
-        if (operation.ResponseRef != null) {
+        if (operation.ResponseRef != null)
+        {
             return TypeDefinition.Get(
-                modelsNamespace, NamingHelper.ToPascalCase(TypeMapper.GetRefName(operation.ResponseRef)));
+                modelsNamespace,
+                NamingHelper.ToPascalCase(TypeMapper.GetRefName(operation.ResponseRef))
+            );
         }
 
-        if (operation.ResponseIsArray && operation.ResponseArrayItemsRef != null) {
+        if (operation.ResponseIsArray && operation.ResponseArrayItemsRef != null)
+        {
             return new GenericTypeDefinition(
                 typeof(List<>),
-                new[] {
+                new[]
+                {
                     TypeDefinition.Get(
                         modelsNamespace,
-                        NamingHelper.ToPascalCase(TypeMapper.GetRefName(operation.ResponseArrayItemsRef)))
-                });
+                        NamingHelper.ToPascalCase(
+                            TypeMapper.GetRefName(operation.ResponseArrayItemsRef)
+                        )
+                    ),
+                }
+            );
         }
 
         return null;

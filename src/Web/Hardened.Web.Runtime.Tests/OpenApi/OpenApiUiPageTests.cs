@@ -16,22 +16,35 @@ namespace Hardened.Web.Runtime.Tests.OpenApi;
 /// configuration - so what is worth pinning is that none of them can break out of the attribute it
 /// is written into, and that the integrity attribute is present exactly when there is a hash.
 /// </summary>
-public class OpenApiUiPageTests {
-
+public class OpenApiUiPageTests
+{
     private static readonly OpenApiUiModel Model = new(
-        "API Reference", "/openapi.json", "https://cdn.example.com/ui.js", "sha384-abc");
+        "API Reference",
+        "/openapi.json",
+        "https://cdn.example.com/ui.js",
+        "sha384-abc"
+    );
 
-    private static async Task<(string Body, IExecutionContext Context)> Render(OpenApiUiModel model) {
+    private static async Task<(string Body, IExecutionContext Context)> Render(OpenApiUiModel model)
+    {
         var request = new TestExecutionRequest(
-            "GET", "/docs", "text/html",
-            new SimpleQueryStringCollection(new Dictionary<string, string>()));
+            "GET",
+            "/docs",
+            "text/html",
+            new SimpleQueryStringCollection(new Dictionary<string, string>())
+        );
 
         var services = new ServiceCollection().BuildServiceProvider();
         var body = new MemoryStream();
 
         var context = new TestExecutionContext(
-            services, services, Substitute.For<IKnownServices>(), request,
-            new TestExecutionResponse(body) { ResponseValue = model }, CancellationToken.None);
+            services,
+            services,
+            Substitute.For<IKnownServices>(),
+            request,
+            new TestExecutionResponse(body) { ResponseValue = model },
+            CancellationToken.None
+        );
 
         await new OpenApiUiPage().WriteOutput(context);
 
@@ -39,7 +52,8 @@ public class OpenApiUiPageTests {
     }
 
     [Fact]
-    public async Task WriteOutput_WritesTheDocumentUrlAndScript() {
+    public async Task WriteOutput_WritesTheDocumentUrlAndScript()
+    {
         var (page, _) = await Render(Model);
 
         Assert.Contains("<script id=\"api-reference\" data-url=\"/openapi.json\"></script>", page);
@@ -50,13 +64,15 @@ public class OpenApiUiPageTests {
     }
 
     [Fact]
-    public async Task WriteOutput_AnnouncesHtml() {
+    public async Task WriteOutput_AnnouncesHtml()
+    {
         var (page, context) = await Render(Model);
 
         Assert.Equal("text/html; charset=utf-8", context.Response.ContentType);
         Assert.Equal(
             Encoding.UTF8.GetByteCount(page),
-            int.Parse(context.Response.Headers[KnownHeaders.ContentLength].ToString()));
+            int.Parse(context.Response.Headers[KnownHeaders.ContentLength].ToString())
+        );
     }
 
     /// <summary>
@@ -64,7 +80,8 @@ public class OpenApiUiPageTests {
     /// stray content.
     /// </summary>
     [Fact]
-    public async Task WriteOutput_WritesNoByteOrderMark() {
+    public async Task WriteOutput_WritesNoByteOrderMark()
+    {
         var (page, _) = await Render(Model);
 
         Assert.StartsWith("<!doctype html>", page);
@@ -78,7 +95,8 @@ public class OpenApiUiPageTests {
     [Theory]
     [InlineData(null)]
     [InlineData("")]
-    public async Task WriteOutput_OmitsIntegrityWhenThereIsNoneToState(string? integrity) {
+    public async Task WriteOutput_OmitsIntegrityWhenThereIsNoneToState(string? integrity)
+    {
         var (page, _) = await Render(Model with { ScriptIntegrity = integrity });
 
         Assert.DoesNotContain("integrity", page);
@@ -91,12 +109,16 @@ public class OpenApiUiPageTests {
     /// able to end the attribute it sits in.
     /// </summary>
     [Fact]
-    public async Task WriteOutput_EncodesValuesSoTheyCannotBreakOutOfTheirAttribute() {
-        var (page, _) = await Render(new OpenApiUiModel(
-            "\"><script>alert(1)</script>",
-            "/openapi.json\" onload=\"alert(1)",
-            "https://cdn.example.com/ui.js\" onerror=\"alert(1)",
-            "sha384-abc\" onload=\"alert(1)"));
+    public async Task WriteOutput_EncodesValuesSoTheyCannotBreakOutOfTheirAttribute()
+    {
+        var (page, _) = await Render(
+            new OpenApiUiModel(
+                "\"><script>alert(1)</script>",
+                "/openapi.json\" onload=\"alert(1)",
+                "https://cdn.example.com/ui.js\" onerror=\"alert(1)",
+                "sha384-abc\" onload=\"alert(1)"
+            )
+        );
 
         Assert.DoesNotContain("<script>alert(1)</script>", page);
         Assert.DoesNotContain("onload=\"alert(1)\"", page);
@@ -115,16 +137,25 @@ public class OpenApiUiPageTests {
     [InlineData(null, true)]
     [InlineData("application/json", false)]
     [InlineData("text/plain", false)]
-    public void SupportsContentType_AnswersOnlyForHtml(string? accept, bool expected) {
+    public void SupportsContentType_AnswersOnlyForHtml(string? accept, bool expected)
+    {
         var request = new TestExecutionRequest(
-            "GET", "/docs", accept,
-            new SimpleQueryStringCollection(new Dictionary<string, string>()));
+            "GET",
+            "/docs",
+            accept,
+            new SimpleQueryStringCollection(new Dictionary<string, string>())
+        );
 
         var services = new ServiceCollection().BuildServiceProvider();
 
         var context = new TestExecutionContext(
-            services, services, Substitute.For<IKnownServices>(), request,
-            new TestExecutionResponse(new MemoryStream()), CancellationToken.None);
+            services,
+            services,
+            Substitute.For<IKnownServices>(),
+            request,
+            new TestExecutionResponse(new MemoryStream()),
+            CancellationToken.None
+        );
 
         Assert.Equal(expected, new OpenApiUiPage().SupportsContentType(accept, context));
     }
@@ -134,28 +165,38 @@ public class OpenApiUiPageTests {
     /// surfacing as a cast exception from inside the writer.
     /// </summary>
     [Fact]
-    public async Task WriteOutput_NamesTheModelItNeededWhenGivenSomethingElse() {
+    public async Task WriteOutput_NamesTheModelItNeededWhenGivenSomethingElse()
+    {
         var request = new TestExecutionRequest(
-            "GET", "/docs", "text/html",
-            new SimpleQueryStringCollection(new Dictionary<string, string>()));
+            "GET",
+            "/docs",
+            "text/html",
+            new SimpleQueryStringCollection(new Dictionary<string, string>())
+        );
 
         var services = new ServiceCollection().BuildServiceProvider();
 
         var context = new TestExecutionContext(
-            services, services, Substitute.For<IKnownServices>(), request,
+            services,
+            services,
+            Substitute.For<IKnownServices>(),
+            request,
             new TestExecutionResponse(new MemoryStream()) { ResponseValue = "not a model" },
-            CancellationToken.None);
+            CancellationToken.None
+        );
 
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => new OpenApiUiPage().WriteOutput(context));
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            new OpenApiUiPage().WriteOutput(context)
+        );
 
         Assert.Contains(nameof(OpenApiUiModel), exception.Message);
     }
 
     #region the MessagePack plugin
 
-    private static readonly OpenApiUiModel WithPlugin = Model with {
-        MessagePackScriptUrl = "https://cdn.example.com/msgpack.min.js"
+    private static readonly OpenApiUiModel WithPlugin = Model with
+    {
+        MessagePackScriptUrl = "https://cdn.example.com/msgpack.min.js",
     };
 
     /// <summary>
@@ -163,7 +204,8 @@ public class OpenApiUiPageTests {
     /// inline script anywhere on it.
     /// </summary>
     [Fact]
-    public async Task WriteOutput_WithoutThePluginThereIsNoInlineScript() {
+    public async Task WriteOutput_WithoutThePluginThereIsNoInlineScript()
+    {
         var (page, _) = await Render(Model);
 
         Assert.Contains("<script id=\"api-reference\" data-url=\"/openapi.json\"></script>", page);
@@ -176,7 +218,8 @@ public class OpenApiUiPageTests {
     /// the page to <c>createApiReference</c>, which is the form that takes one.
     /// </summary>
     [Fact]
-    public async Task WriteOutput_ThePluginFormInitialisesInScript() {
+    public async Task WriteOutput_ThePluginFormInitialisesInScript()
+    {
         var (page, _) = await Render(WithPlugin);
 
         Assert.Contains("<div id=\"app\"></div>", page);
@@ -186,7 +229,8 @@ public class OpenApiUiPageTests {
 
     /// <summary>The decoder, from wherever it was configured.</summary>
     [Fact]
-    public async Task WriteOutput_ThePluginFormLoadsTheDecoder() {
+    public async Task WriteOutput_ThePluginFormLoadsTheDecoder()
+    {
         var (page, _) = await Render(WithPlugin);
 
         Assert.Contains("<script src=\"https://cdn.example.com/msgpack.min.js\"></script>", page);
@@ -197,7 +241,8 @@ public class OpenApiUiPageTests {
     /// keep Scalar's own rendering for every other media type.
     /// </summary>
     [Fact]
-    public async Task WriteOutput_ThePluginClaimsTheMessagePackMediaTypesOnly() {
+    public async Task WriteOutput_ThePluginClaimsTheMessagePackMediaTypesOnly()
+    {
         var (page, _) = await Render(WithPlugin);
 
         Assert.Contains("mimeTypes: ['application/msgpack', 'application/x-msgpack']", page);
@@ -209,7 +254,8 @@ public class OpenApiUiPageTests {
     /// initialises, not what it initialises from.
     /// </summary>
     [Fact]
-    public async Task WriteOutput_ThePluginFormKeepsTheIntegrityHash() {
+    public async Task WriteOutput_ThePluginFormKeepsTheIntegrityHash()
+    {
         var (page, _) = await Render(WithPlugin);
 
         Assert.Contains("src=\"https://cdn.example.com/ui.js\"", page);
@@ -226,7 +272,8 @@ public class OpenApiUiPageTests {
     [InlineData("/openapi.json")]
     [InlineData("/a\";globalThis.pwned=1;//")]
     [InlineData("/a\\b</script>")]
-    public async Task WriteOutput_TheDocumentUrlCannotCloseTheScript(string documentPath) {
+    public async Task WriteOutput_TheDocumentUrlCannotCloseTheScript(string documentPath)
+    {
         var (page, _) = await Render(WithPlugin with { DocumentPath = documentPath });
 
         var start = page.IndexOf("url: ", StringComparison.Ordinal) + "url: ".Length;

@@ -13,18 +13,24 @@ namespace Hardened.OpenApi.BuildTask.Tests;
 /// published no <c>servers</c> at all: every path and no host to send one to, with <c>[Server]</c>
 /// read off the entry point rather than the contract and so no way to say it from here either.
 /// </remarks>
-public class ServersTests {
-
-    private static ServiceSpecModel Parse(string yaml, bool applyServerBasePath = false) {
+public class ServersTests
+{
+    private static ServiceSpecModel Parse(string yaml, bool applyServerBasePath = false)
+    {
         var model = OpenApiSpecParser.Parse(
-            yaml, "spec", CancellationToken.None, applyServerBasePath);
+            yaml,
+            "spec",
+            CancellationToken.None,
+            applyServerBasePath
+        );
 
         Assert.NotNull(model);
 
         return model!;
     }
 
-    private const string Paths = @"
+    private const string Paths =
+        @"
 paths:
   /todos:
     get:
@@ -38,13 +44,18 @@ paths:
         "openapi: \"3.0.0\"\ninfo:\n  title: T\n  version: \"1.0.0\"\n" + servers + Paths;
 
     [Fact]
-    public void EveryServerReachesTheModelInTheOrderItWasWritten() {
-        var model = Parse(Spec(@"
+    public void EveryServerReachesTheModelInTheOrderItWasWritten()
+    {
+        var model = Parse(
+            Spec(
+                @"
 servers:
   - url: https://api.example.com
     description: production
   - url: https://staging.example.com
-"));
+"
+            )
+        );
 
         Assert.Equal(2, model.Servers.Count);
         Assert.Equal("https://api.example.com", model.Servers[0].Url);
@@ -54,17 +65,23 @@ servers:
     }
 
     [Fact]
-    public void AContractThatDeclaresNoServersCarriesNone() {
+    public void AContractThatDeclaresNoServersCarriesNone()
+    {
         Assert.Empty(Parse(Spec("")).Servers);
     }
 
     /// <summary>A trailing slash is not part of the URL a path is joined to.</summary>
     [Fact]
-    public void ATrailingSlashIsRemoved() {
-        var model = Parse(Spec(@"
+    public void ATrailingSlashIsRemoved()
+    {
+        var model = Parse(
+            Spec(
+                @"
 servers:
   - url: https://api.example.com/
-"));
+"
+            )
+        );
 
         Assert.Equal("https://api.example.com", Assert.Single(model.Servers).Url);
     }
@@ -79,20 +96,21 @@ servers:
     /// reason the option is opt-in in the first place.
     /// </remarks>
     [Fact]
-    public void AnAppliedBasePathIsRemovedFromTheServerThatCarriedIt() {
-        const string spec = @"
+    public void AnAppliedBasePathIsRemovedFromTheServerThatCarriedIt()
+    {
+        const string spec =
+            @"
 servers:
   - url: https://api.example.com/v1
 ";
 
         Assert.Equal(
             "https://api.example.com",
-            Assert.Single(Parse(Spec(spec), applyServerBasePath: true).Servers).Url);
+            Assert.Single(Parse(Spec(spec), applyServerBasePath: true).Servers).Url
+        );
 
         // And with the option off the path is still the server's, because nothing moved it.
-        Assert.Equal(
-            "https://api.example.com/v1",
-            Assert.Single(Parse(Spec(spec)).Servers).Url);
+        Assert.Equal("https://api.example.com/v1", Assert.Single(Parse(Spec(spec)).Servers).Url);
     }
 
     /// <summary>
@@ -104,12 +122,18 @@ servers:
     /// rather than a fix.
     /// </remarks>
     [Fact]
-    public void ASecondServerWithADifferentPathIsLeftAlone() {
-        var model = Parse(Spec(@"
+    public void ASecondServerWithADifferentPathIsLeftAlone()
+    {
+        var model = Parse(
+            Spec(
+                @"
 servers:
   - url: https://api.example.com/v1
   - url: https://staging.example.com/v2
-"), applyServerBasePath: true);
+"
+            ),
+            applyServerBasePath: true
+        );
 
         Assert.Equal("https://api.example.com", model.Servers[0].Url);
         Assert.Equal("https://staging.example.com/v2", model.Servers[1].Url);
@@ -117,11 +141,19 @@ servers:
 
     /// <summary>A server that is nothing but the applied base path has nothing left to publish.</summary>
     [Fact]
-    public void AServerThatIsOnlyTheBasePathIsDropped() {
-        Assert.Empty(Parse(Spec(@"
+    public void AServerThatIsOnlyTheBasePathIsDropped()
+    {
+        Assert.Empty(
+            Parse(
+                Spec(
+                    @"
 servers:
   - url: /v1
-"), applyServerBasePath: true).Servers);
+"
+                ),
+                applyServerBasePath: true
+            ).Servers
+        );
     }
 
     /// <summary>
@@ -134,14 +166,19 @@ servers:
     /// republishing what the author wrote.
     /// </remarks>
     [Fact]
-    public void AServerVariableIsPublishedAsWritten() {
-        var model = Parse(Spec(@"
+    public void AServerVariableIsPublishedAsWritten()
+    {
+        var model = Parse(
+            Spec(
+                @"
 servers:
   - url: https://{region}.example.com
     variables:
       region:
         default: eu
-"));
+"
+            )
+        );
 
         Assert.Equal("https://{region}.example.com", Assert.Single(model.Servers).Url);
     }

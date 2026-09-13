@@ -1,8 +1,8 @@
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.OpenApiDocument;
-using Xunit;
 using Hardened.Web.Runtime.Headers;
 using Hardened.Web.Runtime.Responses;
+using Xunit;
 
 namespace Hardened.SourceGenerator.Tests.OpenApiDocument;
 
@@ -15,8 +15,8 @@ namespace Hardened.SourceGenerator.Tests.OpenApiDocument;
 /// rather than something invented. A table is only as good as the entry nobody checked, which is
 /// why every one of them is asserted rather than a sample.
 /// </remarks>
-public class HttpResponseDescriptionTests {
-
+public class HttpResponseDescriptionTests
+{
     [Theory]
     [InlineData(200, "OK")]
     [InlineData(201, "Created")]
@@ -50,7 +50,8 @@ public class HttpResponseDescriptionTests {
     [InlineData(502, "Bad Gateway")]
     [InlineData(503, "Service Unavailable")]
     [InlineData(504, "Gateway Timeout")]
-    public void EveryListedStatusHasItsRegisteredName(int status, string expected) {
+    public void EveryListedStatusHasItsRegisteredName(int status, string expected)
+    {
         Assert.Equal(expected, HttpResponseDescription.For(status));
     }
 
@@ -62,7 +63,8 @@ public class HttpResponseDescriptionTests {
     [InlineData(207)]
     [InlineData(418)]
     [InlineData(599)]
-    public void AnUnlistedStatusNamesItself(int status) {
+    public void AnUnlistedStatusNamesItself(int status)
+    {
         var description = HttpResponseDescription.For(status);
 
         Assert.Contains(status.ToString(), description, StringComparison.Ordinal);
@@ -80,7 +82,8 @@ public class HttpResponseDescriptionTests {
     /// one refactor from reporting two different ones as the same.
     /// </summary>
     [Fact]
-    public void IdenticallyBuiltResponsesAreEqual() {
+    public void IdenticallyBuiltResponsesAreEqual()
+    {
         var first = new ResponseSchemaModel(404, "Not Found", Schema("{}"));
         var second = new ResponseSchemaModel(404, "Not Found", Schema("{}"));
 
@@ -89,7 +92,8 @@ public class HttpResponseDescriptionTests {
     }
 
     [Fact]
-    public void ResponsesDifferingInAnyMemberAreNotEqual() {
+    public void ResponsesDifferingInAnyMemberAreNotEqual()
+    {
         var baseline = new ResponseSchemaModel(404, "Not Found", Schema("{}"));
 
         Assert.NotEqual(baseline, new ResponseSchemaModel(409, "Not Found", Schema("{}")));
@@ -102,19 +106,23 @@ public class HttpResponseDescriptionTests {
     /// first tells a generated client not to wait for one.
     /// </summary>
     [Fact]
-    public void ABodylessResponseIsNotEqualToOneWithABody() {
+    public void ABodylessResponseIsNotEqualToOneWithABody()
+    {
         Assert.NotEqual(
             new ResponseSchemaModel(204, "No Content", null),
-            new ResponseSchemaModel(204, "No Content", Schema("{}")));
+            new ResponseSchemaModel(204, "No Content", Schema("{}"))
+        );
     }
 
     [Fact]
-    public void AResponseIsNotEqualToAnUnrelatedObject() {
+    public void AResponseIsNotEqualToAnUnrelatedObject()
+    {
         Assert.False(new ResponseSchemaModel(404, "Not Found", null).Equals("not a response"));
     }
 
     [Fact]
-    public void TwoBodylessResponsesAreEqual() {
+    public void TwoBodylessResponsesAreEqual()
+    {
         var first = new ResponseSchemaModel(204, "No Content", null);
         var second = new ResponseSchemaModel(204, "No Content", null);
 

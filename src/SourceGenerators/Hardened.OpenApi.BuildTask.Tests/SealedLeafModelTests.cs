@@ -22,8 +22,8 @@ namespace Hardened.OpenApi.BuildTask.Tests;
 /// that, and the response case types have been emitted this way since headers landed.
 /// </para>
 /// </remarks>
-public class SealedLeafModelTests {
-
+public class SealedLeafModelTests
+{
     /// <summary>
     /// Emits every schema the document declares, each against the full list.
     /// </summary>
@@ -32,7 +32,8 @@ public class SealedLeafModelTests {
     /// <c>SpecFileEmitter</c> passes <c>model.Schemas</c>. Whether a schema is a leaf cannot be
     /// answered from the schema alone, so the one-argument overload could only ever say "unknown".
     /// </remarks>
-    private static string Emit(string schemas) {
+    private static string Emit(string schemas)
+    {
         var document = $$"""
             openapi: 3.0.0
             info: { title: Depot, version: '1.0' }
@@ -65,13 +66,16 @@ public class SealedLeafModelTests {
     /// The ordinary case, and the one the whole change is for.
     /// </summary>
     [Fact]
-    public void AModelNothingDerivesFromIsSealed() {
-        var emitted = Emit("""
+    public void AModelNothingDerivesFromIsSealed()
+    {
+        var emitted = Emit(
+            """
                 Part:
                   type: object
                   properties:
                     sku: { type: string }
-            """);
+            """
+        );
 
         Assert.Contains("public sealed partial record Part(", emitted);
     }
@@ -87,8 +91,10 @@ public class SealedLeafModelTests {
     /// instead. So a document without discriminators is all leaves, and all of it seals.
     /// </remarks>
     [Fact]
-    public void AModelSomethingDerivesFromIsNotSealed() {
-        var emitted = Emit("""
+    public void AModelSomethingDerivesFromIsNotSealed()
+    {
+        var emitted = Emit(
+            """
                 Part:
                   type: object
                   required: [kind]
@@ -105,7 +111,8 @@ public class SealedLeafModelTests {
                     - type: object
                       properties:
                         voltage: { type: integer }
-            """);
+            """
+        );
 
         Assert.Contains("public partial record Part(", emitted);
         Assert.DoesNotContain("public sealed partial record Part(", emitted);
@@ -115,8 +122,10 @@ public class SealedLeafModelTests {
     /// And the derived end of that pair is itself a leaf, so it seals.
     /// </summary>
     [Fact]
-    public void TheDerivedEndOfAHierarchyIsStillSealed() {
-        var emitted = Emit("""
+    public void TheDerivedEndOfAHierarchyIsStillSealed()
+    {
+        var emitted = Emit(
+            """
                 Part:
                   type: object
                   required: [kind]
@@ -133,7 +142,8 @@ public class SealedLeafModelTests {
                     - type: object
                       properties:
                         voltage: { type: integer }
-            """);
+            """
+        );
 
         Assert.Contains("public sealed partial record MotorPart(", emitted);
     }
@@ -143,8 +153,10 @@ public class SealedLeafModelTests {
     /// document happens to contain anything mapped to it.
     /// </summary>
     [Fact]
-    public void APolymorphicBaseIsNotSealed() {
-        var emitted = Emit("""
+    public void APolymorphicBaseIsNotSealed()
+    {
+        var emitted = Emit(
+            """
                 Part:
                   type: object
                   required: [kind]
@@ -152,7 +164,8 @@ public class SealedLeafModelTests {
                     kind: { type: string }
                   discriminator:
                     propertyName: kind
-            """);
+            """
+        );
 
         Assert.DoesNotContain("public sealed partial record Part", emitted);
     }
@@ -162,8 +175,10 @@ public class SealedLeafModelTests {
     /// it did not write, and it is a separate question from whether anything may derive from it.
     /// </summary>
     [Fact]
-    public void EveryModelIsStillPartial() {
-        var emitted = Emit("""
+    public void EveryModelIsStillPartial()
+    {
+        var emitted = Emit(
+            """
                 Part:
                   type: object
                   required: [kind]
@@ -180,16 +195,19 @@ public class SealedLeafModelTests {
                     - type: object
                       properties:
                         voltage: { type: integer }
-            """);
+            """
+        );
 
         var declarations = emitted
             .Split('\n')
             .Select(line => line.Trim())
-            .Where(line => line.Contains(" record ") && line.StartsWith("public", System.StringComparison.Ordinal))
+            .Where(line =>
+                line.Contains(" record ")
+                && line.StartsWith("public", System.StringComparison.Ordinal)
+            )
             .ToArray();
 
         Assert.NotEmpty(declarations);
         Assert.All(declarations, line => Assert.Contains("partial record", line));
     }
-
 }

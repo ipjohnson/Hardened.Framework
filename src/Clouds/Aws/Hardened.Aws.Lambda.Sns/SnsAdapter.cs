@@ -20,7 +20,8 @@ namespace Hardened.Aws.Lambda.Sns;
 /// Routes as <c>TOPIC /order-events</c>, the topic name taken from the delivered event.
 /// </para>
 /// </remarks>
-public sealed class SnsAdapter : IPayloadAdapter {
+public sealed class SnsAdapter : IPayloadAdapter
+{
     /// <summary>
     /// The field SNS puts its event source in, capitalised where SQS, DynamoDB Streams and Kinesis
     /// all use a lower-case first letter.
@@ -38,31 +39,33 @@ public sealed class SnsAdapter : IPayloadAdapter {
     /// The value rather than the presence of <c>Records</c>, which four different sources use.
     /// </remarks>
     public bool Handles(JsonElement payload) =>
-        LambdaPayload.FirstRecord(payload) is { } record &&
-        record.TryGetProperty(EventSource, out var source) &&
-        source.ValueKind == JsonValueKind.String &&
-        source.ValueEquals(EventSourceValue);
+        LambdaPayload.FirstRecord(payload) is { } record
+        && record.TryGetProperty(EventSource, out var source)
+        && source.ValueKind == JsonValueKind.String
+        && source.ValueEquals(EventSourceValue);
 
-    public IExecutionRequest CreateRequest(LambdaPayload payload, ILambdaContext context) {
-        var batch = JsonSerializer.Deserialize(
-                        payload.Raw.Span, SnsSerializerContext.Default.SNSEvent)
-                    ?? throw new InvalidOperationException(
-                        "The SNS adapter was given a payload that deserialized to null. The peek " +
-                        "identified it by its records' aws:sns event source, so this is a " +
-                        "malformed event rather than a different source.");
+    public IExecutionRequest CreateRequest(LambdaPayload payload, ILambdaContext context)
+    {
+        var batch =
+            JsonSerializer.Deserialize(payload.Raw.Span, SnsSerializerContext.Default.SNSEvent)
+            ?? throw new InvalidOperationException(
+                "The SNS adapter was given a payload that deserialized to null. The peek "
+                    + "identified it by its records' aws:sns event source, so this is a "
+                    + "malformed event rather than a different source."
+            );
 
         // Copied rather than cast: SNSEvent.Records is IList<T>, which does not implement
         // IReadOnlyList<T>, and the copy is also what stops a caller mutating the batch a filter is
         // partway through forking.
-        var records = batch.Records == null
-            ? Array.Empty<SNSEvent.SNSRecord>()
-            : batch.Records.ToArray();
+        var records =
+            batch.Records == null ? Array.Empty<SNSEvent.SNSRecord>() : batch.Records.ToArray();
 
         return new SnsRequest(
             TopicName(records.Length > 0 ? records[0].Sns?.TopicArn : null),
             new MemoryStream(payload.Raw.ToArray(), writable: false),
             new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase),
-            records);
+            records
+        );
     }
 
     /// <summary>
@@ -73,8 +76,10 @@ public sealed class SnsAdapter : IPayloadAdapter {
     /// segment holding the subscription's own id, which is why this reads the topic ARN inside the
     /// notification rather than <c>EventSubscriptionArn</c> beside it.
     /// </remarks>
-    internal static string TopicName(string? topicArn) {
-        if (string.IsNullOrEmpty(topicArn)) {
+    internal static string TopicName(string? topicArn)
+    {
+        if (string.IsNullOrEmpty(topicArn))
+        {
             return "";
         }
 

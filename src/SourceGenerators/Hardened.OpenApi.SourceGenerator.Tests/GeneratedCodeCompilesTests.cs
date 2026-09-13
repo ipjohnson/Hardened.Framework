@@ -1,6 +1,6 @@
 using Hardened.SourceGeneration.Testing;
-using Xunit;
 using Hardened.Web.Runtime.Responses;
+using Xunit;
 
 namespace Hardened.OpenApi.SourceGenerator.Tests;
 
@@ -22,16 +22,18 @@ namespace Hardened.OpenApi.SourceGenerator.Tests;
 /// are all compiled together, in the combination a real project produces.
 /// </para>
 /// </summary>
-public class GeneratedCodeCompilesTests {
-
+public class GeneratedCodeCompilesTests
+{
     [Fact]
-    public void TheSmallestSpecProducesCodeThatCompiles() {
+    public void TheSmallestSpecProducesCodeThatCompiles()
+    {
         OpenApiGenerator.Run(Specs.Minimal).AssertNoErrors();
     }
 
     /// <summary>A JSON document is as valid a specification as a YAML one.</summary>
     [Fact]
-    public void AJsonSpecProducesCodeThatCompiles() {
+    public void AJsonSpecProducesCodeThatCompiles()
+    {
         OpenApiGenerator.Run(Specs.MinimalJson, specFileName: "petstore.json").AssertNoErrors();
     }
 
@@ -40,14 +42,21 @@ public class GeneratedCodeCompilesTests {
     /// here as a constructor whose parameter type does not exist rather than as a string mismatch.
     /// </summary>
     [Fact]
-    public void RecordsForEverySchemaShapeCompile() {
+    public void RecordsForEverySchemaShapeCompile()
+    {
         var result = OpenApiGenerator.Run(Specs.EverySchemaShape).AssertNoErrors();
 
         var record = result.SourceContaining("petstore.g.cs");
 
         Assert.Contains("public sealed partial record Widget(", record);
-        Assert.Contains("global::System.Collections.Generic.List<global::TestNamespace.Models.Part>? Parts = default", record);
-        Assert.Contains("global::System.Collections.Generic.Dictionary<string,string>? Labels = default", record);
+        Assert.Contains(
+            "global::System.Collections.Generic.List<global::TestNamespace.Models.Part>? Parts = default",
+            record
+        );
+        Assert.Contains(
+            "global::System.Collections.Generic.Dictionary<string,string>? Labels = default",
+            record
+        );
     }
 
     /// <summary>
@@ -57,7 +66,8 @@ public class GeneratedCodeCompilesTests {
     /// description declares.
     /// </summary>
     [Fact]
-    public void GeneratedEnumsCompile() {
+    public void GeneratedEnumsCompile()
+    {
         var result = OpenApiGenerator.Run(Specs.EverySchemaShape).AssertNoErrors();
 
         var generated = result.SourceContaining("petstore.g.cs");
@@ -72,13 +82,17 @@ public class GeneratedCodeCompilesTests {
     /// records the same run emitted.
     /// </summary>
     [Fact]
-    public void GeneratedServiceInterfacesCompile() {
+    public void GeneratedServiceInterfacesCompile()
+    {
         var result = OpenApiGenerator.Run(Specs.EverySchemaShape).AssertNoErrors();
 
         var generated = result.SourceContaining("petstore.g.cs");
 
         Assert.Contains("public partial interface IWidgetService", generated);
-        Assert.Contains("Task<global::System.Collections.Generic.List<global::TestNamespace.Models.Widget>> ListWidgets(", generated);
+        Assert.Contains(
+            "Task<global::System.Collections.Generic.List<global::TestNamespace.Models.Widget>> ListWidgets(",
+            generated
+        );
     }
 
     /// <summary>
@@ -87,8 +101,10 @@ public class GeneratedCodeCompilesTests {
     /// registration against real user code rather than against nothing.
     /// </summary>
     [Fact]
-    public void AHandlerImplementingTheGeneratedInterfaceCompiles() {
-        OpenApiGenerator.Run(
+    public void AHandlerImplementingTheGeneratedInterfaceCompiles()
+    {
+        OpenApiGenerator
+            .Run(
                 Specs.Minimal,
                 OpenApiGenerator.EntryPointWithHandler(
                     """
@@ -96,7 +112,9 @@ public class GeneratedCodeCompilesTests {
                     public class PetServiceImpl : IPetService {
                         public Task<Pet> ListPets() => Task.FromResult(new Pet("1"));
                     }
-                    """))
+                    """
+                )
+            )
             .AssertNoErrors();
     }
 
@@ -105,8 +123,10 @@ public class GeneratedCodeCompilesTests {
     /// wildcard node and a method switch with six cases.
     /// </summary>
     [Fact]
-    public void EveryVerbRoutesAndCompiles() {
-        var result = OpenApiGenerator.Run(
+    public void EveryVerbRoutesAndCompiles()
+    {
+        var result = OpenApiGenerator
+            .Run(
                 Specs.EveryVerb,
                 OpenApiGenerator.EntryPointWithHandler(
                     """
@@ -119,12 +139,15 @@ public class GeneratedCodeCompilesTests {
                         public Task UpdateItem(string itemId) => Task.CompletedTask;
                         public Task DeleteItem(string itemId) => Task.CompletedTask;
                     }
-                    """))
+                    """
+                )
+            )
             .AssertNoErrors();
 
         var routing = result.SourceContaining("SpecRouting");
 
-        foreach (var verb in new[] { "GET", "POST", "PUT", "PATCH", "DELETE" }) {
+        foreach (var verb in new[] { "GET", "POST", "PUT", "PATCH", "DELETE" })
+        {
             Assert.Contains($"case \"{verb}\":", routing);
         }
     }
@@ -135,24 +158,28 @@ public class GeneratedCodeCompilesTests {
     [InlineData("put", "PUT")]
     [InlineData("patch", "PATCH")]
     [InlineData("delete", "DELETE")]
-    public void AnOperationOfEachVerbCompilesOnItsOwn(string verb, string expected) {
-        var result = OpenApiGenerator.Run(
-            $$"""
-            openapi: "3.0.0"
-            info: { title: Items, version: "1.0" }
-            paths:
-              /items/{itemId}:
-                {{verb}}:
-                  tags: [Item]
-                  operationId: handleItem
-                  parameters:
-                    - name: itemId
-                      in: path
-                      required: true
-                      schema: { type: string }
-                  responses:
-                    '200': { description: ok }
-            """).AssertNoErrors();
+    public void AnOperationOfEachVerbCompilesOnItsOwn(string verb, string expected)
+    {
+        var result = OpenApiGenerator
+            .Run(
+                $$"""
+                openapi: "3.0.0"
+                info: { title: Items, version: "1.0" }
+                paths:
+                  /items/{itemId}:
+                    {{verb}}:
+                      tags: [Item]
+                      operationId: handleItem
+                      parameters:
+                        - name: itemId
+                          in: path
+                          required: true
+                          schema: { type: string }
+                      responses:
+                        '200': { description: ok }
+                """
+            )
+            .AssertNoErrors();
 
         Assert.Contains($"case \"{expected}\":", result.SourceContaining("SpecRouting"));
     }
@@ -167,7 +194,8 @@ public class GeneratedCodeCompilesTests {
     /// not match and validation never runs on a build that is green.
     /// </remarks>
     [Fact]
-    public void ValidationIsWiredThroughTheInterfaceOntoTheHandler() {
+    public void ValidationIsWiredThroughTheInterfaceOntoTheHandler()
+    {
         var result = OpenApiGenerator.Run(Specs.EveryValidationConstraint).AssertNoErrors();
 
         var handler = result.SourceContaining("OrderController_CreateOrder");
@@ -187,7 +215,8 @@ public class GeneratedCodeCompilesTests {
     /// generator is not in this harness, so what is asserted here is the input it will read.
     /// </remarks>
     [Fact]
-    public void SpecConstraintsBecomeAttributes() {
+    public void SpecConstraintsBecomeAttributes()
+    {
         var result = OpenApiGenerator.Run(Specs.EveryValidationConstraint).AssertNoErrors();
 
         var emitted = result.SourceContaining("petstore.g.cs");
@@ -200,7 +229,10 @@ public class GeneratedCodeCompilesTests {
 
         // The reference form, pointing at a [GeneratedRegex] member the task also emits. The inline
         // form would root the regex engine at 448 KB on an AOT publish.
-        Assert.Contains("[property: global::ValidationModules.Constraints.Pattern(typeof(", emitted);
+        Assert.Contains(
+            "[property: global::ValidationModules.Constraints.Pattern(typeof(",
+            emitted
+        );
         Assert.Contains("GeneratedRegex(", emitted);
         Assert.DoesNotContain("new Regex(", emitted);
     }
@@ -211,16 +243,32 @@ public class GeneratedCodeCompilesTests {
     /// <c>CreatePropertyInfo&lt;T&gt;</c> and in a <c>typeof</c>, and all three have to agree.
     /// </summary>
     [Fact]
-    public void TheJsonTypeInfoResolverCompiles() {
+    public void TheJsonTypeInfoResolverCompiles()
+    {
         var result = OpenApiGenerator.Run(Specs.EverySchemaShape).AssertNoErrors();
 
         var resolver = result.SourceContaining("petstore.g.cs");
 
-        Assert.Contains("public sealed class PetstoreJsonTypeInfoResolver : global::System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver", resolver);
-        Assert.Contains("if (type == typeof(global::TestNamespace.Models.Widget)) return CreateWidgetTypeInfo(options);", resolver);
-        Assert.Contains("if (type == typeof(global::TestNamespace.Models.WidgetStatus)) return CreateWidgetStatusTypeInfo(options);", resolver);
-        Assert.Contains("CreateListInfo<global::System.Collections.Generic.List<global::TestNamespace.Models.Part>, global::TestNamespace.Models.Part>", resolver);
-        Assert.Contains("CreateDictionaryInfo<global::System.Collections.Generic.Dictionary<string,string>, string, string>", resolver);
+        Assert.Contains(
+            "public sealed class PetstoreJsonTypeInfoResolver : global::System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver",
+            resolver
+        );
+        Assert.Contains(
+            "if (type == typeof(global::TestNamespace.Models.Widget)) return CreateWidgetTypeInfo(options);",
+            resolver
+        );
+        Assert.Contains(
+            "if (type == typeof(global::TestNamespace.Models.WidgetStatus)) return CreateWidgetStatusTypeInfo(options);",
+            resolver
+        );
+        Assert.Contains(
+            "CreateListInfo<global::System.Collections.Generic.List<global::TestNamespace.Models.Part>, global::TestNamespace.Models.Part>",
+            resolver
+        );
+        Assert.Contains(
+            "CreateDictionaryInfo<global::System.Collections.Generic.Dictionary<string,string>, string, string>",
+            resolver
+        );
     }
 
     /// <summary>
@@ -229,8 +277,10 @@ public class GeneratedCodeCompilesTests {
     /// not line up with the record's constructor fails only when something deserialises.
     /// </summary>
     [Fact]
-    public void TheJsonTypeInfoResolverRoundTripsAGeneratedRecord() {
-        OpenApiGenerator.Run(
+    public void TheJsonTypeInfoResolverRoundTripsAGeneratedRecord()
+    {
+        OpenApiGenerator
+            .Run(
                 Specs.EverySchemaShape,
                 """
                 using System.Text.Json;
@@ -248,7 +298,8 @@ public class GeneratedCodeCompilesTests {
                         return JsonSerializer.Deserialize<Widget>(json, options)!;
                     }
                 }
-                """)
+                """
+            )
             .AssertNoErrors();
     }
 
@@ -258,7 +309,8 @@ public class GeneratedCodeCompilesTests {
     /// <c>required</c> produces a record whose parameters are ordered wrongly and does not compile.
     /// </summary>
     [Fact]
-    public void AllOfCompositionCompiles() {
+    public void AllOfCompositionCompiles()
+    {
         var result = OpenApiGenerator.Run(Specs.AllOfComposition).AssertNoErrors();
 
         var record = result.SourceContaining("petstore.g.cs");
@@ -274,12 +326,16 @@ public class GeneratedCodeCompilesTests {
     /// a property name or literal the emitter formats wrongly fails to compile.
     /// </summary>
     [Fact]
-    public void FilterAttributesFromTheSpecCompile() {
+    public void FilterAttributesFromTheSpecCompile()
+    {
         var result = OpenApiGenerator.Run(Specs.FilterTypes).AssertNoErrors();
 
         var attribute = result.SourceContaining("petstore.g.cs");
 
-        Assert.Contains("public partial class RateLimitAttribute : global::System.Attribute", attribute);
+        Assert.Contains(
+            "public partial class RateLimitAttribute : global::System.Attribute",
+            attribute
+        );
         Assert.Contains("public int MaxRequests { get; set; } = 100;", attribute);
         Assert.Contains("public string Window { get; set; } = \"minute\";", attribute);
         Assert.Contains("public bool Enabled { get; set; } = true;", attribute);
@@ -297,10 +353,14 @@ public class GeneratedCodeCompilesTests {
     /// <c>x-filters</c> onto it without emitting a second definition that would collide with it.
     /// </summary>
     [Fact]
-    public void AFilterTypeMarkedNotGeneratedIsNotEmitted() {
+    public void AFilterTypeMarkedNotGeneratedIsNotEmitted()
+    {
         var result = OpenApiGenerator.Run(Specs.FilterTypes).AssertNoErrors();
 
-        Assert.DoesNotContain(result.GeneratedSources.Keys, key => key.Contains("ExternalAttribute"));
+        Assert.DoesNotContain(
+            result.GeneratedSources.Keys,
+            key => key.Contains("ExternalAttribute")
+        );
     }
 
     /// <summary>
@@ -308,7 +368,8 @@ public class GeneratedCodeCompilesTests {
     /// identifier the transport supplies rather than the caller.
     /// </summary>
     [Fact]
-    public void AParameterMarkedCodegenExcludeIsNotGenerated() {
+    public void AParameterMarkedCodegenExcludeIsNotGenerated()
+    {
         var result = OpenApiGenerator.Run(Specs.CodegenExcludedParameter).AssertNoErrors();
 
         var generated = result.SourceContaining("petstore.g.cs");
@@ -322,7 +383,8 @@ public class GeneratedCodeCompilesTests {
     /// path, in front of the operation's own.
     /// </summary>
     [Fact]
-    public void APathItemParameterIsGeneratedOnEveryOperationSignature() {
+    public void APathItemParameterIsGeneratedOnEveryOperationSignature()
+    {
         var result = OpenApiGenerator.Run(Specs.PathItemLevelParameters).AssertNoErrors();
 
         var generated = result.SourceContaining("petstore.g.cs");
@@ -337,7 +399,8 @@ public class GeneratedCodeCompilesTests {
     /// endpoint is visible at the call site instead of only in the document.
     /// </summary>
     [Fact]
-    public void OperationProseBecomesADocComment() {
+    public void OperationProseBecomesADocComment()
+    {
         var generated = Undent(OpenApiGenerator.Run(Specs.DescribedOperations).AssertNoErrors());
 
         // The route line keeps its place; the spec's prose follows it. A literal arrow, because
@@ -352,19 +415,23 @@ public class GeneratedCodeCompilesTests {
     /// would produce a doc comment that does not parse.
     /// </summary>
     [Fact]
-    public void ProseKeepsItsStructureAndIsEscaped() {
+    public void ProseKeepsItsStructureAndIsEscaped()
+    {
         var generated = Undent(OpenApiGenerator.Run(Specs.DescribedOperations).AssertNoErrors());
 
         Assert.Contains(
             "/// Returns a single pet.\n"
-            + "///\n"
-            + "/// Wraps across lines, and mentions that 0 &lt; limit &lt;= 100 "
-            + "&amp; that ids are opaque.\n",
-            generated);
+                + "///\n"
+                + "/// Wraps across lines, and mentions that 0 &lt; limit &lt;= 100 "
+                + "&amp; that ids are opaque.\n",
+            generated
+        );
 
         // Every line of the comment carries its own marker; a raw newline would leave one without.
-        foreach (var line in generated.Split('\n')) {
-            if (line.Contains("Wraps across lines")) {
+        foreach (var line in generated.Split('\n'))
+        {
+            if (line.Contains("Wraps across lines"))
+            {
                 Assert.StartsWith("///", line);
             }
         }
@@ -375,7 +442,8 @@ public class GeneratedCodeCompilesTests {
     /// that documents it — which for a positional record is the only place it can go.
     /// </summary>
     [Fact]
-    public void SchemaProseBecomesRecordDocumentation() {
+    public void SchemaProseBecomesRecordDocumentation()
+    {
         var generated = Undent(OpenApiGenerator.Run(Specs.DescribedOperations).AssertNoErrors());
 
         Assert.Contains("/// A pet in the store.", generated);
@@ -390,7 +458,8 @@ public class GeneratedCodeCompilesTests {
     /// An enum and its members carry their own documentation.
     /// </summary>
     [Fact]
-    public void EnumProseBecomesEnumDocumentation() {
+    public void EnumProseBecomesEnumDocumentation()
+    {
         var result = OpenApiGenerator.Run(Specs.DescribedOperations).AssertNoErrors();
 
         var generated = result.SourceContaining("petstore.g.cs");
@@ -403,7 +472,8 @@ public class GeneratedCodeCompilesTests {
     /// An operation that says nothing reads exactly as it did before descriptions were carried.
     /// </summary>
     [Fact]
-    public void AnUndocumentedOperationKeepsItsRouteOnlyComment() {
+    public void AnUndocumentedOperationKeepsItsRouteOnlyComment()
+    {
         var result = OpenApiGenerator.Run(Specs.DescribedOperations).AssertNoErrors();
 
         var generated = result.SourceContaining("petstore.g.cs");
@@ -416,22 +486,29 @@ public class GeneratedCodeCompilesTests {
     /// spec declares but never returns.
     /// </summary>
     [Fact]
-    public void AnUnreferencedSchemaStillGetsARecord() {
-        var result = OpenApiGenerator.Run(
-            """
-            openapi: "3.0.0"
-            info: { title: T, version: "1.0" }
-            paths: {}
-            components:
-              schemas:
-                Orphan:
-                  type: object
-                  required: [id]
-                  properties:
-                    id: { type: string }
-            """).AssertNoErrors();
+    public void AnUnreferencedSchemaStillGetsARecord()
+    {
+        var result = OpenApiGenerator
+            .Run(
+                """
+                openapi: "3.0.0"
+                info: { title: T, version: "1.0" }
+                paths: {}
+                components:
+                  schemas:
+                    Orphan:
+                      type: object
+                      required: [id]
+                      properties:
+                        id: { type: string }
+                """
+            )
+            .AssertNoErrors();
 
-        Assert.Contains("public sealed partial record Orphan(", result.SourceContaining("petstore.g.cs"));
+        Assert.Contains(
+            "public sealed partial record Orphan(",
+            result.SourceContaining("petstore.g.cs")
+        );
     }
 
     /// <summary>
@@ -440,19 +517,26 @@ public class GeneratedCodeCompilesTests {
     /// <c>ObjectCreator</c> instead of a parameterised one.
     /// </summary>
     [Fact]
-    public void AnEmptySchemaCompiles() {
-        var result = OpenApiGenerator.Run(
-            """
-            openapi: "3.0.0"
-            info: { title: T, version: "1.0" }
-            paths: {}
-            components:
-              schemas:
-                Empty:
-                  type: object
-            """).AssertNoErrors();
+    public void AnEmptySchemaCompiles()
+    {
+        var result = OpenApiGenerator
+            .Run(
+                """
+                openapi: "3.0.0"
+                info: { title: T, version: "1.0" }
+                paths: {}
+                components:
+                  schemas:
+                    Empty:
+                      type: object
+                """
+            )
+            .AssertNoErrors();
 
-        Assert.Contains("public sealed partial record Empty;", result.SourceContaining("petstore.g.cs"));
+        Assert.Contains(
+            "public sealed partial record Empty;",
+            result.SourceContaining("petstore.g.cs")
+        );
     }
 
     /// <summary>
@@ -460,21 +544,25 @@ public class GeneratedCodeCompilesTests {
     /// keeps <c>class</c> or <c>event</c> from landing in the constructor unescaped.
     /// </summary>
     [Fact]
-    public void APropertyNamedAfterAKeywordCompiles() {
-        var result = OpenApiGenerator.Run(
-            """
-            openapi: "3.0.0"
-            info: { title: T, version: "1.0" }
-            paths: {}
-            components:
-              schemas:
-                Booking:
-                  type: object
-                  required: [class, event]
-                  properties:
-                    class: { type: string }
-                    event: { type: string }
-            """).AssertNoErrors();
+    public void APropertyNamedAfterAKeywordCompiles()
+    {
+        var result = OpenApiGenerator
+            .Run(
+                """
+                openapi: "3.0.0"
+                info: { title: T, version: "1.0" }
+                paths: {}
+                components:
+                  schemas:
+                    Booking:
+                      type: object
+                      required: [class, event]
+                      properties:
+                        class: { type: string }
+                        event: { type: string }
+                """
+            )
+            .AssertNoErrors();
 
         var record = result.SourceContaining("petstore.g.cs");
 
@@ -487,29 +575,39 @@ public class GeneratedCodeCompilesTests {
     /// produces an identifier the compiler rejects.
     /// </summary>
     [Fact]
-    public void HyphenatedAndUnderscoredNamesBecomeValidIdentifiers() {
-        var result = OpenApiGenerator.Run(
-            """
-            openapi: "3.0.0"
-            info: { title: T, version: "1.0" }
-            paths:
-              /shipping-labels:
-                get:
-                  tags: [shipping-label]
-                  operationId: list_shipping_labels
-                  responses:
-                    '200': { description: ok }
-            components:
-              schemas:
-                shipping-label:
-                  type: object
-                  required: [tracking_number]
-                  properties:
-                    tracking_number: { type: string }
-            """).AssertNoErrors();
+    public void HyphenatedAndUnderscoredNamesBecomeValidIdentifiers()
+    {
+        var result = OpenApiGenerator
+            .Run(
+                """
+                openapi: "3.0.0"
+                info: { title: T, version: "1.0" }
+                paths:
+                  /shipping-labels:
+                    get:
+                      tags: [shipping-label]
+                      operationId: list_shipping_labels
+                      responses:
+                        '200': { description: ok }
+                components:
+                  schemas:
+                    shipping-label:
+                      type: object
+                      required: [tracking_number]
+                      properties:
+                        tracking_number: { type: string }
+                """
+            )
+            .AssertNoErrors();
 
-        Assert.Contains("public sealed partial record ShippingLabel(", result.SourceContaining("petstore.g.cs"));
-        Assert.Contains("public partial interface IShippingLabelService", result.SourceContaining("petstore.g.cs"));
+        Assert.Contains(
+            "public sealed partial record ShippingLabel(",
+            result.SourceContaining("petstore.g.cs")
+        );
+        Assert.Contains(
+            "public partial interface IShippingLabelService",
+            result.SourceContaining("petstore.g.cs")
+        );
         Assert.Contains("ListShippingLabels(", result.SourceContaining("petstore.g.cs"));
     }
 
@@ -518,8 +616,10 @@ public class GeneratedCodeCompilesTests {
     /// the case where a hint name or a class name that is not qualified by tag collides.
     /// </summary>
     [Fact]
-    public void TwoTagsInOneSpecProduceTwoInterfacesThatCompile() {
-        var result = OpenApiGenerator.Run(
+    public void TwoTagsInOneSpecProduceTwoInterfacesThatCompile()
+    {
+        var result = OpenApiGenerator
+            .Run(
                 """
                 openapi: "3.0.0"
                 info: { title: T, version: "1.0" }
@@ -548,7 +648,9 @@ public class GeneratedCodeCompilesTests {
                     public class StoreServiceImpl : IStoreService {
                         public Task ListStores() => Task.CompletedTask;
                     }
-                    """))
+                    """
+                )
+            )
             .AssertNoErrors();
 
         var routing = result.SourceContaining("SpecRouting");
@@ -565,18 +667,22 @@ public class GeneratedCodeCompilesTests {
     /// compile error rather than an odd-looking name.
     /// </summary>
     [Fact]
-    public void AnOperationWithoutAnOperationIdCompiles() {
-        var result = OpenApiGenerator.Run(
-            """
-            openapi: "3.0.0"
-            info: { title: T, version: "1.0" }
-            paths:
-              /shipping-labels/{id}/history:
-                get:
-                  tags: [Label]
-                  responses:
-                    '200': { description: ok }
-            """).AssertNoErrors();
+    public void AnOperationWithoutAnOperationIdCompiles()
+    {
+        var result = OpenApiGenerator
+            .Run(
+                """
+                openapi: "3.0.0"
+                info: { title: T, version: "1.0" }
+                paths:
+                  /shipping-labels/{id}/history:
+                    get:
+                      tags: [Label]
+                      responses:
+                        '200': { description: ok }
+                """
+            )
+            .AssertNoErrors();
 
         Assert.Contains("GetShippingLabelsByIdHistory(", result.SourceContaining("petstore.g.cs"));
     }
@@ -586,20 +692,27 @@ public class GeneratedCodeCompilesTests {
     /// interface it belongs to is <c>IDefaultService</c>.
     /// </summary>
     [Fact]
-    public void AnUntaggedOperationLandsOnTheDefaultService() {
-        var result = OpenApiGenerator.Run(
-            """
-            openapi: "3.0.0"
-            info: { title: T, version: "1.0" }
-            paths:
-              /health:
-                get:
-                  operationId: healthCheck
-                  responses:
-                    '200': { description: ok }
-            """).AssertNoErrors();
+    public void AnUntaggedOperationLandsOnTheDefaultService()
+    {
+        var result = OpenApiGenerator
+            .Run(
+                """
+                openapi: "3.0.0"
+                info: { title: T, version: "1.0" }
+                paths:
+                  /health:
+                    get:
+                      operationId: healthCheck
+                      responses:
+                        '200': { description: ok }
+                """
+            )
+            .AssertNoErrors();
 
-        Assert.Contains("public partial interface IDefaultService", result.SourceContaining("petstore.g.cs"));
+        Assert.Contains(
+            "public partial interface IDefaultService",
+            result.SourceContaining("petstore.g.cs")
+        );
     }
 
     /// <summary>
@@ -607,20 +720,24 @@ public class GeneratedCodeCompilesTests {
     /// an error, and the empty routing table still has to compile.
     /// </summary>
     [Fact]
-    public void ASpecWithNoOperationsCompiles() {
-        var result = OpenApiGenerator.Run(
-            """
-            openapi: "3.0.0"
-            info: { title: T, version: "1.0" }
-            paths: {}
-            components:
-              schemas:
-                Pet:
-                  type: object
-                  required: [id]
-                  properties:
-                    id: { type: string }
-            """).AssertNoErrors();
+    public void ASpecWithNoOperationsCompiles()
+    {
+        var result = OpenApiGenerator
+            .Run(
+                """
+                openapi: "3.0.0"
+                info: { title: T, version: "1.0" }
+                paths: {}
+                components:
+                  schemas:
+                    Pet:
+                      type: object
+                      required: [id]
+                      properties:
+                        id: { type: string }
+                """
+            )
+            .AssertNoErrors();
 
         Assert.DoesNotContain(result.GeneratedSources.Keys, key => key.Contains("Service"));
     }
@@ -631,13 +748,16 @@ public class GeneratedCodeCompilesTests {
     /// a library project carry generated types for an application elsewhere to route.
     /// </summary>
     [Fact]
-    public void ASpecWithNoEntryPointStillEmitsModelsAndCompiles() {
-        var result = OpenApiGenerator.Run(
-                Specs.Minimal,
-                "namespace TestNamespace; public class NotAModule { }")
+    public void ASpecWithNoEntryPointStillEmitsModelsAndCompiles()
+    {
+        var result = OpenApiGenerator
+            .Run(Specs.Minimal, "namespace TestNamespace; public class NotAModule { }")
             .AssertNoErrors();
 
-        Assert.Contains("public sealed partial record Pet", result.GeneratedSources["petstore.g.cs"]);
+        Assert.Contains(
+            "public sealed partial record Pet",
+            result.GeneratedSources["petstore.g.cs"]
+        );
         Assert.DoesNotContain(result.GeneratedSources.Keys, key => key.Contains("SpecRouting"));
     }
 
@@ -646,8 +766,10 @@ public class GeneratedCodeCompilesTests {
     /// combination most likely to break parameter indexing in the emitted <c>Parameters</c> class.
     /// </summary>
     [Fact]
-    public void AnOperationWithABodyAPathTokenAndAQueryParameterCompiles() {
-        OpenApiGenerator.Run(
+    public void AnOperationWithABodyAPathTokenAndAQueryParameterCompiles()
+    {
+        OpenApiGenerator
+            .Run(
                 """
                 openapi: "3.0.0"
                 info: { title: T, version: "1.0" }
@@ -691,7 +813,9 @@ public class GeneratedCodeCompilesTests {
                         public Task<Pet> ReplacePet(string petId, bool? notify, Pet body) =>
                             Task.FromResult(body);
                     }
-                    """))
+                    """
+                )
+            )
             .AssertNoErrors();
     }
 
@@ -700,25 +824,29 @@ public class GeneratedCodeCompilesTests {
     /// mapped C# type, and the handler assigns the awaited result to the response value.
     /// </summary>
     [Fact]
-    public void APrimitiveResponseCompiles() {
-        var result = OpenApiGenerator.Run(
-            """
-            openapi: "3.0.0"
-            info: { title: T, version: "1.0" }
-            paths:
-              /count:
-                get:
-                  tags: [Stat]
-                  operationId: getCount
-                  responses:
-                    '200':
-                      description: ok
-                      content:
-                        application/json:
-                          schema:
-                            type: integer
-                            format: int64
-            """).AssertNoErrors();
+    public void APrimitiveResponseCompiles()
+    {
+        var result = OpenApiGenerator
+            .Run(
+                """
+                openapi: "3.0.0"
+                info: { title: T, version: "1.0" }
+                paths:
+                  /count:
+                    get:
+                      tags: [Stat]
+                      operationId: getCount
+                      responses:
+                        '200':
+                          description: ok
+                          content:
+                            application/json:
+                              schema:
+                                type: integer
+                                format: int64
+                """
+            )
+            .AssertNoErrors();
 
         Assert.Contains("Task<long> GetCount(", result.SourceContaining("petstore.g.cs"));
     }
@@ -732,7 +860,8 @@ public class GeneratedCodeCompilesTests {
     /// base mapped to <c>JsonElement</c> and the closed set of shapes the spec described was lost.
     /// </remarks>
     [Fact]
-    public void ADiscriminatedHierarchyBecomesRecordInheritance() {
+    public void ADiscriminatedHierarchyBecomesRecordInheritance()
+    {
         var generated = Undent(OpenApiGenerator.Run(Specs.DiscriminatedHierarchy).AssertNoErrors());
 
         // The base declares the shared properties; each derived record forwards them.
@@ -741,7 +870,10 @@ public class GeneratedCodeCompilesTests {
         // from, so it is the one that keeps the door open - every leaf beside it seals.
         Assert.Contains("public partial record Pet(", generated);
         Assert.DoesNotContain("public sealed partial record Pet(", generated);
-        Assert.Contains(") : global::TestNamespace.Models.Pet(PetType, Name, Nickname);", generated);
+        Assert.Contains(
+            ") : global::TestNamespace.Models.Pet(PetType, Name, Nickname);",
+            generated
+        );
         Assert.Contains("record Dog(", generated);
         Assert.Contains("record Cat(", generated);
 
@@ -752,9 +884,13 @@ public class GeneratedCodeCompilesTests {
         // The whole point: the branches are typed, not an untyped blob. Checked on the record
         // declarations rather than the file, because the resolver always carries a JsonElement
         // entry among its primitives whatever the spec says.
-        foreach (var line in generated.Split('\n')) {
-            if (line.StartsWith("public partial record ") ||
-                line.StartsWith("public sealed partial record ")) {
+        foreach (var line in generated.Split('\n'))
+        {
+            if (
+                line.StartsWith("public partial record ")
+                || line.StartsWith("public sealed partial record ")
+            )
+            {
                 Assert.DoesNotContain("JsonElement", line);
             }
         }
@@ -765,13 +901,20 @@ public class GeneratedCodeCompilesTests {
     /// at run time to find it.
     /// </summary>
     [Fact]
-    public void TheResolverCarriesPolymorphismMetadata() {
+    public void TheResolverCarriesPolymorphismMetadata()
+    {
         var generated = Undent(OpenApiGenerator.Run(Specs.DiscriminatedHierarchy).AssertNoErrors());
 
         Assert.Contains("typeInfo.PolymorphismOptions = new JsonPolymorphismOptions", generated);
         Assert.Contains("""TypeDiscriminatorPropertyName = "petType",""", generated);
-        Assert.Contains("""new JsonDerivedType(typeof(global::TestNamespace.Models.Dog), "dog"),""", generated);
-        Assert.Contains("""new JsonDerivedType(typeof(global::TestNamespace.Models.Cat), "cat"),""", generated);
+        Assert.Contains(
+            """new JsonDerivedType(typeof(global::TestNamespace.Models.Dog), "dog"),""",
+            generated
+        );
+        Assert.Contains(
+            """new JsonDerivedType(typeof(global::TestNamespace.Models.Cat), "cat"),""",
+            generated
+        );
 
         // An unrecognised runtime type fails loudly rather than silently writing the base shape.
         Assert.Contains("JsonUnknownDerivedTypeHandling.FailSerialization", generated);
@@ -782,8 +925,10 @@ public class GeneratedCodeCompilesTests {
     /// consumer actually writes.
     /// </summary>
     [Fact]
-    public void AHandlerCanReturnDerivedTypesThroughTheBase() {
-        OpenApiGenerator.Run(
+    public void AHandlerCanReturnDerivedTypesThroughTheBase()
+    {
+        OpenApiGenerator
+            .Run(
                 Specs.DiscriminatedHierarchy,
                 OpenApiGenerator.EntryPointWithHandler(
                     """
@@ -795,7 +940,9 @@ public class GeneratedCodeCompilesTests {
                                 new Cat("cat", "Tom"),
                             });
                     }
-                    """))
+                    """
+                )
+            )
             .AssertNoErrors();
     }
 
@@ -810,7 +957,8 @@ public class GeneratedCodeCompilesTests {
     /// into nothing behind a build that stayed green.
     /// </remarks>
     [Fact]
-    public void AComponentThatIsAChoiceGeneratesTheWrapperAndTypesTheOperation() {
+    public void AComponentThatIsAChoiceGeneratesTheWrapperAndTypesTheOperation()
+    {
         var generated = Undent(OpenApiGenerator.Run(Specs.ComponentChoice).AssertNoErrors());
 
         // Partial, like every generated type - an application extends it in place rather
@@ -834,11 +982,18 @@ public class GeneratedCodeCompilesTests {
     /// and a public <c>object? Value</c> is what <c>union Pet(Cat, Dog);</c> compiles to.
     /// </remarks>
     [Fact]
-    public void AChoiceTakesOneConstructorPerBranchRatherThanCheckingAtRunTime() {
+    public void AChoiceTakesOneConstructorPerBranchRatherThanCheckingAtRunTime()
+    {
         var generated = Undent(OpenApiGenerator.Run(Specs.ComponentChoice).AssertNoErrors());
 
-        Assert.Contains("public Pet(global::TestNamespace.Models.Cat value) => Value = value;", generated);
-        Assert.Contains("public Pet(global::TestNamespace.Models.Dog value) => Value = value;", generated);
+        Assert.Contains(
+            "public Pet(global::TestNamespace.Models.Cat value) => Value = value;",
+            generated
+        );
+        Assert.Contains(
+            "public Pet(global::TestNamespace.Models.Dog value) => Value = value;",
+            generated
+        );
 
         // The guard the constructors replace, and the message it composed, are both gone.
         Assert.DoesNotContain("public Pet(object value)", generated);
@@ -849,16 +1004,17 @@ public class GeneratedCodeCompilesTests {
     /// The generated file with every line left-trimmed, so an assertion about the shape of a doc
     /// comment does not also depend on how deeply the member it documents happens to be nested.
     /// </summary>
-    private static string Undent(GeneratorResult result) {
+    private static string Undent(GeneratorResult result)
+    {
         var lines = result.SourceContaining("petstore.g.cs").Replace("\r\n", "\n").Split('\n');
 
-        for (var i = 0; i < lines.Length; i++) {
+        for (var i = 0; i < lines.Length; i++)
+        {
             lines[i] = lines[i].TrimStart();
         }
 
         return string.Join("\n", lines);
     }
-
 
     #region response sets over the shapes that did not generate
 
@@ -867,8 +1023,7 @@ public class GeneratedCodeCompilesTests {
     /// <c>System.Collections.Generic.List</c> with the type argument dropped - CS0305 in
     /// generated code - so declaring the 404 forced deleting it from the contract to get a build.
     /// </summary>
-    private const string ArraySuccessWithError =
-        """
+    private const string ArraySuccessWithError = """
         openapi: "3.0.0"
         info: { title: Pets, version: "1.0" }
         paths:
@@ -906,20 +1061,36 @@ public class GeneratedCodeCompilesTests {
         """;
 
     [Fact]
-    public void AnArraySuccessBesideAnErrorCompiles() {
+    public void AnArraySuccessBesideAnErrorCompiles()
+    {
         var result = OpenApiGenerator.Run(
             ArraySuccessWithError,
-            buildProperties: new Dictionary<string, string> { ["HardenedResponseModel"] = "Response" });
+            buildProperties: new Dictionary<string, string>
+            {
+                ["HardenedResponseModel"] = "Response",
+            }
+        );
 
         result.AssertNoErrors();
 
         var generated = result.SourceContaining("petstore.g.cs");
-        var line = generated.Split('\n').FirstOrDefault(l => l.Contains("public ListPetsResponse("));
+        var line = generated
+            .Split('\n')
+            .FirstOrDefault(l => l.Contains("public ListPetsResponse("));
 
-        Assert.True(line != null, "no ListPetsResponse constructor. Response-ish lines: " +
-            string.Join(" | ", generated.Split('\n')
-                .Where(l => l.Contains("struct") || l.Contains("NotFound") || l.Contains("ListPets"))
-                .Take(8)));
+        Assert.True(
+            line != null,
+            "no ListPetsResponse constructor. Response-ish lines: "
+                + string.Join(
+                    " | ",
+                    generated
+                        .Split('\n')
+                        .Where(l =>
+                            l.Contains("struct") || l.Contains("NotFound") || l.Contains("ListPets")
+                        )
+                        .Take(8)
+                )
+        );
         Assert.Contains("List<", line);
         Assert.Contains("Pet>", line);
     }
@@ -929,8 +1100,7 @@ public class GeneratedCodeCompilesTests {
     /// case type emitted with nowhere to put the body, compiled, and could never carry the label
     /// it existed to answer with.
     /// </summary>
-    private const string ScalarSuccessWithError =
-        """
+    private const string ScalarSuccessWithError = """
         openapi: "3.0.0"
         info: { title: Labels, version: "1.0" }
         paths:
@@ -965,10 +1135,15 @@ public class GeneratedCodeCompilesTests {
         """;
 
     [Fact]
-    public void AScalarSuccessBesideAnErrorCarriesItsBody() {
+    public void AScalarSuccessBesideAnErrorCarriesItsBody()
+    {
         var result = OpenApiGenerator.Run(
             ScalarSuccessWithError,
-            buildProperties: new Dictionary<string, string> { ["HardenedResponseModel"] = "Response" });
+            buildProperties: new Dictionary<string, string>
+            {
+                ["HardenedResponseModel"] = "Response",
+            }
+        );
 
         result.AssertNoErrors();
 
@@ -985,8 +1160,7 @@ public class GeneratedCodeCompilesTests {
     /// bare one, a closed <c>Status&lt;&gt;</c> over a marker, and a generated case for the status
     /// registered nowhere.
     /// </summary>
-    private const string EveryErrorResolution =
-        """
+    private const string EveryErrorResolution = """
         openapi: "3.0.0"
         info: { title: Pets, version: "1.0" }
         paths:
@@ -1046,7 +1220,8 @@ public class GeneratedCodeCompilesTests {
     /// naming a type nothing emitted, which is a compiler error here and nowhere else.
     /// </remarks>
     [Fact]
-    public void EveryWayAnErrorCanResolveCompiles() {
+    public void EveryWayAnErrorCanResolveCompiles()
+    {
         var result = OpenApiGenerator.Run(
             EveryErrorResolution,
             OpenApiGenerator.EntryPointWithHandler(
@@ -1062,8 +1237,13 @@ public class GeneratedCodeCompilesTests {
                             _ => new Pet(id)
                         });
                 }
-                """),
-            buildProperties: new Dictionary<string, string> { ["HardenedResponseModel"] = "Response" });
+                """
+            ),
+            buildProperties: new Dictionary<string, string>
+            {
+                ["HardenedResponseModel"] = "Response",
+            }
+        );
 
         result.AssertNoErrors();
 
@@ -1080,8 +1260,7 @@ public class GeneratedCodeCompilesTests {
     /// A declared header is the one thing a shipped wrapper cannot carry, so the error gets a case
     /// type - named for the status and its schema, and shared by every operation declaring it.
     /// </summary>
-    private const string ErrorWithADeclaredHeader =
-        """
+    private const string ErrorWithADeclaredHeader = """
         openapi: "3.0.0"
         info: { title: Pets, version: "1.0" }
         paths:
@@ -1119,7 +1298,8 @@ public class GeneratedCodeCompilesTests {
         """;
 
     [Fact]
-    public void AnErrorDeclaringAHeaderStillGetsACaseTypeThatCarriesIt() {
+    public void AnErrorDeclaringAHeaderStillGetsACaseTypeThatCarriesIt()
+    {
         var result = OpenApiGenerator.Run(
             ErrorWithADeclaredHeader,
             OpenApiGenerator.EntryPointWithHandler(
@@ -1130,8 +1310,13 @@ public class GeneratedCodeCompilesTests {
                         Task.FromResult<ListPetsResponse>(
                             new RateLimitedProblem(new Problem("slow down"), "0"));
                 }
-                """),
-            buildProperties: new Dictionary<string, string> { ["HardenedResponseModel"] = "Response" });
+                """
+            ),
+            buildProperties: new Dictionary<string, string>
+            {
+                ["HardenedResponseModel"] = "Response",
+            }
+        );
 
         result.AssertNoErrors();
 

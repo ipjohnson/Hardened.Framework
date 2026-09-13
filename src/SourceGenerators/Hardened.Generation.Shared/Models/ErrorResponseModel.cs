@@ -11,7 +11,8 @@ namespace Hardened.Generation.Models;
 /// document could describe a 404 and its payload in detail and the generated code would contain no
 /// trace of either.
 /// </remarks>
-internal class ErrorResponseModel : IEquatable<ErrorResponseModel> {
+internal class ErrorResponseModel : IEquatable<ErrorResponseModel>
+{
     public int StatusCode { get; set; }
 
     /// <summary>The declared body's schema, or null where the response has no content.</summary>
@@ -73,19 +74,27 @@ internal class ErrorResponseModel : IEquatable<ErrorResponseModel> {
     /// </remarks>
     public List<ResponseHeaderModel> Headers { get; } = new();
 
-    public bool Equals(ErrorResponseModel? other) {
-        if (other is null) return false;
-        if (ReferenceEquals(this, other)) return true;
-        return StatusCode == other.StatusCode && Ref == other.Ref && Description == other.Description &&
-               Name == other.Name && TypeName == other.TypeName &&
-               ExceptionTypeName == other.ExceptionTypeName &&
-               Headers.SequenceEqual(other.Headers);
+    public bool Equals(ErrorResponseModel? other)
+    {
+        if (other is null)
+            return false;
+        if (ReferenceEquals(this, other))
+            return true;
+        return StatusCode == other.StatusCode
+            && Ref == other.Ref
+            && Description == other.Description
+            && Name == other.Name
+            && TypeName == other.TypeName
+            && ExceptionTypeName == other.ExceptionTypeName
+            && Headers.SequenceEqual(other.Headers);
     }
 
     public override bool Equals(object? obj) => Equals(obj as ErrorResponseModel);
 
-    public override int GetHashCode() {
-        unchecked {
+    public override int GetHashCode()
+    {
+        unchecked
+        {
             return (StatusCode * 397) ^ (Ref?.GetHashCode() ?? 0);
         }
     }

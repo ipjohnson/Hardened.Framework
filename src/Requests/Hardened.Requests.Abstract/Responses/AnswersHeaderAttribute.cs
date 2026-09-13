@@ -38,9 +38,11 @@ namespace Hardened.Requests.Abstract.Responses;
 /// <param name="name">The header's name, as it goes on the wire.</param>
 [AttributeUsage(
     AttributeTargets.Class | AttributeTargets.Interface | AttributeTargets.Method,
-    AllowMultiple = true, Inherited = true)]
-public sealed class AnswersHeaderAttribute(int status, string name) : Attribute {
-
+    AllowMultiple = true,
+    Inherited = true
+)]
+public sealed class AnswersHeaderAttribute(int status, string name) : Attribute
+{
     /// <summary>The status whose response carries the header.</summary>
     public int Status { get; } = status;
 

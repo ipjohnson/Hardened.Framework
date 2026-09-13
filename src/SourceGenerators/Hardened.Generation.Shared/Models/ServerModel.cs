@@ -11,8 +11,8 @@ namespace Hardened.Generation.Models;
 /// otherwise dropped, so a specification-first document published no <c>servers</c> at all and a
 /// client generated from it had a set of paths and nowhere to send them.
 /// </remarks>
-internal class ServerModel : IEquatable<ServerModel> {
-
+internal class ServerModel : IEquatable<ServerModel>
+{
     /// <summary>The URL as the contract wrote it, less any base path the build already applied.</summary>
     public string Url { get; set; } = "";
 
@@ -23,8 +23,10 @@ internal class ServerModel : IEquatable<ServerModel> {
 
     public override bool Equals(object? obj) => Equals(obj as ServerModel);
 
-    public override int GetHashCode() {
-        unchecked {
+    public override int GetHashCode()
+    {
+        unchecked
+        {
             return (Url.GetHashCode() * 397) ^ (Description?.GetHashCode() ?? 0);
         }
     }

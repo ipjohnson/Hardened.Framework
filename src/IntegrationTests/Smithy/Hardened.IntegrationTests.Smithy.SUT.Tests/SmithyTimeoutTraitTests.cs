@@ -21,18 +21,26 @@ namespace Hardened.IntegrationTests.Smithy.SUT.Tests;
 /// handler is the same fact: both are written from one <c>DeclaredTimeout</c> on the model.
 /// </para>
 /// </remarks>
-public class SmithyTimeoutTraitTests {
-
-    private static JsonElement Operation(ITestWebApp app, string path, string method) {
+public class SmithyTimeoutTraitTests
+{
+    private static JsonElement Operation(ITestWebApp app, string path, string method)
+    {
         using var document = JsonDocument.Parse(
-            File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "openapi", "SmithyTestApp.json")));
+            File.ReadAllText(
+                Path.Combine(AppContext.BaseDirectory, "openapi", "SmithyTestApp.json")
+            )
+        );
 
-        return document.RootElement.GetProperty("paths").GetProperty(path)
-            .GetProperty(method).Clone();
+        return document
+            .RootElement.GetProperty("paths")
+            .GetProperty(path)
+            .GetProperty(method)
+            .Clone();
     }
 
     [HardenedTest]
-    public void TheModelsDeadlineIsPublished(ITestWebApp app) {
+    public void TheModelsDeadlineIsPublished(ITestWebApp app)
+    {
         var operation = Operation(app, "/pets/{petId}", "get");
 
         Assert.Equal(2000, operation.GetProperty("x-hardened-timeout").GetInt32());
@@ -43,11 +51,11 @@ public class SmithyTimeoutTraitTests {
     /// member would say the same thing and read worse.
     /// </summary>
     [HardenedTest]
-    public void ADeadlineStatingNothingElseIsPublishedAsANumber(ITestWebApp app) {
+    public void ADeadlineStatingNothingElseIsPublishedAsANumber(ITestWebApp app)
+    {
         var operation = Operation(app, "/pets/{petId}", "get");
 
-        Assert.Equal(
-            JsonValueKind.Number, operation.GetProperty("x-hardened-timeout").ValueKind);
+        Assert.Equal(JsonValueKind.Number, operation.GetProperty("x-hardened-timeout").ValueKind);
     }
 
     /// <summary>
@@ -55,7 +63,8 @@ public class SmithyTimeoutTraitTests {
     /// nothing either. This is the same rule the code-first front end follows.
     /// </summary>
     [HardenedTest]
-    public void AnOperationDeclaringNoDeadlinePublishesNone(ITestWebApp app) {
+    public void AnOperationDeclaringNoDeadlinePublishesNone(ITestWebApp app)
+    {
         var operation = Operation(app, "/pets", "get");
 
         Assert.False(operation.TryGetProperty("x-hardened-timeout", out _));
@@ -67,7 +76,8 @@ public class SmithyTimeoutTraitTests {
     /// one is.
     /// </summary>
     [HardenedTest]
-    public void ThePublishedDeadlineIsTheExtensionTheReaderParses(ITestWebApp app) {
+    public void ThePublishedDeadlineIsTheExtensionTheReaderParses(ITestWebApp app)
+    {
         var operation = Operation(app, "/pets/{petId}", "get");
 
         Assert.True(operation.TryGetProperty("x-hardened-timeout", out var published));
@@ -84,19 +94,30 @@ public class SmithyTimeoutTraitTests {
     /// <c>[AnswersStatus]</c> all along.
     /// </remarks>
     [HardenedTest]
-    public void ThePublishedDeadlineDeclaresTheStatusItAnswers(ITestWebApp app) {
+    public void ThePublishedDeadlineDeclaresTheStatusItAnswers(ITestWebApp app)
+    {
         var responses = Operation(app, "/pets/{petId}", "get").GetProperty("responses");
 
-        Assert.Contains("budget", responses.GetProperty("504").GetProperty("description").GetString());
+        Assert.Contains(
+            "budget",
+            responses.GetProperty("504").GetProperty("description").GetString()
+        );
         Assert.Equal(
             "#/components/schemas/ErrorModel",
-            responses.GetProperty("504").GetProperty("content").GetProperty("application/json")
-                .GetProperty("schema").GetProperty("$ref").GetString());
+            responses
+                .GetProperty("504")
+                .GetProperty("content")
+                .GetProperty("application/json")
+                .GetProperty("schema")
+                .GetProperty("$ref")
+                .GetString()
+        );
     }
 
     /// <summary>An unbounded operation declares no gateway timeout either.</summary>
     [HardenedTest]
     public void AnOperationDeclaringNoDeadlineDeclaresNoGatewayTimeout(ITestWebApp app) =>
         Assert.False(
-            Operation(app, "/pets", "get").GetProperty("responses").TryGetProperty("504", out _));
+            Operation(app, "/pets", "get").GetProperty("responses").TryGetProperty("504", out _)
+        );
 }

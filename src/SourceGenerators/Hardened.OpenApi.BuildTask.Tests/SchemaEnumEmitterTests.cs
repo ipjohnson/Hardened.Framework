@@ -1,11 +1,11 @@
-using Hardened.Idl.Emitters;
 using Hardened.Generation.Models;
+using Hardened.Idl.Emitters;
 using Xunit;
 
 namespace Hardened.OpenApi.BuildTask.Tests;
 
-public class SchemaEnumEmitterTests {
-
+public class SchemaEnumEmitterTests
+{
     /// <summary>
     /// The enum names the converter emitted beside it, not <c>JsonStringEnumConverter</c>.
     /// </summary>
@@ -18,17 +18,22 @@ public class SchemaEnumEmitterTests {
     /// the two agree.
     /// </remarks>
     [Fact]
-    public void Emit_GeneratesEnumNamingItsOwnConverter() {
-        var schema = new SchemaModel {
+    public void Emit_GeneratesEnumNamingItsOwnConverter()
+    {
+        var schema = new SchemaModel
+        {
             Name = "PetStatus",
             Kind = SchemaKind.Enum,
-            EnumValues = new List<string> { "available", "pending", "sold" }
+            EnumValues = new List<string> { "available", "pending", "sold" },
         };
 
         var result = EmitterHarness.Schema(schema);
 
         Assert.Contains("namespace Test.Api.Models\n{", result);
-        Assert.Contains("[JsonConverter(typeof(global::Test.Api.Models.PetStatusConverter))]", result);
+        Assert.Contains(
+            "[JsonConverter(typeof(global::Test.Api.Models.PetStatusConverter))]",
+            result
+        );
         Assert.DoesNotContain("JsonStringEnumConverter", result);
         Assert.Contains("public enum PetStatus", result);
         Assert.Contains("Available,", result);
@@ -46,13 +51,17 @@ public class SchemaEnumEmitterTests {
     /// that was clean and silent.
     /// </remarks>
     [Fact]
-    public void Emit_GeneratesAnIntegerEnumWithItsDeclaredValues() {
-        var result = EmitterHarness.Schema(new SchemaModel {
-            Name = "PetSize",
-            Kind = SchemaKind.Enum,
-            Type = "integer",
-            EnumValues = new List<string> { "1", "5", "25" }
-        });
+    public void Emit_GeneratesAnIntegerEnumWithItsDeclaredValues()
+    {
+        var result = EmitterHarness.Schema(
+            new SchemaModel
+            {
+                Name = "PetSize",
+                Kind = SchemaKind.Enum,
+                Type = "integer",
+                EnumValues = new List<string> { "1", "5", "25" },
+            }
+        );
 
         Assert.Contains("public enum PetSize", result);
         Assert.Contains("Value1 = 1", result);
@@ -64,15 +73,19 @@ public class SchemaEnumEmitterTests {
     /// <c>x-enum-varnames</c> names the members, which is what an integer enum most needs.
     /// </summary>
     [Fact]
-    public void Emit_UsesTheNamesTheDocumentDeclaredForAnIntegerEnum() {
-        var result = EmitterHarness.Schema(new SchemaModel {
-            Name = "PetSize",
-            Kind = SchemaKind.Enum,
-            Type = "integer",
-            EnumValues = new List<string> { "1", "5", "25" },
-            EnumMemberNames = new List<string> { "Small", "Medium", "Large" },
-            EnumMemberNamesAreDeclared = true
-        });
+    public void Emit_UsesTheNamesTheDocumentDeclaredForAnIntegerEnum()
+    {
+        var result = EmitterHarness.Schema(
+            new SchemaModel
+            {
+                Name = "PetSize",
+                Kind = SchemaKind.Enum,
+                Type = "integer",
+                EnumValues = new List<string> { "1", "5", "25" },
+                EnumMemberNames = new List<string> { "Small", "Medium", "Large" },
+                EnumMemberNamesAreDeclared = true,
+            }
+        );
 
         Assert.Contains("Small = 1", result);
         Assert.Contains("Medium = 5", result);
@@ -88,13 +101,17 @@ public class SchemaEnumEmitterTests {
     /// generated type.
     /// </remarks>
     [Fact]
-    public void Emit_LeavesAStringEnumUnnumbered() {
-        var result = EmitterHarness.Schema(new SchemaModel {
-            Name = "PetStatus",
-            Kind = SchemaKind.Enum,
-            Type = "string",
-            EnumValues = new List<string> { "available", "pending" }
-        });
+    public void Emit_LeavesAStringEnumUnnumbered()
+    {
+        var result = EmitterHarness.Schema(
+            new SchemaModel
+            {
+                Name = "PetStatus",
+                Kind = SchemaKind.Enum,
+                Type = "string",
+                EnumValues = new List<string> { "available", "pending" },
+            }
+        );
 
         Assert.Contains("Available,", result);
 
@@ -107,13 +124,17 @@ public class SchemaEnumEmitterTests {
     /// A value outside <c>int</c> widens the underlying type rather than failing to compile.
     /// </summary>
     [Fact]
-    public void Emit_WidensAnIntegerEnumThatDoesNotFitInInt() {
-        var result = EmitterHarness.Schema(new SchemaModel {
-            Name = "Big",
-            Kind = SchemaKind.Enum,
-            Type = "integer",
-            EnumValues = new List<string> { "1", "9999999999" }
-        });
+    public void Emit_WidensAnIntegerEnumThatDoesNotFitInInt()
+    {
+        var result = EmitterHarness.Schema(
+            new SchemaModel
+            {
+                Name = "Big",
+                Kind = SchemaKind.Enum,
+                Type = "integer",
+                EnumValues = new List<string> { "1", "9999999999" },
+            }
+        );
 
         Assert.Contains("Value9999999999 = 9999999999", result);
         Assert.Contains("Int64", result);

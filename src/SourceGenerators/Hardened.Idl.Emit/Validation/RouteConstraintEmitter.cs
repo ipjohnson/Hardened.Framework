@@ -33,8 +33,8 @@ namespace Hardened.Idl.Validation;
 /// to report.
 /// </para>
 /// </remarks>
-internal static class RouteConstraintEmitter {
-
+internal static class RouteConstraintEmitter
+{
     /// <summary>
     /// Assigns a route-constraint name to every path parameter carrying a pattern, and emits the
     /// constraint methods those names refer to.
@@ -42,27 +42,37 @@ internal static class RouteConstraintEmitter {
     public static void Emit(
         NamespaceDefinition validation,
         ServiceSpecModel model,
-        PatternRegistry patterns) {
+        PatternRegistry patterns
+    )
+    {
         var emitted = new Dictionary<string, string>(System.StringComparer.Ordinal);
 
-        foreach (var service in model.Services) {
-            foreach (var operation in service.Operations) {
-                foreach (var parameter in operation.Parameters) {
-                    if (!IsConstrainedPathParameter(parameter)) {
+        foreach (var service in model.Services)
+        {
+            foreach (var operation in service.Operations)
+            {
+                foreach (var parameter in operation.Parameters)
+                {
+                    if (!IsConstrainedPathParameter(parameter))
+                    {
                         continue;
                     }
 
                     // Registers the pattern as a side effect, and answers null for one the
                     // registry rejects. Members is how the member name is read back.
-                    if (patterns.AttributeArguments(parameter.Pattern!) == null ||
-                        !patterns.Members.TryGetValue(parameter.Pattern!, out var member)) {
+                    if (
+                        patterns.AttributeArguments(parameter.Pattern!) == null
+                        || !patterns.Members.TryGetValue(parameter.Pattern!, out var member)
+                    )
+                    {
                         // Rejected by the registry - it does not compile as a regex, and the task
                         // reports it. Leaving the constraint off keeps the route matching and the
                         // validation path answering, which is what happened before this existed.
                         continue;
                     }
 
-                    if (!emitted.TryGetValue(member, out var constraintName)) {
+                    if (!emitted.TryGetValue(member, out var constraintName))
+                    {
                         constraintName = ("spec_" + member).ToLowerInvariant();
                         emitted.Add(member, constraintName);
                     }
@@ -72,7 +82,8 @@ internal static class RouteConstraintEmitter {
             }
         }
 
-        if (emitted.Count == 0) {
+        if (emitted.Count == 0)
+        {
             return;
         }
 
@@ -80,20 +91,27 @@ internal static class RouteConstraintEmitter {
 
         container.Modifiers |= ComponentModifier.Static | ComponentModifier.Internal;
 
-        foreach (var pair in emitted) {
+        foreach (var pair in emitted)
+        {
             var method = container.AddMethod("Is_" + pair.Key);
 
             method.Modifiers |= ComponentModifier.Static | ComponentModifier.Public;
             method.SetReturnType(typeof(bool));
             method.AddAttribute(
                 TypeDefinition.Get("Hardened.Web.Runtime.Attributes", "RouteConstraint"),
-                "\"" + pair.Value + "\"");
+                "\"" + pair.Value + "\""
+            );
 
             var value = method.AddParameter(
-                TypeDefinition.Get("System", "ReadOnlySpan<char>"), "value");
+                TypeDefinition.Get("System", "ReadOnlySpan<char>"),
+                "value"
+            );
 
-            method.Return(new CodeOutputComponent(
-                patterns.ClassName + "." + pair.Key + "().IsMatch(" + value.Name + ")"));
+            method.Return(
+                new CodeOutputComponent(
+                    patterns.ClassName + "." + pair.Key + "().IsMatch(" + value.Name + ")"
+                )
+            );
         }
     }
 
@@ -104,6 +122,6 @@ internal static class RouteConstraintEmitter {
     /// for values that were already reaching a validator and being refused.
     /// </summary>
     private static bool IsConstrainedPathParameter(ParameterModel parameter) =>
-        string.Equals(parameter.In, "path", System.StringComparison.OrdinalIgnoreCase) &&
-        !string.IsNullOrEmpty(parameter.Pattern);
+        string.Equals(parameter.In, "path", System.StringComparison.OrdinalIgnoreCase)
+        && !string.IsNullOrEmpty(parameter.Pattern);
 }

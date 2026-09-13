@@ -4,8 +4,8 @@ using Hardened.Requests.Abstract.Headers;
 namespace Hardened.Web.Runtime.Compression;
 
 /// <inheritdoc cref="ICompressionConfiguration"/>
-public class CompressionConfiguration : ICompressionConfiguration {
-
+public class CompressionConfiguration : ICompressionConfiguration
+{
     /// <summary>
     /// Kestrel's request body limit, which is the number ASP.NET's own decompression middleware
     /// enforces against the decoded size.
@@ -29,7 +29,8 @@ public class CompressionConfiguration : ICompressionConfiguration {
     /// JSON, problem JSON and any <c>+json</c>; XML and any <c>+xml</c>; JavaScript; NDJSON; SVG;
     /// and <c>text/*</c>, from which <see cref="ExcludedMediaTypes"/> removes event streams.
     /// </summary>
-    public List<string> MediaTypes { get; set; } = [
+    public List<string> MediaTypes { get; set; } =
+    [
         KnownContentType.Json,
         "application/problem+json",
         "application/*+json",
@@ -38,7 +39,7 @@ public class CompressionConfiguration : ICompressionConfiguration {
         "application/javascript",
         KnownContentType.NdJson,
         "image/svg+xml",
-        "text/*"
+        "text/*",
     ];
 
     /// <summary>
@@ -56,28 +57,35 @@ public class CompressionConfiguration : ICompressionConfiguration {
 
     IReadOnlyList<string> ICompressionConfiguration.ExcludedMediaTypes => ExcludedMediaTypes;
 
-    public bool Compresses(string? contentType) {
-        if (string.IsNullOrEmpty(contentType)) {
+    public bool Compresses(string? contentType)
+    {
+        if (string.IsNullOrEmpty(contentType))
+        {
             return false;
         }
 
         var mediaType = contentType.AsSpan();
         var parameters = mediaType.IndexOf(';');
 
-        if (parameters >= 0) {
+        if (parameters >= 0)
+        {
             mediaType = mediaType.Slice(0, parameters);
         }
 
         mediaType = mediaType.Trim();
 
-        foreach (var excluded in ExcludedMediaTypes) {
-            if (mediaType.Equals(excluded, StringComparison.OrdinalIgnoreCase)) {
+        foreach (var excluded in ExcludedMediaTypes)
+        {
+            if (mediaType.Equals(excluded, StringComparison.OrdinalIgnoreCase))
+            {
                 return false;
             }
         }
 
-        foreach (var pattern in MediaTypes) {
-            if (Matches(pattern, mediaType)) {
+        foreach (var pattern in MediaTypes)
+        {
+            if (Matches(pattern, mediaType))
+            {
                 return true;
             }
         }
@@ -95,11 +103,13 @@ public class CompressionConfiguration : ICompressionConfiguration {
     /// rather than a list: it is what makes <c>application/vnd.api+json</c> compress without anyone
     /// having listed it.
     /// </remarks>
-    private static bool Matches(string pattern, ReadOnlySpan<char> mediaType) {
+    private static bool Matches(string pattern, ReadOnlySpan<char> mediaType)
+    {
         var patternSlash = pattern.IndexOf('/');
         var mediaSlash = mediaType.IndexOf('/');
 
-        if (patternSlash < 0 || mediaSlash < 0) {
+        if (patternSlash < 0 || mediaSlash < 0)
+        {
             return false;
         }
 
@@ -108,16 +118,21 @@ public class CompressionConfiguration : ICompressionConfiguration {
         var type = mediaType.Slice(0, mediaSlash);
         var subtype = mediaType.Slice(mediaSlash + 1);
 
-        if (!patternType.Equals("*", StringComparison.Ordinal) &&
-            !patternType.Equals(type, StringComparison.OrdinalIgnoreCase)) {
+        if (
+            !patternType.Equals("*", StringComparison.Ordinal)
+            && !patternType.Equals(type, StringComparison.OrdinalIgnoreCase)
+        )
+        {
             return false;
         }
 
-        if (patternSubtype.Equals("*", StringComparison.Ordinal)) {
+        if (patternSubtype.Equals("*", StringComparison.Ordinal))
+        {
             return true;
         }
 
-        if (patternSubtype.StartsWith("*+", StringComparison.Ordinal)) {
+        if (patternSubtype.StartsWith("*+", StringComparison.Ordinal))
+        {
             return subtype.EndsWith(patternSubtype.Slice(1), StringComparison.OrdinalIgnoreCase);
         }
 

@@ -10,17 +10,20 @@ namespace Hardened.Aws.Lambda.Runtime.Development;
 /// reads <see cref="RuntimeApiEndpoint"/> without a branch. Owns the tool's process only when it
 /// started one: a tool that was already listening is left as it was found.
 /// </remarks>
-public sealed class LambdaEmulatorSession : IDisposable {
+public sealed class LambdaEmulatorSession : IDisposable
+{
     private Process? _process;
 
     /// <summary>The session of a function that is not local. Nothing to point the bootstrap at, nothing to stop.</summary>
     public static LambdaEmulatorSession Passive { get; } = new(null, null);
 
-    internal LambdaEmulatorSession(LambdaEmulatorPlan? plan, Process? process) {
+    internal LambdaEmulatorSession(LambdaEmulatorPlan? plan, Process? process)
+    {
         Plan = plan;
         _process = process;
 
-        if (process != null) {
+        if (process != null)
+        {
             // The tool is a child process, and nothing stops it when this one goes: the debugger's
             // stop button leaves it running, and a second start then finds it and reuses it. What
             // can be caught is caught, so a clean exit takes it down.
@@ -43,22 +46,27 @@ public sealed class LambdaEmulatorSession : IDisposable {
     /// <summary>Whether this session started the tool, as opposed to finding one listening.</summary>
     public bool StartedTheTool => _process != null;
 
-    public void Dispose() {
+    public void Dispose()
+    {
         var process = Interlocked.Exchange(ref _process, null);
 
-        if (process == null) {
+        if (process == null)
+        {
             return;
         }
 
         AppDomain.CurrentDomain.ProcessExit -= OnProcessExit;
         Console.CancelKeyPress -= OnCancelKeyPress;
 
-        try {
-            if (!process.HasExited) {
+        try
+        {
+            if (!process.HasExited)
+            {
                 process.Kill(entireProcessTree: true);
             }
         }
-        catch (InvalidOperationException) {
+        catch (InvalidOperationException)
+        {
             // Exited between the check and the kill.
         }
 

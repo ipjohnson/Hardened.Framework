@@ -1,4 +1,5 @@
 using Hardened.Web.Runtime.Responses;
+
 namespace Hardened.IntegrationTests.OpenApi.SUT.Tests;
 
 /// <summary>
@@ -25,13 +26,14 @@ namespace Hardened.IntegrationTests.OpenApi.SUT.Tests;
 /// request is refused.
 /// </para>
 /// </remarks>
-public class AttributeAuthorizationTests {
-
+public class AttributeAuthorizationTests
+{
     /// <summary>
     /// The attribute guards the route, even though the description declares it public.
     /// </summary>
     [HardenedTest]
-    public async Task AnAttributeOnTheHandlerGuardsADescribedPublicRoute(ITestWebApp testWebApp) {
+    public async Task AnAttributeOnTheHandlerGuardsADescribedPublicRoute(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/guarded/by-attribute");
 
         Assert.Equal(401, response.StatusCode);
@@ -46,7 +48,8 @@ public class AttributeAuthorizationTests {
     /// default-deny on, which would make it a test of the posture rather than of the attribute.
     /// </remarks>
     [HardenedTest]
-    public async Task ADescribedPublicRouteWithNoAttributeStillAnswers(ITestWebApp testWebApp) {
+    public async Task ADescribedPublicRouteWithNoAttributeStillAnswers(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/stores");
 
         response.Assert.Ok();

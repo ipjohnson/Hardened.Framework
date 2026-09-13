@@ -28,8 +28,10 @@ namespace Hardened.Requests.Abstract.Templates;
 /// </para>
 /// </remarks>
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
-public class TemplateBaseAttribute : Attribute {
-    public TemplateBaseAttribute(Type baseType) {
+public class TemplateBaseAttribute : Attribute
+{
+    public TemplateBaseAttribute(Type baseType)
+    {
         BaseType = baseType;
     }
 
@@ -47,8 +49,10 @@ public class TemplateBaseAttribute : Attribute {
 /// escaping is right for it.
 /// </remarks>
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
-public class TemplateContentTypeAttribute : Attribute {
-    public TemplateContentTypeAttribute(string contentType) {
+public class TemplateContentTypeAttribute : Attribute
+{
+    public TemplateContentTypeAttribute(string contentType)
+    {
         ContentType = contentType;
     }
 

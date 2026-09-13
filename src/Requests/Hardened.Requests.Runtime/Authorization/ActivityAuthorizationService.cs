@@ -21,21 +21,33 @@ namespace Hardened.Requests.Runtime.Authorization;
 /// </para>
 /// </remarks>
 [SingletonService(Using = RegistrationType.Try)]
-public class ActivityAuthorizationService : IActivityAuthorizationService {
+public class ActivityAuthorizationService : IActivityAuthorizationService
+{
     public async ValueTask<GrantResolution> Resolve(
-        IExecutionContext context, IReadOnlyList<string> grants) {
+        IExecutionContext context,
+        IReadOnlyList<string> grants
+    )
+    {
         var resolution = GrantResolution.Abstained;
 
-        if (grants.Count == 0) {
+        if (grants.Count == 0)
+        {
             return resolution;
         }
 
-        foreach (var handler in context.RequestServices.GetServices<IActivityAuthorizationHandler>()) {
-            resolution = GrantResolution.Combine(resolution, await handler.Resolve(context, grants));
+        foreach (
+            var handler in context.RequestServices.GetServices<IActivityAuthorizationHandler>()
+        )
+        {
+            resolution = GrantResolution.Combine(
+                resolution,
+                await handler.Resolve(context, grants)
+            );
 
             // Nothing outranks a deny, and a handler behind this one may be a database round trip or
             // a call to an entitlement service. No answer it could give would change the result.
-            if (resolution.Decision == AuthorizationDecision.Deny) {
+            if (resolution.Decision == AuthorizationDecision.Deny)
+            {
                 break;
             }
         }
@@ -44,22 +56,29 @@ public class ActivityAuthorizationService : IActivityAuthorizationService {
     }
 
     public async ValueTask<AuthorizationDecision> Authorize(
-        IExecutionContext context, params string[] grants) {
+        IExecutionContext context,
+        params string[] grants
+    )
+    {
         // Nothing was asked, so there is nothing to affirm. Reading an empty question as "all zero
         // grants are held, therefore allow" would turn it into a permit.
-        if (grants.Length == 0) {
+        if (grants.Length == 0)
+        {
             return AuthorizationDecision.Abstain;
         }
 
         var resolution = await Resolve(context, grants);
 
         // A verdict stands whatever the grants say.
-        if (resolution.Decision != AuthorizationDecision.Abstain) {
+        if (resolution.Decision != AuthorizationDecision.Abstain)
+        {
             return resolution.Decision;
         }
 
-        foreach (var grant in grants) {
-            if (!resolution.Granted.Contains(grant)) {
+        foreach (var grant in grants)
+        {
+            if (!resolution.Granted.Contains(grant))
+            {
                 // Abstain rather than deny: nobody said no, they simply did not vouch for all of it.
                 return AuthorizationDecision.Abstain;
             }

@@ -1,7 +1,7 @@
 using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.RequestFilter;
 using Hardened.Requests.Abstract.Responses;
-using Hardened.Requests.Abstract.Headers;
 using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.Runtime.Conditional;
@@ -46,19 +46,41 @@ namespace Hardened.Web.Runtime.Conditional;
 // no ETag and no If-None-Match, so a generated client could not make the conditional request the
 // filter exists to answer, and the 304 it would be sent had no branch. GET and HEAD only, and not
 // on a streamed handler, because those are exactly the operations GetFilters installs nothing on.
-[AnswersStatus(304, Methods = Reads, NotWhenStreaming = true,
-    Description = "The caller's copy is current; nothing is sent.")]
-[AnswersHeader(304, KnownHeaders.ETag, Methods = Reads, NotWhenStreaming = true,
-    Description = "The tag the caller already holds, repeated.")]
-[AnswersHeader(200, KnownHeaders.ETag, Methods = Reads, NotWhenStreaming = true,
-    Description = "A tag for this response, to send back in If-None-Match.")]
-[ReadsHeader(KnownHeaders.IfNoneMatch, Methods = Reads, NotWhenStreaming = true,
-    Description = "A tag a previous response carried. Matching it is answered 304.")]
-[ReadsHeader(KnownHeaders.IfModifiedSince, Methods = Reads, NotWhenStreaming = true,
-    Description = "When the caller last read this. Unchanged since then is answered 304.")]
+[AnswersStatus(
+    304,
+    Methods = Reads,
+    NotWhenStreaming = true,
+    Description = "The caller's copy is current; nothing is sent."
+)]
+[AnswersHeader(
+    304,
+    KnownHeaders.ETag,
+    Methods = Reads,
+    NotWhenStreaming = true,
+    Description = "The tag the caller already holds, repeated."
+)]
+[AnswersHeader(
+    200,
+    KnownHeaders.ETag,
+    Methods = Reads,
+    NotWhenStreaming = true,
+    Description = "A tag for this response, to send back in If-None-Match."
+)]
+[ReadsHeader(
+    KnownHeaders.IfNoneMatch,
+    Methods = Reads,
+    NotWhenStreaming = true,
+    Description = "A tag a previous response carried. Matching it is answered 304."
+)]
+[ReadsHeader(
+    KnownHeaders.IfModifiedSince,
+    Methods = Reads,
+    NotWhenStreaming = true,
+    Description = "When the caller last read this. Unchanged since then is answered 304."
+)]
 [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class)]
-public sealed class ConditionalGetAttribute : Attribute, IRequestFilterProvider {
-
+public sealed class ConditionalGetAttribute : Attribute, IRequestFilterProvider
+{
     /// <summary>
     /// The methods this answers on, as the document declarations above state it.
     /// </summary>
@@ -75,21 +97,30 @@ public sealed class ConditionalGetAttribute : Attribute, IRequestFilterProvider 
     /// One filter instance per declaration, shared by every request, at
     /// <see cref="FilterOrder.Conditional"/>.
     /// </summary>
-    public IEnumerable<RequestFilterInfo> GetFilters(IExecutionRequestHandlerInfo handlerInfo) {
-        if (!ConditionalGetFilter.IsGetOrHead(handlerInfo.Method) || handlerInfo.StreamsResponse) {
+    public IEnumerable<RequestFilterInfo> GetFilters(IExecutionRequestHandlerInfo handlerInfo)
+    {
+        if (!ConditionalGetFilter.IsGetOrHead(handlerInfo.Method) || handlerInfo.StreamsResponse)
+        {
             yield break;
         }
 
-        yield return new RequestFilterInfo(_ => _filter, FilterOrder.Conditional, nameof(ConditionalGetFilter));
+        yield return new RequestFilterInfo(
+            _ => _filter,
+            FilterOrder.Conditional,
+            nameof(ConditionalGetFilter)
+        );
     }
 
     /// <summary>
     /// Whether the handler declares this itself, on the method or on its class. What the
     /// application-wide default checks before standing down.
     /// </summary>
-    public static bool Declares(IExecutionRequestHandlerInfo handlerInfo) {
-        foreach (var item in handlerInfo.Metadata) {
-            if (item is ConditionalGetAttribute) {
+    public static bool Declares(IExecutionRequestHandlerInfo handlerInfo)
+    {
+        foreach (var item in handlerInfo.Metadata)
+        {
+            if (item is ConditionalGetAttribute)
+            {
                 return true;
             }
         }

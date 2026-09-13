@@ -22,8 +22,8 @@ namespace Hardened.Requests.Runtime.Validation;
 /// produces - the caller cannot tell which layer refused them, which is the point.
 /// </para>
 /// </remarks>
-public static class RequestBody {
-
+public static class RequestBody
+{
     /// <summary>
     /// <paramref name="value"/>, or a 400 naming <paramref name="field"/>.
     /// </summary>
@@ -36,10 +36,22 @@ public static class RequestBody {
     /// Emitted only for a parameter the handler declared non-nullable. A handler taking
     /// <c>Quote?</c> has said a null body is a case it handles, and gets the null.
     /// </remarks>
-    public static T Required<T>(T? value, string field) {
-        if (value is null) {
-            throw new ValidationException(ValidationResult.FromErrors(
-                new[] { new ValidationError(field, ValidationCodes.Required, $"{field} is required.") }));
+    public static T Required<T>(T? value, string field)
+    {
+        if (value is null)
+        {
+            throw new ValidationException(
+                ValidationResult.FromErrors(
+                    new[]
+                    {
+                        new ValidationError(
+                            field,
+                            ValidationCodes.Required,
+                            $"{field} is required."
+                        ),
+                    }
+                )
+            );
         }
 
         return value;

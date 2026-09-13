@@ -8,14 +8,20 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Hardened.Idl.SourceGenerator;
 
-internal static class HandlerSelector {
+internal static class HandlerSelector
+{
     private const string HandlerAttributeName = "Handler";
 
-    public static bool Predicate(SyntaxNode node, CancellationToken cancellationToken) {
+    public static bool Predicate(SyntaxNode node, CancellationToken cancellationToken)
+    {
         return node is ClassDeclarationSyntax && node.IsAttributed(HandlerAttributeName);
     }
 
-    public static HandlerInfo? Transform(GeneratorSyntaxContext context, CancellationToken cancellationToken) {
+    public static HandlerInfo? Transform(
+        GeneratorSyntaxContext context,
+        CancellationToken cancellationToken
+    )
+    {
         var classDeclaration = (ClassDeclarationSyntax)context.Node;
 
         // Get class type from syntax (no semantic model needed)
@@ -35,11 +41,14 @@ internal static class HandlerSelector {
         // routing table, which knows what the description declared, picks.
         var candidates = new List<ITypeDefinition>();
 
-        if (classDeclaration.BaseList != null) {
-            foreach (var baseType in classDeclaration.BaseList.Types) {
+        if (classDeclaration.BaseList != null)
+        {
+            foreach (var baseType in classDeclaration.BaseList.Types)
+            {
                 var resolved = baseType.Type.GetTypeDefinition(context);
 
-                if (resolved == null) {
+                if (resolved == null)
+                {
                     // If semantic model can't resolve it (generated type), extract from syntax
                     var baseTypeName = baseType.Type.ToString();
                     var classNs = classDeclaration.GetNamespace();
@@ -50,49 +59,68 @@ internal static class HandlerSelector {
             }
         }
 
-        if (candidates.Count == 0) {
+        if (candidates.Count == 0)
+        {
             return null;
         }
 
         // Collect class-level attributes (excluding Handler)
-        var classFilters = AttributeModelHelper.GetAttributes(
-            context,
-            classDeclaration.AttributeLists,
-            cancellationToken,
-            attr => {
-                var name = attr.Name.ToString();
-                return !name.Equals(HandlerAttributeName) &&
-                       !name.Equals(HandlerAttributeName + "Attribute");
-            }).ToList();
+        var classFilters = AttributeModelHelper
+            .GetAttributes(
+                context,
+                classDeclaration.AttributeLists,
+                cancellationToken,
+                attr =>
+                {
+                    var name = attr.Name.ToString();
+                    return !name.Equals(HandlerAttributeName)
+                        && !name.Equals(HandlerAttributeName + "Attribute");
+                }
+            )
+            .ToList();
 
         // Collect method-level attributes
         var methodFilters = new List<HandlerMethodFilterInfo>();
-        foreach (var member in classDeclaration.Members) {
-            if (member is not MethodDeclarationSyntax methodDeclaration) continue;
+        foreach (var member in classDeclaration.Members)
+        {
+            if (member is not MethodDeclarationSyntax methodDeclaration)
+                continue;
 
-            var methodAttrs = AttributeModelHelper.GetAttributes(
-                context,
-                methodDeclaration.AttributeLists,
-                cancellationToken).ToList();
+            var methodAttrs = AttributeModelHelper
+                .GetAttributes(context, methodDeclaration.AttributeLists, cancellationToken)
+                .ToList();
 
             var outputType = OutputAttributeSelector.Read(context, methodDeclaration);
 
             // The same reading the attribute-routed path makes on its own handler method, over the
             // method, its class and the assembly. A described operation's guards can only be
             // written here, so this is the only place they can be read from.
-            var declared = FilterResponseSelector.Read(context, methodDeclaration, cancellationToken);
+            var declared = FilterResponseSelector.Read(
+                context,
+                methodDeclaration,
+                cancellationToken
+            );
 
-            if (methodAttrs.Count > 0 || outputType != null || !declared.IsEmpty) {
-                methodFilters.Add(new HandlerMethodFilterInfo(
-                    methodDeclaration.Identifier.Text,
-                    methodAttrs,
-                    outputType,
-                    declared));
+            if (methodAttrs.Count > 0 || outputType != null || !declared.IsEmpty)
+            {
+                methodFilters.Add(
+                    new HandlerMethodFilterInfo(
+                        methodDeclaration.Identifier.Text,
+                        methodAttrs,
+                        outputType,
+                        declared
+                    )
+                );
             }
         }
 
-        return new HandlerInfo(implementationType, candidates, classFilters, methodFilters,
-            LocationOf(classDeclaration));
+        return new HandlerInfo(
+            implementationType,
+            candidates,
+            classFilters,
+            methodFilters,
+            LocationOf(classDeclaration)
+        );
     }
 
     /// <summary>

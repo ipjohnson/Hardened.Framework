@@ -27,7 +27,8 @@ namespace Hardened.Azure.Functions.CosmosDb;
 /// </remarks>
 [DependencyModule]
 [FunctionsRuntimeModule]
-public partial class CosmosDbModule : IServiceCollectionConfiguration {
+public partial class CosmosDbModule : IServiceCollectionConfiguration
+{
     /// <summary>The database every <c>[Change]</c> handler's container lives in. Required.</summary>
     public string? Database { get; set; }
 
@@ -58,7 +59,8 @@ public partial class CosmosDbModule : IServiceCollectionConfiguration {
     /// </summary>
     public string? RetryDelay { get; set; }
 
-    public void ConfigureServices(IServiceCollection services) {
+    public void ConfigureServices(IServiceCollection services)
+    {
         services.AddSingleton<ITriggerAdapter>(new CosmosDbAdapter());
 
         services.AddBatchExecutionFilter();

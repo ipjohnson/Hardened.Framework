@@ -13,7 +13,8 @@ namespace Hardened.Aws.Lambda.Kinesis;
 /// queue is the failure: a shard is an ordered log and Lambda re-drives it by position, so the
 /// report names where to rewind to rather than which records to redeliver.
 /// </remarks>
-public class KinesisRequest : LambdaPayloadRequest, IBatchRequest {
+public class KinesisRequest : LambdaPayloadRequest, IBatchRequest
+{
     private readonly List<int> _failed = [];
 
     public KinesisRequest(
@@ -21,8 +22,10 @@ public class KinesisRequest : LambdaPayloadRequest, IBatchRequest {
         Stream body,
         IDictionary<string, StringValues> headers,
         IReadOnlyList<KinesisRecord> records,
-        bool reportsItemFailures = false)
-        : base(StreamScheme, "/" + streamName, body, headers) {
+        bool reportsItemFailures = false
+    )
+        : base(StreamScheme, "/" + streamName, body, headers)
+    {
         Records = records;
         ReportsItemFailures = reportsItemFailures;
     }
@@ -90,7 +93,8 @@ public class KinesisRequest : LambdaPayloadRequest, IBatchRequest {
     /// DynamoDB side until 2026-08-15, where it silently re-drove the whole batch.
     /// </remarks>
     public IEnumerable<string> FailedSequenceNumbers =>
-        _failed.Select(index => Records[index].SequenceNumber)
+        _failed
+            .Select(index => Records[index].SequenceNumber)
             .Where(number => !string.IsNullOrEmpty(number));
 
     /// <summary>
@@ -102,7 +106,8 @@ public class KinesisRequest : LambdaPayloadRequest, IBatchRequest {
     /// bytes against its own parameter type, which is what the direct-invoke adapter does with a
     /// caller's payload.
     /// </remarks>
-    public IExecutionRequest ForRecord(KinesisRecord record) {
+    public IExecutionRequest ForRecord(KinesisRecord record)
+    {
         var headers = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase);
 
         Set(headers, PartitionKeyHeader, record.PartitionKey);
@@ -110,17 +115,23 @@ public class KinesisRequest : LambdaPayloadRequest, IBatchRequest {
         Set(headers, EventIdHeader, record.EventId);
         Set(headers, ArrivalTimeHeader, record.ArrivalTime);
 
-        if (Headers.TryGetValue(StreamArnHeader, out var arn)) {
+        if (Headers.TryGetValue(StreamArnHeader, out var arn))
+        {
             headers[StreamArnHeader] = arn;
         }
 
         return new LambdaPayloadRequest(
-            Method, Path, new MemoryStream(record.Data.ToArray(), writable: false), headers);
+            Method,
+            Path,
+            new MemoryStream(record.Data.ToArray(), writable: false),
+            headers
+        );
     }
 
-    private static void Set(
-        IDictionary<string, StringValues> headers, string name, string? value) {
-        if (!string.IsNullOrEmpty(value)) {
+    private static void Set(IDictionary<string, StringValues> headers, string name, string? value)
+    {
+        if (!string.IsNullOrEmpty(value))
+        {
             headers[name] = value;
         }
     }

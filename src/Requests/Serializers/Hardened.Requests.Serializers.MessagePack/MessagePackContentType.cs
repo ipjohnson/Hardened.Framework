@@ -18,6 +18,7 @@ namespace Hardened.Requests.Serializers.MessagePack;
 /// <c>[Produces(KnownContentType.Json, MessagePackContentType.Value)]</c>.
 /// </para>
 /// </remarks>
-public static class MessagePackContentType {
+public static class MessagePackContentType
+{
     public const string Value = "application/x-msgpack";
 }

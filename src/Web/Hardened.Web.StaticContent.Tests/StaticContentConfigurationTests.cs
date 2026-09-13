@@ -14,20 +14,23 @@ namespace Hardened.Web.StaticContent.Tests;
 /// unknown path falls back to an application shell.
 /// </para>
 /// </summary>
-public class StaticContentConfigurationTests {
-
+public class StaticContentConfigurationTests
+{
     [Fact]
-    public void FilesAreServedFromWwwrootByDefault() {
+    public void FilesAreServedFromWwwrootByDefault()
+    {
         Assert.Equal("wwwroot", new StaticContentConfiguration().Path);
     }
 
     [Fact]
-    public void TextContentIsCompressedByDefault() {
+    public void TextContentIsCompressedByDefault()
+    {
         Assert.True(new StaticContentConfiguration().CompressTextContent);
     }
 
     [Fact]
-    public void ETagsAreEnabledByDefault() {
+    public void ETagsAreEnabledByDefault()
+    {
         Assert.True(new StaticContentConfiguration().EnableETag);
     }
 
@@ -36,7 +39,8 @@ public class StaticContentConfigurationTests {
     /// application shell. Single-page applications opt in.
     /// </summary>
     [Fact]
-    public void ThereIsNoFallbackFileByDefault() {
+    public void ThereIsNoFallbackFileByDefault()
+    {
         Assert.Null(new StaticContentConfiguration().FallBackFile);
     }
 
@@ -46,24 +50,29 @@ public class StaticContentConfigurationTests {
     /// indefinitely by a heuristic.
     /// </summary>
     [Fact]
-    public void TheDefaultMaxAgeIsZeroRatherThanAbsent() {
+    public void TheDefaultMaxAgeIsZeroRatherThanAbsent()
+    {
         Assert.Equal(0, new StaticContentConfiguration().CacheMaxAge);
     }
 
     [Fact]
-    public void ContentIsNotImmutableByDefault() {
+    public void ContentIsNotImmutableByDefault()
+    {
         Assert.False(new StaticContentConfiguration().Immutable);
     }
 
     [Fact]
-    public void TheDefaultCacheControlTypeIsAPublicMaxAge() {
+    public void TheDefaultCacheControlTypeIsAPublicMaxAge()
+    {
         Assert.Equal(
             CacheControlEnum.MaxAge | CacheControlEnum.Public,
-            new StaticContentConfiguration().CacheControlType);
+            new StaticContentConfiguration().CacheControlType
+        );
     }
 
     [Fact]
-    public void ThereIsNoPrepareResponseCallbackByDefault() {
+    public void ThereIsNoPrepareResponseCallbackByDefault()
+    {
         Assert.Null(new StaticContentConfiguration().OnPrepareResponse);
     }
 
@@ -73,10 +82,12 @@ public class StaticContentConfigurationTests {
     /// sets but the interface does not expose is unreachable.
     /// </summary>
     [Fact]
-    public void EveryConfiguredValueIsVisibleThroughTheInterface() {
+    public void EveryConfiguredValueIsVisibleThroughTheInterface()
+    {
         Action<IExecutionContext> callback = _ => { };
 
-        IStaticContentConfiguration configuration = new StaticContentConfiguration {
+        IStaticContentConfiguration configuration = new StaticContentConfiguration
+        {
             Path = "public",
             CacheControlType = CacheControlEnum.NoStore,
             CacheMaxAge = 3600,
@@ -84,7 +95,7 @@ public class StaticContentConfigurationTests {
             EnableETag = false,
             FallBackFile = "/index.html",
             CompressTextContent = false,
-            OnPrepareResponse = callback
+            OnPrepareResponse = callback,
         };
 
         Assert.Equal("public", configuration.Path);

@@ -2,7 +2,8 @@
 
 namespace Hardened.Requests.Abstract.Serializer;
 
-public interface IResponseSerializer {
+public interface IResponseSerializer
+{
     bool IsDefaultSerializer { get; }
 
     /// <summary>

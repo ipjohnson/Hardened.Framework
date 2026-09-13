@@ -24,7 +24,8 @@ namespace Hardened.Gcp.CloudRun.Runtime.Envelopes;
 /// not a push until its body says so.
 /// </para>
 /// </remarks>
-public interface ITriggerEnvelope {
+public interface ITriggerEnvelope
+{
     /// <summary>
     /// Whether this envelope might be what <paramref name="request"/> is, from its method and
     /// headers alone. False costs nothing further.

@@ -13,8 +13,8 @@ namespace Hardened.SourceGenerator.Tests.Shared;
 /// the links described <c>/orders/</c> while the matcher answered <c>/orders/</c> too, so a
 /// generated client called a URL that worked and the collection's own address did not.
 /// </remarks>
-public class RoutePathTests {
-
+public class RoutePathTests
+{
     [Theory]
     // A template of "/" names the base itself, which is the case that was broken.
     [InlineData("/collection", "/", "/collection")]
@@ -37,7 +37,12 @@ public class RoutePathTests {
     // A trailing slash the author wrote on a real segment is theirs to keep: /a/ and /a are
     // different URLs under strict matching, and only "/" alone means "no segment of my own".
     [InlineData("/collection", "/items/", "/collection/items/")]
-    public void Combine_JoinsTheBasePathToTheTemplate(string? basePath, string template, string expected) {
+    public void Combine_JoinsTheBasePathToTheTemplate(
+        string? basePath,
+        string template,
+        string expected
+    )
+    {
         Assert.Equal(expected, RoutePath.Combine(basePath, template));
     }
 
@@ -49,7 +54,8 @@ public class RoutePathTests {
     [InlineData("", "")]
     [InlineData("/", "")]
     [InlineData(null, null)]
-    public void Combine_NeverProducesAnEmptyPath(string? basePath, string? template) {
+    public void Combine_NeverProducesAnEmptyPath(string? basePath, string? template)
+    {
         Assert.Equal("/", RoutePath.Combine(basePath, template));
     }
 }

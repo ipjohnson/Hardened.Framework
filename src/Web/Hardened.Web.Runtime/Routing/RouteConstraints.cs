@@ -25,8 +25,8 @@ namespace Hardened.Web.Runtime.Routing;
 /// same request match on one machine and not another.
 /// </para>
 /// </remarks>
-public static class RouteConstraints {
-
+public static class RouteConstraints
+{
     /// <summary>The names a route template may use, and what each compiles to.</summary>
     public const string Int = "int";
 
@@ -54,11 +54,9 @@ public static class RouteConstraints {
     public static bool IsLong(ReadOnlySpan<char> value) =>
         long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out _);
 
-    public static bool IsGuid(ReadOnlySpan<char> value) =>
-        System.Guid.TryParse(value, out _);
+    public static bool IsGuid(ReadOnlySpan<char> value) => System.Guid.TryParse(value, out _);
 
-    public static bool IsBool(ReadOnlySpan<char> value) =>
-        bool.TryParse(value, out _);
+    public static bool IsBool(ReadOnlySpan<char> value) => bool.TryParse(value, out _);
 
     /// <summary>A sign and a decimal point, and nothing else.</summary>
     /// <remarks>
@@ -72,7 +70,8 @@ public static class RouteConstraints {
             value,
             NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint,
             CultureInfo.InvariantCulture,
-            out _);
+            out _
+        );
 
     /// <summary>An ISO 8601 calendar date - <c>yyyy-MM-dd</c>, and nothing else.</summary>
     /// <remarks>
@@ -83,22 +82,36 @@ public static class RouteConstraints {
     /// </remarks>
     public static bool IsDate(ReadOnlySpan<char> value) =>
         DateOnly.TryParseExact(
-            value, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out _);
+            value,
+            "yyyy-MM-dd",
+            CultureInfo.InvariantCulture,
+            DateTimeStyles.None,
+            out _
+        );
 
     /// <summary>An ISO 8601 date and time, in one of <see cref="Iso8601.Formats"/>.</summary>
     /// <remarks>Exact formats only, for the reason <see cref="IsDate"/> gives.</remarks>
     public static bool IsDateTime(ReadOnlySpan<char> value) =>
         DateTimeOffset.TryParseExact(
-            value, Iso8601.Formats, CultureInfo.InvariantCulture, DateTimeStyles.None, out _);
+            value,
+            Iso8601.Formats,
+            CultureInfo.InvariantCulture,
+            DateTimeStyles.None,
+            out _
+        );
 
     /// <summary><c>^[A-Za-z]+$</c>. ASCII, because a route is part of a URL.</summary>
-    public static bool IsAlpha(ReadOnlySpan<char> value) {
-        if (value.Length == 0) {
+    public static bool IsAlpha(ReadOnlySpan<char> value)
+    {
+        if (value.Length == 0)
+        {
             return false;
         }
 
-        foreach (var character in value) {
-            if (!char.IsAsciiLetter(character)) {
+        foreach (var character in value)
+        {
+            if (!char.IsAsciiLetter(character))
+            {
                 return false;
             }
         }
@@ -107,13 +120,17 @@ public static class RouteConstraints {
     }
 
     /// <summary><c>^[0-9a-fA-F]+$</c> — a content hash, a commit sha, a request id.</summary>
-    public static bool IsHex(ReadOnlySpan<char> value) {
-        if (value.Length == 0) {
+    public static bool IsHex(ReadOnlySpan<char> value)
+    {
+        if (value.Length == 0)
+        {
             return false;
         }
 
-        foreach (var character in value) {
-            if (!char.IsAsciiHexDigit(character)) {
+        foreach (var character in value)
+        {
+            if (!char.IsAsciiHexDigit(character))
+            {
                 return false;
             }
         }
@@ -126,16 +143,21 @@ public static class RouteConstraints {
     /// Lower case only. A slug is a canonical form: admitting <c>My-Post</c> beside <c>my-post</c>
     /// would make two URLs for one resource, which is the thing a slug exists to avoid.
     /// </remarks>
-    public static bool IsSlug(ReadOnlySpan<char> value) {
-        if (value.Length == 0 || value[0] == '-' || value[value.Length - 1] == '-') {
+    public static bool IsSlug(ReadOnlySpan<char> value)
+    {
+        if (value.Length == 0 || value[0] == '-' || value[value.Length - 1] == '-')
+        {
             return false;
         }
 
         var previousWasHyphen = false;
 
-        foreach (var character in value) {
-            if (character == '-') {
-                if (previousWasHyphen) {
+        foreach (var character in value)
+        {
+            if (character == '-')
+            {
+                if (previousWasHyphen)
+                {
                     return false;
                 }
 
@@ -143,7 +165,8 @@ public static class RouteConstraints {
                 continue;
             }
 
-            if (!char.IsAsciiDigit(character) && !char.IsAsciiLetterLower(character)) {
+            if (!char.IsAsciiDigit(character) && !char.IsAsciiLetterLower(character))
+            {
                 return false;
             }
 
@@ -156,18 +179,15 @@ public static class RouteConstraints {
     // ---- parameterised ------------------------------------------------------
 
     /// <summary>Exactly <paramref name="length"/> characters.</summary>
-    public static bool IsLength(ReadOnlySpan<char> value, int length) =>
-        value.Length == length;
+    public static bool IsLength(ReadOnlySpan<char> value, int length) => value.Length == length;
 
     /// <summary>Between <paramref name="min"/> and <paramref name="max"/> characters, inclusive.</summary>
     public static bool IsLength(ReadOnlySpan<char> value, int min, int max) =>
         value.Length >= min && value.Length <= max;
 
-    public static bool IsMinLength(ReadOnlySpan<char> value, int min) =>
-        value.Length >= min;
+    public static bool IsMinLength(ReadOnlySpan<char> value, int min) => value.Length >= min;
 
-    public static bool IsMaxLength(ReadOnlySpan<char> value, int max) =>
-        value.Length <= max;
+    public static bool IsMaxLength(ReadOnlySpan<char> value, int max) => value.Length <= max;
 
     /// <summary>An integer no smaller than <paramref name="min"/>.</summary>
     /// <remarks>
@@ -176,16 +196,17 @@ public static class RouteConstraints {
     /// <c>{id:int:min(1)}</c> it is the same test with the width stated.
     /// </remarks>
     public static bool IsMin(ReadOnlySpan<char> value, long min) =>
-        long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed) &&
-        parsed >= min;
+        long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed)
+        && parsed >= min;
 
     public static bool IsMax(ReadOnlySpan<char> value, long max) =>
-        long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed) &&
-        parsed <= max;
+        long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed)
+        && parsed <= max;
 
     public static bool IsRange(ReadOnlySpan<char> value, long min, long max) =>
-        long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed) &&
-        parsed >= min && parsed <= max;
+        long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed)
+        && parsed >= min
+        && parsed <= max;
 
     /// <summary>
     /// The formats <see cref="IsDateTime"/> accepts, on a nested type so that only a route declaring
@@ -198,12 +219,14 @@ public static class RouteConstraints {
     /// free" is not the claim this class makes. Nested, the array is reachable only from the one
     /// method that reads it, and a trimmer drops it with that method.
     /// </remarks>
-    private static class Iso8601 {
-        public static readonly string[] Formats = {
+    private static class Iso8601
+    {
+        public static readonly string[] Formats =
+        {
             "yyyy-MM-ddTHH:mm:ssK",
             "yyyy-MM-ddTHH:mm:ss.FFFFFFFK",
             "yyyy-MM-ddTHH:mmK",
-            "yyyy-MM-dd"
+            "yyyy-MM-dd",
         };
     }
 }

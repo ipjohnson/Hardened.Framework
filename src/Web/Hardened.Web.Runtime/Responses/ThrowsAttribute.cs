@@ -42,8 +42,8 @@ namespace Hardened.Web.Runtime.Responses;
 /// </para>
 /// </remarks>
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = true, Inherited = false)]
-public sealed class ThrowsAttribute<TError> : Attribute {
-
+public sealed class ThrowsAttribute<TError> : Attribute
+{
     /// <summary>Declares a thrown error whose type carries its own <c>[HttpStatus]</c>.</summary>
     public ThrowsAttribute() { }
 

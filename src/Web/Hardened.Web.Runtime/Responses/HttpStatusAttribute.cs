@@ -27,9 +27,10 @@ namespace Hardened.Web.Runtime.Responses;
 /// </para>
 /// </remarks>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, Inherited = false)]
-public sealed class HttpStatusAttribute : Attribute {
-
-    public HttpStatusAttribute(int statusCode) {
+public sealed class HttpStatusAttribute : Attribute
+{
+    public HttpStatusAttribute(int statusCode)
+    {
         StatusCode = statusCode;
     }
 

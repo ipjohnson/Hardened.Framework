@@ -27,15 +27,18 @@ namespace Hardened.Aws.Lambda.Http;
 /// a field that has no null.
 /// </para>
 /// </remarks>
-public class LambdaHttpResponse : IExecutionResponse {
+public class LambdaHttpResponse : IExecutionResponse
+{
     private IHeaderCollection? _headerCollection;
 
-    public LambdaHttpResponse(Stream body) {
+    public LambdaHttpResponse(Stream body)
+    {
         Body = body;
         Cookies = new CookieSetCollectionImpl();
     }
 
-    public string? ContentType {
+    public string? ContentType
+    {
         get => Headers.Get(KnownHeaders.ContentType);
         set => Headers.Set(KnownHeaders.ContentType, value);
     }
@@ -67,8 +70,10 @@ public class LambdaHttpResponse : IExecutionResponse {
 
     public object Clone() => Clone(null);
 
-    public IExecutionResponse Clone(IHeaderCollection? headerCollection) {
-        var clone = new LambdaHttpResponse(Body) {
+    public IExecutionResponse Clone(IHeaderCollection? headerCollection)
+    {
+        var clone = new LambdaHttpResponse(Body)
+        {
             ResponseValue = ResponseValue,
             OutputFactory = OutputFactory,
             Output = Output,
@@ -76,11 +81,13 @@ public class LambdaHttpResponse : IExecutionResponse {
             ShouldSerialize = ShouldSerialize,
             // Copied rather than shared: a clone starts where the original stands and diverges from
             // there.
-            Status = Status
+            Status = Status,
         };
 
-        if (headerCollection != null) {
-            foreach (var header in headerCollection) {
+        if (headerCollection != null)
+        {
+            foreach (var header in headerCollection)
+            {
                 clone.Headers.Set(header.Key, header.Value);
             }
         }

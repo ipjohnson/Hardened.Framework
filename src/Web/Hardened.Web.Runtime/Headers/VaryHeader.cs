@@ -1,6 +1,5 @@
-using Microsoft.Extensions.Primitives;
-
 using Hardened.Requests.Abstract.Headers;
+using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Web.Runtime.Headers;
 
@@ -19,12 +18,18 @@ namespace Hardened.Web.Runtime.Headers;
 /// A <c>Vary: *</c> already covers every request header, and is left alone.
 /// </para>
 /// </remarks>
-public static class VaryHeader {
+public static class VaryHeader
+{
     /// <summary>
     /// Ensures <paramref name="name"/> is listed in the response's <c>Vary</c> header.
     /// </summary>
-    public static void Add(IDictionary<string, StringValues> headers, string name) {
-        if (!headers.TryGetValue(KnownHeaders.Vary, out var existing) || StringValues.IsNullOrEmpty(existing)) {
+    public static void Add(IDictionary<string, StringValues> headers, string name)
+    {
+        if (
+            !headers.TryGetValue(KnownHeaders.Vary, out var existing)
+            || StringValues.IsNullOrEmpty(existing)
+        )
+        {
             headers[KnownHeaders.Vary] = name;
 
             return;
@@ -34,8 +39,15 @@ public static class VaryHeader {
         // as two values leaves as one and is compared the same way whoever reads it.
         var joined = string.Join(", ", existing.ToArray()!);
 
-        foreach (var token in joined.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)) {
-            if (token == "*" || string.Equals(token, name, StringComparison.OrdinalIgnoreCase)) {
+        foreach (
+            var token in joined.Split(
+                ',',
+                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries
+            )
+        )
+        {
+            if (token == "*" || string.Equals(token, name, StringComparison.OrdinalIgnoreCase))
+            {
                 headers[KnownHeaders.Vary] = joined;
 
                 return;

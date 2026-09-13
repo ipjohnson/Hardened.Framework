@@ -15,9 +15,9 @@ namespace Hardened.SourceGeneration.Testing;
 /// </remarks>
 internal sealed class TestAnalyzerConfigOptionsProvider(
     IReadOnlyDictionary<string, string>? buildProperties,
-    string projectDir)
-    : AnalyzerConfigOptionsProvider {
-
+    string projectDir
+) : AnalyzerConfigOptionsProvider
+{
     public override AnalyzerConfigOptions GlobalOptions { get; } =
         new TestAnalyzerConfigOptions(buildProperties, projectDir);
 
@@ -26,19 +26,25 @@ internal sealed class TestAnalyzerConfigOptionsProvider(
     public override AnalyzerConfigOptions GetOptions(AdditionalText textFile) => GlobalOptions;
 }
 
-internal sealed class TestAnalyzerConfigOptions : AnalyzerConfigOptions {
+internal sealed class TestAnalyzerConfigOptions : AnalyzerConfigOptions
+{
     private readonly Dictionary<string, string> _options;
 
     public TestAnalyzerConfigOptions(
         IReadOnlyDictionary<string, string>? buildProperties,
-        string projectDir) {
-        _options = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) {
+        string projectDir
+    )
+    {
+        _options = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
             ["build_property.RootNamespace"] = "TestNamespace",
-            ["build_property.ProjectDir"] = projectDir
+            ["build_property.ProjectDir"] = projectDir,
         };
 
-        if (buildProperties != null) {
-            foreach (var pair in buildProperties) {
+        if (buildProperties != null)
+        {
+            foreach (var pair in buildProperties)
+            {
                 _options["build_property." + pair.Key] = pair.Value;
             }
         }
@@ -56,7 +62,8 @@ internal sealed class TestAnalyzerConfigOptions : AnalyzerConfigOptions {
 /// their generators only through <c>AdditionalTextsProvider</c>, so neither generator can be tested
 /// at all without it.
 /// </remarks>
-internal sealed class TestAdditionalText(string path, string text) : AdditionalText {
+internal sealed class TestAdditionalText(string path, string text) : AdditionalText
+{
     private readonly SourceText _text = SourceText.From(text);
 
     public override string Path { get; } = path;

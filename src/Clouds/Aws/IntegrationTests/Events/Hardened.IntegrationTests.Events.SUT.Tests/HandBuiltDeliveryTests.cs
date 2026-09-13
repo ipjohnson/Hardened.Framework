@@ -25,13 +25,17 @@ namespace Hardened.IntegrationTests.Events.SUT.Tests;
 /// rather than removed because a hand-built harness has no container source to hand over.
 /// </para>
 /// </remarks>
-public class HandBuiltDeliveryTests {
-
+public class HandBuiltDeliveryTests
+{
     [HardenedTest]
     public async Task ADeliveryOverAHandlerReachesTheHandler(
-        IServiceProvider provider, [Mock] ITriggerLog log) {
+        IServiceProvider provider,
+        [Mock] ITriggerLog log
+    )
+    {
         var delivery = new LambdaEnvelopeDelivery(
-            provider.GetRequiredService<LambdaInvocationHandler>());
+            provider.GetRequiredService<LambdaInvocationHandler>()
+        );
 
         await delivery.Deliver([new Order { Id = "h-1" }], "QUEUE", "/orders-new");
 
@@ -43,14 +47,19 @@ public class HandBuiltDeliveryTests {
     /// </summary>
     [HardenedTest]
     public async Task EverySendReachesTheSameHandler(
-        IServiceProvider provider, [Mock] ITriggerLog log) {
+        IServiceProvider provider,
+        [Mock] ITriggerLog log
+    )
+    {
         var delivery = new LambdaEnvelopeDelivery(
-            provider.GetRequiredService<LambdaInvocationHandler>());
+            provider.GetRequiredService<LambdaInvocationHandler>()
+        );
 
         await delivery.Deliver([new Order { Id = "h-1" }], "QUEUE", "/orders-new");
         await delivery.Deliver([new Order { Id = "h-2" }], "QUEUE", "/orders-new");
 
-        Received.InOrder(() => {
+        Received.InOrder(() =>
+        {
             log.Record("queue:h-1");
             log.Record("queue:h-2");
         });

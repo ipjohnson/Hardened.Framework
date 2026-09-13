@@ -14,27 +14,29 @@ namespace Hardened.IntegrationTests.Benchmark.SUT;
 /// this fixture exists to prove.
 /// </remarks>
 [Handler]
-public class BenchmarkService(BenchmarkData data) : IBenchmarkService {
-    
+public class BenchmarkService(BenchmarkData data) : IBenchmarkService
+{
     public Task<HelloMessage> JsonSerialization() =>
         Task.FromResult(new HelloMessage("Hello, World!"));
 
-    public Task<string> PlainText() =>
-        Task.FromResult("Hello, World!");
+    public Task<string> PlainText() => Task.FromResult("Hello, World!");
 
-    public Task<World> SingleQuery() =>
-        Task.FromResult(data.Random());
+    public Task<World> SingleQuery() => Task.FromResult(data.Random());
 
-    public Task<List<World>> MultipleQueries(string? queries) {
+    public Task<List<World>> MultipleQueries(string? queries)
+    {
         var count = BenchmarkData.QueryCount(queries);
 
         return Task.FromResult(Enumerable.Range(0, count).Select(_ => data.Random()).ToList());
     }
 
-    public Task<List<World>> DatabaseUpdates(string? queries) {
+    public Task<List<World>> DatabaseUpdates(string? queries)
+    {
         var count = BenchmarkData.QueryCount(queries);
 
-        return Task.FromResult(Enumerable.Range(0, count).Select(_ => data.UpdateRandom()).ToList());
+        return Task.FromResult(
+            Enumerable.Range(0, count).Select(_ => data.UpdateRandom()).ToList()
+        );
     }
 
     /// <summary>
@@ -49,9 +51,10 @@ public class BenchmarkService(BenchmarkData data) : IBenchmarkService {
     /// see the _outputCheck_ field the generator emits beside this handler.
     /// </remarks>
     [Output<Views.Fortunes>]
-    public Task<FortunePage> Fortunes() {
-        var fortunes = data.Fortunes
-            .Append(new Fortune(0, "Additional fortune added at request time."))
+    public Task<FortunePage> Fortunes()
+    {
+        var fortunes = data
+            .Fortunes.Append(new Fortune(0, "Additional fortune added at request time."))
             .OrderBy(fortune => fortune.Message, StringComparer.Ordinal)
             .ToList();
 

@@ -1,6 +1,6 @@
 using Hardened.SourceGeneration.Testing;
-using Microsoft.CodeAnalysis;
 using Hardened.SourceGenerator.Tests.Infrastructure;
+using Microsoft.CodeAnalysis;
 using Xunit;
 
 namespace Hardened.SourceGenerator.Tests.Function;
@@ -15,8 +15,8 @@ namespace Hardened.SourceGenerator.Tests.Function;
 /// a referenced runtime would.
 /// </para>
 /// </summary>
-public class TriggerModuleTests {
-
+public class TriggerModuleTests
+{
     /// <summary>
     /// Real modules, standing in for the ones a cloud runtime would name.
     /// </summary>
@@ -28,13 +28,16 @@ public class TriggerModuleTests {
     /// names, so using the real CoreModule here would test nothing extra and would put a cloud
     /// package in the generator suite's references.
     /// </remarks>
-    private const string CoreModule = "Hardened.Shared.Runtime.DependencyInjection.HardenedCoreModule";
+    private const string CoreModule =
+        "Hardened.Shared.Runtime.DependencyInjection.HardenedCoreModule";
 
-    private const string RequestModule = "Hardened.Requests.Runtime.DependencyInjection.HardenedRequestModule";
+    private const string RequestModule =
+        "Hardened.Requests.Runtime.DependencyInjection.HardenedRequestModule";
 
     private const string TimeoutModule = "Hardened.Requests.Runtime.Filters.RequestTimeouts";
 
-    private static GeneratorResult Generate(string handlers, params (string, string)[] properties) {
+    private static GeneratorResult Generate(string handlers, params (string, string)[] properties)
+    {
         var source = $$"""
             using Hardened.Shared.Runtime.Attributes;
             using Hardened.Functions.Runtime.Attributes;
@@ -53,7 +56,8 @@ public class TriggerModuleTests {
             new Dictionary<string, string> { ["Test.cs"] = source },
             [new FunctionGenerator(), new TriggerGenerator()],
             FunctionGeneratorHarness.Anchors,
-            buildProperties: properties.ToDictionary(pair => pair.Item1, pair => pair.Item2));
+            buildProperties: properties.ToDictionary(pair => pair.Item1, pair => pair.Item2)
+        );
     }
 
     /// <summary>
@@ -62,8 +66,9 @@ public class TriggerModuleTests {
     /// fails here rather than in a consumer's build.
     /// </summary>
     private static GeneratorResult GenerateAndCompile(
-        string handlers, params (string, string)[] properties) =>
-        Generate(handlers, properties).AssertNoErrors();
+        string handlers,
+        params (string, string)[] properties
+    ) => Generate(handlers, properties).AssertNoErrors();
 
     private static string Registration(GeneratorResult result) =>
         result.GeneratedSources.TryGetValue("TestApplication.TriggerModules.cs", out var source)
@@ -71,13 +76,15 @@ public class TriggerModuleTests {
             : "";
 
     [Fact]
-    public void AQueueHandlerRegistersTheModuleTheRuntimeNames() {
+    public void AQueueHandlerRegistersTheModuleTheRuntimeNames()
+    {
         var result = GenerateAndCompile(
             """
                 [Queue("orders-new")]
                 public void OnOrder(string body) { }
             """,
-            ("HardenedQueueModule", CoreModule));
+            ("HardenedQueueModule", CoreModule)
+        );
 
         Assert.Contains("AddModule(new global::" + CoreModule + "())", Registration(result));
     }
@@ -87,13 +94,15 @@ public class TriggerModuleTests {
     /// and nothing in the handler changes.
     /// </summary>
     [Fact]
-    public void TheSameHandlerRegistersWhateverTheRuntimeNames() {
+    public void TheSameHandlerRegistersWhateverTheRuntimeNames()
+    {
         var result = Generate(
             """
                 [Queue("orders-new")]
                 public void OnOrder(string body) { }
             """,
-            ("HardenedQueueModule", "Contoso.Bus.QueueModule"));
+            ("HardenedQueueModule", "Contoso.Bus.QueueModule")
+        );
 
         // Not compiled, and this is the one case that cannot be: the point is that the generator
         // emits whatever the property names without knowing the type, so naming a type this suite
@@ -107,15 +116,20 @@ public class TriggerModuleTests {
     /// what the attributes declared with whatever was added there.
     /// </summary>
     [Fact]
-    public void TheRegistrationIsKeyedOnTheEntryPoint() {
+    public void TheRegistrationIsKeyedOnTheEntryPoint()
+    {
         var result = GenerateAndCompile(
             """
                 [Queue("orders-new")]
                 public void OnOrder(string body) { }
             """,
-            ("HardenedQueueModule", CoreModule));
+            ("HardenedQueueModule", CoreModule)
+        );
 
-        Assert.Contains("DependencyRegistry<global::TestApp.TestApplication>", Registration(result));
+        Assert.Contains(
+            "DependencyRegistry<global::TestApp.TestApplication>",
+            Registration(result)
+        );
     }
 
     /// <summary>
@@ -124,13 +138,17 @@ public class TriggerModuleTests {
     /// one on this class.
     /// </summary>
     [Fact]
-    public void TheRegistrationIsAStaticFieldInitializer() {
-        var registration = Registration(GenerateAndCompile(
-            """
-                [Queue("orders-new")]
-                public void OnOrder(string body) { }
-            """,
-            ("HardenedQueueModule", CoreModule)));
+    public void TheRegistrationIsAStaticFieldInitializer()
+    {
+        var registration = Registration(
+            GenerateAndCompile(
+                """
+                    [Queue("orders-new")]
+                    public void OnOrder(string body) { }
+                """,
+                ("HardenedQueueModule", CoreModule)
+            )
+        );
 
         Assert.Contains("private static int _hardenedTriggerModules", registration);
         Assert.DoesNotContain("static TestApplication(", registration);
@@ -141,38 +159,47 @@ public class TriggerModuleTests {
     /// two adapters would both claim every EventBridge payload.
     /// </summary>
     [Fact]
-    public void TwoTriggersSharingAModuleRegisterItOnce() {
-        var registration = Registration(GenerateAndCompile(
-            """
-                [Timer("nightly")]
-                public void Nightly() { }
+    public void TwoTriggersSharingAModuleRegisterItOnce()
+    {
+        var registration = Registration(
+            GenerateAndCompile(
+                """
+                    [Timer("nightly")]
+                    public void Nightly() { }
 
-                [Event("com.acme.orders", "OrderPlaced")]
-                public void OnPlaced(string body) { }
-            """,
-            ("HardenedTimerModule", TimeoutModule),
-            ("HardenedEventModule", TimeoutModule)));
+                    [Event("com.acme.orders", "OrderPlaced")]
+                    public void OnPlaced(string body) { }
+                """,
+                ("HardenedTimerModule", TimeoutModule),
+                ("HardenedEventModule", TimeoutModule)
+            )
+        );
 
         var first = registration.IndexOf(TimeoutModule, System.StringComparison.Ordinal);
 
         Assert.True(first > -1, "the shared module should be registered");
         Assert.Equal(
             first,
-            registration.LastIndexOf(TimeoutModule, System.StringComparison.Ordinal));
+            registration.LastIndexOf(TimeoutModule, System.StringComparison.Ordinal)
+        );
     }
 
     [Fact]
-    public void SeveralTriggersRegisterSeveralModules() {
-        var registration = Registration(GenerateAndCompile(
-            """
-                [Queue("orders-new")]
-                public void OnOrder(string body) { }
+    public void SeveralTriggersRegisterSeveralModules()
+    {
+        var registration = Registration(
+            GenerateAndCompile(
+                """
+                    [Queue("orders-new")]
+                    public void OnOrder(string body) { }
 
-                [Topic("order-events")]
-                public void OnEvent(string body) { }
-            """,
-            ("HardenedQueueModule", CoreModule),
-            ("HardenedTopicModule", RequestModule)));
+                    [Topic("order-events")]
+                    public void OnEvent(string body) { }
+                """,
+                ("HardenedQueueModule", CoreModule),
+                ("HardenedTopicModule", RequestModule)
+            )
+        );
 
         Assert.Contains(CoreModule, registration);
         Assert.Contains(RequestModule, registration);
@@ -183,7 +210,8 @@ public class TriggerModuleTests {
     /// test calling the surviving method would look like it covers both and cover one.
     /// </summary>
     [Fact]
-    public void TwoSourcesProducingOneMethodNameAreReported() {
+    public void TwoSourcesProducingOneMethodNameAreReported()
+    {
         var result = Generate(
             """
                 [Queue("orders-new")]
@@ -192,7 +220,8 @@ public class TriggerModuleTests {
                 [Queue("orders.new")]
                 public void Dotted(string body) { }
             """,
-            ("HardenedQueueModule", CoreModule));
+            ("HardenedQueueModule", CoreModule)
+        );
 
         var diagnostic = Assert.Single(result.GeneratorDiagnostics.Where(d => d.Id == "HRDF002"));
 
@@ -207,7 +236,8 @@ public class TriggerModuleTests {
     /// stay reachable and nothing is reported.
     /// </summary>
     [Fact]
-    public void OneNameAcrossTwoKindsIsNotACollision() {
+    public void OneNameAcrossTwoKindsIsNotACollision()
+    {
         var result = Generate(
             """
                 [Queue("orders")]
@@ -217,7 +247,8 @@ public class TriggerModuleTests {
                 public void FromTopic(string body) { }
             """,
             ("HardenedQueueModule", CoreModule),
-            ("HardenedTopicModule", RequestModule));
+            ("HardenedTopicModule", RequestModule)
+        );
 
         Assert.DoesNotContain(result.GeneratorDiagnostics, d => d.Id == "HRDF002");
 
@@ -232,11 +263,14 @@ public class TriggerModuleTests {
     /// with no cloud referenced is an ordinary thing to compile.
     /// </summary>
     [Fact]
-    public void AProjectWithNoRuntimeIsSilent() {
-        var result = Generate("""
+    public void AProjectWithNoRuntimeIsSilent()
+    {
+        var result = Generate(
+            """
                 [Queue("orders-new")]
                 public void OnOrder(string body) { }
-            """);
+            """
+        );
 
         Assert.DoesNotContain("TestApplication.TriggerModules.cs", result.GeneratedSources.Keys);
         Assert.Empty(result.GeneratorDiagnostics);
@@ -252,7 +286,8 @@ public class TriggerModuleTests {
     /// scheme is part of the route now, so they differ in the switch and in the file name.
     /// </remarks>
     [Fact]
-    public void AQueueAndATopicMayShareAName() {
+    public void AQueueAndATopicMayShareAName()
+    {
         var result = GenerateAndCompile(
             """
                 [Queue("orders")]
@@ -262,7 +297,8 @@ public class TriggerModuleTests {
                 public void FromTopic(string body) { }
             """,
             ("HardenedQueueModule", CoreModule),
-            ("HardenedTopicModule", RequestModule));
+            ("HardenedTopicModule", RequestModule)
+        );
 
         var provider = result.SourceContaining("FunctionHandlers.cs");
 
@@ -276,10 +312,13 @@ public class TriggerModuleTests {
     /// A project with no trigger gets no file at all, rather than one registering nothing.
     /// </summary>
     [Fact]
-    public void AProjectWithNoTriggerGeneratesNothing() {
-        var result = Generate("""
+    public void AProjectWithNoTriggerGeneratesNothing()
+    {
+        var result = Generate(
+            """
                 public void NotAHandler() { }
-            """);
+            """
+        );
 
         Assert.DoesNotContain("TestApplication.TriggerModules.cs", result.GeneratedSources.Keys);
         Assert.Empty(result.GeneratorDiagnostics);
@@ -299,7 +338,8 @@ public class TriggerModuleTests {
     /// order nobody controls. Binding one and using the other has to be the error it is here.
     /// </remarks>
     [Fact]
-    public void AChangeAndAStreamDoNotShareABinding() {
+    public void AChangeAndAStreamDoNotShareABinding()
+    {
         var result = Generate(
             """
                 [Change("orders")]
@@ -308,7 +348,8 @@ public class TriggerModuleTests {
                 [Stream("clickstream")]
                 public void OnClick(string body) { }
             """,
-            ("HardenedChangeModule", CoreModule));
+            ("HardenedChangeModule", CoreModule)
+        );
 
         var diagnostic = Assert.Single(result.GeneratorDiagnostics);
 
@@ -318,31 +359,36 @@ public class TriggerModuleTests {
     }
 
     [Fact]
-    public void AChangeHandlerRegistersTheModuleTheRuntimeNames() {
+    public void AChangeHandlerRegistersTheModuleTheRuntimeNames()
+    {
         var result = GenerateAndCompile(
             """
                 [Change("orders")]
                 public void OnOrderChanged(string body) { }
             """,
-            ("HardenedChangeModule", CoreModule));
+            ("HardenedChangeModule", CoreModule)
+        );
 
         Assert.Contains("AddModule(new global::" + CoreModule + "())", Registration(result));
     }
 
     [Fact]
-    public void AStreamHandlerRegistersTheModuleTheRuntimeNames() {
+    public void AStreamHandlerRegistersTheModuleTheRuntimeNames()
+    {
         var result = GenerateAndCompile(
             """
                 [Stream("clickstream")]
                 public void OnClick(string body) { }
             """,
-            ("HardenedStreamModule", CoreModule));
+            ("HardenedStreamModule", CoreModule)
+        );
 
         Assert.Contains("AddModule(new global::" + CoreModule + "())", Registration(result));
     }
 
     [Fact]
-    public void ATriggerNothingBindsIsReported() {
+    public void ATriggerNothingBindsIsReported()
+    {
         var result = Generate(
             """
                 [Queue("orders-new")]
@@ -351,7 +397,8 @@ public class TriggerModuleTests {
                 [Timer("nightly")]
                 public void Nightly() { }
             """,
-            ("HardenedQueueModule", CoreModule));
+            ("HardenedQueueModule", CoreModule)
+        );
 
         var diagnostic = Assert.Single(result.GeneratorDiagnostics);
 
@@ -365,7 +412,8 @@ public class TriggerModuleTests {
     /// missing and the rest of the project still works.
     /// </summary>
     [Fact]
-    public void AnUnboundTriggerDoesNotStopTheBoundOnes() {
+    public void AnUnboundTriggerDoesNotStopTheBoundOnes()
+    {
         var result = Generate(
             """
                 [Queue("orders-new")]
@@ -374,7 +422,8 @@ public class TriggerModuleTests {
                 [Topic("order-events")]
                 public void OnEvent(string body) { }
             """,
-            ("HardenedQueueModule", CoreModule));
+            ("HardenedQueueModule", CoreModule)
+        );
 
         Assert.Contains(CoreModule, Registration(result));
         Assert.Single(result.GeneratorDiagnostics);
@@ -388,13 +437,15 @@ public class TriggerModuleTests {
     [InlineData("Queue")]
     [InlineData("QueueAttribute")]
     [InlineData("Hardened.Functions.Runtime.Attributes.QueueAttribute")]
-    public void ATriggerIsFoundUnderAnySpelling(string written) {
+    public void ATriggerIsFoundUnderAnySpelling(string written)
+    {
         var result = GenerateAndCompile(
             $$"""
                 [{{written}}("orders-new")]
                 public void OnOrder(string body) { }
             """,
-            ("HardenedQueueModule", CoreModule));
+            ("HardenedQueueModule", CoreModule)
+        );
 
         Assert.Contains(CoreModule, Registration(result));
     }

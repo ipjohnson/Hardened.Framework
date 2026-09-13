@@ -3,10 +3,11 @@ using Xunit;
 
 namespace Hardened.Web.Runtime.Tests.Attributes;
 
-public class OpenApiInfoAttributeTests {
-
+public class OpenApiInfoAttributeTests
+{
     [Fact]
-    public void CarriesWhatWasDeclared() {
+    public void CarriesWhatWasDeclared()
+    {
         var attribute = new OpenApiInfoAttribute("Consignments API", "1.2.0", "The consignments.");
 
         Assert.Equal("Consignments API", attribute.Title);
@@ -16,7 +17,8 @@ public class OpenApiInfoAttributeTests {
 
     /// <summary>The defaults an entry point declaring only a title gets.</summary>
     [Fact]
-    public void VersionDefaultsAndDescriptionIsAbsent() {
+    public void VersionDefaultsAndDescriptionIsAbsent()
+    {
         var attribute = new OpenApiInfoAttribute("Consignments API");
 
         Assert.Equal("1.0.0", attribute.Version);

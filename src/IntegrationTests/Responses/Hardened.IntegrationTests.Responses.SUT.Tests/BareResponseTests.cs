@@ -18,19 +18,21 @@ namespace Hardened.IntegrationTests.Responses.SUT.Tests;
 /// value and the bug was that they disagreed.
 /// </para>
 /// </remarks>
-public class BareResponseTests {
-
+public class BareResponseTests
+{
     private record TodoBody(int Id, string Title);
 
     [HardenedTest]
-    public async Task AReturnedResponseAnswersItsOwnStatus(ITestWebApp app) {
+    public async Task AReturnedResponseAnswersItsOwnStatus(ITestWebApp app)
+    {
         var response = await app.Post(new NewTodo("bare"), "/responses/bare");
 
         Assert.Equal(201, response.StatusCode);
     }
 
     [HardenedTest]
-    public async Task AReturnedResponseAppliesItsOwnHeaders(ITestWebApp app) {
+    public async Task AReturnedResponseAppliesItsOwnHeaders(ITestWebApp app)
+    {
         var response = await app.Post(new NewTodo("bare"), "/responses/bare");
 
         Assert.Equal("/responses/7", response.Headers["Location"].ToString());
@@ -41,7 +43,8 @@ public class BareResponseTests {
     /// <c>Value</c>, so if it were serialized <c>Id</c> would read 0.
     /// </summary>
     [HardenedTest]
-    public async Task AReturnedResponseSendsItsBodyRatherThanTheContainer(ITestWebApp app) {
+    public async Task AReturnedResponseSendsItsBodyRatherThanTheContainer(ITestWebApp app)
+    {
         var response = await app.Post(new NewTodo("bare"), "/responses/bare");
 
         // Read once: the body is a stream, and a second Deserialize finds it consumed.
@@ -55,13 +58,16 @@ public class BareResponseTests {
     /// The whole point: returned and thrown are the same value, so they are the same response.
     /// </summary>
     [HardenedTest]
-    public async Task ReturningAndThrowingTheSameValueAnswerIdentically(ITestWebApp app) {
+    public async Task ReturningAndThrowingTheSameValueAnswerIdentically(ITestWebApp app)
+    {
         var returned = await app.Post(new NewTodo("bare"), "/responses/bare");
         var thrown = await app.Post(new NewTodo("bare"), "/responses/bare-thrown");
 
         Assert.Equal(thrown.StatusCode, returned.StatusCode);
         Assert.Equal(
-            thrown.Headers["Location"].ToString(), returned.Headers["Location"].ToString());
+            thrown.Headers["Location"].ToString(),
+            returned.Headers["Location"].ToString()
+        );
         Assert.Equal(await thrown.ReadTextAsync(), await returned.ReadTextAsync());
     }
 
@@ -70,7 +76,8 @@ public class BareResponseTests {
     /// four characters "null".
     /// </summary>
     [HardenedTest]
-    public async Task AReturnedBodylessResponseWritesNoBody(ITestWebApp app) {
+    public async Task AReturnedBodylessResponseWritesNoBody(ITestWebApp app)
+    {
         var response = await app.Delete("/responses/bare/1");
 
         Assert.Equal(204, response.StatusCode);
@@ -87,7 +94,8 @@ public class BareResponseTests {
     /// case; the bare return now does the same rather than differently.
     /// </remarks>
     [HardenedTest]
-    public async Task ADeclaredStatusWinsOverOneTheHandlerWrote(ITestWebApp app) {
+    public async Task ADeclaredStatusWinsOverOneTheHandlerWrote(ITestWebApp app)
+    {
         var bare = await app.Post(new NewTodo("bare"), "/responses/bare-overridden");
         var inSet = await app.Post(new NewTodo("bare"), "/responses/set-overridden");
 

@@ -21,13 +21,16 @@ namespace Hardened.Aws.Lambda.S3;
 /// with.
 /// </para>
 /// </remarks>
-public class S3Request : LambdaPayloadRequest, IBatchRequest {
+public class S3Request : LambdaPayloadRequest, IBatchRequest
+{
     public S3Request(
         string bucketName,
         Stream body,
         IDictionary<string, StringValues> headers,
-        IReadOnlyList<S3Notification> records)
-        : base(BlobScheme, "/" + bucketName, body, headers) {
+        IReadOnlyList<S3Notification> records
+    )
+        : base(BlobScheme, "/" + bucketName, body, headers)
+    {
         Records = records;
     }
 
@@ -82,9 +85,10 @@ public class S3Request : LambdaPayloadRequest, IBatchRequest {
     /// </remarks>
     public void RecordFailure(int index, Exception failure) =>
         throw new NotSupportedException(
-            "S3 reads no response from the function it invoked, so an individual notification " +
-            "cannot be reported as failed. The invocation fails instead, which is what makes " +
-            "Lambda retry it.");
+            "S3 reads no response from the function it invoked, so an individual notification "
+                + "cannot be reported as failed. The invocation fails instead, which is what makes "
+                + "Lambda retry it."
+        );
 
     /// <summary>
     /// The request for one notification, as a handler will see it.
@@ -96,7 +100,8 @@ public class S3Request : LambdaPayloadRequest, IBatchRequest {
     /// handler declares a type with those properties the way it would declare one for a queue
     /// message.
     /// </remarks>
-    public IExecutionRequest ForRecord(S3Notification record) {
+    public IExecutionRequest ForRecord(S3Notification record)
+    {
         var headers = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase);
 
         Set(headers, KeyHeader, record.Key);
@@ -105,18 +110,21 @@ public class S3Request : LambdaPayloadRequest, IBatchRequest {
         Set(headers, SequencerHeader, record.Sequencer);
         Set(headers, EventTimeHeader, record.EventTime);
 
-        if (Headers.TryGetValue(BucketHeader, out var bucket)) {
+        if (Headers.TryGetValue(BucketHeader, out var bucket))
+        {
             headers[BucketHeader] = bucket;
         }
 
         var body = new MemoryStream();
 
-        using (var writer = new Utf8JsonWriter(body)) {
+        using (var writer = new Utf8JsonWriter(body))
+        {
             writer.WriteStartObject();
             writer.WriteString("bucket", Path.TrimStart('/'));
             writer.WriteString("key", record.Key);
 
-            if (record.Size is { } size) {
+            if (record.Size is { } size)
+            {
                 writer.WriteNumber("size", size);
             }
 
@@ -132,9 +140,10 @@ public class S3Request : LambdaPayloadRequest, IBatchRequest {
         return new LambdaPayloadRequest(Method, Path, body, headers);
     }
 
-    private static void Set(
-        IDictionary<string, StringValues> headers, string name, string? value) {
-        if (!string.IsNullOrEmpty(value)) {
+    private static void Set(IDictionary<string, StringValues> headers, string name, string? value)
+    {
+        if (!string.IsNullOrEmpty(value))
+        {
             headers[name] = value;
         }
     }

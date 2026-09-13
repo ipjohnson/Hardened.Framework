@@ -23,10 +23,13 @@ namespace Hardened.Shared.Testing.Tests.Attributes;
 /// would be reporting on itself — a hook that silently never ran would leave the assertion looking
 /// at exactly the same container as one that did.
 /// </remarks>
-public class HardenedTestEntryPointSetupTests {
-
+public class HardenedTestEntryPointSetupTests
+{
     private static (IServiceProvider Provider, ServiceCollection Collection) Setup<T>(
-        string methodName, Action<ServiceCollection>? beforeSetup = null) {
+        string methodName,
+        Action<ServiceCollection>? beforeSetup = null
+    )
+    {
         var collection = new ServiceCollection();
         collection.AddSingleton(new StartupLog());
         beforeSetup?.Invoke(collection);
@@ -35,19 +38,22 @@ public class HardenedTestEntryPointSetupTests {
         // registers the logger provider of whatever runner is installed.
         XunitCurrentTestProvider.Install();
 
-        new HardenedTestEntryPointAttribute(typeof(AssemblyEntryPointModule))
-            .SetupServiceCollection(FakeTestMethodContext.For<T>(methodName), collection);
+        new HardenedTestEntryPointAttribute(
+            typeof(AssemblyEntryPointModule)
+        ).SetupServiceCollection(FakeTestMethodContext.For<T>(methodName), collection);
 
         return (collection.BuildServiceProvider(), collection);
     }
 
-    private class UsesTheAssemblyEnvironment {
+    private class UsesTheAssemblyEnvironment
+    {
         public void Method() { }
     }
 
     [EnvironmentName("class-environment")]
     [EnvironmentValue("class-scoped-value", "from-class")]
-    private class DeclaresClassLevelEnvironment {
+    private class DeclaresClassLevelEnvironment
+    {
         public void Method() { }
 
         [EnvironmentName("method-environment")]
@@ -63,32 +69,47 @@ public class HardenedTestEntryPointSetupTests {
     /// measure against. A method in an assembly that declares nothing gets "test".
     /// </summary>
     [Fact]
-    public void AnAssemblyThatNamesNoEnvironmentGetsTest() {
+    public void AnAssemblyThatNamesNoEnvironmentGetsTest()
+    {
         var (provider, _) = Setup<ApplicationLogic>(nameof(ApplicationLogic.Start));
 
         Assert.Equal("test", provider.GetRequiredService<IHardenedEnvironment>().Name);
     }
 
     [Fact]
-    public void TheAssemblyEnvironmentNameAppliesWhenNothingNarrowerNamesOne() {
-        var (provider, _) = Setup<UsesTheAssemblyEnvironment>(nameof(UsesTheAssemblyEnvironment.Method));
+    public void TheAssemblyEnvironmentNameAppliesWhenNothingNarrowerNamesOne()
+    {
+        var (provider, _) = Setup<UsesTheAssemblyEnvironment>(
+            nameof(UsesTheAssemblyEnvironment.Method)
+        );
 
-        Assert.Equal("assembly-environment", provider.GetRequiredService<IHardenedEnvironment>().Name);
+        Assert.Equal(
+            "assembly-environment",
+            provider.GetRequiredService<IHardenedEnvironment>().Name
+        );
     }
 
     [Fact]
-    public void AClassEnvironmentNameBeatsTheAssemblys() {
-        var (provider, _) = Setup<DeclaresClassLevelEnvironment>(nameof(DeclaresClassLevelEnvironment.Method));
+    public void AClassEnvironmentNameBeatsTheAssemblys()
+    {
+        var (provider, _) = Setup<DeclaresClassLevelEnvironment>(
+            nameof(DeclaresClassLevelEnvironment.Method)
+        );
 
         Assert.Equal("class-environment", provider.GetRequiredService<IHardenedEnvironment>().Name);
     }
 
     [Fact]
-    public void AMethodEnvironmentNameBeatsBothTheClassAndTheAssembly() {
+    public void AMethodEnvironmentNameBeatsBothTheClassAndTheAssembly()
+    {
         var (provider, _) = Setup<DeclaresClassLevelEnvironment>(
-            nameof(DeclaresClassLevelEnvironment.MethodWithItsOwnEnvironment));
+            nameof(DeclaresClassLevelEnvironment.MethodWithItsOwnEnvironment)
+        );
 
-        Assert.Equal("method-environment", provider.GetRequiredService<IHardenedEnvironment>().Name);
+        Assert.Equal(
+            "method-environment",
+            provider.GetRequiredService<IHardenedEnvironment>().Name
+        );
     }
 
     // ---- environment values ------------------------------------------------------------------
@@ -98,9 +119,11 @@ public class HardenedTestEntryPointSetupTests {
     /// declared, and adds its own.
     /// </summary>
     [Fact]
-    public void EnvironmentValuesFromEveryScopeAreMerged() {
+    public void EnvironmentValuesFromEveryScopeAreMerged()
+    {
         var (provider, _) = Setup<DeclaresClassLevelEnvironment>(
-            nameof(DeclaresClassLevelEnvironment.MethodWithItsOwnEnvironment));
+            nameof(DeclaresClassLevelEnvironment.MethodWithItsOwnEnvironment)
+        );
 
         var environment = provider.GetRequiredService<IHardenedEnvironment>();
 
@@ -110,8 +133,11 @@ public class HardenedTestEntryPointSetupTests {
     }
 
     [Fact]
-    public void AMethodDoesNotSeeValuesDeclaredOnAnUnrelatedClass() {
-        var (provider, _) = Setup<UsesTheAssemblyEnvironment>(nameof(UsesTheAssemblyEnvironment.Method));
+    public void AMethodDoesNotSeeValuesDeclaredOnAnUnrelatedClass()
+    {
+        var (provider, _) = Setup<UsesTheAssemblyEnvironment>(
+            nameof(UsesTheAssemblyEnvironment.Method)
+        );
 
         var environment = provider.GetRequiredService<IHardenedEnvironment>();
 
@@ -120,16 +146,22 @@ public class HardenedTestEntryPointSetupTests {
     }
 
     [RecordingEnvironment("hook-written-value", "written-by-hook")]
-    private class DeclaresAnEnvironmentHook {
+    private class DeclaresAnEnvironmentHook
+    {
         public void Method() { }
     }
 
     [Fact]
-    public void EnvironmentHooksCanAddValuesOfTheirOwn() {
-        var (provider, _) = Setup<DeclaresAnEnvironmentHook>(nameof(DeclaresAnEnvironmentHook.Method));
+    public void EnvironmentHooksCanAddValuesOfTheirOwn()
+    {
+        var (provider, _) = Setup<DeclaresAnEnvironmentHook>(
+            nameof(DeclaresAnEnvironmentHook.Method)
+        );
 
-        Assert.Equal("written-by-hook",
-            provider.GetRequiredService<IHardenedEnvironment>().Value<string>("hook-written-value"));
+        Assert.Equal(
+            "written-by-hook",
+            provider.GetRequiredService<IHardenedEnvironment>().Value<string>("hook-written-value")
+        );
     }
 
     /// <summary>
@@ -137,19 +169,26 @@ public class HardenedTestEntryPointSetupTests {
     /// read the attributes again itself.
     /// </summary>
     [Fact]
-    public void EnvironmentHooksAreToldTheResolvedEnvironmentName() {
-        var (provider, _) = Setup<DeclaresAnEnvironmentHook>(nameof(DeclaresAnEnvironmentHook.Method));
+    public void EnvironmentHooksAreToldTheResolvedEnvironmentName()
+    {
+        var (provider, _) = Setup<DeclaresAnEnvironmentHook>(
+            nameof(DeclaresAnEnvironmentHook.Method)
+        );
 
-        Assert.Equal("assembly-environment",
-            provider.GetRequiredService<IHardenedEnvironment>()
-                .Value<string>("environment-name-seen-by-configure"));
+        Assert.Equal(
+            "assembly-environment",
+            provider
+                .GetRequiredService<IHardenedEnvironment>()
+                .Value<string>("environment-name-seen-by-configure")
+        );
     }
 
     // ---- ordered hooks -----------------------------------------------------------------------
 
     [RecordingRegistration("class-first", Order = 1)]
     [RecordingParameterProvider("class-provider", Order = 1)]
-    private class DeclaresOrderedHooks {
+    private class DeclaresOrderedHooks
+    {
         [RecordingRegistration("method-last", Order = 99)]
         [RecordingRegistration("method-middle", Order = 50)]
         [RecordingParameterProvider("method-provider", Order = 99)]
@@ -162,25 +201,31 @@ public class HardenedTestEntryPointSetupTests {
     /// before the tests that consume it.
     /// </summary>
     [Fact]
-    public void RegistrationHooksRunInDeclaredOrderNotScopeOrder() {
+    public void RegistrationHooksRunInDeclaredOrderNotScopeOrder()
+    {
         var (_, collection) = Setup<DeclaresOrderedHooks>(nameof(DeclaresOrderedHooks.Method));
 
         Assert.Equal(
             new[] { "class-first", "method-middle", "method-last" },
-            collection.Select(descriptor => descriptor.ImplementationInstance)
+            collection
+                .Select(descriptor => descriptor.ImplementationInstance)
                 .OfType<RegistrationMark>()
-                .Select(mark => mark.Name));
+                .Select(mark => mark.Name)
+        );
     }
 
     [Fact]
-    public void ParameterProviderHooksRunInDeclaredOrderNotScopeOrder() {
+    public void ParameterProviderHooksRunInDeclaredOrderNotScopeOrder()
+    {
         var (_, collection) = Setup<DeclaresOrderedHooks>(nameof(DeclaresOrderedHooks.Method));
 
         Assert.Equal(
             new[] { "class-provider", "method-provider" },
-            collection.Select(descriptor => descriptor.ImplementationInstance)
+            collection
+                .Select(descriptor => descriptor.ImplementationInstance)
                 .OfType<ParameterProviderMark>()
-                .Select(mark => mark.Name));
+                .Select(mark => mark.Name)
+        );
     }
 
     /// <summary>
@@ -188,30 +233,37 @@ public class HardenedTestEntryPointSetupTests {
     /// services in place once for the whole test rather than once per parameter that names them.
     /// </summary>
     [Fact]
-    public void ParameterProviderHooksRegisterWithNoParameterInHand() {
+    public void ParameterProviderHooksRegisterWithNoParameterInHand()
+    {
         var (_, collection) = Setup<DeclaresOrderedHooks>(nameof(DeclaresOrderedHooks.Method));
 
-        var marks = collection.Select(descriptor => descriptor.ImplementationInstance)
+        var marks = collection
+            .Select(descriptor => descriptor.ImplementationInstance)
             .OfType<ParameterProviderMark>();
 
         Assert.All(marks, mark => Assert.DoesNotContain(":", mark.Name));
     }
 
     [RecordingConfiguration("class-config", Order = 1)]
-    private class DeclaresConfigurationHooks {
+    private class DeclaresConfigurationHooks
+    {
         [RecordingConfiguration("method-config", Order = 5)]
         public void Method() { }
     }
 
     [Fact]
-    public void ConfigurationHooksAmendTheRegisteredConfigurationPackageInDeclaredOrder() {
-        var (provider, _) = Setup<DeclaresConfigurationHooks>(nameof(DeclaresConfigurationHooks.Method));
+    public void ConfigurationHooksAmendTheRegisteredConfigurationPackageInDeclaredOrder()
+    {
+        var (provider, _) = Setup<DeclaresConfigurationHooks>(
+            nameof(DeclaresConfigurationHooks.Method)
+        );
 
         var environment = provider.GetRequiredService<IHardenedEnvironment>();
         var package = provider.GetRequiredService<IConfigurationPackage>();
 
         var log = new ConfigurationLog();
-        foreach (var amender in package.ConfigurationValueAmenders(environment)) {
+        foreach (var amender in package.ConfigurationValueAmenders(environment))
+        {
             amender.ApplyConfiguration(environment, log);
         }
 
@@ -221,29 +273,35 @@ public class HardenedTestEntryPointSetupTests {
     // ---- startup ------------------------------------------------------------------------------
 
     [RecordingStartup("class-startup", Order = 1)]
-    private class DeclaresStartupHooks {
+    private class DeclaresStartupHooks
+    {
         [RecordingStartup("method-startup-last", Order = 99)]
         [RecordingStartup("method-startup-middle", Order = 50)]
         public void Method() { }
     }
 
     [Fact]
-    public async Task StartupHooksRunInDeclaredOrderNotScopeOrder() {
+    public async Task StartupHooksRunInDeclaredOrderNotScopeOrder()
+    {
         var (provider, _) = Setup<DeclaresStartupHooks>(nameof(DeclaresStartupHooks.Method));
 
-        await new HardenedTestEntryPointAttribute(typeof(AssemblyEntryPointModule))
-            .StartupAsync(FakeTestMethodContext.For<DeclaresStartupHooks>(nameof(DeclaresStartupHooks.Method)),
-                provider);
+        await new HardenedTestEntryPointAttribute(typeof(AssemblyEntryPointModule)).StartupAsync(
+            FakeTestMethodContext.For<DeclaresStartupHooks>(nameof(DeclaresStartupHooks.Method)),
+            provider
+        );
 
         Assert.Equal(
             new[] { "class-startup", "method-startup-middle", "method-startup-last" },
-            provider.GetRequiredService<StartupLog>().Names);
+            provider.GetRequiredService<StartupLog>().Names
+        );
     }
 
-    private sealed class RecordingStartupService : IStartupService {
+    private sealed class RecordingStartupService : IStartupService
+    {
         public bool Ran { get; private set; }
 
-        public Task<bool> Startup(IServiceProvider rootProvider) {
+        public Task<bool> Startup(IServiceProvider rootProvider)
+        {
             Ran = true;
             return Task.FromResult(true);
         }
@@ -254,17 +312,21 @@ public class HardenedTestEntryPointSetupTests {
     /// half-started application.
     /// </summary>
     [Fact]
-    public async Task ApplicationStartupServicesRunBeforeTheTestMethod() {
+    public async Task ApplicationStartupServicesRunBeforeTheTestMethod()
+    {
         var startupService = new RecordingStartupService();
 
         var (provider, _) = Setup<UsesTheAssemblyEnvironment>(
             nameof(UsesTheAssemblyEnvironment.Method),
-            collection => collection.AddSingleton<IStartupService>(startupService));
+            collection => collection.AddSingleton<IStartupService>(startupService)
+        );
 
-        await new HardenedTestEntryPointAttribute(typeof(AssemblyEntryPointModule))
-            .StartupAsync(
-                FakeTestMethodContext.For<UsesTheAssemblyEnvironment>(nameof(UsesTheAssemblyEnvironment.Method)),
-                provider);
+        await new HardenedTestEntryPointAttribute(typeof(AssemblyEntryPointModule)).StartupAsync(
+            FakeTestMethodContext.For<UsesTheAssemblyEnvironment>(
+                nameof(UsesTheAssemblyEnvironment.Method)
+            ),
+            provider
+        );
 
         Assert.True(startupService.Ran);
     }
@@ -282,14 +344,18 @@ public class HardenedTestEntryPointSetupTests {
     /// registrations.
     /// </remarks>
     [Fact]
-    public void TheApplicationRootResolvesFromTheSameContainerAsTheTest() {
-        var (provider, _) = Setup<UsesTheAssemblyEnvironment>(nameof(UsesTheAssemblyEnvironment.Method));
+    public void TheApplicationRootResolvesFromTheSameContainerAsTheTest()
+    {
+        var (provider, _) = Setup<UsesTheAssemblyEnvironment>(
+            nameof(UsesTheAssemblyEnvironment.Method)
+        );
 
         var root = provider.GetRequiredService<IApplicationRoot>();
 
         Assert.Same(
             provider.GetRequiredService<ITestContext>(),
-            root.Provider.GetRequiredService<ITestContext>());
+            root.Provider.GetRequiredService<ITestContext>()
+        );
     }
 
     /// <summary>
@@ -297,8 +363,11 @@ public class HardenedTestEntryPointSetupTests {
     /// disposes it, so a test that disposes what it was given does not take the container with it.
     /// </summary>
     [Fact]
-    public async Task DisposingTheApplicationRootLeavesTheContainerUsable() {
-        var (provider, _) = Setup<UsesTheAssemblyEnvironment>(nameof(UsesTheAssemblyEnvironment.Method));
+    public async Task DisposingTheApplicationRootLeavesTheContainerUsable()
+    {
+        var (provider, _) = Setup<UsesTheAssemblyEnvironment>(
+            nameof(UsesTheAssemblyEnvironment.Method)
+        );
 
         var root = provider.GetRequiredService<IApplicationRoot>();
 
@@ -308,8 +377,11 @@ public class HardenedTestEntryPointSetupTests {
     }
 
     [Fact]
-    public void ATestContextIsRegisteredWithARetryEngineAttached() {
-        var (provider, _) = Setup<UsesTheAssemblyEnvironment>(nameof(UsesTheAssemblyEnvironment.Method));
+    public void ATestContextIsRegisteredWithARetryEngineAttached()
+    {
+        var (provider, _) = Setup<UsesTheAssemblyEnvironment>(
+            nameof(UsesTheAssemblyEnvironment.Method)
+        );
 
         var context = provider.GetRequiredService<ITestContext>();
 
@@ -322,22 +394,33 @@ public class HardenedTestEntryPointSetupTests {
     /// the single place a run's cancellation would come from.
     /// </summary>
     [Fact]
-    public void TheTestContextTakesItsCancellationTokenFromTheRegisteredOne() {
-        var (provider, _) = Setup<UsesTheAssemblyEnvironment>(nameof(UsesTheAssemblyEnvironment.Method));
+    public void TheTestContextTakesItsCancellationTokenFromTheRegisteredOne()
+    {
+        var (provider, _) = Setup<UsesTheAssemblyEnvironment>(
+            nameof(UsesTheAssemblyEnvironment.Method)
+        );
 
         Assert.Equal(
             provider.GetRequiredService<TestCancellationToken>().Token,
-            provider.GetRequiredService<ITestContext>().CancellationRequest);
+            provider.GetRequiredService<ITestContext>().CancellationRequest
+        );
     }
 
     [Fact]
-    public void TheTestContextIsSharedAcrossEveryResolutionInOneTest() {
-        var (provider, _) = Setup<UsesTheAssemblyEnvironment>(nameof(UsesTheAssemblyEnvironment.Method));
+    public void TheTestContextIsSharedAcrossEveryResolutionInOneTest()
+    {
+        var (provider, _) = Setup<UsesTheAssemblyEnvironment>(
+            nameof(UsesTheAssemblyEnvironment.Method)
+        );
 
-        Assert.Same(provider.GetRequiredService<ITestContext>(), provider.GetRequiredService<ITestContext>());
+        Assert.Same(
+            provider.GetRequiredService<ITestContext>(),
+            provider.GetRequiredService<ITestContext>()
+        );
     }
 
-    private sealed class UnwantedLoggerProvider : ILoggerProvider {
+    private sealed class UnwantedLoggerProvider : ILoggerProvider
+    {
         public void Dispose() { }
 
         public ILogger CreateLogger(string categoryName) => throw new NotSupportedException();
@@ -348,17 +431,22 @@ public class HardenedTestEntryPointSetupTests {
     /// removed rather than added to — otherwise a test run writes to the application's real sinks.
     /// </summary>
     [Fact]
-    public void TheApplicationsOwnLoggerProvidersAreReplacedNotJoined() {
+    public void TheApplicationsOwnLoggerProvidersAreReplacedNotJoined()
+    {
         var (provider, _) = Setup<UsesTheAssemblyEnvironment>(
             nameof(UsesTheAssemblyEnvironment.Method),
-            collection => collection.AddSingleton<ILoggerProvider, UnwantedLoggerProvider>());
+            collection => collection.AddSingleton<ILoggerProvider, UnwantedLoggerProvider>()
+        );
 
         Assert.IsType<XunitLoggerProvider>(Assert.Single(provider.GetServices<ILoggerProvider>()));
     }
 
     [Fact]
-    public void TheEnvironmentIsResolvableByServicesUnderTest() {
-        var (provider, _) = Setup<UsesTheAssemblyEnvironment>(nameof(UsesTheAssemblyEnvironment.Method));
+    public void TheEnvironmentIsResolvableByServicesUnderTest()
+    {
+        var (provider, _) = Setup<UsesTheAssemblyEnvironment>(
+            nameof(UsesTheAssemblyEnvironment.Method)
+        );
 
         Assert.IsType<TestEnvironment>(provider.GetRequiredService<IHardenedEnvironment>());
     }
@@ -381,9 +469,11 @@ public class HardenedTestEntryPointSetupTests {
     /// </para>
     /// </remarks>
     [Fact]
-    public void TheEnvironmentIsRegisteredUnderBothInterfaces() {
+    public void TheEnvironmentIsRegisteredUnderBothInterfaces()
+    {
         var (provider, _) = Setup<DeclaresClassLevelEnvironment>(
-            nameof(DeclaresClassLevelEnvironment.Method));
+            nameof(DeclaresClassLevelEnvironment.Method)
+        );
 
         var hardened = provider.GetRequiredService<IHardenedEnvironment>();
         var module = provider.GetRequiredService<IModuleEnvironment>();

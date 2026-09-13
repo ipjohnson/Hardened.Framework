@@ -32,7 +32,8 @@ namespace Hardened.Azure.Functions.ServiceBus;
 /// </remarks>
 [DependencyModule]
 [FunctionsRuntimeModule]
-public partial class ServiceBusModule : IServiceCollectionConfiguration {
+public partial class ServiceBusModule : IServiceCollectionConfiguration
+{
     /// <summary>
     /// The subscription every <c>[Topic]</c> handler in the application consumes through.
     /// </summary>
@@ -70,7 +71,8 @@ public partial class ServiceBusModule : IServiceCollectionConfiguration {
     /// </remarks>
     public bool? ReportsItemFailures { get; set; }
 
-    public void ConfigureServices(IServiceCollection services) {
+    public void ConfigureServices(IServiceCollection services)
+    {
         services.AddSingleton<ITriggerAdapter>(new ServiceBusAdapter(ReportsItemFailures ?? false));
 
         services.AddBatchExecutionFilter();

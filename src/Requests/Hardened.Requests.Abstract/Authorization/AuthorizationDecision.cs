@@ -18,7 +18,8 @@ namespace Hardened.Requests.Abstract.Authorization;
 /// someone inserts one.
 /// </para>
 /// </remarks>
-public enum AuthorizationDecision {
+public enum AuthorizationDecision
+{
     /// <summary>
     /// No opinion. A contributor that does not recognise the operation says this rather than
     /// guessing.

@@ -1,37 +1,54 @@
 using System.Text.Json;
 using Hardened.Generation.Document;
-using Xunit;
 using Hardened.Web.Runtime.Responses;
+using Xunit;
 
 namespace Hardened.OpenApiDocument.BuildTask.Tests;
 
 /// <summary>
 /// The JSON tree, its two emitters and the version lowering, over <see cref="DocumentFixture"/>.
 /// </summary>
-public class DocumentFormatTests {
-
+public class DocumentFormatTests
+{
     private static JsonObject Parsed() => (JsonObject)JsonTree.Parse(DocumentFixture.Compact);
 
     [Fact]
-    public void TheParserKeepsWhatTheGeneratorWrites() {
+    public void TheParserKeepsWhatTheGeneratorWrites()
+    {
         var document = Parsed();
 
         var info = (JsonObject)document.Get("info")!;
 
         Assert.Equal("Fixture: yes", ((JsonString)info.Get("title")!).Value);
-        Assert.Equal("Line one\nLine two \"quoted\" \\ back", ((JsonString)info.Get("description")!).Value);
+        Assert.Equal(
+            "Line one\nLine two \"quoted\" \\ back",
+            ((JsonString)info.Get("description")!).Value
+        );
 
         var paths = (JsonObject)document.Get("paths")!;
 
-        Assert.Equal(new[] { "/things/{id}", "/events" }, paths.Members.Select(member => member.Key));
+        Assert.Equal(
+            new[] { "/things/{id}", "/events" },
+            paths.Members.Select(member => member.Key)
+        );
 
-        var count = (JsonObject)((JsonObject)((JsonObject)((JsonObject)document.Get("components")!)
-            .Get("schemas")!).Get("Thing")!).Get("properties")!;
+        var count = (JsonObject)
+            (
+                (JsonObject)
+                    ((JsonObject)((JsonObject)document.Get("components")!).Get("schemas")!).Get(
+                        "Thing"
+                    )!
+            ).Get("properties")!;
 
-        Assert.Equal("100.5", ((JsonNumber)((JsonObject)count.Get("count")!).Get("exclusiveMaximum")!).Text);
+        Assert.Equal(
+            "100.5",
+            ((JsonNumber)((JsonObject)count.Get("count")!).Get("exclusiveMaximum")!).Text
+        );
         Assert.Same(JsonNull.Instance, ((JsonObject)count.Get("count")!).Get("default"));
         Assert.Empty(((JsonObject)((JsonObject)count.Get("empty")!).Get("properties")!).Members);
-        Assert.Empty(((JsonArray)((JsonObject)document.Get("components")!).Get("x-empty-list")!).Items);
+        Assert.Empty(
+            ((JsonArray)((JsonObject)document.Get("components")!).Get("x-empty-list")!).Items
+        );
     }
 
     /// <summary>
@@ -39,39 +56,70 @@ public class DocumentFormatTests {
     /// tracked file needs, and it also proves the emitter writes what the parser reads.
     /// </summary>
     [Fact]
-    public void IndentedJsonRoundTripsByteForByte() {
+    public void IndentedJsonRoundTripsByteForByte()
+    {
         var first = JsonTreeWriter.WriteIndented(Parsed());
         var second = JsonTreeWriter.WriteIndented(JsonTree.Parse(first));
 
         Assert.Equal(first, second);
         Assert.EndsWith("\n", first);
-        Assert.StartsWith("{\n  \"openapi\": \"3.2.0\",\n  \"info\": {\n    \"title\": \"Fixture: yes\",", first);
+        Assert.StartsWith(
+            "{\n  \"openapi\": \"3.2.0\",\n  \"info\": {\n    \"title\": \"Fixture: yes\",",
+            first
+        );
     }
 
     /// <summary>
     /// And a reader that is not ours agrees the indented file says what the compact one said.
     /// </summary>
     [Fact]
-    public void IndentedJsonIsTheSameDocumentToSystemTextJson() {
+    public void IndentedJsonIsTheSameDocumentToSystemTextJson()
+    {
         using var compact = JsonDocument.Parse(DocumentFixture.Compact);
         using var indented = JsonDocument.Parse(JsonTreeWriter.WriteIndented(Parsed()));
 
-        Assert.Equal(compact.RootElement.GetRawText().Length > 0, indented.RootElement.GetRawText().Length > 0);
+        Assert.Equal(
+            compact.RootElement.GetRawText().Length > 0,
+            indented.RootElement.GetRawText().Length > 0
+        );
         Assert.Equal(
             compact.RootElement.GetProperty("info").GetProperty("description").GetString(),
-            indented.RootElement.GetProperty("info").GetProperty("description").GetString());
+            indented.RootElement.GetProperty("info").GetProperty("description").GetString()
+        );
         Assert.Equal(
-            compact.RootElement.GetProperty("paths").GetProperty("/things/{id}").GetProperty("get")
-                .GetProperty("parameters")[0].GetProperty("schema").GetProperty("enum").GetArrayLength(),
-            indented.RootElement.GetProperty("paths").GetProperty("/things/{id}").GetProperty("get")
-                .GetProperty("parameters")[0].GetProperty("schema").GetProperty("enum").GetArrayLength());
-        Assert.Equal("caf\u00e9 \u2615 \u00fcn\u00efcode",
-            indented.RootElement.GetProperty("paths").GetProperty("/things/{id}").GetProperty("get")
-                .GetProperty("responses").GetProperty("200").GetProperty("description").GetString());
+            compact
+                .RootElement.GetProperty("paths")
+                .GetProperty("/things/{id}")
+                .GetProperty("get")
+                .GetProperty("parameters")[0]
+                .GetProperty("schema")
+                .GetProperty("enum")
+                .GetArrayLength(),
+            indented
+                .RootElement.GetProperty("paths")
+                .GetProperty("/things/{id}")
+                .GetProperty("get")
+                .GetProperty("parameters")[0]
+                .GetProperty("schema")
+                .GetProperty("enum")
+                .GetArrayLength()
+        );
+        Assert.Equal(
+            "caf\u00e9 \u2615 \u00fcn\u00efcode",
+            indented
+                .RootElement.GetProperty("paths")
+                .GetProperty("/things/{id}")
+                .GetProperty("get")
+                .GetProperty("responses")
+                .GetProperty("200")
+                .GetProperty("description")
+                .GetString()
+        );
     }
 
     [Fact]
-    public void EmptyContainersAreWrittenInline() {
+    public void EmptyContainersAreWrittenInline()
+    {
         var indented = JsonTreeWriter.WriteIndented(Parsed());
 
         Assert.Contains("\"properties\": {}", indented);
@@ -84,7 +132,8 @@ public class DocumentFormatTests {
     /// not.
     /// </summary>
     [Fact]
-    public void YamlQuotesEverythingOutsideTheSafePattern() {
+    public void YamlQuotesEverythingOutsideTheSafePattern()
+    {
         var yaml = YamlTreeWriter.Write(Parsed());
 
         Assert.Contains("\"/things/{id}\":\n", yaml);
@@ -93,7 +142,25 @@ public class DocumentFormatTests {
         Assert.Contains("title: \"Fixture: yes\"", yaml);
         Assert.Contains("description: \"Line one\\nLine two \\\"quoted\\\" \\\\ back\"", yaml);
 
-        foreach (var quoted in new[] { "yes", "no", "null", "1e3", "007", "on", "true", "-1", "0x1F", ".inf", "caf\u00e9", "a b", "" }) {
+        foreach (
+            var quoted in new[]
+            {
+                "yes",
+                "no",
+                "null",
+                "1e3",
+                "007",
+                "on",
+                "true",
+                "-1",
+                "0x1F",
+                ".inf",
+                "caf\u00e9",
+                "a b",
+                "",
+            }
+        )
+        {
             Assert.Contains("- \"" + quoted + "\"\n", yaml);
         }
 
@@ -128,17 +195,20 @@ public class DocumentFormatTests {
     [InlineData("a:b", false)]
     [InlineData("#tag", false)]
     [InlineData("caf\u00e9", false)]
-    public void ThePlainScalarRuleIsStrict(string value, bool plain) {
+    public void ThePlainScalarRuleIsStrict(string value, bool plain)
+    {
         Assert.Equal(plain, YamlTreeWriter.IsPlainSafe(value));
     }
 
     [Fact]
-    public void YamlLaysOutBlocksTheWayOpenApiIsUsuallyWritten() {
+    public void YamlLaysOutBlocksTheWayOpenApiIsUsuallyWritten()
+    {
         var yaml = YamlTreeWriter.Write(Parsed());
 
         Assert.Contains(
             "      parameters:\n        - name: id\n          in: path\n          required: true\n          schema:\n            type: string\n",
-            yaml);
+            yaml
+        );
         Assert.Contains("      tags:\n        - Things\n", yaml);
     }
 
@@ -150,12 +220,14 @@ public class DocumentFormatTests {
     [InlineData("3.2.0", null)]
     [InlineData("banana", null)]
     [InlineData("", null)]
-    public void OnlyTheTwoLowerVersionsAreAccepted(string value, string? expected) {
+    public void OnlyTheTwoLowerVersionsAreAccepted(string value, string? expected)
+    {
         Assert.Equal(expected, OpenApiDocumentLowering.Normalise(value));
     }
 
     [Fact]
-    public void LoweringToThreeOneDropsItemSchemaAndNamesTheOperation() {
+    public void LoweringToThreeOneDropsItemSchemaAndNamesTheOperation()
+    {
         var document = Parsed();
 
         var lost = OpenApiDocumentLowering.Lower(document, "3.1.0");
@@ -173,18 +245,38 @@ public class DocumentFormatTests {
     }
 
     [Fact]
-    public void LoweringToThreeZeroRewritesTheBoundsAndTheNullableType() {
+    public void LoweringToThreeZeroRewritesTheBoundsAndTheNullableType()
+    {
         var document = Parsed();
 
         OpenApiDocumentLowering.Lower(document, "3.0.0");
 
-        var count = (JsonObject)((JsonObject)((JsonObject)((JsonObject)((JsonObject)document.Get("components")!)
-            .Get("schemas")!).Get("Thing")!).Get("properties")!).Get("count")!;
+        var count = (JsonObject)
+            (
+                (JsonObject)
+                    (
+                        (JsonObject)
+                            (
+                                (JsonObject)
+                                    ((JsonObject)document.Get("components")!).Get("schemas")!
+                            ).Get("Thing")!
+                    ).Get("properties")!
+            ).Get("count")!;
 
         // The bound and its flag, in that order, where the numeric exclusive bound was.
         Assert.Equal(
-            new[] { "type", "nullable", "minimum", "exclusiveMinimum", "maximum", "exclusiveMaximum", "default" },
-            count.Members.Select(member => member.Key));
+            new[]
+            {
+                "type",
+                "nullable",
+                "minimum",
+                "exclusiveMinimum",
+                "maximum",
+                "exclusiveMaximum",
+                "default",
+            },
+            count.Members.Select(member => member.Key)
+        );
         Assert.Equal("integer", ((JsonString)count.Get("type")!).Value);
         Assert.Same(JsonBoolean.True, count.Get("nullable"));
         Assert.Equal("0", ((JsonNumber)count.Get("minimum")!).Text);
@@ -200,8 +292,12 @@ public class DocumentFormatTests {
     }
 
     [Fact]
-    public void ADocumentWithNoStreamingLosesNothing() {
-        var document = (JsonObject)JsonTree.Parse("{\"openapi\":\"3.2.0\",\"paths\":{\"/a\":{\"get\":{\"responses\":{\"200\":{\"description\":\"ok\"}}}}}}");
+    public void ADocumentWithNoStreamingLosesNothing()
+    {
+        var document = (JsonObject)
+            JsonTree.Parse(
+                "{\"openapi\":\"3.2.0\",\"paths\":{\"/a\":{\"get\":{\"responses\":{\"200\":{\"description\":\"ok\"}}}}}}"
+            );
 
         Assert.Empty(OpenApiDocumentLowering.Lower(document, "3.1.0"));
     }
@@ -213,7 +309,8 @@ public class DocumentFormatTests {
     [InlineData("{\"a\":\"\\x\"}")]
     [InlineData("{\"a\":01}")]
     [InlineData("{} {}")]
-    public void MalformedJsonIsRefusedWithAnOffset(string text) {
+    public void MalformedJsonIsRefusedWithAnOffset(string text)
+    {
         var failure = Assert.Throws<FormatException>(() => JsonTree.Parse(text));
 
         Assert.Contains("offset", failure.Message);

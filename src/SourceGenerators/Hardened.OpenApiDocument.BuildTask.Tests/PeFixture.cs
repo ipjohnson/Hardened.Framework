@@ -27,9 +27,10 @@ namespace Hardened.OpenApiDocument.BuildTask.Tests;
 /// relative virtual address.
 /// </para>
 /// </remarks>
-public static class PeFixture {
-
-    public enum Lowering {
+public static class PeFixture
+{
+    public enum Lowering
+    {
         /// <summary><c>ldsflda</c>, <c>ldc.i4</c>, <c>newobj</c>.</summary>
         FieldAddress,
 
@@ -37,98 +38,164 @@ public static class PeFixture {
         FieldToken,
 
         /// <summary>A getter that returns a default span and references no field at all.</summary>
-        NoField
+        NoField,
     }
 
     /// <summary>One served document to write: the entry point's name and the bytes.</summary>
-    public sealed record Document(string EntryPoint, byte[] Compressed, Lowering Lowering, int? DeclaredLength = null);
+    public sealed record Document(
+        string EntryPoint,
+        byte[] Compressed,
+        Lowering Lowering,
+        int? DeclaredLength = null
+    );
 
     /// <summary>Writes an assembly with the given documents to <paramref name="path"/>.</summary>
-    public static void Write(string path, params Document[] documents) {
+    public static void Write(string path, params Document[] documents)
+    {
         File.WriteAllBytes(path, Build(documents));
     }
 
-    public static byte[] Build(params Document[] documents) {
+    public static byte[] Build(params Document[] documents)
+    {
         var metadata = new MetadataBuilder();
         var il = new BlobBuilder();
         var mappedFieldData = new BlobBuilder();
 
         metadata.AddModule(
-            0, metadata.GetOrAddString("Fixture.dll"), metadata.GetOrAddGuid(Guid.NewGuid()),
-            default, default);
+            0,
+            metadata.GetOrAddString("Fixture.dll"),
+            metadata.GetOrAddGuid(Guid.NewGuid()),
+            default,
+            default
+        );
 
         metadata.AddAssembly(
-            metadata.GetOrAddString("Fixture"), new Version(1, 0, 0, 0), default, default,
-            0, AssemblyHashAlgorithm.None);
+            metadata.GetOrAddString("Fixture"),
+            new Version(1, 0, 0, 0),
+            default,
+            default,
+            0,
+            AssemblyHashAlgorithm.None
+        );
 
         var systemRuntime = metadata.AddAssemblyReference(
-            metadata.GetOrAddString("System.Runtime"), new Version(8, 0, 0, 0), default,
-            default, 0, default);
+            metadata.GetOrAddString("System.Runtime"),
+            new Version(8, 0, 0, 0),
+            default,
+            default,
+            0,
+            default
+        );
 
         var objectType = TypeRef(metadata, systemRuntime, "System", "Object");
         var valueType = TypeRef(metadata, systemRuntime, "System", "ValueType");
         var readOnlySpanType = TypeRef(metadata, systemRuntime, "System", "ReadOnlySpan`1");
-        var runtimeHelpersType = TypeRef(metadata, systemRuntime, "System.Runtime.CompilerServices", "RuntimeHelpers");
-        var runtimeFieldHandleType = TypeRef(metadata, systemRuntime, "System", "RuntimeFieldHandle");
+        var runtimeHelpersType = TypeRef(
+            metadata,
+            systemRuntime,
+            "System.Runtime.CompilerServices",
+            "RuntimeHelpers"
+        );
+        var runtimeFieldHandleType = TypeRef(
+            metadata,
+            systemRuntime,
+            "System",
+            "RuntimeFieldHandle"
+        );
 
         // ReadOnlySpan<byte>, as a type specification, for the getter's return and the constructor.
         var spanOfByteSignature = new BlobBuilder();
 
-        new BlobEncoder(spanOfByteSignature).TypeSpecificationSignature()
+        new BlobEncoder(spanOfByteSignature)
+            .TypeSpecificationSignature()
             .GenericInstantiation(readOnlySpanType, 1, isValueType: true)
-            .AddArgument().Byte();
+            .AddArgument()
+            .Byte();
 
         var spanOfByte = metadata.AddTypeSpecification(metadata.GetOrAddBlob(spanOfByteSignature));
 
         // ReadOnlySpan<byte>..ctor(void*, int)
         var constructorSignature = new BlobBuilder();
 
-        new BlobEncoder(constructorSignature).MethodSignature(isInstanceMethod: true)
-            .Parameters(2,
+        new BlobEncoder(constructorSignature)
+            .MethodSignature(isInstanceMethod: true)
+            .Parameters(
+                2,
                 returnType => returnType.Void(),
-                parameters => {
+                parameters =>
+                {
                     parameters.AddParameter().Type().VoidPointer();
                     parameters.AddParameter().Type().Int32();
-                });
+                }
+            );
 
         var spanConstructor = metadata.AddMemberReference(
-            spanOfByte, metadata.GetOrAddString(".ctor"), metadata.GetOrAddBlob(constructorSignature));
+            spanOfByte,
+            metadata.GetOrAddString(".ctor"),
+            metadata.GetOrAddBlob(constructorSignature)
+        );
 
         // RuntimeHelpers.CreateSpan<T>(RuntimeFieldHandle), instantiated at byte.
         var createSpanSignature = new BlobBuilder();
 
-        new BlobEncoder(createSpanSignature).MethodSignature(genericParameterCount: 1)
-            .Parameters(1,
-                returnType => returnType.Type()
-                    .GenericInstantiation(readOnlySpanType, 1, isValueType: true)
-                    .AddArgument().GenericMethodTypeParameter(0),
-                parameters => parameters.AddParameter().Type().Type(runtimeFieldHandleType, isValueType: true));
+        new BlobEncoder(createSpanSignature)
+            .MethodSignature(genericParameterCount: 1)
+            .Parameters(
+                1,
+                returnType =>
+                    returnType
+                        .Type()
+                        .GenericInstantiation(readOnlySpanType, 1, isValueType: true)
+                        .AddArgument()
+                        .GenericMethodTypeParameter(0),
+                parameters =>
+                    parameters.AddParameter().Type().Type(runtimeFieldHandleType, isValueType: true)
+            );
 
         var createSpan = metadata.AddMemberReference(
-            runtimeHelpersType, metadata.GetOrAddString("CreateSpan"), metadata.GetOrAddBlob(createSpanSignature));
+            runtimeHelpersType,
+            metadata.GetOrAddString("CreateSpan"),
+            metadata.GetOrAddBlob(createSpanSignature)
+        );
 
         var createSpanOfByteSignature = new BlobBuilder();
 
-        new BlobEncoder(createSpanOfByteSignature).MethodSpecificationSignature(1).AddArgument().Byte();
+        new BlobEncoder(createSpanOfByteSignature)
+            .MethodSpecificationSignature(1)
+            .AddArgument()
+            .Byte();
 
         var createSpanOfByte = metadata.AddMethodSpecification(
-            createSpan, metadata.GetOrAddBlob(createSpanOfByteSignature));
+            createSpan,
+            metadata.GetOrAddBlob(createSpanOfByteSignature)
+        );
 
         // <Module>, which has to be the first type.
         metadata.AddTypeDefinition(
-            default, default, metadata.GetOrAddString("<Module>"), default,
-            MetadataTokens.FieldDefinitionHandle(1), MetadataTokens.MethodDefinitionHandle(1));
+            default,
+            default,
+            metadata.GetOrAddString("<Module>"),
+            default,
+            MetadataTokens.FieldDefinitionHandle(1),
+            MetadataTokens.MethodDefinitionHandle(1)
+        );
 
         // <PrivateImplementationDetails>, with one sized struct and one field per document.
         var details = metadata.AddTypeDefinition(
             TypeAttributes.NotPublic | TypeAttributes.Abstract | TypeAttributes.Sealed,
-            default, metadata.GetOrAddString("<PrivateImplementationDetails>"), objectType,
-            MetadataTokens.FieldDefinitionHandle(1), MetadataTokens.MethodDefinitionHandle(1));
+            default,
+            metadata.GetOrAddString("<PrivateImplementationDetails>"),
+            objectType,
+            MetadataTokens.FieldDefinitionHandle(1),
+            MetadataTokens.MethodDefinitionHandle(1)
+        );
 
         var fields = new List<FieldDefinitionHandle>();
 
-        foreach (var document in documents) {
-            if (document.Lowering == Lowering.NoField) {
+        foreach (var document in documents)
+        {
+            if (document.Lowering == Lowering.NoField)
+            {
                 fields.Add(default);
 
                 continue;
@@ -137,10 +204,17 @@ public static class PeFixture {
             var size = document.Compressed.Length;
 
             var arrayType = metadata.AddTypeDefinition(
-                TypeAttributes.NestedAssembly | TypeAttributes.ExplicitLayout | TypeAttributes.Sealed,
-                default, metadata.GetOrAddString("__StaticArrayInitTypeSize=" + size), valueType,
+                TypeAttributes.NestedAssembly
+                    | TypeAttributes.ExplicitLayout
+                    | TypeAttributes.Sealed,
+                default,
+                metadata.GetOrAddString("__StaticArrayInitTypeSize=" + size),
+                valueType,
                 MetadataTokens.FieldDefinitionHandle(metadata.GetRowCount(TableIndex.Field) + 1),
-                MetadataTokens.MethodDefinitionHandle(metadata.GetRowCount(TableIndex.MethodDef) + 1));
+                MetadataTokens.MethodDefinitionHandle(
+                    metadata.GetRowCount(TableIndex.MethodDef) + 1
+                )
+            );
 
             metadata.AddNestedType(arrayType, details);
             metadata.AddTypeLayout(arrayType, packingSize: 1, size: (uint)size);
@@ -150,9 +224,13 @@ public static class PeFixture {
             new BlobEncoder(fieldSignature).FieldSignature().Type(arrayType, isValueType: true);
 
             var field = metadata.AddFieldDefinition(
-                FieldAttributes.Assembly | FieldAttributes.Static | FieldAttributes.InitOnly | FieldAttributes.HasFieldRVA,
+                FieldAttributes.Assembly
+                    | FieldAttributes.Static
+                    | FieldAttributes.InitOnly
+                    | FieldAttributes.HasFieldRVA,
                 metadata.GetOrAddString("Data" + fields.Count),
-                metadata.GetOrAddBlob(fieldSignature));
+                metadata.GetOrAddBlob(fieldSignature)
+            );
 
             mappedFieldData.Align(8);
             metadata.AddFieldRelativeVirtualAddress(field, mappedFieldData.Count);
@@ -164,32 +242,47 @@ public static class PeFixture {
         // The entry points and their nested OpenApiDocument types.
         var getterSignature = new BlobBuilder();
 
-        new BlobEncoder(getterSignature).MethodSignature()
-            .Parameters(0,
-                returnType => returnType.Type()
-                    .GenericInstantiation(readOnlySpanType, 1, isValueType: true)
-                    .AddArgument().Byte(),
-                _ => { });
+        new BlobEncoder(getterSignature)
+            .MethodSignature()
+            .Parameters(
+                0,
+                returnType =>
+                    returnType
+                        .Type()
+                        .GenericInstantiation(readOnlySpanType, 1, isValueType: true)
+                        .AddArgument()
+                        .Byte(),
+                _ => { }
+            );
 
         var getterSignatureBlob = metadata.GetOrAddBlob(getterSignature);
         var bodies = new MethodBodyStreamEncoder(il);
 
-        for (var index = 0; index < documents.Length; index++) {
+        for (var index = 0; index < documents.Length; index++)
+        {
             var document = documents[index];
 
             var entryPoint = metadata.AddTypeDefinition(
                 TypeAttributes.Public | TypeAttributes.Class | TypeAttributes.BeforeFieldInit,
-                metadata.GetOrAddString("Fixture"), metadata.GetOrAddString(document.EntryPoint), objectType,
+                metadata.GetOrAddString("Fixture"),
+                metadata.GetOrAddString(document.EntryPoint),
+                objectType,
                 MetadataTokens.FieldDefinitionHandle(metadata.GetRowCount(TableIndex.Field) + 1),
-                MetadataTokens.MethodDefinitionHandle(metadata.GetRowCount(TableIndex.MethodDef) + 1));
+                MetadataTokens.MethodDefinitionHandle(
+                    metadata.GetRowCount(TableIndex.MethodDef) + 1
+                )
+            );
 
             var instructions = new InstructionEncoder(new BlobBuilder());
 
-            switch (document.Lowering) {
+            switch (document.Lowering)
+            {
                 case Lowering.FieldAddress:
                     instructions.OpCode(ILOpCode.Ldsflda);
                     instructions.Token(fields[index]);
-                    instructions.LoadConstantI4(document.DeclaredLength ?? document.Compressed.Length);
+                    instructions.LoadConstantI4(
+                        document.DeclaredLength ?? document.Compressed.Length
+                    );
                     instructions.OpCode(ILOpCode.Newobj);
                     instructions.Token(spanConstructor);
                     break;
@@ -214,27 +307,40 @@ public static class PeFixture {
             var bodyOffset = bodies.AddMethodBody(instructions, maxStack: 8);
 
             var nested = metadata.AddTypeDefinition(
-                TypeAttributes.NestedPublic | TypeAttributes.Abstract | TypeAttributes.Sealed | TypeAttributes.Class,
-                default, metadata.GetOrAddString(ServedDocumentReader.DocumentTypeName), objectType,
+                TypeAttributes.NestedPublic
+                    | TypeAttributes.Abstract
+                    | TypeAttributes.Sealed
+                    | TypeAttributes.Class,
+                default,
+                metadata.GetOrAddString(ServedDocumentReader.DocumentTypeName),
+                objectType,
                 MetadataTokens.FieldDefinitionHandle(metadata.GetRowCount(TableIndex.Field) + 1),
-                MetadataTokens.MethodDefinitionHandle(metadata.GetRowCount(TableIndex.MethodDef) + 1));
+                MetadataTokens.MethodDefinitionHandle(
+                    metadata.GetRowCount(TableIndex.MethodDef) + 1
+                )
+            );
 
             metadata.AddNestedType(nested, entryPoint);
 
             metadata.AddMethodDefinition(
-                MethodAttributes.Public | MethodAttributes.Static | MethodAttributes.HideBySig | MethodAttributes.SpecialName,
+                MethodAttributes.Public
+                    | MethodAttributes.Static
+                    | MethodAttributes.HideBySig
+                    | MethodAttributes.SpecialName,
                 MethodImplAttributes.IL,
                 metadata.GetOrAddString(ServedDocumentReader.GetterName),
                 getterSignatureBlob,
                 bodyOffset,
-                MetadataTokens.ParameterHandle(metadata.GetRowCount(TableIndex.Param) + 1));
+                MetadataTokens.ParameterHandle(metadata.GetRowCount(TableIndex.Param) + 1)
+            );
         }
 
         var pe = new ManagedPEBuilder(
             PEHeaderBuilder.CreateLibraryHeader(),
             new MetadataRootBuilder(metadata),
             il,
-            mappedFieldData: mappedFieldData);
+            mappedFieldData: mappedFieldData
+        );
 
         var blob = new BlobBuilder();
 
@@ -244,6 +350,14 @@ public static class PeFixture {
     }
 
     private static TypeReferenceHandle TypeRef(
-        MetadataBuilder metadata, AssemblyReferenceHandle scope, string ns, string name) =>
-        metadata.AddTypeReference(scope, metadata.GetOrAddString(ns), metadata.GetOrAddString(name));
+        MetadataBuilder metadata,
+        AssemblyReferenceHandle scope,
+        string ns,
+        string name
+    ) =>
+        metadata.AddTypeReference(
+            scope,
+            metadata.GetOrAddString(ns),
+            metadata.GetOrAddString(name)
+        );
 }

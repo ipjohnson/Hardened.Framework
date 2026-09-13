@@ -35,8 +35,10 @@ namespace Hardened.Aws.Lambda.Runtime.Modules;
 /// </remarks>
 [DependencyModule]
 [HardenedRequestModule]
-public partial class LambdaRuntimeModule : IServiceCollectionConfiguration {
-    public void ConfigureServices(IServiceCollection services) {
+public partial class LambdaRuntimeModule : IServiceCollectionConfiguration
+{
+    public void ConfigureServices(IServiceCollection services)
+    {
         services.TryAddSingleton<LambdaInvocationHandler>();
 
         // The AWS bootstrap's stream, behind a seam. LambdaResponseStreamFactory is static and its
@@ -47,14 +49,23 @@ public partial class LambdaRuntimeModule : IServiceCollectionConfiguration {
         // Read from the environment at startup, and amendable from the application the way every
         // other Hardened configuration is.
         services.AddSingleton<IConfigurationPackage>(
-            new SimpleConfigurationPackage(new IConfigurationValueProvider[] {
-                new NewConfigurationValueProvider<ILambdaResponseModeConfiguration, LambdaResponseModeConfiguration>(
-                    LambdaResponseModeConfiguration.FromEnvironment)
-            }));
+            new SimpleConfigurationPackage(
+                new IConfigurationValueProvider[]
+                {
+                    new NewConfigurationValueProvider<
+                        ILambdaResponseModeConfiguration,
+                        LambdaResponseModeConfiguration
+                    >(LambdaResponseModeConfiguration.FromEnvironment),
+                }
+            )
+        );
 
-        services.TryAddSingleton(
-            s => Options.Create(s.GetRequiredService<IConfigurationManager>()
-                .GetConfiguration<ILambdaResponseModeConfiguration>()));
+        services.TryAddSingleton(s =>
+            Options.Create(
+                s.GetRequiredService<IConfigurationManager>()
+                    .GetConfiguration<ILambdaResponseModeConfiguration>()
+            )
+        );
 
         // Says at startup when the mode and the application's [ServerSentEvents] handlers disagree.
         // Enumerable rather than Try, because a startup service is one of many and replacing the

@@ -29,20 +29,23 @@ namespace Hardened.Benchmarks.Pipeline;
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory(BenchmarkCategories.Pipeline)]
-public class FilterAwaitableBenchmarks {
-
+public class FilterAwaitableBenchmarks
+{
     [Params(3, 6, 12)]
     public int FilterCount { get; set; }
 
-    private interface ITaskFilter {
+    private interface ITaskFilter
+    {
         Task Execute(TaskChain chain);
     }
 
-    private interface IValueTaskFilter {
+    private interface IValueTaskFilter
+    {
         ValueTask Execute(ValueTaskChain chain);
     }
 
-    private sealed class TaskChain {
+    private sealed class TaskChain
+    {
         private readonly ITaskFilter[] _filters;
         private int _index;
 
@@ -54,7 +57,8 @@ public class FilterAwaitableBenchmarks {
             _index >= _filters.Length ? Task.CompletedTask : _filters[_index++].Execute(this);
     }
 
-    private sealed class ValueTaskChain {
+    private sealed class ValueTaskChain
+    {
         private readonly IValueTaskFilter[] _filters;
         private int _index;
 
@@ -67,24 +71,30 @@ public class FilterAwaitableBenchmarks {
     }
 
     /// <summary>Written <c>async</c>, completes without yielding — the common filter.</summary>
-    private sealed class AsyncTaskFilter : ITaskFilter {
-        public async Task Execute(TaskChain chain) {
+    private sealed class AsyncTaskFilter : ITaskFilter
+    {
+        public async Task Execute(TaskChain chain)
+        {
             await chain.Next();
         }
     }
 
-    private sealed class AsyncValueTaskFilter : IValueTaskFilter {
-        public async ValueTask Execute(ValueTaskChain chain) {
+    private sealed class AsyncValueTaskFilter : IValueTaskFilter
+    {
+        public async ValueTask Execute(ValueTaskChain chain)
+        {
             await chain.Next();
         }
     }
 
     /// <summary>Hand-written to avoid the state machine, for reference.</summary>
-    private sealed class SyncTaskFilter : ITaskFilter {
+    private sealed class SyncTaskFilter : ITaskFilter
+    {
         public Task Execute(TaskChain chain) => chain.Next();
     }
 
-    private sealed class SyncValueTaskFilter : IValueTaskFilter {
+    private sealed class SyncValueTaskFilter : IValueTaskFilter
+    {
         public ValueTask Execute(ValueTaskChain chain) => chain.Next();
     }
 
@@ -94,37 +104,58 @@ public class FilterAwaitableBenchmarks {
     private ValueTaskChain _syncValueTask = null!;
 
     [GlobalSetup]
-    public void Setup() {
-        _asyncTask = new TaskChain(Enumerable.Range(0, FilterCount)
-            .Select(_ => (ITaskFilter)new AsyncTaskFilter()).ToArray());
-        _asyncValueTask = new ValueTaskChain(Enumerable.Range(0, FilterCount)
-            .Select(_ => (IValueTaskFilter)new AsyncValueTaskFilter()).ToArray());
-        _syncTask = new TaskChain(Enumerable.Range(0, FilterCount)
-            .Select(_ => (ITaskFilter)new SyncTaskFilter()).ToArray());
-        _syncValueTask = new ValueTaskChain(Enumerable.Range(0, FilterCount)
-            .Select(_ => (IValueTaskFilter)new SyncValueTaskFilter()).ToArray());
+    public void Setup()
+    {
+        _asyncTask = new TaskChain(
+            Enumerable
+                .Range(0, FilterCount)
+                .Select(_ => (ITaskFilter)new AsyncTaskFilter())
+                .ToArray()
+        );
+        _asyncValueTask = new ValueTaskChain(
+            Enumerable
+                .Range(0, FilterCount)
+                .Select(_ => (IValueTaskFilter)new AsyncValueTaskFilter())
+                .ToArray()
+        );
+        _syncTask = new TaskChain(
+            Enumerable
+                .Range(0, FilterCount)
+                .Select(_ => (ITaskFilter)new SyncTaskFilter())
+                .ToArray()
+        );
+        _syncValueTask = new ValueTaskChain(
+            Enumerable
+                .Range(0, FilterCount)
+                .Select(_ => (IValueTaskFilter)new SyncValueTaskFilter())
+                .ToArray()
+        );
     }
 
     [Benchmark(Baseline = true)]
-    public async Task AsyncFiltersReturningTask() {
+    public async Task AsyncFiltersReturningTask()
+    {
         _asyncTask.Reset();
         await _asyncTask.Next();
     }
 
     [Benchmark]
-    public async Task AsyncFiltersReturningValueTask() {
+    public async Task AsyncFiltersReturningValueTask()
+    {
         _asyncValueTask.Reset();
         await _asyncValueTask.Next();
     }
 
     [Benchmark]
-    public async Task SyncFiltersReturningTask() {
+    public async Task SyncFiltersReturningTask()
+    {
         _syncTask.Reset();
         await _syncTask.Next();
     }
 
     [Benchmark]
-    public async Task SyncFiltersReturningValueTask() {
+    public async Task SyncFiltersReturningValueTask()
+    {
         _syncValueTask.Reset();
         await _syncValueTask.Next();
     }

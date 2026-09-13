@@ -33,10 +33,11 @@ namespace Hardened.SourceGenerator.Web.Routing;
 /// to every request shape.
 /// </para>
 /// </summary>
-public static class RouteTokenSyntax {
-
+public static class RouteTokenSyntax
+{
     /// <summary>Which unsupported form a token was written in, if any.</summary>
-    public enum Form {
+    public enum Form
+    {
         Supported,
 
         /// <summary><c>{id:isbn}</c> — a constraint name nothing declares.</summary>
@@ -55,11 +56,13 @@ public static class RouteTokenSyntax {
         Unnamed,
 
         /// <summary>The same token name twice in one route.</summary>
-        Duplicate
+        Duplicate,
     }
 
-    public readonly struct Finding {
-        public Finding(string token, Form form, string name, string? constraint) {
+    public readonly struct Finding
+    {
+        public Finding(string token, Form form, string name, string? constraint)
+        {
             Token = token;
             Form = form;
             Name = name;
@@ -91,7 +94,10 @@ public static class RouteTokenSyntax {
     /// nothing.
     /// </remarks>
     public static IReadOnlyList<Finding> Scan(
-        string pathTemplate, IReadOnlyCollection<string>? declaredConstraints = null) {
+        string pathTemplate,
+        IReadOnlyCollection<string>? declaredConstraints = null
+    )
+    {
         List<Finding>? findings = null;
         HashSet<string>? seen = null;
 
@@ -100,22 +106,33 @@ public static class RouteTokenSyntax {
 
         // A closing brace before any opening one is as unbalanced as the reverse, and reads the
         // same way to whoever typed it.
-        if (stray >= 0 && (open < 0 || stray < open)) {
-            Add(ref findings, new Finding(
-                pathTemplate.Substring(stray, 1), Form.Unbalanced, "", null));
+        if (stray >= 0 && (open < 0 || stray < open))
+        {
+            Add(
+                ref findings,
+                new Finding(pathTemplate.Substring(stray, 1), Form.Unbalanced, "", null)
+            );
         }
 
-        while (open >= 0) {
+        while (open >= 0)
+        {
             var close = pathTemplate.IndexOf('}', open);
 
             // A brace that is never closed used to end the scan silently, which is how
             // [Get("/{eventId")] built with zero warnings: the rest of the template became literal
             // text, the route matched nothing anybody sent, and the parameter it was written to
             // bind was read from the request body instead.
-            if (close < 0) {
-                Add(ref findings, new Finding(
-                    pathTemplate.Substring(open), Form.Unbalanced,
-                    Name(pathTemplate.Substring(open + 1)), null));
+            if (close < 0)
+            {
+                Add(
+                    ref findings,
+                    new Finding(
+                        pathTemplate.Substring(open),
+                        Form.Unbalanced,
+                        Name(pathTemplate.Substring(open + 1)),
+                        null
+                    )
+                );
 
                 break;
             }
@@ -126,19 +143,24 @@ public static class RouteTokenSyntax {
 
             // A second '{' inside a token is the same mistake seen from the other end: one of the
             // two braces has no partner.
-            if (body.IndexOf('{') >= 0) {
+            if (body.IndexOf('{') >= 0)
+            {
                 Add(ref findings, new Finding(token, Form.Unbalanced, name, null));
             }
-            else if (name.Length == 0) {
+            else if (name.Length == 0)
+            {
                 Add(ref findings, new Finding(token, Form.Unnamed, name, null));
             }
-            else if (!(seen ??= new HashSet<string>(StringComparer.Ordinal)).Add(name)) {
+            else if (!(seen ??= new HashSet<string>(StringComparer.Ordinal)).Add(name))
+            {
                 Add(ref findings, new Finding(token, Form.Duplicate, name, null));
             }
-            else {
+            else
+            {
                 var form = Classify(body, declaredConstraints);
 
-                if (form != Form.Supported) {
+                if (form != Form.Supported)
+                {
                     Add(ref findings, new Finding(token, form, name, RouteTokens.Constraint(body)));
                 }
             }
@@ -149,7 +171,8 @@ public static class RouteTokenSyntax {
         return (IReadOnlyList<Finding>?)findings ?? Array.Empty<Finding>();
     }
 
-    private static void Add(ref List<Finding>? findings, Finding finding) {
+    private static void Add(ref List<Finding>? findings, Finding finding)
+    {
         findings ??= new List<Finding>();
 
         findings.Add(finding);
@@ -159,56 +182,53 @@ public static class RouteTokenSyntax {
     /// What to tell the author. Built here rather than in the message format string so the
     /// replacement it suggests can carry the token's own name.
     /// </summary>
-    public static string Advice(Finding finding) {
+    public static string Advice(Finding finding)
+    {
         var name = finding.Name.Length > 0 ? finding.Name : "name";
 
-        switch (finding.Form) {
+        switch (finding.Form)
+        {
             case Form.UnknownConstraint:
                 // A name that exists at another arity is a wrong call, not an unknown name, and
                 // saying "nothing declares length" to someone who wrote length(1,2,3) sends them
                 // looking for the wrong thing.
                 var arity = WrongArity(finding.Constraint);
 
-                if (arity != null) {
+                if (arity != null)
+                {
                     return arity;
                 }
 
-                return
-                    $"Nothing declares a route constraint called '{finding.Constraint}'. Built in: " +
-                    $"{string.Join(", ", RouteConstraintFacts.Names)}. Declare your own with " +
-                    $"[RouteConstraint(\"{finding.Constraint}\")] on a static " +
-                    $"bool(ReadOnlySpan<char>) method, or write '{{{name}}}' and let the handler's " +
-                    $"parameter type reject a bad value with a 400.";
+                return $"Nothing declares a route constraint called '{finding.Constraint}'. Built in: "
+                    + $"{string.Join(", ", RouteConstraintFacts.Names)}. Declare your own with "
+                    + $"[RouteConstraint(\"{finding.Constraint}\")] on a static "
+                    + $"bool(ReadOnlySpan<char>) method, or write '{{{name}}}' and let the handler's "
+                    + $"parameter type reject a bad value with a 400.";
 
             case Form.Optional:
-                return
-                    $"An optional token is not supported - this is a mandatory segment named " +
-                    $"'{finding.Name}', so the path it was written to make optional does not match " +
-                    $"at all. Declare the two paths as two routes.";
+                return $"An optional token is not supported - this is a mandatory segment named "
+                    + $"'{finding.Name}', so the path it was written to make optional does not match "
+                    + $"at all. Declare the two paths as two routes.";
 
             case Form.Default:
-                return
-                    $"A default in the template is not supported - the whole brace body becomes " +
-                    $"the token name, so nothing binds to '{name}'. Give the handler's '{name}' " +
-                    $"parameter a C# default instead; the template controls matching and C# " +
-                    $"supplies the value.";
+                return $"A default in the template is not supported - the whole brace body becomes "
+                    + $"the token name, so nothing binds to '{name}'. Give the handler's '{name}' "
+                    + $"parameter a C# default instead; the template controls matching and C# "
+                    + $"supplies the value.";
 
             case Form.Unbalanced:
-                return
-                    "This brace has no partner, so what was written as a token is matched as " +
-                    "literal text and the parameter it was written to bind is read from the " +
-                    "request body instead. Close the token.";
+                return "This brace has no partner, so what was written as a token is matched as "
+                    + "literal text and the parameter it was written to bind is read from the "
+                    + "request body instead. Close the token.";
 
             case Form.Unnamed:
-                return
-                    "A token with no name binds nothing. Name it, or drop the braces if the " +
-                    "segment is literal.";
+                return "A token with no name binds nothing. Name it, or drop the braces if the "
+                    + "segment is literal.";
 
             case Form.Duplicate:
-                return
-                    $"'{name}' is declared twice in this route. Two tokens of one name cannot both " +
-                    $"bind the handler's '{name}' parameter, and only one of the two segments a " +
-                    $"request sends would reach it. Give them distinct names.";
+                return $"'{name}' is declared twice in this route. Two tokens of one name cannot both "
+                    + $"bind the handler's '{name}' parameter, and only one of the two segments a "
+                    + $"request sends would reach it. Give them distinct names.";
 
             default:
                 return "";
@@ -219,31 +239,39 @@ public static class RouteTokenSyntax {
     /// The message for a real name used with the wrong number of arguments, or null when that is not
     /// what went wrong.
     /// </summary>
-    private static string? WrongArity(string? constraint) {
+    private static string? WrongArity(string? constraint)
+    {
         var terms = constraint == null ? null : RouteConstraintFacts.Terms(constraint);
 
-        if (terms == null) {
+        if (terms == null)
+        {
             return null;
         }
 
-        foreach (var term in terms) {
-            if (RouteConstraintFacts.Call(term) != null) {
+        foreach (var term in terms)
+        {
+            if (RouteConstraintFacts.Call(term) != null)
+            {
                 continue;
             }
 
             var arities = RouteConstraintFacts.Arities(term.Name);
 
-            if (arities.Count == 0) {
+            if (arities.Count == 0)
+            {
                 continue;
             }
 
             var forms = string.Join(
                 " or ",
-                arities.Select(count => $"'{term.Name}({string.Join(",", Enumerable.Repeat("n", count))})'"));
+                arities.Select(count =>
+                    $"'{term.Name}({string.Join(",", Enumerable.Repeat("n", count))})'"
+                )
+            );
 
-            return
-                $"'{term.Name}' takes {forms}, but was given {term.Arguments.Count} argument" +
-                (term.Arguments.Count == 1 ? "" : "s") + ". Arguments are whole numbers.";
+            return $"'{term.Name}' takes {forms}, but was given {term.Arguments.Count} argument"
+                + (term.Arguments.Count == 1 ? "" : "s")
+                + ". Arguments are whole numbers.";
         }
 
         return null;
@@ -254,9 +282,12 @@ public static class RouteTokenSyntax {
     /// the asterisk is stripped before the name is read. A colon is supported too, as long as
     /// something declares what follows it.
     /// </summary>
-    private static Form Classify(string body, IReadOnlyCollection<string>? declaredConstraints) {
-        foreach (var character in body) {
-            switch (character) {
+    private static Form Classify(string body, IReadOnlyCollection<string>? declaredConstraints)
+    {
+        foreach (var character in body)
+        {
+            switch (character)
+            {
                 case '?':
                     return Form.Optional;
 
@@ -267,26 +298,33 @@ public static class RouteTokenSyntax {
 
         var constraint = RouteTokens.Constraint(body);
 
-        if (constraint == null) {
+        if (constraint == null)
+        {
             return Form.Supported;
         }
 
         var terms = RouteConstraintFacts.Terms(constraint);
 
         // Not a chain at all - an unclosed paren, an empty argument list, a non-integer argument.
-        if (terms == null) {
+        if (terms == null)
+        {
             return Form.UnknownConstraint;
         }
 
-        foreach (var term in terms) {
-            if (RouteConstraintFacts.Call(term) != null) {
+        foreach (var term in terms)
+        {
+            if (RouteConstraintFacts.Call(term) != null)
+            {
                 continue;
             }
 
             // A [RouteConstraint] takes no arguments, so a declared name used with them is not it.
-            if (term.Arguments.Count == 0 &&
-                declaredConstraints != null &&
-                declaredConstraints.Contains(term.Name)) {
+            if (
+                term.Arguments.Count == 0
+                && declaredConstraints != null
+                && declaredConstraints.Contains(term.Name)
+            )
+            {
                 continue;
             }
 
@@ -296,15 +334,19 @@ public static class RouteTokenSyntax {
         return Form.Supported;
     }
 
-    private static string Name(string body) {
+    private static string Name(string body)
+    {
         var builder = new StringBuilder(body.Length);
 
-        foreach (var character in body) {
-            if (character == RouteTokens.ConstraintMarker || character == '?' || character == '=') {
+        foreach (var character in body)
+        {
+            if (character == RouteTokens.ConstraintMarker || character == '?' || character == '=')
+            {
                 break;
             }
 
-            if (character != RouteTokens.CatchAllMarker) {
+            if (character != RouteTokens.CatchAllMarker)
+            {
                 builder.Append(character);
             }
         }

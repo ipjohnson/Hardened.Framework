@@ -13,10 +13,9 @@ namespace Hardened.OpenApi.SourceGenerator.Tests;
 /// string under <c>application/json</c> — the one thing the document said it would not do.
 /// </para>
 /// </summary>
-public class RawResponseTests {
-
-    private const string PlainText =
-        """
+public class RawResponseTests
+{
+    private const string PlainText = """
         openapi: "3.0.0"
         info: { title: Text, version: "1.0" }
         paths:
@@ -32,8 +31,7 @@ public class RawResponseTests {
                       schema: { type: string }
         """;
 
-    private const string PlainTextRawBytes =
-        """
+    private const string PlainTextRawBytes = """
         openapi: "3.0.0"
         info: { title: Text, version: "1.0" }
         paths:
@@ -49,13 +47,17 @@ public class RawResponseTests {
                     text/plain:
                       schema: { type: string }
         """;
+
     /// <summary>
     /// The default stays string, because that is what <c>type: string</c> means and what someone
     /// reading the document expects the handler to return.
     /// </summary>
     [Fact]
-    public void ATextResponseIsAStringUnlessAskedOtherwise() {
-        var generated = OpenApiGenerator.Run(PlainText).AssertNoErrors()
+    public void ATextResponseIsAStringUnlessAskedOtherwise()
+    {
+        var generated = OpenApiGenerator
+            .Run(PlainText)
+            .AssertNoErrors()
             .SourceContaining("petstore.g.cs");
 
         Assert.Contains("Task<string> GetGreeting()", generated);
@@ -67,15 +69,21 @@ public class RawResponseTests {
     /// where a string is UTF-8 encoded into a fresh array per request.
     /// </summary>
     [Fact]
-    public void RawBytesOptsTheSignatureIntoByteArray() {
-        var generated = OpenApiGenerator.Run(PlainTextRawBytes).AssertNoErrors()
+    public void RawBytesOptsTheSignatureIntoByteArray()
+    {
+        var generated = OpenApiGenerator
+            .Run(PlainTextRawBytes)
+            .AssertNoErrors()
             .SourceContaining("petstore.g.cs");
 
         Assert.Contains("Task<byte[]> GetGreeting()", generated);
     }
+
     [Fact]
-    public void AByteArrayResponseCompilesForItsConsumer() {
-        OpenApiGenerator.Run(
+    public void AByteArrayResponseCompilesForItsConsumer()
+    {
+        OpenApiGenerator
+            .Run(
                 PlainTextRawBytes,
                 OpenApiGenerator.EntryPointWithHandler(
                     """
@@ -85,7 +93,9 @@ public class RawResponseTests {
 
                         public Task<byte[]> GetGreeting() => Task.FromResult(Payload);
                     }
-                    """))
+                    """
+                )
+            )
             .AssertNoErrors();
     }
 }

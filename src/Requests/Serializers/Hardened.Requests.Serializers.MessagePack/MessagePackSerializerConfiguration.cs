@@ -13,8 +13,10 @@ namespace Hardened.Requests.Serializers.MessagePack;
 /// wants one that was constructed with something from the container.
 /// </remarks>
 [ConfigurationModel]
-public partial class MessagePackSerializerConfiguration {
-    private Func<IServiceProvider, MessagePackSerializerOptions> _optionsProvider = DefaultOptions();
+public partial class MessagePackSerializerConfiguration
+{
+    private Func<IServiceProvider, MessagePackSerializerOptions> _optionsProvider =
+        DefaultOptions();
 
     /// <summary>
     /// The resolvers every composition ends with, ahead of nothing.
@@ -41,16 +43,18 @@ public partial class MessagePackSerializerConfiguration {
     /// the attribute. Second, so an application that marks up a type of its own is asked first.
     /// </para>
     /// </remarks>
-    public static IFormatterResolver[] AotResolvers { get; } = [
+    public static IFormatterResolver[] AotResolvers { get; } =
+    [
         SourceGeneratedFormatterResolver.Instance,
         HardenedFormatterResolver.Instance,
         BuiltinResolver.Instance,
         AttributeFormatterResolver.Instance,
         DynamicGenericResolver.Instance,
-        PrimitiveObjectResolver.Instance
+        PrimitiveObjectResolver.Instance,
     ];
 
-    private static Func<IServiceProvider, MessagePackSerializerOptions> DefaultOptions() {
+    private static Func<IServiceProvider, MessagePackSerializerOptions> DefaultOptions()
+    {
         return _ => MessagePackSerializerOptions.Standard;
     }
 }

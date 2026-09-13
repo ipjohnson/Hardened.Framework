@@ -9,9 +9,10 @@ namespace Hardened.Requests.Caching.Memory.Tests;
 /// <summary>
 /// What referencing the package and writing the module attribute actually registers.
 /// </summary>
-public class HardenedMemoryResponseCacheTests {
-
-    private static IServiceProvider Application(Action<IServiceCollection>? configure = null) {
+public class HardenedMemoryResponseCacheTests
+{
+    private static IServiceProvider Application(Action<IServiceCollection>? configure = null)
+    {
         var services = new ServiceCollection();
 
         services.AddSingleton<IHardenedEnvironment>(new EnvironmentImpl());
@@ -29,9 +30,9 @@ public class HardenedMemoryResponseCacheTests {
     /// first request rather than caching nothing quietly.
     /// </summary>
     [Fact]
-    public void TheModuleRegistersAStore() {
-        Assert.IsType<MemoryResponseCacheStore>(
-            Application().GetService<IResponseCacheStore>());
+    public void TheModuleRegistersAStore()
+    {
+        Assert.IsType<MemoryResponseCacheStore>(Application().GetService<IResponseCacheStore>());
     }
 
     /// <summary>
@@ -39,7 +40,8 @@ public class HardenedMemoryResponseCacheTests {
     /// replaces this registration with - wins whichever order the modules were listed in.
     /// </summary>
     [Fact]
-    public void AStoreAlreadyRegisteredIsNotReplaced() {
+    public void AStoreAlreadyRegisteredIsNotReplaced()
+    {
         var services = new ServiceCollection();
         var shared = new SharedStore();
 
@@ -53,14 +55,17 @@ public class HardenedMemoryResponseCacheTests {
     }
 
     [Fact]
-    public void TheDefaultLimitsAreWhatTheModuleRegisters() {
+    public void TheDefaultLimitsAreWhatTheModuleRegisters()
+    {
         var configuration = Application()
             .GetRequiredService<IConfigurationManager>()
             .GetConfiguration<IMemoryResponseCacheConfiguration>();
 
         Assert.Equal(MemoryResponseCacheConfiguration.DefaultSizeLimit, configuration.SizeLimit);
         Assert.Equal(
-            MemoryResponseCacheConfiguration.DefaultMaximumBodySize, configuration.MaximumBodySize);
+            MemoryResponseCacheConfiguration.DefaultMaximumBodySize,
+            configuration.MaximumBodySize
+        );
     }
 
     /// <summary>
@@ -69,11 +74,15 @@ public class HardenedMemoryResponseCacheTests {
     /// attribute with no arguments. This is the supported route, so it has to work.
     /// </summary>
     [Fact]
-    public void ConfiguringTheCacheChangesWhatTheStoreIsBuiltWith() {
-        var configuration = Application(services => services.ConfigureMemoryResponseCache(cache => {
-                cache.SizeLimit = 4096;
-                cache.MaximumBodySize = 512;
-            }))
+    public void ConfiguringTheCacheChangesWhatTheStoreIsBuiltWith()
+    {
+        var configuration = Application(services =>
+                services.ConfigureMemoryResponseCache(cache =>
+                {
+                    cache.SizeLimit = 4096;
+                    cache.MaximumBodySize = 512;
+                })
+            )
             .GetRequiredService<IConfigurationManager>()
             .GetConfiguration<IMemoryResponseCacheConfiguration>();
 
@@ -86,8 +95,10 @@ public class HardenedMemoryResponseCacheTests {
     /// discarding the first.
     /// </summary>
     [Fact]
-    public void TwoConfigurationCallsBothApply() {
-        var configuration = Application(services => {
+    public void TwoConfigurationCallsBothApply()
+    {
+        var configuration = Application(services =>
+            {
                 services.ConfigureMemoryResponseCache(cache => cache.SizeLimit = 4096);
                 services.ConfigureMemoryResponseCache(cache => cache.MaximumBodySize = 512);
             })
@@ -98,13 +109,17 @@ public class HardenedMemoryResponseCacheTests {
         Assert.Equal(512, configuration.MaximumBodySize);
     }
 
-    private sealed class SharedStore : IResponseCacheStore {
+    private sealed class SharedStore : IResponseCacheStore
+    {
         public ValueTask<CachedResponse?> Get(string key, CancellationToken cancellationToken) =>
             new((CachedResponse?)null);
 
         public ValueTask Set(
-            string key, CachedResponse response, TimeSpan duration, CancellationToken cancellationToken) =>
-            default;
+            string key,
+            CachedResponse response,
+            TimeSpan duration,
+            CancellationToken cancellationToken
+        ) => default;
 
         public ValueTask EvictByTag(string tag, CancellationToken cancellationToken) => default;
     }

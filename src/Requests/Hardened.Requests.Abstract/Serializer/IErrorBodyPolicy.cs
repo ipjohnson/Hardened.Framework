@@ -9,15 +9,16 @@ namespace Hardened.Requests.Abstract.Serializer;
 /// <see cref="ErrorBodyFormat.Negotiated"/> where neither says otherwise - so a service that says
 /// nothing carries no registration for this and behaves exactly as it did.
 /// </remarks>
-public interface IErrorBodyPolicy {
-
+public interface IErrorBodyPolicy
+{
     ErrorBodyFormat Format { get; }
 }
 
 /// <inheritdoc />
-public sealed class ErrorBodyPolicy : IErrorBodyPolicy {
-
-    public ErrorBodyPolicy(ErrorBodyFormat format = ErrorBodyFormat.Negotiated) {
+public sealed class ErrorBodyPolicy : IErrorBodyPolicy
+{
+    public ErrorBodyPolicy(ErrorBodyFormat format = ErrorBodyFormat.Negotiated)
+    {
         Format = format;
     }
 

@@ -10,14 +10,17 @@ namespace Hardened.Aws.Lambda.Runtime.Tests.Adapters;
 /// <summary>
 /// The S3 adapter: the route it derives, the notification a handler binds, and the key it decodes.
 /// </summary>
-public class S3AdapterTests {
-    private static S3Request Request() {
+public class S3AdapterTests
+{
+    private static S3Request Request()
+    {
         using var payload = Infrastructure.Payloads.Payload(Infrastructure.Payloads.S3Json);
 
         return (S3Request)new S3Adapter().CreateRequest(payload, new TestLambdaContext());
     }
 
-    private static JsonElement Body(IExecutionRequest request) {
+    private static JsonElement Body(IExecutionRequest request)
+    {
         request.Body!.Position = 0;
 
         // leaveOpen, because a StreamReader closes what it wraps and a test may read a
@@ -56,7 +59,8 @@ public class S3AdapterTests {
         Assert.Equal("c++notes.txt", S3Adapter.DecodeKey("c%2B%2Bnotes.txt"));
 
     [Fact]
-    public void TheBatchRoutesOnTheBucketAndTheBlobScheme() {
+    public void TheBatchRoutesOnTheBucketAndTheBlobScheme()
+    {
         var request = Request();
 
         Assert.Equal("BLOB", request.Method);
@@ -74,19 +78,22 @@ public class S3AdapterTests {
     /// S3 reads no response, so nothing can be reported and saying so is better than pretending.
     /// </summary>
     [Fact]
-    public void AnIndividualFailureCannotBeReported() {
+    public void AnIndividualFailureCannotBeReported()
+    {
         var request = Request();
 
         Assert.False(request.ReportsItemFailures);
-        Assert.Throws<NotSupportedException>(
-            () => request.RecordFailure(0, new InvalidOperationException("no")));
+        Assert.Throws<NotSupportedException>(() =>
+            request.RecordFailure(0, new InvalidOperationException("no"))
+        );
     }
 
     /// <summary>
     /// The handler binds the notification, because the object is not in it.
     /// </summary>
     [Fact]
-    public void ANotificationBindsAsAFlatRecord() {
+    public void ANotificationBindsAsAFlatRecord()
+    {
         var body = Body(Request().ForItem(0));
 
         Assert.Equal("uploads", body.GetProperty("bucket").GetString());
@@ -103,7 +110,8 @@ public class S3AdapterTests {
     /// Zero would be indistinguishable from an empty object, which is a thing S3 lets you create.
     /// </remarks>
     [Fact]
-    public void ADeleteCarriesNoSize() {
+    public void ADeleteCarriesNoSize()
+    {
         var request = Request();
         var body = Body(request.ForItem(1));
 
@@ -117,7 +125,8 @@ public class S3AdapterTests {
     /// notifications for one key.
     /// </summary>
     [Fact]
-    public void ANotificationCarriesItsEnvelopeAsHeaders() {
+    public void ANotificationCarriesItsEnvelopeAsHeaders()
+    {
         var headers = Request().ForItem(0).Headers;
 
         Assert.Equal("my report.pdf", headers[S3Request.KeyHeader].ToString());
@@ -130,13 +139,16 @@ public class S3AdapterTests {
     /// Nothing is written back, because nothing reads it.
     /// </summary>
     [Fact]
-    public async Task NothingIsWrittenToTheResponse() {
+    public async Task NothingIsWrittenToTheResponse()
+    {
         var adapter = new S3Adapter();
 
         var output = new MemoryStream();
 
         await adapter.WriteResponse(
-            new ResponseOnlyContext(adapter.CreateResponse(new MemoryStream()), Request()), output);
+            new ResponseOnlyContext(adapter.CreateResponse(new MemoryStream()), Request()),
+            output
+        );
 
         Assert.Equal(0, output.Length);
     }

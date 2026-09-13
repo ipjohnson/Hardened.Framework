@@ -1,6 +1,6 @@
 using Hardened.Shared.Runtime.Json;
-using Microsoft.Extensions.DependencyInjection;
 using Hardened.Web.Runtime.Responses;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Hardened.IntegrationTests.OpenApi.SUT.Tests;
 
@@ -23,10 +23,11 @@ namespace Hardened.IntegrationTests.OpenApi.SUT.Tests;
 /// every value.
 /// </para>
 /// </remarks>
-public class EnumVocabularyTests {
-
+public class EnumVocabularyTests
+{
     [HardenedTest]
-    public async Task ADeclaredValueBindsAsAQueryParameter(ITestWebApp testWebApp) {
+    public async Task ADeclaredValueBindsAsAQueryParameter(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/pets/search?q=Buddy&species=guinea-pig");
 
         response.Assert.Ok();
@@ -45,14 +46,16 @@ public class EnumVocabularyTests {
     /// client keep working by accident against a value the contract does not describe.
     /// </remarks>
     [HardenedTest]
-    public async Task TheCSharpMemberNameDoesNotBindAsAQueryParameter(ITestWebApp testWebApp) {
+    public async Task TheCSharpMemberNameDoesNotBindAsAQueryParameter(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/pets/search?q=Buddy&species=GuineaPig");
 
         response.Assert.BadRequest();
     }
 
     [HardenedTest]
-    public async Task AnUndeclaredValueIsRefusedAsAQueryParameter(ITestWebApp testWebApp) {
+    public async Task AnUndeclaredValueIsRefusedAsAQueryParameter(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/pets/search?q=Buddy&species=ferret");
 
         response.Assert.BadRequest();
@@ -60,7 +63,8 @@ public class EnumVocabularyTests {
 
     /// <summary>An integer enum binds by its declared number.</summary>
     [HardenedTest]
-    public async Task AnIntegerEnumBindsByItsDeclaredNumber(ITestWebApp testWebApp) {
+    public async Task AnIntegerEnumBindsByItsDeclaredNumber(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/pets/search?q=Buddy&size=25");
 
         response.Assert.Ok();
@@ -69,7 +73,8 @@ public class EnumVocabularyTests {
     }
 
     [HardenedTest]
-    public async Task AnUndeclaredNumberIsRefusedForAnIntegerEnum(ITestWebApp testWebApp) {
+    public async Task AnUndeclaredNumberIsRefusedForAnIntegerEnum(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/pets/search?q=Buddy&size=7");
 
         response.Assert.BadRequest();
@@ -79,7 +84,8 @@ public class EnumVocabularyTests {
     /// The response carries the document's value, not the C# member name.
     /// </summary>
     [HardenedTest]
-    public async Task AResponseCarriesTheDeclaredValue(ITestWebApp testWebApp) {
+    public async Task AResponseCarriesTheDeclaredValue(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/pets/search?q=Buddy&species=guinea-pig&size=5");
 
         response.Body.Position = 0;
@@ -104,11 +110,14 @@ public class EnumVocabularyTests {
     /// own options, honours the type's attribute, and refused the member name this had written.
     /// </remarks>
     [HardenedTest]
-    public void TheSharedSerializerWritesTheDeclaredValue(ITestWebApp testWebApp) {
+    public void TheSharedSerializerWritesTheDeclaredValue(ITestWebApp testWebApp)
+    {
         var serializer = testWebApp.RootServiceProvider.GetRequiredService<IJsonSerializer>();
 
         var json = serializer.Serialize(
-            new Pet("1", "Buddy", Species: PetSpecies.GuineaPig, Size: PetSize.Medium), false);
+            new Pet("1", "Buddy", Species: PetSpecies.GuineaPig, Size: PetSize.Medium),
+            false
+        );
 
         Assert.Contains("\"guinea-pig\"", json);
         Assert.DoesNotContain("GuineaPig", json);
@@ -124,11 +133,14 @@ public class EnumVocabularyTests {
     /// then reported as a 500.
     /// </remarks>
     [HardenedTest]
-    public void ASharedSerializerRoundTripKeepsTheMember(ITestWebApp testWebApp) {
+    public void ASharedSerializerRoundTripKeepsTheMember(ITestWebApp testWebApp)
+    {
         var serializer = testWebApp.RootServiceProvider.GetRequiredService<IJsonSerializer>();
 
         var json = serializer.Serialize(
-            new Pet("1", "Buddy", Species: PetSpecies.GuineaPig, Size: PetSize.Large), false);
+            new Pet("1", "Buddy", Species: PetSpecies.GuineaPig, Size: PetSize.Large),
+            false
+        );
 
         var round = serializer.Deserialize<Pet>(json);
 
@@ -140,10 +152,13 @@ public class EnumVocabularyTests {
     /// A body carrying a declared value is accepted through the real pipeline.
     /// </summary>
     [HardenedTest]
-    public async Task ADeclaredValueIsAcceptedInARequestBody(ITestWebApp testWebApp) {
+    public async Task ADeclaredValueIsAcceptedInARequestBody(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Post(
-            "{\"name\":\"Rex\",\"tag\":\"good-boy\"}", "/pets",
-            request => request.Headers["Content-Type"] = "application/json");
+            "{\"name\":\"Rex\",\"tag\":\"good-boy\"}",
+            "/pets",
+            request => request.Headers["Content-Type"] = "application/json"
+        );
 
         Assert.Equal(201, response.StatusCode);
     }
@@ -156,16 +171,21 @@ public class EnumVocabularyTests {
     /// which used to arrive as a 500 with the parser's text echoed to the caller.
     /// </remarks>
     [HardenedTest]
-    public async Task AnUndeclaredValueInABodyIs400(ITestWebApp testWebApp) {
+    public async Task AnUndeclaredValueInABodyIs400(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Post(
-            "{\"id\":\"1\",\"name\":\"Rex\",\"species\":\"ferret\"}", "/pets/1",
-            request => {
+            "{\"id\":\"1\",\"name\":\"Rex\",\"species\":\"ferret\"}",
+            "/pets/1",
+            request =>
+            {
                 request.Headers["Content-Type"] = "application/json";
-            });
+            }
+        );
 
         Assert.True(
             response.StatusCode is 400 or 404 or 405,
-            $"expected a client error, got {response.StatusCode}");
+            $"expected a client error, got {response.StatusCode}"
+        );
         Assert.NotEqual(500, response.StatusCode);
     }
 }

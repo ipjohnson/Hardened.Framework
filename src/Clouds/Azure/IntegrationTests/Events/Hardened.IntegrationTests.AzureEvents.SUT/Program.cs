@@ -13,17 +13,24 @@ var host = new HostBuilder()
 
 host.Run();
 
-internal sealed class ObservedTriggerLog : ITriggerLog {
+internal sealed class ObservedTriggerLog : ITriggerLog
+{
     private const string Marker = "HARDENED-OBSERVED ";
 
-    public void Record(string entry) {
+    public void Record(string entry)
+    {
         var separator = entry.IndexOf(':');
 
         Console.Out.WriteLine(
-            Marker + System.Text.Json.JsonSerializer.Serialize(new {
-                kind = separator < 0 ? entry : entry.Substring(0, separator),
-                id = separator < 0 ? "" : entry.Substring(separator + 1)
-            }));
+            Marker
+                + System.Text.Json.JsonSerializer.Serialize(
+                    new
+                    {
+                        kind = separator < 0 ? entry : entry.Substring(0, separator),
+                        id = separator < 0 ? "" : entry.Substring(separator + 1),
+                    }
+                )
+        );
         Console.Out.Flush();
     }
 }

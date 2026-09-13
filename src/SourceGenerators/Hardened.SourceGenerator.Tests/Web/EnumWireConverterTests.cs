@@ -1,6 +1,6 @@
 using Hardened.SourceGenerator.Tests.Infrastructure;
-using Xunit;
 using Hardened.Web.Runtime.Responses;
+using Xunit;
 
 namespace Hardened.SourceGenerator.Tests.Web;
 
@@ -21,23 +21,24 @@ namespace Hardened.SourceGenerator.Tests.Web;
 /// entirely wrong in a way only a shipped application would show.
 /// </para>
 /// </remarks>
-public class EnumWireConverterTests {
+public class EnumWireConverterTests
+{
+    private static string Application(string body) =>
+        $$"""
+            using System;
+            using System.Collections.Generic;
+            using System.Threading.Tasks;
+            using Hardened.Requests.Abstract.Attributes;
+            using Hardened.Shared.Runtime.Attributes;
+            using Hardened.Web.Runtime.Attributes;
 
-    private static string Application(string body) => $$"""
-        using System;
-        using System.Collections.Generic;
-        using System.Threading.Tasks;
-        using Hardened.Requests.Abstract.Attributes;
-        using Hardened.Shared.Runtime.Attributes;
-        using Hardened.Web.Runtime.Attributes;
+            namespace TestApp;
 
-        namespace TestApp;
+            [HardenedModule]
+            public partial class Application { }
 
-        [HardenedModule]
-        public partial class Application { }
-
-        {{body}}
-        """;
+            {{body}}
+            """;
 
     private const string PriorityController = """
         public enum Priority { Low, InProgress }
@@ -51,8 +52,10 @@ public class EnumWireConverterTests {
         """;
 
     [Fact]
-    public void AnEnumOnTheWireGetsAConverterCarryingItsValues() {
-        var routing = RequestGeneratorHarness.Generate(Application(PriorityController))
+    public void AnEnumOnTheWireGetsAConverterCarryingItsValues()
+    {
+        var routing = RequestGeneratorHarness
+            .Generate(Application(PriorityController))
             .AssertNoErrors()
             .SourceContaining("Application.Routing");
 
@@ -67,8 +70,10 @@ public class EnumWireConverterTests {
     /// read and wrote values broke every enum-keyed dictionary the moment it was registered.
     /// </summary>
     [Fact]
-    public void AnEnumOnTheWireGetsAConverterForDictionaryKeys() {
-        var routing = RequestGeneratorHarness.Generate(Application(PriorityController))
+    public void AnEnumOnTheWireGetsAConverterForDictionaryKeys()
+    {
+        var routing = RequestGeneratorHarness
+            .Generate(Application(PriorityController))
             .AssertNoErrors()
             .SourceContaining("Application.Routing");
 
@@ -82,8 +87,10 @@ public class EnumWireConverterTests {
     /// same vocabulary has to be registered for it separately.
     /// </summary>
     [Fact]
-    public void AnEnumOnTheWireGetsAStringConverterForTheBinder() {
-        var routing = RequestGeneratorHarness.Generate(Application(PriorityController))
+    public void AnEnumOnTheWireGetsAStringConverterForTheBinder()
+    {
+        var routing = RequestGeneratorHarness
+            .Generate(Application(PriorityController))
             .AssertNoErrors()
             .SourceContaining("Application.Routing");
 
@@ -92,28 +99,44 @@ public class EnumWireConverterTests {
     }
 
     [Fact]
-    public void TheResolverAndTheStringConvertersAreRegistered() {
-        var routing = RequestGeneratorHarness.Generate(Application(PriorityController))
+    public void TheResolverAndTheStringConvertersAreRegistered()
+    {
+        var routing = RequestGeneratorHarness
+            .Generate(Application(PriorityController))
             .AssertNoErrors()
             .SourceContaining("Application.Routing");
 
-        Assert.Contains("IJsonTypeInfoResolver), global::TestApp.Application.JsonEnums.Resolver.Instance", routing);
-        Assert.Contains("foreach (var stringConverter in global::TestApp.Application.JsonEnums.StringConverters)", routing);
+        Assert.Contains(
+            "IJsonTypeInfoResolver), global::TestApp.Application.JsonEnums.Resolver.Instance",
+            routing
+        );
+        Assert.Contains(
+            "foreach (var stringConverter in global::TestApp.Application.JsonEnums.StringConverters)",
+            routing
+        );
     }
 
     [Fact]
-    public void ADeclaredNamingOverridesTheDefault() {
-        var routing = RequestGeneratorHarness.Generate(Application("""
-            [JsonEnumNaming(EnumNaming.KebabCaseLower)]
-            public enum Shipping { NextDay, TwoDay }
+    public void ADeclaredNamingOverridesTheDefault()
+    {
+        var routing = RequestGeneratorHarness
+            .Generate(
+                Application(
+                    """
+                    [JsonEnumNaming(EnumNaming.KebabCaseLower)]
+                    public enum Shipping { NextDay, TwoDay }
 
-            public record Order(Shipping Shipping);
+                    public record Order(Shipping Shipping);
 
-            public class OrderController {
-                [Get("/orders")]
-                public Order Get() => new(Shipping.NextDay);
-            }
-            """)).AssertNoErrors().SourceContaining("Application.Routing");
+                    public class OrderController {
+                        [Get("/orders")]
+                        public Order Get() => new(Shipping.NextDay);
+                    }
+                    """
+                )
+            )
+            .AssertNoErrors()
+            .SourceContaining("Application.Routing");
 
         Assert.Contains("=> \"next-day\"", routing);
         Assert.DoesNotContain("=> \"nextDay\"", routing);
@@ -123,34 +146,40 @@ public class EnumWireConverterTests {
     /// An assembly-wide default, and one enum opting back out of it.
     /// </summary>
     [Fact]
-    public void AnAssemblyDefaultAppliesAndAnEnumCanOptOut() {
+    public void AnAssemblyDefaultAppliesAndAnEnumCanOptOut()
+    {
         // Written out rather than through Application(), because an assembly attribute has to
         // precede every other element in the file - after the namespace it is CS1730.
-        var routing = RequestGeneratorHarness.Generate("""
-            using System;
-            using Hardened.Requests.Abstract.Attributes;
-            using Hardened.Shared.Runtime.Attributes;
-            using Hardened.Web.Runtime.Attributes;
+        var routing = RequestGeneratorHarness
+            .Generate(
+                """
+                using System;
+                using Hardened.Requests.Abstract.Attributes;
+                using Hardened.Shared.Runtime.Attributes;
+                using Hardened.Web.Runtime.Attributes;
 
-            [assembly: JsonEnumNaming(EnumNaming.SnakeCaseUpper)]
+                [assembly: JsonEnumNaming(EnumNaming.SnakeCaseUpper)]
 
-            namespace TestApp;
+                namespace TestApp;
 
-            [HardenedModule]
-            public partial class Application { }
+                [HardenedModule]
+                public partial class Application { }
 
-            public enum Priority { InProgress }
+                public enum Priority { InProgress }
 
-            [JsonEnumNaming(EnumNaming.MemberName)]
-            public enum LegacyCode { AB12 }
+                [JsonEnumNaming(EnumNaming.MemberName)]
+                public enum LegacyCode { AB12 }
 
-            public record Ticket(Priority Priority, LegacyCode Code);
+                public record Ticket(Priority Priority, LegacyCode Code);
 
-            public class TicketController {
-                [Get("/tickets")]
-                public Ticket Get() => new(Priority.InProgress, LegacyCode.AB12);
-            }
-            """).AssertNoErrors().SourceContaining("Application.Routing");
+                public class TicketController {
+                    [Get("/tickets")]
+                    public Ticket Get() => new(Priority.InProgress, LegacyCode.AB12);
+                }
+                """
+            )
+            .AssertNoErrors()
+            .SourceContaining("Application.Routing");
 
         Assert.Contains("=> \"IN_PROGRESS\"", routing);
         Assert.Contains("=> \"AB12\"", routing);
@@ -161,36 +190,54 @@ public class EnumWireConverterTests {
     /// application's to redefine - so neither gets a converter.
     /// </summary>
     [Fact]
-    public void AFlagsEnumIsLeftAlone() {
-        var result = RequestGeneratorHarness.Generate(Application("""
-            [Flags]
-            public enum Access { None = 0, Read = 1, Write = 2 }
+    public void AFlagsEnumIsLeftAlone()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                Application(
+                    """
+                    [Flags]
+                    public enum Access { None = 0, Read = 1, Write = 2 }
 
-            public record Grant(Access Access);
+                    public record Grant(Access Access);
 
-            public class GrantController {
-                [Get("/grants")]
-                public Grant Get() => new(Access.Read);
-            }
-            """)).AssertNoErrors();
+                    public class GrantController {
+                        [Get("/grants")]
+                        public Grant Get() => new(Access.Read);
+                    }
+                    """
+                )
+            )
+            .AssertNoErrors();
 
         Assert.DoesNotContain(
-            result.GeneratedSources.Values, source => source.Contains("AccessWireConverter"));
+            result.GeneratedSources.Values,
+            source => source.Contains("AccessWireConverter")
+        );
     }
 
     [Fact]
-    public void AFrameworkEnumIsLeftAlone() {
-        var result = RequestGeneratorHarness.Generate(Application("""
-            public record Job(System.Threading.Tasks.TaskStatus Status);
+    public void AFrameworkEnumIsLeftAlone()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                Application(
+                    """
+                    public record Job(System.Threading.Tasks.TaskStatus Status);
 
-            public class JobController {
-                [Get("/jobs")]
-                public Job Get() => new(System.Threading.Tasks.TaskStatus.Running);
-            }
-            """)).AssertNoErrors();
+                    public class JobController {
+                        [Get("/jobs")]
+                        public Job Get() => new(System.Threading.Tasks.TaskStatus.Running);
+                    }
+                    """
+                )
+            )
+            .AssertNoErrors();
 
         Assert.DoesNotContain(
-            result.GeneratedSources.Values, source => source.Contains("TaskStatusWireConverter"));
+            result.GeneratedSources.Values,
+            source => source.Contains("TaskStatusWireConverter")
+        );
     }
 
     /// <summary>
@@ -198,15 +245,24 @@ public class EnumWireConverterTests {
     /// one and two registrations that iterate nothing.
     /// </summary>
     [Fact]
-    public void NoEnumOnTheWireEmitsNoContainer() {
-        var result = RequestGeneratorHarness.Generate(Application("""
-            public class PlainController {
-                [Get("/plain")]
-                public string Get() => "x";
-            }
-            """)).AssertNoErrors();
+    public void NoEnumOnTheWireEmitsNoContainer()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                Application(
+                    """
+                    public class PlainController {
+                        [Get("/plain")]
+                        public string Get() => "x";
+                    }
+                    """
+                )
+            )
+            .AssertNoErrors();
 
         Assert.DoesNotContain(
-            result.GeneratedSources.Values, source => source.Contains("class JsonEnums"));
+            result.GeneratedSources.Values,
+            source => source.Contains("class JsonEnums")
+        );
     }
 }

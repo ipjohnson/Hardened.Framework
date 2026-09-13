@@ -24,13 +24,15 @@ namespace Hardened.Aws.Lambda.DynamoDb;
 /// rather than a row handled by the wrong code.
 /// </para>
 /// </remarks>
-public sealed class DynamoDbAdapter : IPayloadAdapter {
+public sealed class DynamoDbAdapter : IPayloadAdapter
+{
     private readonly bool _reportsItemFailures;
 
     /// <param name="reportsItemFailures">
     /// Whether the event source mapping was deployed with <c>ReportBatchItemFailures</c>.
     /// </param>
-    public DynamoDbAdapter(bool reportsItemFailures = false) {
+    public DynamoDbAdapter(bool reportsItemFailures = false)
+    {
         _reportsItemFailures = reportsItemFailures;
     }
 
@@ -44,18 +46,20 @@ public sealed class DynamoDbAdapter : IPayloadAdapter {
     /// for why the array alone recognises nothing.
     /// </remarks>
     public bool Handles(JsonElement payload) =>
-        LambdaPayload.FirstRecord(payload) is { } record &&
-        record.TryGetProperty(EventSource, out var source) &&
-        source.ValueKind == JsonValueKind.String &&
-        source.ValueEquals(EventSourceValue);
+        LambdaPayload.FirstRecord(payload) is { } record
+        && record.TryGetProperty(EventSource, out var source)
+        && source.ValueKind == JsonValueKind.String
+        && source.ValueEquals(EventSourceValue);
 
-    public IExecutionRequest CreateRequest(LambdaPayload payload, ILambdaContext context) {
-        var batch = JsonSerializer.Deserialize(
-                        payload.Raw.Span, DynamoDbEventJson.Event)
-                    ?? throw new InvalidOperationException(
-                        "The DynamoDB adapter was given a payload that deserialized to null. The " +
-                        "peek identified it by its records' aws:dynamodb event source, so this is " +
-                        "a malformed event rather than a different source.");
+    public IExecutionRequest CreateRequest(LambdaPayload payload, ILambdaContext context)
+    {
+        var batch =
+            JsonSerializer.Deserialize(payload.Raw.Span, DynamoDbEventJson.Event)
+            ?? throw new InvalidOperationException(
+                "The DynamoDB adapter was given a payload that deserialized to null. The "
+                    + "peek identified it by its records' aws:dynamodb event source, so this is "
+                    + "a malformed event rather than a different source."
+            );
 
         // Copied to a list because the package models Records as IList, which is not an
         // IReadOnlyList - and the request holds it for the life of the invocation.
@@ -66,7 +70,8 @@ public sealed class DynamoDbAdapter : IPayloadAdapter {
             new MemoryStream(payload.Raw.ToArray(), writable: false),
             new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase),
             records,
-            _reportsItemFailures);
+            _reportsItemFailures
+        );
     }
 
     /// <summary>
@@ -80,8 +85,10 @@ public sealed class DynamoDbAdapter : IPayloadAdapter {
     /// is returned whole, and an absent one gives an empty name; both produce a route no handler
     /// declared, which the not-found handler reports with the value in hand.
     /// </remarks>
-    internal static string TableName(string? eventSourceArn) {
-        if (string.IsNullOrEmpty(eventSourceArn)) {
+    internal static string TableName(string? eventSourceArn)
+    {
+        if (string.IsNullOrEmpty(eventSourceArn))
+        {
             return "";
         }
 
@@ -89,7 +96,8 @@ public sealed class DynamoDbAdapter : IPayloadAdapter {
 
         var start = eventSourceArn!.IndexOf(marker, StringComparison.Ordinal);
 
-        if (start < 0) {
+        if (start < 0)
+        {
             return eventSourceArn;
         }
 
@@ -118,14 +126,17 @@ public sealed class DynamoDbAdapter : IPayloadAdapter {
     /// <c>BatchFailureMode.Checkpoint</c> the batch stops at the first failure, so this names at
     /// most one - which is the point: Lambda rewinds to it and redelivers from there.
     /// </remarks>
-    public async ValueTask WriteResponse(IExecutionContext context, Stream output) {
+    public async ValueTask WriteResponse(IExecutionContext context, Stream output)
+    {
         await using var writer = new Utf8JsonWriter(output);
 
         writer.WriteStartObject();
         writer.WriteStartArray("batchItemFailures");
 
-        if (context.Request is DynamoDbRequest batch) {
-            foreach (var sequenceNumber in batch.FailedSequenceNumbers) {
+        if (context.Request is DynamoDbRequest batch)
+        {
+            foreach (var sequenceNumber in batch.FailedSequenceNumbers)
+            {
                 writer.WriteStartObject();
                 writer.WriteString("itemIdentifier", sequenceNumber);
                 writer.WriteEndObject();

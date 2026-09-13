@@ -14,36 +14,45 @@ namespace Hardened.SourceGenerator.Tests.Function;
 /// runs, and <c>[HardenedFunction]</c> mistaken for a filter is instantiated as one at startup.
 /// </para>
 /// </summary>
-public class FunctionFilterTests {
-
+public class FunctionFilterTests
+{
     private static string Handler(string attributes, string signature) =>
-        FunctionGeneratorHarness.Generate($$"""
-            using System.Threading.Tasks;
-            using Hardened.Requests.Abstract.Attributes;
-            using Hardened.Requests.Runtime.Filters;
-            using Hardened.Shared.Runtime.Attributes;
+        FunctionGeneratorHarness
+            .Generate(
+                $$"""
+                using System.Threading.Tasks;
+                using Hardened.Requests.Abstract.Attributes;
+                using Hardened.Requests.Runtime.Filters;
+                using Hardened.Shared.Runtime.Attributes;
 
-            namespace TestApp;
+                namespace TestApp;
 
-            [HardenedModule]
-            public partial class TestApplication { }
+                [HardenedModule]
+                public partial class TestApplication { }
 
-            public class TestFunctions {
-                [HardenedFunction]
-                {{attributes}}
-                {{signature}}
-            }
-            """).AssertNoErrors().SourceContaining("Process.FunctionHandler");
+                public class TestFunctions {
+                    [HardenedFunction]
+                    {{attributes}}
+                    {{signature}}
+                }
+                """
+            )
+            .AssertNoErrors()
+            .SourceContaining("Process.FunctionHandler");
 
     /// <summary>
     /// A filter attribute reaches the handler's metadata array, and the array is passed to
     /// <c>GetFilterInfo</c> — an attribute recorded but not passed would never run.
     /// </summary>
     [Fact]
-    public void AFilterAttributeIsRecordedInTheHandlerMetadata() {
+    public void AFilterAttributeIsRecordedInTheHandlerMetadata()
+    {
         var source = Handler("[Retry(Retries = 2)]", "public void Process() { }");
 
-        Assert.Contains("new global::Hardened.Requests.Runtime.Filters.RetryAttribute(){ Retries = 2 }", source);
+        Assert.Contains(
+            "new global::Hardened.Requests.Runtime.Filters.RetryAttribute(){ Retries = 2 }",
+            source
+        );
         Assert.Contains("ExecutionHelper.GetFilterInfo(_metadata)", source);
     }
 
@@ -52,7 +61,8 @@ public class FunctionFilterTests {
     /// would be constructed and run on every invocation.
     /// </summary>
     [Fact]
-    public void TheHardenedFunctionAttributeIsNotItselfAFilter() {
+    public void TheHardenedFunctionAttributeIsNotItselfAFilter()
+    {
         var source = Handler("", "public void Process() { }");
 
         Assert.DoesNotContain("_metadata", source);
@@ -64,26 +74,28 @@ public class FunctionFilterTests {
     /// rather than becoming a filter, so it stays out of the metadata array.
     /// </summary>
     [Fact]
-    public void ARawResponseAttributeIsResponseInformationRatherThanAFilter() {
+    public void ARawResponseAttributeIsResponseInformationRatherThanAFilter()
+    {
         var source = Handler("[RawResponse(\"text/csv\")]", "public string Process() => \"a,b\";");
 
         Assert.Contains("Response.ContentType = \"text/csv\"", source);
         Assert.DoesNotContain("_metadata", source);
     }
 
-
     /// <summary>
     /// A filter beside response information. The two are decided independently, so this is the
     /// case where one being mistaken for the other shows up.
     /// </summary>
     [Fact]
-    public void AFilterAndAResponseAttributeCoexistOnOneHandler() {
+    public void AFilterAndAResponseAttributeCoexistOnOneHandler()
+    {
         var source = Handler(
             """
             [Retry(Retries = 3)]
             [RawResponse("text/csv")]
             """,
-            "public string Process() => \"a,b\";");
+            "public string Process() => \"a,b\";"
+        );
 
         Assert.Contains("RetryAttribute(){ Retries = 3 }", source);
         Assert.Contains("Response.ContentType = \"text/csv\"", source);
@@ -94,23 +106,29 @@ public class FunctionFilterTests {
     /// collected from the class as well as the method.
     /// </summary>
     [Fact]
-    public void AFilterOnTheClassReachesItsFunctions() {
-        var source = FunctionGeneratorHarness.Generate("""
-            using Hardened.Requests.Abstract.Attributes;
-            using Hardened.Requests.Runtime.Filters;
-            using Hardened.Shared.Runtime.Attributes;
+    public void AFilterOnTheClassReachesItsFunctions()
+    {
+        var source = FunctionGeneratorHarness
+            .Generate(
+                """
+                using Hardened.Requests.Abstract.Attributes;
+                using Hardened.Requests.Runtime.Filters;
+                using Hardened.Shared.Runtime.Attributes;
 
-            namespace TestApp;
+                namespace TestApp;
 
-            [HardenedModule]
-            public partial class TestApplication { }
+                [HardenedModule]
+                public partial class TestApplication { }
 
-            [Retry(Retries = 4)]
-            public class TestFunctions {
-                [HardenedFunction]
-                public void Process() { }
-            }
-            """).AssertNoErrors().SourceContaining("Process.FunctionHandler");
+                [Retry(Retries = 4)]
+                public class TestFunctions {
+                    [HardenedFunction]
+                    public void Process() { }
+                }
+                """
+            )
+            .AssertNoErrors()
+            .SourceContaining("Process.FunctionHandler");
 
         Assert.Contains("RetryAttribute(){ Retries = 4 }", source);
     }

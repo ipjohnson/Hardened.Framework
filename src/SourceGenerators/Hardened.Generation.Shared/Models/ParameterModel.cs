@@ -1,6 +1,7 @@
 namespace Hardened.Generation.Models;
 
-internal class ParameterModel : IEquatable<ParameterModel>, IConstraintFacets {
+internal class ParameterModel : IEquatable<ParameterModel>, IConstraintFacets
+{
     public string Name { get; set; } = "";
     public string In { get; set; } = "";
     public bool IsRequired { get; set; }
@@ -39,6 +40,7 @@ internal class ParameterModel : IEquatable<ParameterModel>, IConstraintFacets {
     public string? Description { get; set; }
     public string? Type { get; set; }
     public string? Format { get; set; }
+
     /// <summary>
     /// The C# member name, where it cannot be the camelCased wire name.
     /// </summary>
@@ -122,11 +124,17 @@ internal class ParameterModel : IEquatable<ParameterModel>, IConstraintFacets {
     /// validator to answer it.
     /// </remarks>
     public bool HasValidationConstraints =>
-        (IsRequired && !IsPath) || MinLength.HasValue || MaxLength.HasValue ||
-        Minimum.HasValue || Maximum.HasValue ||
-        ExclusiveMinimum || ExclusiveMaximum ||
-        (Pattern != null && RouteConstraint == null) || MinItems.HasValue || MaxItems.HasValue ||
-        EnumValues is { Count: > 0 };
+        (IsRequired && !IsPath)
+        || MinLength.HasValue
+        || MaxLength.HasValue
+        || Minimum.HasValue
+        || Maximum.HasValue
+        || ExclusiveMinimum
+        || ExclusiveMaximum
+        || (Pattern != null && RouteConstraint == null)
+        || MinItems.HasValue
+        || MaxItems.HasValue
+        || EnumValues is { Count: > 0 };
 
     /// <summary>Whether the parameter binds from a path segment.</summary>
     private bool IsPath => string.Equals(In, "path", StringComparison.OrdinalIgnoreCase);
@@ -140,36 +148,57 @@ internal class ParameterModel : IEquatable<ParameterModel>, IConstraintFacets {
     /// matches the contract. EnumValues, the refs and the array item facts were left out when
     /// nothing downstream read them; the document writer reads them now.
     /// </remarks>
-    public bool Equals(ParameterModel? other) {
-        if (other is null) return false;
-        if (ReferenceEquals(this, other)) return true;
-        return Name == other.Name && In == other.In && IsRequired == other.IsRequired && IsNullable == other.IsNullable && Default == other.Default &&
-               Description == other.Description &&
-               MemberNameOverride == other.MemberNameOverride &&
-               Type == other.Type && Format == other.Format &&
-               Ref == other.Ref && IsArray == other.IsArray &&
-               ArrayItemsType == other.ArrayItemsType && ArrayItemsRef == other.ArrayItemsRef &&
-               ArrayItemsFormat == other.ArrayItemsFormat &&
-               MinLength == other.MinLength && MaxLength == other.MaxLength &&
-               Minimum == other.Minimum && Maximum == other.Maximum &&
-               ExclusiveMinimum == other.ExclusiveMinimum && ExclusiveMaximum == other.ExclusiveMaximum &&
-               Pattern == other.Pattern && RouteConstraint == other.RouteConstraint &&
-               MinItems == other.MinItems && MaxItems == other.MaxItems &&
-               SchemaFacets == other.SchemaFacets && RequiredByConstraint == other.RequiredByConstraint &&
-               SameEnumValues(other);
+    public bool Equals(ParameterModel? other)
+    {
+        if (other is null)
+            return false;
+        if (ReferenceEquals(this, other))
+            return true;
+        return Name == other.Name
+            && In == other.In
+            && IsRequired == other.IsRequired
+            && IsNullable == other.IsNullable
+            && Default == other.Default
+            && Description == other.Description
+            && MemberNameOverride == other.MemberNameOverride
+            && Type == other.Type
+            && Format == other.Format
+            && Ref == other.Ref
+            && IsArray == other.IsArray
+            && ArrayItemsType == other.ArrayItemsType
+            && ArrayItemsRef == other.ArrayItemsRef
+            && ArrayItemsFormat == other.ArrayItemsFormat
+            && MinLength == other.MinLength
+            && MaxLength == other.MaxLength
+            && Minimum == other.Minimum
+            && Maximum == other.Maximum
+            && ExclusiveMinimum == other.ExclusiveMinimum
+            && ExclusiveMaximum == other.ExclusiveMaximum
+            && Pattern == other.Pattern
+            && RouteConstraint == other.RouteConstraint
+            && MinItems == other.MinItems
+            && MaxItems == other.MaxItems
+            && SchemaFacets == other.SchemaFacets
+            && RequiredByConstraint == other.RequiredByConstraint
+            && SameEnumValues(other);
     }
 
-    private bool SameEnumValues(ParameterModel other) {
-        if (EnumValues is null || EnumValues.Count == 0) {
+    private bool SameEnumValues(ParameterModel other)
+    {
+        if (EnumValues is null || EnumValues.Count == 0)
+        {
             return other.EnumValues is null || other.EnumValues.Count == 0;
         }
 
-        if (other.EnumValues is null || other.EnumValues.Count != EnumValues.Count) {
+        if (other.EnumValues is null || other.EnumValues.Count != EnumValues.Count)
+        {
             return false;
         }
 
-        for (var i = 0; i < EnumValues.Count; i++) {
-            if (EnumValues[i] != other.EnumValues[i]) {
+        for (var i = 0; i < EnumValues.Count; i++)
+        {
+            if (EnumValues[i] != other.EnumValues[i])
+            {
                 return false;
             }
         }
@@ -179,8 +208,10 @@ internal class ParameterModel : IEquatable<ParameterModel>, IConstraintFacets {
 
     public override bool Equals(object? obj) => Equals(obj as ParameterModel);
 
-    public override int GetHashCode() {
-        unchecked {
+    public override int GetHashCode()
+    {
+        unchecked
+        {
             var hash = Name.GetHashCode();
             hash = (hash * 397) ^ In.GetHashCode();
             hash = (hash * 397) ^ IsRequired.GetHashCode();

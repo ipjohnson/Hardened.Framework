@@ -10,8 +10,8 @@ namespace Hardened.Shared.Testing.Attributes;
 /// </summary>
 [XunitTestCaseDiscoverer(typeof(ModuleTestDiscoverer))]
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
-public class HardenedTestAttribute : FactAttribute {
-
+public class HardenedTestAttribute : FactAttribute
+{
     // xUnit instantiates the attribute while it discovers tests, so this runs before any test
     // does, and the seam the harness reads is in place by the time anything reads it.
     static HardenedTestAttribute() => XunitCurrentTestProvider.Install();

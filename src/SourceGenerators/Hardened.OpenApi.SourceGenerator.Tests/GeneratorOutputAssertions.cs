@@ -23,8 +23,8 @@ namespace Hardened.OpenApi.SourceGenerator.Tests;
 /// wrapper reported nothing and that the files the case is about actually exist.
 /// </para>
 /// </summary>
-internal static class GeneratorOutputAssertions {
-
+internal static class GeneratorOutputAssertions
+{
     /// <summary>The id <c>SourceGeneratorWrapper</c> reports a swallowed emit-time crash under.</summary>
     private const string CrashDiagnosticId = "HardenedException";
 
@@ -32,16 +32,25 @@ internal static class GeneratorOutputAssertions {
     /// Asserts the wrapper caught nothing. A <c>HardenedException</c> means the generator threw
     /// while emitting, so whatever it was supposed to write is simply missing.
     /// </summary>
-    internal static GeneratorResult AssertGeneratorDidNotCrash(this GeneratorResult result) {
-        var crashes = result.GeneratorDiagnostics
-            .Where(diagnostic => diagnostic.Id == CrashDiagnosticId)
+    internal static GeneratorResult AssertGeneratorDidNotCrash(this GeneratorResult result)
+    {
+        var crashes = result
+            .GeneratorDiagnostics.Where(diagnostic => diagnostic.Id == CrashDiagnosticId)
             .ToArray();
 
-        Assert.True(crashes.Length == 0,
-            "The generator threw while emitting and the wrapper turned it into a warning, so it " +
-            "produced nothing and reported success:" + Environment.NewLine +
-            string.Join(Environment.NewLine, crashes.Select(crash => "  " + crash.GetMessage())) +
-            Environment.NewLine + "Generated: " + Describe(result));
+        Assert.True(
+            crashes.Length == 0,
+            "The generator threw while emitting and the wrapper turned it into a warning, so it "
+                + "produced nothing and reported success:"
+                + Environment.NewLine
+                + string.Join(
+                    Environment.NewLine,
+                    crashes.Select(crash => "  " + crash.GetMessage())
+                )
+                + Environment.NewLine
+                + "Generated: "
+                + Describe(result)
+        );
 
         return result;
     }
@@ -51,14 +60,20 @@ internal static class GeneratorOutputAssertions {
     /// was emitted. This is what makes a generator test able to fail when nothing was generated.
     /// </summary>
     internal static GeneratorResult AssertGenerated(
-        this GeneratorResult result, params string[] hintNameFragments) {
+        this GeneratorResult result,
+        params string[] hintNameFragments
+    )
+    {
         result.AssertGeneratorDidNotCrash();
 
-        foreach (var fragment in hintNameFragments) {
+        foreach (var fragment in hintNameFragments)
+        {
             Assert.True(
-                result.GeneratedSources.Keys.Any(
-                    key => key.Contains(fragment, StringComparison.OrdinalIgnoreCase)),
-                $"Nothing was generated with '{fragment}' in its hint name. Generated: {Describe(result)}");
+                result.GeneratedSources.Keys.Any(key =>
+                    key.Contains(fragment, StringComparison.OrdinalIgnoreCase)
+                ),
+                $"Nothing was generated with '{fragment}' in its hint name. Generated: {Describe(result)}"
+            );
         }
 
         return result;
@@ -69,9 +84,14 @@ internal static class GeneratorOutputAssertions {
     /// that a construct is deliberately skipped rather than generated wrong.
     /// </summary>
     internal static GeneratorResult AssertNotGenerated(
-        this GeneratorResult result, string hintNameFragment) {
-        Assert.DoesNotContain(result.GeneratedSources.Keys,
-            key => key.Contains(hintNameFragment, StringComparison.OrdinalIgnoreCase));
+        this GeneratorResult result,
+        string hintNameFragment
+    )
+    {
+        Assert.DoesNotContain(
+            result.GeneratedSources.Keys,
+            key => key.Contains(hintNameFragment, StringComparison.OrdinalIgnoreCase)
+        );
 
         return result;
     }
@@ -81,13 +101,16 @@ internal static class GeneratorOutputAssertions {
     /// whatever the input and so churns any assertion that counts or snapshots the output.
     /// </summary>
     internal static IReadOnlyList<string> HintNamesExceptDiagnostic(this GeneratorResult result) =>
-        result.GeneratedSources.Keys
-            .Where(key => key != OpenApiGenerator.DiagnosticHintName)
+        result
+            .GeneratedSources.Keys.Where(key => key != OpenApiGenerator.DiagnosticHintName)
             .OrderBy(key => key, StringComparer.Ordinal)
             .ToArray();
 
     private static string Describe(GeneratorResult result) =>
         result.GeneratedSources.Count == 0
             ? "(nothing)"
-            : string.Join(", ", result.GeneratedSources.Keys.OrderBy(key => key, StringComparer.Ordinal));
+            : string.Join(
+                ", ",
+                result.GeneratedSources.Keys.OrderBy(key => key, StringComparer.Ordinal)
+            );
 }

@@ -19,12 +19,16 @@ namespace Hardened.SourceGenerator.OpenApiDocument;
 /// stale title after the contract renamed itself.
 /// </para>
 /// </remarks>
-public sealed class DocumentIdentity : System.IEquatable<DocumentIdentity> {
-
+public sealed class DocumentIdentity : System.IEquatable<DocumentIdentity>
+{
     public DocumentIdentity(
-        string? title, string? version, string? description,
+        string? title,
+        string? version,
+        string? description,
         IReadOnlyList<(string Name, string Json)> securitySchemes,
-        IReadOnlyList<(string Url, string? Description)>? servers = null) {
+        IReadOnlyList<(string Url, string? Description)>? servers = null
+    )
+    {
         Title = title;
         Version = version;
         Description = description;
@@ -51,25 +55,36 @@ public sealed class DocumentIdentity : System.IEquatable<DocumentIdentity> {
     /// </remarks>
     public IReadOnlyList<(string Url, string? Description)> Servers { get; }
 
-    public bool Equals(DocumentIdentity? other) {
-        if (other is null) {
+    public bool Equals(DocumentIdentity? other)
+    {
+        if (other is null)
+        {
             return false;
         }
 
-        if (Title != other.Title || Version != other.Version || Description != other.Description ||
-            SecuritySchemes.Count != other.SecuritySchemes.Count ||
-            Servers.Count != other.Servers.Count) {
+        if (
+            Title != other.Title
+            || Version != other.Version
+            || Description != other.Description
+            || SecuritySchemes.Count != other.SecuritySchemes.Count
+            || Servers.Count != other.Servers.Count
+        )
+        {
             return false;
         }
 
-        for (var i = 0; i < Servers.Count; i++) {
-            if (Servers[i] != other.Servers[i]) {
+        for (var i = 0; i < Servers.Count; i++)
+        {
+            if (Servers[i] != other.Servers[i])
+            {
                 return false;
             }
         }
 
-        for (var i = 0; i < SecuritySchemes.Count; i++) {
-            if (SecuritySchemes[i] != other.SecuritySchemes[i]) {
+        for (var i = 0; i < SecuritySchemes.Count; i++)
+        {
+            if (SecuritySchemes[i] != other.SecuritySchemes[i])
+            {
                 return false;
             }
         }
@@ -79,8 +94,10 @@ public sealed class DocumentIdentity : System.IEquatable<DocumentIdentity> {
 
     public override bool Equals(object? obj) => Equals(obj as DocumentIdentity);
 
-    public override int GetHashCode() {
-        unchecked {
+    public override int GetHashCode()
+    {
+        unchecked
+        {
             var hash = Title?.GetHashCode() ?? 0;
             hash = (hash * 397) ^ (Version?.GetHashCode() ?? 0);
             hash = (hash * 397) ^ SecuritySchemes.Count;

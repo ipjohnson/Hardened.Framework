@@ -24,10 +24,11 @@ namespace Hardened.Requests.Runtime.Tests.Serializer;
 /// carrying it.
 /// </para>
 /// </remarks>
-public class RequestDeserializerRegistrationTests {
-
+public class RequestDeserializerRegistrationTests
+{
     /// <summary>A reader for one content type, the shape a serializer package registers.</summary>
-    private sealed class SpecialisedDeserializer : IRequestDeserializer {
+    private sealed class SpecialisedDeserializer : IRequestDeserializer
+    {
         public bool IsDefaultSerializer => false;
 
         public int Order => (int)RequestDeserializerOrder.Specialized;
@@ -38,12 +39,14 @@ public class RequestDeserializerRegistrationTests {
             new(default(T));
     }
 
-    private static IServiceCollection Configured(bool withSpecialised) {
+    private static IServiceCollection Configured(bool withSpecialised)
+    {
         var services = new ServiceCollection();
 
         // Before the framework module, which is the order DependencyModules applies: dependencies
         // first, then the module that imported them.
-        if (withSpecialised) {
+        if (withSpecialised)
+        {
             services.AddTransient<IRequestDeserializer, SpecialisedDeserializer>();
         }
 
@@ -58,8 +61,10 @@ public class RequestDeserializerRegistrationTests {
     /// </summary>
     private static bool RegistersTheJsonReader(IServiceCollection services) =>
         services.Any(descriptor =>
-            descriptor.ServiceType == typeof(Runtime.Serializer.SystemTextJsonRequestDeserializer) ||
-            descriptor.ImplementationType == typeof(Runtime.Serializer.SystemTextJsonRequestDeserializer));
+            descriptor.ServiceType == typeof(Runtime.Serializer.SystemTextJsonRequestDeserializer)
+            || descriptor.ImplementationType
+                == typeof(Runtime.Serializer.SystemTextJsonRequestDeserializer)
+        );
 
     [Fact]
     public void TheJsonReaderIsRegistered() =>
@@ -73,7 +78,8 @@ public class RequestDeserializerRegistrationTests {
     /// Both readers reach the locator, rather than the second replacing the first.
     /// </summary>
     [Fact]
-    public void BothReadersAreRegistered() {
+    public void BothReadersAreRegistered()
+    {
         var deserializers = Configured(withSpecialised: true)
             .Where(descriptor => descriptor.ServiceType == typeof(IRequestDeserializer))
             .ToList();

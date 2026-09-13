@@ -16,10 +16,9 @@ namespace Hardened.OpenApi.SourceGenerator.Tests;
 /// through <c>RoutingTableGenerator.GenerateCSharpRouteFile</c> and the document through
 /// <c>OpenApiDocumentGenerator.Write</c>, so neither has a copy of this to drift from.
 /// </remarks>
-public class SpecFirstEntryPointFilterTests {
-
-    private const string Spec =
-        """
+public class SpecFirstEntryPointFilterTests
+{
+    private const string Spec = """
         openapi: "3.0.0"
         info: { title: Pets, version: "1.0" }
         paths:
@@ -50,8 +49,7 @@ public class SpecFirstEntryPointFilterTests {
                 id: { type: string }
         """;
 
-    private const string EntryPointWithRung =
-        """
+    private const string EntryPointWithRung = """
         using Hardened.Shared.Runtime.Attributes;
         using Hardened.Web.Runtime.Conditional;
 
@@ -63,7 +61,8 @@ public class SpecFirstEntryPointFilterTests {
         }
         """;
 
-    private static GeneratorResult Generated() {
+    private static GeneratorResult Generated()
+    {
         var result = OpenApiGenerator.Run(Spec, EntryPointWithRung);
 
         Assert.Empty(result.Errors);
@@ -71,17 +70,22 @@ public class SpecFirstEntryPointFilterTests {
         return result;
     }
 
-    private static JsonElement Document(GeneratorResult result) {
-        var source = result.GeneratedSources
-            .First(pair => pair.Key.Contains("OpenApiDocument")).Value;
+    private static JsonElement Document(GeneratorResult result)
+    {
+        var source = result
+            .GeneratedSources.First(pair => pair.Key.Contains("OpenApiDocument"))
+            .Value;
 
-        var match = Regex.Match(
-            source, @"new byte\[\]\s*\{(.*?)\}\s*;", RegexOptions.Singleline);
+        var match = Regex.Match(source, @"new byte\[\]\s*\{(.*?)\}\s*;", RegexOptions.Singleline);
 
         Assert.True(match.Success, "No document byte array in the generated source.");
 
-        var bytes = match.Groups[1].Value
-            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        var bytes = match
+            .Groups[1]
+            .Value.Split(
+                ',',
+                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries
+            )
             .Select(byte.Parse)
             .ToArray();
 
@@ -95,14 +99,19 @@ public class SpecFirstEntryPointFilterTests {
     }
 
     private static string[] Statuses(JsonElement document, string method) =>
-        document.GetProperty("paths").GetProperty("/pets").GetProperty(method)
-            .GetProperty("responses").EnumerateObject()
+        document
+            .GetProperty("paths")
+            .GetProperty("/pets")
+            .GetProperty(method)
+            .GetProperty("responses")
+            .EnumerateObject()
             .Select(response => response.Name)
             .OrderBy(status => status, StringComparer.Ordinal)
             .ToArray();
 
     [Fact]
-    public void TheDescribedReadPublishesWhatTheModuleDeclares() {
+    public void TheDescribedReadPublishesWhatTheModuleDeclares()
+    {
         var document = Document(Generated());
 
         Assert.Contains("304", Statuses(document, "get"));
@@ -110,7 +119,8 @@ public class SpecFirstEntryPointFilterTests {
     }
 
     [Fact]
-    public void TheDeclarationReachesTheDescribedRoutingTable() {
+    public void TheDeclarationReachesTheDescribedRoutingTable()
+    {
         var routing = Generated().SourceContaining("SpecRouting");
 
         Assert.Contains("ApplicationFilters", routing);

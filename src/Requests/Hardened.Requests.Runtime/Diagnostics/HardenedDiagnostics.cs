@@ -30,7 +30,8 @@ namespace Hardened.Requests.Runtime.Diagnostics;
 /// <c>ActivitySource</c> stops it producing activities for the rest of the process.
 /// </para>
 /// </remarks>
-public static class HardenedDiagnostics {
+public static class HardenedDiagnostics
+{
     /// <summary>
     /// The name to subscribe to, for both signals.
     /// </summary>
@@ -41,8 +42,9 @@ public static class HardenedDiagnostics {
     /// </remarks>
     public const string SourceName = "Hardened.Requests";
 
-    private static readonly string? AssemblyVersion =
-        typeof(HardenedDiagnostics).Assembly.GetName().Version?.ToString();
+    private static readonly string? AssemblyVersion = typeof(HardenedDiagnostics)
+        .Assembly.GetName()
+        .Version?.ToString();
 
     /// <summary>
     /// Where request spans come from.

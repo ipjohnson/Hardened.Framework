@@ -3,9 +3,9 @@ using Hardened.IntegrationTests.WebApp.SUT.Models;
 using Hardened.IntegrationTests.WebApp.SUT.Services;
 using Hardened.Requests.Abstract.Responses;
 using Hardened.Web.Kestrel.Runtime;
+using Hardened.Web.Runtime.Responses;
 using NSubstitute;
 using ClientModels = Hardened.IntegrationTests.WebApp.SUT.Client.Models;
-using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.NUnitTests;
 
@@ -14,12 +14,13 @@ namespace Hardened.IntegrationTests.WebApp.SUT.NUnitTests;
 /// <c>[KestrelRuntime]</c>, on the other runner.
 /// </summary>
 [KestrelRuntime]
-public class KestrelHostUnderNUnitTests {
-
+public class KestrelHostUnderNUnitTests
+{
     private static CancellationToken Token => TestContext.CurrentContext.CancellationToken;
 
     [HardenedTest]
-    public async Task ARequestAnswersWithWhatKestrelWrote(ITestWebApp app) {
+    public async Task ARequestAnswersWithWhatKestrelWrote(ITestWebApp app)
+    {
         var response = await app.Get("/verbs/item/42");
 
         response.Assert.Ok();
@@ -29,7 +30,11 @@ public class KestrelHostUnderNUnitTests {
     }
 
     [HardenedTest]
-    public async Task AMockBehindARouteIsTheOneTheHandlerSees(ITestWebApp app, [Mock] IMathService<int> math) {
+    public async Task AMockBehindARouteIsTheOneTheHandlerSees(
+        ITestWebApp app,
+        [Mock] IMathService<int> math
+    )
+    {
         math.Add(Arg.Any<int[]>()).Returns(100);
 
         var response = await app.Post(new MathAddModel { Values = [1, 2, 3] }, "/int/add");
@@ -39,16 +44,21 @@ public class KestrelHostUnderNUnitTests {
     }
 
     [HardenedTest]
-    public async Task AGeneratedClientSendsToTheSocketAndReturnsReadsIt(WebAppClient client) {
-        var created = await client.Verbs.Located
-            .PostAsync(new ClientModels.MathAddModel { Values = [1, 2, 3] }, cancellationToken: Token)
+    public async Task AGeneratedClientSendsToTheSocketAndReturnsReadsIt(WebAppClient client)
+    {
+        var created = await client
+            .Verbs.Located.PostAsync(
+                new ClientModels.MathAddModel { Values = [1, 2, 3] },
+                cancellationToken: Token
+            )
             .Returns<Created<ClientModels.MathAddModel>>();
 
         Assert.That(created.Location, Is.EqualTo("/verbs/item/3"));
     }
 
     [HardenedTest]
-    public async Task LastResponseIsWhatCameBackOverTheWire(WebAppClient client) {
+    public async Task LastResponseIsWhatCameBackOverTheWire(WebAppClient client)
+    {
         await client.Verbs.Emptied.DeleteAsync(cancellationToken: Token);
 
         Assert.That(LastResponse.Status, Is.EqualTo(204));
@@ -57,7 +67,8 @@ public class KestrelHostUnderNUnitTests {
 
     [HardenedTest]
     [PipelineHost]
-    public async Task AMethodOptsBackToThePipeline(ITestWebApp app) {
+    public async Task AMethodOptsBackToThePipeline(ITestWebApp app)
+    {
         var response = await app.Get("/errors/server");
 
         Assert.That(response.StatusCode, Is.EqualTo(500));

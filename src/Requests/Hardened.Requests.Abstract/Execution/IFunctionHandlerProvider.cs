@@ -10,7 +10,8 @@ namespace Hardened.Requests.Abstract.Execution;
 /// the same generated file name, the generator threw and every handler in the project disappeared
 /// behind one message about a duplicate hint name.
 /// </remarks>
-public interface IFunctionHandlerProvider {
+public interface IFunctionHandlerProvider
+{
     /// <param name="scheme">
     /// What the adapter put on the request: <c>QUEUE</c>, <c>TOPIC</c>, <c>TIMER</c>, <c>EVENT</c>,
     /// <c>INVOKE</c>. Neutral rather than named after the service that delivered, so the routing
@@ -18,5 +19,8 @@ public interface IFunctionHandlerProvider {
     /// </param>
     /// <param name="path">The source's own name, as a rooted path.</param>
     IExecutionRequestHandler? GetFunctionHandler(
-        string scheme, string path, IServiceProvider serviceProvider);
+        string scheme,
+        string path,
+        IServiceProvider serviceProvider
+    );
 }

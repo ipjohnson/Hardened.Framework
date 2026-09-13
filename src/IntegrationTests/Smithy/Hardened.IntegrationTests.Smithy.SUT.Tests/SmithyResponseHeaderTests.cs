@@ -1,4 +1,5 @@
 using Hardened.Web.Runtime.Responses;
+
 namespace Hardened.IntegrationTests.Smithy.SUT.Tests;
 
 /// <summary>
@@ -17,10 +18,11 @@ namespace Hardened.IntegrationTests.Smithy.SUT.Tests;
 /// suppresses the unhandled-trait report. It was classified as handled and was not handled.
 /// </para>
 /// </remarks>
-public class SmithyResponseHeaderTests {
-
+public class SmithyResponseHeaderTests
+{
     [HardenedTest]
-    public async Task CreatePet_SendsTheHeaderTheModelBinds(ITestWebApp app) {
+    public async Task CreatePet_SendsTheHeaderTheModelBinds(ITestWebApp app)
+    {
         var response = await app.Post(new { name = "Whiskers", kind = "cat" }, "/pets");
 
         response.Assert.Ok();
@@ -37,7 +39,8 @@ public class SmithyResponseHeaderTests {
     /// pass the assertion above.
     /// </remarks>
     [HardenedTest]
-    public async Task CreatePet_DoesNotAlsoSendTheHeaderInTheBody(ITestWebApp app) {
+    public async Task CreatePet_DoesNotAlsoSendTheHeaderInTheBody(ITestWebApp app)
+    {
         var response = await app.Post(new { name = "Whiskers", kind = "cat" }, "/pets");
 
         response.Assert.Ok();
@@ -52,7 +55,8 @@ public class SmithyResponseHeaderTests {
     /// An operation binding no header is untouched.
     /// </summary>
     [HardenedTest]
-    public async Task GetPet_SendsNoLocation(ITestWebApp app) {
+    public async Task GetPet_SendsNoLocation(ITestWebApp app)
+    {
         var response = await app.Get("/pets/1");
 
         response.Assert.Ok();

@@ -19,11 +19,12 @@ namespace Hardened.Web.Runtime.Caching;
 /// a cache.
 /// </para>
 /// </summary>
-public sealed class VaryByQuery : ICacheKeyProvider {
-
+public sealed class VaryByQuery : ICacheKeyProvider
+{
     private readonly string[] _keys;
 
-    private VaryByQuery(string[] keys) {
+    private VaryByQuery(string[] keys)
+    {
         _keys = keys;
     }
 
@@ -31,13 +32,17 @@ public sealed class VaryByQuery : ICacheKeyProvider {
         values.Length > 0
             ? new VaryByQuery(values)
             : throw new ArgumentException(
-                "VaryByQuery needs at least one query key to vary on.", nameof(values));
+                "VaryByQuery needs at least one query key to vary on.",
+                nameof(values)
+            );
 
-    public ValueTask<string?> Key(IExecutionContext context) {
+    public ValueTask<string?> Key(IExecutionContext context)
+    {
         var key = new StringBuilder();
         var query = context.Request.QueryString;
 
-        foreach (var name in _keys) {
+        foreach (var name in _keys)
+        {
             // The name as well as the value. Without it "a=1&b=" and "a=1&b" - or any two keys
             // whose values concatenate the same way - compose one key.
             key.Append(name).Append('=').Append(query.Get(name).ToString()).Append('&');

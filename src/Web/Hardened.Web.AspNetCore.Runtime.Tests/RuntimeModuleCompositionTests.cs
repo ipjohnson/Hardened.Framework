@@ -1,8 +1,8 @@
 using Hardened.Shared.Runtime.Application;
-using Microsoft.Extensions.Logging;
 using Hardened.Web.AspNetCore.Runtime;
 using Hardened.Web.Runtime.Handlers;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Xunit;
 
 namespace Hardened.Web.AspNetCore.Runtime.Tests;
@@ -24,10 +24,11 @@ namespace Hardened.Web.AspNetCore.Runtime.Tests;
 /// register something to serve with," which is the only question the samples cannot answer.
 /// </para>
 /// </remarks>
-public class RuntimeModuleCompositionTests {
-
+public class RuntimeModuleCompositionTests
+{
     [Fact]
-    public void AspNetCoreRuntime_RegistersTheWebPipelineOnItsOwn() {
+    public void AspNetCoreRuntime_RegistersTheWebPipelineOnItsOwn()
+    {
         var services = new ServiceCollection();
 
         // What a host supplies and the module does not: WebApplication.CreateBuilder adds logging,
@@ -48,7 +49,8 @@ public class RuntimeModuleCompositionTests {
     /// harmless — modules deduplicate by equality, so the import is idempotent.
     /// </summary>
     [Fact]
-    public void AspNetCoreRuntime_ToleratesTheWebModuleBeingDeclaredTwice() {
+    public void AspNetCoreRuntime_ToleratesTheWebModuleBeingDeclaredTwice()
+    {
         var services = new ServiceCollection();
 
         // What a host supplies and the module does not: WebApplication.CreateBuilder adds logging,
@@ -58,8 +60,9 @@ public class RuntimeModuleCompositionTests {
         services.AddTransient<IHardenedEnvironment>(_ => new EnvironmentImpl("test"));
 
         new AspNetCoreRuntime().PopulateServiceCollection(services);
-        new Hardened.Web.Runtime.DependencyInjection.HardenedWebModule()
-            .PopulateServiceCollection(services);
+        new Hardened.Web.Runtime.DependencyInjection.HardenedWebModule().PopulateServiceCollection(
+            services
+        );
 
         var provider = services.BuildServiceProvider();
 

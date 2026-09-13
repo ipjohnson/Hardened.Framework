@@ -20,15 +20,27 @@ namespace Hardened.IntegrationTests.AzureQueue.SUT;
 /// delivers the message again - which the second line for the same order id is the evidence of.
 /// </para>
 /// </remarks>
-public sealed class ObservedOrderStore : IOrderStore {
+public sealed class ObservedOrderStore : IOrderStore
+{
     private const string Marker = "HARDENED-OBSERVED ";
 
-    public void Place(Order order) {
+    public void Place(Order order)
+    {
         Console.Out.WriteLine(
-            Marker + JsonSerializer.Serialize(new { kind = "queue", id = order.Id, quantity = order.Quantity }));
+            Marker
+                + JsonSerializer.Serialize(
+                    new
+                    {
+                        kind = "queue",
+                        id = order.Id,
+                        quantity = order.Quantity,
+                    }
+                )
+        );
         Console.Out.Flush();
 
-        if (order.Quantity < 0) {
+        if (order.Quantity < 0)
+        {
             throw new InvalidOperationException($"refused {order.Id}: the quantity is negative");
         }
     }

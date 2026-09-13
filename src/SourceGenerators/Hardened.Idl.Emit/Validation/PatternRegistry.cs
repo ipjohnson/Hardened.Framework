@@ -1,7 +1,7 @@
-using Hardened.Generation;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text.RegularExpressions;
+using Hardened.Generation;
 
 namespace Hardened.Idl.Validation;
 
@@ -24,7 +24,8 @@ namespace Hardened.Idl.Validation;
 /// this follows named them by hash rather than by the property they came from.
 /// </para>
 /// </remarks>
-internal sealed class PatternRegistry {
+internal sealed class PatternRegistry
+{
     private readonly Dictionary<string, string> _members = new(System.StringComparer.Ordinal);
     private readonly List<string> _rejected = new();
 
@@ -43,7 +44,8 @@ internal sealed class PatternRegistry {
 
     private readonly string _namespace;
 
-    public PatternRegistry(string patternNamespace, string specFileName) {
+    public PatternRegistry(string patternNamespace, string specFileName)
+    {
         _namespace = patternNamespace;
         ClassName = Hardened.Generation.NamingHelper.ToPascalCase(specFileName) + "Patterns";
     }
@@ -71,13 +73,15 @@ internal sealed class PatternRegistry {
     /// found later.
     /// </remarks>
     /// <returns>Null when the pattern is not one .NET can compile - see <see cref="Rejected"/>.</returns>
-    public System.Collections.Generic.IReadOnlyList<string>? AttributeArguments(string pattern) {
+    public System.Collections.Generic.IReadOnlyList<string>? AttributeArguments(string pattern)
+    {
         // OpenAPI specifies ECMA-262, and .NET's engine is not a superset of it. Grafana declares
         // ^[a-zA-Z0-9\-\_]+$, where \_ is an ordinary escaped underscore in ECMA-262 and an
         // unrecognized escape sequence here. Emitted anyway it reaches [GeneratedRegex], which
         // fails to generate, leaving its partial method unimplemented - CS8795 in a generated file,
         // for a pattern the document was entitled to write.
-        if (!Compiles(pattern)) {
+        if (!Compiles(pattern))
+        {
             return null;
         }
 
@@ -87,12 +91,17 @@ internal sealed class PatternRegistry {
         return new[] { $"typeof({qualified})", $"nameof({qualified}.{member})" };
     }
 
-    private bool Compiles(string pattern) {
-        try {
+    private bool Compiles(string pattern)
+    {
+        try
+        {
             _ = new Regex(pattern);
             return true;
-        } catch (System.ArgumentException exception) {
-            if (_rejectedPatterns.Add(pattern)) {
+        }
+        catch (System.ArgumentException exception)
+        {
+            if (_rejectedPatterns.Add(pattern))
+            {
                 _rejected.Add(pattern + " - " + exception.Message);
             }
 
@@ -100,8 +109,10 @@ internal sealed class PatternRegistry {
         }
     }
 
-    private string Member(string pattern) {
-        if (!_members.TryGetValue(pattern, out var member)) {
+    private string Member(string pattern)
+    {
+        if (!_members.TryGetValue(pattern, out var member))
+        {
             member = "P_" + Hash(pattern);
             _members.Add(pattern, member);
         }
@@ -117,11 +128,14 @@ internal sealed class PatternRegistry {
     /// .NET Core - the member name has to be the same on every build or the emitted file churns and
     /// every consumer recompiles.
     /// </remarks>
-    private static string Hash(string value) {
-        unchecked {
+    private static string Hash(string value)
+    {
+        unchecked
+        {
             var hash = 2166136261;
 
-            foreach (var character in value) {
+            foreach (var character in value)
+            {
                 hash = (hash ^ character) * 16777619;
             }
 

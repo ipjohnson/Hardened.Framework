@@ -19,14 +19,16 @@ namespace Hardened.Requests.Runtime.Tests.Serializer;
 /// read through <see cref="MediaType.Enumerate"/> and <see cref="MediaType.FirstAccepted"/>.
 /// </para>
 /// </remarks>
-public class AcceptNegotiationTests {
-
+public class AcceptNegotiationTests
+{
     // ── walking the header ─────────────────────────────────────────────
 
-    private static string[] Walk(string? accept) {
+    private static string[] Walk(string? accept)
+    {
         var entries = new List<string>();
 
-        foreach (var mediaType in MediaType.Enumerate(accept)) {
+        foreach (var mediaType in MediaType.Enumerate(accept))
+        {
             entries.Add(mediaType.ToString());
         }
 
@@ -34,7 +36,8 @@ public class AcceptNegotiationTests {
     }
 
     [Fact]
-    public void Enumerate_KeepsTheListedOrder() {
+    public void Enumerate_KeepsTheListedOrder()
+    {
         Assert.Equal(new[] { "text/html", "application/json" }, Walk("text/html,application/json"));
     }
 
@@ -42,25 +45,31 @@ public class AcceptNegotiationTests {
     /// Parameters are dropped, q among them. Preference comes from the order types are listed in.
     /// </summary>
     [Fact]
-    public void Enumerate_DropsParameters() {
+    public void Enumerate_DropsParameters()
+    {
         Assert.Equal(
             new[] { "text/html", "application/xhtml+xml", "application/xml", "*/*" },
-            Walk("text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"));
+            Walk("text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+        );
     }
 
     /// <summary>Version tags and charsets are parameters too, not part of the media type.</summary>
     [Fact]
-    public void Enumerate_DropsNonQParameters() {
+    public void Enumerate_DropsNonQParameters()
+    {
         Assert.Equal(
             new[] { "application/signed-exchange", "text/html" },
-            Walk("application/signed-exchange;v=b3;q=0.7,text/html;charset=utf-8"));
+            Walk("application/signed-exchange;v=b3;q=0.7,text/html;charset=utf-8")
+        );
     }
 
     [Fact]
-    public void Enumerate_TrimsWhitespaceAroundEntries() {
+    public void Enumerate_TrimsWhitespaceAroundEntries()
+    {
         Assert.Equal(
             new[] { "text/html", "application/json" },
-            Walk(" text/html ,  application/json "));
+            Walk(" text/html ,  application/json ")
+        );
     }
 
     /// <summary>
@@ -74,7 +83,8 @@ public class AcceptNegotiationTests {
     [InlineData("*/*")]
     [InlineData(",")]
     [InlineData(";q=1")]
-    public void Enumerate_AnIndifferentClientYieldsTheWildcardOnce(string? header) {
+    public void Enumerate_AnIndifferentClientYieldsTheWildcardOnce(string? header)
+    {
         Assert.Equal(new[] { "*/*" }, Walk(header));
     }
 
@@ -84,14 +94,16 @@ public class AcceptNegotiationTests {
     [InlineData(null)]
     [InlineData("*/*")]
     [InlineData("text/csv,application/json")]
-    public void Accepts_True(string? accept) {
+    public void Accepts_True(string? accept)
+    {
         Assert.True(MediaType.Accepts(accept, "application/json"));
     }
 
     [Theory]
     [InlineData("text/csv")]
     [InlineData("text/csv,text/html;q=0.9")]
-    public void Accepts_False(string accept) {
+    public void Accepts_False(string accept)
+    {
         Assert.False(MediaType.Accepts(accept, "application/json"));
     }
 
@@ -99,7 +111,8 @@ public class AcceptNegotiationTests {
     [Theory]
     [InlineData(null)]
     [InlineData("")]
-    public void Accepts_FalseWhenNothingIsProduced(string? produced) {
+    public void Accepts_FalseWhenNothingIsProduced(string? produced)
+    {
         Assert.False(MediaType.Accepts("*/*", produced));
     }
 
@@ -107,11 +120,15 @@ public class AcceptNegotiationTests {
     /// The client's ranking decides, not the order the operation declares its representations in.
     /// </summary>
     [Fact]
-    public void FirstAccepted_TakesTheClientsPreferenceOrder() {
+    public void FirstAccepted_TakesTheClientsPreferenceOrder()
+    {
         Assert.Equal(
             1,
             MediaType.FirstAccepted(
-                "application/json,text/csv", new[] { "text/csv", "application/json" }));
+                "application/json,text/csv",
+                new[] { "text/csv", "application/json" }
+            )
+        );
     }
 
     /// <summary>
@@ -121,17 +138,20 @@ public class AcceptNegotiationTests {
     [Theory]
     [InlineData(null)]
     [InlineData("*/*")]
-    public void FirstAccepted_AnIndifferentClientTakesTheFirstDeclared(string? accept) {
+    public void FirstAccepted_AnIndifferentClientTakesTheFirstDeclared(string? accept)
+    {
         Assert.Equal(0, MediaType.FirstAccepted(accept, new[] { "text/csv", "application/json" }));
     }
 
     [Fact]
-    public void FirstAccepted_MinusOneWhenNothingIsOnOffer() {
+    public void FirstAccepted_MinusOneWhenNothingIsOnOffer()
+    {
         Assert.Equal(-1, MediaType.FirstAccepted("application/pdf", new[] { "text/csv" }));
     }
 
     [Fact]
-    public void FirstAccepted_MinusOneWhenNothingIsDeclared() {
+    public void FirstAccepted_MinusOneWhenNothingIsDeclared()
+    {
         Assert.Equal(-1, MediaType.FirstAccepted("*/*", Array.Empty<string>()));
     }
 
@@ -143,7 +163,8 @@ public class AcceptNegotiationTests {
     [InlineData("*/*", "application/json")]
     [InlineData("application/*", "application/json")]
     [InlineData("text/*", "text/html")]
-    public void Matches_True(string requested, string produced) {
+    public void Matches_True(string requested, string produced)
+    {
         Assert.True(MediaType.Matches(requested, produced));
     }
 
@@ -152,7 +173,8 @@ public class AcceptNegotiationTests {
     [InlineData("text/*", "application/json")]
     [InlineData("application/*", "text/html")]
     [InlineData("json", "application/json")]
-    public void Matches_False(string requested, string produced) {
+    public void Matches_False(string requested, string produced)
+    {
         Assert.False(MediaType.Matches(requested, produced));
     }
 
@@ -162,7 +184,8 @@ public class AcceptNegotiationTests {
     [Theory]
     [InlineData(null)]
     [InlineData("")]
-    public void Matches_AnAbsentRequestTakesAnything(string? requested) {
+    public void Matches_AnAbsentRequestTakesAnything(string? requested)
+    {
         Assert.True(MediaType.Matches(requested, "application/json"));
     }
 
@@ -170,7 +193,8 @@ public class AcceptNegotiationTests {
     [Theory]
     [InlineData(null)]
     [InlineData("")]
-    public void Matches_FalseWhenNothingIsProduced(string? produced) {
+    public void Matches_FalseWhenNothingIsProduced(string? produced)
+    {
         Assert.False(MediaType.Matches("*/*", produced));
     }
 
@@ -179,7 +203,8 @@ public class AcceptNegotiationTests {
     /// a request for <c>text/html</c>.
     /// </summary>
     [Fact]
-    public void Matches_DoesNotTreatAPartialTypeAsAWildcard() {
+    public void Matches_DoesNotTreatAPartialTypeAsAWildcard()
+    {
         Assert.False(MediaType.Matches("text/ht", "text/html"));
         Assert.False(MediaType.Matches("text", "text/html"));
     }

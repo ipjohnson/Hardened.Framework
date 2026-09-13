@@ -21,30 +21,44 @@ namespace Hardened.IntegrationTests.CloudRunQueue.SUT;
 /// once the wait is over, so it is the evidence.
 /// </para>
 /// </remarks>
-public sealed class ObservedOrderStore : IOrderStore {
+public sealed class ObservedOrderStore : IOrderStore
+{
     private const string Marker = "HARDENED-OBSERVED ";
 
     /// <summary>What a <c>slow-</c> order waits, comfortably longer than a stop takes to arrive.</summary>
     public static readonly TimeSpan SlowOrder = TimeSpan.FromSeconds(3);
 
-    public void Place(Order order) {
-        if (order.Quantity < 0) {
+    public void Place(Order order)
+    {
+        if (order.Quantity < 0)
+        {
             Print(order, refused: true);
 
             throw new InvalidOperationException($"refused {order.Id}: the quantity is negative");
         }
 
-        if (order.Id.StartsWith("slow-", StringComparison.Ordinal)) {
+        if (order.Id.StartsWith("slow-", StringComparison.Ordinal))
+        {
             Thread.Sleep(SlowOrder);
         }
 
         Print(order, refused: false);
     }
 
-    private static void Print(Order order, bool refused) {
+    private static void Print(Order order, bool refused)
+    {
         Console.Out.WriteLine(
-            Marker + JsonSerializer.Serialize(
-                new { kind = "queue", id = order.Id, quantity = order.Quantity, refused = refused ? "true" : "false" }));
+            Marker
+                + JsonSerializer.Serialize(
+                    new
+                    {
+                        kind = "queue",
+                        id = order.Id,
+                        quantity = order.Quantity,
+                        refused = refused ? "true" : "false",
+                    }
+                )
+        );
         Console.Out.Flush();
     }
 }

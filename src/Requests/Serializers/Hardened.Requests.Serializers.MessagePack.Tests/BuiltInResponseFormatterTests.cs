@@ -25,11 +25,15 @@ namespace Hardened.Requests.Serializers.MessagePack.Tests;
 /// nothing anywhere reports it.
 /// </para>
 /// </remarks>
-public class BuiltInResponseFormatterTests {
-
+public class BuiltInResponseFormatterTests
+{
     private static readonly MessagePackSerializerOptions Options =
         MessagePackSerializerOptions.Standard.WithResolver(
-            CompositeResolver.Create([], [HardenedFormatterResolver.Instance, StandardResolver.Instance]));
+            CompositeResolver.Create(
+                [],
+                [HardenedFormatterResolver.Instance, StandardResolver.Instance]
+            )
+        );
 
     private static readonly JsonSerializerOptions Web = new(JsonSerializerDefaults.Web);
 
@@ -40,27 +44,32 @@ public class BuiltInResponseFormatterTests {
     /// never arrives at a formatter. So are the ones with <c>HasBody =&gt; false</c>, which write
     /// nothing at all. If that ever changes, this list is where the new arrival belongs.
     /// </remarks>
-    public static IEnumerable<object[]> Bodies() => new[] {
-        new object[] { new BadRequest("bad") },
-        new object[] { new Unauthorized("who", AuthorizationChallenge.InvalidToken("realm", "expired")) },
-        new object[] { new PaymentRequired("pay") },
-        new object[] { new Forbidden("no") },
-        new object[] { new NotFound("todo", "No todo has id 9.") },
-        new object[] { new Conflict("taken") },
-        new object[] { new Gone("gone") },
-        new object[] { new PreconditionFailed("stale") },
-        new object[] { new PreconditionRequired("need one") },
-        new object[] { new ContentTooLarge("big") },
-        new object[] { new UnsupportedMediaType("nope") },
-        new object[] { new UnprocessableContent("cannot") },
-        new object[] { new RequestTimeout("slow") },
-        new object[] { new RateLimited(TimeSpan.FromSeconds(30), "slow down") },
-        new object[] { new InternalServerError("boom") },
-        new object[] { new NotImplemented("later") },
-        new object[] { new BadGateway("upstream") },
-        new object[] { new ServiceUnavailable(TimeSpan.FromMinutes(2), "draining") },
-        new object[] { new GatewayTimeout("upstream slow") }
-    };
+    public static IEnumerable<object[]> Bodies() =>
+        new[]
+        {
+            new object[] { new BadRequest("bad") },
+            new object[]
+            {
+                new Unauthorized("who", AuthorizationChallenge.InvalidToken("realm", "expired")),
+            },
+            new object[] { new PaymentRequired("pay") },
+            new object[] { new Forbidden("no") },
+            new object[] { new NotFound("todo", "No todo has id 9.") },
+            new object[] { new Conflict("taken") },
+            new object[] { new Gone("gone") },
+            new object[] { new PreconditionFailed("stale") },
+            new object[] { new PreconditionRequired("need one") },
+            new object[] { new ContentTooLarge("big") },
+            new object[] { new UnsupportedMediaType("nope") },
+            new object[] { new UnprocessableContent("cannot") },
+            new object[] { new RequestTimeout("slow") },
+            new object[] { new RateLimited(TimeSpan.FromSeconds(30), "slow down") },
+            new object[] { new InternalServerError("boom") },
+            new object[] { new NotImplemented("later") },
+            new object[] { new BadGateway("upstream") },
+            new object[] { new ServiceUnavailable(TimeSpan.FromMinutes(2), "draining") },
+            new object[] { new GatewayTimeout("upstream slow") },
+        };
 
     /// <summary>
     /// The one assertion worth making across all of them: the MessagePack body carries exactly the
@@ -68,18 +77,32 @@ public class BuiltInResponseFormatterTests {
     /// </summary>
     [Theory]
     [MemberData(nameof(Bodies))]
-    public void TheMembersAreTheOnesJsonWrites(object body) {
+    public void TheMembersAreTheOnesJsonWrites(object body)
+    {
         var asJson = JsonSerializer.SerializeToElement(body, body.GetType(), Web);
 
-        var asMessagePack = JsonDocument.Parse(
-            MessagePackSerializer.ConvertToJson(
-                MessagePackSerializer.Serialize(body.GetType(), body, Options, TestContext.Current.CancellationToken),
-                Options,
-                TestContext.Current.CancellationToken)).RootElement;
+        var asMessagePack = JsonDocument
+            .Parse(
+                MessagePackSerializer.ConvertToJson(
+                    MessagePackSerializer.Serialize(
+                        body.GetType(),
+                        body,
+                        Options,
+                        TestContext.Current.CancellationToken
+                    ),
+                    Options,
+                    TestContext.Current.CancellationToken
+                )
+            )
+            .RootElement;
 
         Assert.Equal(
             asJson.EnumerateObject().Select(m => m.Name).OrderBy(n => n, StringComparer.Ordinal),
-            asMessagePack.EnumerateObject().Select(m => m.Name).OrderBy(n => n, StringComparer.Ordinal));
+            asMessagePack
+                .EnumerateObject()
+                .Select(m => m.Name)
+                .OrderBy(n => n, StringComparer.Ordinal)
+        );
     }
 
     /// <summary>
@@ -88,19 +111,31 @@ public class BuiltInResponseFormatterTests {
     /// </summary>
     [Theory]
     [MemberData(nameof(Bodies))]
-    public void TheProblemIdentityAgreesWithJson(object body) {
+    public void TheProblemIdentityAgreesWithJson(object body)
+    {
         var asJson = JsonSerializer.SerializeToElement(body, body.GetType(), Web);
 
-        var asMessagePack = JsonDocument.Parse(
-            MessagePackSerializer.ConvertToJson(
-                MessagePackSerializer.Serialize(body.GetType(), body, Options, TestContext.Current.CancellationToken),
-                Options,
-                TestContext.Current.CancellationToken)).RootElement;
+        var asMessagePack = JsonDocument
+            .Parse(
+                MessagePackSerializer.ConvertToJson(
+                    MessagePackSerializer.Serialize(
+                        body.GetType(),
+                        body,
+                        Options,
+                        TestContext.Current.CancellationToken
+                    ),
+                    Options,
+                    TestContext.Current.CancellationToken
+                )
+            )
+            .RootElement;
 
-        foreach (var member in new[] { "type", "title", "status", "detail" }) {
+        foreach (var member in new[] { "type", "title", "status", "detail" })
+        {
             Assert.Equal(
                 asJson.GetProperty(member).ToString(),
-                asMessagePack.GetProperty(member).ToString());
+                asMessagePack.GetProperty(member).ToString()
+            );
         }
     }
 
@@ -108,10 +143,12 @@ public class BuiltInResponseFormatterTests {
         MessagePackSerializer.Deserialize<T>(
             MessagePackSerializer.Serialize(value, Options, TestContext.Current.CancellationToken),
             Options,
-            TestContext.Current.CancellationToken);
+            TestContext.Current.CancellationToken
+        );
 
     [Fact]
-    public void ANotFoundRoundTrips() {
+    public void ANotFoundRoundTrips()
+    {
         var read = RoundTrip(new NotFound("todo", "No todo has id 9."));
 
         Assert.Equal("todo", read.Resource);
@@ -120,7 +157,8 @@ public class BuiltInResponseFormatterTests {
     }
 
     [Fact]
-    public void ADetailOnlyBodyRoundTrips() {
+    public void ADetailOnlyBodyRoundTrips()
+    {
         var read = RoundTrip(new Conflict("A todo titled 'x' already exists."));
 
         Assert.Equal("A todo titled 'x' already exists.", read.Detail);
@@ -135,15 +173,23 @@ public class BuiltInResponseFormatterTests {
     /// schema says string, and a body carrying a number would not match it.
     /// </summary>
     [Fact]
-    public void ADurationIsWrittenTheWayJsonWritesOne() {
+    public void ADurationIsWrittenTheWayJsonWritesOne()
+    {
         var json = MessagePackSerializer.ConvertToJson(
             MessagePackSerializer.Serialize(
-                new RateLimited(TimeSpan.FromSeconds(30)), Options, TestContext.Current.CancellationToken),
+                new RateLimited(TimeSpan.FromSeconds(30)),
+                Options,
+                TestContext.Current.CancellationToken
+            ),
             Options,
-            TestContext.Current.CancellationToken);
+            TestContext.Current.CancellationToken
+        );
 
         Assert.Contains("\"00:00:30\"", json);
-        Assert.Equal(TimeSpan.FromSeconds(30), RoundTrip(new RateLimited(TimeSpan.FromSeconds(30))).RetryAfter);
+        Assert.Equal(
+            TimeSpan.FromSeconds(30),
+            RoundTrip(new RateLimited(TimeSpan.FromSeconds(30))).RetryAfter
+        );
     }
 
     [Fact]
@@ -156,7 +202,8 @@ public class BuiltInResponseFormatterTests {
     /// written for a reader rather than read back.
     /// </summary>
     [Fact]
-    public void AChallengeRoundTripsThroughItsHeaderValue() {
+    public void AChallengeRoundTripsThroughItsHeaderValue()
+    {
         var challenge = AuthorizationChallenge.InvalidToken("realm", "expired");
         var read = RoundTrip(new Unauthorized("who", challenge));
 
@@ -175,14 +222,19 @@ public class BuiltInResponseFormatterTests {
     /// still reads the body.
     /// </summary>
     [Fact]
-    public void AnUnknownMemberIsSkipped() {
+    public void AnUnknownMemberIsSkipped()
+    {
         var bytes = MessagePackSerializer.ConvertFromJson(
             "{\"resource\":\"todo\",\"detail\":\"d\",\"type\":\"t\",\"title\":\"T\",\"status\":404,\"instance\":\"/x\"}",
             Options,
-            TestContext.Current.CancellationToken);
+            TestContext.Current.CancellationToken
+        );
 
         var read = MessagePackSerializer.Deserialize<NotFound>(
-            bytes, Options, TestContext.Current.CancellationToken);
+            bytes,
+            Options,
+            TestContext.Current.CancellationToken
+        );
 
         Assert.Equal("todo", read.Resource);
         Assert.Equal("d", read.Detail);

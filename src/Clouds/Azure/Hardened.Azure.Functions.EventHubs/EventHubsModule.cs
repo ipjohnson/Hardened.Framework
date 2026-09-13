@@ -18,7 +18,8 @@ namespace Hardened.Azure.Functions.EventHubs;
 /// </remarks>
 [DependencyModule]
 [FunctionsRuntimeModule]
-public partial class EventHubsModule : IServiceCollectionConfiguration {
+public partial class EventHubsModule : IServiceCollectionConfiguration
+{
     /// <summary>
     /// The app setting that holds the Event Hubs connection, or null for
     /// <c>AzureWebJobsEventHubs</c>. The extension has no default of its own - a trigger naming
@@ -49,7 +50,8 @@ public partial class EventHubsModule : IServiceCollectionConfiguration {
     /// </summary>
     public string? RetryDelay { get; set; }
 
-    public void ConfigureServices(IServiceCollection services) {
+    public void ConfigureServices(IServiceCollection services)
+    {
         services.AddSingleton<ITriggerAdapter>(new EventHubsAdapter());
 
         services.AddBatchExecutionFilter();

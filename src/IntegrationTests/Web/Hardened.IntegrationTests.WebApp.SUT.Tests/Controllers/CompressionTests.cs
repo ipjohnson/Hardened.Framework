@@ -19,12 +19,16 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 /// coding is the point.
 /// </para>
 /// </summary>
-public class CompressionTests {
-
-    private static bool LooksGzip(TestWebResponse response) {
+public class CompressionTests
+{
+    private static bool LooksGzip(TestWebResponse response)
+    {
         response.Body.Position = 0;
 
-        var looksGzip = response.Body.Length > 2 && response.Body.ReadByte() == 0x1f && response.Body.ReadByte() == 0x8b;
+        var looksGzip =
+            response.Body.Length > 2
+            && response.Body.ReadByte() == 0x1f
+            && response.Body.ReadByte() == 0x8b;
 
         // Rewound, because the decoded accessors read from wherever the body was left.
         response.Body.Position = 0;
@@ -33,12 +37,16 @@ public class CompressionTests {
     }
 
     private static string Coding(TestWebResponse response) =>
-        response.Headers.TryGetValue(KnownHeaders.ContentEncoding, out var value) ? value.ToString() : "";
+        response.Headers.TryGetValue(KnownHeaders.ContentEncoding, out var value)
+            ? value.ToString()
+            : "";
 
-    private static byte[] GZipped(string content) {
+    private static byte[] GZipped(string content)
+    {
         var output = new MemoryStream();
 
-        using (var gzip = new GZipStream(output, CompressionLevel.Fastest, true)) {
+        using (var gzip = new GZipStream(output, CompressionLevel.Fastest, true))
+        {
             var bytes = Encoding.UTF8.GetBytes(content);
 
             gzip.Write(bytes, 0, bytes.Length);
@@ -50,7 +58,8 @@ public class CompressionTests {
     // ---------------------------------------------------------------- responses
 
     [HardenedTest]
-    public async Task AJsonResponseIsGzippedForAClientThatAcceptsIt(ITestWebApp testWebApp) {
+    public async Task AJsonResponseIsGzippedForAClientThatAcceptsIt(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/compression/readings");
 
         response.Assert.Ok();
@@ -62,9 +71,12 @@ public class CompressionTests {
     }
 
     [HardenedTest]
-    public async Task AClientAcceptingNothingIsServedPlain(ITestWebApp testWebApp) {
-        var response = await testWebApp.Get("/compression/readings",
-            request => request.Headers[KnownHeaders.AcceptEncoding] = "identity");
+    public async Task AClientAcceptingNothingIsServedPlain(ITestWebApp testWebApp)
+    {
+        var response = await testWebApp.Get(
+            "/compression/readings",
+            request => request.Headers[KnownHeaders.AcceptEncoding] = "identity"
+        );
 
         response.Assert.Ok();
 
@@ -74,9 +86,12 @@ public class CompressionTests {
     }
 
     [HardenedTest]
-    public async Task AnOperationFavouringBrotliAnswersBrotliWhenAccepted(ITestWebApp testWebApp) {
-        var response = await testWebApp.Get("/compression/brotli",
-            request => request.Headers[KnownHeaders.AcceptEncoding] = "gzip, deflate, br");
+    public async Task AnOperationFavouringBrotliAnswersBrotliWhenAccepted(ITestWebApp testWebApp)
+    {
+        var response = await testWebApp.Get(
+            "/compression/brotli",
+            request => request.Headers[KnownHeaders.AcceptEncoding] = "gzip, deflate, br"
+        );
 
         response.Assert.Ok();
 
@@ -85,7 +100,8 @@ public class CompressionTests {
     }
 
     [HardenedTest]
-    public async Task APredicateDecidesFromTheHandlersValue(ITestWebApp testWebApp) {
+    public async Task APredicateDecidesFromTheHandlersValue(ITestWebApp testWebApp)
+    {
         var small = await testWebApp.Get("/compression/sized/2");
         var large = await testWebApp.Get("/compression/sized/5");
 
@@ -99,7 +115,8 @@ public class CompressionTests {
     }
 
     [HardenedTest]
-    public async Task AnOperationCanOptOutOfTheDefault(ITestWebApp testWebApp) {
+    public async Task AnOperationCanOptOutOfTheDefault(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/compression/never");
 
         response.Assert.Ok();
@@ -109,7 +126,8 @@ public class CompressionTests {
     }
 
     [HardenedTest]
-    public async Task TheMediaTypeRuleDecidesForAnUndeclaredOperation(ITestWebApp testWebApp) {
+    public async Task TheMediaTypeRuleDecidesForAnUndeclaredOperation(ITestWebApp testWebApp)
+    {
         var text = await testWebApp.Get("/compression/text");
         var binary = await testWebApp.Get("/compression/binary");
 
@@ -123,13 +141,17 @@ public class CompressionTests {
     /// counter - so the length reported is the one the GET actually sends.
     /// </summary>
     [HardenedTest]
-    public async Task AHeadReportsTheCompressedLength(ITestWebApp testWebApp) {
+    public async Task AHeadReportsTheCompressedLength(ITestWebApp testWebApp)
+    {
         var get = await testWebApp.Get("/compression/readings");
         var head = await testWebApp.Request("HEAD", null, "/compression/readings");
 
         Assert.Equal("gzip", Coding(get));
         Assert.Equal("gzip", Coding(head));
-        Assert.Equal(get.Body.Length.ToString(), head.Headers[KnownHeaders.ContentLength].ToString());
+        Assert.Equal(
+            get.Body.Length.ToString(),
+            head.Headers[KnownHeaders.ContentLength].ToString()
+        );
         Assert.Equal(0, head.Body.Length);
     }
 
@@ -138,7 +160,8 @@ public class CompressionTests {
     /// stream, and the items still decode.
     /// </summary>
     [HardenedTest]
-    public async Task AnNdjsonStreamIsGzipped(ITestWebApp testWebApp) {
+    public async Task AnNdjsonStreamIsGzipped(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/streaming/models");
 
         response.Assert.Ok();
@@ -147,7 +170,10 @@ public class CompressionTests {
 
         var items = new List<StreamingController.Measurement>();
 
-        await foreach (var item in response.DeserializeAsyncEnumerable<StreamingController.Measurement>()) {
+        await foreach (
+            var item in response.DeserializeAsyncEnumerable<StreamingController.Measurement>()
+        )
+        {
             items.Add(item);
         }
 
@@ -155,7 +181,8 @@ public class CompressionTests {
     }
 
     [HardenedTest]
-    public async Task AnEventStreamIsNotCompressed(ITestWebApp testWebApp) {
+    public async Task AnEventStreamIsNotCompressed(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/streaming/events");
 
         response.Assert.Ok();
@@ -166,16 +193,24 @@ public class CompressionTests {
     // ---------------------------------------------------------------- requests
 
     [HardenedTest]
-    public async Task AGzippedJsonBodyIsRead(ITestWebApp testWebApp) {
+    public async Task AGzippedJsonBodyIsRead(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Post(
-            GZipped("""{"sensor":"north","value":12}"""), "/compression/echo", request => {
+            GZipped("""{"sensor":"north","value":12}"""),
+            "/compression/echo",
+            request =>
+            {
                 request.Headers[KnownHeaders.ContentType] = "application/json";
                 request.Headers[KnownHeaders.ContentEncoding] = "gzip";
-            });
+            }
+        );
 
         response.Assert.Ok();
 
-        Assert.Equal(new CompressionController.Sample("north", 12), response.Deserialize<CompressionController.Sample>());
+        Assert.Equal(
+            new CompressionController.Sample("north", 12),
+            response.Deserialize<CompressionController.Sample>()
+        );
     }
 
     /// <summary>
@@ -183,12 +218,17 @@ public class CompressionTests {
     /// the form reader read the raw body. The filter decodes for every reader.
     /// </summary>
     [HardenedTest]
-    public async Task AGzippedFormBodyIsRead(ITestWebApp testWebApp) {
+    public async Task AGzippedFormBodyIsRead(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Post(
-            GZipped("username=ada&password=hunter2"), "/form/sign-in", request => {
+            GZipped("username=ada&password=hunter2"),
+            "/form/sign-in",
+            request =>
+            {
                 request.Headers[KnownHeaders.ContentType] = "application/x-www-form-urlencoded";
                 request.Headers[KnownHeaders.ContentEncoding] = "gzip";
-            });
+            }
+        );
 
         response.Assert.Ok();
 
@@ -196,12 +236,17 @@ public class CompressionTests {
     }
 
     [HardenedTest]
-    public async Task ACodingTheServerDoesNotDecodeIsA415NamingWhatItDoes(ITestWebApp testWebApp) {
+    public async Task ACodingTheServerDoesNotDecodeIsA415NamingWhatItDoes(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Post(
-            """{"sensor":"north","value":12}""", "/compression/echo", request => {
+            """{"sensor":"north","value":12}""",
+            "/compression/echo",
+            request =>
+            {
                 request.Headers[KnownHeaders.ContentType] = "application/json";
                 request.Headers[KnownHeaders.ContentEncoding] = "deflate";
-            });
+            }
+        );
 
         Assert.Equal(415, response.StatusCode);
         Assert.Equal("gzip, br", response.Headers[KnownHeaders.AcceptEncoding].ToString());
@@ -212,13 +257,19 @@ public class CompressionTests {
     /// 413, from inside the bind, on a request the host's own limit would have let through.
     /// </summary>
     [HardenedTest]
-    public async Task ABodyDecodingPastTheCapIsA413(ITestWebApp testWebApp) {
+    public async Task ABodyDecodingPastTheCapIsA413(ITestWebApp testWebApp)
+    {
         var oversized = "{\"sensor\":\"" + new string('x', 10_000) + "\",\"value\":1}";
 
-        var response = await testWebApp.Post(GZipped(oversized), "/compression/echo", request => {
-            request.Headers[KnownHeaders.ContentType] = "application/json";
-            request.Headers[KnownHeaders.ContentEncoding] = "gzip";
-        });
+        var response = await testWebApp.Post(
+            GZipped(oversized),
+            "/compression/echo",
+            request =>
+            {
+                request.Headers[KnownHeaders.ContentType] = "application/json";
+                request.Headers[KnownHeaders.ContentEncoding] = "gzip";
+            }
+        );
 
         Assert.Equal(413, response.StatusCode);
     }

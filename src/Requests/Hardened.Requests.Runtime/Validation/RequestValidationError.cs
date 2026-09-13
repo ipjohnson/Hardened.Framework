@@ -19,7 +19,8 @@ namespace Hardened.Requests.Runtime.Validation;
 /// itself. Which layer caught the failure is the framework's business and not the caller's.
 /// </para>
 /// </remarks>
-public class RequestValidationError {
+public class RequestValidationError
+{
     public string Type { get; set; } = "";
 
     public string Message { get; set; } = "";
@@ -27,7 +28,8 @@ public class RequestValidationError {
     public List<RequestValidationFieldError> Errors { get; set; } = new();
 }
 
-public class RequestValidationFieldError {
+public class RequestValidationFieldError
+{
     public string Field { get; set; } = "";
 
     public string Code { get; set; } = "";

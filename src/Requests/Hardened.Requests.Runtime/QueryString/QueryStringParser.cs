@@ -20,8 +20,8 @@ namespace Hardened.Requests.Runtime.QueryString;
 /// write it.
 /// </para>
 /// </remarks>
-public static class QueryStringParser {
-
+public static class QueryStringParser
+{
     /// <summary>
     /// Parses a query string, with or without its leading <c>?</c>.
     /// </summary>
@@ -37,33 +37,46 @@ public static class QueryStringParser {
     /// before binding could see there was a list to bind.
     /// </para>
     /// </remarks>
-    public static IQueryStringCollection Parse(string? rawQueryString) {
-        if (string.IsNullOrEmpty(rawQueryString) || rawQueryString == "?") {
+    public static IQueryStringCollection Parse(string? rawQueryString)
+    {
+        if (string.IsNullOrEmpty(rawQueryString) || rawQueryString == "?")
+        {
             return EmptyQueryStringCollection.Instance;
         }
 
         var trimmed = rawQueryString![0] == '?' ? rawQueryString.Substring(1) : rawQueryString;
         var values = new Dictionary<string, StringValues>();
 
-        foreach (var pair in trimmed.Split('&')) {
-            if (pair.Length == 0) {
+        foreach (var pair in trimmed.Split('&'))
+        {
+            if (pair.Length == 0)
+            {
                 continue;
             }
 
             var separator = pair.IndexOf('=');
 
-            if (separator > -1) {
-                Add(values, Decode(pair.Substring(0, separator)), Decode(pair.Substring(separator + 1)));
+            if (separator > -1)
+            {
+                Add(
+                    values,
+                    Decode(pair.Substring(0, separator)),
+                    Decode(pair.Substring(separator + 1))
+                );
             }
-            else {
+            else
+            {
                 Add(values, Decode(pair), "");
             }
         }
 
-        return values.Count == 0 ? EmptyQueryStringCollection.Instance : new SimpleQueryStringCollection(values);
+        return values.Count == 0
+            ? EmptyQueryStringCollection.Instance
+            : new SimpleQueryStringCollection(values);
     }
 
-    private static void Add(Dictionary<string, StringValues> values, string key, string value) {
+    private static void Add(Dictionary<string, StringValues> values, string key, string value)
+    {
         values[key] = values.TryGetValue(key, out var existing)
             ? StringValues.Concat(existing, value)
             : new StringValues(value);
@@ -77,8 +90,10 @@ public static class QueryStringParser {
     /// <c>"/reports/overdue?asOf=..."</c> as one string, where a server hands the two over already
     /// separated.
     /// </remarks>
-    public static IQueryStringCollection ParseFromPath(string? path) {
-        if (string.IsNullOrEmpty(path)) {
+    public static IQueryStringCollection ParseFromPath(string? path)
+    {
+        if (string.IsNullOrEmpty(path))
+        {
             return EmptyQueryStringCollection.Instance;
         }
 
@@ -98,12 +113,15 @@ public static class QueryStringParser {
     /// this framework runs behind decodes it that way. Replaced before unescaping, so a literal
     /// plus that arrived as <c>%2B</c> survives.
     /// </remarks>
-    private static string Decode(string value) {
-        if (value.Length == 0) {
+    private static string Decode(string value)
+    {
+        if (value.Length == 0)
+        {
             return value;
         }
 
-        if (value.IndexOf('+') > -1) {
+        if (value.IndexOf('+') > -1)
+        {
             value = value.Replace('+', ' ');
         }
 

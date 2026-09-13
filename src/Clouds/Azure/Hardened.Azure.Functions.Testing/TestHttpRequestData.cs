@@ -22,21 +22,26 @@ namespace Hardened.Azure.Functions.Testing;
 /// The identities are empty, because an anonymous function has none.
 /// </para>
 /// </remarks>
-public sealed class TestHttpRequestData : HttpRequestData {
+public sealed class TestHttpRequestData : HttpRequestData
+{
     public TestHttpRequestData(
         FunctionContext context,
         string method,
         Uri url,
         IEnumerable<KeyValuePair<string, StringValues>>? headers = null,
-        Stream? body = null)
-        : base(context) {
+        Stream? body = null
+    )
+        : base(context)
+    {
         Method = method;
         Url = url;
         Body = body ?? Stream.Null;
         Headers = new HttpHeadersCollection();
 
-        if (headers != null) {
-            foreach (var header in headers) {
+        if (headers != null)
+        {
+            foreach (var header in headers)
+            {
                 Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray());
             }
         }
@@ -62,24 +67,32 @@ public sealed class TestHttpRequestData : HttpRequestData {
     /// <c>name=value</c> pairs off every <c>Cookie</c> header, separated by semicolons, which is
     /// the whole of the request-side cookie syntax.
     /// </summary>
-    private static IReadOnlyCollection<IHttpCookie> ReadCookies(HttpHeadersCollection headers) {
-        if (!headers.TryGetValues("Cookie", out var values)) {
+    private static IReadOnlyCollection<IHttpCookie> ReadCookies(HttpHeadersCollection headers)
+    {
+        if (!headers.TryGetValues("Cookie", out var values))
+        {
             return Array.Empty<IHttpCookie>();
         }
 
         var cookies = new List<IHttpCookie>();
 
-        foreach (var header in values) {
-            foreach (var pair in header.Split(';', StringSplitOptions.RemoveEmptyEntries)) {
+        foreach (var header in values)
+        {
+            foreach (var pair in header.Split(';', StringSplitOptions.RemoveEmptyEntries))
+            {
                 var equals = pair.IndexOf('=');
 
-                if (equals <= 0) {
+                if (equals <= 0)
+                {
                     continue;
                 }
 
-                cookies.Add(new HttpCookie(
-                    pair.Substring(0, equals).Trim(),
-                    WebUtility.UrlDecode(pair.Substring(equals + 1).Trim())));
+                cookies.Add(
+                    new HttpCookie(
+                        pair.Substring(0, equals).Trim(),
+                        WebUtility.UrlDecode(pair.Substring(equals + 1).Trim())
+                    )
+                );
             }
         }
 
@@ -91,8 +104,11 @@ public sealed class TestHttpRequestData : HttpRequestData {
 /// The response a <see cref="TestHttpRequestData"/> creates: a status, headers, cookies and a
 /// buffer, which is what the adapter fills and the test host reads back.
 /// </summary>
-public sealed class TestHttpResponseData : HttpResponseData {
-    public TestHttpResponseData(FunctionContext context) : base(context) {
+public sealed class TestHttpResponseData : HttpResponseData
+{
+    public TestHttpResponseData(FunctionContext context)
+        : base(context)
+    {
         Headers = new HttpHeadersCollection();
         Body = new MemoryStream();
         Cookies = new TestHttpCookies();
@@ -115,38 +131,48 @@ public sealed class TestHttpResponseData : HttpResponseData {
 /// host; this keeps the cookies themselves, and <see cref="Render"/> is the same header text for
 /// a test that wants to see what a browser would.
 /// </remarks>
-public sealed class TestHttpCookies : HttpCookies {
+public sealed class TestHttpCookies : HttpCookies
+{
     private readonly List<IHttpCookie> _cookies = new();
 
     public IReadOnlyList<IHttpCookie> Cookies => _cookies;
 
-    public override void Append(string name, string value) => _cookies.Add(new HttpCookie(name, value));
+    public override void Append(string name, string value) =>
+        _cookies.Add(new HttpCookie(name, value));
 
     public override void Append(IHttpCookie cookie) => _cookies.Add(cookie);
 
     public override IHttpCookie CreateNew() => new HttpCookie("", "");
 
     /// <summary>The cookie as a <c>Set-Cookie</c> header value.</summary>
-    public static string Render(IHttpCookie cookie) {
+    public static string Render(IHttpCookie cookie)
+    {
         var builder = new System.Text.StringBuilder(cookie.Name).Append('=').Append(cookie.Value);
 
-        if (cookie.Expires.HasValue) {
-            builder.Append("; Expires=").Append(cookie.Expires.Value.ToUniversalTime().ToString("R"));
+        if (cookie.Expires.HasValue)
+        {
+            builder
+                .Append("; Expires=")
+                .Append(cookie.Expires.Value.ToUniversalTime().ToString("R"));
         }
 
-        if (cookie.MaxAge.HasValue) {
+        if (cookie.MaxAge.HasValue)
+        {
             builder.Append("; Max-Age=").Append(cookie.MaxAge.Value);
         }
 
-        if (!string.IsNullOrEmpty(cookie.Domain)) {
+        if (!string.IsNullOrEmpty(cookie.Domain))
+        {
             builder.Append("; Domain=").Append(cookie.Domain);
         }
 
-        if (!string.IsNullOrEmpty(cookie.Path)) {
+        if (!string.IsNullOrEmpty(cookie.Path))
+        {
             builder.Append("; Path=").Append(cookie.Path);
         }
 
-        switch (cookie.SameSite) {
+        switch (cookie.SameSite)
+        {
             case SameSite.Lax:
                 builder.Append("; SameSite=Lax");
                 break;
@@ -158,11 +184,13 @@ public sealed class TestHttpCookies : HttpCookies {
                 break;
         }
 
-        if (cookie.HttpOnly == true) {
+        if (cookie.HttpOnly == true)
+        {
             builder.Append("; HttpOnly");
         }
 
-        if (cookie.Secure == true) {
+        if (cookie.Secure == true)
+        {
             builder.Append("; Secure");
         }
 

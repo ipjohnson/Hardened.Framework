@@ -17,8 +17,8 @@ namespace Hardened.OpenApi.BuildTask.Tests;
 /// set is negotiated first-match for a client that states no preference and the success
 /// representation must stay the one such a client gets.
 /// </remarks>
-public class ProducedContentTypesTests {
-
+public class ProducedContentTypesTests
+{
     private const string PlainTextWithErrors = """
         openapi: 3.0.0
         info: { title: Labels, version: 1.0.0 }
@@ -64,27 +64,33 @@ public class ProducedContentTypesTests {
             Problem: { type: object, properties: { detail: { type: string } } }
         """;
 
-    private static OperationModel Operation(string operationId) {
+    private static OperationModel Operation(string operationId)
+    {
         var model = OpenApiSpecParser.Parse(PlainTextWithErrors, "labels", CancellationToken.None);
 
         Assert.NotNull(model);
 
-        return model!.Services.SelectMany(service => service.Operations)
+        return model!
+            .Services.SelectMany(service => service.Operations)
             .Single(operation => operation.OperationId == operationId);
     }
 
     [Fact]
-    public void TheErrorRepresentationsFollowTheSuccessOnes() {
+    public void TheErrorRepresentationsFollowTheSuccessOnes()
+    {
         Assert.Equal(
             new[] { "text/plain", "application/json" },
-            Operation("getLabel").ProducedContentTypes);
+            Operation("getLabel").ProducedContentTypes
+        );
     }
 
     [Fact]
-    public void ARepresentationSharedBySuccessAndErrorAppearsOnce() {
+    public void ARepresentationSharedBySuccessAndErrorAppearsOnce()
+    {
         Assert.Equal(
             new[] { "application/json" },
-            Operation("getLabelStatus").ProducedContentTypes);
+            Operation("getLabelStatus").ProducedContentTypes
+        );
     }
 
     /// <summary>
@@ -92,9 +98,8 @@ public class ProducedContentTypesTests {
     /// which are the only bodies this operation ever writes.
     /// </summary>
     [Fact]
-    public void ABodilessSuccessLeavesTheErrorRepresentations() {
-        Assert.Equal(
-            new[] { "application/json" },
-            Operation("archiveLabel").ProducedContentTypes);
+    public void ABodilessSuccessLeavesTheErrorRepresentations()
+    {
+        Assert.Equal(new[] { "application/json" }, Operation("archiveLabel").ProducedContentTypes);
     }
 }

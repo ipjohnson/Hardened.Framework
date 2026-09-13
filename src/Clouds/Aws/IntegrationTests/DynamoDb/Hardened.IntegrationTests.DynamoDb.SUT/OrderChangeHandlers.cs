@@ -4,7 +4,8 @@ using Hardened.Functions.Runtime.Attributes;
 
 namespace Hardened.IntegrationTests.DynamoDb.SUT;
 
-public class Order {
+public class Order
+{
     public string Id { get; set; } = "";
 
     public int Quantity { get; set; }
@@ -19,13 +20,15 @@ public class Order {
 /// Injected rather than static, for the reason the queue fixture records: a static list is one
 /// mutable field shared by every test over these handlers.
 /// </remarks>
-public interface IOrderProjection {
+public interface IOrderProjection
+{
     void Apply(Order order);
 
     void Raw(IDictionary<string, DynamoDBEvent.AttributeValue>? image);
 }
 
-public class OrderChangeHandlers {
+public class OrderChangeHandlers
+{
     /// <summary>
     /// A row, bound like any other message.
     /// </summary>
@@ -66,5 +69,6 @@ public class OrderChangeHandlers {
     public void OnAuditChanged(
         Order order,
         [NewImage] IDictionary<string, DynamoDBEvent.AttributeValue> image,
-        IOrderProjection projection) => projection.Raw(image);
+        IOrderProjection projection
+    ) => projection.Raw(image);
 }

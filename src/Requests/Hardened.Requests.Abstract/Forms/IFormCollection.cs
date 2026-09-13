@@ -18,7 +18,8 @@ namespace Hardened.Requests.Abstract.Forms;
 /// a form was sent before asking what was in it.
 /// </para>
 /// </remarks>
-public interface IFormCollection {
+public interface IFormCollection
+{
     /// <summary>How many distinct field names the body carried.</summary>
     int Count { get; }
 

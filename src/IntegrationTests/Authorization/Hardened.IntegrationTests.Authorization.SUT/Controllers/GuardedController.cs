@@ -7,8 +7,8 @@ namespace Hardened.IntegrationTests.Authorization.SUT.Controllers;
 /// Handlers in an application that requires authorization.
 /// </summary>
 [BasePath("/guarded")]
-public class GuardedController {
-
+public class GuardedController
+{
     /// <summary>
     /// Says nothing, on purpose. This is the case the whole fixture exists for: under
     /// <c>[RequireAuthorization]</c> a handler that declares nothing is refused rather than public,
@@ -47,8 +47,8 @@ public class GuardedController {
 /// </remarks>
 [BasePath("/public")]
 [AllowAnonymous]
-public class PublicController {
-
+public class PublicController
+{
     [Get("/health")]
     public string Health() => "healthy";
 

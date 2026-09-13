@@ -1,7 +1,6 @@
 using Hardened.Requests.Abstract.Headers;
-using Microsoft.Extensions.Primitives;
-
 using Hardened.Requests.Abstract.Responses;
+using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Web.Runtime.Responses;
 
@@ -27,21 +26,28 @@ namespace Hardened.Web.Runtime.Responses;
 /// </remarks>
 [HttpStatus(405)]
 public sealed record MethodNotAllowed<T>(T Body, string Allow)
-    : IHttpStatusResponse, ICarriesResponseBody, IProvidesResponseHeaders,
-        IResponseExpectation<MethodNotAllowed<T>> {
-
+    : IHttpStatusResponse,
+        ICarriesResponseBody,
+        IProvidesResponseHeaders,
+        IResponseExpectation<MethodNotAllowed<T>>
+{
     public static int StatusCode => 405;
 
     public int Status => StatusCode;
 
     object? ICarriesResponseBody.Body => Body;
 
-    public void ApplyHeaders(IDictionary<string, StringValues> headers) {
+    public void ApplyHeaders(IDictionary<string, StringValues> headers)
+    {
         headers[KnownHeaders.Allow] = Allow;
     }
 
     public static MethodNotAllowed<T> FromResponse(
-        object? body, IReadOnlyDictionary<string, string> headers) =>
-        new(ResponseExpectation.Body<T>(body),
-            ResponseExpectation.RequiredHeader(headers, KnownHeaders.Allow));
+        object? body,
+        IReadOnlyDictionary<string, string> headers
+    ) =>
+        new(
+            ResponseExpectation.Body<T>(body),
+            ResponseExpectation.RequiredHeader(headers, KnownHeaders.Allow)
+        );
 }

@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
-using Hardened.Generation.Models;
 using Hardened.Generation;
+using Hardened.Generation.Models;
 
 namespace Hardened.Generation;
 
@@ -22,8 +22,8 @@ namespace Hardened.Generation;
 /// duplicated in both files, which was already noted as a coupling to watch.
 /// </para>
 /// </remarks>
-internal static class SchemaShape {
-
+internal static class SchemaShape
+{
     /// <summary>
     /// The properties the record declares positionally, in the order it declares them.
     /// </summary>
@@ -33,8 +33,8 @@ internal static class SchemaShape {
     /// ordering cannot live at a call site.
     /// </remarks>
     public static List<PropertyModel> Constructor(SchemaModel schema) =>
-        schema.Properties
-            .Where(property => property.IsConstructorParameter)
+        schema
+            .Properties.Where(property => property.IsConstructorParameter)
             // Ordered by whether the parameter carries a default, not by whether the description
             // calls the property required. A read-only property is required in a response and
             // optional in C#, so ordering by the description put an optional parameter before a
@@ -60,13 +60,17 @@ internal static class SchemaShape {
     /// </para>
     /// </remarks>
     public static List<PropertyModel> Members(
-        SchemaModel schema, IReadOnlyList<SchemaModel>? allSchemas) {
+        SchemaModel schema,
+        IReadOnlyList<SchemaModel>? allSchemas
+    )
+    {
         var inherited = Base(schema, allSchemas);
 
-        return schema.Properties
-            .Where(property => !property.IsConstructorParameter)
-            .Where(property => inherited?.Properties.Any(
-                declared => declared.Name == property.Name) != true)
+        return schema
+            .Properties.Where(property => !property.IsConstructorParameter)
+            .Where(property =>
+                inherited?.Properties.Any(declared => declared.Name == property.Name) != true
+            )
             .ToList();
     }
 
@@ -81,24 +85,31 @@ internal static class SchemaShape {
     /// one emitted a [ValidateNested] and the other declined to generate the validator it named.
     /// </remarks>
     public static List<PropertyModel> Declared(
-        SchemaModel schema, IReadOnlyList<SchemaModel>? allSchemas) {
+        SchemaModel schema,
+        IReadOnlyList<SchemaModel>? allSchemas
+    )
+    {
         var inherited = Base(schema, allSchemas);
 
-        return schema.Properties
-            .Where(property => inherited?.Properties.Any(
-                declared => declared.Name == property.Name) != true)
+        return schema
+            .Properties.Where(property =>
+                inherited?.Properties.Any(declared => declared.Name == property.Name) != true
+            )
             .ToList();
     }
 
     /// <summary>The schema this one derives from, where it declares one and it is resolvable.</summary>
-    public static SchemaModel? Base(SchemaModel schema, IReadOnlyList<SchemaModel>? allSchemas) {
-        if (schema.BaseRef == null) {
+    public static SchemaModel? Base(SchemaModel schema, IReadOnlyList<SchemaModel>? allSchemas)
+    {
+        if (schema.BaseRef == null)
+        {
             return null;
         }
 
         var baseName = NamingHelper.ToPascalCase(TypeMapper.GetRefName(schema.BaseRef));
 
-        return allSchemas?.FirstOrDefault(
-            candidate => NamingHelper.ToPascalCase(candidate.Name) == baseName);
+        return allSchemas?.FirstOrDefault(candidate =>
+            NamingHelper.ToPascalCase(candidate.Name) == baseName
+        );
     }
 }

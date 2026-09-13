@@ -3,14 +3,20 @@
 namespace Hardened.Shared.Runtime.Configuration;
 
 public class NewConfigurationValueProvider<TInterface, TImpl> : IConfigurationValueProvider
-    where TImpl : class, TInterface, new() {
+    where TImpl : class, TInterface, new()
+{
     private readonly Action<IHardenedEnvironment, TImpl>? _initAction;
 
-    public NewConfigurationValueProvider(Action<IHardenedEnvironment, TImpl>? initAction) {
+    public NewConfigurationValueProvider(Action<IHardenedEnvironment, TImpl>? initAction)
+    {
         _initAction = initAction;
     }
 
-    public object ProvideValue(IHardenedEnvironment environment, Action<IHardenedEnvironment, object> amender) {
+    public object ProvideValue(
+        IHardenedEnvironment environment,
+        Action<IHardenedEnvironment, object> amender
+    )
+    {
         var tValue = new TImpl();
 
         _initAction?.Invoke(environment, tValue);

@@ -16,44 +16,45 @@ namespace Hardened.Web.SourceGenerator.Tests.Routing;
 /// controller was read as a <c>ClassDeclarationSyntax</c> and a record is not one.
 /// </para>
 /// </summary>
-public class InterfaceRouteDiagnosticsTests {
+public class InterfaceRouteDiagnosticsTests
+{
     private const string DiagnosticId = "HRDR013";
 
-    private static readonly Type[] Anchors = [
-        typeof(GetAttribute),
-        typeof(FromBodyAttribute)
-    ];
+    private static readonly Type[] Anchors = [typeof(GetAttribute), typeof(FromBodyAttribute)];
 
-    private static GeneratorResult Generate(
-        string declarations, string? second = null) {
-        var sources = new Dictionary<string, string> {
+    private static GeneratorResult Generate(string declarations, string? second = null)
+    {
+        var sources = new Dictionary<string, string>
+        {
             ["Test.cs"] = $$"""
-                    using Hardened.Shared.Runtime.Attributes;
-                    using Hardened.Web.Runtime.Attributes;
-                    using System.Threading.Tasks;
+                using Hardened.Shared.Runtime.Attributes;
+                using Hardened.Web.Runtime.Attributes;
+                using System.Threading.Tasks;
 
-                    namespace TestApp;
+                namespace TestApp;
 
-                    [HardenedModule]
-                    public partial class TestApplication { }
+                [HardenedModule]
+                public partial class TestApplication { }
 
-                    {{declarations}}
+                {{declarations}}
 
-                    public class PingController {
-                        [Get("/ping")]
-                        public string Ping() => "ok";
-                    }
-                    """
+                public class PingController {
+                    [Get("/ping")]
+                    public string Ping() => "ok";
+                }
+                """,
         };
 
-        if (second != null) {
+        if (second != null)
+        {
             sources["Second.cs"] = second;
         }
 
         return GeneratorTestHarness.Run(
             sources,
             new IIncrementalGenerator[] { new WebLibrarySourceGenerator() },
-            Anchors);
+            Anchors
+        );
     }
 
     /// <summary>
@@ -61,14 +62,16 @@ public class InterfaceRouteDiagnosticsTests {
     /// the assembly, so the healthy controller beside it is what this asserts on.
     /// </summary>
     [Fact]
-    public void AnInterfaceDeclarationCostsNoOtherRoute() {
+    public void AnInterfaceDeclarationCostsNoOtherRoute()
+    {
         var result = Generate(
             """
             public interface IPetApi {
                 [Get("/pets/{id}")]
                 Task<string> GetPet(int id);
             }
-            """);
+            """
+        );
 
         Assert.Empty(result.GeneratorExceptions);
         Assert.DoesNotContain(result.GeneratorDiagnostics, d => d.Id == "CS8785");
@@ -80,14 +83,16 @@ public class InterfaceRouteDiagnosticsTests {
     /// nothing reads in review as a route the application serves.
     /// </summary>
     [Fact]
-    public void AnInterfaceDeclarationIsReported() {
+    public void AnInterfaceDeclarationIsReported()
+    {
         var result = Generate(
             """
             public interface IPetApi {
                 [Get("/pets/{id}")]
                 Task<string> GetPet(int id);
             }
-            """);
+            """
+        );
 
         var diagnostic = Assert.Single(result.GeneratorDiagnostics, d => d.Id == DiagnosticId);
 
@@ -102,11 +107,14 @@ public class InterfaceRouteDiagnosticsTests {
     /// resolves the attribute before it speaks.
     /// </summary>
     [Fact]
-    public void AVerbAttributeFromAnotherLibraryIsNotReported() {
+    public void AVerbAttributeFromAnotherLibraryIsNotReported()
+    {
         // A namespace of its own, declaring a GetAttribute of its own. A nearer namespace wins
         // over a using, so the [Get] below is that one and never Hardened's - which is exactly how
         // a Refit interface reads in a project that also has Hardened's attributes in scope.
-        var result = Generate("", """
+        var result = Generate(
+            "",
+            """
             using Hardened.Web.Runtime.Attributes;
             using System.Threading.Tasks;
 
@@ -120,7 +128,8 @@ public class InterfaceRouteDiagnosticsTests {
                 [Get("/pets/{id}")]
                 Task<string> GetPet(int id);
             }
-            """);
+            """
+        );
 
         Assert.Empty(result.GeneratorExceptions);
         Assert.DoesNotContain(result.GeneratorDiagnostics, d => d.Id == DiagnosticId);
@@ -132,14 +141,16 @@ public class InterfaceRouteDiagnosticsTests {
     /// crashed for the same reason the interface did and is fixed by the same widening.
     /// </summary>
     [Fact]
-    public void ARecordControllerRoutes() {
+    public void ARecordControllerRoutes()
+    {
         var result = Generate(
             """
             public record PetController {
                 [Get("/pets")]
                 public string List() => "";
             }
-            """);
+            """
+        );
 
         result.AssertNoErrors();
 

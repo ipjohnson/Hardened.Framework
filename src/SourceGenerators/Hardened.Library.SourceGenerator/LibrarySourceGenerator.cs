@@ -1,25 +1,30 @@
 using System.Collections.Immutable;
 using System.Linq;
-using Microsoft.CodeAnalysis;
 using Hardened.SourceGenerator.Configuration;
 using Hardened.SourceGenerator.DependencyInjection;
 using Hardened.SourceGenerator.Shared;
+using Microsoft.CodeAnalysis;
 
 namespace Hardened.Library.SourceGenerator;
 
 [Generator]
-public class LibrarySourceGenerator : IIncrementalGenerator {
-    public void Initialize(IncrementalGeneratorInitializationContext context) {
-        var applicationModel = context.SyntaxProvider.CreateSyntaxProvider(
-            EntryPointSelector.UsingAttribute(),
-            EntryPointSelector.TransformModel(false)
-        ).WithComparer(new EntryPointSelector.Comparer());
+public class LibrarySourceGenerator : IIncrementalGenerator
+{
+    public void Initialize(IncrementalGeneratorInitializationContext context)
+    {
+        var applicationModel = context
+            .SyntaxProvider.CreateSyntaxProvider(
+                EntryPointSelector.UsingAttribute(),
+                EntryPointSelector.TransformModel(false)
+            )
+            .WithComparer(new EntryPointSelector.Comparer());
 
         var generator = new ServiceProviderFileGenerator();
 
         context.RegisterSourceOutput(
             applicationModel,
-            SourceGeneratorWrapper.Wrap<EntryPointSelector.Model>(generator.GenerateFile));
+            SourceGeneratorWrapper.Wrap<EntryPointSelector.Model>(generator.GenerateFile)
+        );
 
         ConfigurationIncrementalGenerator.Setup(context, applicationModel);
 
@@ -37,7 +42,8 @@ public class LibrarySourceGenerator : IIncrementalGenerator {
         context.RegisterSourceOutput(
             context.CompilationProvider,
             static (production, compilation) =>
-                CollidingRoutingGenerators.Report(production, compilation));
+                CollidingRoutingGenerators.Report(production, compilation)
+        );
     }
 
     /// <summary>
@@ -58,31 +64,45 @@ public class LibrarySourceGenerator : IIncrementalGenerator {
     /// </para>
     /// </remarks>
     private static void ReportAMissingRoutingGenerator(
-        IncrementalGeneratorInitializationContext context) {
+        IncrementalGeneratorInitializationContext context
+    )
+    {
         IncrementalValueProvider<ImmutableArray<string>>? routes = null;
 
-        foreach (var attribute in MissingRoutingGenerator.VerbAttributes) {
-            var declared = context.SyntaxProvider.ForAttributeWithMetadataName(
+        foreach (var attribute in MissingRoutingGenerator.VerbAttributes)
+        {
+            var declared = context
+                .SyntaxProvider.ForAttributeWithMetadataName(
                     attribute,
-                    static (node, _) => node is Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax,
+                    static (node, _) =>
+                        node is Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax,
                     static (target, _) =>
-                        target.TargetSymbol.ContainingType?.ToDisplayString() ?? "")
+                        target.TargetSymbol.ContainingType?.ToDisplayString() ?? ""
+                )
                 .Where(static name => name.Length > 0)
                 .Collect();
 
-            routes = routes == null
-                ? declared
-                : routes.Value.Combine(declared).Select(
-                    static (pair, _) => pair.Left.AddRange(pair.Right));
+            routes =
+                routes == null
+                    ? declared
+                    : routes
+                        .Value.Combine(declared)
+                        .Select(static (pair, _) => pair.Left.AddRange(pair.Right));
         }
 
-        if (routes == null) {
+        if (routes == null)
+        {
             return;
         }
 
         context.RegisterSourceOutput(
             context.CompilationProvider.Combine(routes.Value),
-            static (production, pair) => MissingRoutingGenerator.Report(
-                production, pair.Left, pair.Right.Distinct().OrderBy(name => name).ToArray()));
+            static (production, pair) =>
+                MissingRoutingGenerator.Report(
+                    production,
+                    pair.Left,
+                    pair.Right.Distinct().OrderBy(name => name).ToArray()
+                )
+        );
     }
 }

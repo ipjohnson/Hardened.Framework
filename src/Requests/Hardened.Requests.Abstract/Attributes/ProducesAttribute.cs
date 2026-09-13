@@ -50,9 +50,12 @@ namespace Hardened.Requests.Abstract.Attributes;
 /// </example>
 [AttributeUsage(
     AttributeTargets.Method | AttributeTargets.Class | AttributeTargets.Assembly,
-    AllowMultiple = false)]
-public class ProducesAttribute : Attribute {
-    public ProducesAttribute(params string[] contentTypes) {
+    AllowMultiple = false
+)]
+public class ProducesAttribute : Attribute
+{
+    public ProducesAttribute(params string[] contentTypes)
+    {
         ContentTypes = contentTypes;
     }
 

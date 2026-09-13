@@ -15,8 +15,8 @@ namespace Hardened.OpenApi.BuildTask.Tests;
 /// <c>Batch: { type: array, minItems: 1 }</c> parsed to an unbounded list and the published
 /// document said nothing either.
 /// </remarks>
-public class NamedArraySchemaBoundsTests {
-
+public class NamedArraySchemaBoundsTests
+{
     private const string Document = """
         openapi: 3.0.0
         info: { title: Depot, version: '1.0' }
@@ -42,7 +42,8 @@ public class NamedArraySchemaBoundsTests {
         """;
 
     [Fact]
-    public void TheBoundsLandOnTheSchemaModel() {
+    public void TheBoundsLandOnTheSchemaModel()
+    {
         var model = OpenApiSpecParser.Parse(Document, "depot", CancellationToken.None);
 
         Assert.NotNull(model);

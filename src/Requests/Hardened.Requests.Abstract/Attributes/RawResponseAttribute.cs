@@ -17,8 +17,11 @@ namespace Hardened.Requests.Abstract.Attributes;
 /// </remarks>
 [AttributeUsage(AttributeTargets.Method)]
 [Obsolete("Use [Produces] instead. [RawResponse(\"text/csv\")] is [Produces(\"text/csv\")].")]
-public class RawResponseAttribute : ProducesAttribute {
-    public RawResponseAttribute(string contentType = "text/plain") : base(contentType) {
+public class RawResponseAttribute : ProducesAttribute
+{
+    public RawResponseAttribute(string contentType = "text/plain")
+        : base(contentType)
+    {
         ContentType = contentType;
     }
 

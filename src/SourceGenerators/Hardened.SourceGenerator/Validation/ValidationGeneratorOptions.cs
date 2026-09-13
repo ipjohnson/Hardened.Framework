@@ -26,8 +26,12 @@ namespace Hardened.SourceGenerator.Validation;
 /// </para>
 /// </remarks>
 public sealed record ValidationGeneratorOptions(
-    string? Naming, string? DataAnnotations, string? PatternPolicySetting, bool IsAotFacing) {
-
+    string? Naming,
+    string? DataAnnotations,
+    string? PatternPolicySetting,
+    bool IsAotFacing
+)
+{
     /// <summary>
     /// The type <c>Hardened.Validation.SourceGenerator</c> declares to say it is running.
     /// </summary>
@@ -48,15 +52,29 @@ public sealed record ValidationGeneratorOptions(
     /// </remarks>
     public const string MarkerTypeName = "Hardened.Validation.Generated.ValidationGeneratorMarker";
 
-    public static ValidationGeneratorOptions Read(AnalyzerConfigOptionsProvider provider) {
-        provider.GlobalOptions.TryGetValue("build_property.ValidationModules_FieldNaming", out var naming);
-        provider.GlobalOptions.TryGetValue("build_property.ValidationModules_DataAnnotations", out var dataAnnotations);
-        provider.GlobalOptions.TryGetValue("build_property.ValidationModules_PatternPolicy", out var patternPolicy);
+    public static ValidationGeneratorOptions Read(AnalyzerConfigOptionsProvider provider)
+    {
+        provider.GlobalOptions.TryGetValue(
+            "build_property.ValidationModules_FieldNaming",
+            out var naming
+        );
+        provider.GlobalOptions.TryGetValue(
+            "build_property.ValidationModules_DataAnnotations",
+            out var dataAnnotations
+        );
+        provider.GlobalOptions.TryGetValue(
+            "build_property.ValidationModules_PatternPolicy",
+            out var patternPolicy
+        );
         provider.GlobalOptions.TryGetValue("build_property.PublishAot", out var publishAot);
         provider.GlobalOptions.TryGetValue("build_property.IsAotCompatible", out var aotCompatible);
 
-        return new ValidationGeneratorOptions(naming, dataAnnotations, patternPolicy,
-            IsTrue(publishAot) || IsTrue(aotCompatible));
+        return new ValidationGeneratorOptions(
+            naming,
+            dataAnnotations,
+            patternPolicy,
+            IsTrue(publishAot) || IsTrue(aotCompatible)
+        );
     }
 
     /// <summary>
@@ -76,21 +94,25 @@ public sealed record ValidationGeneratorOptions(
     /// Auto gates on the project's own AOT posture rather than on PublishAot alone, which is
     /// only ever true in an executable - a class library holding the models would never see it.
     /// </summary>
-    public PatternPolicy ResolvedPatternPolicy => PatternPolicySetting switch {
-        "Error" => PatternPolicy.Error,
-        "Warn" => PatternPolicy.Warn,
-        "Allow" => PatternPolicy.Allow,
-        _ => IsAotFacing ? PatternPolicy.Error : PatternPolicy.Allow,
-    };
+    public PatternPolicy ResolvedPatternPolicy =>
+        PatternPolicySetting switch
+        {
+            "Error" => PatternPolicy.Error,
+            "Warn" => PatternPolicy.Warn,
+            "Allow" => PatternPolicy.Allow,
+            _ => IsAotFacing ? PatternPolicy.Error : PatternPolicy.Allow,
+        };
 
     public bool CompileDataAnnotations =>
         !string.Equals(DataAnnotations, "Ignore", StringComparison.OrdinalIgnoreCase);
 
-    public Func<string, string> FieldNamer => Naming switch {
-        "PascalCase" or "AsDeclared" => static name => name,
-        "SnakeCase" => SnakeCase,
-        _ => CamelCase,
-    };
+    public Func<string, string> FieldNamer =>
+        Naming switch
+        {
+            "PascalCase" or "AsDeclared" => static name => name,
+            "SnakeCase" => SnakeCase,
+            _ => CamelCase,
+        };
 
     private static bool IsTrue(string? value) =>
         string.Equals(value, "true", StringComparison.OrdinalIgnoreCase);
@@ -100,22 +122,32 @@ public sealed record ValidationGeneratorOptions(
             ? name
             : char.ToLowerInvariant(name[0]) + name.Substring(1);
 
-    private static string SnakeCase(string name) {
+    private static string SnakeCase(string name)
+    {
         var builder = new System.Text.StringBuilder(name.Length + 4);
 
-        for (var i = 0; i < name.Length; i++) {
+        for (var i = 0; i < name.Length; i++)
+        {
             var character = name[i];
 
-            if (char.IsUpper(character)) {
-                var startsWord = i > 0 &&
-                    (!char.IsUpper(name[i - 1]) || (i + 1 < name.Length && char.IsLower(name[i + 1])));
+            if (char.IsUpper(character))
+            {
+                var startsWord =
+                    i > 0
+                    && (
+                        !char.IsUpper(name[i - 1])
+                        || (i + 1 < name.Length && char.IsLower(name[i + 1]))
+                    );
 
-                if (startsWord) {
+                if (startsWord)
+                {
                     builder.Append('_');
                 }
 
                 builder.Append(char.ToLowerInvariant(character));
-            } else {
+            }
+            else
+            {
                 builder.Append(character);
             }
         }

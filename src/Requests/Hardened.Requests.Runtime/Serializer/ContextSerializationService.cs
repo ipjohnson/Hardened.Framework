@@ -8,7 +8,8 @@ using Microsoft.Extensions.Logging;
 namespace Hardened.Requests.Runtime.Serializer;
 
 [SingletonService(Using = RegistrationType.Try)]
-public class ContextSerializationService : IContextSerializationService {
+public class ContextSerializationService : IContextSerializationService
+{
     private readonly ILogger<ContextSerializationService> _logger;
     private readonly ISerializationLocatorService _serializationLocatorService;
     private readonly INullValueResponseHandler _nullValueResponse;
@@ -18,26 +19,37 @@ public class ContextSerializationService : IContextSerializationService {
         ILogger<ContextSerializationService> logger,
         ISerializationLocatorService serializationLocatorService,
         INullValueResponseHandler nullValueResponse,
-        IExceptionResponseSerializer exceptionResponseSerializer) {
+        IExceptionResponseSerializer exceptionResponseSerializer
+    )
+    {
         _logger = logger;
         _serializationLocatorService = serializationLocatorService;
         _nullValueResponse = nullValueResponse;
         _exceptionResponseSerializer = exceptionResponseSerializer;
     }
 
-    public ValueTask<T?> DeserializeRequestBody<T>(IExecutionContext context) {
-        return _serializationLocatorService.FindRequestDeserializer(context).DeserializeRequestBody<T>(context);
+    public ValueTask<T?> DeserializeRequestBody<T>(IExecutionContext context)
+    {
+        return _serializationLocatorService
+            .FindRequestDeserializer(context)
+            .DeserializeRequestBody<T>(context);
     }
 
     public Task SerializeResponse(IExecutionContext context) =>
         SerializeResponse(context, null, null);
 
     public Task SerializeResponse(
-        IExecutionContext context, IResponseSerializer? bound, string? declaredContentType) {
-        try {
+        IExecutionContext context,
+        IResponseSerializer? bound,
+        string? declaredContentType
+    )
+    {
+        try
+        {
             return SerializeAcceptedResponse(context, bound, declaredContentType);
         }
-        catch (NotAcceptableException notAcceptable) {
+        catch (NotAcceptableException notAcceptable)
+        {
             // Thrown while locating the serializer, which is synchronous, so it is caught here
             // rather than escaping into the host as an unhandled fault. It is a normal response -
             // the client asked for representations this operation does not have - and has to travel
@@ -55,17 +67,25 @@ public class ContextSerializationService : IContextSerializationService {
     /// under negotiation, and it means the declared-set tier is not consulted a second time - so
     /// this cannot recurse into the refusal it is answering.
     /// </remarks>
-    private Task WriteNotAcceptable(IExecutionContext context, NotAcceptableException exception) {
+    private Task WriteNotAcceptable(IExecutionContext context, NotAcceptableException exception)
+    {
         context.Response.Status = exception.StatusCode;
         context.Response.ResponseValue = exception.Value;
         context.Response.ContentType = KnownContentType.Json;
 
-        return _serializationLocatorService.FindResponseSerializer(context).SerializeResponse(context);
+        return _serializationLocatorService
+            .FindResponseSerializer(context)
+            .SerializeResponse(context);
     }
 
     private Task SerializeAcceptedResponse(
-        IExecutionContext context, IResponseSerializer? bound, string? declaredContentType) {
-        if (context.DefaultOutput != null) {
+        IExecutionContext context,
+        IResponseSerializer? bound,
+        string? declaredContentType
+    )
+    {
+        if (context.DefaultOutput != null)
+        {
             return context.DefaultOutput(context);
         }
 
@@ -76,19 +96,22 @@ public class ContextSerializationService : IContextSerializationService {
         // rarely writable as the operation's success representation - a handler returning bytes
         // under image/png has nothing that writes an error as a PNG - and the answer is a JSON
         // document under the refusal's status. See ExceptionResponseSerializer.
-        if (context.Response.ExceptionValue != null) {
+        if (context.Response.ExceptionValue != null)
+        {
             return _exceptionResponseSerializer.Handle(context, context.Response.ExceptionValue);
         }
 
         var output = Output(context);
 
-        if (output != null) {
+        if (output != null)
+        {
             return output.SupportsContentType(context.Request.Accept, context)
                 ? output.WriteOutput(context)
                 : NotAcceptable(context);
         }
 
-        if (context.Response.ResponseValue == null) {
+        if (context.Response.ResponseValue == null)
+        {
             return _nullValueResponse.Handle(context);
         }
 
@@ -101,14 +124,16 @@ public class ContextSerializationService : IContextSerializationService {
         // thrown away one step from where it was needed.
         var declared = context.HandlerInfo?.SuccessStatus;
 
-        if (declared.HasValue && !context.Response.Status.HasValue) {
+        if (declared.HasValue && !context.Response.Status.HasValue)
+        {
             context.Response.Status = declared.Value;
         }
 
         // A status defined to carry no body carries none, whatever the handler returned. Serializing
         // into a 204 produces a response no conforming client will read the body of and some
         // intermediaries will reject outright.
-        if (CarriesNoBody(context.Response.Status)) {
+        if (CarriesNoBody(context.Response.Status))
+        {
             return Task.CompletedTask;
         }
 
@@ -140,8 +165,13 @@ public class ContextSerializationService : IContextSerializationService {
     /// </para>
     /// </remarks>
     private static bool Honours(
-        IResponseSerializer? bound, string? declaredContentType, IExecutionContext context) {
-        if (bound == null) {
+        IResponseSerializer? bound,
+        string? declaredContentType,
+        IExecutionContext context
+    )
+    {
+        if (bound == null)
+        {
             return false;
         }
 
@@ -151,15 +181,16 @@ public class ContextSerializationService : IContextSerializationService {
         // resolved once when the pipeline is composed - and answer a binary error under
         // [ErrorBodies(Json)]. The cost is an Accept walk on the failing request, which is not the
         // one worth optimising.
-        if (context.Response.Status is { } status && status >= 400) {
+        if (context.Response.Status is { } status && status >= 400)
+        {
             return false;
         }
 
         var committed = context.Response.ContentType;
 
-        return string.IsNullOrEmpty(committed) ||
-               declaredContentType == null ||
-               MediaType.Matches(committed, declaredContentType);
+        return string.IsNullOrEmpty(committed)
+            || declaredContentType == null
+            || MediaType.Matches(committed, declaredContentType);
     }
 
     /// <summary>
@@ -169,22 +200,24 @@ public class ContextSerializationService : IContextSerializationService {
     /// 205 is included on the same footing as 204: both are defined to have no body. 304 is here
     /// because a conditional response repeats headers alone.
     /// </remarks>
-    private static bool CarriesNoBody(int? status) =>
-        status is 204 or 205 or 304;
+    private static bool CarriesNoBody(int? status) => status is 204 or 205 or 304;
 
     /// <summary>
     /// What writes this response, built once.
     /// </summary>
-    private static IHardenedResponseOutput? Output(IExecutionContext context) {
+    private static IHardenedResponseOutput? Output(IExecutionContext context)
+    {
         var response = context.Response;
 
-        if (response.Output != null) {
+        if (response.Output != null)
+        {
             return response.Output;
         }
 
         var factory = response.OutputFactory;
 
-        if (factory == null) {
+        if (factory == null)
+        {
             return null;
         }
 
@@ -210,7 +243,8 @@ public class ContextSerializationService : IContextSerializationService {
     /// said it could not read.
     /// </para>
     /// </remarks>
-    private static Task NotAcceptable(IExecutionContext context) {
+    private static Task NotAcceptable(IExecutionContext context)
+    {
         context.Response.Status = 406;
         context.Response.ShouldSerialize = false;
 

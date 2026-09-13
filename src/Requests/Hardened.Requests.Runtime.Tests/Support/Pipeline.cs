@@ -18,8 +18,8 @@ namespace Hardened.Requests.Runtime.Tests.Support;
 /// the production type wherever a production type exists, and a substitute only where the
 /// collaborator is genuinely outside the pipeline.
 /// </summary>
-public static class Pipeline {
-
+public static class Pipeline
+{
     /// <summary>
     /// A context whose request and response are the in-memory transport implementations, with
     /// a service provider carrying the services the pipeline resolves at run time.
@@ -42,8 +42,18 @@ public static class Pipeline {
         string? accept = "application/json",
         byte[]? body = null,
         Action<ServiceCollection>? configureServices = null,
-        IMetricLogger? metrics = null) {
-        return Build(method, path, accept, body, configureServices, CancellationToken.None, metrics);
+        IMetricLogger? metrics = null
+    )
+    {
+        return Build(
+            method,
+            path,
+            accept,
+            body,
+            configureServices,
+            CancellationToken.None,
+            metrics
+        );
     }
 
     /// <summary>
@@ -59,8 +69,18 @@ public static class Pipeline {
         string path = "/",
         byte[]? body = null,
         Action<ServiceCollection>? configureServices = null,
-        IMetricLogger? metrics = null) {
-        return Build(method, path, "application/json", body, configureServices, cancellationToken, metrics);
+        IMetricLogger? metrics = null
+    )
+    {
+        return Build(
+            method,
+            path,
+            "application/json",
+            body,
+            configureServices,
+            cancellationToken,
+            metrics
+        );
     }
 
     private static IExecutionContext Build(
@@ -70,8 +90,9 @@ public static class Pipeline {
         byte[]? body,
         Action<ServiceCollection>? configureServices,
         CancellationToken cancellationToken,
-        IMetricLogger? metrics) {
-
+        IMetricLogger? metrics
+    )
+    {
         var services = new ServiceCollection();
 
         services.AddSingleton<IRequestLogger>(Substitute.For<IRequestLogger>());
@@ -81,8 +102,13 @@ public static class Pipeline {
         var provider = services.BuildServiceProvider();
 
         var request = new TestExecutionRequest(
-            method, path, accept, new SimpleQueryStringCollection(new Dictionary<string, string>())) {
-            Body = body is null ? Stream.Null : new MemoryStream(body)
+            method,
+            path,
+            accept,
+            new SimpleQueryStringCollection(new Dictionary<string, string>())
+        )
+        {
+            Body = body is null ? Stream.Null : new MemoryStream(body),
         };
 
         return new TestExecutionContext(
@@ -92,30 +118,43 @@ public static class Pipeline {
             request,
             new TestExecutionResponse(new MemoryStream()),
             cancellationToken,
-            metrics);
+            metrics
+        );
     }
 
     /// <summary>
     /// Builds a chain over the supplied filters, in the order given.
     /// </summary>
-    public static ExecutionChain Chain(IExecutionContext context, params IExecutionFilter[] filters) =>
-        new(filters.Select<IExecutionFilter, Func<IExecutionContext, IExecutionFilter>>(
-            filter => _ => filter).ToList(), context);
+    public static ExecutionChain Chain(
+        IExecutionContext context,
+        params IExecutionFilter[] filters
+    ) =>
+        new(
+            filters
+                .Select<IExecutionFilter, Func<IExecutionContext, IExecutionFilter>>(filter =>
+                    _ => filter
+                )
+                .ToList(),
+            context
+        );
 
     /// <summary>
     /// Records that it ran, in a shared log, then continues down the chain.
     /// </summary>
-    public sealed class Recording : IExecutionFilter {
+    public sealed class Recording : IExecutionFilter
+    {
         private readonly List<string> _log;
 
-        public Recording(List<string> log, string name) {
+        public Recording(List<string> log, string name)
+        {
             _log = log;
             Name = name;
         }
 
         public string Name { get; }
 
-        public Task Execute(IExecutionChain chain) {
+        public Task Execute(IExecutionChain chain)
+        {
             _log.Add(Name);
 
             return chain.Next();
@@ -126,16 +165,19 @@ public static class Pipeline {
     /// Records that it ran and then stops, never calling <c>Next</c>. Everything ordered after
     /// it must not run.
     /// </summary>
-    public sealed class ShortCircuiting : IExecutionFilter {
+    public sealed class ShortCircuiting : IExecutionFilter
+    {
         private readonly List<string> _log;
         private readonly string _name;
 
-        public ShortCircuiting(List<string> log, string name) {
+        public ShortCircuiting(List<string> log, string name)
+        {
             _log = log;
             _name = name;
         }
 
-        public Task Execute(IExecutionChain chain) {
+        public Task Execute(IExecutionChain chain)
+        {
             _log.Add(_name);
 
             return Task.CompletedTask;
@@ -145,10 +187,12 @@ public static class Pipeline {
     /// <summary>
     /// Runs the supplied delegate in place of a filter body, then continues.
     /// </summary>
-    public sealed class Inline : IExecutionFilter {
+    public sealed class Inline : IExecutionFilter
+    {
         private readonly Func<IExecutionChain, Task> _body;
 
-        public Inline(Func<IExecutionChain, Task> body) {
+        public Inline(Func<IExecutionChain, Task> body)
+        {
             _body = body;
         }
 

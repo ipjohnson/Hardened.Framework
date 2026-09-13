@@ -18,12 +18,17 @@ namespace Hardened.Web.Kestrel.Runtime.Tests.Impl;
 /// not look the same under Lambda as it does here.
 /// </para>
 /// </remarks>
-public class FeatureTransportInfoTests {
-
+public class FeatureTransportInfoTests
+{
     private static FeatureTransportInfo Info(
-        IPAddress? remote = null, int remotePort = 0,
-        IPAddress? local = null, int localPort = 0,
-        string protocol = "HTTP/1.1", string scheme = "https") {
+        IPAddress? remote = null,
+        int remotePort = 0,
+        IPAddress? local = null,
+        int localPort = 0,
+        string protocol = "HTTP/1.1",
+        string scheme = "https"
+    )
+    {
         var connection = Substitute.For<IHttpConnectionFeature>();
 
         connection.RemoteIpAddress.Returns(remote);
@@ -37,7 +42,8 @@ public class FeatureTransportInfoTests {
     }
 
     [Fact]
-    public void TheClientAddressIsTheSocketPeer() {
+    public void TheClientAddressIsTheSocketPeer()
+    {
         var info = Info(remote: IPAddress.Parse("203.0.113.7"), remotePort: 51234);
 
         Assert.Equal("203.0.113.7", info.Get(KnownTransportKeys.ClientAddress));
@@ -53,7 +59,8 @@ public class FeatureTransportInfoTests {
     /// destroying the observed fact, which is the only one the transport can vouch for.
     /// </remarks>
     [Fact]
-    public void ThePeerIsPublishedSeparatelyFromTheClient() {
+    public void ThePeerIsPublishedSeparatelyFromTheClient()
+    {
         var info = Info(remote: IPAddress.Parse("203.0.113.7"), remotePort: 51234);
 
         Assert.Equal("203.0.113.7", info.Get(KnownTransportKeys.NetworkPeerAddress));
@@ -61,7 +68,8 @@ public class FeatureTransportInfoTests {
     }
 
     [Fact]
-    public void TheServerAddressComesFromTheLocalEndpoint() {
+    public void TheServerAddressComesFromTheLocalEndpoint()
+    {
         var info = Info(local: IPAddress.Parse("10.0.0.4"), localPort: 443);
 
         Assert.Equal("10.0.0.4", info.Get(KnownTransportKeys.ServerAddress));
@@ -79,18 +87,24 @@ public class FeatureTransportInfoTests {
     [InlineData("HTTP/1.1", "1.1")]
     [InlineData("HTTP/2", "2")]
     [InlineData("HTTP/3", "3")]
-    public void TheProtocolVersionDropsTheScheme(string protocol, string expected) {
-        Assert.Equal(expected, Info(protocol: protocol).Get(KnownTransportKeys.NetworkProtocolVersion));
+    public void TheProtocolVersionDropsTheScheme(string protocol, string expected)
+    {
+        Assert.Equal(
+            expected,
+            Info(protocol: protocol).Get(KnownTransportKeys.NetworkProtocolVersion)
+        );
     }
 
     /// <summary>A protocol with no slash is reported as it stands rather than dropped.</summary>
     [Fact]
-    public void AProtocolWithNoSlashSurvives() {
+    public void AProtocolWithNoSlashSurvives()
+    {
         Assert.Equal("2", Info(protocol: "2").Get(KnownTransportKeys.NetworkProtocolVersion));
     }
 
     [Fact]
-    public void TheSchemeIsSurfaced() {
+    public void TheSchemeIsSurfaced()
+    {
         Assert.Equal("https", Info(scheme: "https").Get(KnownTransportKeys.UrlScheme));
     }
 
@@ -102,7 +116,8 @@ public class FeatureTransportInfoTests {
     /// and publishing "0" would put a number on the wire that no client ever connected from.
     /// </remarks>
     [Fact]
-    public void AZeroPortIsNull() {
+    public void AZeroPortIsNull()
+    {
         var info = Info(remote: IPAddress.Loopback, remotePort: 0, local: IPAddress.Loopback);
 
         Assert.Null(info.Get(KnownTransportKeys.ClientPort));
@@ -118,7 +133,8 @@ public class FeatureTransportInfoTests {
     /// feature - which several of the conformance tests do.
     /// </remarks>
     [Fact]
-    public void NoConnectionFeatureAnswersNull() {
+    public void NoConnectionFeatureAnswersNull()
+    {
         var info = new FeatureTransportInfo(null, new HttpRequestFeature { Protocol = "HTTP/1.1" });
 
         Assert.Null(info.Get(KnownTransportKeys.ClientAddress));
@@ -130,7 +146,8 @@ public class FeatureTransportInfoTests {
     }
 
     [Fact]
-    public void AnUnknownKeyIsNull() {
+    public void AnUnknownKeyIsNull()
+    {
         Assert.Null(Info().Get("something.else"));
     }
 
@@ -144,7 +161,8 @@ public class FeatureTransportInfoTests {
     /// an address attribute holding nothing.
     /// </remarks>
     [Fact]
-    public void AConnectionWithNoAddressIsNull() {
+    public void AConnectionWithNoAddressIsNull()
+    {
         var info = Info(remote: null, remotePort: 51234, local: null, localPort: 443);
 
         Assert.Null(info.Get(KnownTransportKeys.ClientAddress));
@@ -158,7 +176,8 @@ public class FeatureTransportInfoTests {
 
     /// <summary>The ports answer null too when there is no connection feature at all.</summary>
     [Fact]
-    public void NoConnectionFeatureAnswersNullForPorts() {
+    public void NoConnectionFeatureAnswersNullForPorts()
+    {
         var info = new FeatureTransportInfo(null, new HttpRequestFeature { Protocol = "HTTP/1.1" });
 
         Assert.Null(info.Get(KnownTransportKeys.ClientPort));
@@ -176,7 +195,8 @@ public class FeatureTransportInfoTests {
     [Theory]
     [InlineData("")]
     [InlineData(null)]
-    public void AMissingProtocolIsNull(string? protocol) {
+    public void AMissingProtocolIsNull(string? protocol)
+    {
         var info = new FeatureTransportInfo(null, new HttpRequestFeature { Protocol = protocol! });
 
         Assert.Null(info.Get(KnownTransportKeys.NetworkProtocolVersion));
@@ -184,14 +204,19 @@ public class FeatureTransportInfoTests {
 
     /// <summary>Every key it publishes is one it understands.</summary>
     [Fact]
-    public void EveryPublishedKeyIsAnswerable() {
+    public void EveryPublishedKeyIsAnswerable()
+    {
         var info = Info(
-            remote: IPAddress.Parse("203.0.113.7"), remotePort: 51234,
-            local: IPAddress.Parse("10.0.0.4"), localPort: 443);
+            remote: IPAddress.Parse("203.0.113.7"),
+            remotePort: 51234,
+            local: IPAddress.Parse("10.0.0.4"),
+            localPort: 443
+        );
 
         Assert.NotEmpty(info.Keys);
 
-        foreach (var key in info.Keys) {
+        foreach (var key in info.Keys)
+        {
             Assert.NotNull(info.Get(key));
         }
     }

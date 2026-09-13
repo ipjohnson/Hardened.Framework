@@ -21,7 +21,8 @@ namespace Hardened.Web.Runtime.Handlers;
 /// compute up front.
 /// </para>
 /// </summary>
-internal static class HeadRequest {
+internal static class HeadRequest
+{
     private const string Method = "HEAD";
 
     private const string ContentLengthHeader = "Content-Length";
@@ -33,16 +34,19 @@ internal static class HeadRequest {
     /// Runs <paramref name="chain"/> with the response body swapped for a counter, then reports
     /// what the body would have been.
     /// </summary>
-    public static async Task ExecuteWithoutBody(IExecutionChain chain, IExecutionContext context) {
+    public static async Task ExecuteWithoutBody(IExecutionChain chain, IExecutionContext context)
+    {
         var discard = new DiscardingStream();
         var responseBody = context.Response.Body;
 
         context.Response.Body = discard;
 
-        try {
+        try
+        {
             await chain.Next();
         }
-        finally {
+        finally
+        {
             context.Response.Body = responseBody;
 
             // Nothing reached the real stream, so the response cannot have started - but a filter
@@ -51,9 +55,11 @@ internal static class HeadRequest {
             // A 304 reports no length either. The count is of bytes the conditional filter
             // discarded, not of the body a 200 would have carried, and RFC 9110 §8.6 lets a 304
             // carry Content-Length only when it is that one.
-            if (!context.Response.ResponseStarted && context.Response.Status != 304) {
-                context.Response.Headers[ContentLengthHeader] =
-                    discard.BytesWritten.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            if (!context.Response.ResponseStarted && context.Response.Status != 304)
+            {
+                context.Response.Headers[ContentLengthHeader] = discard.BytesWritten.ToString(
+                    System.Globalization.CultureInfo.InvariantCulture
+                );
             }
         }
     }
@@ -64,7 +70,8 @@ internal static class HeadRequest {
     /// newline the async-enumerable filter writes between items — so swapping this in covers all
     /// of them without any of them knowing.
     /// </summary>
-    private sealed class DiscardingStream : Stream {
+    private sealed class DiscardingStream : Stream
+    {
         public long BytesWritten { get; private set; }
 
         public override bool CanRead => false;
@@ -75,7 +82,8 @@ internal static class HeadRequest {
 
         public override long Length => BytesWritten;
 
-        public override long Position {
+        public override long Position
+        {
             get => BytesWritten;
             set => throw new NotSupportedException();
         }
@@ -89,14 +97,22 @@ internal static class HeadRequest {
         public override void WriteByte(byte value) => BytesWritten++;
 
         public override Task WriteAsync(
-            byte[] buffer, int offset, int count, CancellationToken cancellationToken) {
+            byte[] buffer,
+            int offset,
+            int count,
+            CancellationToken cancellationToken
+        )
+        {
             BytesWritten += count;
 
             return Task.CompletedTask;
         }
 
         public override ValueTask WriteAsync(
-            ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default) {
+            ReadOnlyMemory<byte> buffer,
+            CancellationToken cancellationToken = default
+        )
+        {
             BytesWritten += buffer.Length;
 
             return default;
@@ -104,9 +120,11 @@ internal static class HeadRequest {
 
         public override void Write(ReadOnlySpan<byte> buffer) => BytesWritten += buffer.Length;
 
-        public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+        public override int Read(byte[] buffer, int offset, int count) =>
+            throw new NotSupportedException();
 
-        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override long Seek(long offset, SeekOrigin origin) =>
+            throw new NotSupportedException();
 
         public override void SetLength(long value) => throw new NotSupportedException();
     }

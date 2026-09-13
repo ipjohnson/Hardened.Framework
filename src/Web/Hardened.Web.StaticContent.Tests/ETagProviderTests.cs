@@ -8,12 +8,13 @@ namespace Hardened.Web.StaticContent.Tests;
 /// given, and the handler compares the two strings. Both halves of that only work if the value is
 /// a pure function of the bytes.
 /// </summary>
-public class ETagProviderTests {
-
+public class ETagProviderTests
+{
     private static ETagProvider Provider() => new(new TestHashPool());
 
     [Fact]
-    public void TheSameContentAlwaysProducesTheSameETag() {
+    public void TheSameContentAlwaysProducesTheSameETag()
+    {
         var content = "the same bytes"u8.ToArray();
 
         Assert.Equal(Provider().GenerateETag(content), Provider().GenerateETag(content));
@@ -24,7 +25,8 @@ public class ETagProviderTests {
     /// requests, so a hash left dirty by the previous caller would show up here.
     /// </summary>
     [Fact]
-    public void TheSameProviderInstanceProducesTheSameETagForRepeatedContent() {
+    public void TheSameProviderInstanceProducesTheSameETagForRepeatedContent()
+    {
         var provider = Provider();
         var content = "repeated"u8.ToArray();
 
@@ -41,27 +43,32 @@ public class ETagProviderTests {
     /// would serve a 304 for content the client has never seen.
     /// </summary>
     [Fact]
-    public void DifferentContentProducesADifferentETag() {
+    public void DifferentContentProducesADifferentETag()
+    {
         var provider = Provider();
 
         Assert.NotEqual(
             provider.GenerateETag("version one"u8.ToArray()),
-            provider.GenerateETag("version two"u8.ToArray()));
+            provider.GenerateETag("version two"u8.ToArray())
+        );
     }
 
     /// <summary>A one-byte difference is enough.</summary>
     [Fact]
-    public void ASingleByteChangeChangesTheETag() {
+    public void ASingleByteChangeChangesTheETag()
+    {
         var provider = Provider();
 
         Assert.NotEqual(
             provider.GenerateETag(Encoding.UTF8.GetBytes(new string('a', 4096))),
-            provider.GenerateETag(Encoding.UTF8.GetBytes(new string('a', 4095) + "b")));
+            provider.GenerateETag(Encoding.UTF8.GetBytes(new string('a', 4095) + "b"))
+        );
     }
 
     /// <summary>An empty file still gets a tag rather than an empty string.</summary>
     [Fact]
-    public void EmptyContentStillProducesAnETag() {
+    public void EmptyContentStillProducesAnETag()
+    {
         Assert.NotEmpty(Provider().GenerateETag([]));
     }
 
@@ -76,7 +83,8 @@ public class ETagProviderTests {
     /// </para>
     /// </summary>
     [Fact]
-    public void TheETagIsBase64OfTheThirtyTwoByteHash() {
+    public void TheETagIsBase64OfTheThirtyTwoByteHash()
+    {
         var etag = Provider().GenerateETag("content"u8.ToArray());
 
         Assert.Equal(44, etag.Length);

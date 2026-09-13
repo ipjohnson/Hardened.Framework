@@ -27,29 +27,35 @@ namespace Hardened.Requests.Runtime.Authorization;
 /// one an attribute declared.
 /// </para>
 /// </remarks>
-public class AuthorizationFilterProvider {
+public class AuthorizationFilterProvider
+{
     private readonly bool _requireAuthorization;
 
     /// <param name="requireAuthorization">
     /// Whether a handler carrying no authorization attribute is denied rather than public.
     /// </param>
-    public AuthorizationFilterProvider(bool requireAuthorization) {
+    public AuthorizationFilterProvider(bool requireAuthorization)
+    {
         _requireAuthorization = requireAuthorization;
     }
 
-    public RequestFilterInfo? GetFilter(IExecutionRequestHandlerInfo handlerInfo) {
+    public RequestFilterInfo? GetFilter(IExecutionRequestHandlerInfo handlerInfo)
+    {
         var requirement = handlerInfo.Requirement;
 
-        if (requirement == null) {
+        if (requirement == null)
+        {
             // Nothing said anything about this handler. Public unless the application has said
             // otherwise, in which case being unannotated is the thing being guarded against.
-            if (!_requireAuthorization || IsAnonymous(handlerInfo.Metadata)) {
+            if (!_requireAuthorization || IsAnonymous(handlerInfo.Metadata))
+            {
                 return null;
             }
 
             requirement = Requirement.Authenticated();
         }
-        else if (IsAnonymous(handlerInfo.Metadata)) {
+        else if (IsAnonymous(handlerInfo.Metadata))
+        {
             // Both a requirement and an opt-out. The opt-out wins, because it is the more explicit
             // statement - somebody wrote it on this handler on purpose - and because the alternative
             // is a route that looks public in the source and refuses in production.
@@ -63,14 +69,19 @@ public class AuthorizationFilterProvider {
             : FilterOrder.GrantAuthorization;
 
         var filter = new AuthorizationFilter(
-            requirement, beforeSerialization: order < FilterOrder.Serialization);
+            requirement,
+            beforeSerialization: order < FilterOrder.Serialization
+        );
 
         return new RequestFilterInfo(_ => filter, order, nameof(AuthorizationFilter));
     }
 
-    private static bool IsAnonymous(IReadOnlyList<object> metadata) {
-        foreach (var item in metadata) {
-            if (item is AllowAnonymousAttribute) {
+    private static bool IsAnonymous(IReadOnlyList<object> metadata)
+    {
+        foreach (var item in metadata)
+        {
+            if (item is AllowAnonymousAttribute)
+            {
                 return true;
             }
         }

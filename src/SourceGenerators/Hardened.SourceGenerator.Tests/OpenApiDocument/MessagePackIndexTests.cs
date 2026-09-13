@@ -24,16 +24,15 @@ namespace Hardened.SourceGenerator.Tests.OpenApiDocument;
 /// tested is the rule that reads the attribute, not the package that ships it.
 /// </para>
 /// </remarks>
-public class MessagePackIndexTests {
-
+public class MessagePackIndexTests
+{
     /// <summary>
     /// The two attributes the fixtures name, declared rather than referenced. The compilation
     /// carries only System.Private.CoreLib, so an unresolved <c>[JsonPropertyName]</c> would bind
     /// to nothing and the member would quietly publish under its camel-cased name - which is what
     /// the last test here is asserting is not what happens.
     /// </summary>
-    private const string Attributes =
-        """
+    private const string Attributes = """
         namespace MessagePack {
             public class KeyAttribute : System.Attribute {
                 public KeyAttribute(int x) { }
@@ -48,7 +47,8 @@ public class MessagePackIndexTests {
         }
         """;
 
-    private static JsonElement Properties(string declaration, string typeName = "Reading") {
+    private static JsonElement Properties(string declaration, string typeName = "Reading")
+    {
         var tree = CSharpSyntaxTree.ParseText(Attributes + "\n" + declaration);
 
         var compilation = CSharpCompilation.Create(
@@ -57,7 +57,9 @@ public class MessagePackIndexTests {
             [MetadataReference.CreateFromFile(typeof(object).Assembly.Location)],
             new CSharpCompilationOptions(
                 OutputKind.DynamicallyLinkedLibrary,
-                nullableContextOptions: NullableContextOptions.Enable));
+                nullableContextOptions: NullableContextOptions.Enable
+            )
+        );
 
         var type = compilation.GetTypeByMetadataName("App." + typeName);
 
@@ -77,7 +79,8 @@ public class MessagePackIndexTests {
     /// where this reads it - the same position <c>[JsonPropertyName]</c> is read from.
     /// </summary>
     [Fact]
-    public void AKeyedRecordPublishesEveryIndex() {
+    public void AKeyedRecordPublishesEveryIndex()
+    {
         var properties = Properties(
             """
             namespace App {
@@ -85,10 +88,17 @@ public class MessagePackIndexTests {
 
                 public record Reading([property: Key(0)] string Sensor, [property: Key(1)] int Value);
             }
-            """);
+            """
+        );
 
-        Assert.Equal(0, properties.GetProperty("sensor").GetProperty("x-message-pack-index").GetInt32());
-        Assert.Equal(1, properties.GetProperty("value").GetProperty("x-message-pack-index").GetInt32());
+        Assert.Equal(
+            0,
+            properties.GetProperty("sensor").GetProperty("x-message-pack-index").GetInt32()
+        );
+        Assert.Equal(
+            1,
+            properties.GetProperty("value").GetProperty("x-message-pack-index").GetInt32()
+        );
     }
 
     /// <summary>
@@ -96,15 +106,19 @@ public class MessagePackIndexTests {
     /// or anywhere: an index Hardened chose would describe a wire format the server does not speak.
     /// </summary>
     [Fact]
-    public void AnUnkeyedModelPublishesNoExtension() {
+    public void AnUnkeyedModelPublishesNoExtension()
+    {
         var properties = Properties(
             """
             namespace App {
                 public record Reading(string Sensor, int Value);
             }
-            """);
+            """
+        );
 
-        Assert.False(properties.GetProperty("sensor").TryGetProperty("x-message-pack-index", out _));
+        Assert.False(
+            properties.GetProperty("sensor").TryGetProperty("x-message-pack-index", out _)
+        );
     }
 
     /// <summary>
@@ -112,7 +126,8 @@ public class MessagePackIndexTests {
     /// is nothing to publish. The document's own property name already carries that answer.
     /// </summary>
     [Fact]
-    public void TheStringOverloadIsNotAnIndex() {
+    public void TheStringOverloadIsNotAnIndex()
+    {
         var properties = Properties(
             """
             namespace App {
@@ -120,9 +135,12 @@ public class MessagePackIndexTests {
 
                 public record Reading([property: Key("s")] string Sensor);
             }
-            """);
+            """
+        );
 
-        Assert.False(properties.GetProperty("sensor").TryGetProperty("x-message-pack-index", out _));
+        Assert.False(
+            properties.GetProperty("sensor").TryGetProperty("x-message-pack-index", out _)
+        );
     }
 
     /// <summary>
@@ -130,7 +148,8 @@ public class MessagePackIndexTests {
     /// because the two answers describe the same member and the document indexes it by name.
     /// </summary>
     [Fact]
-    public void TheIndexLandsUnderTheWireName() {
+    public void TheIndexLandsUnderTheWireName()
+    {
         var properties = Properties(
             """
             namespace App {
@@ -139,9 +158,12 @@ public class MessagePackIndexTests {
 
                 public record Reading([property: JsonPropertyName("sensor_id"), Key(4)] string Sensor);
             }
-            """);
+            """
+        );
 
         Assert.Equal(
-            4, properties.GetProperty("sensor_id").GetProperty("x-message-pack-index").GetInt32());
+            4,
+            properties.GetProperty("sensor_id").GetProperty("x-message-pack-index").GetInt32()
+        );
     }
 }

@@ -23,16 +23,19 @@ namespace Hardened.Shared.Testing.Tests.Impl;
 /// covers, which is the one thing these tests are not allowed to leave to chance.
 /// </para>
 /// </remarks>
-public class TestContextStepTests {
-
-    private static (ITestContext Context, RecordingLogger Logger) Context() {
+public class TestContextStepTests
+{
+    private static (ITestContext Context, RecordingLogger Logger) Context()
+    {
         var logger = new RecordingLogger();
 
         return (new HardenedTestContext(CancellationToken.None, logger), logger);
     }
 
-    private sealed class StepFailed : Exception {
-        public StepFailed() : base("step failed") { }
+    private sealed class StepFailed : Exception
+    {
+        public StepFailed()
+            : base("step failed") { }
     }
 
     /// <summary>
@@ -40,8 +43,13 @@ public class TestContextStepTests {
     /// signature, which naming it in a call cannot do — <c>Func&lt;Task&lt;T&gt;&gt;</c> is equally
     /// good an argument for the <c>Func&lt;T&gt;</c> overload with T bound to the task itself.
     /// </summary>
-    private static Task<T> AsyncFuncStep<T>(ITestContext context, Func<Task<T>> step, string description,
-        params object[] parameters) {
+    private static Task<T> AsyncFuncStep<T>(
+        ITestContext context,
+        Func<Task<T>> step,
+        string description,
+        params object[] parameters
+    )
+    {
         Func<Func<Task<T>>, string, object[], Task<T>> overload = context.Step<T>;
 
         return overload(step, description, parameters);
@@ -50,7 +58,8 @@ public class TestContextStepTests {
     // ---- the four overloads, passing ----------------------------------------------------------
 
     [Fact]
-    public void AnActionStepThatReturnsIsLoggedAsPassing() {
+    public void AnActionStepThatReturnsIsLoggedAsPassing()
+    {
         var (context, logger) = Context();
         Action step = () => { };
 
@@ -63,7 +72,8 @@ public class TestContextStepTests {
     }
 
     [Fact]
-    public void AFuncStepHandsBackItsResultAndIsLoggedAsPassing() {
+    public void AFuncStepHandsBackItsResultAndIsLoggedAsPassing()
+    {
         var (context, logger) = Context();
         Func<int> step = () => 42;
 
@@ -74,7 +84,8 @@ public class TestContextStepTests {
     }
 
     [Fact]
-    public async Task AnAsyncStepThatCompletesIsLoggedAsPassing() {
+    public async Task AnAsyncStepThatCompletesIsLoggedAsPassing()
+    {
         var (context, logger) = Context();
         Func<Task> step = () => Task.CompletedTask;
 
@@ -84,10 +95,15 @@ public class TestContextStepTests {
     }
 
     [Fact]
-    public async Task AnAsyncFuncStepHandsBackItsResultAndIsLoggedAsPassing() {
+    public async Task AnAsyncFuncStepHandsBackItsResultAndIsLoggedAsPassing()
+    {
         var (context, logger) = Context();
 
-        var result = await AsyncFuncStep(context, () => Task.FromResult("value"), "awaiting the thing");
+        var result = await AsyncFuncStep(
+            context,
+            () => Task.FromResult("value"),
+            "awaiting the thing"
+        );
 
         Assert.Equal("value", result);
         Assert.Equal("pass", Assert.Single(logger.Entries).Value("status"));
@@ -100,7 +116,8 @@ public class TestContextStepTests {
     /// narrates the failure, it does not absorb it.
     /// </summary>
     [Fact]
-    public void AFailingActionStepIsLoggedAsFailingAndStillThrows() {
+    public void AFailingActionStepIsLoggedAsFailingAndStillThrows()
+    {
         var (context, logger) = Context();
         Action step = () => throw new StepFailed();
 
@@ -113,7 +130,8 @@ public class TestContextStepTests {
     }
 
     [Fact]
-    public void AFailingFuncStepIsLoggedAsFailingAndStillThrows() {
+    public void AFailingFuncStepIsLoggedAsFailingAndStillThrows()
+    {
         var (context, logger) = Context();
         Func<int> step = () => throw new StepFailed();
 
@@ -126,7 +144,8 @@ public class TestContextStepTests {
     }
 
     [Fact]
-    public async Task AFailingAsyncStepIsLoggedAsFailingAndStillThrows() {
+    public async Task AFailingAsyncStepIsLoggedAsFailingAndStillThrows()
+    {
         var (context, logger) = Context();
         Func<Task> step = () => Task.FromException(new StepFailed());
 
@@ -139,11 +158,13 @@ public class TestContextStepTests {
     }
 
     [Fact]
-    public async Task AFailingAsyncFuncStepIsLoggedAsFailingAndStillThrows() {
+    public async Task AFailingAsyncFuncStepIsLoggedAsFailingAndStillThrows()
+    {
         var (context, logger) = Context();
 
-        await Assert.ThrowsAsync<StepFailed>(
-            () => AsyncFuncStep(context, () => Task.FromException<int>(new StepFailed()), "awaiting"));
+        await Assert.ThrowsAsync<StepFailed>(() =>
+            AsyncFuncStep(context, () => Task.FromException<int>(new StepFailed()), "awaiting")
+        );
 
         var entry = Assert.Single(logger.Entries);
 
@@ -154,7 +175,8 @@ public class TestContextStepTests {
     // ---- what the log carries -----------------------------------------------------------------
 
     [Fact]
-    public void TheCallersDescriptionAndItsParametersReachTheLog() {
+    public void TheCallersDescriptionAndItsParametersReachTheLog()
+    {
         var (context, logger) = Context();
         Action step = () => { };
 
@@ -168,7 +190,8 @@ public class TestContextStepTests {
     }
 
     [Fact]
-    public void TheOutcomeLeadsTheMessageAndTheDurationEndsIt() {
+    public void TheOutcomeLeadsTheMessageAndTheDurationEndsIt()
+    {
         var (context, logger) = Context();
         Action step = () => { };
 
@@ -186,7 +209,8 @@ public class TestContextStepTests {
     /// machine can only make the measurement larger.
     /// </summary>
     [Fact]
-    public void ThePassingDurationCoversTheWorkTheStepDid() {
+    public void ThePassingDurationCoversTheWorkTheStepDid()
+    {
         var (context, logger) = Context();
         Action step = () => Thread.Sleep(200);
 
@@ -194,13 +218,18 @@ public class TestContextStepTests {
 
         var duration = Assert.IsType<double>(Assert.Single(logger.Entries).Value("duration"));
 
-        Assert.True(duration >= 20, $"expected the logged duration to cover the step, was {duration}ms");
+        Assert.True(
+            duration >= 20,
+            $"expected the logged duration to cover the step, was {duration}ms"
+        );
     }
 
     [Fact]
-    public void AFailingStepStillReportsHowLongItRanBeforeItFailed() {
+    public void AFailingStepStillReportsHowLongItRanBeforeItFailed()
+    {
         var (context, logger) = Context();
-        Action step = () => {
+        Action step = () =>
+        {
             Thread.Sleep(200);
             throw new StepFailed();
         };
@@ -209,7 +238,10 @@ public class TestContextStepTests {
 
         var duration = Assert.IsType<double>(Assert.Single(logger.Entries).Value("duration"));
 
-        Assert.True(duration >= 20, $"expected the logged duration to cover the step, was {duration}ms");
+        Assert.True(
+            duration >= 20,
+            $"expected the logged duration to cover the step, was {duration}ms"
+        );
     }
 
     // ---- nesting ------------------------------------------------------------------------------
@@ -219,7 +251,8 @@ public class TestContextStepTests {
     /// log sees the detail before the summary that contains it.
     /// </summary>
     [Fact]
-    public void ANestedStepIsReportedBeforeTheStepThatContainsIt() {
+    public void ANestedStepIsReportedBeforeTheStepThatContainsIt()
+    {
         var (context, logger) = Context();
         Action inner = () => { };
         Action outer = () => context.Step(inner, "inner");
@@ -232,7 +265,8 @@ public class TestContextStepTests {
     }
 
     [Fact]
-    public void AContainingStepsDurationIncludesTheStepsInsideIt() {
+    public void AContainingStepsDurationIncludesTheStepsInsideIt()
+    {
         var (context, logger) = Context();
         Action inner = () => Thread.Sleep(100);
         Action outer = () => context.Step(inner, "inner");
@@ -242,8 +276,10 @@ public class TestContextStepTests {
         var innerDuration = Assert.IsType<double>(logger.Entries[0].Value("duration"));
         var outerDuration = Assert.IsType<double>(logger.Entries[1].Value("duration"));
 
-        Assert.True(outerDuration >= innerDuration,
-            $"outer step reported {outerDuration}ms, which is less than the inner {innerDuration}ms");
+        Assert.True(
+            outerDuration >= innerDuration,
+            $"outer step reported {outerDuration}ms, which is less than the inner {innerDuration}ms"
+        );
     }
 
     /// <summary>
@@ -251,7 +287,8 @@ public class TestContextStepTests {
     /// propagates, so both are reported as failures rather than one passing over the other.
     /// </summary>
     [Fact]
-    public void AFailureInsideANestedStepFailsBothSteps() {
+    public void AFailureInsideANestedStepFailsBothSteps()
+    {
         var (context, logger) = Context();
         Action inner = () => throw new StepFailed();
         Action outer = () => context.Step(inner, "inner");
@@ -263,12 +300,15 @@ public class TestContextStepTests {
     }
 
     [Fact]
-    public async Task AsyncStepsNestTheSameWayAsSynchronousOnes() {
+    public async Task AsyncStepsNestTheSameWayAsSynchronousOnes()
+    {
         var (context, logger) = Context();
 
-        var result = await AsyncFuncStep(context,
+        var result = await AsyncFuncStep(
+            context,
             () => AsyncFuncStep(context, () => Task.FromResult(7), "inner"),
-            "outer");
+            "outer"
+        );
 
         Assert.Equal(7, result);
         Assert.Contains("inner", logger.Entries[0].Message);

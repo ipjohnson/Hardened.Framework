@@ -2,7 +2,8 @@
 
 namespace Hardened.Shared.Runtime.Application;
 
-public interface IHardenedEnvironment : IModuleEnvironment {
+public interface IHardenedEnvironment : IModuleEnvironment
+{
     string Name { get; }
 
     IReadOnlyList<string> Arguments { get; }
@@ -16,12 +17,23 @@ public interface IHardenedEnvironment : IModuleEnvironment {
     string? IModuleEnvironment.Value(string name) => Value<string>(name);
 }
 
-public static class IEnvironmentExtensions {
-    public static bool Matches(this IHardenedEnvironment environment, params string[] environments) {
-        return environments.Any(s => environment.Name.Equals(s, StringComparison.CurrentCultureIgnoreCase));
+public static class IEnvironmentExtensions
+{
+    public static bool Matches(this IHardenedEnvironment environment, params string[] environments)
+    {
+        return environments.Any(s =>
+            environment.Name.Equals(s, StringComparison.CurrentCultureIgnoreCase)
+        );
     }
 
-    public static bool MatchesVariable(this IHardenedEnvironment environment, string variable, string value) {
-        return environment.Value(variable, "")!.Equals(value, StringComparison.CurrentCultureIgnoreCase);
+    public static bool MatchesVariable(
+        this IHardenedEnvironment environment,
+        string variable,
+        string value
+    )
+    {
+        return environment
+            .Value(variable, "")!
+            .Equals(value, StringComparison.CurrentCultureIgnoreCase);
     }
 }

@@ -19,8 +19,8 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Transport;
 /// it raw, so an operation answering the JSON string <c>"pets"</c> is read with its quotes.
 /// </para>
 /// </remarks>
-public interface IWebAppApi {
-
+public interface IWebAppApi
+{
     [Get("/verbs/item/{id}")]
     Task<string> GetItem(string id);
 

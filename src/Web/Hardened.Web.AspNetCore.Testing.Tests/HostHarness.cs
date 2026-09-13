@@ -17,10 +17,12 @@ namespace Hardened.Web.AspNetCore.Testing.Tests;
 /// registered through a factory, the container built by the attribute, the host resolved from it
 /// and started over it.
 /// </summary>
-internal sealed class HostHarness : IAsyncDisposable {
+internal sealed class HostHarness : IAsyncDisposable
+{
     private readonly IServiceProvider _provider;
 
-    private HostHarness(IServiceProvider provider, ITestHost host) {
+    private HostHarness(IServiceProvider provider, ITestHost host)
+    {
         _provider = provider;
         Host = host;
     }
@@ -36,7 +38,9 @@ internal sealed class HostHarness : IAsyncDisposable {
         Func<IExecutionChain, Task> answer,
         CancellationToken cancellationToken,
         Type? composition = null,
-        params Attribute[] attributesInScope) {
+        params Attribute[] attributesInScope
+    )
+    {
         var services = new ServiceCollection();
 
         services.AddLogging(builder => builder.SetMinimumLevel(LogLevel.Warning));
@@ -44,7 +48,10 @@ internal sealed class HostHarness : IAsyncDisposable {
 
         new AspNetCoreRuntime().PopulateServiceCollection(services);
 
-        var attribute = composition == null ? new AspNetCoreTestingAttribute() : new AspNetCoreTestingAttribute(composition);
+        var attribute =
+            composition == null
+                ? new AspNetCoreTestingAttribute()
+                : new AspNetCoreTestingAttribute(composition);
         var context = new FakeTestMethodContext(attributesInScope);
         var created = attribute.CreateHost(context, services);
 
@@ -65,30 +72,37 @@ internal sealed class HostHarness : IAsyncDisposable {
     }
 
     /// <summary>Disposes the container, which is what disposes the host under a runner.</summary>
-    public async ValueTask DisposeAsync() {
-        if (_provider is IAsyncDisposable asyncDisposable) {
+    public async ValueTask DisposeAsync()
+    {
+        if (_provider is IAsyncDisposable asyncDisposable)
+        {
             await asyncDisposable.DisposeAsync();
         }
     }
 
-    private sealed class Answering : IExecutionFilter {
+    private sealed class Answering : IExecutionFilter
+    {
         private readonly HostHarness _harness;
         private readonly Func<IExecutionChain, Task> _answer;
 
-        public Answering(HostHarness harness, Func<IExecutionChain, Task> answer) {
+        public Answering(HostHarness harness, Func<IExecutionChain, Task> answer)
+        {
             _harness = harness;
             _answer = answer;
         }
 
-        public Task Execute(IExecutionChain chain) {
+        public Task Execute(IExecutionChain chain)
+        {
             var request = chain.Context.Request;
             var headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-            foreach (var header in request.Headers) {
+            foreach (var header in request.Headers)
+            {
                 headers[header.Key] = header.Value.ToString();
             }
 
-            lock (_harness.Requests) {
+            lock (_harness.Requests)
+            {
                 _harness.Requests.Add(new Seen(request.Method, request.Path, headers));
             }
 
@@ -96,19 +110,28 @@ internal sealed class HostHarness : IAsyncDisposable {
         }
     }
 
-    public sealed record Seen(string Method, string Path, IReadOnlyDictionary<string, string> Headers);
+    public sealed record Seen(
+        string Method,
+        string Path,
+        IReadOnlyDictionary<string, string> Headers
+    );
 
     /// <summary>The test method the container is built for: this class's marker method, with the attributes a test says are in scope.</summary>
-    private sealed class FakeTestMethodContext : ITestMethodContext {
-        public FakeTestMethodContext(IReadOnlyList<Attribute> attributes) {
+    private sealed class FakeTestMethodContext : ITestMethodContext
+    {
+        public FakeTestMethodContext(IReadOnlyList<Attribute> attributes)
+        {
             Attributes = attributes;
         }
 
-        public MethodInfo Method { get; } = typeof(FakeTestMethodContext).GetMethod(nameof(Marker), BindingFlags.NonPublic | BindingFlags.Static)!;
+        public MethodInfo Method { get; } =
+            typeof(FakeTestMethodContext).GetMethod(
+                nameof(Marker),
+                BindingFlags.NonPublic | BindingFlags.Static
+            )!;
 
         public IReadOnlyList<Attribute> Attributes { get; }
 
-        private static void Marker() {
-        }
+        private static void Marker() { }
     }
 }

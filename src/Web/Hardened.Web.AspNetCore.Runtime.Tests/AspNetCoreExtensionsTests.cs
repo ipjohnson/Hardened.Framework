@@ -4,12 +4,12 @@ using Hardened.Shared.Runtime.Application;
 using Hardened.Web.AspNetCore.Runtime;
 using Hardened.Web.AspNetCore.Runtime.Impl;
 using Hardened.Web.Runtime.Handlers;
+using Hardened.Web.Runtime.Responses;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using Xunit;
-using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.AspNetCore.Runtime.Tests;
 
@@ -29,23 +29,28 @@ namespace Hardened.Web.AspNetCore.Runtime.Tests;
 /// of them.
 /// </para>
 /// </remarks>
-public class AspNetCoreExtensionsTests {
-
+public class AspNetCoreExtensionsTests
+{
     private static IApplicationBuilder Builder(
         IMiddlewareService? middleware = null,
         IWebExecutionHandlerService? handler = null,
-        params IStartupService[] startupServices) {
+        params IStartupService[] startupServices
+    )
+    {
         var services = new ServiceCollection();
 
-        if (middleware != null) {
+        if (middleware != null)
+        {
             services.AddSingleton(middleware);
         }
 
-        if (handler != null) {
+        if (handler != null)
+        {
             services.AddSingleton(handler);
         }
 
-        foreach (var startupService in startupServices) {
+        foreach (var startupService in startupServices)
+        {
             services.AddSingleton(startupService);
         }
 
@@ -53,10 +58,13 @@ public class AspNetCoreExtensionsTests {
     }
 
     /// <summary>A startup service that records that it ran, and what it appended.</summary>
-    private sealed class RecordingStartupService(Action<IServiceProvider> onStartup) : IStartupService {
+    private sealed class RecordingStartupService(Action<IServiceProvider> onStartup)
+        : IStartupService
+    {
         public int Runs { get; private set; }
 
-        public Task<bool> Startup(IServiceProvider rootProvider) {
+        public Task<bool> Startup(IServiceProvider rootProvider)
+        {
             Runs++;
             onStartup(rootProvider);
 
@@ -65,7 +73,8 @@ public class AspNetCoreExtensionsTests {
     }
 
     [Fact]
-    public void UseHardenedRegistersTheWebHandlerWithTheMiddlewareService() {
+    public void UseHardenedRegistersTheWebHandlerWithTheMiddlewareService()
+    {
         var middleware = Substitute.For<IMiddlewareService>();
         var handler = Substitute.For<IWebExecutionHandlerService>();
 
@@ -79,13 +88,16 @@ public class AspNetCoreExtensionsTests {
     /// service holds the routing table.
     /// </summary>
     [Fact]
-    public void TheRegisteredFilterIsTheResolvedWebHandler() {
+    public void TheRegisteredFilterIsTheResolvedWebHandler()
+    {
         var middleware = Substitute.For<IMiddlewareService>();
         var handler = Substitute.For<IWebExecutionHandlerService>();
 
         Func<IExecutionContext, IExecutionFilter>? registered = null;
 
-        middleware.Use(Arg.Do<Func<IExecutionContext, IExecutionFilter>>(value => registered = value));
+        middleware.Use(
+            Arg.Do<Func<IExecutionContext, IExecutionFilter>>(value => registered = value)
+        );
 
         Builder(middleware, handler).UseHardened();
 
@@ -97,8 +109,12 @@ public class AspNetCoreExtensionsTests {
     /// Returned so it chains, which is how every ASP.NET pipeline is written.
     /// </summary>
     [Fact]
-    public void UseHardenedReturnsTheBuilder() {
-        var builder = Builder(Substitute.For<IMiddlewareService>(), Substitute.For<IWebExecutionHandlerService>());
+    public void UseHardenedReturnsTheBuilder()
+    {
+        var builder = Builder(
+            Substitute.For<IMiddlewareService>(),
+            Substitute.For<IWebExecutionHandlerService>()
+        );
 
         Assert.Same(builder, builder.UseHardened());
     }
@@ -109,15 +125,19 @@ public class AspNetCoreExtensionsTests {
     /// and refuse all of it.
     /// </summary>
     [Fact]
-    public void UseHardenedThrowsWhenTheMiddlewareServiceIsMissing() {
-        Assert.Throws<InvalidOperationException>(
-            () => Builder(handler: Substitute.For<IWebExecutionHandlerService>()).UseHardened());
+    public void UseHardenedThrowsWhenTheMiddlewareServiceIsMissing()
+    {
+        Assert.Throws<InvalidOperationException>(() =>
+            Builder(handler: Substitute.For<IWebExecutionHandlerService>()).UseHardened()
+        );
     }
 
     [Fact]
-    public void UseHardenedThrowsWhenTheWebHandlerServiceIsMissing() {
-        Assert.Throws<InvalidOperationException>(
-            () => Builder(Substitute.For<IMiddlewareService>()).UseHardened());
+    public void UseHardenedThrowsWhenTheWebHandlerServiceIsMissing()
+    {
+        Assert.Throws<InvalidOperationException>(() =>
+            Builder(Substitute.For<IMiddlewareService>()).UseHardened()
+        );
     }
 
     #region startup services
@@ -128,22 +148,31 @@ public class AspNetCoreExtensionsTests {
     /// serves every request with no principal and refuses the authorized ones.
     /// </summary>
     [Fact]
-    public void UseHardenedRunsTheRegisteredStartupServices() {
+    public void UseHardenedRunsTheRegisteredStartupServices()
+    {
         var startup = new RecordingStartupService(_ => { });
 
-        Builder(Substitute.For<IMiddlewareService>(), Substitute.For<IWebExecutionHandlerService>(), startup)
+        Builder(
+                Substitute.For<IMiddlewareService>(),
+                Substitute.For<IWebExecutionHandlerService>(),
+                startup
+            )
             .UseHardened();
 
         Assert.Equal(1, startup.Runs);
     }
 
     [Fact]
-    public void EachStartupServiceReceivesTheApplicationServices() {
+    public void EachStartupServiceReceivesTheApplicationServices()
+    {
         IServiceProvider? received = null;
         var startup = new RecordingStartupService(provider => received = provider);
 
         var builder = Builder(
-            Substitute.For<IMiddlewareService>(), Substitute.For<IWebExecutionHandlerService>(), startup);
+            Substitute.For<IMiddlewareService>(),
+            Substitute.For<IWebExecutionHandlerService>(),
+            startup
+        );
 
         builder.UseHardened();
 
@@ -156,18 +185,27 @@ public class AspNetCoreExtensionsTests {
     /// startup service appends after it never runs.
     /// </summary>
     [Fact]
-    public void TheWebHandlerIsRegisteredAfterTheStartupServicesHaveRun() {
+    public void TheWebHandlerIsRegisteredAfterTheStartupServicesHaveRun()
+    {
         var middleware = Substitute.For<IMiddlewareService>();
         var handler = Substitute.For<IWebExecutionHandlerService>();
         var order = new List<string>();
 
-        middleware.Use(Arg.Do<Func<IExecutionContext, IExecutionFilter>>(
-            value => order.Add(ReferenceEquals(value(Substitute.For<IExecutionContext>()), handler)
-                ? "handler"
-                : "startup")));
+        middleware.Use(
+            Arg.Do<Func<IExecutionContext, IExecutionFilter>>(value =>
+                order.Add(
+                    ReferenceEquals(value(Substitute.For<IExecutionContext>()), handler)
+                        ? "handler"
+                        : "startup"
+                )
+            )
+        );
 
         var startup = new RecordingStartupService(provider =>
-            provider.GetRequiredService<IMiddlewareService>().Use(_ => Substitute.For<IExecutionFilter>()));
+            provider
+                .GetRequiredService<IMiddlewareService>()
+                .Use(_ => Substitute.For<IExecutionFilter>())
+        );
 
         Builder(middleware, handler, startup).UseHardened();
 
@@ -180,11 +218,15 @@ public class AspNetCoreExtensionsTests {
     /// authentication middleware and the CORS filter twice over.
     /// </summary>
     [Fact]
-    public async Task StartAfterUseHardenedRunsTheStartupServicesNoSecondTime() {
+    public async Task StartAfterUseHardenedRunsTheStartupServicesNoSecondTime()
+    {
         var startup = new RecordingStartupService(_ => { });
 
         var builder = Builder(
-            Substitute.For<IMiddlewareService>(), Substitute.For<IWebExecutionHandlerService>(), startup);
+            Substitute.For<IMiddlewareService>(),
+            Substitute.For<IWebExecutionHandlerService>(),
+            startup
+        );
 
         builder.UseHardened();
 
@@ -198,17 +240,22 @@ public class AspNetCoreExtensionsTests {
     #region the middleware itself
 
     [Fact]
-    public async Task TheMiddlewareHandsTheRequestToTheResolvedHandler() {
+    public async Task TheMiddlewareHandsTheRequestToTheResolvedHandler()
+    {
         var handler = Substitute.For<IAspNetCoreRequestHandler>();
 
-        handler.HandleRequest(Arg.Any<HttpContext>(), Arg.Any<RequestDelegate>())
+        handler
+            .HandleRequest(Arg.Any<HttpContext>(), Arg.Any<RequestDelegate>())
             .Returns(Task.CompletedTask);
 
         var services = new ServiceCollection();
 
         services.AddSingleton(handler);
 
-        var httpContext = new DefaultHttpContext { RequestServices = services.BuildServiceProvider() };
+        var httpContext = new DefaultHttpContext
+        {
+            RequestServices = services.BuildServiceProvider(),
+        };
 
         await AspNetCoreExtensions.HardenedMiddleware(httpContext, _ => Task.CompletedTask);
 
@@ -220,13 +267,16 @@ public class AspNetCoreExtensionsTests {
     /// registered scoped gets the request's scope.
     /// </summary>
     [Fact]
-    public async Task TheHandlerIsResolvedPerRequest() {
+    public async Task TheHandlerIsResolvedPerRequest()
+    {
         var services = new ServiceCollection();
 
-        services.AddScoped<IAspNetCoreRequestHandler>(_ => {
+        services.AddScoped<IAspNetCoreRequestHandler>(_ =>
+        {
             var handler = Substitute.For<IAspNetCoreRequestHandler>();
 
-            handler.HandleRequest(Arg.Any<HttpContext>(), Arg.Any<RequestDelegate>())
+            handler
+                .HandleRequest(Arg.Any<HttpContext>(), Arg.Any<RequestDelegate>())
                 .Returns(Task.CompletedTask);
 
             return handler;
@@ -239,18 +289,23 @@ public class AspNetCoreExtensionsTests {
 
         Assert.NotSame(
             first.ServiceProvider.GetRequiredService<IAspNetCoreRequestHandler>(),
-            second.ServiceProvider.GetRequiredService<IAspNetCoreRequestHandler>());
+            second.ServiceProvider.GetRequiredService<IAspNetCoreRequestHandler>()
+        );
 
         await AspNetCoreExtensions.HardenedMiddleware(
-            new DefaultHttpContext { RequestServices = first.ServiceProvider }, _ => Task.CompletedTask);
+            new DefaultHttpContext { RequestServices = first.ServiceProvider },
+            _ => Task.CompletedTask
+        );
     }
 
     [Fact]
-    public async Task TheNextDelegateIsPassedThroughSoTheHandlerCanFallThrough() {
+    public async Task TheNextDelegateIsPassedThroughSoTheHandlerCanFallThrough()
+    {
         var handler = Substitute.For<IAspNetCoreRequestHandler>();
         RequestDelegate? seen = null;
 
-        handler.HandleRequest(Arg.Any<HttpContext>(), Arg.Do<RequestDelegate>(value => seen = value))
+        handler
+            .HandleRequest(Arg.Any<HttpContext>(), Arg.Do<RequestDelegate>(value => seen = value))
             .Returns(Task.CompletedTask);
 
         var services = new ServiceCollection();
@@ -260,7 +315,9 @@ public class AspNetCoreExtensionsTests {
         RequestDelegate next = _ => Task.CompletedTask;
 
         await AspNetCoreExtensions.HardenedMiddleware(
-            new DefaultHttpContext { RequestServices = services.BuildServiceProvider() }, next);
+            new DefaultHttpContext { RequestServices = services.BuildServiceProvider() },
+            next
+        );
 
         Assert.Same(next, seen);
     }

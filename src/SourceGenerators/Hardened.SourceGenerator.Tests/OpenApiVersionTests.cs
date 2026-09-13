@@ -21,8 +21,8 @@ namespace Hardened.SourceGenerator.Tests;
 /// consumer and nothing else, which is a coverage gate away from being noticed.
 /// </para>
 /// </remarks>
-public class OpenApiVersionTests {
-
+public class OpenApiVersionTests
+{
     /// <summary>
     /// Unset is 3.2.0.
     /// </summary>
@@ -35,7 +35,8 @@ public class OpenApiVersionTests {
     [InlineData(null)]
     [InlineData("")]
     [InlineData("   ")]
-    public void AnUnsetVersionIsTheDefault(string? configured) {
+    public void AnUnsetVersionIsTheDefault(string? configured)
+    {
         Assert.Equal(OpenApiVersion.V3_2, OpenApiVersionFacts.Parse(configured));
         Assert.Equal(OpenApiVersion.V3_2, OpenApiVersionFacts.Default);
     }
@@ -48,7 +49,8 @@ public class OpenApiVersionTests {
     [InlineData("3.2.0", OpenApiVersion.V3_2)]
     [InlineData("3.2", OpenApiVersion.V3_2)]
     [InlineData("  3.1.0  ", OpenApiVersion.V3_1)]
-    public void ARecognisedVersionParses(string configured, OpenApiVersion expected) {
+    public void ARecognisedVersionParses(string configured, OpenApiVersion expected)
+    {
         Assert.Equal(expected, OpenApiVersionFacts.Parse(configured));
     }
 
@@ -67,7 +69,8 @@ public class OpenApiVersionTests {
     [InlineData("2.0")]
     [InlineData("v3.1")]
     [InlineData("latest")]
-    public void AnUnrecognisedVersionHasNoAnswer(string configured) {
+    public void AnUnrecognisedVersionHasNoAnswer(string configured)
+    {
         Assert.Null(OpenApiVersionFacts.Parse(configured));
     }
 
@@ -75,7 +78,8 @@ public class OpenApiVersionTests {
     [InlineData(OpenApiVersion.V3_0, "3.0.0")]
     [InlineData(OpenApiVersion.V3_1, "3.1.0")]
     [InlineData(OpenApiVersion.V3_2, "3.2.0")]
-    public void TheDocumentDeclaresThePatchVersion(OpenApiVersion version, string expected) {
+    public void TheDocumentDeclaresThePatchVersion(OpenApiVersion version, string expected)
+    {
         Assert.Equal(expected, OpenApiVersionFacts.VersionString(version));
     }
 
@@ -91,7 +95,8 @@ public class OpenApiVersionTests {
     [InlineData(OpenApiVersion.V3_0, false)]
     [InlineData(OpenApiVersion.V3_1, false)]
     [InlineData(OpenApiVersion.V3_2, true)]
-    public void OnlyThreeTwoCanDescribeAStream(OpenApiVersion version, bool supported) {
+    public void OnlyThreeTwoCanDescribeAStream(OpenApiVersion version, bool supported)
+    {
         Assert.Equal(supported, OpenApiVersionFacts.SupportsItemSchema(version));
     }
 
@@ -107,7 +112,8 @@ public class OpenApiVersionTests {
     [InlineData(OpenApiVersion.V3_0, false)]
     [InlineData(OpenApiVersion.V3_1, true)]
     [InlineData(OpenApiVersion.V3_2, true)]
-    public void ExclusiveBoundsBecomeNumericAtThreeOne(OpenApiVersion version, bool numeric) {
+    public void ExclusiveBoundsBecomeNumericAtThreeOne(OpenApiVersion version, bool numeric)
+    {
         Assert.Equal(numeric, OpenApiVersionFacts.ExclusiveBoundsAreNumeric(version));
     }
 }

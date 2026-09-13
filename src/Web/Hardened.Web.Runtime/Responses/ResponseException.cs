@@ -1,7 +1,6 @@
 using Hardened.Requests.Abstract.Errors;
-using Microsoft.Extensions.Primitives;
-
 using Hardened.Requests.Abstract.Responses;
+using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Web.Runtime.Responses;
 
@@ -39,15 +38,17 @@ namespace Hardened.Web.Runtime.Responses;
 /// order.
 /// </para>
 /// </remarks>
-public class ResponseException : StatusCodeException {
-
+public class ResponseException : StatusCodeException
+{
     private readonly IHttpStatusResponse _response;
 
     public ResponseException(IHttpStatusResponse response, string? message = null)
         : base(
             (response ?? throw new ArgumentNullException(nameof(response))).Status,
             value: response.HasBody ? Body(response) : null,
-            message: message ?? "The request produced status " + response.Status + ".") {
+            message: message ?? "The request produced status " + response.Status + "."
+        )
+    {
         _response = response;
     }
 
@@ -66,8 +67,10 @@ public class ResponseException : StatusCodeException {
     /// they were thrown or returned. Deciding anything here would be the second place a header is
     /// written and the one that drifts.
     /// </remarks>
-    public override void ApplyHeaders(IDictionary<string, StringValues> headers) {
-        if (_response is IProvidesResponseHeaders provider) {
+    public override void ApplyHeaders(IDictionary<string, StringValues> headers)
+    {
+        if (_response is IProvidesResponseHeaders provider)
+        {
             provider.ApplyHeaders(headers);
         }
     }

@@ -1,54 +1,62 @@
 ﻿using System.Globalization;
 using Hardened.Requests.Abstract.Serializer;
 using Hardened.Requests.Runtime.Errors;
-using Hardened.Requests.Runtime.Validation;
 using Hardened.Requests.Runtime.Serializer;
+using Hardened.Requests.Runtime.Validation;
 using Microsoft.Extensions.Primitives;
 using NSubstitute;
 using Xunit;
 
 namespace Hardened.Requests.Runtime.Tests.Serializer;
 
-public class StringConverterServiceTests {
+public class StringConverterServiceTests
+{
     private readonly StringConverterService _service;
 
-    public StringConverterServiceTests() {
+    public StringConverterServiceTests()
+    {
         _service = new StringConverterService(Array.Empty<IStringConverter>());
     }
 
     [Fact]
-    public void ParseRequired_ReturnsParsedInt() {
+    public void ParseRequired_ReturnsParsedInt()
+    {
         var result = _service.ParseRequired<int>("42", "testValue");
         Assert.Equal(42, result);
     }
 
     [Fact]
-    public void ParseRequired_ReturnsParsedLong() {
+    public void ParseRequired_ReturnsParsedLong()
+    {
         var result = _service.ParseRequired<long>("9999999999", "testValue");
         Assert.Equal(9999999999L, result);
     }
 
     [Fact]
-    public void ParseRequired_ReturnsParsedGuid() {
+    public void ParseRequired_ReturnsParsedGuid()
+    {
         var guid = Guid.NewGuid();
         var result = _service.ParseRequired<Guid>(guid.ToString(), "testValue");
         Assert.Equal(guid, result);
     }
 
     [Fact]
-    public void ParseRequired_ReturnsParsedDateTime() {
+    public void ParseRequired_ReturnsParsedDateTime()
+    {
         var result = _service.ParseRequired<DateTime>("2024-01-15", "testValue");
         Assert.Equal(new DateTime(2024, 1, 15), result);
     }
 
     [Fact]
-    public void ParseRequired_ReturnsParsedString() {
+    public void ParseRequired_ReturnsParsedString()
+    {
         var result = _service.ParseRequired<string>("hello", "testValue");
         Assert.Equal("hello", result);
     }
 
     [Fact]
-    public void ParseRequired_ReturnsParsedBool() {
+    public void ParseRequired_ReturnsParsedBool()
+    {
         var result = _service.ParseRequired<bool>("true", "testValue");
         Assert.True(result);
     }
@@ -63,38 +71,44 @@ public class StringConverterServiceTests {
     /// that branch to the integration tests.
     /// </remarks>
     [Fact]
-    public void ParseOptional_ReturnsParsedNullableInt() {
+    public void ParseOptional_ReturnsParsedNullableInt()
+    {
         var result = _service.ParseOptional<int?>("42", "testValue");
         Assert.Equal(42, result);
     }
 
     [Fact]
-    public void ParseOptional_ReturnsParsedNullableLong() {
+    public void ParseOptional_ReturnsParsedNullableLong()
+    {
         var result = _service.ParseOptional<long?>("9999999999", "testValue");
         Assert.Equal(9999999999L, result);
     }
 
     [Fact]
-    public void ParseOptional_ReturnsParsedNullableGuid() {
+    public void ParseOptional_ReturnsParsedNullableGuid()
+    {
         var guid = Guid.NewGuid();
         var result = _service.ParseOptional<Guid?>(guid.ToString(), "testValue");
         Assert.Equal(guid, result);
     }
 
     [Fact]
-    public void ParseOptional_ReturnsParsedNullableBool() {
+    public void ParseOptional_ReturnsParsedNullableBool()
+    {
         var result = _service.ParseOptional<bool?>("false", "testValue");
         Assert.False(result);
     }
 
     [Fact]
-    public void ParseOptional_ReturnsParsedNullableDateTime() {
+    public void ParseOptional_ReturnsParsedNullableDateTime()
+    {
         var result = _service.ParseOptional<DateTime?>("2024-01-15", "testValue");
         Assert.Equal(new DateTime(2024, 1, 15), result);
     }
 
     [Fact]
-    public void ParseOptional_ReturnsNull_WhenNullableValueIsAbsent() {
+    public void ParseOptional_ReturnsNull_WhenNullableValueIsAbsent()
+    {
         var result = _service.ParseOptional<int?>("", "testValue");
         Assert.Null(result);
     }
@@ -104,9 +118,11 @@ public class StringConverterServiceTests {
     /// class exists to keep - and the conversion branch it takes is not the required one.
     /// </summary>
     [Fact]
-    public void ParseOptional_Throws_WhenNullableValueIsMalformed() {
+    public void ParseOptional_Throws_WhenNullableValueIsMalformed()
+    {
         Assert.Throws<ValidationException>(() =>
-            _service.ParseOptional<int?>("not-a-number", "testValue"));
+            _service.ParseOptional<int?>("not-a-number", "testValue")
+        );
     }
 
     /// <summary>
@@ -114,17 +130,20 @@ public class StringConverterServiceTests {
     /// literal form differs between cultures.
     /// </summary>
     [Fact]
-    public void ParseRequired_ParsesDateTimeInvariantly() {
+    public void ParseRequired_ParsesDateTimeInvariantly()
+    {
         var original = Thread.CurrentThread.CurrentCulture;
 
-        try {
+        try
+        {
             Thread.CurrentThread.CurrentCulture = new CultureInfo("de-DE");
 
             var result = _service.ParseRequired<DateTime>("2024-01-15", "testValue");
 
             Assert.Equal(new DateTime(2024, 1, 15), result);
         }
-        finally {
+        finally
+        {
             Thread.CurrentThread.CurrentCulture = original;
         }
     }
@@ -137,9 +156,11 @@ public class StringConverterServiceTests {
     [Theory]
     [InlineData("")]
     [InlineData(null)]
-    public void ParseRequired_Throws_WhenValueIsAbsent(string? value) {
+    public void ParseRequired_Throws_WhenValueIsAbsent(string? value)
+    {
         var ex = Assert.Throws<ValidationException>(() =>
-            _service.ParseRequired<int>(value!, "testValue"));
+            _service.ParseRequired<int>(value!, "testValue")
+        );
 
         var error = Assert.Single(ex.ValidationResult.Errors);
         Assert.Equal("testValue", error.Field);
@@ -147,9 +168,11 @@ public class StringConverterServiceTests {
     }
 
     [Fact]
-    public void ParseRequired_ThrowsBadRequestException_ForMalformedValue() {
+    public void ParseRequired_ThrowsBadRequestException_ForMalformedValue()
+    {
         var ex = Assert.Throws<ValidationException>(() =>
-            _service.ParseRequired<int>("not-a-number", "testValue"));
+            _service.ParseRequired<int>("not-a-number", "testValue")
+        );
 
         var error = Assert.Single(ex.ValidationResult.Errors);
         Assert.Equal("testValue", error.Field);
@@ -157,7 +180,8 @@ public class StringConverterServiceTests {
     }
 
     [Fact]
-    public void ParseWithDefault_ReturnsDefault_ForEmptyString() {
+    public void ParseWithDefault_ReturnsDefault_ForEmptyString()
+    {
         var result = _service.ParseWithDefault("", "testValue", 99);
         Assert.Equal(99, result);
     }
@@ -168,21 +192,25 @@ public class StringConverterServiceTests {
     /// hides it.
     /// </summary>
     [Fact]
-    public void ParseWithDefault_Throws_ForMalformedValue() {
+    public void ParseWithDefault_Throws_ForMalformedValue()
+    {
         var ex = Assert.Throws<ValidationException>(() =>
-            _service.ParseWithDefault("not-a-number", "testValue", 99));
+            _service.ParseWithDefault("not-a-number", "testValue", 99)
+        );
 
         Assert.Equal("invalid", Assert.Single(ex.ValidationResult.Errors).Code);
     }
 
     [Fact]
-    public void ParseWithDefault_ReturnsParsedValue_WhenValid() {
+    public void ParseWithDefault_ReturnsParsedValue_WhenValid()
+    {
         var result = _service.ParseWithDefault("42", "testValue", 99);
         Assert.Equal(42, result);
     }
 
     [Fact]
-    public void ParseOptional_ReturnsNull_ForEmptyString() {
+    public void ParseOptional_ReturnsNull_ForEmptyString()
+    {
         var result = _service.ParseOptional<int>("", "testValue");
         Assert.Equal(default, result);
     }
@@ -193,22 +221,27 @@ public class StringConverterServiceTests {
     /// with the parameter unset and every constraint on it silently unevaluated.
     /// </summary>
     [Fact]
-    public void ParseOptional_Throws_ForMalformedValue() {
+    public void ParseOptional_Throws_ForMalformedValue()
+    {
         var ex = Assert.Throws<ValidationException>(() =>
-            _service.ParseOptional<int>("not-a-number", "testValue"));
+            _service.ParseOptional<int>("not-a-number", "testValue")
+        );
 
         Assert.Equal("invalid", Assert.Single(ex.ValidationResult.Errors).Code);
     }
 
     /// <summary>A 400 rather than a 500: the exception still carries its client-error lineage.</summary>
     [Fact]
-    public void AParseFailureIsAClientError() {
+    public void AParseFailureIsAClientError()
+    {
         Assert.IsAssignableFrom<BadRequestException>(
-            Assert.ThrowsAny<Exception>(() => _service.ParseOptional<int>("nope", "testValue")));
+            Assert.ThrowsAny<Exception>(() => _service.ParseOptional<int>("nope", "testValue"))
+        );
     }
 
     [Fact]
-    public void ParseOptional_ReturnsParsedValue_WhenValid() {
+    public void ParseOptional_ReturnsParsedValue_WhenValid()
+    {
         var result = _service.ParseOptional<int>("42", "testValue");
         Assert.Equal(42, result);
     }
@@ -220,10 +253,12 @@ public class StringConverterServiceTests {
     /// both arrive.
     /// </summary>
     [Fact]
-    public void ParseOptionalMany_ReadsOneItemPerValue() {
+    public void ParseOptionalMany_ReadsOneItemPerValue()
+    {
         Assert.Equal(
             ["EUR", "GBP"],
-            _service.ParseOptionalMany<string>(new StringValues(["EUR", "GBP"]), "symbols"));
+            _service.ParseOptionalMany<string>(new StringValues(["EUR", "GBP"]), "symbols")
+        );
     }
 
     /// <summary>
@@ -232,25 +267,29 @@ public class StringConverterServiceTests {
     /// both are read.
     /// </summary>
     [Fact]
-    public void ParseOptionalMany_SplitsAJoinedValue() {
-        Assert.Equal(
-            ["EUR", "GBP"], _service.ParseOptionalMany<string>("EUR,GBP", "symbols"));
+    public void ParseOptionalMany_SplitsAJoinedValue()
+    {
+        Assert.Equal(["EUR", "GBP"], _service.ParseOptionalMany<string>("EUR,GBP", "symbols"));
     }
 
     [Fact]
-    public void ParseOptionalMany_TrimsAroundTheSeparator() {
-        Assert.Equal(
-            ["EUR", "GBP"], _service.ParseOptionalMany<string>("EUR, GBP", "symbols"));
+    public void ParseOptionalMany_TrimsAroundTheSeparator()
+    {
+        Assert.Equal(["EUR", "GBP"], _service.ParseOptionalMany<string>("EUR, GBP", "symbols"));
     }
 
     [Fact]
-    public void ParseOptionalMany_CombinesBothSpellings() {
+    public void ParseOptionalMany_CombinesBothSpellings()
+    {
         Assert.Equal(
-            [1, 2, 3], _service.ParseOptionalMany<int>(new StringValues(["1", "2,3"]), "ids"));
+            [1, 2, 3],
+            _service.ParseOptionalMany<int>(new StringValues(["1", "2,3"]), "ids")
+        );
     }
 
     [Fact]
-    public void ParseOptionalMany_ConvertsEachItem() {
+    public void ParseOptionalMany_ConvertsEachItem()
+    {
         Assert.Equal([1, 2], _service.ParseOptionalMany<int>("1,2", "ids"));
     }
 
@@ -259,7 +298,8 @@ public class StringConverterServiceTests {
     /// empty list" - the distinction ParseOptional draws for every other type.
     /// </summary>
     [Fact]
-    public void ParseOptionalMany_ReturnsNull_WhenNothingWasSent() {
+    public void ParseOptionalMany_ReturnsNull_WhenNothingWasSent()
+    {
         Assert.Null(_service.ParseOptionalMany<string>(StringValues.Empty, "symbols"));
     }
 
@@ -268,42 +308,54 @@ public class StringConverterServiceTests {
     /// is the empty list rather than a list containing one unparseable thing.
     /// </summary>
     [Fact]
-    public void ParseOptionalMany_DropsEmptyEntries() {
-        Assert.Equal([1, 3], _service.ParseOptionalMany<int>(new StringValues(["1", "", "3"]), "ids"));
+    public void ParseOptionalMany_DropsEmptyEntries()
+    {
+        Assert.Equal(
+            [1, 3],
+            _service.ParseOptionalMany<int>(new StringValues(["1", "", "3"]), "ids")
+        );
     }
 
     [Fact]
-    public void ParseOptionalMany_ReturnsTheEmptyList_ForAnEmptyValue() {
+    public void ParseOptionalMany_ReturnsTheEmptyList_ForAnEmptyValue()
+    {
         Assert.Empty(_service.ParseOptionalMany<int>(new StringValues(""), "ids")!);
     }
 
     /// <summary>An item that will not convert fails the request, as a scalar one does.</summary>
     [Fact]
-    public void ParseOptionalMany_Throws_ForAMalformedItem() {
-        var exception = Assert.Throws<ValidationException>(
-            () => _service.ParseOptionalMany<int>("1,abc", "ids"));
+    public void ParseOptionalMany_Throws_ForAMalformedItem()
+    {
+        var exception = Assert.Throws<ValidationException>(() =>
+            _service.ParseOptionalMany<int>("1,abc", "ids")
+        );
 
         Assert.Equal("invalid", Assert.Single(exception.ValidationResult.Errors).Code);
     }
 
     /// <summary>Named by the parameter, not by the item, so the error points at what the caller sent.</summary>
     [Fact]
-    public void AMalformedItemIsReportedAgainstTheParameter() {
-        var exception = Assert.Throws<ValidationException>(
-            () => _service.ParseOptionalMany<int>("1,abc", "ids"));
+    public void AMalformedItemIsReportedAgainstTheParameter()
+    {
+        var exception = Assert.Throws<ValidationException>(() =>
+            _service.ParseOptionalMany<int>("1,abc", "ids")
+        );
 
         Assert.Equal("ids", Assert.Single(exception.ValidationResult.Errors).Field);
     }
 
     [Fact]
-    public void ParseRequiredMany_ReadsTheItems() {
+    public void ParseRequiredMany_ReadsTheItems()
+    {
         Assert.Equal(["EUR", "GBP"], _service.ParseRequiredMany<string>("EUR,GBP", "symbols"));
     }
 
     [Fact]
-    public void ParseRequiredMany_Throws_WhenNothingWasSent() {
-        var exception = Assert.Throws<ValidationException>(
-            () => _service.ParseRequiredMany<string>(StringValues.Empty, "symbols"));
+    public void ParseRequiredMany_Throws_WhenNothingWasSent()
+    {
+        var exception = Assert.Throws<ValidationException>(() =>
+            _service.ParseRequiredMany<string>(StringValues.Empty, "symbols")
+        );
 
         Assert.Equal("required", Assert.Single(exception.ValidationResult.Errors).Code);
     }
@@ -312,15 +364,18 @@ public class StringConverterServiceTests {
     /// A parameter that arrived with nothing in it is as absent as one that did not arrive.
     /// </summary>
     [Fact]
-    public void ParseRequiredMany_Throws_WhenEveryEntryIsEmpty() {
-        Assert.Throws<ValidationException>(
-            () => _service.ParseRequiredMany<string>(new StringValues(["", ""]), "symbols"));
+    public void ParseRequiredMany_Throws_WhenEveryEntryIsEmpty()
+    {
+        Assert.Throws<ValidationException>(() =>
+            _service.ParseRequiredMany<string>(new StringValues(["", ""]), "symbols")
+        );
     }
 
     #endregion
 
     [Fact]
-    public void CustomStringConverter_IsUsedWhenRegistered() {
+    public void CustomStringConverter_IsUsedWhenRegistered()
+    {
         var converter = Substitute.For<IStringConverter>();
         converter.ConvertType.Returns(typeof(int));
         converter.Convert<int>("custom-42").Returns(42);
@@ -364,7 +419,8 @@ public class StringConverterServiceTests {
     [InlineData(typeof(TimeSpan), "01:30:00")]
     [InlineData(typeof(Guid), "8a1b0c9d-0000-0000-0000-000000000000")]
     [InlineData(typeof(Uri), "https://example.com/pets")]
-    public void EveryDeclarableTypeConverts(Type type, string value) {
+    public void EveryDeclarableTypeConverts(Type type, string value)
+    {
         Assert.NotNull(Invoke(nameof(IStringConverterService.ParseRequired), type, value));
     }
 
@@ -379,12 +435,14 @@ public class StringConverterServiceTests {
     [InlineData(typeof(double?), "1.5")]
     [InlineData(typeof(DateOnly?), "2024-01-15")]
     [InlineData(typeof(Guid?), "8a1b0c9d-0000-0000-0000-000000000000")]
-    public void NullableFormsConvertToo(Type type, string value) {
+    public void NullableFormsConvertToo(Type type, string value)
+    {
         Assert.NotNull(Invoke(nameof(IStringConverterService.ParseOptional), type, value));
     }
 
     [Fact]
-    public void EnumsParseByNameAndIgnoreCase() {
+    public void EnumsParseByNameAndIgnoreCase()
+    {
         Assert.Equal(PetStatus.Available, _service.ParseRequired<PetStatus>("AVAILABLE", "status"));
     }
 
@@ -393,10 +451,12 @@ public class StringConverterServiceTests {
     /// position.
     /// </summary>
     [Fact]
-    public void ByteArraysArriveAsBase64() {
+    public void ByteArraysArriveAsBase64()
+    {
         Assert.Equal(
             new byte[] { 1, 2, 3 },
-            _service.ParseRequired<byte[]>(Convert.ToBase64String(new byte[] { 1, 2, 3 }), "data"));
+            _service.ParseRequired<byte[]>(Convert.ToBase64String(new byte[] { 1, 2, 3 }), "data")
+        );
     }
 
     /// <summary>
@@ -404,26 +464,33 @@ public class StringConverterServiceTests {
     /// under a comma-decimal culture the machine default would have read it as fifteen.
     /// </summary>
     [Fact]
-    public void ParsingDoesNotFollowTheAmbientCulture() {
+    public void ParsingDoesNotFollowTheAmbientCulture()
+    {
         var previous = CultureInfo.CurrentCulture;
         CultureInfo.CurrentCulture = new CultureInfo("de-DE");
 
-        try {
+        try
+        {
             Assert.Equal(1.5m, _service.ParseRequired<decimal>("1.5", "price"));
         }
-        finally {
+        finally
+        {
             CultureInfo.CurrentCulture = previous;
         }
     }
 
     /// <summary>A type nothing can parse still reports as a client error rather than escaping as a 500.</summary>
     [Fact]
-    public void AnUnsupportedTypeReportsAsInvalid() {
+    public void AnUnsupportedTypeReportsAsInvalid()
+    {
         var ex = Assert.Throws<ValidationException>(() =>
-            _service.ParseRequired<StringConverterServiceTests>("anything", "testValue"));
+            _service.ParseRequired<StringConverterServiceTests>("anything", "testValue")
+        );
 
-        Assert.Equal(ValidationModules.ValidationCodes.Invalid,
-            Assert.Single(ex.ValidationResult.Errors).Code);
+        Assert.Equal(
+            ValidationModules.ValidationCodes.Invalid,
+            Assert.Single(ex.ValidationResult.Errors).Code
+        );
     }
 
     /// <summary>
@@ -432,14 +499,21 @@ public class StringConverterServiceTests {
     /// asserting only that something was wrong.
     /// </summary>
     [Fact]
-    public void TheUnderlyingParseFailureIsKept() {
+    public void TheUnderlyingParseFailureIsKept()
+    {
         var ex = Assert.Throws<ValidationException>(() =>
-            _service.ParseRequired<int>("not-a-number", "testValue"));
+            _service.ParseRequired<int>("not-a-number", "testValue")
+        );
 
         Assert.IsType<FormatException>(ex.InnerException);
     }
 
-    public enum PetStatus { Available, Pending, Sold }
+    public enum PetStatus
+    {
+        Available,
+        Pending,
+        Sold,
+    }
 
     private object? Invoke(string method, Type type, string value) =>
         typeof(StringConverterService)

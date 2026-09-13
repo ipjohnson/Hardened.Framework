@@ -7,7 +7,8 @@ namespace Hardened.Web.Runtime.Configuration;
 /// <c>/orders</c> and <c>/orders/</c> are unrelated routes with no option to say otherwise, so any
 /// route a client might link either way has to be declared twice. One knob, three settings.
 /// </remarks>
-public enum TrailingSlash {
+public enum TrailingSlash
+{
     /// <summary>
     /// The two paths are different resources, and only the declared one answers.
     /// </summary>
@@ -34,17 +35,19 @@ public enum TrailingSlash {
     /// because a redirect must not change the method: a 301 on a POST is rewritten to GET by most
     /// clients, which silently drops the body.
     /// </remarks>
-    Redirect
+    Redirect,
 }
 
 /// <summary>
 /// How the web pipeline treats a path that no route matched exactly.
 /// </summary>
-public interface IWebRoutingConfiguration {
+public interface IWebRoutingConfiguration
+{
     TrailingSlash TrailingSlash { get; }
 }
 
 /// <inheritdoc />
-public class WebRoutingConfiguration : IWebRoutingConfiguration {
+public class WebRoutingConfiguration : IWebRoutingConfiguration
+{
     public TrailingSlash TrailingSlash { get; set; } = TrailingSlash.Strict;
 }

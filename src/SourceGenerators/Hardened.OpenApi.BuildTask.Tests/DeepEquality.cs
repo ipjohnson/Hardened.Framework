@@ -22,28 +22,46 @@ namespace Hardened.OpenApi.BuildTask.Tests;
 /// forgotten in the serializer has to fail here without anyone remembering to extend this file.
 /// </para>
 /// </remarks>
-internal static class DeepEquality {
-
-    public static void AssertEqual(object? expected, object? actual) {
+internal static class DeepEquality
+{
+    public static void AssertEqual(object? expected, object? actual)
+    {
         var differences = new List<string>();
-        Compare(expected, actual, "model", differences, new HashSet<object>(ReferenceEqualityComparer.Instance));
+        Compare(
+            expected,
+            actual,
+            "model",
+            differences,
+            new HashSet<object>(ReferenceEqualityComparer.Instance)
+        );
 
-        if (differences.Count == 0) {
+        if (differences.Count == 0)
+        {
             return;
         }
 
         var message = new StringBuilder("Round trip lost or changed data:");
 
-        foreach (var difference in differences) {
+        foreach (var difference in differences)
+        {
             message.Append("\n  ").Append(difference);
         }
 
         throw new Xunit.Sdk.XunitException(message.ToString());
     }
 
-    private static void Compare(object? expected, object? actual, string path, List<string> differences, HashSet<object> seen) {
-        if (expected is null || actual is null) {
-            if (!ReferenceEquals(expected, actual)) {
+    private static void Compare(
+        object? expected,
+        object? actual,
+        string path,
+        List<string> differences,
+        HashSet<object> seen
+    )
+    {
+        if (expected is null || actual is null)
+        {
+            if (!ReferenceEquals(expected, actual))
+            {
                 differences.Add($"{path}: expected {Describe(expected)}, found {Describe(actual)}");
             }
 
@@ -52,13 +70,16 @@ internal static class DeepEquality {
 
         var type = expected.GetType();
 
-        if (type != actual.GetType()) {
+        if (type != actual.GetType())
+        {
             differences.Add($"{path}: expected type {type.Name}, found {actual.GetType().Name}");
             return;
         }
 
-        if (type.IsPrimitive || type.IsEnum || type == typeof(string) || type == typeof(decimal)) {
-            if (!Equals(expected, actual)) {
+        if (type.IsPrimitive || type.IsEnum || type == typeof(string) || type == typeof(decimal))
+        {
+            if (!Equals(expected, actual))
+            {
                 differences.Add($"{path}: expected {Describe(expected)}, found {Describe(actual)}");
             }
 
@@ -66,37 +87,58 @@ internal static class DeepEquality {
         }
 
         // Guards against a model that ever gains a cycle; today none has one.
-        if (!seen.Add(expected)) {
+        if (!seen.Add(expected))
+        {
             return;
         }
 
-        if (expected is IDictionary expectedMap) {
+        if (expected is IDictionary expectedMap)
+        {
             CompareDictionaries(expectedMap, (IDictionary)actual, path, differences, seen);
             return;
         }
 
-        if (expected is IEnumerable expectedItems) {
+        if (expected is IEnumerable expectedItems)
+        {
             CompareSequences(expectedItems, (IEnumerable)actual, path, differences, seen);
             return;
         }
 
-        foreach (var property in type.GetProperties(BindingFlags.Public | BindingFlags.Instance)) {
-            if (property.GetIndexParameters().Length > 0 || property.GetMethod is null) {
+        foreach (var property in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+        {
+            if (property.GetIndexParameters().Length > 0 || property.GetMethod is null)
+            {
                 continue;
             }
 
-            Compare(property.GetValue(expected), property.GetValue(actual), $"{path}.{property.Name}", differences, seen);
+            Compare(
+                property.GetValue(expected),
+                property.GetValue(actual),
+                $"{path}.{property.Name}",
+                differences,
+                seen
+            );
         }
     }
 
-    private static void CompareDictionaries(IDictionary expected, IDictionary actual, string path, List<string> differences, HashSet<object> seen) {
-        if (expected.Count != actual.Count) {
+    private static void CompareDictionaries(
+        IDictionary expected,
+        IDictionary actual,
+        string path,
+        List<string> differences,
+        HashSet<object> seen
+    )
+    {
+        if (expected.Count != actual.Count)
+        {
             differences.Add($"{path}: expected {expected.Count} entries, found {actual.Count}");
             return;
         }
 
-        foreach (DictionaryEntry entry in expected) {
-            if (!actual.Contains(entry.Key)) {
+        foreach (DictionaryEntry entry in expected)
+        {
+            if (!actual.Contains(entry.Key))
+            {
                 differences.Add($"{path}: missing key '{entry.Key}'");
                 continue;
             }
@@ -105,16 +147,27 @@ internal static class DeepEquality {
         }
     }
 
-    private static void CompareSequences(IEnumerable expected, IEnumerable actual, string path, List<string> differences, HashSet<object> seen) {
+    private static void CompareSequences(
+        IEnumerable expected,
+        IEnumerable actual,
+        string path,
+        List<string> differences,
+        HashSet<object> seen
+    )
+    {
         var expectedList = expected.Cast<object?>().ToList();
         var actualList = actual.Cast<object?>().ToList();
 
-        if (expectedList.Count != actualList.Count) {
-            differences.Add($"{path}: expected {expectedList.Count} items, found {actualList.Count}");
+        if (expectedList.Count != actualList.Count)
+        {
+            differences.Add(
+                $"{path}: expected {expectedList.Count} items, found {actualList.Count}"
+            );
             return;
         }
 
-        for (var i = 0; i < expectedList.Count; i++) {
+        for (var i = 0; i < expectedList.Count; i++)
+        {
             Compare(expectedList[i], actualList[i], $"{path}[{i}]", differences, seen);
         }
     }
@@ -123,10 +176,12 @@ internal static class DeepEquality {
     /// Null and empty print differently on purpose - telling them apart is most of what this test
     /// exists to do.
     /// </summary>
-    private static string Describe(object? value) => value switch {
-        null => "<null>",
-        string { Length: 0 } => "<empty string>",
-        string text => $"\"{text}\"",
-        _ => value.ToString() ?? "<null>",
-    };
+    private static string Describe(object? value) =>
+        value switch
+        {
+            null => "<null>",
+            string { Length: 0 } => "<empty string>",
+            string text => $"\"{text}\"",
+            _ => value.ToString() ?? "<null>",
+        };
 }

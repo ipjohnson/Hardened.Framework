@@ -16,25 +16,32 @@ namespace Hardened.Requests.Serializers.Newtonsoft.Tests;
 /// what makes an expensive <c>ContractResolver</c> affordable — Newtonsoft caches contracts on the
 /// resolver, and a per-request serializer would rebuild them.
 /// </remarks>
-public class SharedSerializerTests {
-
+public class SharedSerializerTests
+{
     private static SharedSerializer Build(
         Func<IServiceProvider, JsonSerializer>? provider = null,
-        Action<ServiceCollection>? configureServices = null) {
+        Action<ServiceCollection>? configureServices = null
+    )
+    {
         var services = new ServiceCollection();
 
         configureServices?.Invoke(services);
 
-        return new SharedSerializer(services.BuildServiceProvider(), Pipeline.Configuration(provider));
+        return new SharedSerializer(
+            services.BuildServiceProvider(),
+            Pipeline.Configuration(provider)
+        );
     }
 
     [Fact]
-    public void TheDefaultConfigurationYieldsASerializer() {
+    public void TheDefaultConfigurationYieldsASerializer()
+    {
         Assert.NotNull(Build().Serializer);
     }
 
     [Fact]
-    public void TheConfiguredProviderIsWhatBuildsIt() {
+    public void TheConfiguredProviderIsWhatBuildsIt()
+    {
         var expected = JsonSerializer.CreateDefault();
 
         Assert.Same(expected, Build(_ => expected).Serializer);
@@ -45,10 +52,12 @@ public class SharedSerializerTests {
     /// cache on every request.
     /// </summary>
     [Fact]
-    public void TheProviderRunsOnceRatherThanPerAccess() {
+    public void TheProviderRunsOnceRatherThanPerAccess()
+    {
         var calls = 0;
 
-        var shared = Build(_ => {
+        var shared = Build(_ =>
+        {
             calls++;
 
             return JsonSerializer.CreateDefault();
@@ -61,7 +70,8 @@ public class SharedSerializerTests {
     }
 
     [Fact]
-    public void TheSerializerIsTheSameInstanceEveryTime() {
+    public void TheSerializerIsTheSameInstanceEveryTime()
+    {
         var shared = Build();
 
         Assert.Same(shared.Serializer, shared.Serializer);
@@ -72,16 +82,19 @@ public class SharedSerializerTests {
     /// registered services — a converter that needs a clock or a tenant, for instance.
     /// </summary>
     [Fact]
-    public void TheProviderIsGivenTheServiceProvider() {
+    public void TheProviderIsGivenTheServiceProvider()
+    {
         IServiceProvider? seen = null;
 
         Build(
-            serviceProvider => {
+            serviceProvider =>
+            {
                 seen = serviceProvider;
 
                 return JsonSerializer.CreateDefault();
             },
-            services => services.AddSingleton("registered"));
+            services => services.AddSingleton("registered")
+        );
 
         Assert.NotNull(seen);
         Assert.Equal("registered", seen.GetRequiredService<string>());
@@ -91,12 +104,16 @@ public class SharedSerializerTests {
     /// Reading and writing share one instance, so settings configured once apply to both.
     /// </summary>
     [Fact]
-    public void BothDirectionsSeeTheSameSerializer() {
+    public void BothDirectionsSeeTheSameSerializer()
+    {
         var shared = Build();
         var pool = Pipeline.Pool();
 
         var deserializer = new NewtonsoftDeserializer(
-            pool, shared, Microsoft.Extensions.Logging.Abstractions.NullLogger<NewtonsoftDeserializer>.Instance);
+            pool,
+            shared,
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<NewtonsoftDeserializer>.Instance
+        );
         var serializer = new NewtonsoftSerializer(shared, pool);
 
         Assert.NotNull(deserializer);

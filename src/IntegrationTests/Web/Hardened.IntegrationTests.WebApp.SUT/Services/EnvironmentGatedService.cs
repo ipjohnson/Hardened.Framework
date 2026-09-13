@@ -2,7 +2,8 @@ using DependencyModules.Runtime.Attributes;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Services;
 
-public interface IEnvironmentGatedService {
+public interface IEnvironmentGatedService
+{
     string Environment { get; }
 }
 
@@ -13,6 +14,7 @@ public interface IEnvironmentGatedService {
 /// </summary>
 [SingletonService]
 [IfEnvironment("environment-gated")]
-public class EnvironmentGatedService : IEnvironmentGatedService {
+public class EnvironmentGatedService : IEnvironmentGatedService
+{
     public string Environment => "environment-gated";
 }

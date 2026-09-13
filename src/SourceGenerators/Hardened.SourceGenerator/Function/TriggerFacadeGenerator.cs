@@ -44,22 +44,23 @@ namespace Hardened.SourceGenerator.Function;
 /// for, so building it through the emitter would be more code that says less.
 /// </para>
 /// </remarks>
-public static class TriggerFacadeGenerator {
-
+public static class TriggerFacadeGenerator
+{
     /// <summary>The kinds that get a façade, what a test calls to reach one, and what to call it.</summary>
     /// <remarks>
     /// <c>INVOKE</c> is here and shaped differently, and the difference is the reason it is worth
     /// having: a direct invocation answers. Its methods return what the handler returns and take
     /// one message rather than a batch, because there is a caller waiting and nothing to fan out.
     /// </remarks>
-    private static readonly (string Scheme, string Facade, string Noun)[] Kinds = {
+    private static readonly (string Scheme, string Facade, string Noun)[] Kinds =
+    {
         ("QUEUE", "Queues", "queue"),
         ("TOPIC", "Topics", "topic"),
         ("TIMER", "Timers", "timer"),
         ("CHANGE", "Changes", "table"),
         ("STREAM", "Streams", "stream"),
         ("BLOB", "Blobs", "bucket"),
-        ("INVOKE", "Invocations", "operation")
+        ("INVOKE", "Invocations", "operation"),
     };
 
     /// <summary>
@@ -80,11 +81,12 @@ public static class TriggerFacadeGenerator {
     public static readonly DiagnosticDescriptor CollidingFacadeName = new(
         "HRDF002",
         "Two sources produce the same test method name",
-        "The {0}s '{1}' and '{2}' both produce the test method '{3}', so only '{2}' can be reached " +
-        "through a trigger façade. Rename one of them, or suppress HRDF002 to keep the collision.",
+        "The {0}s '{1}' and '{2}' both produce the test method '{3}', so only '{2}' can be reached "
+            + "through a trigger façade. Rename one of them, or suppress HRDF002 to keep the collision.",
         "Hardened.Function",
         DiagnosticSeverity.Warning,
-        isEnabledByDefault: true);
+        isEnabledByDefault: true
+    );
 
     /// <summary>
     /// The façades for one application, or null when it declares no trigger that has one.
@@ -93,21 +95,25 @@ public static class TriggerFacadeGenerator {
         SourceProductionContext context,
         EntryPointSelector.Model entryPoint,
         IReadOnlyList<RequestHandlerModel> handlers,
-        CancellationToken cancellationToken) {
-
+        CancellationToken cancellationToken
+    )
+    {
         var bodies = new List<string>();
 
-        foreach (var kind in Kinds) {
+        foreach (var kind in Kinds)
+        {
             cancellationToken.ThrowIfCancellationRequested();
 
             var forKind = handlers.Where(handler => handler.Name.Method == kind.Scheme).ToList();
 
-            if (forKind.Count > 0) {
+            if (forKind.Count > 0)
+            {
                 bodies.Add(Facade(context, kind.Scheme, kind.Facade, kind.Noun, forKind));
             }
         }
 
-        if (bodies.Count == 0) {
+        if (bodies.Count == 0)
+        {
             return null;
         }
 
@@ -121,12 +127,18 @@ public static class TriggerFacadeGenerator {
     }
 
     private static string Facade(
-        SourceProductionContext context, string scheme, string name, string noun,
-        IReadOnlyList<RequestHandlerModel> handlers) {
+        SourceProductionContext context,
+        string scheme,
+        string name,
+        string noun,
+        IReadOnlyList<RequestHandlerModel> handlers
+    )
+    {
         var methods = new StringBuilder();
         var taken = new Dictionary<string, string>();
 
-        foreach (var handler in handlers) {
+        foreach (var handler in handlers)
+        {
             var source = handler.Name.Path.TrimStart('/');
             var methodName = Identifier(source);
 
@@ -134,10 +146,18 @@ public static class TriggerFacadeGenerator {
             // the cross-kind case there is no second façade to separate them. Emitting both would
             // be a duplicate method, so the second is skipped and reported - both still route
             // correctly at run time, and only one is reachable by name from a test.
-            if (taken.TryGetValue(methodName, out var owner)) {
+            if (taken.TryGetValue(methodName, out var owner))
+            {
                 context.ReportDiagnostic(
                     Diagnostic.Create(
-                        CollidingFacadeName, Location.None, noun, source, owner, methodName));
+                        CollidingFacadeName,
+                        Location.None,
+                        noun,
+                        source,
+                        owner,
+                        methodName
+                    )
+                );
 
                 continue;
             }
@@ -145,12 +165,12 @@ public static class TriggerFacadeGenerator {
             taken.Add(methodName, source);
 
             methods.Append(
-                scheme == "INVOKE"
-                    ? Call(methodName, handler)
-                    : Method(methodName, scheme, handler));
+                scheme == "INVOKE" ? Call(methodName, handler) : Method(methodName, scheme, handler)
+            );
         }
 
-        if (scheme == "INVOKE") {
+        if (scheme == "INVOKE")
+        {
             // A different delegate, because an invocation answers: the type it should come back as
             // goes in, and the value comes out. Still all BCL types, so a façade compiled into an
             // application references no testing package.
@@ -194,18 +214,22 @@ public static class TriggerFacadeGenerator {
     /// conventions. Generated code should not have to know which.
     /// </para>
     /// </remarks>
-    private static string Call(string methodName, RequestHandlerModel handler) {
-        var payload = handler.RequestParameterInformationList
-            .FirstOrDefault(parameter => parameter.BindingType == ParameterBindType.Body);
+    private static string Call(string methodName, RequestHandlerModel handler)
+    {
+        var payload = handler.RequestParameterInformationList.FirstOrDefault(parameter =>
+            parameter.BindingType == ParameterBindType.Body
+        );
 
-        var argument = payload == null
-            ? "new object()"
-            : "message";
+        var argument = payload == null ? "new object()" : "message";
 
-        var parameter = payload == null
-            ? ""
-            : "global::" + payload.ParameterType.Namespace + "." + payload.ParameterType.Name +
-              " message";
+        var parameter =
+            payload == null
+                ? ""
+                : "global::"
+                    + payload.ParameterType.Namespace
+                    + "."
+                    + payload.ParameterType.Name
+                    + " message";
 
         var returns = handler.ResponseInformation.ReturnType;
         var route = $"\"INVOKE\", \"{handler.Name.Path}\"";
@@ -213,7 +237,8 @@ public static class TriggerFacadeGenerator {
         // A void handler arrives as System.Void rather than as no type at all, and System.Void
         // cannot be written in C# - Task<System.Void> is a compile error, not a task with nothing
         // in it.
-        if (returns == null || (returns.Namespace == "System" && returns.Name == "Void")) {
+        if (returns == null || (returns.Namespace == "System" && returns.Name == "Void"))
+        {
             return $@"
             public async global::System.Threading.Tasks.Task {methodName}({parameter}) =>
                 await _call({argument}, {route}, null);
@@ -228,13 +253,16 @@ public static class TriggerFacadeGenerator {
 ";
     }
 
-    private static string Method(string methodName, string scheme, RequestHandlerModel handler) {
-        var payload = handler.RequestParameterInformationList
-            .FirstOrDefault(parameter => parameter.BindingType == ParameterBindType.Body);
+    private static string Method(string methodName, string scheme, RequestHandlerModel handler)
+    {
+        var payload = handler.RequestParameterInformationList.FirstOrDefault(parameter =>
+            parameter.BindingType == ParameterBindType.Body
+        );
 
         var route = $"\"{scheme}\", \"{handler.Name.Path}\"";
 
-        if (payload == null) {
+        if (payload == null)
+        {
             // A schedule, or a handler that takes nothing. No message to send, so no parameter -
             // which is the whole reason timers get a façade shape of their own.
             return $@"
@@ -262,21 +290,26 @@ public static class TriggerFacadeGenerator {
     /// A name starting with a digit gets a leading underscore, because a queue may legally be called
     /// <c>2024-archive</c> and a method may not.
     /// </remarks>
-    internal static string Identifier(string source) {
+    internal static string Identifier(string source)
+    {
         var builder = new StringBuilder(source.Length);
         var capitalise = true;
 
-        foreach (var character in source) {
-            if (char.IsLetterOrDigit(character)) {
+        foreach (var character in source)
+        {
+            if (char.IsLetterOrDigit(character))
+            {
                 builder.Append(capitalise ? char.ToUpperInvariant(character) : character);
                 capitalise = false;
             }
-            else {
+            else
+            {
                 capitalise = true;
             }
         }
 
-        if (builder.Length == 0) {
+        if (builder.Length == 0)
+        {
             return "Root";
         }
 

@@ -48,7 +48,8 @@ namespace Hardened.IntegrationTests.Conformance;
 /// <see cref="AbsentPetId"/> absent. Everything below is expressed in terms of that and nothing else.
 /// </para>
 /// </remarks>
-public abstract class PetstoreConformanceTests {
+public abstract class PetstoreConformanceTests
+{
     /// <summary>
     /// Names the front-end under test, so a failure says which of the three broke rather than only
     /// which behaviour did.
@@ -130,27 +131,38 @@ public abstract class PetstoreConformanceTests {
     private string Because(string what) => $"[{FrontEnd}] {what}";
 
     [HardenedTest]
-    public async Task ListPets_ReturnsOk(ITestWebApp app) {
+    public async Task ListPets_ReturnsOk(ITestWebApp app)
+    {
         var response = await app.Get("/pets");
 
-        Assert.True(response.StatusCode == 200,
-            Because($"GET /pets answered {response.StatusCode}, expected 200."));
+        Assert.True(
+            response.StatusCode == 200,
+            Because($"GET /pets answered {response.StatusCode}, expected 200.")
+        );
     }
 
     [HardenedTest]
-    public async Task GetPet_WithAKnownId_ReturnsOk(ITestWebApp app) {
+    public async Task GetPet_WithAKnownId_ReturnsOk(ITestWebApp app)
+    {
         var response = await app.Get("/pets/1");
 
-        Assert.True(response.StatusCode == 200,
-            Because($"GET /pets/1 answered {response.StatusCode}, expected 200."));
+        Assert.True(
+            response.StatusCode == 200,
+            Because($"GET /pets/1 answered {response.StatusCode}, expected 200.")
+        );
     }
 
     [HardenedTest]
-    public async Task GetPet_WithAnUnknownId_ReturnsNotFound(ITestWebApp app) {
+    public async Task GetPet_WithAnUnknownId_ReturnsNotFound(ITestWebApp app)
+    {
         var response = await app.Get($"/pets/{AbsentPetId}");
 
-        Assert.True(response.StatusCode == 404,
-            Because($"GET /pets/{AbsentPetId} answered {response.StatusCode}, expected 404 for an absent pet."));
+        Assert.True(
+            response.StatusCode == 404,
+            Because(
+                $"GET /pets/{AbsentPetId} answered {response.StatusCode}, expected 404 for an absent pet."
+            )
+        );
     }
 
     /// <summary>
@@ -164,35 +176,52 @@ public abstract class PetstoreConformanceTests {
     /// is what keeps that true.
     /// </remarks>
     [HardenedTest]
-    public async Task GetPet_WithAnEmptyToken_ReturnsNotFound(ITestWebApp app) {
+    public async Task GetPet_WithAnEmptyToken_ReturnsNotFound(ITestWebApp app)
+    {
         var response = await app.Get("/pets/");
 
-        Assert.True(response.StatusCode == 404,
-            Because($"GET /pets/ answered {response.StatusCode}, expected 404. " +
-                    "400 means the empty token was bound and reached the binder."));
+        Assert.True(
+            response.StatusCode == 404,
+            Because(
+                $"GET /pets/ answered {response.StatusCode}, expected 404. "
+                    + "400 means the empty token was bound and reached the binder."
+            )
+        );
     }
 
     [HardenedTest]
-    public async Task CreatePet_ReturnsCreated(ITestWebApp app) {
+    public async Task CreatePet_ReturnsCreated(ITestWebApp app)
+    {
         var response = await app.Post(new { name = "Rex" }, "/pets");
 
-        Assert.True(response.StatusCode == 201,
-            Because($"POST /pets answered {response.StatusCode}, expected 201."));
+        Assert.True(
+            response.StatusCode == 201,
+            Because($"POST /pets answered {response.StatusCode}, expected 201.")
+        );
     }
 
     /// <summary>
     /// A path that exists under another verb is a 405, not a 404 — and it says which verbs it has.
     /// </summary>
     [HardenedTest]
-    public async Task Pets_WithAnUnsupportedVerb_ReturnsMethodNotAllowed(ITestWebApp app) {
+    public async Task Pets_WithAnUnsupportedVerb_ReturnsMethodNotAllowed(ITestWebApp app)
+    {
         var response = await app.Delete("/pets");
 
-        Assert.True(response.StatusCode == 405,
-            Because($"DELETE /pets answered {response.StatusCode}, expected 405 " +
-                    "because /pets exists under GET and POST."));
+        Assert.True(
+            response.StatusCode == 405,
+            Because(
+                $"DELETE /pets answered {response.StatusCode}, expected 405 "
+                    + "because /pets exists under GET and POST."
+            )
+        );
 
-        Assert.True(response.Headers.ContainsKey("Allow"),
-            Because("A 405 carried no Allow header, so a client cannot learn what the path accepts."));
+        Assert.True(
+            response.Headers.ContainsKey("Allow"),
+            Because(
+                "A 405 carried no Allow header, so a client cannot learn what the path accepts."
+            )
+        );
     }
 
     /// <summary>
@@ -205,38 +234,56 @@ public abstract class PetstoreConformanceTests {
     /// never set PublishUrl. It does now.
     /// </remarks>
     [HardenedTest]
-    public async Task Description_IsServedAtTheDeclaredPath(ITestWebApp app) {
+    public async Task Description_IsServedAtTheDeclaredPath(ITestWebApp app)
+    {
         var response = await app.Get(DocumentPath);
 
-        Assert.True(response.StatusCode == 200,
-            Because($"GET {DocumentPath} answered {response.StatusCode}, expected 200 - " +
-                    "this application declares that it publishes its description there."));
+        Assert.True(
+            response.StatusCode == 200,
+            Because(
+                $"GET {DocumentPath} answered {response.StatusCode}, expected 200 - "
+                    + "this application declares that it publishes its description there."
+            )
+        );
 
         var body = await response.ReadTextAsync();
 
-        Assert.True(body.Length > 0,
-            Because($"GET {DocumentPath} answered 200 with an empty body, which reads as success " +
-                    "from every angle and describes nothing."));
+        Assert.True(
+            body.Length > 0,
+            Because(
+                $"GET {DocumentPath} answered 200 with an empty body, which reads as success "
+                    + "from every angle and describes nothing."
+            )
+        );
 
         // Formats differ - OpenAPI serves YAML, Smithy serves its JSON AST - so this asserts the
         // one thing both must contain rather than trying to parse either. Without it the test
         // passes against any 200, which is how a published document can be empty and unnoticed.
-        Assert.True(body.Contains("/pets", StringComparison.Ordinal),
-            Because($"The description served at {DocumentPath} does not mention /pets, so it is " +
-                    $"not describing this application. First 200 characters: {Head(body)}"));
+        Assert.True(
+            body.Contains("/pets", StringComparison.Ordinal),
+            Because(
+                $"The description served at {DocumentPath} does not mention /pets, so it is "
+                    + $"not describing this application. First 200 characters: {Head(body)}"
+            )
+        );
     }
 
     /// <summary>
     /// A declared-secure route refuses a caller who presents nothing.
     /// </summary>
     [HardenedTest]
-    public async Task SecuredRoute_RefusesAnAnonymousCaller(ITestWebApp app) {
+    public async Task SecuredRoute_RefusesAnAnonymousCaller(ITestWebApp app)
+    {
         var response = await app.Get(SecuredPath);
 
-        Assert.True(response.StatusCode is 401 or 403,
-            Because($"GET {SecuredPath} answered {response.StatusCode}, expected 401 or 403 — " +
-                    "this application declares that route as requiring an authenticated caller. " +
-                    "A 200 means the declaration was read and then not enforced."));
+        Assert.True(
+            response.StatusCode is 401 or 403,
+            Because(
+                $"GET {SecuredPath} answered {response.StatusCode}, expected 401 or 403 — "
+                    + "this application declares that route as requiring an authenticated caller. "
+                    + "A 200 means the declaration was read and then not enforced."
+            )
+        );
     }
 
     /// <summary>
@@ -249,12 +296,17 @@ public abstract class PetstoreConformanceTests {
     /// from <c>StatusCodeException</c>, which is where the two vocabularies already meet.
     /// </remarks>
     [HardenedTest]
-    public async Task DeclaredError_AnswersItsDeclaredStatus(ITestWebApp app) {
+    public async Task DeclaredError_AnswersItsDeclaredStatus(ITestWebApp app)
+    {
         var response = await app.Get($"/pets/{ThrottledPetId}");
 
-        Assert.True(response.StatusCode == 429,
-            Because($"GET /pets/{ThrottledPetId} answered {response.StatusCode}, expected 429. " +
-                    "A 500 means the declared error was raised and not recognised as a response."));
+        Assert.True(
+            response.StatusCode == 429,
+            Because(
+                $"GET /pets/{ThrottledPetId} answered {response.StatusCode}, expected 429. "
+                    + "A 500 means the declared error was raised and not recognised as a response."
+            )
+        );
     }
 
     /// <summary>
@@ -266,12 +318,17 @@ public abstract class PetstoreConformanceTests {
     /// a 200 would mean the constraint was declared and then not applied.
     /// </remarks>
     [HardenedTest]
-    public async Task MalformedPathToken_IsRefused(ITestWebApp app) {
+    public async Task MalformedPathToken_IsRefused(ITestWebApp app)
+    {
         var response = await app.Get($"/pets/{MalformedPetId}");
 
-        Assert.True(response.StatusCode == MalformedTokenStatus,
-            Because($"GET /pets/{MalformedPetId} answered {response.StatusCode}, expected " +
-                    $"{MalformedTokenStatus}. A 200 means the declared constraint was not applied."));
+        Assert.True(
+            response.StatusCode == MalformedTokenStatus,
+            Because(
+                $"GET /pets/{MalformedPetId} answered {response.StatusCode}, expected "
+                    + $"{MalformedTokenStatus}. A 200 means the declared constraint was not applied."
+            )
+        );
     }
 
     /// <summary>
@@ -291,17 +348,22 @@ public abstract class PetstoreConformanceTests {
     /// </para>
     /// </remarks>
     [HardenedTest]
-    public async Task DeclaredError_AppearsInTheDescription(ITestWebApp app) {
+    public async Task DeclaredError_AppearsInTheDescription(ITestWebApp app)
+    {
         var response = await app.Get(DocumentPath);
 
         response.Assert.Ok();
 
         var description = await response.ReadTextAsync();
 
-        Assert.True(description.Contains(DeclaredErrorStatus, StringComparison.Ordinal),
-            Because($"The description at {DocumentPath} does not mention {DeclaredErrorStatus}, so " +
-                    "a client reading it cannot learn the operation can answer that. " +
-                    $"First 200 characters: {Head(description)}"));
+        Assert.True(
+            description.Contains(DeclaredErrorStatus, StringComparison.Ordinal),
+            Because(
+                $"The description at {DocumentPath} does not mention {DeclaredErrorStatus}, so "
+                    + "a client reading it cannot learn the operation can answer that. "
+                    + $"First 200 characters: {Head(description)}"
+            )
+        );
     }
 
     private static string Head(string value) =>

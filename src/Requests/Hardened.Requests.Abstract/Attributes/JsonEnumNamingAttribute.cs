@@ -7,8 +7,8 @@ namespace Hardened.Requests.Abstract.Attributes;
 /// Names for the wire, not for C#. The member name is a C# identifier and the wire value is part of
 /// an API's contract, and they are only the same thing by coincidence.
 /// </remarks>
-public enum EnumNaming {
-
+public enum EnumNaming
+{
     /// <summary>The C# member name, unchanged - <c>InProgress</c>.</summary>
     /// <remarks>
     /// What System.Text.Json's own <c>UseStringEnumConverter</c> produces, and what a code-first
@@ -27,7 +27,7 @@ public enum EnumNaming {
     SnakeCaseLower,
 
     /// <summary><c>IN_PROGRESS</c>.</summary>
-    SnakeCaseUpper
+    SnakeCaseUpper,
 }
 
 /// <summary>
@@ -75,9 +75,10 @@ public enum EnumNaming {
 /// </example>
 /// </remarks>
 [AttributeUsage(AttributeTargets.Assembly | AttributeTargets.Enum, AllowMultiple = false)]
-public class JsonEnumNamingAttribute : Attribute {
-
-    public JsonEnumNamingAttribute(EnumNaming naming) {
+public class JsonEnumNamingAttribute : Attribute
+{
+    public JsonEnumNamingAttribute(EnumNaming naming)
+    {
         Naming = naming;
     }
 

@@ -17,17 +17,20 @@ namespace Hardened.Generation;
 /// <c>decimal</c> is rendered, unlike the others: it does have a literal form.
 /// </para>
 /// </remarks>
-internal static class DefaultLiteral {
-
+internal static class DefaultLiteral
+{
     /// <summary>
     /// The literal, or null where the value has no constant form in this type.
     /// </summary>
-    public static string? Format(string? value, string csType) {
-        if (value == null) {
+    public static string? Format(string? value, string csType)
+    {
+        if (value == null)
+        {
             return null;
         }
 
-        switch (csType) {
+        switch (csType)
+        {
             case "string":
                 return "\"" + Escape(value) + "\"";
 
@@ -40,7 +43,12 @@ internal static class DefaultLiteral {
             case "int":
             case "long":
             case "uint":
-                return long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out _)
+                return long.TryParse(
+                    value,
+                    NumberStyles.Integer,
+                    CultureInfo.InvariantCulture,
+                    out _
+                )
                     ? value.Trim()
                     : null;
 
@@ -63,6 +71,5 @@ internal static class DefaultLiteral {
             ? value.Trim() + suffix
             : null;
 
-    private static string Escape(string value) =>
-        value.Replace("\\", "\\\\").Replace("\"", "\\\"");
+    private static string Escape(string value) => value.Replace("\\", "\\\\").Replace("\"", "\\\"");
 }

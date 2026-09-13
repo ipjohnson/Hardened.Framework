@@ -25,8 +25,8 @@ namespace Hardened.Shared.Testing;
 /// idempotent and never replaces a provider another package put there.
 /// </para>
 /// </remarks>
-public sealed class NUnitCurrentTestProvider : ICurrentTestProvider {
-
+public sealed class NUnitCurrentTestProvider : ICurrentTestProvider
+{
     public object? Key => RunningTest;
 
     public Assembly? Assembly => RunningTest?.TypeInfo?.Assembly;
@@ -38,8 +38,10 @@ public sealed class NUnitCurrentTestProvider : ICurrentTestProvider {
     /// <summary>Installs this provider unless one is already installed.</summary>
     public static void Install() => CurrentTest.Provider ??= new NUnitCurrentTestProvider();
 
-    private static Test? RunningTest {
-        get {
+    private static Test? RunningTest
+    {
+        get
+        {
             var context = TestExecutionContext.CurrentContext;
 
             return context is TestExecutionContext.AdhocContext ? null : context.CurrentTest;

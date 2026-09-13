@@ -12,32 +12,37 @@ namespace Hardened.Shared.Runtime.Tests.Utilities;
 /// not land in it — and that it preserves <see cref="DateTimeKind"/>. Losing the kind turns a UTC
 /// timestamp into an unspecified one, which the next conversion reads as local.
 /// </remarks>
-public class DateTimeExtensionsTests {
-
+public class DateTimeExtensionsTests
+{
     [Theory]
     [InlineData(DateTimePrecision.Millisecond)]
     [InlineData(DateTimePrecision.Second)]
     [InlineData(DateTimePrecision.Minute)]
     [InlineData(DateTimePrecision.Hour)]
     [InlineData(DateTimePrecision.Day)]
-    public void FloorLeavesNoRemainderAtItsPrecision(DateTimePrecision precision) {
+    public void FloorLeavesNoRemainderAtItsPrecision(DateTimePrecision precision)
+    {
         var value = new DateTime(2026, 8, 18, 13, 47, 29, 856, DateTimeKind.Utc).AddTicks(4321);
 
         Assert.Equal(0, value.Floor(precision).Ticks % (long)precision);
     }
 
     [Fact]
-    public void FloorTruncatesRatherThanRounds() {
-        var value = new DateTime(2026, 8, 18, 13, 47, 29, DateTimeKind.Utc)
-            .AddTicks(TimeSpan.TicksPerSecond - 1);
+    public void FloorTruncatesRatherThanRounds()
+    {
+        var value = new DateTime(2026, 8, 18, 13, 47, 29, DateTimeKind.Utc).AddTicks(
+            TimeSpan.TicksPerSecond - 1
+        );
 
         Assert.Equal(
             new DateTime(2026, 8, 18, 13, 47, 29, DateTimeKind.Utc),
-            value.Floor(DateTimePrecision.Second));
+            value.Floor(DateTimePrecision.Second)
+        );
     }
 
     [Fact]
-    public void FloorOfAnAlreadyFlooredValueIsItself() {
+    public void FloorOfAnAlreadyFlooredValueIsItself()
+    {
         var value = new DateTime(2026, 8, 18, 13, 0, 0, DateTimeKind.Utc);
 
         Assert.Equal(value, value.Floor(DateTimePrecision.Hour));
@@ -50,33 +55,41 @@ public class DateTimeExtensionsTests {
     [InlineData(DateTimeKind.Utc)]
     [InlineData(DateTimeKind.Local)]
     [InlineData(DateTimeKind.Unspecified)]
-    public void FloorPreservesTheKind(DateTimeKind kind) {
+    public void FloorPreservesTheKind(DateTimeKind kind)
+    {
         var value = new DateTime(2026, 8, 18, 13, 47, 29, 856, kind);
 
         Assert.Equal(kind, value.Floor(DateTimePrecision.Minute).Kind);
     }
 
     [Fact]
-    public void ToEpochOfTheEpochIsZero() {
+    public void ToEpochOfTheEpochIsZero()
+    {
         Assert.Equal(0, new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).ToEpoch());
     }
 
     [Fact]
-    public void ToEpochCountsWholeSeconds() {
+    public void ToEpochCountsWholeSeconds()
+    {
         Assert.Equal(
-            1_000_000_000, new DateTime(2001, 9, 9, 1, 46, 40, DateTimeKind.Utc).ToEpoch());
+            1_000_000_000,
+            new DateTime(2001, 9, 9, 1, 46, 40, DateTimeKind.Utc).ToEpoch()
+        );
     }
 
     [Fact]
-    public void ToEpochIsNegativeBeforeTheEpoch() {
+    public void ToEpochIsNegativeBeforeTheEpoch()
+    {
         Assert.Equal(-86_400, new DateTime(1969, 12, 31, 0, 0, 0, DateTimeKind.Utc).ToEpoch());
     }
 
     [Fact]
-    public void ToEpochMillisecondsKeepsTheSubSecondPart() {
+    public void ToEpochMillisecondsKeepsTheSubSecondPart()
+    {
         Assert.Equal(
             1_000_000_000_250,
-            new DateTime(2001, 9, 9, 1, 46, 40, 250, DateTimeKind.Utc).ToEpochMilliseconds());
+            new DateTime(2001, 9, 9, 1, 46, 40, 250, DateTimeKind.Utc).ToEpochMilliseconds()
+        );
     }
 
     /// <summary>
@@ -84,7 +97,8 @@ public class DateTimeExtensionsTests {
     /// lands a second apart.
     /// </summary>
     [Fact]
-    public void ToEpochAndToEpochMillisecondsAgree() {
+    public void ToEpochAndToEpochMillisecondsAgree()
+    {
         var value = new DateTime(2026, 8, 18, 13, 47, 29, DateTimeKind.Utc);
 
         Assert.Equal(value.ToEpoch() * 1000, value.ToEpochMilliseconds());

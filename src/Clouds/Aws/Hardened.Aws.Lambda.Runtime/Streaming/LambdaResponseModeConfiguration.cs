@@ -5,7 +5,8 @@ namespace Hardened.Aws.Lambda.Runtime.Streaming;
 /// <summary>
 /// The response mode the function was deployed with. See <see cref="LambdaResponseMode"/>.
 /// </summary>
-public interface ILambdaResponseModeConfiguration {
+public interface ILambdaResponseModeConfiguration
+{
     LambdaResponseMode Mode { get; }
 }
 
@@ -21,7 +22,8 @@ public interface ILambdaResponseModeConfiguration {
 /// deployment that spelt the variable wrong would otherwise run buffered behind a front door
 /// expecting the prelude, and the first request would be a 500 with nothing in the logs to say why.
 /// </remarks>
-public class LambdaResponseModeConfiguration : ILambdaResponseModeConfiguration {
+public class LambdaResponseModeConfiguration : ILambdaResponseModeConfiguration
+{
     public const string EnvironmentVariable = "HARDENED_LAMBDA_RESPONSE_MODE";
 
     public const string BufferedValue = "buffered";
@@ -33,19 +35,23 @@ public class LambdaResponseModeConfiguration : ILambdaResponseModeConfiguration 
     /// <summary>
     /// The mode a setting names. Null or empty is buffered, the confirmed default.
     /// </summary>
-    public static LambdaResponseMode Parse(string? value) {
-        if (string.IsNullOrWhiteSpace(value) || Matches(value!, BufferedValue)) {
+    public static LambdaResponseMode Parse(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value) || Matches(value!, BufferedValue))
+        {
             return LambdaResponseMode.Buffered;
         }
 
-        if (Matches(value!, StreamValue)) {
+        if (Matches(value!, StreamValue))
+        {
             return LambdaResponseMode.Stream;
         }
 
         throw new InvalidOperationException(
-            $"{EnvironmentVariable} is '{value}'. It must be '{BufferedValue}' or '{StreamValue}'. " +
-            "A function URL in RESPONSE_STREAM invoke mode takes 'stream'; every other deployment " +
-            "takes 'buffered'.");
+            $"{EnvironmentVariable} is '{value}'. It must be '{BufferedValue}' or '{StreamValue}'. "
+                + "A function URL in RESPONSE_STREAM invoke mode takes 'stream'; every other deployment "
+                + "takes 'buffered'."
+        );
     }
 
     /// <summary>
@@ -54,7 +60,11 @@ public class LambdaResponseModeConfiguration : ILambdaResponseModeConfiguration 
     public static string ValueOf(LambdaResponseMode mode) =>
         mode == LambdaResponseMode.Stream ? StreamValue : BufferedValue;
 
-    public static void FromEnvironment(IHardenedEnvironment environment, LambdaResponseModeConfiguration configuration) {
+    public static void FromEnvironment(
+        IHardenedEnvironment environment,
+        LambdaResponseModeConfiguration configuration
+    )
+    {
         configuration.Mode = Parse(environment.Value<string>(EnvironmentVariable));
     }
 
