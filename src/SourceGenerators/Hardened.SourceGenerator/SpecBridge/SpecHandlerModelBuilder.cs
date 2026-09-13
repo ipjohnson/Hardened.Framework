@@ -287,11 +287,16 @@ internal static class SpecHandlerModelBuilder
 
             // Only where the contract named something other than JSON, so the writer's default
             // stays the default rather than being restated on every operation.
+            //
+            // Falling back to the parameter, because a code-first handler has no contract to have
+            // named one and the writer's default is the one media type a blob body cannot be. A
+            // byte[] parameter published application/json and a schema of format binary, so a
+            // generated client sent a multipart part labelled JSON to a route that reads bytes.
             RequestContentType =
                 operation.RequestBodyContentType is { } contentType
                 && contentType != "application/json"
                     ? contentType
-                    : null,
+                    : RawBodyContentType(parameters),
             ResponseSchemas = BuildResponseSchemas(operation, schemas),
 
             // One item of a streamed response, which the document writer publishes as itemSchema
@@ -455,6 +460,9 @@ internal static class SpecHandlerModelBuilder
                     constructorRequiresServices: symbols?.RequestBodyRequiresServices ?? false,
                     registeredAsService: symbols?.RequestBodyRegisteredAsService ?? false
                 )
+                {
+                    IsRawBody = symbols?.RequestBodyIsRaw ?? IsRawBodyType(knownBodyType),
+                }
             );
         }
         else if (operation.RequestBodyRef != null)
@@ -498,6 +506,11 @@ internal static class SpecHandlerModelBuilder
                     "",
                     index++
                 )
+                {
+                    // A contract's blob payload maps to byte[] here and reaches the same binder a
+                    // code-first byte[] does, so both read the bytes rather than the JSON.
+                    IsRawBody = IsRawBodyType(bodyType),
+                }
             );
         }
 
@@ -526,6 +539,41 @@ internal static class SpecHandlerModelBuilder
 
         return Ordered(parameters, symbols);
     }
+
+    /// <summary>
+    /// <c>application/octet-stream</c> where the body is bytes, or null for every other operation.
+    /// </summary>
+    /// <remarks>
+    /// Read off the bound parameter rather than asserted per front end, so a described blob payload
+    /// and a hand-written <c>byte[]</c> publish the same <c>requestBody</c>. Null leaves the
+    /// document writer's own default, which is JSON.
+    /// </remarks>
+    private static string? RawBodyContentType(IReadOnlyList<RequestParameterInformation> parameters)
+    {
+        foreach (var parameter in parameters)
+        {
+            if (parameter.BindingType == ParameterBindType.Body && parameter.IsRawBody)
+            {
+                return "application/octet-stream";
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Whether a bound body type is the payload rather than a shape to read out of one.
+    /// </summary>
+    /// <remarks>
+    /// The type as it was bound, because a described operation has no symbol to ask. It names
+    /// exactly <c>byte[]</c> and <c>System.IO.Stream</c>, which is what a contract's blob payload
+    /// and a hand-written parameter both map to. A <c>Stream</c> subclass is the case this cannot
+    /// see, and the front end that has a symbol answers that one before this is reached - see
+    /// <c>OperationSymbols.RequestBodyIsRaw</c>.
+    /// </remarks>
+    private static bool IsRawBodyType(ITypeDefinition bodyType) =>
+        bodyType.IsArray && bodyType.Name is "Byte" or "byte"
+        || bodyType is { Namespace: "System.IO", Name: "Stream" };
 
     /// <summary>The list as the model carries it, or null where the contract said nothing.</summary>
     private static string? Joined(List<string> contentTypes) =>

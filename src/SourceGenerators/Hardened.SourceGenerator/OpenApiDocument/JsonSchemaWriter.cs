@@ -139,6 +139,16 @@ public static class JsonSchemaWriter
             return primitive;
         }
 
+        // A Stream is the payload too, for the same reason byte[] is, and it reaches here from both
+        // directions: a handler taking one reads the body itself, and one returning it writes the
+        // body itself. Reflected instead, it published a component named Stream carrying canRead,
+        // canSeek, length and position - System.IO.Stream's own properties on the wire - and
+        // Refitter generated a Models.Stream that does not compile beside System.IO.Stream.
+        if (IsStream(type))
+        {
+            return BinaryPayload;
+        }
+
         if (type is IArrayTypeSymbol array)
         {
             // byte[] is the payload itself, not a sequence of numbers. Every element type below
@@ -241,6 +251,30 @@ public static class JsonSchemaWriter
     /// A binary body: the bytes themselves, which is what <c>byte[]</c> means on the wire.
     /// </summary>
     private const string BinaryPayload = "{\"type\":\"string\",\"format\":\"binary\"}";
+
+    /// <summary>
+    /// Whether a type is a <c>System.IO.Stream</c>, base types walked.
+    /// </summary>
+    /// <remarks>
+    /// Walked, so a handler declaring <c>MemoryStream</c> publishes what it writes rather than that
+    /// class's properties. The same walk the binder's own test does - see
+    /// <c>BaseRequestModelGenerator.IsRawBodyType</c>.
+    /// </remarks>
+    private static bool IsStream(ITypeSymbol? type)
+    {
+        for (var current = type; current != null; current = current.BaseType)
+        {
+            if (
+                current.Name == "Stream"
+                && current.ContainingNamespace?.ToDisplayString() == "System.IO"
+            )
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     /// <summary>
     /// What a dictionary's keys may be, where the key type says something a string does not.

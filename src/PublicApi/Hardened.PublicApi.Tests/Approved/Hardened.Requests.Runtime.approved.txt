@@ -829,6 +829,11 @@ namespace Hardened.Requests.Runtime.Serializer
         public NullValueResponseHandler(Microsoft.Extensions.Logging.ILogger<Hardened.Requests.Runtime.Serializer.NullValueResponseHandler> logger, Hardened.Requests.Abstract.Serializer.ISerializationLocatorService serializationLocatorService) { }
         public System.Threading.Tasks.Task Handle(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
     }
+    public static class RawBody
+    {
+        public static System.IO.Stream? Body(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+        public static System.Threading.Tasks.ValueTask<byte[]?> Bytes(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+    }
     public static class RawOutputHelper
     {
         public static Hardened.Requests.Abstract.Execution.DefaultOutputFunc OutputFunc(string contentType) { }

@@ -380,7 +380,14 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator
             bindingType,
             string.IsNullOrEmpty(bindingName) ? name : bindingName,
             parameterIndex
-        );
+        )
+        {
+            // [FromBody] reaches the same binder the fallthrough does, so a parameter named as the
+            // body explicitly gets the same reading as one that fell to it.
+            IsRawBody =
+                bindingType == ParameterBindType.Body
+                && IsRawBodyType(generatorSyntaxContext, parameter),
+        };
     }
 
     /// <remarks>
@@ -580,6 +587,7 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator
                 RequestBodyName = body?.Name,
                 RequestBodyRequiresServices = body?.ConstructorRequiresServices ?? false,
                 RequestBodyRegisteredAsService = body?.RegisteredAsService ?? false,
+                RequestBodyIsRaw = body?.IsRawBody ?? false,
                 ParameterOrder = parameters.OrderBy(p => p.ParameterIndex).Select(Wire).ToList(),
                 ParameterTypes = described.ToDictionary(
                     Wire,
