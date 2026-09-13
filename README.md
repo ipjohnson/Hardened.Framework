@@ -325,6 +325,73 @@ in [declared responses](https://ipjohnson.github.io/Hardened.Framework/guide/res
 the three you pick, so the difference between them is something to read rather than to take on
 trust. The old value `standard` still scaffolds throws mode, and goes away at 1.0.
 
+## Rendering HTML from a `.cshtml` view
+
+A handler returns a model and a view turns it into HTML. `[Output<T>]` names the view, and it names
+a type rather than a string, so a view that does not exist is a build error rather than a 500.
+
+```csharp
+[Get("/orders")]
+[Output<Views.Orders>]
+public OrderListModel List() => _orders.Recent();
+```
+
+```razor
+@* Views/Orders.cshtml *@
+@using Contoso.Orders.Models
+@inherits Contoso.Orders.ApplicationRazorTemplates<OrderListModel>
+
+<table>
+@foreach (var order in Model.Orders)
+{
+    <tr><td>@order.Reference</td><td>@order.Total.ToString("###.00")</td></tr>
+}
+</table>
+```
+
+Rendering is [RazorBlade](https://github.com/ltrzesniewski/RazorBlade), which compiles `.cshtml`
+into C# at build time. A property the model does not have is a compiler error rather than a blank in
+the page. A compiled view carries no ASP.NET Core dependency, so the same views render under
+Kestrel, ASP.NET Core and Lambda.
+
+Two package references and one attribute turn it on. Reference `RazorBlade` as well as
+`Hardened.Templates.RazorBlade`. RazorBlade ships no `buildTransitive/` folder and MSBuild props do
+not flow transitively, so referencing only the Hardened package leaves out the `.props` that globs
+`**/*.cshtml`. The views then compile to nothing, with no error.
+
+```csharp
+[HardenedModule]
+[HardenedWebModule]
+[KestrelRuntime]
+[Enable<RazorTemplates>]
+public partial class Application { }
+```
+
+`[Enable<RazorTemplates>]` generates `ApplicationRazorTemplates<TModel>`, named from the entry point
+plus the marker, and that is what a view inherits. There is nothing to register: the generated
+handler puts a factory on the response and the view renders itself. A handler or a filter can
+replace that factory to choose a different view per request.
+
+A view built on a generated base has the same `Links` property the rest of the application uses, so
+a link in a template is checked the same way a link in C# is:
+
+```razor
+<a href="@Links.Order.ById(order.Id)">@order.Reference</a>
+```
+
+RazorBlade copies `@` expressions verbatim and emits `#line` directives with exact spans, so
+renaming that route or its handler breaks the build at the template's own line and column.
+
+Declaring an output takes the response out of negotiation. `Accept: text/html`, `*/*` or no header
+gets the rendered view, and `Accept: application/json` gets a 406 with no body. A view usually
+renders a subset of what its model holds, so falling back to JSON would put the rest of the model on
+the wire from a route whose author wrote nothing but a view. To serve both representations, declare
+no output and return the model.
+
+There is no engine interface to implement. An output writes the response itself, so another engine
+ships a marker and a base and needs no change here. See
+[views](https://ipjohnson.github.io/Hardened.Framework/guide/templates).
+
 ## Filters
 
 Every request runs through the same pipeline, whatever the transport: an HTTP call, a function
