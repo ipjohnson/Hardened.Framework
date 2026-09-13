@@ -517,6 +517,86 @@ own `ILinkContext`. The default registration steps aside for it.
 
 A route that `HRDR002` refused gets no link.
 
+## Routes registered at startup
+
+A route whose path the application computes is registered by a type that implements
+`IRouteRegistration`. The path is the only part that comes from run time. The handler behind it is
+a handler declared the ordinary way, and the build generated it from that declaration.
+
+```csharp
+using Hardened.Web.Runtime.Routing;
+
+[SingletonService]
+public class TenantRoutes : IRouteRegistration {
+
+    private readonly ITenantCatalog _catalog;
+
+    public TenantRoutes(ITenantCatalog catalog) => _catalog = catalog;
+
+    public async ValueTask Register(IRouteRegistry routes, CancellationToken cancellationToken) {
+        foreach (var tenant in await _catalog.Active(cancellationToken)) {
+            routes.Get($"/{tenant.Slug}/orders/{{id:int}}",
+                       typeof(OrderController), nameof(OrderController.Get));
+        }
+    }
+}
+```
+
+`OrderController.Get` is declared `[Get("/orders/{id:int}")]` and answers there as well. The
+registration serves the same generated handler at one more path per tenant.
+
+`IRouteRegistry` has `Get`, `Post`, `Put`, `Patch`, `Delete` and `Map`. Each returns the registry,
+so calls chain. Each takes the path, the controller type and the handler method name. `Map` takes
+the verb first.
+
+The template language is the one the attributes use. The same tokens, the same constraints
+including the ones `[RouteConstraint]` declares, the same catch-all. `[BasePath]` on the entry point
+prefixes a registered path exactly as it prefixes an attribute route. `[CaseInsensitiveRoutes]`
+applies to both.
+
+Register the type in the container. It is constructed once, and its dependencies arrive through its
+constructor. `IRouteRegistry.ServiceProvider` is there for a dependency the constructor cannot take.
+
+### What runs when
+
+`Register` runs during startup, before the host serves anything. Startup services all run
+concurrently, so a registration that depends on another startup service's side effect has no
+ordering against it. Depend on a service the container can build.
+
+On Lambda this is the init path of every cold start. Whatever I/O `Register` does is paid there.
+
+The table is built once and is immutable from then on. Registering after startup throws and names
+the route.
+
+### What is checked, and when
+
+A route written as an attribute is a build error when it is wrong. A registered path does not exist
+until the application runs, so these checks move to startup. Every failure is collected and thrown
+together.
+
+| Check | When |
+|---|---|
+| Handler shape, binding, declared responses | Build |
+| A token the template declares twice | Startup |
+| A constraint name nothing declares | Startup |
+| Two registered routes at one path under one verb | Startup |
+| A template that does not declare a token the handler reads | Startup |
+
+The last one is the one to know about. A binder reads the token called `id`, not token 0, which is
+what lets a handler compiled for `/orders/{id}` answer at `/acme/orders/{id}`. Registered under a
+template spelling it `orderId`, the same handler would bind nothing. That is a startup failure
+rather than a 400 on every request.
+
+### What a registered route does not do
+
+It is not in the OpenAPI document. The document is emitted at build time from the routes the build
+can see, and a computed path is not one of them.
+
+`Application.Routes` and `Application.Links` do not carry it, for the same reason.
+
+An attribute route wins. Routes registered at startup are asked after the generated table, so a
+path declared both ways answers from the declaration.
+
 ## Routing diagnostics
 
 | Code | Reports | Severity |

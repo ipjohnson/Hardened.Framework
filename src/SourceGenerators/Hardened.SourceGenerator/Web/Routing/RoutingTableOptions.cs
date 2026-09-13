@@ -88,6 +88,17 @@ public sealed class RoutingTableOptions
         Array.Empty<IOutputComponent>();
 
     /// <summary>
+    /// Whether to emit the catalog a route registered at startup resolves its handler through.
+    /// </summary>
+    /// <remarks>
+    /// Only where the compilation declares an <c>IRouteRegistration</c>, so an application that
+    /// registers nothing at run time generates exactly what it generated before this existed. The
+    /// described path leaves it off: a described route's handler is reached through the description,
+    /// and pointing a computed path at one is a separate question from the one this answers.
+    /// </remarks>
+    public bool EmitRouteHandlerCatalog { get; init; }
+
+    /// <summary>
     /// The <c>[RouteConstraint]</c> methods the compilation declares, or null to leave whatever the
     /// caller already established.
     /// </summary>

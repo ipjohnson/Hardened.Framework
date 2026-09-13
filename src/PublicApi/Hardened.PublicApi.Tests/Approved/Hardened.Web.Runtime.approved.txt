@@ -1377,6 +1377,52 @@ namespace Hardened.Web.Runtime.Responses
 }
 namespace Hardened.Web.Runtime.Routing
 {
+    public sealed class GeneratedRouteHandler
+    {
+        public GeneratedRouteHandler(System.Type controllerType, string handlerMethod, string method, string declaredPath, Hardened.Web.Runtime.Routing.RouteHandlerFactory factory) { }
+        public System.Type ControllerType { get; }
+        public string DeclaredPath { get; }
+        public Hardened.Web.Runtime.Routing.RouteHandlerFactory Factory { get; }
+        public string HandlerMethod { get; }
+        public string Method { get; }
+    }
+    public interface IGeneratedRouteHandlerCatalog
+    {
+        string BasePath { get; }
+        bool CaseInsensitiveRoutes { get; }
+        System.Collections.Generic.IReadOnlyDictionary<string, Hardened.Web.Runtime.Routing.RouteConstraintTest> Constraints { get; }
+        System.Collections.Generic.IReadOnlyList<Hardened.Web.Runtime.Routing.GeneratedRouteHandler> Handlers { get; }
+    }
+    public interface IRouteRegistration
+    {
+        System.Threading.Tasks.ValueTask Register(Hardened.Web.Runtime.Routing.IRouteRegistry routes, System.Threading.CancellationToken cancellationToken);
+    }
+    public interface IRouteRegistry
+    {
+        System.IServiceProvider ServiceProvider { get; }
+        Hardened.Web.Runtime.Routing.IRouteRegistry Delete(string path, System.Type controllerType, string handlerMethod);
+        Hardened.Web.Runtime.Routing.IRouteRegistry Get(string path, System.Type controllerType, string handlerMethod);
+        Hardened.Web.Runtime.Routing.IRouteRegistry Map(string method, string path, System.Type controllerType, string handlerMethod);
+        Hardened.Web.Runtime.Routing.IRouteRegistry Patch(string path, System.Type controllerType, string handlerMethod);
+        Hardened.Web.Runtime.Routing.IRouteRegistry Post(string path, System.Type controllerType, string handlerMethod);
+        Hardened.Web.Runtime.Routing.IRouteRegistry Put(string path, System.Type controllerType, string handlerMethod);
+    }
+    public sealed class RegisteredRouteProvider : Hardened.Web.Runtime.Handlers.IWebExecutionRequestHandlerProvider
+    {
+        public RegisteredRouteProvider(System.IServiceProvider rootProvider, bool expectsRegistrations) { }
+        public bool IsReady { get; }
+        public Hardened.Web.Runtime.Handlers.RequestHandlerInfo? GetExecutionRequestHandler(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+        public void Publish(Hardened.Web.Runtime.Routing.RuntimeRouteTable table) { }
+    }
+    public static class RouteConstraintChain
+    {
+        public const int CustomPrecedence = 90;
+        public const int UnconstrainedPrecedence = 2147483647;
+        public static bool Passes(Hardened.Web.Runtime.Routing.RouteConstraintTest[] tests, System.ReadOnlySpan<char> value) { }
+        public static int Rank(string constraint) { }
+        public static bool TryResolve(string? chain, System.Collections.Generic.IReadOnlyDictionary<string, Hardened.Web.Runtime.Routing.RouteConstraintTest>? custom, out Hardened.Web.Runtime.Routing.RouteConstraintTest[] tests, out int rank, out string? error) { }
+    }
+    public delegate bool RouteConstraintTest(System.ReadOnlySpan<char> value);
     public static class RouteConstraints
     {
         public const string Alpha = "alpha";
@@ -1406,5 +1452,64 @@ namespace Hardened.Web.Runtime.Routing
         public static bool IsMinLength(System.ReadOnlySpan<char> value, int min) { }
         public static bool IsRange(System.ReadOnlySpan<char> value, long min, long max) { }
         public static bool IsSlug(System.ReadOnlySpan<char> value) { }
+    }
+    public delegate Hardened.Requests.Abstract.Execution.IExecutionRequestHandler RouteHandlerFactory(System.IServiceProvider serviceProvider, string? routePath);
+    public class RouteRegistrationController
+    {
+        public RouteRegistrationController() { }
+        public System.Threading.Tasks.Task Pending(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+    }
+    public class RouteRegistrationException : System.Exception
+    {
+        public RouteRegistrationException(System.Collections.Generic.IReadOnlyList<string> failures) { }
+        public System.Collections.Generic.IReadOnlyList<string> Failures { get; }
+    }
+    public class RouteRegistrationStartupService : Hardened.Shared.Runtime.Application.IStartupService
+    {
+        public RouteRegistrationStartupService() { }
+        public System.Threading.Tasks.Task<bool> Startup(System.IServiceProvider rootProvider) { }
+    }
+    public sealed class RouteRegistry : Hardened.Web.Runtime.Routing.IRouteRegistry
+    {
+        public RouteRegistry(System.IServiceProvider serviceProvider, Hardened.Web.Runtime.Routing.IGeneratedRouteHandlerCatalog? catalog) { }
+        public System.Collections.Generic.IReadOnlyList<string> Failures { get; }
+        public System.IServiceProvider ServiceProvider { get; }
+        public Hardened.Web.Runtime.Routing.RuntimeRouteTable Close() { }
+        public Hardened.Web.Runtime.Routing.IRouteRegistry Delete(string path, System.Type controllerType, string handlerMethod) { }
+        public Hardened.Web.Runtime.Routing.IRouteRegistry Get(string path, System.Type controllerType, string handlerMethod) { }
+        public Hardened.Web.Runtime.Routing.IRouteRegistry Map(string method, string path, System.Type controllerType, string handlerMethod) { }
+        public Hardened.Web.Runtime.Routing.IRouteRegistry Patch(string path, System.Type controllerType, string handlerMethod) { }
+        public Hardened.Web.Runtime.Routing.IRouteRegistry Post(string path, System.Type controllerType, string handlerMethod) { }
+        public Hardened.Web.Runtime.Routing.IRouteRegistry Put(string path, System.Type controllerType, string handlerMethod) { }
+    }
+    public readonly struct RouteSegment
+    {
+        public RouteSegment(Hardened.Web.Runtime.Routing.RouteSegmentKind kind, string value, string? constraint) { }
+        public string? Constraint { get; }
+        public Hardened.Web.Runtime.Routing.RouteSegmentKind Kind { get; }
+        public string Value { get; }
+    }
+    public enum RouteSegmentKind
+    {
+        Literal = 0,
+        Token = 1,
+        CatchAll = 2,
+    }
+    public static class RouteTemplateParser
+    {
+        public static string[] TokenNames(System.Collections.Generic.IReadOnlyList<Hardened.Web.Runtime.Routing.RouteSegment> segments) { }
+        public static bool TryParse(string? template, out System.Collections.Generic.IReadOnlyList<Hardened.Web.Runtime.Routing.RouteSegment> segments, out string? error) { }
+    }
+    public sealed class RuntimeRouteTable
+    {
+        public static readonly Hardened.Web.Runtime.Routing.RuntimeRouteTable Empty;
+        public int Count { get; }
+        public Hardened.Web.Runtime.Handlers.RequestHandlerInfo? Match(System.ReadOnlySpan<char> path, string method) { }
+    }
+    public sealed class RuntimeRouteTableBuilder
+    {
+        public RuntimeRouteTableBuilder(bool caseInsensitive = false, System.Collections.Generic.IReadOnlyDictionary<string, Hardened.Web.Runtime.Routing.RouteConstraintTest>? constraints = null) { }
+        public Hardened.Web.Runtime.Routing.RuntimeRouteTable Build() { }
+        public bool TryAdd(string template, string method, System.Func<string, Hardened.Requests.Abstract.Execution.IExecutionRequestHandler> handlerFactory, out string? error) { }
     }
 }

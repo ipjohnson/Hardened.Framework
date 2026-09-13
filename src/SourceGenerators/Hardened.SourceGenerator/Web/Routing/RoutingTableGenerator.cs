@@ -145,7 +145,8 @@ public static class RoutingTableGenerator
         var outputString = GenerateCSharpRouteFile(
             models.Left,
             routable,
-            context.CancellationToken
+            context.CancellationToken,
+            new RoutingTableOptions { EmitRouteHandlerCatalog = options.RouteRegistrationDeclared }
         );
 
         var fileName = models.Left.EntryPointType.Name + ".Routing";
@@ -331,6 +332,17 @@ public static class RoutingTableGenerator
 
         ServerSentEventManifestEmitter.Emit(appClass, eventStreams);
 
+        if (options.EmitRouteHandlerCatalog)
+        {
+            RouteHandlerCatalogEmitter.Emit(
+                appClass,
+                endPointModels,
+                _constraints ?? System.Array.Empty<RouteConstraintModel>(),
+                _caseInsensitive,
+                _basePath ?? ""
+            );
+        }
+
         ApplicationFilterEmitter.Emit(appClass, appModel.FilterDeclarations);
 
         GenerateDependencyInjection(
@@ -483,6 +495,20 @@ public static class RoutingTableGenerator
                     serviceCollection.InvokeGeneric("AddTransient", new[] { controllerType })
                 );
             }
+        }
+
+        if (options.EmitRouteHandlerCatalog)
+        {
+            diMethod.AddIndentedStatement(
+                serviceCollection.InvokeGeneric(
+                    "AddSingleton",
+                    new[]
+                    {
+                        KnownTypes.Web.IGeneratedRouteHandlerCatalog,
+                        RouteHandlerCatalogEmitter.Type(applicationModel),
+                    }
+                )
+            );
         }
 
         RegisterLinks(diMethod, serviceCollection, applicationModel, webEndPointModels);

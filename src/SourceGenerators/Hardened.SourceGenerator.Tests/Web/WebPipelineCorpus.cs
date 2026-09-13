@@ -25,6 +25,7 @@ public static class WebPipelineCorpus
         "execution-context",
         "streaming-response",
         "raw-response",
+        "registered-routes",
     ];
 
     public static string Source(string scenario) =>
@@ -144,6 +145,23 @@ public static class WebPipelineCorpus
                 }
                 """,
 
+                // The one scenario whose point is a file the others do not emit: declaring an
+                // IRouteRegistration is what makes the handler catalog appear.
+                "registered-routes" => """
+                public class TenantController {
+                    [Get("/orders/{id:int}")]
+                    public Task<string> Get(int id) => Task.FromResult(id.ToString());
+                }
+
+                public class TenantRoutes : IRouteRegistration {
+                    public ValueTask Register(IRouteRegistry routes, CancellationToken cancellationToken) {
+                        routes.Get("/acme/orders/{id:int}", typeof(TenantController), nameof(TenantController.Get));
+
+                        return default;
+                    }
+                }
+                """,
+
                 _ => throw new ArgumentOutOfRangeException(
                     nameof(scenario),
                     scenario,
@@ -159,11 +177,13 @@ public static class WebPipelineCorpus
         $$"""
             using System;
             using System.Collections.Generic;
+            using System.Threading;
             using System.Threading.Tasks;
             using Hardened.Requests.Abstract.Attributes;
             using Hardened.Requests.Abstract.Execution;
             using Hardened.Shared.Runtime.Attributes;
             using Hardened.Web.Runtime.Attributes;
+            using Hardened.Web.Runtime.Routing;
 
             namespace TestApp;
 
