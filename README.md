@@ -512,8 +512,3 @@ Everything ships to nuget.org as `Hardened.*`, and the templates reference the r
 project shape. Assembling by hand, the source generators are not optional and do not flow
 transitively: the project that owns the application references them directly. The full list is in
 the [package reference](https://ipjohnson.github.io/Hardened.Framework/reference/packages).
-
-## Related repositories
-
-- [Hardened.Amz](https://github.com/ipjohnson/Hardened.Amz) — the retired AWS line, last released at `0.22.0-rc1000`. Replaced by the `Hardened.Aws.Lambda.*` packages in [`src/Clouds/Aws`](src/Clouds/Aws), not renamed
-- [`docs/`](docs) — the documentation site, published from this repository
