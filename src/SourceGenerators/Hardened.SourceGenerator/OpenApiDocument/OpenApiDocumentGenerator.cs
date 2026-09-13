@@ -58,6 +58,11 @@ public static class OpenApiDocumentGenerator
         // a whole-service answer in a per-handler argument.
         handlers = WithJsonErrorBodies(appModel, handlers);
 
+        // And a handler that hands its response to an output publishes what the output writes,
+        // before any of that is read either. Same reason as above: what an application's views
+        // produce is declared once on a marker, not per handler.
+        handlers = WithOutputContentTypes(appModel, handlers);
+
         // Identity, in preference order: the contract's own (specification-first), an
         // [OpenApiInfo] on the entry point (code-first), then the fallbacks every application got
         // before either existed - the entry point's class name and "1.0.0". The fallbacks renamed
@@ -346,6 +351,117 @@ public static class OpenApiDocumentGenerator
 
         return false;
     }
+
+    /// <summary>
+    /// Every handler that hands its response to an output publishing what the output writes.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>What this published instead was <c>application/json</c> and a schema of the model</b> -
+    /// the one representation such a route refuses. Refitter reads that and pins
+    /// <c>[Headers("Accept: application/json")]</c>, so every generated-client call to a view route
+    /// was answered <c>406</c>; the route now answers the page whatever was asked for, and the
+    /// document has to say which page.
+    /// </para>
+    /// <para>
+    /// <b>The body is a string.</b> The model is not on the wire - a view renders a subset of it -
+    /// so a <c>$ref</c> to it under <c>text/html</c> would trade one wrong schema for another, and
+    /// a client generated from it would parse markup as the model. The model's component goes with
+    /// it, unless another operation reaches the same type and writes it.
+    /// </para>
+    /// <para>
+    /// Only the success statuses. A refusal never reaches the output: a handler that threw has no
+    /// model to render, so <c>ContextSerializationService</c> sends it to the exception serializer
+    /// before the output is asked for anything, and its body is whatever the error-body policy
+    /// says.
+    /// </para>
+    /// <para>
+    /// <b>An operation that declared its media types is left entirely alone</b>, response body and
+    /// all. That is every described operation - a contract states what its <c>text/html</c> carries
+    /// and the contract is what the service publishes, not something to be corrected from here -
+    /// and it is how a handler in an application enabling two engines says which of them its view
+    /// came from, with <c>[Produces]</c>. See <see cref="TemplateOutputFeature"/>.
+    /// </para>
+    /// </remarks>
+    private static IReadOnlyList<RequestHandlerModel> WithOutputContentTypes(
+        EntryPointSelector.Model appModel,
+        IReadOnlyList<RequestHandlerModel> handlers
+    )
+    {
+        if (!handlers.Any(handler => handler.ResponseInformation.OutputType != null))
+        {
+            return handlers;
+        }
+
+        var contentType = TemplateOutputFeature.ContentType(appModel);
+        var rewritten = new List<RequestHandlerModel>(handlers.Count);
+
+        foreach (var handler in handlers)
+        {
+            rewritten.Add(
+                handler.ResponseInformation.OutputType == null
+                    ? handler
+                    : WithOutputBody(handler, contentType)
+            );
+        }
+
+        return rewritten;
+    }
+
+    /// <summary>
+    /// One handler's success rewritten to the media type its output writes, carrying a string.
+    /// </summary>
+    private static RequestHandlerModel WithOutputBody(
+        RequestHandlerModel handler,
+        string contentType
+    )
+    {
+        var response = handler.ResponseInformation;
+
+        if (
+            !string.IsNullOrEmpty(response.SuccessContentTypes)
+            || !string.IsNullOrEmpty(response.ProducedContentTypes)
+        )
+        {
+            return handler;
+        }
+
+        var rewritten = handler.WithFilters(
+            handler.Filters,
+            response with
+            {
+                ProducedContentTypes = contentType,
+            },
+            handler.ResponseSchemas.Select(WithStringSuccess).ToList()
+        );
+
+        if (handler.ResponseSchema != null)
+        {
+            rewritten.ResponseSchema = StringBody;
+        }
+
+        return rewritten;
+    }
+
+    /// <summary>A declared success carrying the rendered page rather than the model.</summary>
+    private static ResponseSchemaModel WithStringSuccess(ResponseSchemaModel response)
+    {
+        if (response.Status >= 400 || response.Schema == null)
+        {
+            return response;
+        }
+
+        return new ResponseSchemaModel(response.Status, response.Description, StringBody)
+        {
+            Headers = response.Headers,
+        };
+    }
+
+    /// <summary>What an output puts on the wire, as far as a document can describe it.</summary>
+    private static readonly HandlerSchema StringBody = new(
+        "{\"type\":\"string\"}",
+        System.Array.Empty<SchemaComponent>()
+    );
 
     private static RequestHandlerModel Merged(
         RequestHandlerModel handler,
@@ -1618,11 +1734,14 @@ public static class OpenApiDocumentGenerator
     /// guess. The declared types come first, which is the order the runtime tries them in.
     /// </para>
     /// <para>
-    /// <b>A raw or streamed handler keeps JSON alone.</b> An error model is a model, and neither
-    /// writer will take one: <c>RawResponseSerializer.CanProduce</c> refuses a response value that
-    /// is not already bytes, and <c>StreamingJsonResponseSerializer.CanProduce</c> requires a
-    /// committed framing that a refusal before the first item never wrote. Both leave the exception
-    /// path with nothing producible, which is the case it commits JSON for.
+    /// <b>A raw, streamed or output-writing handler keeps JSON alone.</b> An error model is a
+    /// model, and none of those writers will take one: <c>RawResponseSerializer.CanProduce</c>
+    /// refuses a response value that is not already bytes,
+    /// <c>StreamingJsonResponseSerializer.CanProduce</c> requires a committed framing that a
+    /// refusal before the first item never wrote, and an output is never asked - a handler that
+    /// threw has no model to render, so <c>ContextSerializationService</c> reaches the exception
+    /// serializer first. All three leave the exception path with nothing producible, which is the
+    /// case it commits JSON for.
     /// </para>
     /// </remarks>
     private static IReadOnlyList<string> ErrorContentTypes(RequestHandlerModel handler)
@@ -1638,6 +1757,7 @@ public static class OpenApiDocumentGenerator
         if (
             handler.ResponseInformation.ReturnsBytesOrText
             || handler.ResponseInformation.IsAsyncEnumerable
+            || handler.ResponseInformation.OutputType != null
         )
         {
             return JsonOnly;

@@ -1,5 +1,7 @@
 using Hardened.IntegrationTests.Benchmark.SUT.Tests.Support;
+using Hardened.Requests.Abstract.Headers;
 using Hardened.Web.Runtime.Responses;
+using Microsoft.Extensions.Primitives;
 
 namespace Hardened.IntegrationTests.Benchmark.SUT.Tests;
 
@@ -33,6 +35,40 @@ public class FortunesTests
         Assert.StartsWith("<!DOCTYPE html>", body);
         Assert.Contains("<title>Fortunes</title>", body);
         Assert.DoesNotContain("\"fortunes\":", body);
+    }
+
+    /// <summary>
+    /// The page goes out whatever the caller asked for, <c>application/json</c> included.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This is the request a generated client makes. Refitter reads the operation and pins
+    /// <c>[Headers("Accept: application/json")]</c> on every method it writes, so a view route that
+    /// refused that header refused the whole generated client - a <c>406</c> with no body, from the
+    /// one route whose author had written a page for it.
+    /// </para>
+    /// <para>
+    /// The other half of the answer is that the model is still not serialized. A view renders a
+    /// subset of what its model holds, so falling back to JSON for a caller who asked for it would
+    /// put the rest on the wire - which is why the body is asserted to be the page rather than
+    /// merely to be a 200.
+    /// </para>
+    /// </remarks>
+    [HardenedTest]
+    public async Task Fortunes_RendersForACallerAskingForSomethingElse(ITestWebApp testWebApp)
+    {
+        foreach (var accept in new[] { "application/json", "application/x-msgpack", "text/plain" })
+        {
+            var response = await testWebApp.Get(
+                "/fortunes",
+                request => request.Headers[KnownHeaders.Accept] = new StringValues(accept)
+            );
+
+            response.Assert.Ok();
+
+            Assert.Equal("text/html; charset=utf-8", response.Headers["Content-Type"]);
+            Assert.StartsWith("<!DOCTYPE html>", await Body.Read(response));
+        }
     }
 
     /// <summary>

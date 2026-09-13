@@ -162,21 +162,46 @@ and column. See [Routes by name](/guide/routing#routes-by-name).
 
 ## What gets rendered
 
-Declaring an output takes the response out of negotiation. The view either answers what the
-client asked for, or the request gets `406 Not Acceptable`:
+Declaring an output takes the response out of negotiation. The view renders, whatever the client
+asked for:
 
 | Request | Response |
 |---|---|
 | `Accept: text/html` | The rendered view |
 | `Accept: */*`, or no header | The rendered view |
-| `Accept: application/json` | `406`, with no body |
+| `Accept: application/json` | The rendered view |
 
 A view usually renders a subset of what its model holds, so falling back to JSON would put the
 rest of the model on the wire from a route whose author wrote nothing but a view. Adding
 `[Output<T>]` to a handler can never widen what it discloses.
 
+Refusing an `Accept` the view does not produce is the other way to avoid that, and it costs more
+than it buys. A client generated from the document pins `Accept: application/json` on every
+method, so a view route that refuses that header refuses every call the generated client makes.
+
 To serve both representations from one handler, do not declare an output: return the model and
 let [content negotiation](/guide/content-negotiation) choose a serializer.
+
+## What the document says
+
+A code-first operation with an output publishes the media type the output writes, and a body of
+`type: string`:
+
+```json
+"200": { "content": { "text/html; charset=utf-8": { "schema": { "type": "string" } } } }
+```
+
+The media type comes from the `[TemplateContentType]` on the marker the module enabled, which is
+the same value the generated base writes onto the response. An application that enables no
+template engine, or more than one, publishes `text/html`; a handler that wants something else
+declares `[Produces]`, which is read ahead of the marker.
+
+The schema is `string` rather than the model because the model is not what goes on the wire. A
+`$ref` to it would have a generated client parse markup as the model.
+
+Refusals keep their own bodies. A handler that threw has no model to render, so the output is
+never reached and the error goes out under the [error-body
+policy](/guide/content-negotiation) like any other.
 
 ## Layouts, sections and partials
 
@@ -198,10 +223,9 @@ public sealed class HardenedFluidTemplate { }
 
 The generator resolves whichever marker `[Enable<T>]` names, reads those two attributes and emits
 a base deriving from what the first points at. The base implements
-`IHardenedResponseOutput<TModel>`, which is two methods:
+`IHardenedResponseOutput<TModel>`, which is one method:
 
 ```csharp
-bool SupportsContentType(string? accept, IExecutionContext context);
 Task WriteOutput(IExecutionContext context);
 ```
 

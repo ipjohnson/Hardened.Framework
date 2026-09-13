@@ -68,7 +68,7 @@ public class HardenedHtmlTemplateTests
 
     /// <summary>
     /// The content type follows from the base class rather than from a file extension or a
-    /// registry, and it is what the view answers <c>SupportsContentType</c> with.
+    /// registry, and it is what the view writes onto the response.
     /// </summary>
     [Fact]
     public async Task TheContentTypeComesFromTheBase()
@@ -83,9 +83,14 @@ public class HardenedHtmlTemplateTests
     }
 
     /// <summary>
-    /// A view answers for what it produces, for a wildcard, and for a client that sent no
-    /// preference at all.
+    /// The page goes out whatever the client asked for, including a type the view does not
+    /// produce.
     /// </summary>
+    /// <remarks>
+    /// A view is not a serializer and does not negotiate. Refusing an <c>Accept</c> it does not
+    /// answer meant refusing every call from a generated client, which pins
+    /// <c>application/json</c> on every method a document generator writes.
+    /// </remarks>
     [Theory]
     [InlineData("text/html")]
     [InlineData("text/html; charset=utf-8")]
@@ -93,34 +98,18 @@ public class HardenedHtmlTemplateTests
     [InlineData("*/*")]
     [InlineData(null)]
     [InlineData("")]
-    public void AViewAnswersWhatItProduces(string? accept)
-    {
-        Assert.True(Template().SupportsContentType(accept, Pipeline.Context(out _)));
-    }
-
-    /// <summary>
-    /// And declines what it does not, which is what turns into a 406 rather than into the model
-    /// serialized as JSON.
-    /// </summary>
-    [Theory]
     [InlineData("application/json")]
     [InlineData("application/xml, text/csv")]
-    public void AViewDeclinesWhatItDoesNotProduce(string accept)
+    public async Task AViewRendersWhateverTheClientAskedFor(string? accept)
     {
-        Assert.False(Template().SupportsContentType(accept, Pipeline.Context(out _)));
-    }
+        var context = Pipeline.Context(out var body, accept);
 
-    /// <summary>
-    /// It answers a header that lists several types when one of them is its own - a browser sends
-    /// <c>text/html, application/xhtml+xml, ..., */*</c> and every part of that has to work.
-    /// </summary>
-    [Fact]
-    public void AViewAnswersAHeaderListingSeveralTypes()
-    {
-        Assert.True(
-            Template()
-                .SupportsContentType("application/json, text/html;q=0.9", Pipeline.Context(out _))
-        );
+        context.Response.ResponseValue = Page;
+
+        await Template().WriteOutput(context);
+
+        Assert.Equal("text/html; charset=utf-8", context.Response.ContentType);
+        Assert.Contains("<li>1: hello</li>", Pipeline.Rendered(body));
     }
 
     /// <summary>

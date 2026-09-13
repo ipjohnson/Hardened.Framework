@@ -7,43 +7,35 @@ namespace Hardened.Requests.Abstract.Outputs;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Two questions and nothing else: will you answer this request, and write it. Everything a
-/// particular kind of output needs beyond that - a model, a content type, a writer, a layout -
-/// belongs to the base class that kind of output is built on, not here. A view is the obvious
-/// implementation; a signed file, a server-sent event stream and a protobuf frame are all the same
-/// shape.
+/// One question and nothing else: write this response. Everything a particular kind of output needs
+/// beyond that - a model, a content type, a writer, a layout - belongs to the base class that kind
+/// of output is built on, not here. A view is the obvious implementation; a signed file, a
+/// server-sent event stream and a protobuf frame are all the same shape.
 /// </para>
 /// <para>
 /// <b>An output is not a serializer, and does not negotiate.</b> A handler that declares one has
-/// said what its response <em>is</em>. If the client will not take that, the answer is
-/// <c>406 Not Acceptable</c> - never the model serialized as JSON instead. A view usually renders a
-/// subset of what its model holds, so falling back to JSON would put the rest of it on the wire:
-/// the difference between a page showing a customer's name and a response carrying their address,
-/// their internal identifiers and whatever else the model was carrying.
+/// said what its response <em>is</em>, and that is what the client gets whatever it asked for. The
+/// alternative was refusing an <c>Accept</c> the output does not answer with a <c>406</c>, which
+/// cost every generated client its call: a document generator reads the operation and pins
+/// <c>Accept: application/json</c>, and each of those requests was refused by the one route whose
+/// author had written a view for it.
+/// </para>
+/// <para>
+/// Falling back to serializing the model instead is the other thing this must not do. A view
+/// usually renders a subset of what its model holds, so a fallback would put the rest of it on the
+/// wire: the difference between a page showing a customer's name and a response carrying their
+/// address, their internal identifiers and whatever else the model was carrying. Adding
+/// <c>[Output&lt;T&gt;]</c> to a handler can never widen what it discloses.
 /// </para>
 /// </remarks>
 public interface IHardenedResponseOutput
 {
     /// <summary>
-    /// Whether this output can answer a client asking for <paramref name="accept"/>.
-    /// </summary>
-    /// <param name="accept">
-    /// The request's <c>Accept</c> header, unparsed. Null or empty means the client will take
-    /// anything, which is the same answer as <c>*/*</c> rather than a reason to refuse.
-    /// </param>
-    /// <remarks>
-    /// The header rather than one media type, because an output decides its own answer: a view
-    /// answers one type, a content-negotiating output may answer several, and neither has to be
-    /// expressed as a set the framework enumerates.
-    /// </remarks>
-    bool SupportsContentType(string? accept, IExecutionContext context);
-
-    /// <summary>
     /// Writes the response: the content type, the headers it needs, and the body.
     /// </summary>
     /// <remarks>
     /// The value the handler returned is on <c>context.Response.ResponseValue</c>. Taking it from
-    /// there rather than being handed it is what keeps this interface to two methods - and what
+    /// there rather than being handed it is what keeps this interface to one method - and what
     /// lets an output that needs no model implement it without an unused parameter.
     /// </remarks>
     Task WriteOutput(IExecutionContext context);

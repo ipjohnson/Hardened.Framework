@@ -49,8 +49,6 @@ public class TemplateBaseGeneratorTests
 
             public virtual string ContentType => "text/plain";
 
-            public bool SupportsContentType(string? accept, IExecutionContext context) => true;
-
             public Task WriteOutput(IExecutionContext context) {
                 Model = (TModel)context.Response.ResponseValue!;
                 Context = context;

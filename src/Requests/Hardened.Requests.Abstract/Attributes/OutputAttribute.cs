@@ -18,10 +18,11 @@ namespace Hardened.Requests.Abstract.Attributes;
 /// </para>
 ///
 /// <para>
-/// <b>Declaring one takes the response out of negotiation.</b> The output either answers what the
-/// client asked for or the request gets <c>406 Not Acceptable</c>; it never falls back to JSON. A
-/// view usually renders a subset of what its model holds, so a fallback would put the rest of it on
-/// the wire.
+/// <b>Declaring one takes the response out of negotiation.</b> The output writes the response
+/// whatever the client asked for, and never falls back to serializing the model: a view usually
+/// renders a subset of what its model holds, so a fallback would put the rest of it on the wire.
+/// The document says so too - the operation publishes the output's media type rather than
+/// <c>application/json</c> and a schema of the model.
 /// </para>
 ///
 /// <para>
