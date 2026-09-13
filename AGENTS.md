@@ -72,6 +72,50 @@ builds deliberately do not, so a build that is green locally can still fail CI o
 prints MSB3277 conflict lines by the hundred, which fills a `head -N` window and hides the real
 error above it. Capture to a file and test `$?`.
 
+## Formatting
+
+CSharpier owns every brace and line break in the repository. It reprints from the syntax tree
+rather than tidying what you wrote, so there is nothing to argue about and no local style to
+learn. Braces are Allman, which is the C# convention and the only style CSharpier emits.
+
+```bash
+dotnet tool restore                 # once per clone
+dotnet csharpier format .           # fix
+dotnet csharpier check .            # what CI runs
+```
+
+The version is pinned in `.config/dotnet-tools.json`. Two versions can disagree about the same
+file, so a floating install would make CI fail on a file the author had already formatted.
+
+Install the pre-commit hook once per clone:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+The hook checks and refuses rather than formatting in place, because formatting staged files and
+re-adding them also stages the unstaged hunks of a partially staged file. `--no-verify` skips it,
+which is why CI checks as well.
+
+`.csharpierignore` lists what is left alone, and each entry says why. Two are worth knowing:
+
+- **Recorded generator output** under the `Fixtures` directories. The golden tests compare it byte
+  for byte against what the generators emit, so a formatter passing over it fails
+  `RouteTable_OutputIsByteIdentical`. Rewrite those files with `HARDENED_RECORD_FIXTURES=1`.
+- **`dotnet new` template sources** under `src/Templates/Hardened.Templates/templates`. They carry
+  `<!--#if (unionMode) -->` conditionals that the template engine reads positionally, and three of
+  them do not parse as C# at all. Formatting them needs its own pass, verified with
+  `build/verify-templates.sh`.
+
+CSharpier 1.3.0 also formats `.csproj` and `.props`. That is turned off. A project file is read as
+build configuration, and reformatting one buries a single changed pin in a whole-file diff.
+
+Blame skips the reformat commit through `.git-blame-ignore-revs`:
+
+```bash
+git config blame.ignoreRevsFile .git-blame-ignore-revs
+```
+
 ## Two SDKs, and both are load-bearing
 
 `global.json` pins the build to a .NET 11 preview, which is the compiler that can read a C# 15

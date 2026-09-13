@@ -92,6 +92,18 @@ jobs:
           test "$(smithy --version)" = "$SMITHY_VERSION"
           smithy --version
 
+      - run: dotnet tool restore
+
+      # Formatting is a gate, not a suggestion. The pre-commit hook in .githooks catches this
+      # locally, but only for someone who ran `git config core.hooksPath .githooks`, and
+      # `git commit --no-verify` skips it. This is the check that actually holds the line.
+      #
+      # Placed before restore so it fails in seconds rather than after the AOT publishes.
+      # What it skips is listed in .csharpierignore: project files, dotnet new template
+      # sources, the recorded generator fixtures, and the one file using the union keyword.
+      - name: Check formatting
+        run: dotnet csharpier check .
+
       - run: dotnet restore Hardened.slnx
       - run: dotnet restore Hardened.Simulators.slnx
 
