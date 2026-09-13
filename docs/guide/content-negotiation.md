@@ -229,3 +229,4 @@ The 415 is answered for a `Content-Encoding` nothing can decode.
 - [JSON serialization](/guide/json): the default serializer
 - [Views](/guide/templates): a handler that writes its own response
 - [Streaming responses](/guide/streaming): NDJSON and server-sent events
+- [Response caching](/guide/response-caching#caching-an-operation-that-negotiates): one entry per representation

@@ -409,10 +409,6 @@ namespace Hardened.Web.Runtime.Headers
         Satisfiable = 1,
         Unsatisfiable = 2,
     }
-    public static class VaryHeader
-    {
-        public static void Add(System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers, string name) { }
-    }
 }
 namespace Hardened.Web.Runtime.Health
 {

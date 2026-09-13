@@ -1,12 +1,11 @@
 using Hardened.Requests.Abstract.Headers;
-using Hardened.Web.Runtime.Headers;
 using Microsoft.Extensions.Primitives;
 using Xunit;
 
-namespace Hardened.Web.Runtime.Tests.Headers;
+namespace Hardened.Requests.Abstract.Tests.Headers;
 
 /// <summary>
-/// <c>Vary</c> is merged, never assigned. Three filters write it, and while each assigned it the
+/// <c>Vary</c> is merged, never assigned. Four filters write it, and while each assigned it the
 /// last one to run erased what the others said - which for a cross-origin cached response is the
 /// difference between a shared cache serving one origin's response to another or not.
 /// </summary>

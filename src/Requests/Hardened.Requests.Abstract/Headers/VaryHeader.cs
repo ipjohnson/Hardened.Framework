@@ -1,18 +1,22 @@
-using Hardened.Requests.Abstract.Headers;
 using Microsoft.Extensions.Primitives;
 
-namespace Hardened.Web.Runtime.Headers;
+namespace Hardened.Requests.Abstract.Headers;
 
 /// <summary>
 /// Adds a request header name to <c>Vary</c> without losing the ones already there.
 /// </summary>
 /// <remarks>
 /// <para>
-/// Three things write <c>Vary</c>: the CORS filter, <c>VaryByHeader</c> and the response
-/// compression filter. Each used to assign the header, so whichever ran last won and a
-/// cross-origin cached response could say <c>Vary: Accept-Language</c> and nothing about
+/// Four things write <c>Vary</c>: the CORS filter, <c>VaryByHeader</c>, the response compression
+/// filter and <c>ResponseCacheFilter</c>. Each used to assign the header, so whichever ran last
+/// won and a cross-origin cached response could say <c>Vary: Accept-Language</c> and nothing about
 /// <c>Origin</c> - which is precisely the response a shared cache serves to the wrong origin.
 /// Merging is the only correct operation on this header, so it lives in one place.
+/// </para>
+/// <para>
+/// Beside <see cref="EntityTagHeader"/> rather than in the web runtime, because the fourth writer
+/// is the response cache, which is a request-level filter - and a function handler behind an HTTP
+/// front end has the same header to get right.
 /// </para>
 /// <para>
 /// A <c>Vary: *</c> already covers every request header, and is left alone.

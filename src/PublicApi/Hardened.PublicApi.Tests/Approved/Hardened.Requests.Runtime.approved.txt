@@ -136,7 +136,7 @@ namespace Hardened.Requests.Runtime.Caching
     public sealed class ResponseCacheFilter : Hardened.Requests.Abstract.Execution.IExecutionFilter
     {
         public const int DefaultDuration = 60;
-        public ResponseCacheFilter(Hardened.Requests.Abstract.Caching.ICacheKeyProvider[] keyProviders, string handlerKey, int duration, Hardened.Requests.Abstract.Caching.CacheScope scope = 1, string[]? tags = null) { }
+        public ResponseCacheFilter(Hardened.Requests.Abstract.Caching.ICacheKeyProvider[] keyProviders, string handlerKey, int duration, Hardened.Requests.Abstract.Caching.CacheScope scope = 1, string[]? tags = null, System.Collections.Generic.IReadOnlyList<string>? declared = null) { }
         public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
         public static Hardened.Requests.Runtime.Caching.ResponseCacheFilter Compose(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo, System.Collections.Generic.IReadOnlyList<Hardened.Requests.Abstract.Caching.ICacheResponseDeclaration> declarations) { }
     }

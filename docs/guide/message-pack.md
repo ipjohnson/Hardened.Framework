@@ -301,11 +301,6 @@ application/x-msgpack fails at the response. Declare that operation as JSON only
 A warning rather than an error, because a contract is free to declare a choice that no MessagePack
 operation ever answers with.
 
-## What is not covered
-
-**`Vary: Accept` and response caching across two representations.** A cached answer is stored under
-the request rather than under the representation it was negotiated into.
-
 ## Answering for a type the generator skipped
 
 Register an `IFormatterResolver` with the container. Registered resolvers are composed ahead of the
@@ -325,5 +320,6 @@ something in the container.
 ## Where to go next
 
 - [Content negotiation](/guide/content-negotiation) — how `Accept` is matched, and what a 406 means
+- [Response caching](/guide/response-caching#caching-an-operation-that-negotiates) — one entry per representation, and `Vary: Accept`
 - [JSON serialization](/guide/json) — the representation every operation still answers
 - [Clients](/guide/clients) — generating one from the published document

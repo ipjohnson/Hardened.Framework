@@ -837,6 +837,243 @@ public class ResponseCacheFilterTests
         return context;
     }
 
+    #region the representation
+
+    /// <summary>An operation offering two representations, keyed and negotiated over them.</summary>
+    private static ResponseCacheFilter Negotiating() =>
+        new(
+            [new CacheTestSupport.FixedKey()],
+            "GET /catalog",
+            60,
+            declared: ["application/json", "application/x-msgpack"]
+        );
+
+    private static IExecutionContext Asking(
+        CacheTestSupport.RecordingStore store,
+        string? accept
+    ) =>
+        Pipeline.Context(
+            accept: accept,
+            configureServices: services => services.AddSingleton<IResponseCacheStore>(store)
+        );
+
+    /// <summary>
+    /// The blocker. One caller filled the entry and the next got that caller's representation.
+    /// </summary>
+    /// <remarks>
+    /// Not a miss and not a 406 - a 200 carrying the other representation, under the other content
+    /// type. The two features this composes, response caching and content negotiation, did not.
+    /// </remarks>
+    [Fact]
+    public async Task TwoRepresentationsDoNotShareAnEntry()
+    {
+        var store = new CacheTestSupport.RecordingStore();
+
+        var json = Asking(store, "application/json");
+
+        await Pipeline.Chain(json, Negotiating(), Writing("{\"rate\":1}")).Next();
+
+        var packed = Asking(store, "application/x-msgpack");
+
+        await Pipeline.Chain(packed, Negotiating(), Writing("packed")).Next();
+
+        Assert.Equal("packed", BodyOf(packed));
+        Assert.Equal(2, store.Writes.Count);
+        Assert.NotEqual(store.Writes[0].Key, store.Writes[1].Key);
+    }
+
+    /// <summary>And each representation still gets its own hit.</summary>
+    [Fact]
+    public async Task EachRepresentationHitsItsOwnEntry()
+    {
+        var store = new CacheTestSupport.RecordingStore();
+        var ran = 0;
+
+        await Pipeline
+            .Chain(Asking(store, "application/json"), Negotiating(), Writing("json", () => ran++))
+            .Next();
+
+        await Pipeline
+            .Chain(
+                Asking(store, "application/x-msgpack"),
+                Negotiating(),
+                Writing("packed", () => ran++)
+            )
+            .Next();
+
+        var again = Asking(store, "application/json");
+
+        await Pipeline.Chain(again, Negotiating(), Writing("json", () => ran++)).Next();
+
+        Assert.Equal(2, ran);
+        Assert.Equal("json", BodyOf(again));
+    }
+
+    /// <summary>
+    /// Two headers that negotiate to the same representation share one entry, rather than each
+    /// getting its own because they were spelled differently.
+    /// </summary>
+    /// <remarks>
+    /// What keying on the negotiated type buys over keying on the header. A browser's
+    /// <c>Accept</c> and a client's bare one reach the same representation and are one entry.
+    /// </remarks>
+    [Fact]
+    public async Task HeadersReachingTheSameRepresentationShareAnEntry()
+    {
+        var store = new CacheTestSupport.RecordingStore();
+        var ran = 0;
+
+        await Pipeline
+            .Chain(Asking(store, "application/json"), Negotiating(), Writing("json", () => ran++))
+            .Next();
+
+        var verbose = Asking(store, "application/json;q=0.9, text/html, */*");
+
+        await Pipeline.Chain(verbose, Negotiating(), Writing("json", () => ran++)).Next();
+
+        Assert.Equal(1, ran);
+        Assert.Equal("json", BodyOf(verbose));
+    }
+
+    /// <summary>
+    /// A client expressing no preference is answered with the representation the operation leads
+    /// with, so it shares that one's entry rather than opening a third.
+    /// </summary>
+    [Theory]
+    [InlineData("*/*")]
+    [InlineData(null)]
+    public async Task NoPreferenceSharesTheLeadRepresentation(string? accept)
+    {
+        var store = new CacheTestSupport.RecordingStore();
+        var ran = 0;
+
+        await Pipeline
+            .Chain(Asking(store, "application/json"), Negotiating(), Writing("json", () => ran++))
+            .Next();
+
+        var wildcard = Asking(store, accept);
+
+        await Pipeline.Chain(wildcard, Negotiating(), Writing("json", () => ran++)).Next();
+
+        Assert.Equal(1, ran);
+        Assert.Equal("json", BodyOf(wildcard));
+    }
+
+    /// <summary>
+    /// <c>Vary: Accept</c>, so the shared cache in front of this service keys the way the store
+    /// just did. Keying correctly here settles one store and says nothing to a CDN.
+    /// </summary>
+    [Fact]
+    public async Task ANegotiatingOperationSaysItVariesOnAccept()
+    {
+        var store = new CacheTestSupport.RecordingStore();
+        var context = Asking(store, "application/json");
+
+        await Pipeline.Chain(context, Negotiating(), Writing("json")).Next();
+
+        Assert.Equal(KnownHeaders.Accept, context.Response.Headers[KnownHeaders.Vary].ToString());
+    }
+
+    /// <summary>And on the hit too, because it is a fact about the operation.</summary>
+    [Fact]
+    public async Task AHitSaysItVariesOnAcceptAsWell()
+    {
+        var store = new CacheTestSupport.RecordingStore();
+
+        await Pipeline
+            .Chain(Asking(store, "application/json"), Negotiating(), Writing("json"))
+            .Next();
+
+        var hit = Asking(store, "application/json");
+
+        await Pipeline.Chain(hit, Negotiating(), Writing("json")).Next();
+
+        Assert.Equal(KnownHeaders.Accept, hit.Response.Headers[KnownHeaders.Vary].ToString());
+    }
+
+    /// <summary>
+    /// An operation with one representation keys and advertises exactly as it did. Vary is what a
+    /// shared cache fragments on, so it is not written where nothing varies.
+    /// </summary>
+    [Fact]
+    public async Task OneRepresentationIsUnchanged()
+    {
+        var store = new CacheTestSupport.RecordingStore();
+
+        var filter = new ResponseCacheFilter(
+            [new CacheTestSupport.FixedKey()],
+            "GET /catalog",
+            60,
+            declared: ["application/json"]
+        );
+
+        var context = Asking(store, "application/json");
+
+        await Pipeline.Chain(context, filter, Writing("catalog")).Next();
+
+        Assert.Equal("GET /catalog" + Separator + "fixed", Assert.Single(store.Writes).Key);
+        Assert.False(context.Response.Headers.ContainsKey(KnownHeaders.Vary));
+    }
+
+    /// <summary>
+    /// Every caller asking for a representation the operation does not have shares one entry,
+    /// rather than each spelling opening its own.
+    /// </summary>
+    /// <remarks>
+    /// They are all answered the same way - a 406 under the strict negotiation mode, the default
+    /// serializer under the lenient one - so one entry is the right number. A 406 is not storable,
+    /// so under the strict mode the entry is never filled; this drives the filter directly, where
+    /// nothing decides a status, to assert the keying rather than the status.
+    /// </remarks>
+    [Fact]
+    public async Task NothingOnOfferIsOneEntry()
+    {
+        var store = new CacheTestSupport.RecordingStore();
+        var ran = 0;
+
+        await Pipeline
+            .Chain(Asking(store, "application/pdf"), Negotiating(), Writing("none", () => ran++))
+            .Next();
+
+        await Pipeline
+            .Chain(Asking(store, "image/png"), Negotiating(), Writing("none", () => ran++))
+            .Next();
+
+        Assert.Equal(1, ran);
+        Assert.Equal(
+            "GET /catalog" + Separator + "\u001e" + Separator + "fixed",
+            Assert.Single(store.Writes).Key
+        );
+    }
+
+    /// <summary>
+    /// The representation keys ahead of the strategies, so a handler that also varies on something
+    /// of its own gets one entry per pair rather than one per strategy.
+    /// </summary>
+    [Fact]
+    public async Task TheRepresentationComposesWithAStrategy()
+    {
+        var store = new CacheTestSupport.RecordingStore();
+
+        var filter = new ResponseCacheFilter(
+            [new CacheTestSupport.FixedKey()],
+            "GET /catalog",
+            60,
+            declared: ["application/json", "application/x-msgpack"]
+        );
+
+        var context = Asking(store, "application/x-msgpack");
+
+        await Pipeline.Chain(context, filter, Writing("packed")).Next();
+
+        Assert.Equal(
+            "GET /catalog" + Separator + "application/x-msgpack" + Separator + "fixed",
+            Assert.Single(store.Writes).Key
+        );
+    }
+
+    #endregion
+
     private static Pipeline.Inline Writing(string body, Action? onRun = null) =>
         new(async chain =>
         {

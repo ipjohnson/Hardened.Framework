@@ -2,7 +2,9 @@ using System.Net;
 using System.Text;
 using Hardened.Requests.Abstract.Caching;
 using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.Middleware;
+using Hardened.Requests.Abstract.Serializer;
 using Hardened.Requests.Runtime.Caching;
 using Hardened.Requests.Runtime.Middleware;
 using Hardened.Shared.Runtime.Application;
@@ -114,6 +116,108 @@ public class ResponseCacheOverASocketTests
         );
     }
 
+    /// <summary>The two representations a negotiating operation in the trial declared.</summary>
+    private static readonly string[] Negotiated = ["application/json", "application/x-msgpack"];
+
+    /// <summary>
+    /// The blocker, on a wire. Whoever filled the entry decided what everyone after got.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A JSON caller filled the entry and the next caller, asking for
+    /// <c>application/x-msgpack</c>, was handed the JSON bytes under
+    /// <c>Content-Type: application/json</c> - not a miss and not a 406, a 200 carrying the
+    /// representation it had said it could not read. And the other way round: a JSON caller after a
+    /// MessagePack one got binary.
+    /// </para>
+    /// <para>
+    /// Both orders, because the defect was symmetric and a test fixing one order would have passed
+    /// against the bug half the time.
+    /// </para>
+    /// </remarks>
+    [Theory]
+    [InlineData("application/json", "application/x-msgpack")]
+    [InlineData("application/x-msgpack", "application/json")]
+    public async Task ACallerGetsTheRepresentationItAskedFor(string first, string second)
+    {
+        await using var harness = await Harness.Start(
+            TestContext.Current.CancellationToken,
+            declared: Negotiated
+        );
+
+        var filled = await harness.Response(TestContext.Current.CancellationToken, first);
+        var next = await harness.Response(TestContext.Current.CancellationToken, second);
+
+        Assert.Equal(first, filled.Content.Headers.ContentType?.MediaType);
+        Assert.Equal(second, next.Content.Headers.ContentType?.MediaType);
+
+        Assert.Equal(
+            "body for " + second,
+            await next.Content.ReadAsStringAsync(TestContext.Current.CancellationToken)
+        );
+    }
+
+    /// <summary>
+    /// And each representation is still cached: asking for one twice runs the handler once.
+    /// </summary>
+    [Fact]
+    public async Task EachRepresentationIsStillCached()
+    {
+        await using var harness = await Harness.Start(
+            TestContext.Current.CancellationToken,
+            declared: Negotiated
+        );
+
+        await harness.Get(TestContext.Current.CancellationToken, "application/json");
+        await harness.Get(TestContext.Current.CancellationToken, "application/x-msgpack");
+        await harness.Get(TestContext.Current.CancellationToken, "application/json");
+        await harness.Get(TestContext.Current.CancellationToken, "application/x-msgpack");
+
+        Assert.Equal(2, harness.Answered);
+    }
+
+    /// <summary>
+    /// <c>Vary: Accept</c> goes out with it, so the shared cache in front of the service keys the
+    /// way the store does.
+    /// </summary>
+    /// <remarks>
+    /// Keying correctly settles this service's own store and says nothing to a CDN, which would go
+    /// on serving one representation to every client. On the hit as well, because it is a fact
+    /// about the operation rather than about the response that filled the entry.
+    /// </remarks>
+    [Fact]
+    public async Task ANegotiatedResponseSaysItVariesOnAccept()
+    {
+        await using var harness = await Harness.Start(
+            TestContext.Current.CancellationToken,
+            declared: Negotiated
+        );
+
+        var miss = await harness.Response(
+            TestContext.Current.CancellationToken,
+            "application/json"
+        );
+
+        var hit = await harness.Response(TestContext.Current.CancellationToken, "application/json");
+
+        Assert.Equal("Accept", Assert.Single(miss.Headers.GetValues(KnownHeaders.Vary)));
+        Assert.Equal("Accept", Assert.Single(hit.Headers.GetValues(KnownHeaders.Vary)));
+    }
+
+    /// <summary>
+    /// An operation with one representation says nothing about Vary, because nothing varies and
+    /// Vary is what a shared cache fragments on.
+    /// </summary>
+    [Fact]
+    public async Task AnOperationWithOneRepresentationDoesNotVary()
+    {
+        await using var harness = await Harness.Start(TestContext.Current.CancellationToken);
+
+        var response = await harness.Response(TestContext.Current.CancellationToken);
+
+        Assert.False(response.Headers.Contains(KnownHeaders.Vary));
+    }
+
     /// <summary>
     /// A handler that declares caching in an application with no store answers the framework's
     /// error envelope rather than a 500 with nothing in it.
@@ -166,9 +270,14 @@ public class ResponseCacheOverASocketTests
         /// False composes the application the way an author who declared [CacheResponse] and
         /// referenced no store package composed theirs.
         /// </param>
+        /// <param name="declared">
+        /// What the operation produces, for the negotiating case. Empty is the single-representation
+        /// operation every other test here drives.
+        /// </param>
         public static async Task<Harness> Start(
             CancellationToken cancellationToken,
-            bool withStore = true
+            bool withStore = true,
+            IReadOnlyList<string>? declared = null
         )
         {
             // A short timeout because the failure this exists for is a hang, not a bad answer: a
@@ -180,7 +289,7 @@ public class ResponseCacheOverASocketTests
 
             harness._app = Build(withStore ? store : null);
 
-            harness.Compose(store);
+            harness.Compose(store, declared ?? []);
 
             await harness._app.StartAsync(cancellationToken);
 
@@ -189,24 +298,39 @@ public class ResponseCacheOverASocketTests
             return harness;
         }
 
-        public async Task<string> Get(CancellationToken cancellationToken)
+        public async Task<string> Get(CancellationToken cancellationToken, string? accept = null)
         {
-            var response = await Response(cancellationToken);
+            var response = await Response(cancellationToken, accept);
 
             return await response.Content.ReadAsStringAsync(cancellationToken);
         }
 
-        public async Task<HttpResponseMessage> Response(CancellationToken cancellationToken)
+        public async Task<HttpResponseMessage> Response(
+            CancellationToken cancellationToken,
+            string? accept = null
+        )
         {
-            var response = await Raw(cancellationToken);
+            var response = await Raw(cancellationToken, accept);
 
             response.EnsureSuccessStatusCode();
 
             return response;
         }
 
-        public Task<HttpResponseMessage> Raw(CancellationToken cancellationToken) =>
-            _client.GetAsync("/rates", cancellationToken);
+        public Task<HttpResponseMessage> Raw(
+            CancellationToken cancellationToken,
+            string? accept = null
+        )
+        {
+            var request = new HttpRequestMessage(HttpMethod.Get, "/rates");
+
+            if (accept != null)
+            {
+                request.Headers.TryAddWithoutValidation(KnownHeaders.Accept, accept);
+            }
+
+            return _client.SendAsync(request, cancellationToken);
+        }
 
         public async ValueTask DisposeAsync()
         {
@@ -242,18 +366,19 @@ public class ResponseCacheOverASocketTests
         /// The cache, then the filter that answers. Registered before the server starts, so both
         /// land ahead of the routing filter the runner attaches.
         /// </summary>
-        private void Compose(IResponseCacheStore store)
+        private void Compose(IResponseCacheStore store, IReadOnlyList<string> declared)
         {
             var cache = new ResponseCacheFilter(
                 [new EveryRequest()],
                 "GET /rates",
-                ResponseCacheFilter.DefaultDuration
+                ResponseCacheFilter.DefaultDuration,
+                declared: declared
             );
 
             var middleware = _app.Services.GetRequiredService<IMiddlewareService>();
 
             middleware.Use(_ => cache);
-            middleware.Use(_ => new Answering(this, store));
+            middleware.Use(_ => new Answering(this, store, declared));
         }
 
         /// <summary>One entry for every request, which is what a collection endpoint has.</summary>
@@ -272,11 +397,17 @@ public class ResponseCacheOverASocketTests
         {
             private readonly Harness _harness;
             private readonly IResponseCacheStore _store;
+            private readonly IReadOnlyList<string> _declared;
 
-            public Answering(Harness harness, IResponseCacheStore store)
+            public Answering(
+                Harness harness,
+                IResponseCacheStore store,
+                IReadOnlyList<string> declared
+            )
             {
                 _harness = harness;
                 _store = store;
+                _declared = declared;
             }
 
             public async Task Execute(IExecutionChain chain)
@@ -294,11 +425,20 @@ public class ResponseCacheOverASocketTests
                 _harness.Answered++;
 
                 response.Status = 200;
-                response.ContentType = "application/json";
                 response.ShouldSerialize = false;
 
+                // What the serializer locator does for an operation that declares what it produces:
+                // the client's preferences on the outside, the declared set on the inside. Written
+                // out here because this chain has no handler and no serializer.
+                var index =
+                    _declared.Count == 0
+                        ? -1
+                        : MediaType.FirstAccepted(chain.Context.Request.Accept, _declared);
+
+                response.ContentType = index < 0 ? "application/json" : _declared[index];
+
                 await response.Body.WriteAsync(
-                    Encoding.UTF8.GetBytes(Answer),
+                    Encoding.UTF8.GetBytes(index < 0 ? Answer : "body for " + _declared[index]),
                     chain.Context.CancellationToken
                 );
             }
