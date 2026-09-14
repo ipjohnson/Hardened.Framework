@@ -1,5 +1,6 @@
 using CSharpAuthor;
 using Hardened.SourceGenerator.Models.Request;
+using Hardened.SourceGenerator.OpenApiDocument;
 using Hardened.SourceGenerator.Requests;
 using Hardened.SourceGenerator.Shared;
 using Microsoft.CodeAnalysis;
@@ -122,6 +123,7 @@ public static class LambdaRouteSelector
 
         var delegateType = DelegateType(lambda);
         var parameters = Parameters(context, parameterList, cancellationToken);
+        var response = Response(lambda);
 
         var handler = new RequestHandlerModel(
             // The path the handler reports before it is constructed, which nothing reads: the
@@ -132,11 +134,31 @@ public static class LambdaRouteSelector
             "Invoke",
             TypeDefinition.Get(HandlerNamespace(context), HandlerName(invocation, verb)),
             parameters,
-            Response(lambda),
+            response,
             Filters(context, lambdaSyntax, cancellationToken)
         )
         {
             IsDelegateHandler = true,
+
+            // What the lambda answers with and what it reads, on the same terms a declared
+            // handler's are read. Left unset, the document wrote a 200 with no content and no
+            // requestBody at all, so every registered operation published exactly the half a
+            // client cannot be generated from.
+            ResponseSchema = JsonSchemaWriter.Write(
+                BaseRequestModelGenerator.SchemaSubject(
+                    context.SemanticModel.Compilation,
+                    lambda.ReturnType,
+                    response
+                ),
+                context.SemanticModel.Compilation.Assembly
+            ),
+            RequestSchema = BodySchema(context, parameterList, parameters),
+
+            // The class the registration is written in, which is the group a reader of the
+            // document is looking for. Left unset, the tag came from ControllerType, which for a
+            // lambda is its delegate type - so every registered operation in the application
+            // documented under "Func".
+            Tag = RegistrationGroup(invocation),
         };
 
         return new LambdaRouteModel(
@@ -316,6 +338,70 @@ public static class LambdaRouteSelector
         }
 
         return attributes;
+    }
+
+    /// <summary>
+    /// The group a registered operation documents under: the type the registration is written in,
+    /// with a <c>Routes</c> suffix removed the way <c>HandlerGroup</c> removes <c>Controller</c>.
+    /// </summary>
+    /// <remarks>
+    /// Null where the call is not inside a type declaration, which leaves the tag to
+    /// <c>HandlerGroup</c> and its reading of the delegate type.
+    /// </remarks>
+    private static string? RegistrationGroup(InvocationExpressionSyntax invocation)
+    {
+        const string suffix = "Routes";
+
+        var declaring = invocation
+            .Ancestors()
+            .OfType<TypeDeclarationSyntax>()
+            .FirstOrDefault()
+            ?.Identifier.ValueText;
+
+        if (string.IsNullOrEmpty(declaring))
+        {
+            return null;
+        }
+
+        return
+            declaring!.Length > suffix.Length
+            && declaring.EndsWith(suffix, StringComparison.Ordinal)
+            ? declaring.Substring(0, declaring.Length - suffix.Length)
+            : declaring;
+    }
+
+    /// <summary>
+    /// The schema of the parameter the lambda reads its body from, if it takes one.
+    /// </summary>
+    /// <remarks>
+    /// The same rule the declared form uses, against the lambda's parameter list: a request
+    /// carries one body, so the first parameter that fell to it is the one described.
+    /// </remarks>
+    private static HandlerSchema? BodySchema(
+        GeneratorSyntaxContext context,
+        ParameterListSyntax? parameterList,
+        IReadOnlyList<RequestParameterInformation> parameters
+    )
+    {
+        var body = parameters.FirstOrDefault(parameter =>
+            parameter.BindingType == ParameterBindType.Body
+        );
+
+        if (body == null || parameterList == null)
+        {
+            return null;
+        }
+
+        var syntax = parameterList.Parameters.FirstOrDefault(parameter =>
+            parameter.Identifier.Text == body.Name
+        );
+
+        return syntax?.Type == null
+            ? null
+            : JsonSchemaWriter.Write(
+                context.SemanticModel.GetTypeInfo(syntax.Type).Type,
+                context.SemanticModel.Compilation.Assembly
+            );
     }
 
     private static IReadOnlyList<RequestParameterInformation> Parameters(

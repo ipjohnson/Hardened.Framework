@@ -1418,6 +1418,10 @@ namespace Hardened.Web.Runtime.Routing
         Hardened.Web.Runtime.Routing.IRouteRegistry Put(string path, System.Delegate handler);
         Hardened.Web.Runtime.Routing.IRouteRegistry Put(string path, System.Type controllerType, string handlerMethod);
     }
+    public static class RegisteredOperationId
+    {
+        public static string For(string method, string path) { }
+    }
     public static class RegisteredRouteDocument
     {
         public static string? Splice(string prefix, string suffix, [System.Runtime.CompilerServices.TupleElementNames(new string[] {

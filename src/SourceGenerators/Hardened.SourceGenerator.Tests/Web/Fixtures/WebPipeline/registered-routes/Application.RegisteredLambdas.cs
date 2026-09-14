@@ -97,7 +97,7 @@ public static global::Hardened.Web.Runtime.Routing.IRouteRegistry GET_0(this glo
         "GET",
         new string[] { "id" },
         (serviceProvider, routePath) => new global::GeneratorTestAssembly.Generated.Register_GET_9475be61(serviceProvider, (global::System.Func<int, global::System.Threading.Tasks.Task<int>>)handler, routePath),
-        "\"get\":{\"tags\":[\"Func\"],\"operationId\":\"invoke\",\"parameters\":[{\"name\":\"id\",\"in\":\"path\",\"required\":true,\"schema\":{\"type\":\"integer\",\"format\":\"int32\"}}],\"responses\":{\"200\":{\"description\":\"OK\"},\"400\":{\"description\":\"The request failed validation.\",\"content\":{\"application/json\":{\"schema\":{\"$ref\":\"#/components/schemas/RequestValidationError\"}}}}}}"));
+        "\"get\":{\"tags\":[\"Tenant\"],\"parameters\":[{\"name\":\"id\",\"in\":\"path\",\"required\":true,\"schema\":{\"type\":\"integer\",\"format\":\"int32\"}}],\"responses\":{\"200\":{\"description\":\"OK\",\"content\":{\"application/json\":{\"schema\":{\"type\":\"integer\",\"format\":\"int32\"}}}},\"400\":{\"description\":\"The request failed validation.\",\"content\":{\"application/json\":{\"schema\":{\"$ref\":\"#/components/schemas/RequestValidationError\"}}}}}}"));
     }
 }
 
