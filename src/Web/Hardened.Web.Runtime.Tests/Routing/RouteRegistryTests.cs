@@ -251,6 +251,133 @@ public class RouteRegistryTests
         Assert.Contains("cannot be registered after startup", thrown.Message);
     }
 
+    // ---- the lambda form ----------------------------------------------------
+
+    /// <remarks>
+    /// The generator rewrites every call it sees, so reaching the declared method means it saw
+    /// none - and a route that binds nothing is worse than a startup failure that says so.
+    /// </remarks>
+    [Theory]
+    [InlineData("GET")]
+    [InlineData("POST")]
+    [InlineData("PUT")]
+    [InlineData("PATCH")]
+    [InlineData("DELETE")]
+    public void ALambdaTheBuildDidNotReadThrows(string verb)
+    {
+        var registry = new RouteRegistry(Provider, Catalog());
+        Func<int, string> handler = id => id.ToString();
+
+        var thrown = Assert.Throws<InvalidOperationException>(() =>
+            Register(registry, verb, "/acme/orders/{id:int}", handler)
+        );
+
+        Assert.Contains("the build did not read", thrown.Message);
+        Assert.Contains("/acme/orders/{id:int}", thrown.Message);
+    }
+
+    [Fact]
+    public void AGeneratedHandlerAnswersAtTheComputedPath()
+    {
+        var registry = new RouteRegistry(Provider, Catalog());
+
+        registry.Map(
+            "/acme/orders/{id:int}",
+            new RegisteredRouteHandler(
+                "GET",
+                ["id"],
+                static (_, routePath) => new StubHandler(routePath ?? "")
+            )
+        );
+
+        Assert.Empty(registry.Failures);
+        Assert.NotNull(registry.Close().Match("/acme/orders/7", "GET"));
+    }
+
+    [Fact]
+    public void AGeneratedHandlerIsComposedOntoTheBasePath()
+    {
+        var registry = new RouteRegistry(Provider, Catalog(basePath: "/catalog"));
+
+        registry.Map(
+            "/acme/orders",
+            new RegisteredRouteHandler(
+                "POST",
+                [],
+                static (_, routePath) => new StubHandler(routePath ?? "")
+            )
+        );
+
+        Assert.NotNull(registry.Close().Match("/catalog/acme/orders", "POST"));
+    }
+
+    /// <remarks>
+    /// The binder reads the token called <c>id</c>. Registered under a template that spells it
+    /// something else it binds nothing, which is the check §8 calls the one most likely to bite.
+    /// </remarks>
+    [Fact]
+    public void ATemplateMissingABoundTokenIsReported()
+    {
+        var registry = new RouteRegistry(Provider, Catalog());
+
+        registry.Map(
+            "/acme/orders/{orderId:int}",
+            new RegisteredRouteHandler(
+                "GET",
+                ["id"],
+                static (_, routePath) => new StubHandler(routePath ?? "")
+            )
+        );
+
+        Assert.Contains("does not declare the token '{id}'", Assert.Single(registry.Failures));
+    }
+
+    [Fact]
+    public void AGeneratedHandlerCannotBeRegisteredAfterStartup()
+    {
+        var registry = new RouteRegistry(Provider, Catalog());
+
+        registry.Close();
+
+        Assert.Throws<InvalidOperationException>(() =>
+            registry.Map(
+                "/late",
+                new RegisteredRouteHandler(
+                    "GET",
+                    [],
+                    static (_, routePath) => new StubHandler(routePath ?? "")
+                )
+            )
+        );
+    }
+
+    private static void Register(
+        IRouteRegistry registry,
+        string verb,
+        string path,
+        Delegate handler
+    )
+    {
+        switch (verb)
+        {
+            case "GET":
+                registry.Get(path, handler);
+                break;
+            case "POST":
+                registry.Post(path, handler);
+                break;
+            case "PUT":
+                registry.Put(path, handler);
+                break;
+            case "PATCH":
+                registry.Patch(path, handler);
+                break;
+            default:
+                registry.Delete(path, handler);
+                break;
+        }
+    }
+
     // ---- helpers ------------------------------------------------------------
 
     private static readonly IServiceProvider Provider = new EmptyProvider();

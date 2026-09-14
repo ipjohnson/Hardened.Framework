@@ -52,12 +52,7 @@ public sealed class RouteRegistry : IRouteRegistry
 
     public IRouteRegistry Map(string method, string path, Type controllerType, string handlerMethod)
     {
-        if (_closed)
-        {
-            throw new InvalidOperationException(
-                $"Routes cannot be registered after startup, and '{path}' was. The table is built once and is immutable from then on."
-            );
-        }
+        Closed(path);
 
         var verb = (method ?? "").ToUpperInvariant();
         var handler = Find(verb, path, controllerType, handlerMethod);
@@ -89,6 +84,57 @@ public sealed class RouteRegistry : IRouteRegistry
         return this;
     }
 
+    public IRouteRegistry Get(string path, Delegate handler) => Map("GET", path, handler);
+
+    public IRouteRegistry Post(string path, Delegate handler) => Map("POST", path, handler);
+
+    public IRouteRegistry Put(string path, Delegate handler) => Map("PUT", path, handler);
+
+    public IRouteRegistry Patch(string path, Delegate handler) => Map("PATCH", path, handler);
+
+    public IRouteRegistry Delete(string path, Delegate handler) => Map("DELETE", path, handler);
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// Throws, and that is the whole implementation. The generator rewrites every call it sees to
+    /// an overload that carries the emitted handler, so reaching this one means the generator did
+    /// not see the call site - and a route that binds nothing is worse than a startup failure that
+    /// says so.
+    /// </remarks>
+    public IRouteRegistry Map(string method, string path, Delegate handler) =>
+        throw new InvalidOperationException(
+            $"'{path}' was registered with a lambda the build did not read, so there is no handler for it. "
+                + "A lambda registration has to be written directly in a method the Hardened web generator compiles - "
+                + "it cannot be passed through a helper, built into a variable, or written in a project the generator does not run on."
+        );
+
+    /// <inheritdoc />
+    public IRouteRegistry Map(string path, RegisteredRouteHandler handler)
+    {
+        Closed(path);
+
+        var composed = Compose(path);
+
+        if (!DeclaresTokens(handler.BoundTokens, composed, path, "the registered handler"))
+        {
+            return this;
+        }
+
+        if (
+            !_builder.TryAdd(
+                composed,
+                handler.Method,
+                routePath => handler.Factory(ServiceProvider, routePath),
+                out var error
+            )
+        )
+        {
+            _failures.Add(error!);
+        }
+
+        return this;
+    }
+
     /// <summary>The table as registered. Closes the registry.</summary>
     public RuntimeRouteTable Close()
     {
@@ -100,6 +146,16 @@ public sealed class RouteRegistry : IRouteRegistry
         }
 
         return _builder.Build();
+    }
+
+    private void Closed(string path)
+    {
+        if (_closed)
+        {
+            throw new InvalidOperationException(
+                $"Routes cannot be registered after startup, and '{path}' was. The table is built once and is immutable from then on."
+            );
+        }
     }
 
     /// <remarks>
@@ -196,6 +252,29 @@ public sealed class RouteRegistry : IRouteRegistry
             return false;
         }
 
+        return DeclaresTokens(
+            RouteTemplateParser.TokenNames(declared),
+            composed,
+            asWritten,
+            $"{Describe(handler.ControllerType, handler.HandlerMethod)} reads - it was declared as '{handler.DeclaredPath}'"
+        );
+    }
+
+    /// <summary>
+    /// Whether <paramref name="composed"/> declares every token in <paramref name="required"/>.
+    /// </summary>
+    private bool DeclaresTokens(
+        IReadOnlyList<string> required,
+        string composed,
+        string asWritten,
+        string reader
+    )
+    {
+        if (required.Count == 0)
+        {
+            return true;
+        }
+
         if (!RouteTemplateParser.TryParse(composed, out var registered, out var error))
         {
             _failures.Add(error!);
@@ -205,16 +284,14 @@ public sealed class RouteRegistry : IRouteRegistry
 
         var names = RouteTemplateParser.TokenNames(registered);
 
-        foreach (var name in RouteTemplateParser.TokenNames(declared))
+        foreach (var name in required)
         {
             if (Array.IndexOf(names, name) >= 0)
             {
                 continue;
             }
 
-            _failures.Add(
-                $"'{asWritten}' does not declare the token '{{{name}}}', which {Describe(handler.ControllerType, handler.HandlerMethod)} reads - it was declared as '{handler.DeclaredPath}'"
-            );
+            _failures.Add($"'{asWritten}' does not declare the token '{{{name}}}', which {reader}");
 
             return false;
         }
