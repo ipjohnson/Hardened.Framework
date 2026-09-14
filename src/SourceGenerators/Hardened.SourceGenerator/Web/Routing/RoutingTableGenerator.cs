@@ -1145,20 +1145,15 @@ public static class RoutingTableGenerator
         var index = wildCardMethod.AddParameter(typeof(int), "index");
         var methodString = wildCardMethod.AddParameter(typeof(string), "methodString");
 
-        if (wildCardNode.ChildNodes.Count > 0)
-        {
-            GenerateWildCardChildMatch(
-                routingClass,
-                wildCardNode,
-                wildCardMethod,
-                methodString,
-                span,
-                index,
-                cancellationToken
-            );
-        }
-
-        if (wildCardNode.WildCardNodes.Count > 0)
+        // Once, for either kind of continuation. GenerateWildCardChildMatch emits the scan and
+        // handles ChildNodes and WildCardNodes inside it, so calling it per kind emitted the whole
+        // thing twice for a node that has both: two declarations of the same local, and a second
+        // AddField for a handler field that already existed. The generator threw there, and a
+        // generator that throws produces no source at all, so the project lost every generated
+        // file it had rather than just this route.
+        //
+        // /probe/{id}/events beside /probe/{id}/{sub} is all it takes.
+        if (wildCardNode.ChildNodes.Count > 0 || wildCardNode.WildCardNodes.Count > 0)
         {
             GenerateWildCardChildMatch(
                 routingClass,
