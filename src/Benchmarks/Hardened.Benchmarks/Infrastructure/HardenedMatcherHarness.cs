@@ -44,10 +44,7 @@ public sealed class HardenedMatcherHarness : IDisposable
 
         // WebExecutionHandlerService reverses the registration order before walking them, so the
         // same order is used here rather than the raw enumeration order.
-        _providers =
-        [
-            .. _provider.GetServices<IWebExecutionRequestHandlerProvider>().Reverse(),
-        ];
+        _providers = [.. _provider.GetServices<IWebExecutionRequestHandlerProvider>().Reverse()];
     }
 
     /// <summary>

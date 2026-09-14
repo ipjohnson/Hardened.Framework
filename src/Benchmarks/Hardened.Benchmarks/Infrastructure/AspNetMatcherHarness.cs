@@ -75,16 +75,18 @@ public sealed class AspNetMatcherHarness : IDisposable
             outerMatcher
                 .GetType()
                 .GetProperty("CurrentMatcher", BindingFlags.Instance | BindingFlags.NonPublic)
-                ?.GetValue(outerMatcher) ?? outerMatcher;
+                ?.GetValue(outerMatcher)
+            ?? outerMatcher;
 
         MatcherName = inner.GetType().Name;
 
-        Match = (Func<HttpContext, Task>)
-            Delegate.CreateDelegate(
-                typeof(Func<HttpContext, Task>),
-                inner,
-                inner.GetType().GetMethod("MatchAsync", [typeof(HttpContext)])!
-            );
+        Match =
+            (Func<HttpContext, Task>)
+                Delegate.CreateDelegate(
+                    typeof(Func<HttpContext, Task>),
+                    inner,
+                    inner.GetType().GetMethod("MatchAsync", [typeof(HttpContext)])!
+                );
     }
 
     /// <summary>The matcher implementation reached, for the record in a results header.</summary>

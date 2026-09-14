@@ -927,9 +927,7 @@ public static class RoutingTableGenerator
         var node = routeNode;
 
         while (
-            node.LeafNodes.Count == 0
-            && node.WildCardNodes.Count == 0
-            && node.ChildNodes.Count == 1
+            node.LeafNodes.Count == 0 && node.WildCardNodes.Count == 0 && node.ChildNodes.Count == 1
         )
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -1247,7 +1245,8 @@ public static class RoutingTableGenerator
         // A continuation that starts with anything else still scans, because a later occurrence of
         // it can be the match: that is the /files/{name}.{ext} case above.
         var boundaryIsKnown =
-            !wildCardNode.WildCardIsCatchAll && wildCardNode.Path.StartsWith("/", StringComparison.Ordinal);
+            !wildCardNode.WildCardIsCatchAll
+            && wildCardNode.Path.StartsWith("/", StringComparison.Ordinal);
 
         IOutputComponent scanStart = index;
 
@@ -1722,10 +1721,7 @@ public static class RoutingTableGenerator
 
         var returnList = new List<IOutputComponent>
         {
-            GreaterThanOrEquals(
-                span.Property("Length"),
-                indexName + " + " + routeNodePath.Length
-            ),
+            GreaterThanOrEquals(span.Property("Length"), indexName + " + " + routeNodePath.Length),
         };
 
         if (routeNodePath.Length <= 1)
