@@ -1,4 +1,6 @@
 using Hardened.Shared.Runtime.Application;
+using Hardened.Web.Runtime.Handlers;
+using Hardened.Web.Runtime.OpenApi;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Hardened.Web.Runtime.Routing;
@@ -30,10 +32,8 @@ public class RouteRegistrationStartupService : IStartupService
             return true;
         }
 
-        var registry = new RouteRegistry(
-            rootProvider,
-            rootProvider.GetService<IGeneratedRouteHandlerCatalog>()
-        );
+        var catalog = rootProvider.GetService<IGeneratedRouteHandlerCatalog>();
+        var registry = new RouteRegistry(rootProvider, catalog);
 
         foreach (var registration in rootProvider.GetServices<IRouteRegistration>())
         {
@@ -44,6 +44,55 @@ public class RouteRegistrationStartupService : IStartupService
         // than leaving the application serving a table that is missing routes nobody noticed.
         provider.Publish(registry.Close());
 
+        Describe(rootProvider, catalog, registry);
+
         return true;
+    }
+
+    /// <summary>
+    /// Writes the registered routes into the document the application serves.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// After the table, and only where the table was built: a route that failed to register is in
+    /// the document of no application, because a failed registration fails startup.
+    /// </para>
+    /// <para>
+    /// Found by walking the providers rather than resolved by type, because the document provider
+    /// is registered as an <c>IWebExecutionRequestHandlerProvider</c> through a factory - there is
+    /// no <c>OpenApiDocumentProvider</c> registration to ask for. An application serving several
+    /// documents gets them all, which is right: each one describes the same application.
+    /// </para>
+    /// </remarks>
+    private static void Describe(
+        IServiceProvider rootProvider,
+        IGeneratedRouteHandlerCatalog? catalog,
+        RouteRegistry registry
+    )
+    {
+        if (catalog == null || registry.Operations.Count == 0)
+        {
+            return;
+        }
+
+        var document = RegisteredRouteDocument.Splice(
+            catalog.DocumentPrefix,
+            catalog.DocumentSuffix,
+            registry.Operations
+        );
+
+        if (document == null)
+        {
+            return;
+        }
+
+        foreach (
+            var served in rootProvider
+                .GetServices<IWebExecutionRequestHandlerProvider>()
+                .OfType<OpenApiDocumentProvider>()
+        )
+        {
+            served.Publish(document);
+        }
     }
 }

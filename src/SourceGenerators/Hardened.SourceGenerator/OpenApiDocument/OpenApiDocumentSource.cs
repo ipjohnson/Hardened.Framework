@@ -53,12 +53,18 @@ namespace Hardened.SourceGenerator.OpenApiDocument;
 /// </remarks>
 internal static class OpenApiDocumentSource
 {
+    /// <param name="split">
+    /// The document already written in two halves, where the caller needed them - a compilation
+    /// that registers routes at startup writes both the compiled document and the halves it splices
+    /// into. Null writes the document from the handlers, which is every other caller.
+    /// </param>
     public static string Write(
         EntryPointSelector.Model appModel,
         IReadOnlyList<RequestHandlerModel> handlers,
         string basePath,
         OpenApiVersion version = OpenApiVersionFacts.Default,
-        DocumentIdentity? identity = null
+        DocumentIdentity? identity = null,
+        OpenApiDocumentGenerator.SplitDocument? split = null
     )
     {
         var file = new CSharpFileDefinition(appModel.EntryPointType.Namespace);
@@ -67,13 +73,9 @@ internal static class OpenApiDocumentSource
 
         entryPoint.Modifiers |= ComponentModifier.Public | ComponentModifier.Partial;
 
-        var document = OpenApiDocumentGenerator.Write(
-            appModel,
-            handlers,
-            basePath,
-            version,
-            identity
-        );
+        var document = split is { } written
+            ? written.Prefix + written.Suffix
+            : OpenApiDocumentGenerator.Write(appModel, handlers, basePath, version, identity);
 
         var container = entryPoint.AddClass(DocumentTypeName);
 

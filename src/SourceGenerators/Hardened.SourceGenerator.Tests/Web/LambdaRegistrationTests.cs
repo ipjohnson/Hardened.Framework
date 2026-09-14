@@ -50,7 +50,7 @@ public class LambdaRegistrationTests
         RequestGeneratorHarness.Generate(Application(body));
 
     private static string Emitted(string body) =>
-        Generate(body).AssertNoErrors().SourceContaining("Lambdas");
+        Generate(body).AssertNoErrors().SourceContaining("RegisteredLambdas");
 
     [Fact]
     public void ALambdaIsReadFromItsCallSite()

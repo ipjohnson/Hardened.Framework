@@ -661,12 +661,27 @@ what lets a handler compiled for `/orders/{id}` answer at `/acme/orders/{id}`. R
 template spelling it `orderId`, the same handler would bind nothing. That is a startup failure
 rather than a 400 on every request.
 
+### The document follows
+
+A registered route is in the OpenAPI document, at the path it was registered at.
+
+Nothing writes an operation at run time. Everything in one is known at build time except its path
+key, so the build writes the operation and the application writes the path around it, once, when
+registration closes. No JSON is parsed and no schema is written.
+
+Two verbs at one path are one path item with two operations. The path key carries no routing syntax,
+so `/acme/orders/{id:int}` is published as `/acme/orders/{id}` — a constraint is how the router
+decides what matches, and a document has no way to say it. A model a registered route binds is in
+`components/schemas` like any other.
+
+The cost is one document-sized string in the assembly: the compiled document is embedded compressed,
+and the two halves the application splices between are embedded uncompressed beside it. Only an
+application that declares an `IRouteRegistration` carries them.
+
 ### What a registered route does not do
 
-It is not in the OpenAPI document. The document is emitted at build time from the routes the build
-can see, and a computed path is not one of them.
-
-`Application.Routes` and `Application.Links` do not carry it, for the same reason.
+`Application.Routes` and `Application.Links` do not carry it. Both are emitted at build time from
+routes the build can see, and a computed path is not one of them.
 
 An attribute route wins. Routes registered at startup are asked after the generated table, so a
 path declared both ways answers from the declaration.

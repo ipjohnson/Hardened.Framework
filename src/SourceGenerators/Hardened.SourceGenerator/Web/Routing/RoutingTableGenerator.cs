@@ -71,7 +71,8 @@ public static class RoutingTableGenerator
         (EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) models,
         WebGeneratorOptions? options = null,
         IReadOnlyList<RouteConstraintModel>? constraints = null,
-        (string Source, IReadOnlyList<IOutputComponent> Registrations)? catalog = null
+        (string Source, IReadOnlyList<IOutputComponent> Registrations)? catalog = null,
+        OpenApiDocument.OpenApiDocumentGenerator.SplitDocument? split = null
     )
     {
         _constraints = constraints;
@@ -224,7 +225,9 @@ public static class RoutingTableGenerator
                         models.Left,
                         routable,
                         GetBasePath(models.Left),
-                        documentVersion
+                        documentVersion,
+                        identity: null,
+                        split
                     )
                 )
             );

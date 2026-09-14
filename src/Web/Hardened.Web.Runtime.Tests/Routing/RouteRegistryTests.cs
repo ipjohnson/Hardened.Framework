@@ -430,6 +430,10 @@ public class RouteRegistryTests
         public string BasePath { get; }
 
         public IReadOnlyDictionary<string, RouteConstraintTest> Constraints { get; }
+
+        public string DocumentPrefix => "";
+
+        public string DocumentSuffix => "";
     }
 
     private class Orders

@@ -51,7 +51,8 @@ namespace Hardened.Web.Runtime.OpenApi;
 public class OpenApiDocumentProvider : IWebExecutionRequestHandlerProvider
 {
     private readonly string _path;
-    private readonly byte[] _gzipDocument;
+
+    private byte[] _gzipDocument;
     private readonly string _contentType;
     private readonly Requirement? _requirement;
     private readonly IServiceProvider _serviceProvider;
@@ -119,6 +120,30 @@ public class OpenApiDocumentProvider : IWebExecutionRequestHandlerProvider
         _contentType = contentType;
         _requirement = requirement;
     }
+
+    /// <summary>
+    /// Replaces the document with one that also describes the routes registered at startup.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Called once, when registration closes, and only where something registered. Until then the
+    /// compiled document is served, which describes every route the build could see - the truthful
+    /// answer for an application that is not finished starting.
+    /// </para>
+    /// <para>
+    /// The handler is dropped so the next request rebuilds it around the new bytes. It is built
+    /// lazily anyway, and registration closes before the host serves anything, so in practice
+    /// nothing has been built yet.
+    /// </para>
+    /// </remarks>
+    public void Publish(string document)
+    {
+        _gzipDocument = Compress(document);
+        _handler = null;
+    }
+
+    /// <summary>Where the document is served, so a caller can tell two providers apart.</summary>
+    public string Path => _path;
 
     /// <summary>What a request to this path may do, when it did something else.</summary>
     private const string Allow = "GET, HEAD";

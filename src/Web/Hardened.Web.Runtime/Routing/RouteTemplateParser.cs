@@ -144,6 +144,48 @@ public static class RouteTemplateParser
         return true;
     }
 
+    /// <summary>
+    /// The route with every token reduced to its name, which is what a document's path template is.
+    /// </summary>
+    /// <remarks>
+    /// The constraint and the catch-all marker both go. A template expression is a parameter name
+    /// and nothing else, so <c>{id:int}</c> would be a syntax error that happens to parse - it made
+    /// the name in the template disagree with the name in <c>parameters</c>, and a generated client
+    /// asked for <c>/orders/%7Bid:int%7D</c>. The marker says how much of the path the token takes,
+    /// which a document has no way to express.
+    ///
+    /// <para>
+    /// The same reduction <c>RouteTemplate.NamesOnly</c> makes at build time, on the same terms as
+    /// the rest of this file: a template that only exists at run time cannot be read by a
+    /// netstandard2.0 analyzer.
+    /// </para>
+    /// </remarks>
+    public static string NamesOnly(string template)
+    {
+        if (template.IndexOf('{') < 0 || !TryParse(template, out var segments, out _))
+        {
+            return template;
+        }
+
+        var written = new System.Text.StringBuilder(template.Length);
+
+        foreach (var segment in segments)
+        {
+            written.Append('/');
+
+            if (segment.Kind == RouteSegmentKind.Literal)
+            {
+                written.Append(segment.Value);
+
+                continue;
+            }
+
+            written.Append('{').Append(segment.Value).Append('}');
+        }
+
+        return written.Length == 0 ? "/" : written.ToString();
+    }
+
     /// <summary>The token names <paramref name="segments"/> binds, in order.</summary>
     public static string[] TokenNames(IReadOnlyList<RouteSegment> segments)
     {

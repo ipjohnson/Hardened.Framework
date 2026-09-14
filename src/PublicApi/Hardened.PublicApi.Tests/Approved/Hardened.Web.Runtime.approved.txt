@@ -554,7 +554,9 @@ namespace Hardened.Web.Runtime.OpenApi
     {
         public OpenApiDocumentProvider(System.IServiceProvider serviceProvider, System.ReadOnlySpan<byte> gzipDocument, string path = "/openapi.json", string contentType = "application/json", Hardened.Requests.Abstract.Authorization.Requirement? requirement = null) { }
         public OpenApiDocumentProvider(System.IServiceProvider serviceProvider, string document, string path = "/openapi.json", string contentType = "application/json", Hardened.Requests.Abstract.Authorization.Requirement? requirement = null) { }
+        public string Path { get; }
         public Hardened.Web.Runtime.Handlers.RequestHandlerInfo? GetExecutionRequestHandler(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+        public void Publish(string document) { }
     }
     [Hardened.Web.Runtime.OpenApi.OpenApiDocumentPath("/openapi.json")]
     public sealed class OpenApiDocumentPublishing
@@ -1379,18 +1381,21 @@ namespace Hardened.Web.Runtime.Routing
 {
     public sealed class GeneratedRouteHandler
     {
-        public GeneratedRouteHandler(System.Type controllerType, string handlerMethod, string method, string declaredPath, Hardened.Web.Runtime.Routing.RouteHandlerFactory factory) { }
+        public GeneratedRouteHandler(System.Type controllerType, string handlerMethod, string method, string declaredPath, Hardened.Web.Runtime.Routing.RouteHandlerFactory factory, string operation = "") { }
         public System.Type ControllerType { get; }
         public string DeclaredPath { get; }
         public Hardened.Web.Runtime.Routing.RouteHandlerFactory Factory { get; }
         public string HandlerMethod { get; }
         public string Method { get; }
+        public string Operation { get; }
     }
     public interface IGeneratedRouteHandlerCatalog
     {
         string BasePath { get; }
         bool CaseInsensitiveRoutes { get; }
         System.Collections.Generic.IReadOnlyDictionary<string, Hardened.Web.Runtime.Routing.RouteConstraintTest> Constraints { get; }
+        string DocumentPrefix { get; }
+        string DocumentSuffix { get; }
         System.Collections.Generic.IReadOnlyList<Hardened.Web.Runtime.Routing.GeneratedRouteHandler> Handlers { get; }
     }
     public interface IRouteRegistration
@@ -1414,12 +1419,19 @@ namespace Hardened.Web.Runtime.Routing
         Hardened.Web.Runtime.Routing.IRouteRegistry Put(string path, System.Delegate handler);
         Hardened.Web.Runtime.Routing.IRouteRegistry Put(string path, System.Type controllerType, string handlerMethod);
     }
+    public static class RegisteredRouteDocument
+    {
+        public static string? Splice(string prefix, string suffix, [System.Runtime.CompilerServices.TupleElementNames(new string[] {
+                "Path",
+                "Operation"})] System.Collections.Generic.IReadOnlyList<System.ValueTuple<string, string>> operations) { }
+    }
     public sealed class RegisteredRouteHandler
     {
-        public RegisteredRouteHandler(string method, System.Collections.Generic.IReadOnlyList<string> boundTokens, Hardened.Web.Runtime.Routing.RouteHandlerFactory factory) { }
+        public RegisteredRouteHandler(string method, System.Collections.Generic.IReadOnlyList<string> boundTokens, Hardened.Web.Runtime.Routing.RouteHandlerFactory factory, string operation = "") { }
         public System.Collections.Generic.IReadOnlyList<string> BoundTokens { get; }
         public Hardened.Web.Runtime.Routing.RouteHandlerFactory Factory { get; }
         public string Method { get; }
+        public string Operation { get; }
     }
     public sealed class RegisteredRouteProvider : Hardened.Web.Runtime.Handlers.IWebExecutionRequestHandlerProvider
     {
@@ -1487,6 +1499,10 @@ namespace Hardened.Web.Runtime.Routing
     {
         public RouteRegistry(System.IServiceProvider serviceProvider, Hardened.Web.Runtime.Routing.IGeneratedRouteHandlerCatalog? catalog) { }
         public System.Collections.Generic.IReadOnlyList<string> Failures { get; }
+        [System.Runtime.CompilerServices.TupleElementNames(new string[] {
+                "Path",
+                "Operation"})]
+        public System.Collections.Generic.IReadOnlyList<System.ValueTuple<string, string>> Operations { get; }
         public System.IServiceProvider ServiceProvider { get; }
         public Hardened.Web.Runtime.Routing.RuntimeRouteTable Close() { }
         public Hardened.Web.Runtime.Routing.IRouteRegistry Delete(string path, System.Delegate handler) { }
@@ -1518,6 +1534,7 @@ namespace Hardened.Web.Runtime.Routing
     }
     public static class RouteTemplateParser
     {
+        public static string NamesOnly(string template) { }
         public static string[] TokenNames(System.Collections.Generic.IReadOnlyList<Hardened.Web.Runtime.Routing.RouteSegment> segments) { }
         public static bool TryParse(string? template, out System.Collections.Generic.IReadOnlyList<Hardened.Web.Runtime.Routing.RouteSegment> segments, out string? error) { }
     }

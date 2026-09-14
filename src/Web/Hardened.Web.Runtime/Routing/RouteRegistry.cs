@@ -16,6 +16,7 @@ public sealed class RouteRegistry : IRouteRegistry
     private readonly RuntimeRouteTableBuilder _builder;
     private readonly IGeneratedRouteHandlerCatalog? _catalog;
     private readonly List<string> _failures = new();
+    private readonly List<(string Path, string Operation)> _operations = new();
     private readonly string _basePath;
 
     private bool _closed;
@@ -34,6 +35,12 @@ public sealed class RouteRegistry : IRouteRegistry
     public IServiceProvider ServiceProvider { get; }
 
     public IReadOnlyList<string> Failures => _failures;
+
+    /// <summary>
+    /// What each registered route publishes, and at which path. Read once when registration closes,
+    /// to write the served document.
+    /// </summary>
+    public IReadOnlyList<(string Path, string Operation)> Operations => _operations;
 
     public IRouteRegistry Get(string path, Type controllerType, string handlerMethod) =>
         Map("GET", path, controllerType, handlerMethod);
@@ -79,7 +86,11 @@ public sealed class RouteRegistry : IRouteRegistry
         )
         {
             _failures.Add(error!);
+
+            return this;
         }
+
+        Publishes(composed, handler.Operation);
 
         return this;
     }
@@ -130,7 +141,11 @@ public sealed class RouteRegistry : IRouteRegistry
         )
         {
             _failures.Add(error!);
+
+            return this;
         }
+
+        Publishes(composed, handler.Operation);
 
         return this;
     }
@@ -146,6 +161,21 @@ public sealed class RouteRegistry : IRouteRegistry
         }
 
         return _builder.Build();
+    }
+
+    /// <summary>
+    /// Records what a route that did register publishes.
+    /// </summary>
+    /// <remarks>
+    /// Only a route that registered. A failed one is in the document of no application, because a
+    /// failed registration fails startup.
+    /// </remarks>
+    private void Publishes(string path, string operation)
+    {
+        if (operation.Length > 0)
+        {
+            _operations.Add((RouteTemplateParser.NamesOnly(path), operation));
+        }
     }
 
     private void Closed(string path)

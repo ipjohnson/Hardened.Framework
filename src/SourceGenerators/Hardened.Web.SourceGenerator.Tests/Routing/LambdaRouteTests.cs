@@ -59,7 +59,7 @@ public class LambdaRouteTests
         );
 
     private static string Emitted(string body) =>
-        Generate(body).AssertNoErrors().SourceContaining("RegisteredRouteHandlers.Lambdas");
+        Generate(body).AssertNoErrors().SourceContaining("RegisteredLambdas");
 
     [Fact]
     public void ALambdaRegistrationEmitsAHandlerAndAnInterceptor()
@@ -160,7 +160,7 @@ public class LambdaRouteTests
 
         Assert.DoesNotContain(
             result.GeneratedSources.Keys,
-            key => key.Contains("Lambdas", StringComparison.Ordinal)
+            key => key.Contains("RegisteredLambdas", StringComparison.Ordinal)
         );
     }
 
