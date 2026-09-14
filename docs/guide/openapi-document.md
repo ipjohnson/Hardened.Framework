@@ -205,6 +205,23 @@ A property annotated `[Range]`, `[StringLength]`, `[Pattern]`, `[ItemCount]`, `[
 `minItems`/`maxItems`, `multipleOf` or `enum` alongside its type, so the constraint a client is
 validated against is the one the document advertises. See [Validation](/guide/validation).
 
+## Routes registered at startup
+
+A route registered by an [`IRouteRegistration`](/guide/routing#routes-registered-at-startup) is
+described at the path it was registered at, and so is a model it binds.
+
+Nothing writes an operation at run time. Everything in one is known at build time except its path
+key, so the build writes the document in two halves and the operation objects that go between them,
+and the application writes the path keys when registration closes. No JSON is parsed and no schema
+is written.
+
+Two verbs at one path are one path item. The path key carries no routing syntax, so a route
+registered at `/acme/orders/{id:int}` publishes as `/acme/orders/{id}` — a constraint is how the
+router decides what matches, and a document has no way to say it.
+
+The cost is the document embedded twice: compressed, as it always is, and as the two uncompressed
+halves. Only an application that declares an `IRouteRegistration` carries the second copy.
+
 ## What a guard on the operation publishes
 
 A filter that can refuse a request answers a status the handler's return type says nothing about,
