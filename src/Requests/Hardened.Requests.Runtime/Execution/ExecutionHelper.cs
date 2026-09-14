@@ -48,6 +48,25 @@ public static partial class ExecutionHelper
         }
     }
 
+    /// <summary>
+    /// What sets <see cref="IExecutionContext.HandlerInstance"/> for this handler.
+    /// </summary>
+    /// <remarks>
+    /// <paramref name="handlerInstance"/> is supplied only by a route registered with a lambda,
+    /// whose handler is the delegate itself: it closes over whatever the registration loop had in
+    /// hand, so there is nothing for a container to resolve. Every other handler asks
+    /// <see cref="IInstanceFilterProvider"/>, which is the seam an application can replace.
+    /// </remarks>
+    private static IExecutionFilter InstanceFilter<TController>(
+        IServiceProvider serviceProvider,
+        object? handlerInstance
+    ) =>
+        handlerInstance != null
+            ? new ConstantInstanceFilter(handlerInstance)
+            : serviceProvider
+                .GetRequiredService<IInstanceFilterProvider>()
+                .ProvideFilter<TController>(serviceProvider);
+
     #region sync invoke no parameters
 
     public delegate void InvokeNoParameters<T>(IExecutionContext context, T controller);
@@ -56,7 +75,8 @@ public static partial class ExecutionHelper
         IServiceProvider serviceProvider,
         IExecutionRequestHandlerInfo handlerInfo,
         InvokeNoParameters<TController> invokeMethod,
-        IEnumerable<IRequestFilterProvider> filterProviders
+        IEnumerable<IRequestFilterProvider> filterProviders,
+        object? handlerInstance = null
     )
     {
         var ioFilterProvider = serviceProvider.GetRequiredService<IIOFilterProvider>();
@@ -66,9 +86,7 @@ public static partial class ExecutionHelper
 
         var invokeFilter = new InvokeNoParametersFilter<TController>(invokeMethod);
 
-        var instanceFilter = serviceProvider
-            .GetRequiredService<IInstanceFilterProvider>()
-            .ProvideFilter<TController>(serviceProvider);
+        var instanceFilter = InstanceFilter<TController>(serviceProvider, handlerInstance);
 
         return CreateFilterArray(
             serviceProvider,
@@ -95,7 +113,8 @@ public static partial class ExecutionHelper
         IExecutionRequestHandlerInfo handlerInfo,
         Func<IExecutionContext, Task<IExecutionRequestParameters>> deserializeRequestFunc,
         InvokeWithParameters<TController, TParameter> invokeMethod,
-        IEnumerable<IRequestFilterProvider> filterProviders
+        IEnumerable<IRequestFilterProvider> filterProviders,
+        object? handlerInstance = null
     )
         where TController : class
     {
@@ -106,9 +125,7 @@ public static partial class ExecutionHelper
 
         var invokeFilter = new InvokeWithParametersFilter<TController, TParameter>(invokeMethod);
 
-        var instanceFilter = serviceProvider
-            .GetRequiredService<IInstanceFilterProvider>()
-            .ProvideFilter<TController>(serviceProvider);
+        var instanceFilter = InstanceFilter<TController>(serviceProvider, handlerInstance);
 
         return CreateFilterArray(
             serviceProvider,
@@ -134,7 +151,8 @@ public static partial class ExecutionHelper
         IServiceProvider serviceProvider,
         IExecutionRequestHandlerInfo handlerInfo,
         AsyncInvokeNoParameters<TController> invokeMethod,
-        IEnumerable<IRequestFilterProvider> filterProviders
+        IEnumerable<IRequestFilterProvider> filterProviders,
+        object? handlerInstance = null
     )
         where TController : class
     {
@@ -145,9 +163,7 @@ public static partial class ExecutionHelper
 
         var invokeFilter = new AsyncInvokeNoParametersFilter<TController>(invokeMethod);
 
-        var instanceFilter = serviceProvider
-            .GetRequiredService<IInstanceFilterProvider>()
-            .ProvideFilter<TController>(serviceProvider);
+        var instanceFilter = InstanceFilter<TController>(serviceProvider, handlerInstance);
 
         return CreateFilterArray(
             serviceProvider,
@@ -176,7 +192,8 @@ public static partial class ExecutionHelper
         IExecutionRequestHandlerInfo handlerInfo,
         Func<IExecutionContext, Task<IExecutionRequestParameters>> deserializeRequestFunc,
         AsyncInvokeWithParameters<TController, TParameter> invokeMethod,
-        IEnumerable<IRequestFilterProvider> filterProviders
+        IEnumerable<IRequestFilterProvider> filterProviders,
+        object? handlerInstance = null
     )
         where TController : class
         where TParameter : class
@@ -190,9 +207,7 @@ public static partial class ExecutionHelper
             invokeMethod
         );
 
-        var instanceFilter = serviceProvider
-            .GetRequiredService<IInstanceFilterProvider>()
-            .ProvideFilter<TController>(serviceProvider);
+        var instanceFilter = InstanceFilter<TController>(serviceProvider, handlerInstance);
 
         return CreateFilterArray(
             serviceProvider,
@@ -218,7 +233,8 @@ public static partial class ExecutionHelper
         Func<IExecutionContext, Task<IExecutionRequestParameters>> deserializeRequestFunc,
         InvokeWithParameters<TController, TParameter> invokeMethod,
         IEnumerable<IRequestFilterProvider> filterProviders,
-        IStreamFraming? framing = null
+        IStreamFraming? framing = null,
+        object? handlerInstance = null
     )
         where TController : class
     {
@@ -233,9 +249,7 @@ public static partial class ExecutionHelper
 
         var invokeFilter = new InvokeWithParametersFilter<TController, TParameter>(invokeMethod);
 
-        var instanceFilter = serviceProvider
-            .GetRequiredService<IInstanceFilterProvider>()
-            .ProvideFilter<TController>(serviceProvider);
+        var instanceFilter = InstanceFilter<TController>(serviceProvider, handlerInstance);
 
         return CreateFilterArray(
             serviceProvider,
@@ -256,7 +270,8 @@ public static partial class ExecutionHelper
         IExecutionRequestHandlerInfo handlerInfo,
         InvokeNoParameters<TController> invokeMethod,
         IEnumerable<IRequestFilterProvider> filterProviders,
-        IStreamFraming? framing = null
+        IStreamFraming? framing = null,
+        object? handlerInstance = null
     )
     {
         var ioFilterProvider = serviceProvider.GetRequiredService<IIOFilterProvider>();
@@ -270,9 +285,7 @@ public static partial class ExecutionHelper
 
         var invokeFilter = new InvokeNoParametersFilter<TController>(invokeMethod);
 
-        var instanceFilter = serviceProvider
-            .GetRequiredService<IInstanceFilterProvider>()
-            .ProvideFilter<TController>(serviceProvider);
+        var instanceFilter = InstanceFilter<TController>(serviceProvider, handlerInstance);
 
         return CreateFilterArray(
             serviceProvider,
