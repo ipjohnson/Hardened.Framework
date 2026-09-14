@@ -20,16 +20,7 @@
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <!--
-            4.11 rather than the list's 4.10, for SemanticModel.GetInterceptableLocation, which is
-            what a registered lambda's call site is addressed by. The older three-argument
-            [InterceptsLocation] spelling is keyed by a file path and a character offset, so every
-            edit above a registration moved it.
-
-            It costs nothing in reach: an analyzer requires the Roslyn it was built against, 4.11
-            ships in SDK 8.0.401, and that is what every template already pins.
-        -->
-        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" VersionOverride="4.11.0"/>
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp"/>
     </ItemGroup>
 
     <ItemGroup>

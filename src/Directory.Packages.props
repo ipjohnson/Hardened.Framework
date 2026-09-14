@@ -48,7 +48,19 @@
         <PackageVersion Include="Microsoft.Build.Framework" Version="17.8.43" />
         <PackageVersion Include="Microsoft.Build.Utilities.Core" Version="17.8.43" />
         <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4" />
-        <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.10.0" />
+        <!--
+          4.11 for SemanticModel.GetInterceptableLocation, which is what addresses the call site of
+          a route registered with a lambda. The older three-argument [InterceptsLocation] spelling
+          is a file path and a character offset, so every edit above a registration moved it.
+
+          Here rather than as a VersionOverride on the one generator that calls it. Every generator
+          compiles Hardened.SourceGenerator's sources and references the project, so raising it
+          anywhere raises it everywhere, and twenty-four projects reported the downgrade instead.
+
+          It costs nothing in reach. An analyzer requires the Roslyn it was built against, 4.11
+          ships in SDK 8.0.401, and 8.0.401 is what every template already pins.
+        -->
+        <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.11.0" />
         <PackageVersion Include="ValidationModules.Runtime" Version="$(ValidationModulesVersion)" />
         <PackageVersion Include="ValidationModules.SourceGenerator.Impl" Version="$(ValidationModulesVersion)" />
     </ItemGroup>
