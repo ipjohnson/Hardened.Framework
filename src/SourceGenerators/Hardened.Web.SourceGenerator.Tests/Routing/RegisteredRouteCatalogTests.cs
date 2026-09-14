@@ -39,7 +39,9 @@ public class RegisteredRouteCatalogTests
     private static string Application(
         string extra,
         string moduleAttributes = "",
-        string constraints = ""
+        string constraints = "",
+        string entryPointBaseList = "",
+        string entryPointBody = "{ }"
     ) =>
         $$"""
             using System;
@@ -53,7 +55,8 @@ public class RegisteredRouteCatalogTests
 
             [HardenedModule]
             {{moduleAttributes}}
-            public partial class TestApplication { }
+            public partial class TestApplication{{entryPointBaseList}}
+            {{entryPointBody}}
 
             {{constraints}}
 
@@ -68,13 +71,21 @@ public class RegisteredRouteCatalogTests
     private static GeneratorResult Generate(
         string extra,
         string moduleAttributes = "",
-        string constraints = ""
+        string constraints = "",
+        string entryPointBaseList = "",
+        string entryPointBody = "{ }"
     ) =>
         GeneratorTestHarness
             .Run(
                 new Dictionary<string, string>
                 {
-                    ["Test.cs"] = Application(extra, moduleAttributes, constraints),
+                    ["Test.cs"] = Application(
+                        extra,
+                        moduleAttributes,
+                        constraints,
+                        entryPointBaseList,
+                        entryPointBody
+                    ),
                 },
                 new IIncrementalGenerator[] { new WebLibrarySourceGenerator() },
                 Anchors
@@ -123,6 +134,70 @@ public class RegisteredRouteCatalogTests
             "AddSingleton<global::Hardened.Web.Runtime.Routing.IGeneratedRouteHandlerCatalog, TestApp.TestApplication.RegisteredRouteHandlers>()",
             routing
         );
+    }
+
+    /// <remarks>
+    /// Implementing the interface is the whole declaration. Nothing puts an entry point in the
+    /// container and a registration class would otherwise need <c>[SingletonService]</c>, so the
+    /// registration is emitted rather than asked for.
+    /// </remarks>
+    [Fact]
+    public void EveryImplementerIsRegistered()
+    {
+        var routing = Generate(Registration).SourceContaining("Routing");
+
+        Assert.Contains(
+            "TryAddEnumerable(serviceCollection, global::Microsoft.Extensions.DependencyInjection.ServiceDescriptor.Singleton<global::Hardened.Web.Runtime.Routing.IRouteRegistration, global::TestApp.TenantRoutes>())",
+            routing
+        );
+    }
+
+    /// <remarks>
+    /// The shape that needs no class of its own. The entry point is a module rather than a service,
+    /// so a <c>Register</c> method written on one was a method nothing called.
+    /// </remarks>
+    [Fact]
+    public void AnEntryPointThatRegistersIsRegisteredToo()
+    {
+        var routing = Generate(
+                "",
+                moduleAttributes: "",
+                entryPointBaseList: " : IRouteRegistration",
+                entryPointBody: """
+                {
+                    public ValueTask Register(IRouteRegistry routes, CancellationToken cancellationToken) {
+                        routes.Get("/acme/items/{id:int}", typeof(ItemController), nameof(ItemController.Item));
+
+                        return default;
+                    }
+                }
+                """
+            )
+            .SourceContaining("Routing");
+
+        Assert.Contains("IRouteRegistration, global::TestApp.TestApplication>())", routing);
+    }
+
+    /// <remarks>
+    /// An abstract base declaring the interface for its subclasses is an ordinary thing to write,
+    /// and registering it would be a container failure at startup about a type nobody meant to
+    /// register.
+    /// </remarks>
+    [Fact]
+    public void AnAbstractImplementerIsNotRegistered()
+    {
+        var routing = Generate(
+                Registration
+                    + """
+
+                    public abstract class RoutesBase : IRouteRegistration {
+                        public abstract ValueTask Register(IRouteRegistry routes, CancellationToken cancellationToken);
+                    }
+                    """
+            )
+            .SourceContaining("Routing");
+
+        Assert.DoesNotContain("global::TestApp.RoutesBase>())", routing);
     }
 
     /// <remarks>

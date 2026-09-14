@@ -62,19 +62,57 @@ internal static class RouteHandlerCatalogEmitter
         );
 
     /// <summary>
-    /// The statement that registers the catalog, appended to the generated dependency method
-    /// through <c>RoutingTableOptions.AdditionalRegistrations</c>.
+    /// The statements appended to the generated dependency method through
+    /// <c>RoutingTableOptions.AdditionalRegistrations</c>: the catalog, and every type that
+    /// registers routes.
     /// </summary>
-    private static IOutputComponent Registration(EntryPointSelector.Model appModel) =>
-        CodeOutputComponent.Get(
-            "serviceCollection.AddSingleton<global::Hardened.Web.Runtime.Routing.IGeneratedRouteHandlerCatalog, "
-                + appModel.EntryPointType.Namespace
-                + "."
-                + appModel.EntryPointType.Name
-                + "."
-                + ContainerName
-                + ">()"
-        );
+    /// <remarks>
+    /// <para>
+    /// <b>The registrations are why an entry point can implement <c>IRouteRegistration</c>.</b>
+    /// Nothing puts an entry point in the container - it is a module, not a service - so a
+    /// <c>Register</c> method written on one used to be a method nothing called. Registering every
+    /// implementer here makes the interface a declaration rather than a declaration plus a
+    /// registration somebody has to remember, which is how the rest of the framework behaves.
+    /// </para>
+    /// <para>
+    /// <c>TryAddEnumerable</c> rather than <c>Add</c>, because it matches on the service type and
+    /// the implementation type together: a class that also carries <c>[SingletonService]</c> is
+    /// registered once rather than twice, and would otherwise run its registration twice.
+    /// </para>
+    /// </remarks>
+    private static IReadOnlyList<IOutputComponent> Registrations(
+        EntryPointSelector.Model appModel,
+        IReadOnlyList<string> registrations
+    )
+    {
+        var statements = new List<IOutputComponent>
+        {
+            CodeOutputComponent.Get(
+                "serviceCollection.AddSingleton<global::Hardened.Web.Runtime.Routing.IGeneratedRouteHandlerCatalog, "
+                    + appModel.EntryPointType.Namespace
+                    + "."
+                    + appModel.EntryPointType.Name
+                    + "."
+                    + ContainerName
+                    + ">()"
+            ),
+        };
+
+        foreach (var registration in registrations)
+        {
+            statements.Add(
+                CodeOutputComponent.Get(
+                    "global::Microsoft.Extensions.DependencyInjection.Extensions.ServiceCollectionDescriptorExtensions.TryAddEnumerable("
+                        + "serviceCollection, global::Microsoft.Extensions.DependencyInjection.ServiceDescriptor"
+                        + ".Singleton<global::Hardened.Web.Runtime.Routing.IRouteRegistration, global::"
+                        + registration
+                        + ">())"
+                )
+            );
+        }
+
+        return statements;
+    }
 
     /// <summary>
     /// The catalog for <paramref name="appModel"/>, or null where the compilation declares no
@@ -85,14 +123,14 @@ internal static class RouteHandlerCatalogEmitter
     /// the point: every generator that compiles the walk would otherwise compile this too,
     /// including the described one, which never registers a route.
     /// </remarks>
-    public static (string Source, IOutputComponent Registration)? For(
+    public static (string Source, IReadOnlyList<IOutputComponent> Registrations)? For(
         EntryPointSelector.Model appModel,
         IReadOnlyList<RequestHandlerModel> handlers,
         IReadOnlyList<RouteConstraintModel>? constraints,
-        bool declared
+        IReadOnlyList<string> registrations
     )
     {
-        if (!declared)
+        if (registrations.Count == 0)
         {
             return null;
         }
@@ -109,7 +147,7 @@ internal static class RouteHandlerCatalogEmitter
                 RoutingTableGenerator.IsCaseInsensitive(appModel),
                 RoutingTableGenerator.GetBasePath(appModel)
             ),
-            Registration(appModel)
+            Registrations(appModel, registrations)
         );
     }
 

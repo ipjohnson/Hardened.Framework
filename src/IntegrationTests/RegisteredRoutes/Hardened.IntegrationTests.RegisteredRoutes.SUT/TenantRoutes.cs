@@ -34,7 +34,10 @@ public class TenantContext : ITenantContext
 /// <summary>
 /// One route per tenant, from a list that does not exist until the application runs.
 /// </summary>
-[SingletonService]
+/// <remarks>
+/// No <c>[SingletonService]</c>. Implementing the interface is the declaration, and the generator
+/// registers what it finds.
+/// </remarks>
 public class TenantRoutes : IRouteRegistration
 {
     private readonly ITenantCatalog _catalog;

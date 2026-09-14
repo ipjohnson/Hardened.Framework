@@ -142,17 +142,26 @@ public static class WebIncrementalGenerator
             static (compilation, _) => SerializerContentTypes.Read(compilation)
         );
 
-        // Whether anything in this compilation registers routes at startup, collapsed to one bool
-        // before it reaches the pipeline and folded into the options value rather than combined into
-        // the routing table's own tuple - which is already three levels deep, and the note above
-        // says why a fourth is not worth it.
-        var routeRegistrationDeclared = initializationContext
+        // What registers routes at startup, collapsed to one string before it reaches the pipeline
+        // and folded into the options value rather than combined into the routing table's own tuple
+        // - which is already three levels deep, and the note above says why a fourth is not worth
+        // it. Ordered, so an edit that reshuffles the syntax provider does not rebuild the table.
+        var routeRegistrations = initializationContext
             .SyntaxProvider.CreateSyntaxProvider(
                 RouteRegistrationSelector.Predicate,
                 RouteRegistrationSelector.Transform
             )
             .Collect()
-            .Select(static (declared, _) => declared.Any(found => found));
+            .Select(
+                static (declared, _) =>
+                    string.Join(
+                        ",",
+                        declared
+                            .Where(name => name != null)
+                            .Distinct()
+                            .OrderBy(name => name, StringComparer.Ordinal)
+                    )
+            );
 
         var options = initializationContext
             .AnalyzerConfigOptionsProvider.Select(
@@ -164,8 +173,8 @@ public static class WebIncrementalGenerator
             )
             .Combine(writableContentTypes)
             .Select(static (pair, _) => pair.Left with { WritableContentTypes = pair.Right })
-            .Combine(routeRegistrationDeclared)
-            .Select(static (pair, _) => pair.Left with { RouteRegistrationDeclared = pair.Right });
+            .Combine(routeRegistrations)
+            .Select(static (pair, _) => pair.Left with { RouteRegistrations = pair.Right });
 
         var routeProvider = entryPointProvider
             .Combine(collection)
@@ -190,7 +199,7 @@ public static class WebIncrementalGenerator
                             pair.Left.Left.Left,
                             pair.Left.Left.Right,
                             pair.Right,
-                            pair.Left.Right.RouteRegistrationDeclared
+                            pair.Left.Right.RegistrationTypes
                         )
                     )
             )

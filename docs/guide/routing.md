@@ -554,8 +554,33 @@ including the ones `[RouteConstraint]` declares, the same catch-all. `[BasePath]
 prefixes a registered path exactly as it prefixes an attribute route. `[CaseInsensitiveRoutes]`
 applies to both.
 
-Register the type in the container. It is constructed once, and its dependencies arrive through its
-constructor. `IRouteRegistry.ServiceProvider` is there for a dependency the constructor cannot take.
+Implementing the interface is the whole declaration. The build finds the type and registers it, so
+there is no attribute to add and nothing to remember. It is constructed once, and its dependencies
+arrive through its constructor. `IRouteRegistry.ServiceProvider` is there for a dependency the
+constructor cannot take.
+
+The entry point can implement it too, which is the shape that needs no class of its own.
+
+```csharp
+[HardenedModule]
+[HardenedWebModule]
+public partial class Application : IRouteRegistration {
+
+    public async ValueTask Register(IRouteRegistry routes, CancellationToken cancellationToken) {
+        var catalog = routes.ServiceProvider.GetRequiredService<ITenantCatalog>();
+
+        foreach (var tenant in await catalog.Active(cancellationToken)) {
+            routes.Get($"/{tenant.Slug}/orders/{{id:int}}",
+                       typeof(OrderController), nameof(OrderController.Get));
+        }
+    }
+}
+```
+
+An entry point is a module rather than a service, so it takes its dependencies from
+`ServiceProvider` rather than through a constructor.
+
+An abstract class that declares the interface for its subclasses is not registered.
 
 ### What runs when
 

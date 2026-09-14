@@ -92,6 +92,30 @@ public class RegisteredRouteTests
     }
 
     /// <remarks>
+    /// The entry point implements the interface itself, which is the shape that needs no class of
+    /// its own. Nothing puts an entry point in the container, so this only answers because the
+    /// generator registers every implementer it finds.
+    /// </remarks>
+    [HardenedTest]
+    public async Task TheEntryPointCanRegisterRoutesItself(ITestWebApp app)
+    {
+        var response = await app.Get("/registered/module/orders/5");
+
+        Assert.Equal(200, response.StatusCode);
+        Assert.Equal(5, response.Deserialize<Order>().Id);
+    }
+
+    /// <remarks>
+    /// <c>TenantRoutes</c> carries no <c>[SingletonService]</c>. Implementing the interface is the
+    /// whole declaration.
+    /// </remarks>
+    [HardenedTest]
+    public async Task AnUnattributedRegistrationStillRuns(ITestWebApp app)
+    {
+        Assert.Equal(200, (await app.Get("/registered/acme/orders/1")).StatusCode);
+    }
+
+    /// <remarks>
     /// A handler registered at three paths reports the path it answered at, not the one it was
     /// declared with. Everything that reads <c>IExecutionRequestHandlerInfo.Path</c> - a filter, an
     /// authorization convention, a log line - depends on that.
