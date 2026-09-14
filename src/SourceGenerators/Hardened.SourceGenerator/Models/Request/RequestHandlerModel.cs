@@ -84,7 +84,28 @@ public class RequestHandlerModel
             AdditionalBodyParameters = AdditionalBodyParameters,
             HasGeneratedValidation = HasGeneratedValidation,
             IsStatic = IsStatic,
+            IsDelegateHandler = IsDelegateHandler,
         };
+
+    /// <summary>
+    /// Whether this handler invokes a delegate the registration supplied rather than a method on a
+    /// class the container builds.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Set only for a route registered with a lambda. <see cref="ControllerType"/> is then the
+    /// delegate's own type and <see cref="HandlerMethod"/> is <c>Invoke</c>, so everything that
+    /// emits a call already emits the right one - <c>controller.Invoke(parameters.id)</c> is how
+    /// you call a <c>Func</c>. What this changes is the constructor, which takes the delegate and
+    /// hands it to <c>ExecutionHelper</c> as the handler instance.
+    /// </para>
+    /// <para>
+    /// The delegate cannot be resolved and cannot be replaced by a method: the lambda closes over
+    /// whatever the registration loop had in hand, and keeping that closure alive is the whole
+    /// point of the form.
+    /// </para>
+    /// </remarks>
+    public bool IsDelegateHandler { get; set; }
 
     public RequestHandlerNameModel Name { get; }
 

@@ -140,6 +140,58 @@ public static class InvokeClassGenerator
         routePath.DefaultValue = Null();
     }
 
+    /// <summary>
+    /// The delegate a registered lambda's handler invokes.
+    /// </summary>
+    /// <remarks>
+    /// A parameter rather than a field, because the generated invoke method is static: the delegate
+    /// reaches it as the handler instance, which is what <c>ConstantInstanceFilter</c> is for.
+    ///
+    /// <para>
+    /// Ahead of <c>routePath</c>, which has a default. An optional parameter cannot precede a
+    /// required one, and every construction site for this shape is generated, so there is nothing
+    /// to keep compatible by putting it last.
+    /// </para>
+    /// </remarks>
+    /// <summary>
+    /// The <c>ExecutionHelper</c> call the handler's constructor chains to, with the delegate
+    /// appended where there is one.
+    /// </summary>
+    /// <remarks>
+    /// One place rather than six, because the argument goes last on four overloads and after the
+    /// framing on the other two - so it is named rather than positional, and naming it in six
+    /// places is six chances to name it differently.
+    /// </remarks>
+    private static IOutputComponent FilterSetup(
+        RequestHandlerModel handlerModel,
+        string method,
+        ITypeDefinition[] typeArguments,
+        params object[] arguments
+    ) =>
+        InvokeGeneric(
+            KnownTypes.Requests.ExecutionHelper,
+            method,
+            typeArguments,
+            handlerModel.IsDelegateHandler
+                ? arguments.Concat(new object[] { "handlerInstance: " + TargetParameter }).ToArray()
+                : arguments
+        );
+
+    private static void AddTargetParameter(
+        RequestHandlerModel handlerModel,
+        ConstructorDefinition constructor
+    )
+    {
+        if (!handlerModel.IsDelegateHandler)
+        {
+            return;
+        }
+
+        constructor.AddParameter(handlerModel.ControllerType, TargetParameter);
+    }
+
+    private const string TargetParameter = "target";
+
     private static void CreateConstructor(
         RequestHandlerModel handlerModel,
         ClassDefinition classDefinition
@@ -196,8 +248,8 @@ public static class InvokeClassGenerator
         IOutputComponent defaultOutput
     )
     {
-        var filterMethod = InvokeGeneric(
-            KnownTypes.Requests.ExecutionHelper,
+        var filterMethod = FilterSetup(
+            handlerModel,
             "AsyncStandardFilterEmptyParameters",
             new[] { ControllerTypeArgument(handlerModel) },
             "serviceProvider",
@@ -208,6 +260,7 @@ public static class InvokeClassGenerator
         var constructor = classDefinition.AddConstructor(Base(filterMethod, defaultOutput));
 
         constructor.AddParameter(typeof(IServiceProvider), "serviceProvider");
+        AddTargetParameter(handlerModel, constructor);
         AddRoutePathParameter(constructor);
     }
 
@@ -217,8 +270,8 @@ public static class InvokeClassGenerator
         IOutputComponent defaultOutput
     )
     {
-        var filterMethod = InvokeGeneric(
-            KnownTypes.Requests.ExecutionHelper,
+        var filterMethod = FilterSetup(
+            handlerModel,
             "AsyncStandardFilterWithParameters",
             new[] { ControllerTypeArgument(handlerModel), ParametersType(handlerModel) },
             "serviceProvider",
@@ -230,6 +283,7 @@ public static class InvokeClassGenerator
         var constructor = classDefinition.AddConstructor(Base(filterMethod, defaultOutput));
 
         constructor.AddParameter(typeof(IServiceProvider), "serviceProvider");
+        AddTargetParameter(handlerModel, constructor);
         AddRoutePathParameter(constructor);
     }
 
@@ -239,8 +293,8 @@ public static class InvokeClassGenerator
         IOutputComponent defaultOutput
     )
     {
-        var filterMethod = InvokeGeneric(
-            KnownTypes.Requests.ExecutionHelper,
+        var filterMethod = FilterSetup(
+            handlerModel,
             "StandardFilterEmptyParameters",
             new[] { ControllerTypeArgument(handlerModel) },
             "serviceProvider",
@@ -251,6 +305,7 @@ public static class InvokeClassGenerator
         var constructor = classDefinition.AddConstructor(Base(filterMethod, defaultOutput));
 
         constructor.AddParameter(typeof(IServiceProvider), "serviceProvider");
+        AddTargetParameter(handlerModel, constructor);
         AddRoutePathParameter(constructor);
     }
 
@@ -260,8 +315,8 @@ public static class InvokeClassGenerator
         IOutputComponent defaultOutput
     )
     {
-        var filterMethod = InvokeGeneric(
-            KnownTypes.Requests.ExecutionHelper,
+        var filterMethod = FilterSetup(
+            handlerModel,
             "StandardFilterWithParameters",
             new[] { ControllerTypeArgument(handlerModel), ParametersType(handlerModel) },
             "serviceProvider",
@@ -273,6 +328,7 @@ public static class InvokeClassGenerator
         var constructor = classDefinition.AddConstructor(Base(filterMethod, defaultOutput));
 
         constructor.AddParameter(typeof(IServiceProvider), "serviceProvider");
+        AddTargetParameter(handlerModel, constructor);
         AddRoutePathParameter(constructor);
     }
 
@@ -282,8 +338,8 @@ public static class InvokeClassGenerator
         IOutputComponent defaultOutput
     )
     {
-        var filterMethod = InvokeGeneric(
-            KnownTypes.Requests.ExecutionHelper,
+        var filterMethod = FilterSetup(
+            handlerModel,
             "AsyncEnumerableFilterEmptyParameters",
             new[]
             {
@@ -299,6 +355,7 @@ public static class InvokeClassGenerator
         var constructor = classDefinition.AddConstructor(Base(filterMethod, defaultOutput));
 
         constructor.AddParameter(typeof(IServiceProvider), "serviceProvider");
+        AddTargetParameter(handlerModel, constructor);
         AddRoutePathParameter(constructor);
     }
 
@@ -308,8 +365,8 @@ public static class InvokeClassGenerator
         IOutputComponent defaultOutput
     )
     {
-        var filterMethod = InvokeGeneric(
-            KnownTypes.Requests.ExecutionHelper,
+        var filterMethod = FilterSetup(
+            handlerModel,
             "AsyncEnumerableFilterWithParameters",
             new[]
             {
@@ -327,6 +384,7 @@ public static class InvokeClassGenerator
         var constructor = classDefinition.AddConstructor(Base(filterMethod, defaultOutput));
 
         constructor.AddParameter(typeof(IServiceProvider), "serviceProvider");
+        AddTargetParameter(handlerModel, constructor);
         AddRoutePathParameter(constructor);
     }
 

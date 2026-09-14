@@ -116,6 +116,8 @@
                  Link="Shared/RoutePathTests.cs"/>
         <Compile Include="../Hardened.SourceGenerator.Tests/Requests/RequestParameterInformationTests.cs"
                  Link="Requests/RequestParameterInformationTests.cs"/>
+        <Compile Include="../Hardened.SourceGenerator.Tests/Requests/DelegateHandlerEmitTests.cs"
+                 Link="Requests/DelegateHandlerEmitTests.cs"/>
         <Compile Include="../Hardened.SourceGenerator.Tests/OpenApiDocument/XmlDocumentationTests.cs"
                  Link="OpenApiDocument/XmlDocumentationTests.cs"/>
         <Compile Include="../Hardened.SourceGenerator.Tests/OpenApiDocument/DocumentWriterTests.cs"
