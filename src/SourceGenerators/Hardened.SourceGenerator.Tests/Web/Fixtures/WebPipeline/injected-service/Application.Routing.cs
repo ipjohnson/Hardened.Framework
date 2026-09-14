@@ -68,7 +68,7 @@ namespace TestApp
             public RequestHandlerInfo? TestPath_now(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 3) && (charSpan[index + 0] == 'n') && (charSpan[index + 1] == 'o') && (charSpan[index + 2] == 'w'))
+                if ((charSpan.Length >= index + 3) && charSpan.Slice(index, 3).SequenceEqual("now"))
                 {
                     index += 3;
                     if (charSpan.Length == index)

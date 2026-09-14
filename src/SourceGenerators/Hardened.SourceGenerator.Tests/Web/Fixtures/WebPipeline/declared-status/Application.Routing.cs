@@ -73,7 +73,7 @@ namespace TestApp
             public RequestHandlerInfo? TestPath_widgets(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 7) && (charSpan[index + 0] == 'w') && (charSpan[index + 1] == 'i') && (charSpan[index + 2] == 'd') && (charSpan[index + 3] == 'g') && (charSpan[index + 4] == 'e') && (charSpan[index + 5] == 't') && (charSpan[index + 6] == 's'))
+                if ((charSpan.Length >= index + 7) && charSpan.Slice(index, 7).SequenceEqual("widgets"))
                 {
                     index += 7;
                     if (charSpan.Length == index)

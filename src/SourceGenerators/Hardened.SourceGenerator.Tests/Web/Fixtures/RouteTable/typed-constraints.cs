@@ -123,7 +123,7 @@ namespace Test.Api
             public RequestHandlerInfo? TestPath_lagSlash(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 4) && (charSpan[index + 0] == 'l') && (charSpan[index + 1] == 'a') && (charSpan[index + 2] == 'g') && (charSpan[index + 3] == '/'))
+                if ((charSpan.Length >= index + 4) && charSpan.Slice(index, 4).SequenceEqual("lag/"))
                 {
                     index += 4;
                     if (handlerInfo == null)
@@ -194,7 +194,7 @@ namespace Test.Api
             public RequestHandlerInfo? TestPath_temsSlash(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 5) && (charSpan[index + 0] == 't') && (charSpan[index + 1] == 'e') && (charSpan[index + 2] == 'm') && (charSpan[index + 3] == 's') && (charSpan[index + 4] == '/'))
+                if ((charSpan.Length >= index + 5) && charSpan.Slice(index, 5).SequenceEqual("tems/"))
                 {
                     index += 5;
                     if (handlerInfo == null)
@@ -265,7 +265,7 @@ namespace Test.Api
             public RequestHandlerInfo? TestPath_eySlash(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 3) && (charSpan[index + 0] == 'e') && (charSpan[index + 1] == 'y') && (charSpan[index + 2] == '/'))
+                if ((charSpan.Length >= index + 3) && charSpan.Slice(index, 3).SequenceEqual("ey/"))
                 {
                     index += 3;
                     if (handlerInfo == null)
@@ -336,7 +336,7 @@ namespace Test.Api
             public RequestHandlerInfo? TestPath_riceSlash(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 5) && (charSpan[index + 0] == 'r') && (charSpan[index + 1] == 'i') && (charSpan[index + 2] == 'c') && (charSpan[index + 3] == 'e') && (charSpan[index + 4] == '/'))
+                if ((charSpan.Length >= index + 5) && charSpan.Slice(index, 5).SequenceEqual("rice/"))
                 {
                     index += 5;
                     if (handlerInfo == null)

@@ -68,7 +68,7 @@ namespace TestApp
             public RequestHandlerInfo? TestPath_hello(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 5) && (charSpan[index + 0] == 'h') && (charSpan[index + 1] == 'e') && (charSpan[index + 2] == 'l') && (charSpan[index + 3] == 'l') && (charSpan[index + 4] == 'o'))
+                if ((charSpan.Length >= index + 5) && charSpan.Slice(index, 5).SequenceEqual("hello"))
                 {
                     index += 5;
                     if (charSpan.Length == index)

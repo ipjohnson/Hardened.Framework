@@ -70,7 +70,7 @@ namespace TestApp
             public RequestHandlerInfo? TestPath_searchSlash(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 7) && (charSpan[index + 0] == 's') && (charSpan[index + 1] == 'e') && (charSpan[index + 2] == 'a') && (charSpan[index + 3] == 'r') && (charSpan[index + 4] == 'c') && (charSpan[index + 5] == 'h') && (charSpan[index + 6] == '/'))
+                if ((charSpan.Length >= index + 7) && charSpan.Slice(index, 7).SequenceEqual("search/"))
                 {
                     index += 7;
                     if (handlerInfo == null)

@@ -68,7 +68,7 @@ namespace TestApp
             public RequestHandlerInfo? TestPath_blob(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 4) && (charSpan[index + 0] == 'b') && (charSpan[index + 1] == 'l') && (charSpan[index + 2] == 'o') && (charSpan[index + 3] == 'b'))
+                if ((charSpan.Length >= index + 4) && charSpan.Slice(index, 4).SequenceEqual("blob"))
                 {
                     index += 4;
                     if (charSpan.Length == index)

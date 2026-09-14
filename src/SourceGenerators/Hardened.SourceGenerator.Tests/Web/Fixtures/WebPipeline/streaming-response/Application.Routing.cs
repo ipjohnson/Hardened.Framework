@@ -74,7 +74,7 @@ namespace TestApp
             public RequestHandlerInfo? TestPath_feed(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 4) && (charSpan[index + 0] == 'f') && (charSpan[index + 1] == 'e') && (charSpan[index + 2] == 'e') && (charSpan[index + 3] == 'd'))
+                if ((charSpan.Length >= index + 4) && charSpan.Slice(index, 4).SequenceEqual("feed"))
                 {
                     index += 4;
                     if (charSpan.Length == index)

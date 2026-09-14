@@ -102,7 +102,7 @@ namespace Test.Api
             public RequestHandlerInfo? TestPath_ets(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 3) && (charSpan[index + 0] == 'e') && (charSpan[index + 1] == 't') && (charSpan[index + 2] == 's'))
+                if ((charSpan.Length >= index + 3) && charSpan.Slice(index, 3).SequenceEqual("ets"))
                 {
                     index += 3;
                     if (charSpan.Length == index)
@@ -146,7 +146,7 @@ namespace Test.Api
             public RequestHandlerInfo? TestPath_featured(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 8) && (charSpan[index + 0] == 'f') && (charSpan[index + 1] == 'e') && (charSpan[index + 2] == 'a') && (charSpan[index + 3] == 't') && (charSpan[index + 4] == 'u') && (charSpan[index + 5] == 'r') && (charSpan[index + 6] == 'e') && (charSpan[index + 7] == 'd'))
+                if ((charSpan.Length >= index + 8) && charSpan.Slice(index, 8).SequenceEqual("featured"))
                 {
                     index += 8;
                     if (charSpan.Length == index)
@@ -181,7 +181,7 @@ namespace Test.Api
             public RequestHandlerInfo? TestPath_tore(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 4) && (charSpan[index + 0] == 't') && (charSpan[index + 1] == 'o') && (charSpan[index + 2] == 'r') && (charSpan[index + 3] == 'e'))
+                if ((charSpan.Length >= index + 4) && charSpan.Slice(index, 4).SequenceEqual("tore"))
                 {
                     index += 4;
                     if (charSpan.Length == index)

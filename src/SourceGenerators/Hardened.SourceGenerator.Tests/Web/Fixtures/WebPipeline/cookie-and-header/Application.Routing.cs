@@ -68,7 +68,7 @@ namespace TestApp
             public RequestHandlerInfo? TestPath_session(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 7) && (charSpan[index + 0] == 's') && (charSpan[index + 1] == 'e') && (charSpan[index + 2] == 's') && (charSpan[index + 3] == 's') && (charSpan[index + 4] == 'i') && (charSpan[index + 5] == 'o') && (charSpan[index + 6] == 'n'))
+                if ((charSpan.Length >= index + 7) && charSpan.Slice(index, 7).SequenceEqual("session"))
                 {
                     index += 7;
                     if (charSpan.Length == index)

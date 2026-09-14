@@ -68,7 +68,7 @@ namespace Test.Api
             public RequestHandlerInfo? TestPath_filesSlash(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 6) && (charSpan[index + 0] == 'f') && (charSpan[index + 1] == 'i') && (charSpan[index + 2] == 'l') && (charSpan[index + 3] == 'e') && (charSpan[index + 4] == 's') && (charSpan[index + 5] == '/'))
+                if ((charSpan.Length >= index + 6) && charSpan.Slice(index, 6).SequenceEqual("files/"))
                 {
                     index += 6;
                     if (handlerInfo == null)

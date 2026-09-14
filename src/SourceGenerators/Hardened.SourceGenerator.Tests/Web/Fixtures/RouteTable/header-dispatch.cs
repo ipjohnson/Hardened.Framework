@@ -84,7 +84,7 @@ namespace Test.Api
             public RequestHandlerInfo? TestPath_health(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 6) && (charSpan[index + 0] == 'h') && (charSpan[index + 1] == 'e') && (charSpan[index + 2] == 'a') && (charSpan[index + 3] == 'l') && (charSpan[index + 4] == 't') && (charSpan[index + 5] == 'h'))
+                if ((charSpan.Length >= index + 6) && charSpan.Slice(index, 6).SequenceEqual("health"))
                 {
                     index += 6;
                     if (charSpan.Length == index)

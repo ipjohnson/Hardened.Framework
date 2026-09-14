@@ -68,7 +68,7 @@ namespace TestApp
             public RequestHandlerInfo? TestPath_whoami(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 6) && (charSpan[index + 0] == 'w') && (charSpan[index + 1] == 'h') && (charSpan[index + 2] == 'o') && (charSpan[index + 3] == 'a') && (charSpan[index + 4] == 'm') && (charSpan[index + 5] == 'i'))
+                if ((charSpan.Length >= index + 6) && charSpan.Slice(index, 6).SequenceEqual("whoami"))
                 {
                     index += 6;
                     if (charSpan.Length == index)

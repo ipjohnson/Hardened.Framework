@@ -76,7 +76,7 @@ namespace TestApp
             public RequestHandlerInfo? TestPath_ticketsSlash(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 8) && (charSpan[index + 0] == 't') && (charSpan[index + 1] == 'i') && (charSpan[index + 2] == 'c') && (charSpan[index + 3] == 'k') && (charSpan[index + 4] == 'e') && (charSpan[index + 5] == 't') && (charSpan[index + 6] == 's') && (charSpan[index + 7] == '/'))
+                if ((charSpan.Length >= index + 8) && charSpan.Slice(index, 8).SequenceEqual("tickets/"))
                 {
                     index += 8;
                     if (handlerInfo == null)

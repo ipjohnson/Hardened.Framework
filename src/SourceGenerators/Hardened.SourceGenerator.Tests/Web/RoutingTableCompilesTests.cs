@@ -324,17 +324,21 @@ public class RoutingTableCompilesTests
             .AssertNoErrors()
             .SourceContaining("Routing");
 
-        Assert.Contains("'v'", routing);
-        Assert.Contains("'1'", routing);
+        Assert.Contains("v1/orders", routing);
     }
 
     /// <summary>
-    /// One comparison per character. The second was emitted for every letter of every literal in
-    /// every route and ran on every request, which is half the matcher's work spent on a rule
-    /// RFC 3986 does not have.
+    /// A literal is compared whole, and against one case.
     /// </summary>
+    /// <remarks>
+    /// Two assertions because they are one emit. The comparison is a span comparison rather than
+    /// one <c>==</c> per character: the JIT folds neither the comparisons nor the bounds checks, so
+    /// a seven-character literal cost seven loads, seven branches and seven range checks the length
+    /// guard did not remove. And it is ordinal, because paths are case-sensitive per RFC 3986 - the
+    /// case-insensitive form is opt-in and asserted below.
+    /// </remarks>
     [Fact]
-    public void PathMatchingComparesEachCharacterOnce()
+    public void PathMatchingComparesALiteralWholeAndOrdinally()
     {
         var routing = RequestGeneratorHarness
             .Generate(
@@ -350,15 +354,21 @@ public class RoutingTableCompilesTests
             .AssertNoErrors()
             .SourceContaining("Routing");
 
-        Assert.Contains("== 'o')", routing);
-        Assert.DoesNotContain("== 'O')", routing);
+        Assert.Contains(".SequenceEqual(\"orders\")", routing);
+        Assert.DoesNotContain("OrdinalIgnoreCase", routing);
     }
 
     /// <summary>
-    /// Unless the module asks for the old behaviour, which emits both comparisons again.
+    /// Unless the module asks otherwise, in which case the same comparison runs case-insensitively.
     /// </summary>
+    /// <remarks>
+    /// One call rather than a second <c>==</c> per letter, which is what this used to emit.
+    /// <see cref="MemoryExtensions.Equals(ReadOnlySpan{char}, ReadOnlySpan{char}, StringComparison)"/>
+    /// is vectorised for ASCII, so the case-insensitive table stops costing double the comparisons
+    /// of the case-sensitive one.
+    /// </remarks>
     [Fact]
-    public void CaseInsensitiveRoutesComparesBothCases()
+    public void CaseInsensitiveRoutesCompareIgnoringCase()
     {
         var routing = RequestGeneratorHarness
             .Generate(
@@ -375,8 +385,8 @@ public class RoutingTableCompilesTests
             .AssertNoErrors()
             .SourceContaining("Routing");
 
-        Assert.Contains("== 'o')", routing);
-        Assert.Contains("== 'O')", routing);
+        Assert.Contains("OrdinalIgnoreCase", routing);
+        Assert.Contains("\"orders\"", routing);
     }
 
     /// <summary>

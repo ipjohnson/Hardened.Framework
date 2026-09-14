@@ -107,7 +107,7 @@ namespace TestApp
             public RequestHandlerInfo? TestPath_temsSlash(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 5) && (charSpan[index + 0] == 't') && (charSpan[index + 1] == 'e') && (charSpan[index + 2] == 'm') && (charSpan[index + 3] == 's') && (charSpan[index + 4] == '/'))
+                if ((charSpan.Length >= index + 5) && charSpan.Slice(index, 5).SequenceEqual("tems/"))
                 {
                     index += 5;
                     if (handlerInfo == null)
@@ -178,7 +178,7 @@ namespace TestApp
             public RequestHandlerInfo? TestPath_lugsSlash(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 5) && (charSpan[index + 0] == 'l') && (charSpan[index + 1] == 'u') && (charSpan[index + 2] == 'g') && (charSpan[index + 3] == 's') && (charSpan[index + 4] == '/'))
+                if ((charSpan.Length >= index + 5) && charSpan.Slice(index, 5).SequenceEqual("lugs/"))
                 {
                     index += 5;
                     if (handlerInfo == null)

@@ -68,7 +68,7 @@ namespace TestApp
             public RequestHandlerInfo? TestPath_signDashup(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 7) && (charSpan[index + 0] == 's') && (charSpan[index + 1] == 'i') && (charSpan[index + 2] == 'g') && (charSpan[index + 3] == 'n') && (charSpan[index + 4] == '-') && (charSpan[index + 5] == 'u') && (charSpan[index + 6] == 'p'))
+                if ((charSpan.Length >= index + 7) && charSpan.Slice(index, 7).SequenceEqual("sign-up"))
                 {
                     index += 7;
                     if (charSpan.Length == index)

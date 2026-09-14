@@ -69,7 +69,7 @@ namespace Test.Api
             public RequestHandlerInfo? TestPath_apiSlashpets(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 8) && (charSpan[index + 0] == 'a') && (charSpan[index + 1] == 'p') && (charSpan[index + 2] == 'i') && (charSpan[index + 3] == '/') && (charSpan[index + 4] == 'p') && (charSpan[index + 5] == 'e') && (charSpan[index + 6] == 't') && (charSpan[index + 7] == 's'))
+                if ((charSpan.Length >= index + 8) && charSpan.Slice(index, 8).SequenceEqual("api/pets"))
                 {
                     index += 8;
                     if (charSpan.Length == index)

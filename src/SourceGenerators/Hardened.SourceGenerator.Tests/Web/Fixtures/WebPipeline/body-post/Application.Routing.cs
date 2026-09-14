@@ -68,7 +68,7 @@ namespace TestApp
             public RequestHandlerInfo? TestPath_orders(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 6) && (charSpan[index + 0] == 'o') && (charSpan[index + 1] == 'r') && (charSpan[index + 2] == 'd') && (charSpan[index + 3] == 'e') && (charSpan[index + 4] == 'r') && (charSpan[index + 5] == 's'))
+                if ((charSpan.Length >= index + 6) && charSpan.Slice(index, 6).SequenceEqual("orders"))
                 {
                     index += 6;
                     if (charSpan.Length == index)

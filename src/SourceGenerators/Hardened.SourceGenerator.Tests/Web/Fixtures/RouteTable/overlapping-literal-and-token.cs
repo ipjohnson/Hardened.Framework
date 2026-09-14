@@ -69,7 +69,7 @@ namespace Test.Api
             public RequestHandlerInfo? TestPath_petsSlash(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 5) && (charSpan[index + 0] == 'p') && (charSpan[index + 1] == 'e') && (charSpan[index + 2] == 't') && (charSpan[index + 3] == 's') && (charSpan[index + 4] == '/'))
+                if ((charSpan.Length >= index + 5) && charSpan.Slice(index, 5).SequenceEqual("pets/"))
                 {
                     index += 5;
                     handlerInfo = TestPath_s(
@@ -107,7 +107,7 @@ namespace Test.Api
             public RequestHandlerInfo? TestPath_pecial(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 6) && (charSpan[index + 0] == 'p') && (charSpan[index + 1] == 'e') && (charSpan[index + 2] == 'c') && (charSpan[index + 3] == 'i') && (charSpan[index + 4] == 'a') && (charSpan[index + 5] == 'l'))
+                if ((charSpan.Length >= index + 6) && charSpan.Slice(index, 6).SequenceEqual("pecial"))
                 {
                     index += 6;
                     if (charSpan.Length == index)
