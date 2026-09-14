@@ -157,6 +157,11 @@ public static class WebPipelineCorpus
                     public ValueTask Register(IRouteRegistry routes, CancellationToken cancellationToken) {
                         routes.Get("/acme/orders/{id:int}", typeof(TenantController), nameof(TenantController.Get));
 
+                        // The lambda form, which the build reads at the call site and rewrites the
+                        // call for. It emits a handler class and an interceptor that no other
+                        // scenario produces.
+                        routes.Get("/acme/ping/{id:int}", (int id) => Task.FromResult(id));
+
                         return default;
                     }
                 }

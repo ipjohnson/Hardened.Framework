@@ -42,12 +42,18 @@ internal static class StringConvertibleFacts
             return false;
         }
 
-        if (Underlying(symbol) is { TypeKind: TypeKind.Enum })
+        var underlying = Underlying(symbol);
+
+        if (underlying is { TypeKind: TypeKind.Enum })
         {
             return true;
         }
 
-        return Names.Contains(type.Name);
+        // The symbol's name as well as the type definition's. A nullable type definition carries
+        // the name CSharpAuthor gave it, which is not always the underlying type's - and int? binds
+        // exactly as int does. What differs is whether the token has to be there, which is the
+        // binder's question rather than this one.
+        return Names.Contains(type.Name) || (underlying != null && Names.Contains(underlying.Name));
     }
 
     /// <summary>

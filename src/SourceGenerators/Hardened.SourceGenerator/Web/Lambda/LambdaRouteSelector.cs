@@ -203,11 +203,7 @@ public static class LambdaRouteSelector
     /// <summary>The lambda's natural type - what the compiler gave it at the call site.</summary>
     private static ITypeDefinition DelegateType(IMethodSymbol lambda)
     {
-        var arguments = lambda
-            .Parameters.Select(parameter =>
-                TypeSyntaxExtensions.GetTypeDefinitionFromType(parameter.Type)
-            )
-            .ToList();
+        var arguments = lambda.Parameters.Select(parameter => AsWritten(parameter.Type)).ToList();
 
         if (lambda.ReturnsVoid)
         {
@@ -221,7 +217,7 @@ public static class LambdaRouteSelector
                 );
         }
 
-        arguments.Add(TypeSyntaxExtensions.GetTypeDefinitionFromType(lambda.ReturnType));
+        arguments.Add(AsWritten(lambda.ReturnType));
 
         return new GenericTypeDefinition(
             TypeDefinitionEnum.ClassDefinition,
@@ -231,6 +227,22 @@ public static class LambdaRouteSelector
         );
     }
 
+    /// <summary>
+    /// The type as the delegate declares it, nullability included.
+    /// </summary>
+    /// <remarks>
+    /// <c>GetTypeDefinitionFromType</c> unwraps <c>Nullable&lt;T&gt;</c> to <c>T</c>, which is right
+    /// for a bound parameter and wrong for the delegate the lambda was given: a lambda taking
+    /// <c>int?</c> has the natural type <c>Func&lt;int?, …&gt;</c>, and a cast written against
+    /// <c>Func&lt;int, …&gt;</c> does not compile.
+    /// </remarks>
+    private static ITypeDefinition AsWritten(ITypeSymbol type) =>
+        type is INamedTypeSymbol { IsGenericType: true, Name: "Nullable" } nullable
+            ? TypeSyntaxExtensions
+                .GetTypeDefinitionFromType(nullable.TypeArguments[0])
+                .MakeNullable()
+            : TypeSyntaxExtensions.GetTypeDefinitionFromType(type);
+
     private static ResponseInformationModel Response(IMethodSymbol lambda)
     {
         if (lambda.ReturnsVoid)
@@ -238,7 +250,7 @@ public static class LambdaRouteSelector
             return new ResponseInformationModel { ReturnType = TypeDefinition.Get(typeof(void)) };
         }
 
-        var returnType = TypeSyntaxExtensions.GetTypeDefinitionFromType(lambda.ReturnType);
+        var returnType = AsWritten(lambda.ReturnType);
 
         if (returnType is GenericTypeDefinition generic)
         {
@@ -448,9 +460,17 @@ public static class LambdaRouteSelector
     /// A name unique to this call site and stable across builds.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// From the enclosing member and a hash of the location rather than from a counter: a counter
     /// renumbers every handler below an inserted registration, which dirties the incremental cache
     /// for all of them and rewrites every emitted file.
+    /// </para>
+    /// <para>
+    /// <b>The hash is written out rather than taken from <c>string.GetHashCode</c>.</b> That one is
+    /// randomised per process, so the same source produced a differently named class on every
+    /// build - which is not a reproducible build, and which the golden fixtures caught by
+    /// disagreeing with themselves between two runs.
+    /// </para>
     /// </remarks>
     private static string HandlerName(InvocationExpressionSyntax invocation, string verb)
     {
@@ -460,13 +480,26 @@ public static class LambdaRouteSelector
             .Select(Named)
             .FirstOrDefault(name => name != null);
 
-        var span = invocation.GetLocation().SourceSpan;
-        var file = invocation.SyntaxTree.FilePath;
+        var hash = Fnv(invocation.SyntaxTree.FilePath, invocation.GetLocation().SourceSpan.Start);
+
+        return (enclosing ?? "Registered") + "_" + verb + "_" + hash.ToString("x8");
+    }
+
+    /// <summary>FNV-1a, because it is a few lines and does not move.</summary>
+    private static uint Fnv(string text, int start)
+    {
         unchecked
         {
-            var hash = (uint)((file.GetHashCode() * 397) ^ span.Start);
+            var hash = 2166136261;
 
-            return (enclosing ?? "Registered") + "_" + verb + "_" + hash.ToString("x8");
+            foreach (var character in text)
+            {
+                hash = (hash ^ character) * 16777619;
+            }
+
+            hash = (hash ^ (uint)start) * 16777619;
+
+            return hash;
         }
     }
 

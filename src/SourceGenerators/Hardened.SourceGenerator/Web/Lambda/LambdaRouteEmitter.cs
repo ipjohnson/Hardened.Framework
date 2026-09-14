@@ -165,7 +165,14 @@ internal static class LambdaRouteEmitter
             name += "<" + string.Join(", ", generic.TypeArguments.Select(Written)) + ">";
         }
 
-        return type.IsArray ? name + "[]" : name;
+        if (type.IsArray)
+        {
+            name += "[]";
+        }
+
+        // The delegate declares int? where the bound parameter is int, so the cast has to say so or
+        // it is a conversion the compiler refuses.
+        return type.IsNullable ? name + "?" : name;
     }
 
     private static string Tokens(LambdaRouteModel route) =>
