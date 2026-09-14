@@ -1,5 +1,7 @@
+using CSharpAuthor;
 using Hardened.SourceGenerator.Models.Request;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Hardened.SourceGenerator.Requests;
 
@@ -45,6 +47,36 @@ public static class UnresolvedHandler
             category: "Hardened.Generation",
             defaultSeverity: DiagnosticSeverity.Warning,
             isEnabledByDefault: true
+        );
+
+    /// <summary>
+    /// The record of a parameter whose type the compiler cannot bind.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Every path that classifies a parameter reaches this, because every one of them starts with
+    /// <c>parameter.Type?.GetTypeDefinition(context)</c> and resolution returns null for a name
+    /// that does not bind. That happens constantly in an editor: a signature is briefly invalid on
+    /// the way to being valid, mid-rename or before the model class is written.
+    /// </para>
+    /// <para>
+    /// The type carried forward is the name as written rather than nothing, so a diagnostic can
+    /// still say which parameter, and <see cref="ParameterBindType.Unresolved"/> is what makes the
+    /// output stages skip the handler and report <see cref="DiagnosticId"/>.
+    /// </para>
+    /// </remarks>
+    public static RequestParameterInformation Parameter(
+        ParameterSyntax parameter,
+        int parameterIndex
+    ) =>
+        new(
+            TypeDefinition.Get("", parameter.Type?.ToString() ?? "?"),
+            parameter.Identifier.ValueText,
+            false,
+            null,
+            ParameterBindType.Unresolved,
+            parameter.Identifier.ValueText,
+            parameterIndex
         );
 
     /// <summary>The first parameter that did not resolve, or null when the handler is fine.</summary>

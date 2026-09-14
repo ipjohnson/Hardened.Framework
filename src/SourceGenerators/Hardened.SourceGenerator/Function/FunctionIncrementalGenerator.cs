@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Linq;
 using System.Threading;
 using CSharpAuthor;
 using Hardened.SourceGenerator.Models.Request;
@@ -65,6 +66,15 @@ public static class FunctionIncrementalGenerator
     {
         context.CancellationToken.ThrowIfCancellationRequested();
 
+        // A parameter whose type does not resolve cannot be bound, so this handler is skipped and
+        // the reason reported. Reported here rather than in the provider because this stage runs
+        // once per handler; the provider sees them all and would report each repeatedly. The same
+        // arrangement the web generator has had since 2026-08-12.
+        if (model.ReportIfUnresolved(context))
+        {
+            return;
+        }
+
         var csharpFile = new CSharpFileDefinition(model.InvokeHandlerType.Namespace);
 
         InvokeClassGenerator.GenerateInvokeClass(model, csharpFile, context.CancellationToken);
@@ -97,7 +107,13 @@ public static class FunctionIncrementalGenerator
         context.CancellationToken.ThrowIfCancellationRequested();
 
         var appModel = models.Left;
-        var requestHandlers = models.Right;
+
+        // The handlers that were emitted, and only those. Naming one that was skipped puts a type
+        // that does not exist in the provider and in the dependency registration, so the author is
+        // told their generated code is missing rather than that their parameter does not bind.
+        var requestHandlers = models
+            .Right.Where(handler => !handler.CannotBeEmitted())
+            .ToImmutableArray();
 
         var csharpFile = new CSharpFileDefinition(appModel.EntryPointType.Namespace);
 

@@ -606,7 +606,13 @@ public abstract class BaseRequestModelGenerator
         int parameterIndex
     )
     {
-        var parameterType = parameter.Type?.GetTypeDefinition(generatorSyntaxContext)!;
+        var parameterType = parameter.Type?.GetTypeDefinition(generatorSyntaxContext);
+
+        if (parameterType == null)
+        {
+            return UnresolvedHandler.Parameter(parameter, parameterIndex);
+        }
+
         var name = parameter.Identifier.ValueText;
 
         string? defaultValue = null;
@@ -647,15 +653,7 @@ public abstract class BaseRequestModelGenerator
         // actually be reported.
         if (parameterType == null)
         {
-            return new RequestParameterInformation(
-                TypeDefinition.Get("", parameter.Type?.ToString() ?? "?"),
-                parameter.Identifier.ValueText,
-                false,
-                null,
-                ParameterBindType.Unresolved,
-                parameter.Identifier.ValueText,
-                parameterIndex
-            );
+            return UnresolvedHandler.Parameter(parameter, parameterIndex);
         }
 
         if (KnownTypes.Requests.IExecutionContext.Equals(parameterType))
