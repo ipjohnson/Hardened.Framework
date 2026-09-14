@@ -1,5 +1,6 @@
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
+using Hardened.Requests.Abstract.PathTokens;
 using Hardened.Web.Runtime.Handlers;
 using Hardened.Web.Runtime.Headers;
 using Hardened.Web.Runtime.Responses;
@@ -201,9 +202,13 @@ public class CorsFilter : IExecutionFilter
 
         string? pathVerbs = null;
 
+        // Discarded: this asks whether a route exists under another verb, and what it would have
+        // captured belongs to the request that actually runs.
+        var pathTokens = default(PathTokenCollection);
+
         foreach (var provider in _routing)
         {
-            var match = provider.GetExecutionRequestHandler(probe);
+            var match = provider.GetExecutionRequestHandler(probe, ref pathTokens);
 
             if (match == null)
             {

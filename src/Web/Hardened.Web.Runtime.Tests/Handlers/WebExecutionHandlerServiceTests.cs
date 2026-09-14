@@ -1,8 +1,8 @@
 using Hardened.Requests.Abstract.Errors;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Logging;
+using Hardened.Requests.Abstract.PathTokens;
 using Hardened.Requests.Abstract.QueryString;
-using Hardened.Requests.Runtime.PathTokens;
 using Hardened.Shared.Runtime.Metrics;
 using Hardened.Web.Runtime.Configuration;
 using Hardened.Web.Runtime.Handlers;
@@ -54,7 +54,7 @@ public class WebExecutionHandlerServiceTests
     public async Task AMatchedRoutePutsItsTokensAndHandlerInfoOnTheContext()
     {
         var fixture = new Fixture();
-        var tokens = new PathTokenCollection(1, ["id"]);
+        var tokens = new PathTokenCollection(["id"]);
 
         fixture.RouteMatches("/orders/7", tokens);
 
@@ -764,12 +764,14 @@ public class WebExecutionHandlerServiceTests
             handler.GetExecutionChain(Arg.Any<IExecutionContext>()).Returns(handlerChain);
 
             var provider = Substitute.For<IWebExecutionRequestHandlerProvider>();
+            var anyContext = Arg.Any<IExecutionContext>();
+            var anyTokens = Arg.Any<PathTokenCollection>();
 
             provider
-                .GetExecutionRequestHandler(Arg.Any<IExecutionContext>())
+                .GetExecutionRequestHandler(anyContext, ref anyTokens)
                 .Returns(call =>
                     ((IExecutionContext)call[0]).Request.Path == path
-                        ? new RequestHandlerInfo(handler, PathTokenCollection.Empty)
+                        ? new RequestHandlerInfo(handler)
                         : null
                 );
 
@@ -790,10 +792,20 @@ public class WebExecutionHandlerServiceTests
             handler.GetExecutionChain(Context).Returns(handlerChain);
 
             var provider = Substitute.For<IWebExecutionRequestHandlerProvider>();
+            var thisContext = Arg.Is(Context);
+            var anyTokens = Arg.Any<PathTokenCollection>();
 
+            // What a real table does: the values go into the caller's destination, and only the
+            // handler comes back. NSubstitute writes a ref argument back through the call, which is
+            // how a substitute reproduces that.
             provider
-                .GetExecutionRequestHandler(Context)
-                .Returns(new RequestHandlerInfo(handler, tokens ?? PathTokenCollection.Empty));
+                .GetExecutionRequestHandler(thisContext, ref anyTokens)
+                .Returns(call =>
+                {
+                    call[1] = tokens ?? default(PathTokenCollection);
+
+                    return new RequestHandlerInfo(handler);
+                });
 
             _providers.Add(provider);
 
@@ -806,8 +818,12 @@ public class WebExecutionHandlerServiceTests
             Context.Request.Path.Returns(path);
 
             var provider = Substitute.For<IWebExecutionRequestHandlerProvider>();
+            var thisContext = Arg.Is(Context);
+            var anyTokens = Arg.Any<PathTokenCollection>();
 
-            provider.GetExecutionRequestHandler(Context).Returns(_ => throw fault);
+            provider
+                .GetExecutionRequestHandler(thisContext, ref anyTokens)
+                .Returns(_ => throw fault);
 
             _providers.Add(provider);
         }
@@ -819,8 +835,11 @@ public class WebExecutionHandlerServiceTests
 
             if (!matches)
             {
+                var missContext = Arg.Any<IExecutionContext>();
+                var missTokens = Arg.Any<PathTokenCollection>();
+
                 provider
-                    .GetExecutionRequestHandler(Arg.Any<IExecutionContext>())
+                    .GetExecutionRequestHandler(missContext, ref missTokens)
                     .Returns((RequestHandlerInfo?)null);
 
                 return provider;
@@ -835,9 +854,12 @@ public class WebExecutionHandlerServiceTests
                 .GetExecutionChain(Arg.Any<IExecutionContext>())
                 .Returns(Substitute.For<IExecutionChain>());
 
+            var anyContext = Arg.Any<IExecutionContext>();
+            var anyTokens = Arg.Any<PathTokenCollection>();
+
             provider
-                .GetExecutionRequestHandler(Arg.Any<IExecutionContext>())
-                .Returns(new RequestHandlerInfo(handler, PathTokenCollection.Empty));
+                .GetExecutionRequestHandler(anyContext, ref anyTokens)
+                .Returns(new RequestHandlerInfo(handler));
 
             return provider;
         }
@@ -863,10 +885,12 @@ public class WebExecutionHandlerServiceTests
             handler.GetExecutionChain(Arg.Any<IExecutionContext>()).Returns(handlerChain);
 
             var provider = Substitute.For<IFallbackRequestHandlerProvider>();
+            var anyContext = Arg.Any<IExecutionContext>();
+            var anyTokens = Arg.Any<PathTokenCollection>();
 
             provider
-                .GetExecutionRequestHandler(Arg.Any<IExecutionContext>())
-                .Returns(new RequestHandlerInfo(handler, PathTokenCollection.Empty));
+                .GetExecutionRequestHandler(anyContext, ref anyTokens)
+                .Returns(new RequestHandlerInfo(handler));
 
             _fallbacks.Add(provider);
 
@@ -877,9 +901,11 @@ public class WebExecutionHandlerServiceTests
         public IWebExecutionRequestHandlerProvider MethodMismatch(string allow)
         {
             var provider = Substitute.For<IWebExecutionRequestHandlerProvider>();
+            var anyContext = Arg.Any<IExecutionContext>();
+            var anyTokens = Arg.Any<PathTokenCollection>();
 
             provider
-                .GetExecutionRequestHandler(Arg.Any<IExecutionContext>())
+                .GetExecutionRequestHandler(anyContext, ref anyTokens)
                 .Returns(RequestHandlerInfo.MethodNotAllowed(allow));
 
             _providers.Add(provider);

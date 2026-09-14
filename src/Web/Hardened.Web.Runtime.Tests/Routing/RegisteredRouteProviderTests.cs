@@ -30,7 +30,7 @@ public class RegisteredRouteProviderTests
         var provider = new RegisteredRouteProvider(Services(), expectsRegistrations: false);
 
         Assert.True(provider.IsReady);
-        Assert.Null(provider.GetExecutionRequestHandler(Context("/orders")));
+        Assert.Null(provider.Match(Context("/orders")));
     }
 
     [Fact]
@@ -41,10 +41,10 @@ public class RegisteredRouteProviderTests
 
         provider.Publish(Table());
 
-        var matched = provider.GetExecutionRequestHandler(Context("/orders/7"));
+        var context = Context("/orders/7");
 
-        Assert.NotNull(matched);
-        Assert.Equal("7", matched!.PathTokens.Get("id").ToString());
+        Assert.NotNull(provider.Match(context));
+        Assert.Equal("7", provider.Tokens(context).Get("id").ToString());
     }
 
     [Fact]
@@ -54,7 +54,7 @@ public class RegisteredRouteProviderTests
 
         provider.Publish(Table());
 
-        Assert.Null(provider.GetExecutionRequestHandler(Context("/elsewhere")));
+        Assert.Null(provider.Match(Context("/elsewhere")));
     }
 
     [Fact]
@@ -66,7 +66,7 @@ public class RegisteredRouteProviderTests
         Assert.False(provider.IsReady);
 
         var context = Context("/orders/7", services);
-        var matched = provider.GetExecutionRequestHandler(context);
+        var matched = provider.Match(context);
 
         Assert.NotNull(matched);
 
@@ -84,8 +84,8 @@ public class RegisteredRouteProviderTests
         var provider = new RegisteredRouteProvider(services, expectsRegistrations: true);
 
         Assert.Same(
-            provider.GetExecutionRequestHandler(Context("/one", services))!.Handler,
-            provider.GetExecutionRequestHandler(Context("/two", services))!.Handler
+            provider.Match(Context("/one", services))!.Handler,
+            provider.Match(Context("/two", services))!.Handler
         );
     }
 

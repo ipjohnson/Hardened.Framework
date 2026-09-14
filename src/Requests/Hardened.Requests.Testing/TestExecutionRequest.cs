@@ -2,7 +2,6 @@
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.PathTokens;
 using Hardened.Requests.Abstract.QueryString;
-using Hardened.Requests.Runtime.PathTokens;
 using Hardened.Shared.Runtime.Collections;
 using Microsoft.Extensions.Primitives;
 
@@ -10,8 +9,6 @@ namespace Hardened.Requests.Testing;
 
 public class TestExecutionRequest : IExecutionRequest
 {
-    private IPathTokenCollection? _pathTokens;
-
     public TestExecutionRequest(
         string method,
         string path,
@@ -70,11 +67,7 @@ public class TestExecutionRequest : IExecutionRequest
 
     public IQueryStringCollection QueryString { get; }
 
-    public IPathTokenCollection PathTokens
-    {
-        get => _pathTokens ?? PathTokenCollection.Empty;
-        set => _pathTokens = value;
-    }
+    public PathTokenCollection PathTokens { get; set; }
 
     public IReadOnlyList<string> Cookies { get; set; } = Array.Empty<string>();
 

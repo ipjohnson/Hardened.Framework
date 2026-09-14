@@ -1,5 +1,6 @@
 using DependencyModules.Runtime.Interfaces;
 using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Abstract.PathTokens;
 using Hardened.Requests.Runtime.QueryString;
 using Hardened.Requests.Testing;
 using Hardened.Shared.Runtime.Application;
@@ -53,9 +54,11 @@ public sealed class HardenedMatcherHarness : IDisposable
     /// </summary>
     public RequestHandlerInfo? Match(IExecutionContext context)
     {
+        var pathTokens = default(PathTokenCollection);
+
         foreach (var provider in _providers)
         {
-            var handler = provider.GetExecutionRequestHandler(context);
+            var handler = provider.GetExecutionRequestHandler(context, ref pathTokens);
 
             if (handler != null)
             {

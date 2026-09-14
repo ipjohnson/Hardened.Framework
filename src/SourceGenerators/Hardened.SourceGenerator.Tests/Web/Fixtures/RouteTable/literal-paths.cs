@@ -1,6 +1,6 @@
 using DependencyModules.Runtime.Helpers;
 using Hardened.Requests.Abstract.Execution;
-using Hardened.Requests.Runtime.PathTokens;
+using Hardened.Requests.Abstract.PathTokens;
 using Hardened.Web.Runtime.Handlers;
 using Microsoft.Extensions.DependencyInjection;
 using System;
@@ -40,17 +40,18 @@ namespace Test.Api
                 _rootServiceProvider = serviceProvider;
             }
 
-            public RequestHandlerInfo? GetExecutionRequestHandler(IExecutionContext context)
+            public RequestHandlerInfo? GetExecutionRequestHandler(IExecutionContext context, ref PathTokenCollection pathTokens)
             {
                 var pathSpan = context.Request.Path.AsSpan();
                 return TestPath_Slash(
                     pathSpan,
                     0,
-                    context.Request.Method
+                    context.Request.Method,
+                    ref pathTokens
                 );
             }
 
-            public RequestHandlerInfo? TestPath_Slash(ReadOnlySpan<char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_Slash(ReadOnlySpan<char> charSpan, int index, string methodString, ref PathTokenCollection pathTokens)
             {
                 RequestHandlerInfo? handlerInfo = null;
                 if ((charSpan.Length >= index + 1) && (charSpan[index + 0] == '/'))
@@ -59,13 +60,14 @@ namespace Test.Api
                     handlerInfo = TestPath_SlashCaseStatement(
                         charSpan,
                         index,
-                        methodString
+                        methodString,
+                        ref pathTokens
                     );
                 }
                 return handlerInfo;
             }
 
-            public RequestHandlerInfo? TestPath_SlashCaseStatement(ReadOnlySpan<char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_SlashCaseStatement(ReadOnlySpan<char> charSpan, int index, string methodString, ref PathTokenCollection pathTokens)
             {
                 if (charSpan.Length > index)
                 {
@@ -75,20 +77,22 @@ namespace Test.Api
                             return TestPath_ets(
                                 charSpan,
                                 index + 1,
-                                methodString
+                                methodString,
+                                ref pathTokens
                             );
                         case 's':
                             return TestPath_tore(
                                 charSpan,
                                 index + 1,
-                                methodString
+                                methodString,
+                                ref pathTokens
                             );
                     }
                 }
                 return null;
             }
 
-            public RequestHandlerInfo? TestPath_ets(ReadOnlySpan<char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_ets(ReadOnlySpan<char> charSpan, int index, string methodString, ref PathTokenCollection pathTokens)
             {
                 RequestHandlerInfo? handlerInfo = null;
                 if ((charSpan.Length >= index + 3) && charSpan.Slice(index, 3).SequenceEqual("ets"))
@@ -100,10 +104,7 @@ namespace Test.Api
                         {
                             case "HEAD":
                             case "GET":
-                                return _infoPetController_ListPets ??= new RequestHandlerInfo(
-                                    new PetController_ListPets(_rootServiceProvider),
-                                    PathTokenCollection.Empty
-                                );
+                                return _infoPetController_ListPets ??= new RequestHandlerInfo(new PetController_ListPets(_rootServiceProvider));
                             default:
                                 return _methodNotAllowedGETHEAD;
                         }
@@ -111,13 +112,14 @@ namespace Test.Api
                     handlerInfo = TestPath_Slashfeatured(
                         charSpan,
                         index,
-                        methodString
+                        methodString,
+                        ref pathTokens
                     );
                 }
                 return handlerInfo;
             }
 
-            public RequestHandlerInfo? TestPath_Slashfeatured(ReadOnlySpan<char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_Slashfeatured(ReadOnlySpan<char> charSpan, int index, string methodString, ref PathTokenCollection pathTokens)
             {
                 RequestHandlerInfo? handlerInfo = null;
                 if ((charSpan.Length >= index + 9) && charSpan.Slice(index, 9).SequenceEqual("/featured"))
@@ -129,10 +131,7 @@ namespace Test.Api
                         {
                             case "HEAD":
                             case "GET":
-                                return _infoPetController_Featured ??= new RequestHandlerInfo(
-                                    new PetController_Featured(_rootServiceProvider),
-                                    PathTokenCollection.Empty
-                                );
+                                return _infoPetController_Featured ??= new RequestHandlerInfo(new PetController_Featured(_rootServiceProvider));
                             default:
                                 return _methodNotAllowedGETHEAD;
                         }
@@ -141,7 +140,7 @@ namespace Test.Api
                 return handlerInfo;
             }
 
-            public RequestHandlerInfo? TestPath_tore(ReadOnlySpan<char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_tore(ReadOnlySpan<char> charSpan, int index, string methodString, ref PathTokenCollection pathTokens)
             {
                 RequestHandlerInfo? handlerInfo = null;
                 if ((charSpan.Length >= index + 4) && charSpan.Slice(index, 4).SequenceEqual("tore"))
@@ -153,10 +152,7 @@ namespace Test.Api
                         {
                             case "HEAD":
                             case "GET":
-                                return _infoPetController_Store ??= new RequestHandlerInfo(
-                                    new PetController_Store(_rootServiceProvider),
-                                    PathTokenCollection.Empty
-                                );
+                                return _infoPetController_Store ??= new RequestHandlerInfo(new PetController_Store(_rootServiceProvider));
                             default:
                                 return _methodNotAllowedGETHEAD;
                         }

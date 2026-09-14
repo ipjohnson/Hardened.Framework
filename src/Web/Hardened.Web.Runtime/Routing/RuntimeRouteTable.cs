@@ -1,5 +1,5 @@
 using Hardened.Requests.Abstract.Execution;
-using Hardened.Requests.Runtime.PathTokens;
+using Hardened.Requests.Abstract.PathTokens;
 using Hardened.Web.Runtime.Handlers;
 
 namespace Hardened.Web.Runtime.Routing;
@@ -23,10 +23,10 @@ namespace Hardened.Web.Runtime.Routing;
 /// <c>RouteRegistryStartupService</c> for where it closes.
 /// </para>
 /// <para>
-/// <b>Allocation.</b> A match allocates the <see cref="PathTokenCollection"/> the request needs and
-/// one string per bound token, which is what the generated table allocates for the same route, and
-/// nothing else. The token values found on the way down are held in a stack buffer, and segments
-/// are looked up by span - see <see cref="SegmentLookup{TValue}"/>.
+/// <b>Allocation.</b> A match allocates one string per bound token and nothing else, which is what
+/// the generated table allocates for the same route. The token values found on the way down are
+/// held in a stack buffer, the collection they end up in is storage the request already owns, and
+/// segments are looked up by span - see <see cref="SegmentLookup{TValue}"/>.
 /// </para>
 /// </remarks>
 public sealed class RuntimeRouteTable
@@ -63,7 +63,11 @@ public sealed class RuntimeRouteTable
     /// What answers <paramref name="method"/> at <paramref name="path"/>: a handler, a 405 naming
     /// what the path does answer, or null where no route matched at all.
     /// </summary>
-    public RequestHandlerInfo? Match(ReadOnlySpan<char> path, string method)
+    public RequestHandlerInfo? Match(
+        ReadOnlySpan<char> path,
+        string method,
+        ref PathTokenCollection pathTokens
+    )
     {
         if (Count == 0 || path.Length == 0 || path[0] != '/')
         {
@@ -75,13 +79,13 @@ public sealed class RuntimeRouteTable
         // without walking anything.
         if (_literalPaths.TryGetValue(path, out var literal))
         {
-            return literal.Resolve(method, path, default, 0);
+            return literal.Resolve(method, path, default, 0, ref pathTokens);
         }
 
         Span<TokenSlice> tokens =
             _maximumTokens == 0 ? default : stackalloc TokenSlice[_maximumTokens];
 
-        return Walk(_root, path, 1, method, tokens, 0);
+        return Walk(_root, path, 1, method, tokens, 0, ref pathTokens);
     }
 
     /// <remarks>
@@ -102,7 +106,8 @@ public sealed class RuntimeRouteTable
         int index,
         string method,
         Span<TokenSlice> tokens,
-        int depth
+        int depth,
+        ref PathTokenCollection pathTokens
     )
     {
         var rest = path.Slice(index);
@@ -114,8 +119,8 @@ public sealed class RuntimeRouteTable
         if (node.Literals.TryGetValue(segment, out var child))
         {
             var matched = last
-                ? child.Endpoints?.Resolve(method, path, tokens, depth)
-                : Walk(child, path, end + 1, method, tokens, depth);
+                ? child.Endpoints?.Resolve(method, path, tokens, depth, ref pathTokens)
+                : Walk(child, path, end + 1, method, tokens, depth, ref pathTokens);
 
             if (matched != null)
             {
@@ -140,8 +145,8 @@ public sealed class RuntimeRouteTable
                 tokens[depth] = new TokenSlice(index, segment.Length);
 
                 var matched = last
-                    ? edge.Child.Endpoints?.Resolve(method, path, tokens, depth + 1)
-                    : Walk(edge.Child, path, end + 1, method, tokens, depth + 1);
+                    ? edge.Child.Endpoints?.Resolve(method, path, tokens, depth + 1, ref pathTokens)
+                    : Walk(edge.Child, path, end + 1, method, tokens, depth + 1, ref pathTokens);
 
                 if (matched != null)
                 {
@@ -163,7 +168,7 @@ public sealed class RuntimeRouteTable
 
                 tokens[depth] = new TokenSlice(index, rest.Length);
 
-                return edge.Endpoints.Resolve(method, path, tokens, depth + 1);
+                return edge.Endpoints.Resolve(method, path, tokens, depth + 1, ref pathTokens);
             }
         }
 
@@ -273,7 +278,8 @@ internal sealed class RouteEndpoints
         string method,
         ReadOnlySpan<char> path,
         ReadOnlySpan<TokenSlice> tokens,
-        int count
+        int count,
+        ref PathTokenCollection pathTokens
     )
     {
         foreach (var entry in _entries)
@@ -285,10 +291,9 @@ internal sealed class RouteEndpoints
                 continue;
             }
 
-            return new RequestHandlerInfo(
-                entry.Handler,
-                Bind(entry.TokenNames, path, tokens, count)
-            );
+            pathTokens = Bind(entry.TokenNames, path, tokens, count);
+
+            return entry.Info;
         }
 
         return _methodNotAllowed;
@@ -312,7 +317,7 @@ internal sealed class RouteEndpoints
             return PathTokenCollection.Empty;
         }
 
-        var collection = new PathTokenCollection(names.Length, names);
+        var collection = new PathTokenCollection(names);
 
         for (var index = 0; index < names.Length && index < count; index++)
         {
@@ -366,7 +371,12 @@ internal sealed class RouteEntry
 
     public string[] TokenNames { get; }
 
-    public IExecutionRequestHandler Handler => _slot.Handler;
+    /// <summary>
+    /// What this route answers with, built on first use and reused. Nothing in it is per request -
+    /// see <see cref="RequestHandlerInfo"/> - so the record is part of the slot rather than rebuilt
+    /// around the handler every time the route matches.
+    /// </summary>
+    public RequestHandlerInfo Info => _slot.Info;
 
     /// <remarks>
     /// Built on the first request that reaches this route rather than at registration, which is what
@@ -378,7 +388,7 @@ internal sealed class RouteEntry
     {
         private readonly Func<string, IExecutionRequestHandler> _factory;
         private readonly string _template;
-        private IExecutionRequestHandler? _handler;
+        private RequestHandlerInfo? _info;
 
         public HandlerSlot(string template, Func<string, IExecutionRequestHandler> factory)
         {
@@ -386,6 +396,6 @@ internal sealed class RouteEntry
             _factory = factory;
         }
 
-        public IExecutionRequestHandler Handler => _handler ??= _factory(_template);
+        public RequestHandlerInfo Info => _info ??= new RequestHandlerInfo(_factory(_template));
     }
 }

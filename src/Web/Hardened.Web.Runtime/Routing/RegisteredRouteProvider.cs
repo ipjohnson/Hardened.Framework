@@ -1,8 +1,8 @@
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
+using Hardened.Requests.Abstract.PathTokens;
 using Hardened.Requests.Runtime.Authorization;
 using Hardened.Requests.Runtime.Execution;
-using Hardened.Requests.Runtime.PathTokens;
 using Hardened.Web.Runtime.Handlers;
 using Microsoft.Extensions.Primitives;
 
@@ -58,21 +58,25 @@ public sealed class RegisteredRouteProvider : IWebExecutionRequestHandlerProvide
         _table = table;
     }
 
-    public RequestHandlerInfo? GetExecutionRequestHandler(IExecutionContext context)
+    public RequestHandlerInfo? GetExecutionRequestHandler(
+        IExecutionContext context,
+        ref PathTokenCollection pathTokens
+    )
     {
         var table = _table;
 
         if (table != null)
         {
-            return table.Match(context.Request.Path.AsSpan(), context.Request.Method);
+            return table.Match(
+                context.Request.Path.AsSpan(),
+                context.Request.Method,
+                ref pathTokens
+            );
         }
 
         // Registration has not closed. A 404 here would be a lie, and a lie a CDN or an API gateway
         // caches; 503 says come back, which is what is actually true.
-        return new RequestHandlerInfo(
-            _pending ??= PendingHandler.For(_rootProvider),
-            PathTokenCollection.Empty
-        );
+        return new RequestHandlerInfo(_pending ??= PendingHandler.For(_rootProvider));
     }
 
     /// <summary>

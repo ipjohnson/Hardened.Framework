@@ -3,7 +3,7 @@
 #pragma warning disable CS1591 // generated members carry no doc comments
 using DependencyModules.Runtime.Helpers;
 using Hardened.Requests.Abstract.Execution;
-using Hardened.Requests.Runtime.PathTokens;
+using Hardened.Requests.Abstract.PathTokens;
 using Hardened.Web.Runtime.Handlers;
 using Microsoft.Extensions.DependencyInjection;
 using System;
@@ -40,17 +40,18 @@ namespace TestApp
                 _rootServiceProvider = serviceProvider;
             }
 
-            public RequestHandlerInfo? GetExecutionRequestHandler(IExecutionContext context)
+            public RequestHandlerInfo? GetExecutionRequestHandler(IExecutionContext context, ref PathTokenCollection pathTokens)
             {
                 var pathSpan = context.Request.Path.AsSpan();
                 return TestPath_Slashsession(
                     pathSpan,
                     0,
-                    context.Request.Method
+                    context.Request.Method,
+                    ref pathTokens
                 );
             }
 
-            public RequestHandlerInfo? TestPath_Slashsession(ReadOnlySpan<char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_Slashsession(ReadOnlySpan<char> charSpan, int index, string methodString, ref PathTokenCollection pathTokens)
             {
                 RequestHandlerInfo? handlerInfo = null;
                 if ((charSpan.Length >= index + 8) && charSpan.Slice(index, 8).SequenceEqual("/session"))
@@ -62,10 +63,7 @@ namespace TestApp
                         {
                             case "HEAD":
                             case "GET":
-                                return _infoSessionController_Read_1893 ??= new RequestHandlerInfo(
-                                    new SessionController_Read_1893(_rootServiceProvider),
-                                    PathTokenCollection.Empty
-                                );
+                                return _infoSessionController_Read_1893 ??= new RequestHandlerInfo(new SessionController_Read_1893(_rootServiceProvider));
                             default:
                                 return _methodNotAllowedGETHEAD;
                         }

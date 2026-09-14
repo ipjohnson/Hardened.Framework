@@ -93,7 +93,7 @@ namespace Hardened.Aws.Lambda.Runtime.Execution
         public string Method { get; }
         public Hardened.Requests.Abstract.Execution.IExecutionRequestParameters? Parameters { get; set; }
         public string Path { get; }
-        public Hardened.Requests.Abstract.PathTokens.IPathTokenCollection PathTokens { get; set; }
+        public Hardened.Requests.Abstract.PathTokens.PathTokenCollection PathTokens { get; set; }
         public Hardened.Requests.Abstract.QueryString.IQueryStringCollection QueryString { get; }
         public Hardened.Requests.Abstract.Execution.ITransportInfo Transport { get; }
         public Hardened.Requests.Abstract.Execution.IExecutionRequest Clone(string? method = null, string? path = null, System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues>? headers = null, Hardened.Requests.Abstract.QueryString.IQueryStringCollection? queryString = null, System.Collections.Generic.IReadOnlyList<string>? cookies = null) { }

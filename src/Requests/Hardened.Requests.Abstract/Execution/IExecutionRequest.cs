@@ -31,7 +31,7 @@ public interface IExecutionRequest
 
     IQueryStringCollection QueryString { get; }
 
-    IPathTokenCollection PathTokens { get; set; }
+    PathTokenCollection PathTokens { get; set; }
 
     IReadOnlyList<string> Cookies { get; }
 

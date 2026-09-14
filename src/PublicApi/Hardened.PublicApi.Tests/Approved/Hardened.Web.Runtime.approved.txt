@@ -350,7 +350,7 @@ namespace Hardened.Web.Runtime.Handlers
     public interface IWebExecutionHandlerService : Hardened.Requests.Abstract.Execution.IExecutionFilter, Hardened.Requests.Abstract.Execution.IHandlerDispatch { }
     public interface IWebExecutionRequestHandlerProvider
     {
-        Hardened.Web.Runtime.Handlers.RequestHandlerInfo? GetExecutionRequestHandler(Hardened.Requests.Abstract.Execution.IExecutionContext context);
+        Hardened.Web.Runtime.Handlers.RequestHandlerInfo? GetExecutionRequestHandler(Hardened.Requests.Abstract.Execution.IExecutionContext context, ref Hardened.Requests.Abstract.PathTokens.PathTokenCollection pathTokens);
     }
     [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
     public class MethodNotAllowedHandler : Hardened.Web.Runtime.Handlers.IMethodNotAllowedHandler
@@ -360,10 +360,9 @@ namespace Hardened.Web.Runtime.Handlers
     }
     public class RequestHandlerInfo : System.IEquatable<Hardened.Web.Runtime.Handlers.RequestHandlerInfo>
     {
-        public RequestHandlerInfo(Hardened.Requests.Abstract.Execution.IExecutionRequestHandler? Handler, Hardened.Requests.Runtime.PathTokens.PathTokenCollection PathTokens, string? Allow = null) { }
+        public RequestHandlerInfo(Hardened.Requests.Abstract.Execution.IExecutionRequestHandler? Handler, string? Allow = null) { }
         public string? Allow { get; init; }
         public Hardened.Requests.Abstract.Execution.IExecutionRequestHandler? Handler { get; init; }
-        public Hardened.Requests.Runtime.PathTokens.PathTokenCollection PathTokens { get; init; }
         public static Hardened.Web.Runtime.Handlers.RequestHandlerInfo MethodNotAllowed(string allow) { }
     }
     [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
@@ -431,7 +430,7 @@ namespace Hardened.Web.Runtime.Health
     public class HealthCheckProvider : Hardened.Web.Runtime.Handlers.IWebExecutionRequestHandlerProvider
     {
         public HealthCheckProvider(Hardened.Web.Runtime.Health.HealthCheckConfiguration config, System.IServiceProvider rootProvider) { }
-        public Hardened.Web.Runtime.Handlers.RequestHandlerInfo? GetExecutionRequestHandler(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+        public Hardened.Web.Runtime.Handlers.RequestHandlerInfo? GetExecutionRequestHandler(Hardened.Requests.Abstract.Execution.IExecutionContext context, ref Hardened.Requests.Abstract.PathTokens.PathTokenCollection pathTokens) { }
     }
     public readonly struct HealthCheckResult : System.IEquatable<Hardened.Web.Runtime.Health.HealthCheckResult>
     {
@@ -555,7 +554,7 @@ namespace Hardened.Web.Runtime.OpenApi
         public OpenApiDocumentProvider(System.IServiceProvider serviceProvider, System.ReadOnlySpan<byte> gzipDocument, string path = "/openapi.json", string contentType = "application/json", Hardened.Requests.Abstract.Authorization.Requirement? requirement = null) { }
         public OpenApiDocumentProvider(System.IServiceProvider serviceProvider, string document, string path = "/openapi.json", string contentType = "application/json", Hardened.Requests.Abstract.Authorization.Requirement? requirement = null) { }
         public string Path { get; }
-        public Hardened.Web.Runtime.Handlers.RequestHandlerInfo? GetExecutionRequestHandler(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+        public Hardened.Web.Runtime.Handlers.RequestHandlerInfo? GetExecutionRequestHandler(Hardened.Requests.Abstract.Execution.IExecutionContext context, ref Hardened.Requests.Abstract.PathTokens.PathTokenCollection pathTokens) { }
         public void Publish(string document) { }
     }
     [Hardened.Web.Runtime.OpenApi.OpenApiDocumentPath("/openapi.json")]
@@ -596,7 +595,7 @@ namespace Hardened.Web.Runtime.OpenApi
     {
         public OpenApiUiProvider(Hardened.Web.Runtime.OpenApi.IOpenApiUiConfiguration configuration, System.IServiceProvider serviceProvider) { }
         public Hardened.Web.Runtime.OpenApi.IOpenApiUiConfiguration Configuration { get; }
-        public Hardened.Web.Runtime.Handlers.RequestHandlerInfo? GetExecutionRequestHandler(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+        public Hardened.Web.Runtime.Handlers.RequestHandlerInfo? GetExecutionRequestHandler(Hardened.Requests.Abstract.Execution.IExecutionContext context, ref Hardened.Requests.Abstract.PathTokens.PathTokenCollection pathTokens) { }
     }
 }
 namespace Hardened.Web.Runtime.Responses
@@ -1437,7 +1436,7 @@ namespace Hardened.Web.Runtime.Routing
     {
         public RegisteredRouteProvider(System.IServiceProvider rootProvider, bool expectsRegistrations) { }
         public bool IsReady { get; }
-        public Hardened.Web.Runtime.Handlers.RequestHandlerInfo? GetExecutionRequestHandler(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+        public Hardened.Web.Runtime.Handlers.RequestHandlerInfo? GetExecutionRequestHandler(Hardened.Requests.Abstract.Execution.IExecutionContext context, ref Hardened.Requests.Abstract.PathTokens.PathTokenCollection pathTokens) { }
         public void Publish(Hardened.Web.Runtime.Routing.RuntimeRouteTable table) { }
     }
     public static class RouteConstraintChain
@@ -1542,7 +1541,7 @@ namespace Hardened.Web.Runtime.Routing
     {
         public static readonly Hardened.Web.Runtime.Routing.RuntimeRouteTable Empty;
         public int Count { get; }
-        public Hardened.Web.Runtime.Handlers.RequestHandlerInfo? Match(System.ReadOnlySpan<char> path, string method) { }
+        public Hardened.Web.Runtime.Handlers.RequestHandlerInfo? Match(System.ReadOnlySpan<char> path, string method, ref Hardened.Requests.Abstract.PathTokens.PathTokenCollection pathTokens) { }
     }
     public sealed class RuntimeRouteTableBuilder
     {

@@ -7,7 +7,6 @@ using Hardened.Requests.Abstract.PathTokens;
 using Hardened.Requests.Abstract.QueryString;
 using Hardened.Requests.Runtime.Execution;
 using Hardened.Requests.Runtime.Headers;
-using Hardened.Requests.Runtime.PathTokens;
 using Hardened.Requests.Runtime.QueryString;
 using Hardened.Shared.Runtime.Collections;
 using Hardened.Shared.Runtime.Diagnostics;
@@ -148,7 +147,6 @@ public class AspNetExecutionRequest : IExecutionRequest
     private readonly IQueryStringCollection? _queryStringOverride;
     private readonly IReadOnlyList<string>? _cookiesOverride;
 
-    private IPathTokenCollection? _pathTokens;
     private IQueryStringCollection? _queryString;
     private IReadOnlyList<string>? _cookies;
     private ITransportInfo? _transport;
@@ -252,11 +250,7 @@ public class AspNetExecutionRequest : IExecutionRequest
             )
         );
 
-    public IPathTokenCollection PathTokens
-    {
-        get => _pathTokens ?? PathTokenCollection.Empty;
-        set => _pathTokens = value;
-    }
+    public PathTokenCollection PathTokens { get; set; }
 
     /// <summary>
     /// ASP.NET Core parses the Cookie header into name/value pairs; the framework contract

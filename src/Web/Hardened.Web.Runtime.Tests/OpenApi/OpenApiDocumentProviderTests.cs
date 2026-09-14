@@ -107,7 +107,7 @@ public class OpenApiDocumentProviderTests
         IExecutionContext context
     )
     {
-        var handler = provider.GetExecutionRequestHandler(context);
+        var handler = provider.Match(context);
 
         Assert.NotNull(handler);
 
@@ -257,8 +257,8 @@ public class OpenApiDocumentProviderTests
     {
         var provider = new OpenApiDocumentProvider(Services(), Document);
 
-        Assert.NotNull(provider.GetExecutionRequestHandler(Context(method: "HEAD")));
-        Assert.NotNull(provider.GetExecutionRequestHandler(Context(method: "head")));
+        Assert.NotNull(provider.Match(Context(method: "HEAD")));
+        Assert.NotNull(provider.Match(Context(method: "head")));
     }
 
     /// <summary>
@@ -273,7 +273,7 @@ public class OpenApiDocumentProviderTests
     {
         var provider = new OpenApiDocumentProvider(Services(), Document);
 
-        var match = provider.GetExecutionRequestHandler(Context(method: method));
+        var match = provider.Match(Context(method: method));
 
         Assert.NotNull(match);
         Assert.Null(match!.Handler);
@@ -285,8 +285,8 @@ public class OpenApiDocumentProviderTests
     {
         var provider = new OpenApiDocumentProvider(Services(), Document);
 
-        Assert.Null(provider.GetExecutionRequestHandler(Context("/openapi.yaml")));
-        Assert.Null(provider.GetExecutionRequestHandler(Context("/openapi.json/")));
+        Assert.Null(provider.Match(Context("/openapi.yaml")));
+        Assert.Null(provider.Match(Context("/openapi.json/")));
     }
 
     /// <summary>
@@ -348,7 +348,7 @@ public class OpenApiDocumentProviderTests
         IServiceProvider services
     )
     {
-        var match = provider.GetExecutionRequestHandler(Context(services: services));
+        var match = provider.Match(Context(services: services));
 
         Assert.NotNull(match);
 

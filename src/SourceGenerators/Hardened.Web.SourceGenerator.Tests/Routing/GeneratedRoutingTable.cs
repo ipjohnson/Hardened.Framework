@@ -1,6 +1,7 @@
 using System.Reflection;
 using Hardened.Requests.Abstract.Attributes;
 using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Abstract.PathTokens;
 using Hardened.Requests.Abstract.RequestFilter;
 using Hardened.Shared.Runtime.Collections;
 using Hardened.SourceGeneration.Testing;
@@ -142,7 +143,21 @@ internal sealed class GeneratedRoutingTable
     /// Routes one request. Returns null when nothing matched, which is what the web handler service
     /// treats as "fall through to static content, then 404".
     /// </summary>
-    public RequestHandlerInfo? Route(string method, string path)
+    public RequestHandlerInfo? Route(string method, string path) => Match(method, path).Info;
+
+    /// <summary>
+    /// Routes one request and returns what it bound as well as what it found.
+    /// </summary>
+    /// <remarks>
+    /// The token destination is the table's second parameter, passed by reference. Reflection
+    /// writes a <c>ref</c> argument back into the array it was handed, so the collection comes back
+    /// out of <paramref name="arguments"/> rather than off the record - which is where the request
+    /// gets it from too.
+    /// </remarks>
+    public (RequestHandlerInfo? Info, PathTokenCollection PathTokens) Match(
+        string method,
+        string path
+    )
     {
         var context = Substitute.For<IExecutionContext>();
         var request = Substitute.For<IExecutionRequest>();
@@ -151,7 +166,12 @@ internal sealed class GeneratedRoutingTable
         request.Path.Returns(path);
         context.Request.Returns(request);
 
-        return (RequestHandlerInfo?)_getExecutionRequestHandler.Invoke(_routingTable, [context]);
+        var arguments = new object?[] { context, default(PathTokenCollection) };
+
+        var info = (RequestHandlerInfo?)
+            _getExecutionRequestHandler.Invoke(_routingTable, arguments);
+
+        return (info, (PathTokenCollection)arguments[1]!);
     }
 
     /// <summary>
@@ -179,7 +199,7 @@ internal sealed class GeneratedRoutingTable
     /// <summary>The path token values bound by the route that matched, keyed by token name.</summary>
     public IReadOnlyDictionary<string, string?> PathTokens(string method, string path)
     {
-        var handler = Route(method, path);
+        var (handler, pathTokens) = Match(method, path);
 
         Assert.True(handler != null, $"{method} {path} did not match any route.");
         Assert.True(
@@ -189,9 +209,9 @@ internal sealed class GeneratedRoutingTable
 
         var tokens = new Dictionary<string, string?>();
 
-        for (var i = 0; i < handler.PathTokens.Count; i++)
+        for (var i = 0; i < pathTokens.Count; i++)
         {
-            var token = handler.PathTokens.Get(i);
+            var token = pathTokens.Get(i);
 
             tokens[token.TokenName] = token.TokenValue;
         }

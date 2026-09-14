@@ -115,8 +115,6 @@ public static class KnownTypes
 
                     public const string Serializer = "Hardened.Requests.Runtime.Serializer";
 
-                    public const string PathTokens = "Hardened.Requests.Runtime.PathTokens";
-
                     public const string Validation = "Hardened.Requests.Runtime.Validation";
                 }
             }
@@ -440,7 +438,7 @@ public static class KnownTypes
             );
 
         public static readonly ITypeDefinition PathTokenCollection = TypeDefinition.Get(
-            Namespace.Hardened.Requests.Runtime.PathTokens,
+            Namespace.Hardened.Requests.Abstract.PathTokens,
             "PathTokenCollection"
         );
 

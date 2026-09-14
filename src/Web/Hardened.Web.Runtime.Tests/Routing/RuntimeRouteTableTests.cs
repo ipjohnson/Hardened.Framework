@@ -22,9 +22,9 @@ public class RuntimeRouteTableTests
     {
         var table = Table(("/orders", "GET"));
 
-        Assert.Equal("GET /orders", Named(table.Match("/orders", "GET")));
-        Assert.Null(table.Match("/order", "GET"));
-        Assert.Null(table.Match("/orders/1", "GET"));
+        Assert.Equal("GET /orders", Named(table.Matched("/orders", "GET")));
+        Assert.Null(table.Matched("/order", "GET"));
+        Assert.Null(table.Matched("/orders/1", "GET"));
     }
 
     [Fact]
@@ -32,27 +32,26 @@ public class RuntimeRouteTableTests
     {
         var table = Table(("/", "GET"));
 
-        Assert.Equal("GET /", Named(table.Match("/", "GET")));
+        Assert.Equal("GET /", Named(table.Matched("/", "GET")));
     }
 
     [Fact]
     public void TokenBindsByName()
     {
         var table = Table(("/orders/{id}", "GET"));
-        var matched = table.Match("/orders/42", "GET");
 
-        Assert.Equal("GET /orders/{id}", Named(matched));
-        Assert.Equal("42", matched!.PathTokens.Get("id").ToString());
+        Assert.Equal("GET /orders/{id}", Named(table.Matched("/orders/42", "GET")));
+        Assert.Equal("42", table.Tokens("/orders/42", "GET").Get("id").ToString());
     }
 
     [Fact]
     public void SeveralTokensBindInOrder()
     {
         var table = Table(("/users/{userId}/posts/{postId}", "GET"));
-        var matched = table.Match("/users/7/posts/9", "GET");
+        var tokens = table.Tokens("/users/7/posts/9", "GET");
 
-        Assert.Equal("7", matched!.PathTokens.Get("userId").ToString());
-        Assert.Equal("9", matched.PathTokens.Get("postId").ToString());
+        Assert.Equal("7", tokens.Get("userId").ToString());
+        Assert.Equal("9", tokens.Get("postId").ToString());
     }
 
     /// <remarks>
@@ -64,9 +63,9 @@ public class RuntimeRouteTableTests
     {
         var table = Table(("/a/{id}", "GET"), ("/b/{code}", "GET"));
 
-        Assert.Equal("1", table.Match("/a/1", "GET")!.PathTokens.Get("id").ToString());
-        Assert.Equal("", table.Match("/a/1", "GET")!.PathTokens.Get("code").ToString());
-        Assert.Equal("2", table.Match("/b/2", "GET")!.PathTokens.Get("code").ToString());
+        Assert.Equal("1", table.Tokens("/a/1", "GET").Get("id").ToString());
+        Assert.Equal("", table.Tokens("/a/1", "GET").Get("code").ToString());
+        Assert.Equal("2", table.Tokens("/b/2", "GET").Get("code").ToString());
     }
 
     [Fact]
@@ -74,8 +73,8 @@ public class RuntimeRouteTableTests
     {
         var table = Table(("/orders/latest", "GET"), ("/orders/{id}", "GET"));
 
-        Assert.Equal("GET /orders/latest", Named(table.Match("/orders/latest", "GET")));
-        Assert.Equal("GET /orders/{id}", Named(table.Match("/orders/1", "GET")));
+        Assert.Equal("GET /orders/latest", Named(table.Matched("/orders/latest", "GET")));
+        Assert.Equal("GET /orders/{id}", Named(table.Matched("/orders/1", "GET")));
     }
 
     /// <remarks>
@@ -88,9 +87,9 @@ public class RuntimeRouteTableTests
     {
         var table = Table(("/items/{id:int}", "GET"), ("/items/{name:slug}", "GET"));
 
-        Assert.Equal("GET /items/{id:int}", Named(table.Match("/items/7", "GET")));
-        Assert.Equal("GET /items/{name:slug}", Named(table.Match("/items/blue-hat", "GET")));
-        Assert.Null(table.Match("/items/Not_A_Slug", "GET"));
+        Assert.Equal("GET /items/{id:int}", Named(table.Matched("/items/7", "GET")));
+        Assert.Equal("GET /items/{name:slug}", Named(table.Matched("/items/blue-hat", "GET")));
+        Assert.Null(table.Matched("/items/Not_A_Slug", "GET"));
     }
 
     [Fact]
@@ -98,8 +97,8 @@ public class RuntimeRouteTableTests
     {
         var table = Table(("/items/{anything}", "GET"), ("/items/{id:int}", "GET"));
 
-        Assert.Equal("GET /items/{id:int}", Named(table.Match("/items/7", "GET")));
-        Assert.Equal("GET /items/{anything}", Named(table.Match("/items/seven", "GET")));
+        Assert.Equal("GET /items/{id:int}", Named(table.Matched("/items/7", "GET")));
+        Assert.Equal("GET /items/{anything}", Named(table.Matched("/items/seven", "GET")));
     }
 
     [Fact]
@@ -107,8 +106,8 @@ public class RuntimeRouteTableTests
     {
         var table = Table(("/pages/{page:int:min(1)}", "GET"));
 
-        Assert.Equal("GET /pages/{page:int:min(1)}", Named(table.Match("/pages/1", "GET")));
-        Assert.Null(table.Match("/pages/0", "GET"));
+        Assert.Equal("GET /pages/{page:int:min(1)}", Named(table.Matched("/pages/1", "GET")));
+        Assert.Null(table.Matched("/pages/0", "GET"));
     }
 
     [Fact]
@@ -116,15 +115,15 @@ public class RuntimeRouteTableTests
     {
         var table = Table(("/{id:int}/detail", "GET"), ("/{slug}/summary", "GET"));
 
-        Assert.Equal("GET /{id:int}/detail", Named(table.Match("/7/detail", "GET")));
-        Assert.Equal("GET /{slug}/summary", Named(table.Match("/7/summary", "GET")));
+        Assert.Equal("GET /{id:int}/detail", Named(table.Matched("/7/detail", "GET")));
+        Assert.Equal("GET /{slug}/summary", Named(table.Matched("/7/summary", "GET")));
     }
 
     [Fact]
     public void MethodNotAllowedCarriesTheVerbsThePathAnswers()
     {
         var table = Table(("/orders", "GET"), ("/orders", "POST"));
-        var matched = table.Match("/orders", "DELETE");
+        var matched = table.Matched("/orders", "DELETE");
 
         Assert.NotNull(matched);
         Assert.Null(matched!.Handler);
@@ -141,7 +140,7 @@ public class RuntimeRouteTableTests
     {
         var table = Table(("/orders", "GET"));
 
-        Assert.Equal("GET /orders", Named(table.Match("/orders", "HEAD")));
+        Assert.Equal("GET /orders", Named(table.Matched("/orders", "HEAD")));
     }
 
     [Fact]
@@ -150,8 +149,8 @@ public class RuntimeRouteTableTests
         var table = Table(("/orders", "GET"));
 
         Assert.Same(
-            table.Match("/orders", "GET")!.Handler,
-            table.Match("/orders", "HEAD")!.Handler
+            table.Matched("/orders", "GET")!.Handler,
+            table.Matched("/orders", "HEAD")!.Handler
         );
     }
 
@@ -160,7 +159,7 @@ public class RuntimeRouteTableTests
     {
         var table = Table(("/orders", "GET"), ("/orders", "HEAD"));
 
-        Assert.Equal("HEAD /orders", Named(table.Match("/orders", "HEAD")));
+        Assert.Equal("HEAD /orders", Named(table.Matched("/orders", "HEAD")));
     }
 
     [Fact]
@@ -168,17 +167,19 @@ public class RuntimeRouteTableTests
     {
         var table = Table(("/orders", "GET"));
 
-        Assert.Null(table.Match("/orders", "get")!.Handler);
+        Assert.Null(table.Matched("/orders", "get")!.Handler);
     }
 
     [Fact]
     public void CatchAllTakesTheRestOfThePath()
     {
         var table = Table(("/assets/{*path}", "GET"));
-        var matched = table.Match("/assets/css/site.css", "GET");
 
-        Assert.Equal("GET /assets/{*path}", Named(matched));
-        Assert.Equal("css/site.css", matched!.PathTokens.Get("path").ToString());
+        Assert.Equal("GET /assets/{*path}", Named(table.Matched("/assets/css/site.css", "GET")));
+        Assert.Equal(
+            "css/site.css",
+            table.Tokens("/assets/css/site.css", "GET").Get("path").ToString()
+        );
     }
 
     /// <remarks>
@@ -189,8 +190,8 @@ public class RuntimeRouteTableTests
     [Fact]
     public void ATokenNamesAtLeastOneCharacter()
     {
-        Assert.Null(Table(("/assets/{*path}", "GET")).Match("/assets/", "GET"));
-        Assert.Null(Table(("/orders/{id}", "GET")).Match("/orders/", "GET"));
+        Assert.Null(Table(("/assets/{*path}", "GET")).Matched("/assets/", "GET"));
+        Assert.Null(Table(("/orders/{id}", "GET")).Matched("/orders/", "GET"));
     }
 
     /// <remarks>
@@ -203,13 +204,13 @@ public class RuntimeRouteTableTests
     {
         var table = Table(("/orders/lines", "GET"));
 
-        Assert.Null(table.Match("/orders", "GET"));
+        Assert.Null(table.Matched("/orders", "GET"));
     }
 
     [Fact]
     public void ATokenDoesNotCrossASeparator()
     {
-        Assert.Null(Table(("/orders/{id}", "GET")).Match("/orders/1/lines", "GET"));
+        Assert.Null(Table(("/orders/{id}", "GET")).Matched("/orders/1/lines", "GET"));
     }
 
     [Fact]
@@ -217,8 +218,8 @@ public class RuntimeRouteTableTests
     {
         var table = Table(("/assets/{*path}", "GET"), ("/assets/logo.svg", "GET"));
 
-        Assert.Equal("GET /assets/logo.svg", Named(table.Match("/assets/logo.svg", "GET")));
-        Assert.Equal("GET /assets/{*path}", Named(table.Match("/assets/other.svg", "GET")));
+        Assert.Equal("GET /assets/logo.svg", Named(table.Matched("/assets/logo.svg", "GET")));
+        Assert.Equal("GET /assets/{*path}", Named(table.Matched("/assets/other.svg", "GET")));
     }
 
     /// <remarks>
@@ -231,7 +232,7 @@ public class RuntimeRouteTableTests
     {
         var table = Table(("/orders", "GET"));
 
-        Assert.Null(table.Match("/orders/", "GET"));
+        Assert.Null(table.Matched("/orders/", "GET"));
     }
 
     [Fact]
@@ -239,8 +240,8 @@ public class RuntimeRouteTableTests
     {
         var table = Table(("/Orders", "GET"));
 
-        Assert.Null(table.Match("/orders", "GET"));
-        Assert.Equal("GET /Orders", Named(table.Match("/Orders", "GET")));
+        Assert.Null(table.Matched("/orders", "GET"));
+        Assert.Equal("GET /Orders", Named(table.Matched("/Orders", "GET")));
     }
 
     [Fact]
@@ -248,14 +249,14 @@ public class RuntimeRouteTableTests
     {
         var table = Table(true, ("/Orders/{id}", "GET"));
 
-        Assert.Equal("GET /Orders/{id}", Named(table.Match("/orders/7", "GET")));
-        Assert.Equal("7", table.Match("/ORDERS/7", "GET")!.PathTokens.Get("id").ToString());
+        Assert.Equal("GET /Orders/{id}", Named(table.Matched("/orders/7", "GET")));
+        Assert.Equal("7", table.Tokens("/ORDERS/7", "GET").Get("id").ToString());
     }
 
     [Fact]
     public void AnEmptyTableMatchesNothing()
     {
-        Assert.Null(RuntimeRouteTable.Empty.Match("/orders", "GET"));
+        Assert.Null(RuntimeRouteTable.Empty.Matched("/orders", "GET"));
     }
 
     [Fact]
@@ -263,8 +264,8 @@ public class RuntimeRouteTableTests
     {
         var table = Table(("/orders", "GET"));
 
-        Assert.Null(table.Match("orders", "GET"));
-        Assert.Null(table.Match("", "GET"));
+        Assert.Null(table.Matched("orders", "GET"));
+        Assert.Null(table.Matched("", "GET"));
     }
 
     [Fact]
@@ -279,9 +280,9 @@ public class RuntimeRouteTableTests
 
         var table = Table(routes);
 
-        Assert.Equal("GET /tenant-0/orders", Named(table.Match("/tenant-0/orders", "GET")));
-        Assert.Equal("GET /tenant-49/orders", Named(table.Match("/tenant-49/orders", "GET")));
-        Assert.Null(table.Match("/tenant-50/orders", "GET"));
+        Assert.Equal("GET /tenant-0/orders", Named(table.Matched("/tenant-0/orders", "GET")));
+        Assert.Equal("GET /tenant-49/orders", Named(table.Matched("/tenant-49/orders", "GET")));
+        Assert.Null(table.Matched("/tenant-50/orders", "GET"));
     }
 
     [Fact]
@@ -308,9 +309,9 @@ public class RuntimeRouteTableTests
 
         Assert.Equal(0, built);
 
-        var first = table.Match("/orders", "GET")!.Handler;
+        var first = table.Matched("/orders", "GET")!.Handler;
 
-        Assert.Same(first, table.Match("/orders", "GET")!.Handler);
+        Assert.Same(first, table.Matched("/orders", "GET")!.Handler);
         Assert.Equal(1, built);
     }
 
@@ -330,7 +331,7 @@ public class RuntimeRouteTableTests
 
         Assert.Equal(
             "/tenant-7/orders/{id}",
-            table.Match("/tenant-7/orders/1", "GET")!.Handler!.HandlerInfo.Path
+            table.Matched("/tenant-7/orders/1", "GET")!.Handler!.HandlerInfo.Path
         );
     }
 
@@ -403,8 +404,8 @@ public class RuntimeRouteTableTests
 
         var table = builder.Build();
 
-        Assert.NotNull(table.Match("/books/9780306406157", "GET"));
-        Assert.Null(table.Match("/books/short", "GET"));
+        Assert.NotNull(table.Matched("/books/9780306406157", "GET"));
+        Assert.Null(table.Matched("/books/short", "GET"));
     }
 
     // ---- helpers ------------------------------------------------------------

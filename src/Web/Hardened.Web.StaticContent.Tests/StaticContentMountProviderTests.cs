@@ -193,7 +193,7 @@ public class StaticContentMountProviderTests : IDisposable
     /// <summary>Runs the mount's chain for a request, the way <c>Dispatch</c> would.</summary>
     private static async Task Serve(IServiceProvider services, IExecutionContext context)
     {
-        var match = Mount(services).GetExecutionRequestHandler(context);
+        var match = Mount(services).Match(context);
 
         Assert.NotNull(match);
         Assert.NotNull(match.Handler);
@@ -300,7 +300,7 @@ public class StaticContentMountProviderTests : IDisposable
 
         var (context, _, _, _) = Context(application, "/app.js");
 
-        var match = Mount(application).GetExecutionRequestHandler(context);
+        var match = Mount(application).Match(context);
 
         Assert.Same(requirement, match!.Handler!.HandlerInfo.Requirement);
     }
@@ -316,7 +316,7 @@ public class StaticContentMountProviderTests : IDisposable
 
         var (context, _, _, _) = Context(application, "/app.js");
 
-        var match = Mount(application).GetExecutionRequestHandler(context);
+        var match = Mount(application).Match(context);
 
         Assert.Null(match!.Handler!.HandlerInfo.Requirement);
     }
@@ -339,10 +339,7 @@ public class StaticContentMountProviderTests : IDisposable
 
         var mount = Mount(application);
 
-        Assert.Same(
-            mount.GetExecutionRequestHandler(get)!.Handler,
-            mount.GetExecutionRequestHandler(head)!.Handler
-        );
+        Assert.Same(mount.Match(get)!.Handler, mount.Match(head)!.Handler);
     }
 
     /// <summary>
@@ -360,7 +357,7 @@ public class StaticContentMountProviderTests : IDisposable
 
         var (context, _, _, _) = Context(application, "/app.js", method);
 
-        var match = Mount(application).GetExecutionRequestHandler(context);
+        var match = Mount(application).Match(context);
 
         Assert.NotNull(match);
         Assert.Null(match.Handler);
@@ -383,12 +380,12 @@ public class StaticContentMountProviderTests : IDisposable
 
         var (write, _, _, _) = Context(application, "/api/typo", "POST");
 
-        Assert.Null(Mount(application).GetExecutionRequestHandler(write));
+        Assert.Null(Mount(application).Match(write));
 
         // The same path still serves the shell for a GET.
         var (read, _, _, _) = Context(application, "/app/deep/route");
 
-        Assert.NotNull(Mount(application).GetExecutionRequestHandler(read)?.Handler);
+        Assert.NotNull(Mount(application).Match(read)?.Handler);
     }
 
     #endregion
@@ -403,7 +400,7 @@ public class StaticContentMountProviderTests : IDisposable
 
         var (context, _, _, _) = Context(application, "/does-not-exist.js");
 
-        Assert.Null(Mount(application).GetExecutionRequestHandler(context));
+        Assert.Null(Mount(application).Match(context));
     }
 
     /// <summary>
@@ -421,10 +418,7 @@ public class StaticContentMountProviderTests : IDisposable
         var (first, _, _, _) = Context(application, "/app.js");
         var (second, _, _, _) = Context(application, "/app.js");
 
-        Assert.Same(
-            mount.GetExecutionRequestHandler(first)!.Handler,
-            mount.GetExecutionRequestHandler(second)!.Handler
-        );
+        Assert.Same(mount.Match(first)!.Handler, mount.Match(second)!.Handler);
     }
 
     /// <summary>

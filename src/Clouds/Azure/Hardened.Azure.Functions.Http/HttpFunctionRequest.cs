@@ -3,7 +3,6 @@ using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.PathTokens;
 using Hardened.Requests.Abstract.QueryString;
 using Hardened.Requests.Runtime.Headers;
-using Hardened.Requests.Runtime.PathTokens;
 using Hardened.Requests.Runtime.QueryString;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Primitives;
@@ -22,7 +21,6 @@ namespace Hardened.Azure.Functions.Http;
 public class HttpFunctionRequest : IExecutionRequest
 {
     private readonly string _method;
-    private IPathTokenCollection? _pathTokens;
     private IQueryStringCollection? _queryStringCollection;
     private IHeaderCollection? _headerCollection;
     private IReadOnlyList<string>? _cookies;
@@ -93,11 +91,7 @@ public class HttpFunctionRequest : IExecutionRequest
     /// </remarks>
     public IQueryStringCollection QueryString => _queryStringCollection ??= ReadQuery(Data);
 
-    public IPathTokenCollection PathTokens
-    {
-        get => _pathTokens ?? PathTokenCollection.Empty;
-        set => _pathTokens = value;
-    }
+    public PathTokenCollection PathTokens { get; set; }
 
     /// <summary>The cookies as <c>name=value</c> strings, empty rather than null when there are none.</summary>
     public IReadOnlyList<string> Cookies =>

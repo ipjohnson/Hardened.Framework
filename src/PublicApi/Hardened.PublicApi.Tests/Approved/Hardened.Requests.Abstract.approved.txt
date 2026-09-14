@@ -407,7 +407,7 @@ namespace Hardened.Requests.Abstract.Execution
         string Method { get; }
         Hardened.Requests.Abstract.Execution.IExecutionRequestParameters? Parameters { get; set; }
         string Path { get; }
-        Hardened.Requests.Abstract.PathTokens.IPathTokenCollection PathTokens { get; set; }
+        Hardened.Requests.Abstract.PathTokens.PathTokenCollection PathTokens { get; set; }
         Hardened.Requests.Abstract.QueryString.IQueryStringCollection QueryString { get; }
         Hardened.Requests.Abstract.Execution.ITransportInfo Transport { get; }
         Hardened.Requests.Abstract.Execution.IExecutionRequest Clone(string? method = null, string? path = null, System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues>? headers = null, Hardened.Requests.Abstract.QueryString.IQueryStringCollection? queryString = null, System.Collections.Generic.IReadOnlyList<string>? cookies = null);
@@ -700,6 +700,15 @@ namespace Hardened.Requests.Abstract.PathTokens
         public PathToken(string TokenName, string TokenValue) { }
         public string TokenName { get; init; }
         public string TokenValue { get; init; }
+    }
+    public struct PathTokenCollection : Hardened.Requests.Abstract.PathTokens.IPathTokenCollection
+    {
+        public static readonly Hardened.Requests.Abstract.PathTokens.PathTokenCollection Empty;
+        public PathTokenCollection(string[] names, string? lastValue = null) { }
+        public int Count { get; }
+        public Hardened.Requests.Abstract.PathTokens.PathToken Get(int index) { }
+        public Microsoft.Extensions.Primitives.StringValues Get(string id) { }
+        public void SetValue(int index, string value) { }
     }
 }
 namespace Hardened.Requests.Abstract.QueryString

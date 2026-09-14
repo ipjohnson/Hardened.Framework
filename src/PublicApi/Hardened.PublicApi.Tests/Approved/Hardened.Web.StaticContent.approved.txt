@@ -143,7 +143,7 @@ namespace Hardened.Web.StaticContent
     public class StaticContentMountProvider : Hardened.Web.Runtime.Handlers.IFallbackRequestHandlerProvider, Hardened.Web.Runtime.Handlers.IWebExecutionRequestHandlerProvider
     {
         public StaticContentMountProvider(System.IServiceProvider serviceProvider) { }
-        public Hardened.Web.Runtime.Handlers.RequestHandlerInfo? GetExecutionRequestHandler(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+        public Hardened.Web.Runtime.Handlers.RequestHandlerInfo? GetExecutionRequestHandler(Hardened.Requests.Abstract.Execution.IExecutionContext context, ref Hardened.Requests.Abstract.PathTokens.PathTokenCollection pathTokens) { }
     }
     public static class StaticContentServiceCollectionExtensions
     {

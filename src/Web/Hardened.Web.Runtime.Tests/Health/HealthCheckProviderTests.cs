@@ -155,7 +155,7 @@ public class HealthCheckProviderTests
     )
     {
         var context = Context(path, method, services);
-        var match = provider.GetExecutionRequestHandler(context);
+        var match = provider.Match(context);
 
         Assert.NotNull(match);
         Assert.NotNull(match!.Handler);
@@ -184,7 +184,7 @@ public class HealthCheckProviderTests
         string path
     )
     {
-        var match = provider.GetExecutionRequestHandler(Context(path, services: services));
+        var match = provider.Match(Context(path, services: services));
 
         Assert.NotNull(match);
 
@@ -466,7 +466,7 @@ public class HealthCheckProviderTests
     {
         var (provider, _, services) = Build();
 
-        Assert.NotNull(provider.GetExecutionRequestHandler(Context(path)));
+        Assert.NotNull(provider.Match(Context(path)));
     }
 
     /// <summary>A probe issuing HEAD is asking the same question.</summary>
@@ -475,7 +475,7 @@ public class HealthCheckProviderTests
     {
         var (provider, _, services) = Build();
 
-        Assert.NotNull(provider.GetExecutionRequestHandler(Context("/health/live", "HEAD")));
+        Assert.NotNull(provider.Match(Context("/health/live", "HEAD")));
     }
 
     /// <summary>
@@ -489,7 +489,7 @@ public class HealthCheckProviderTests
     {
         var (provider, _, services) = Build();
 
-        Assert.Null(provider.GetExecutionRequestHandler(Context("/health/live", method)));
+        Assert.Null(provider.Match(Context("/health/live", method)));
     }
 
     [Fact]
@@ -497,8 +497,8 @@ public class HealthCheckProviderTests
     {
         var (provider, _, services) = Build();
 
-        Assert.Null(provider.GetExecutionRequestHandler(Context("/orders")));
-        Assert.Null(provider.GetExecutionRequestHandler(Context("/health")));
+        Assert.Null(provider.Match(Context("/orders")));
+        Assert.Null(provider.Match(Context("/health")));
     }
 
     [Fact]
@@ -508,9 +508,9 @@ public class HealthCheckProviderTests
 
         var (provider, _, services) = Build(config);
 
-        Assert.NotNull(provider.GetExecutionRequestHandler(Context("/_alive")));
-        Assert.NotNull(provider.GetExecutionRequestHandler(Context("/_ready")));
-        Assert.Null(provider.GetExecutionRequestHandler(Context("/health/live")));
+        Assert.NotNull(provider.Match(Context("/_alive")));
+        Assert.NotNull(provider.Match(Context("/_ready")));
+        Assert.Null(provider.Match(Context("/health/live")));
     }
 
     // -------------------------------------------------------------- response
@@ -525,7 +525,7 @@ public class HealthCheckProviderTests
         var (provider, _, services) = Build();
         var context = Context("/health/ready");
 
-        var match = provider.GetExecutionRequestHandler(context);
+        var match = provider.Match(context);
 
         await match!.Handler!.GetExecutionChain(context).Next();
 
@@ -543,7 +543,7 @@ public class HealthCheckProviderTests
         var (provider, _, services) = Build();
         var context = Context("/health/ready");
 
-        var match = provider.GetExecutionRequestHandler(context);
+        var match = provider.Match(context);
 
         await match!.Handler!.GetExecutionChain(context).Next();
 

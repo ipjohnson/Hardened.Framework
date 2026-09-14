@@ -2,7 +2,6 @@ using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.PathTokens;
 using Hardened.Requests.Abstract.QueryString;
-using Hardened.Requests.Runtime.PathTokens;
 using Hardened.Requests.Runtime.QueryString;
 using Hardened.Shared.Runtime.Collections;
 using Microsoft.Extensions.Primitives;
@@ -31,8 +30,6 @@ namespace Hardened.Azure.Functions.Runtime.Execution;
 /// </remarks>
 public class FunctionsPayloadRequest : IExecutionRequest
 {
-    private IPathTokenCollection? _pathTokens;
-
     public FunctionsPayloadRequest(
         string method,
         string path,
@@ -68,11 +65,7 @@ public class FunctionsPayloadRequest : IExecutionRequest
     /// <summary>Nothing. A queue message carries no query string.</summary>
     public IQueryStringCollection QueryString => EmptyQueryStringCollection.Instance;
 
-    public IPathTokenCollection PathTokens
-    {
-        get => _pathTokens ?? PathTokenCollection.Empty;
-        set => _pathTokens = value;
-    }
+    public PathTokenCollection PathTokens { get; set; }
 
     /// <summary>Nothing. There is no header to parse cookies from and no client to have set one.</summary>
     public IReadOnlyList<string> Cookies => Array.Empty<string>();

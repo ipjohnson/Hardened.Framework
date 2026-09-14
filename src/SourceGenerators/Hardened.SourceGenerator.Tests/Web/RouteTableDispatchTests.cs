@@ -112,7 +112,7 @@ public class RouteTableDispatchTests
     {
         var result = Generate(Dispatched("X-Amz-Target", "Bank.GetBalance", "GetBalance"));
 
-        Assert.Contains("PathTokenCollection.Empty", result);
+        Assert.DoesNotContain("new PathTokenCollection(", result);
     }
 
     private static EntryPointSelector.Model App() =>

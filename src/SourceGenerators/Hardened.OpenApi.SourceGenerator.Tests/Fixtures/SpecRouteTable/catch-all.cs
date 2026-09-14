@@ -21,9 +21,9 @@ namespace Test.Api
         private class SpecRoutingTable : global::Hardened.Web.Runtime.Handlers.IWebExecutionRequestHandlerProvider
         {
             private global::System.IServiceProvider _rootServiceProvider;
-            private global::Test.Api.Generated.PetController_GetFile? _fieldPetController_GetFile;
             private static readonly string[] _pathTokenNamesPetController_GetFile =             new string[] { "path" }
 ;
+            private global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? _infoPetController_GetFile;
             private static readonly global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo _methodNotAllowedGETHEAD =             global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo.MethodNotAllowed("GET, HEAD")
 ;
 
@@ -32,17 +32,18 @@ namespace Test.Api
                 _rootServiceProvider = serviceProvider;
             }
 
-            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? GetExecutionRequestHandler(global::Hardened.Requests.Abstract.Execution.IExecutionContext context)
+            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? GetExecutionRequestHandler(global::Hardened.Requests.Abstract.Execution.IExecutionContext context, ref global::Hardened.Requests.Abstract.PathTokens.PathTokenCollection pathTokens)
             {
                 var pathSpan = context.Request.Path.AsSpan();
                 return TestPath_SlashfilesSlash(
                     pathSpan,
                     0,
-                    context.Request.Method
+                    context.Request.Method,
+                    ref pathTokens
                 );
             }
 
-            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_SlashfilesSlash(global::System.ReadOnlySpan<char> charSpan, int index, string methodString)
+            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_SlashfilesSlash(global::System.ReadOnlySpan<char> charSpan, int index, string methodString, ref global::Hardened.Requests.Abstract.PathTokens.PathTokenCollection pathTokens)
             {
                 global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? handlerInfo = null;
                 if ((charSpan.Length >= index + 7) && charSpan.Slice(index, 7).SequenceEqual("/files/"))
@@ -53,25 +54,27 @@ namespace Test.Api
                         handlerInfo = TestPath_filesSlashWildCard(
                             charSpan,
                             index,
-                            methodString
+                            methodString,
+                            ref pathTokens
                         );
                     }
                 }
                 return handlerInfo;
             }
 
-            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_filesSlashWildCard(global::System.ReadOnlySpan<char> charSpan, int index, string methodString)
+            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_filesSlashWildCard(global::System.ReadOnlySpan<char> charSpan, int index, string methodString, ref global::Hardened.Requests.Abstract.PathTokens.PathTokenCollection pathTokens)
             {
                 global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? handlerInfo = null;
                 handlerInfo = TestPath_NoPathWildCardMatch(
                     charSpan,
                     index,
-                    methodString
+                    methodString,
+                    ref pathTokens
                 );
                 return handlerInfo;
             }
 
-            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_NoPathWildCardMatch(global::System.ReadOnlySpan<char> charSpan, int index, string methodString)
+            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_NoPathWildCardMatch(global::System.ReadOnlySpan<char> charSpan, int index, string methodString, ref global::Hardened.Requests.Abstract.PathTokens.PathTokenCollection pathTokens)
             {
                 if (charSpan.Length <= index)
                 {
@@ -81,14 +84,11 @@ namespace Test.Api
                 {
                     case "HEAD":
                     case "GET":
-                        return new global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo(
-                            _fieldPetController_GetFile ??= new global::Test.Api.Generated.PetController_GetFile(_rootServiceProvider),
-                            new global::Hardened.Requests.Runtime.PathTokens.PathTokenCollection(
-                                1,
-                                _pathTokenNamesPetController_GetFile,
-                                charSpan.Slice(index).ToString()
-                            )
+                        pathTokens = new global::Hardened.Requests.Abstract.PathTokens.PathTokenCollection(
+                            _pathTokenNamesPetController_GetFile,
+                            charSpan.Slice(index).ToString()
                         );
+                        return _infoPetController_GetFile ??= new global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo(new global::Test.Api.Generated.PetController_GetFile(_rootServiceProvider));
                     default:
                         return _methodNotAllowedGETHEAD;
                 }

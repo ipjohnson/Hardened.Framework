@@ -1,7 +1,7 @@
 using Hardened.Requests.Abstract.Authorization;
 using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Abstract.PathTokens;
 using Hardened.Requests.Runtime.Execution;
-using Hardened.Requests.Runtime.PathTokens;
 using Hardened.Web.Runtime.Handlers;
 
 namespace Hardened.Web.Runtime.Health;
@@ -43,7 +43,10 @@ public class HealthCheckProvider : IWebExecutionRequestHandlerProvider
         _rootProvider = rootProvider;
     }
 
-    public RequestHandlerInfo? GetExecutionRequestHandler(IExecutionContext context)
+    public RequestHandlerInfo? GetExecutionRequestHandler(
+        IExecutionContext context,
+        ref PathTokenCollection pathTokens
+    )
     {
         var method = context.Request.Method;
 
@@ -70,8 +73,7 @@ public class HealthCheckProvider : IWebExecutionRequestHandlerProvider
                     _config.LivePath,
                     nameof(HealthCheckController.Live),
                     static (controller, context) => controller.Live(context)
-                ),
-                PathTokenCollection.Empty
+                )
             );
         }
 
@@ -84,8 +86,7 @@ public class HealthCheckProvider : IWebExecutionRequestHandlerProvider
                     _config.ReadyPath,
                     nameof(HealthCheckController.Ready),
                     static (controller, context) => controller.Ready(context)
-                ),
-                PathTokenCollection.Empty
+                )
             );
         }
 

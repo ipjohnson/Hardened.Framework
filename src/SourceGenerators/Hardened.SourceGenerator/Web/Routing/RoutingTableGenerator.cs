@@ -17,10 +17,41 @@ namespace Hardened.SourceGenerator.Web;
 
 public static class RoutingTableGenerator
 {
-    private static readonly IOutputComponent EmptyTokens = Property(
-        KnownTypes.Requests.PathTokenCollection,
-        "Empty"
+    /// <summary>
+    /// The name of the <c>ref</c> parameter every emitted node method threads, and the argument
+    /// each one passes on.
+    /// </summary>
+    /// <remarks>
+    /// A route's token values belong to the request, not to what the table found, so the table is
+    /// handed somewhere to put them rather than allocating a collection to carry them back up. The
+    /// leaf assigns the whole struct - it is the only node that knows how many tokens the matched
+    /// route has and what they are called - and each wildcard writes its own position into the
+    /// caller's storage as the match unwinds.
+    /// </remarks>
+    private const string PathTokensParameter = "pathTokens";
+
+    /// <summary>Passing the destination on: <c>ref pathTokens</c>.</summary>
+    private static readonly IOutputComponent PathTokensArgument = CodeOutputComponent.Get(
+        "ref " + PathTokensParameter
     );
+
+    /// <summary>Writing through it: <c>pathTokens.SetValue(...)</c>.</summary>
+    private static readonly InstanceDefinition PathTokens = new(PathTokensParameter);
+
+    /// <summary>
+    /// Adds the token destination to a method the route walk emits.
+    /// </summary>
+    private static ParameterDefinition AddPathTokensParameter(MethodDefinition method)
+    {
+        var parameter = method.AddParameter(
+            KnownTypes.Requests.PathTokenCollection,
+            PathTokensParameter
+        );
+
+        parameter.Modifier = ParameterModifier.Ref;
+
+        return parameter;
+    }
 
     /// <summary>
     /// Whether this table matches without regard to case, from <c>[CaseInsensitiveRoutes]</c> on
@@ -753,6 +784,8 @@ public static class RoutingTableGenerator
 
         var context = handlerMethod.AddParameter(KnownTypes.Requests.IExecutionContext, "context");
 
+        AddPathTokensParameter(handlerMethod);
+
         // Two ways a request can name an operation, and an application may serve both.
         var dispatched = new List<RequestHandlerModel>();
         var routed = new List<RequestHandlerModel>();
@@ -852,22 +885,15 @@ public static class RoutingTableGenerator
 
                 var caseStatement = switchBlock.AddCase(QuoteString(model.Name.DispatchKey!));
 
-                // The same lazily constructed singleton the route leaves use, so a dispatched
-                // handler and a routed one are built and reused identically.
-                var field = routingClass.AddField(
-                    model.InvokeHandlerType.MakeNullable(),
-                    "_field" + model.InvokeHandlerType.Name
-                );
-
-                var coalesceHandler = NullCoalesceEqual(
-                    field.Instance,
-                    New(model.InvokeHandlerType, "_rootServiceProvider")
-                );
-                coalesceHandler.PrintParentheses = false;
-
-                // No path tokens by construction: the route carries no template.
+                // The same lazily built record the route leaves answer with, so a dispatched
+                // handler and a routed one are built and reused identically. No path tokens by
+                // construction: the route carries no template.
                 caseStatement.Return(
-                    New(KnownTypes.Web.RequestHandlerInfo, coalesceHandler, EmptyTokens)
+                    CachedInfo(
+                        routingClass,
+                        model.InvokeHandlerType,
+                        New(model.InvokeHandlerType, "_rootServiceProvider")
+                    )
                 );
             }
         }
@@ -886,7 +912,9 @@ public static class RoutingTableGenerator
 
         var routeTestMethod = WriteRouteNode(routingClass, routeNode, 0, cancellationToken);
 
-        handlerMethod.Return(Invoke(routeTestMethod, "pathSpan", 0, methodString));
+        handlerMethod.Return(
+            Invoke(routeTestMethod, "pathSpan", 0, methodString, PathTokensArgument)
+        );
     }
 
     private static string WriteRouteNode(
@@ -944,6 +972,8 @@ public static class RoutingTableGenerator
         var span = testMethod.AddParameter(typeof(ReadOnlySpan<char>), "charSpan");
         var index = testMethod.AddParameter(typeof(int), "index");
         var methodString = testMethod.AddParameter(typeof(string), "methodString");
+
+        AddPathTokensParameter(testMethod);
 
         var handler = testMethod
             .Assign(Null())
@@ -1035,7 +1065,9 @@ public static class RoutingTableGenerator
             childMethod = WriteSwitchChildNode(routingClass, routeNode, cancellationToken);
         }
 
-        block.Assign(Invoke(childMethod, span, index, methodString)).To(handler);
+        block
+            .Assign(Invoke(childMethod, span, index, methodString, PathTokensArgument))
+            .To(handler);
     }
 
     private static string WriteSwitchChildNode(
@@ -1051,6 +1083,8 @@ public static class RoutingTableGenerator
         var span = switchMethod.AddParameter(typeof(ReadOnlySpan<char>), "charSpan");
         var index = switchMethod.AddParameter(typeof(int), "index");
         var methodString = switchMethod.AddParameter(typeof(string), "methodString");
+
+        AddPathTokensParameter(switchMethod);
 
         var ifStatement = switchMethod.If("charSpan.Length > index");
 
@@ -1079,7 +1113,7 @@ public static class RoutingTableGenerator
 
             var newMethodName = WriteRouteNode(routingClass, childNode, 1, cancellationToken);
 
-            var invoke = Invoke(newMethodName, span, "index + 1", methodString);
+            var invoke = Invoke(newMethodName, span, "index + 1", methodString, PathTokensArgument);
 
             caseStatement.Return(invoke);
         }
@@ -1104,7 +1138,7 @@ public static class RoutingTableGenerator
 
         var wildCardMethod = WriteWildCardMethod(routingClass, routeNode, cancellationToken);
 
-        var invoke = Invoke(wildCardMethod, span, index, methodString);
+        var invoke = Invoke(wildCardMethod, span, index, methodString, PathTokensArgument);
 
         ifBlock.Assign(invoke).To(handler);
     }
@@ -1123,6 +1157,8 @@ public static class RoutingTableGenerator
         var span = wildCardMethod.AddParameter(typeof(ReadOnlySpan<char>), "charSpan");
         var index = wildCardMethod.AddParameter(typeof(int), "index");
         var methodString = wildCardMethod.AddParameter(typeof(string), "methodString");
+
+        AddPathTokensParameter(wildCardMethod);
 
         var handler = wildCardMethod
             .Assign(Null())
@@ -1148,7 +1184,9 @@ public static class RoutingTableGenerator
                 cancellationToken
             );
 
-            currentBlock.Assign(Invoke(matchWildCardMethod, span, index, methodString)).To(handler);
+            currentBlock
+                .Assign(Invoke(matchWildCardMethod, span, index, methodString, PathTokensArgument))
+                .To(handler);
         }
 
         wildCardMethod.Return(handler);
@@ -1170,6 +1208,8 @@ public static class RoutingTableGenerator
         var span = wildCardMethod.AddParameter(typeof(ReadOnlySpan<char>), "charSpan");
         var index = wildCardMethod.AddParameter(typeof(int), "index");
         var methodString = wildCardMethod.AddParameter(typeof(string), "methodString");
+
+        AddPathTokensParameter(wildCardMethod);
 
         // Once, for either kind of continuation. GenerateWildCardChildMatch emits the scan and
         // handles ChildNodes and WildCardNodes inside it, so calling it per kind emitted the whole
@@ -1347,11 +1387,10 @@ public static class RoutingTableGenerator
         var matchIfHandlerBlock = ifStatement.If(NotEquals(handlerInfo, Null()));
 
         // Only a real match has somewhere to put the value. A path that matched under another verb
-        // comes back as a RequestHandlerInfo too - non-null, with a null Handler - and it carries
-        // PathTokenCollection.Empty, so writing a token into it throws IndexOutOfRangeException and
-        // takes down a request that was on its way to an ordinary 405. That info is also a static
-        // field shared by every leaf allowing the same verbs, so the write would be cross-request
-        // mutation of shared state if the collection had been long enough to accept it.
+        // comes back as a RequestHandlerInfo too - non-null, with a null Handler - and no leaf
+        // assigned the destination on the way down, so it is still the empty collection and writing
+        // a token into it throws IndexOutOfRangeException, taking down a request that was on its
+        // way to an ordinary 405.
         var realMatchBlock = matchIfHandlerBlock.If(
             NotEquals(handlerInfo.Property("Handler"), Null())
         );
@@ -1359,13 +1398,11 @@ public static class RoutingTableGenerator
         // The value is positional. Its name belongs to whichever route matched, which is
         // only known further down, so the collection was created with that route's names.
         realMatchBlock.AddIndentedStatement(
-            handlerInfo
-                .Property("PathTokens")
-                .Invoke(
-                    "SetValue",
-                    wildCardNode.WildCardDepth - 1,
-                    span.Invoke("Slice", index, Subtract(currentIndex, index)).Invoke("ToString")
-                )
+            PathTokens.Invoke(
+                "SetValue",
+                wildCardNode.WildCardDepth - 1,
+                span.Invoke("Slice", index, Subtract(currentIndex, index)).Invoke("ToString")
+            )
         );
 
         matchIfHandlerBlock.Return(handlerInfo);
@@ -1440,25 +1477,21 @@ public static class RoutingTableGenerator
 
                 var caseStatement = switchBlock.AddCase(QuoteString(leafNode.Method));
 
-                var field = routingClass.AddField(
-                    leafNode.Value.InvokeHandlerType.MakeNullable(),
-                    "_field" + leafNode.Value.InvokeHandlerType.Name
-                );
+                // The leaf is the only node that knows how many tokens the matched route has and
+                // what they are called, so it builds the collection whole and the wildcards above
+                // it write their positions into it as the match unwinds. This one already holds
+                // the last token's value: the rest of the path is it.
+                caseStatement
+                    .Assign(
+                        New(
+                            KnownTypes.Requests.PathTokenCollection,
+                            PathTokenNamesField(routingClass, leafNode),
+                            span.Invoke("Slice", index).Invoke("ToString")
+                        )
+                    )
+                    .To(PathTokensParameter);
 
-                var coalesceHandler = NullCoalesceEqual(field.Instance, NewHandler(leafNode));
-
-                coalesceHandler.PrintParentheses = false;
-
-                IOutputComponent pathTokensCollection = New(
-                    KnownTypes.Requests.PathTokenCollection,
-                    wildCardNode.WildCardDepth,
-                    PathTokenNamesField(routingClass, leafNode),
-                    span.Invoke("Slice", index).Invoke("ToString")
-                );
-
-                caseStatement.Return(
-                    New(KnownTypes.Web.RequestHandlerInfo, coalesceHandler, pathTokensCollection)
-                );
+                caseStatement.Return(CachedInfo(routingClass, leafNode));
             }
 
             switchBlock.AddDefault().Return(MethodNotAllowed(routingClass, wildCardNode.LeafNodes));
@@ -1494,61 +1527,77 @@ public static class RoutingTableGenerator
 
             var caseStatement = switchStatement.AddCase(QuoteString(leafNode.Method));
 
-            // A route with no tokens resolves to the same RequestHandlerInfo on every request:
-            // the handler is already cached, and the token collection is the shared empty one.
-            // Caching the record itself rather than rebuilding it drops an allocation per
-            // request and collapses the leaf to a single field read.
-            if (routeNode.WildCardDepth == 0)
+            // A route whose last segment is a literal binds no value here, but the wildcards above
+            // it do, and they write positionally into a collection this leaf sizes and names.
+            if (routeNode.WildCardDepth > 0)
             {
-                var infoField = routingClass.AddField(
-                    KnownTypes.Web.RequestHandlerInfo.MakeNullable(),
-                    "_info" + leafNode.Value.InvokeHandlerType.Name
-                );
-
-                var cachedInfo = NullCoalesceEqual(
-                    infoField.Instance,
-                    New(KnownTypes.Web.RequestHandlerInfo, NewHandler(leafNode), EmptyTokens)
-                );
-
-                cachedInfo.PrintParentheses = false;
-
-                caseStatement.Return(cachedInfo);
-
-                continue;
+                caseStatement
+                    .Assign(
+                        New(
+                            KnownTypes.Requests.PathTokenCollection,
+                            PathTokenNamesField(routingClass, leafNode)
+                        )
+                    )
+                    .To(PathTokensParameter);
             }
 
-            var field = routingClass.AddField(
-                leafNode.Value.InvokeHandlerType.MakeNullable(),
-                "_field" + leafNode.Value.InvokeHandlerType.Name
-            );
-
-            var coalesceHandler = NullCoalesceEqual(field.Instance, NewHandler(leafNode));
-
-            coalesceHandler.PrintParentheses = false;
-
-            // Token values are per request, so only the handler can be reused here.
-            var pathTokensCollection = New(
-                KnownTypes.Requests.PathTokenCollection,
-                routeNode.WildCardDepth,
-                PathTokenNamesField(routingClass, leafNode)
-            );
-
-            caseStatement.Return(
-                New(KnownTypes.Web.RequestHandlerInfo, coalesceHandler, pathTokensCollection)
-            );
+            caseStatement.Return(CachedInfo(routingClass, leafNode));
         }
 
         switchStatement.AddDefault().Return(MethodNotAllowed(routingClass, routeNode.LeafNodes));
     }
 
     /// <summary>
+    /// The record this leaf answers with, built on the first request that reaches it and held in a
+    /// field.
+    /// </summary>
+    /// <remarks>
+    /// Nothing in it is per request. The handler is a singleton the table builds once, and the verb
+    /// set is fixed at compile time; the token values that used to be in it are written into the
+    /// request instead. So a route with a token in it reuses its record exactly as a literal route
+    /// already did, and the leaf collapses to a field read.
+    /// </remarks>
+    private static IOutputComponent CachedInfo(
+        ClassDefinition routingClass,
+        RouteTreeLeafNode<RequestHandlerModel> leafNode
+    ) => CachedInfo(routingClass, leafNode.Value.InvokeHandlerType, NewHandler(leafNode));
+
+    /// <remarks>
+    /// The field is looked up before it is added, because one handler can answer at more than one
+    /// leaf - the same method under two verbs, or a route reachable both literally and through a
+    /// token - and <c>AddField</c> throws on a name it already has. A generator that throws emits
+    /// nothing at all, so the project loses every generated file rather than one route.
+    /// </remarks>
+    private static IOutputComponent CachedInfo(
+        ClassDefinition routingClass,
+        ITypeDefinition handlerType,
+        IOutputComponent newHandler
+    )
+    {
+        var fieldName = "_info" + handlerType.Name;
+
+        var infoField =
+            routingClass.Fields.FirstOrDefault(field => field.Name == fieldName)
+            ?? routingClass.AddField(KnownTypes.Web.RequestHandlerInfo.MakeNullable(), fieldName);
+
+        var cachedInfo = NullCoalesceEqual(
+            infoField.Instance,
+            New(KnownTypes.Web.RequestHandlerInfo, newHandler)
+        );
+
+        cachedInfo.PrintParentheses = false;
+
+        return cachedInfo;
+    }
+
+    /// <summary>
     /// The result for a path this leaf matched under a verb it does not answer.
     /// </summary>
     /// <remarks>
-    /// A static field per distinct verb set: it carries no per-request state - no handler, and the
-    /// shared empty token collection - so rebuilding one per rejected request would allocate for
-    /// the case least worth allocating for. Shared across leaves that allow the same verbs, which
-    /// most of an application's do.
+    /// A static field per distinct verb set: it carries no per-request state - no handler, and no
+    /// token values - so rebuilding one per rejected request would allocate for the case least
+    /// worth allocating for. Shared across leaves that allow the same verbs, which most of an
+    /// application's do.
     /// </remarks>
     private static IOutputComponent MethodNotAllowed<T>(
         ClassDefinition routingClass,

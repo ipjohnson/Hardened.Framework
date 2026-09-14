@@ -2,7 +2,6 @@ using Hardened.Requests.Abstract.Caching;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.PathTokens;
-using Hardened.Requests.Runtime.PathTokens;
 using Hardened.Requests.Runtime.QueryString;
 using Hardened.Requests.Testing;
 using Hardened.Web.Runtime.Caching;
@@ -22,7 +21,7 @@ public class CacheKeyProviderTests
     private static IExecutionContext Context(
         IDictionary<string, string>? query = null,
         IDictionary<string, StringValues>? headers = null,
-        IPathTokenCollection? pathTokens = null
+        PathTokenCollection pathTokens = default
     )
     {
         var provider = new ServiceCollection().BuildServiceProvider();
@@ -37,10 +36,7 @@ public class CacheKeyProviderTests
             Headers = headers ?? new Dictionary<string, StringValues>(),
         };
 
-        if (pathTokens != null)
-        {
-            request.PathTokens = pathTokens;
-        }
+        request.PathTokens = pathTokens;
 
         return new TestExecutionContext(
             provider,
@@ -207,7 +203,7 @@ public class CacheKeyProviderTests
     [Fact]
     public async Task VaryByRouteReadsEveryToken()
     {
-        var tokens = new PathTokenCollection(2, ["ownerId", "petId"]);
+        var tokens = new PathTokenCollection(["ownerId", "petId"]);
 
         tokens.SetValue(0, "7");
         tokens.SetValue(1, "3");

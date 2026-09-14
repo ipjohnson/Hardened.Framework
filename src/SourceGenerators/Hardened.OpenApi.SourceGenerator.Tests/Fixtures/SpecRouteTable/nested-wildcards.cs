@@ -21,31 +21,32 @@ namespace Test.Api
         private class SpecRoutingTable : global::Hardened.Web.Runtime.Handlers.IWebExecutionRequestHandlerProvider
         {
             private global::System.IServiceProvider _rootServiceProvider;
-            private global::Test.Api.Generated.PetController_ThreeTokens? _fieldPetController_ThreeTokens;
             private static readonly string[] _pathTokenNamesPetController_ThreeTokens =             new string[] { "x", "y", "z" }
 ;
+            private global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? _infoPetController_ThreeTokens;
             private static readonly global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo _methodNotAllowedGETHEAD =             global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo.MethodNotAllowed("GET, HEAD")
 ;
-            private global::Test.Api.Generated.PetController_TwoTokens? _fieldPetController_TwoTokens;
             private static readonly string[] _pathTokenNamesPetController_TwoTokens =             new string[] { "x", "y" }
 ;
+            private global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? _infoPetController_TwoTokens;
 
             public SpecRoutingTable(global::System.IServiceProvider serviceProvider)
             {
                 _rootServiceProvider = serviceProvider;
             }
 
-            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? GetExecutionRequestHandler(global::Hardened.Requests.Abstract.Execution.IExecutionContext context)
+            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? GetExecutionRequestHandler(global::Hardened.Requests.Abstract.Execution.IExecutionContext context, ref global::Hardened.Requests.Abstract.PathTokens.PathTokenCollection pathTokens)
             {
                 var pathSpan = context.Request.Path.AsSpan();
                 return TestPath_SlashaSlash(
                     pathSpan,
                     0,
-                    context.Request.Method
+                    context.Request.Method,
+                    ref pathTokens
                 );
             }
 
-            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_SlashaSlash(global::System.ReadOnlySpan<char> charSpan, int index, string methodString)
+            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_SlashaSlash(global::System.ReadOnlySpan<char> charSpan, int index, string methodString, ref global::Hardened.Requests.Abstract.PathTokens.PathTokenCollection pathTokens)
             {
                 global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? handlerInfo = null;
                 if ((charSpan.Length >= index + 3) && charSpan.Slice(index, 3).SequenceEqual("/a/"))
@@ -56,25 +57,27 @@ namespace Test.Api
                         handlerInfo = TestPath_aSlashWildCard(
                             charSpan,
                             index,
-                            methodString
+                            methodString,
+                            ref pathTokens
                         );
                     }
                 }
                 return handlerInfo;
             }
 
-            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_aSlashWildCard(global::System.ReadOnlySpan<char> charSpan, int index, string methodString)
+            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_aSlashWildCard(global::System.ReadOnlySpan<char> charSpan, int index, string methodString, ref global::Hardened.Requests.Abstract.PathTokens.PathTokenCollection pathTokens)
             {
                 global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? handlerInfo = null;
                 handlerInfo = TestPath_SlashWildCardMatch(
                     charSpan,
                     index,
-                    methodString
+                    methodString,
+                    ref pathTokens
                 );
                 return handlerInfo;
             }
 
-            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_SlashWildCardMatch(global::System.ReadOnlySpan<char> charSpan, int index, string methodString)
+            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_SlashWildCardMatch(global::System.ReadOnlySpan<char> charSpan, int index, string methodString, ref global::Hardened.Requests.Abstract.PathTokens.PathTokenCollection pathTokens)
             {
                 var handlerInfo = (global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo?)null;
                 var segmentEnd = charSpan.Slice(index).IndexOf('/');
@@ -87,13 +90,14 @@ namespace Test.Api
                         handlerInfo = TestPath_bSlash(
                             charSpan,
                             (currentIndex + 1),
-                            methodString
+                            methodString,
+                            ref pathTokens
                         );
                         if (handlerInfo != null)
                         {
                             if (handlerInfo.Handler != null)
                             {
-                                handlerInfo.PathTokens.SetValue(
+                                pathTokens.SetValue(
                                     0,
                                     charSpan.Slice(
                                         index,
@@ -109,7 +113,7 @@ namespace Test.Api
                 return null;
             }
 
-            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_bSlash(global::System.ReadOnlySpan<char> charSpan, int index, string methodString)
+            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_bSlash(global::System.ReadOnlySpan<char> charSpan, int index, string methodString, ref global::Hardened.Requests.Abstract.PathTokens.PathTokenCollection pathTokens)
             {
                 global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? handlerInfo = null;
                 if ((charSpan.Length >= index + 2) && charSpan.Slice(index, 2).SequenceEqual("b/"))
@@ -120,33 +124,36 @@ namespace Test.Api
                         handlerInfo = TestPath_bSlashWildCard(
                             charSpan,
                             index,
-                            methodString
+                            methodString,
+                            ref pathTokens
                         );
                     }
                 }
                 return handlerInfo;
             }
 
-            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_bSlashWildCard(global::System.ReadOnlySpan<char> charSpan, int index, string methodString)
+            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_bSlashWildCard(global::System.ReadOnlySpan<char> charSpan, int index, string methodString, ref global::Hardened.Requests.Abstract.PathTokens.PathTokenCollection pathTokens)
             {
                 global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? handlerInfo = null;
                 handlerInfo = TestPath_Slash2(
                     charSpan,
                     index,
-                    methodString
+                    methodString,
+                    ref pathTokens
                 );
                 if (handlerInfo == null)
                 {
                     handlerInfo = TestPath_NoPath2(
                         charSpan,
                         index,
-                        methodString
+                        methodString,
+                        ref pathTokens
                     );
                 }
                 return handlerInfo;
             }
 
-            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_Slash2(global::System.ReadOnlySpan<char> charSpan, int index, string methodString)
+            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_Slash2(global::System.ReadOnlySpan<char> charSpan, int index, string methodString, ref global::Hardened.Requests.Abstract.PathTokens.PathTokenCollection pathTokens)
             {
                 var handlerInfo = (global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo?)null;
                 var segmentEnd = charSpan.Slice(index).IndexOf('/');
@@ -159,13 +166,14 @@ namespace Test.Api
                         handlerInfo = TestPath_cSlash(
                             charSpan,
                             (currentIndex + 1),
-                            methodString
+                            methodString,
+                            ref pathTokens
                         );
                         if (handlerInfo != null)
                         {
                             if (handlerInfo.Handler != null)
                             {
-                                handlerInfo.PathTokens.SetValue(
+                                pathTokens.SetValue(
                                     1,
                                     charSpan.Slice(
                                         index,
@@ -181,7 +189,7 @@ namespace Test.Api
                 return null;
             }
 
-            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_cSlash(global::System.ReadOnlySpan<char> charSpan, int index, string methodString)
+            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_cSlash(global::System.ReadOnlySpan<char> charSpan, int index, string methodString, ref global::Hardened.Requests.Abstract.PathTokens.PathTokenCollection pathTokens)
             {
                 global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? handlerInfo = null;
                 if ((charSpan.Length >= index + 2) && charSpan.Slice(index, 2).SequenceEqual("c/"))
@@ -192,25 +200,27 @@ namespace Test.Api
                         handlerInfo = TestPath_cSlashWildCard(
                             charSpan,
                             index,
-                            methodString
+                            methodString,
+                            ref pathTokens
                         );
                     }
                 }
                 return handlerInfo;
             }
 
-            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_cSlashWildCard(global::System.ReadOnlySpan<char> charSpan, int index, string methodString)
+            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_cSlashWildCard(global::System.ReadOnlySpan<char> charSpan, int index, string methodString, ref global::Hardened.Requests.Abstract.PathTokens.PathTokenCollection pathTokens)
             {
                 global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? handlerInfo = null;
                 handlerInfo = TestPath_NoPathWildCardMatch(
                     charSpan,
                     index,
-                    methodString
+                    methodString,
+                    ref pathTokens
                 );
                 return handlerInfo;
             }
 
-            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_NoPathWildCardMatch(global::System.ReadOnlySpan<char> charSpan, int index, string methodString)
+            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_NoPathWildCardMatch(global::System.ReadOnlySpan<char> charSpan, int index, string methodString, ref global::Hardened.Requests.Abstract.PathTokens.PathTokenCollection pathTokens)
             {
                 if (charSpan.Length <= index)
                 {
@@ -224,20 +234,17 @@ namespace Test.Api
                 {
                     case "HEAD":
                     case "GET":
-                        return new global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo(
-                            _fieldPetController_ThreeTokens ??= new global::Test.Api.Generated.PetController_ThreeTokens(_rootServiceProvider),
-                            new global::Hardened.Requests.Runtime.PathTokens.PathTokenCollection(
-                                3,
-                                _pathTokenNamesPetController_ThreeTokens,
-                                charSpan.Slice(index).ToString()
-                            )
+                        pathTokens = new global::Hardened.Requests.Abstract.PathTokens.PathTokenCollection(
+                            _pathTokenNamesPetController_ThreeTokens,
+                            charSpan.Slice(index).ToString()
                         );
+                        return _infoPetController_ThreeTokens ??= new global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo(new global::Test.Api.Generated.PetController_ThreeTokens(_rootServiceProvider));
                     default:
                         return _methodNotAllowedGETHEAD;
                 }
             }
 
-            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_NoPath2(global::System.ReadOnlySpan<char> charSpan, int index, string methodString)
+            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_NoPath2(global::System.ReadOnlySpan<char> charSpan, int index, string methodString, ref global::Hardened.Requests.Abstract.PathTokens.PathTokenCollection pathTokens)
             {
                 if (charSpan.Length <= index)
                 {
@@ -251,14 +258,11 @@ namespace Test.Api
                 {
                     case "HEAD":
                     case "GET":
-                        return new global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo(
-                            _fieldPetController_TwoTokens ??= new global::Test.Api.Generated.PetController_TwoTokens(_rootServiceProvider),
-                            new global::Hardened.Requests.Runtime.PathTokens.PathTokenCollection(
-                                2,
-                                _pathTokenNamesPetController_TwoTokens,
-                                charSpan.Slice(index).ToString()
-                            )
+                        pathTokens = new global::Hardened.Requests.Abstract.PathTokens.PathTokenCollection(
+                            _pathTokenNamesPetController_TwoTokens,
+                            charSpan.Slice(index).ToString()
                         );
+                        return _infoPetController_TwoTokens ??= new global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo(new global::Test.Api.Generated.PetController_TwoTokens(_rootServiceProvider));
                     default:
                         return _methodNotAllowedGETHEAD;
                 }
