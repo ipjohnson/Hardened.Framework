@@ -266,4 +266,57 @@ public class RegisteredRouteCatalogTests
             routing
         );
     }
+
+    /// <summary>
+    /// A handler whose documentation carries a double quote. 0.36.0-rc1000 shipped with the
+    /// catalog's escaper escaping the quote and leaving the backslash alone, so the quote the
+    /// document had already escaped was written to C# as an escaped backslash followed by a live
+    /// quote, which ended the literal. Any application declaring an IRouteRegistration stopped
+    /// compiling, and the template's own TodoController.Remove comment was enough to do it.
+    /// </summary>
+    /// <remarks>
+    /// On a controller the registration does not name, because the catalog carries every handler
+    /// in the compilation rather than the registered ones.
+    /// </remarks>
+    [Fact]
+    public void ADocCommentWithAQuoteStillCompiles()
+    {
+        var catalog = Catalog(
+            Registration
+                + """
+
+                public class NoteController {
+                    /// <summary>Answers 204 rather than 200 with "null" in it.</summary>
+                    [Get("/notes")]
+                    public string Note() => "";
+                }
+                """
+        );
+
+        Assert.Contains("""\\\"null""", catalog);
+    }
+
+    /// <summary>
+    /// The same escaper meeting a backslash, which compiled and served a document
+    /// System.Text.Json refused to parse: the document escaped it to a pair, the literal wrote the
+    /// pair through unchanged, and C# decoded it back to the single backslash the document had
+    /// escaped in the first place.
+    /// </summary>
+    [Fact]
+    public void ABackslashInADocCommentIsEscapedIntoTheLiteral()
+    {
+        var catalog = Catalog(
+            Registration
+                + """
+
+                public class LogController {
+                    /// <summary>Written to C:\logs\app.txt.</summary>
+                    [Get("/logs")]
+                    public string Log() => "";
+                }
+                """
+        );
+
+        Assert.Contains("""C:\\\\logs""", catalog);
+    }
 }
