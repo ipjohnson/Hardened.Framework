@@ -110,6 +110,16 @@
                  Link="Web/RouteConstraintFactsTests.cs"/>
         <Compile Include="../Hardened.SourceGenerator.Tests/Web/RouteTemplateTests.cs"
                  Link="Web/RouteTemplateTests.cs"/>
+        <Compile Include="../Hardened.SourceGenerator.Tests/Shared/EnumWireNamingTests.cs"
+                 Link="Shared/EnumWireNamingTests.cs"/>
+        <Compile Include="../Hardened.SourceGenerator.Tests/Shared/RoutePathTests.cs"
+                 Link="Shared/RoutePathTests.cs"/>
+        <Compile Include="../Hardened.SourceGenerator.Tests/Requests/RequestParameterInformationTests.cs"
+                 Link="Requests/RequestParameterInformationTests.cs"/>
+        <Compile Include="../Hardened.SourceGenerator.Tests/OpenApiDocument/XmlDocumentationTests.cs"
+                 Link="OpenApiDocument/XmlDocumentationTests.cs"/>
+        <Compile Include="../Hardened.SourceGenerator.Tests/OpenApiDocument/DocumentWriterTests.cs"
+                 Link="OpenApiDocument/DocumentWriterTests.cs"/>
     </ItemGroup>
 
 </Project>

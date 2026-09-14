@@ -190,6 +190,10 @@
     <Project Path="src/IntegrationTests/OpenApi/Hardened.IntegrationTests.OpenApi.SUT.Tests/Hardened.IntegrationTests.OpenApi.SUT.Tests.csproj" />
     <Project Path="src/IntegrationTests/OpenApi/Hardened.IntegrationTests.OpenApi.SUT/Hardened.IntegrationTests.OpenApi.SUT.csproj" />
   </Folder>
+  <Folder Name="/IntegrationTests/RegisteredRoutes/">
+    <Project Path="src/IntegrationTests/RegisteredRoutes/Hardened.IntegrationTests.RegisteredRoutes.SUT.Tests/Hardened.IntegrationTests.RegisteredRoutes.SUT.Tests.csproj" />
+    <Project Path="src/IntegrationTests/RegisteredRoutes/Hardened.IntegrationTests.RegisteredRoutes.SUT/Hardened.IntegrationTests.RegisteredRoutes.SUT.csproj" />
+  </Folder>
   <Folder Name="/IntegrationTests/Responses/">
     <Project Path="src/IntegrationTests/Responses/Hardened.IntegrationTests.Responses.SUT.Tests/Hardened.IntegrationTests.Responses.SUT.Tests.csproj" />
     <Project Path="src/IntegrationTests/Responses/Hardened.IntegrationTests.Responses.SUT/Hardened.IntegrationTests.Responses.SUT.csproj" />

@@ -12,6 +12,7 @@ using Hardened.Web.Runtime.Handlers;
 using Hardened.Web.Runtime.Health;
 using Hardened.Web.Runtime.Links;
 using Hardened.Web.Runtime.OpenApi;
+using Hardened.Web.Runtime.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -108,6 +109,7 @@ public partial class HardenedWebModule : IServiceCollectionConfiguration
         // register from.
         services.TryAddSingleton<OpenApiDocumentController>();
         services.TryAddSingleton<HealthCheckController>();
+        services.TryAddSingleton<RouteRegistrationController>();
 
         // Registered ahead of anything an application adds, because providers are consulted in
         // reverse registration order - so an application declaring its own route at either health
@@ -117,6 +119,22 @@ public partial class HardenedWebModule : IServiceCollectionConfiguration
                 serviceProvider.GetRequiredService<HealthCheckConfiguration>(),
                 serviceProvider
             )
+        );
+
+        // Routes registered at startup, on the same terms and for the same reason: registered here
+        // rather than by the application, so the generated table is always asked first and a route
+        // written as an attribute always beats one registered in a loop.
+        services.TryAddSingleton(serviceProvider => new RegisteredRouteProvider(
+            serviceProvider,
+            serviceProvider.GetServices<IRouteRegistration>().Any()
+        ));
+
+        services.AddSingleton<IWebExecutionRequestHandlerProvider>(serviceProvider =>
+            serviceProvider.GetRequiredService<RegisteredRouteProvider>()
+        );
+
+        services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IStartupService, RouteRegistrationStartupService>()
         );
     }
 }

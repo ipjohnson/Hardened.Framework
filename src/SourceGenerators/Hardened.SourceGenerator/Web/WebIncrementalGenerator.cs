@@ -142,6 +142,18 @@ public static class WebIncrementalGenerator
             static (compilation, _) => SerializerContentTypes.Read(compilation)
         );
 
+        // Whether anything in this compilation registers routes at startup, collapsed to one bool
+        // before it reaches the pipeline and folded into the options value rather than combined into
+        // the routing table's own tuple - which is already three levels deep, and the note above
+        // says why a fourth is not worth it.
+        var routeRegistrationDeclared = initializationContext
+            .SyntaxProvider.CreateSyntaxProvider(
+                RouteRegistrationSelector.Predicate,
+                RouteRegistrationSelector.Transform
+            )
+            .Collect()
+            .Select(static (declared, _) => declared.Any(found => found));
+
         var options = initializationContext
             .AnalyzerConfigOptionsProvider.Select(
                 (provider, _) =>
@@ -151,7 +163,9 @@ public static class WebIncrementalGenerator
                     )
             )
             .Combine(writableContentTypes)
-            .Select(static (pair, _) => pair.Left with { WritableContentTypes = pair.Right });
+            .Select(static (pair, _) => pair.Left with { WritableContentTypes = pair.Right })
+            .Combine(routeRegistrationDeclared)
+            .Select(static (pair, _) => pair.Left with { RouteRegistrationDeclared = pair.Right });
 
         var routeProvider = entryPointProvider
             .Combine(collection)
@@ -171,7 +185,13 @@ public static class WebIncrementalGenerator
                         context,
                         pair.Left.Left,
                         pair.Left.Right,
-                        pair.Right
+                        pair.Right,
+                        RouteHandlerCatalogEmitter.For(
+                            pair.Left.Left.Left,
+                            pair.Left.Left.Right,
+                            pair.Right,
+                            pair.Left.Right.RouteRegistrationDeclared
+                        )
                     )
             )
         );

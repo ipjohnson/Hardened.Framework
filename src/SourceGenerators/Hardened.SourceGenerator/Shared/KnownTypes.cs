@@ -74,6 +74,12 @@ public static class KnownTypes
 
                 public const string RuntimeHandlers = "Hardened.Web.Runtime.Handlers";
 
+                /// <summary>
+                /// Where the runtime matcher and the registration API live. The generated table is
+                /// emitted code; these are the types a route registered at startup goes through.
+                /// </summary>
+                public const string RuntimeRouting = "Hardened.Web.Runtime.Routing";
+
                 public const string Routing = "Hardened.Web.Runtime.Routing";
             }
 
@@ -503,6 +509,12 @@ public static class KnownTypes
         public static readonly ITypeDefinition RequestHandlerInfo = TypeDefinition.Get(
             Namespace.Hardened.Web.RuntimeHandlers,
             "RequestHandlerInfo"
+        );
+
+        public static readonly ITypeDefinition IGeneratedRouteHandlerCatalog = TypeDefinition.Get(
+            TypeDefinitionEnum.InterfaceDefinition,
+            Namespace.Hardened.Web.RuntimeRouting,
+            "IGeneratedRouteHandlerCatalog"
         );
     }
 
