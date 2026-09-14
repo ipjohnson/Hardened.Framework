@@ -302,6 +302,49 @@ public static class RouteConstraintFacts
         csType is "Decimal" or "decimal" or "Double" or "double" or "Single" or "float";
 
     /// <summary>
+    /// The constraint names that guarantee a token converts to <paramref name="csType"/>, or an
+    /// empty list where nothing does and where nothing needs to.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The inverse of <see cref="GuaranteesConversion"/>, and it exists because a route registered
+    /// at startup is documented before its path is known. The build cannot read the constraint off
+    /// the template, so it states which names it will accept and the registry holds the
+    /// registration to one of them - after which the operation can be written as though the
+    /// constraint were there, because it is.
+    /// </para>
+    /// <para>
+    /// A string binds as itself and can refuse nothing, so it needs no constraint and gets no
+    /// entry. Anything else with no entry here is a type no constraint guarantees, which the
+    /// converter can still refuse: the operation keeps its 400 and the registration is not held to
+    /// anything.
+    /// </para>
+    /// </remarks>
+    public static IReadOnlyList<string> SatisfyingNames(string csType) =>
+        csType.TrimEnd('?') switch
+        {
+            "String" or "string" or "Object" or "object" => EmptyNames,
+            "Int32" or "int" => new[] { "int", "range" },
+            "Int64" or "long" => new[] { "long", "int", "min", "max", "range" },
+            "Decimal" or "decimal" or "Double" or "double" or "Single" or "float" => new[]
+            {
+                "decimal",
+                "int",
+                "long",
+                "min",
+                "max",
+                "range",
+            },
+            "Boolean" or "bool" => new[] { "bool" },
+            "Guid" => new[] { "guid" },
+            "DateOnly" => new[] { "date" },
+            "DateTime" or "DateTimeOffset" => new[] { "datetime", "date" },
+            _ => EmptyNames,
+        };
+
+    private static readonly string[] EmptyNames = new string[0];
+
+    /// <summary>
     /// The argument counts a parameterised name accepts, for the diagnostic that has to say so.
     /// Empty when the name takes none.
     /// </summary>

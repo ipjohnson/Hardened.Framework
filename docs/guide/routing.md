@@ -358,6 +358,21 @@ same test the converter makes, so the converter can no longer refuse that value.
 an `int id` at `/todos/{id:int}` publishes 200 and 404 and no 400. The same handler at
 `/todos/{id}` publishes the 400.
 
+A route registered with a lambda is documented before its path exists, so it cannot be documented
+both ways. The build states the constraint each token needs and registration is refused without
+one:
+
+```
+'/acme/orders/{id}' does not constrain the token '{id}', which the registered handler reads.
+Register it as '{id:int}' - or as '{id:range}', so a value it cannot read answers 404 rather
+than reaching the handler's binder
+```
+
+Any constraint that makes the converter's test will do, in any position in the chain:
+`{id:int}`, `{id:range(1,10)}` and `{id:min(1):int}` all satisfy an `int` parameter. A token the
+lambda reads as a `string` is held to nothing, because a string binds as itself and there is no
+400 to remove.
+
 ## Case and trailing slashes
 
 Routes match by exact case. `/orders/summary` does not answer `/Orders/Summary`. A route declared

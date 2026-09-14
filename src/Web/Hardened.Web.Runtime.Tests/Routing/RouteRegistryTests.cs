@@ -332,6 +332,135 @@ public class RouteRegistryTests
         Assert.Contains("does not declare the token '{id}'", Assert.Single(registry.Failures));
     }
 
+    /// <summary>
+    /// A token the handler reads as something a string is not has to carry a constraint that says
+    /// so, and registering without one is refused.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The operation is written before the path exists, and whether a bad value answers 404 or 400
+    /// depends on the template: <c>{id:int}</c> is the router's 404 and <c>{id}</c> is the binder's
+    /// 400. A registered route published the second and served the first, because the build had no
+    /// path to read the constraint off. The build now states which constraints it will accept and
+    /// this holds the registration to one of them, so the operation is true of every path the
+    /// route is served at.
+    /// </para>
+    /// <para>
+    /// Refused rather than documented either way. Both answers are wrong for half the
+    /// registrations, and a startup failure naming the token is the one a route author can act on.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void ATemplateLeavingABoundTokenUnconstrainedIsReported()
+    {
+        var registry = new RouteRegistry(Provider, Catalog());
+
+        registry.Map(
+            "/acme/orders/{id}",
+            new RegisteredRouteHandler(
+                "GET",
+                ["id:int|range"],
+                static (_, routePath) => new StubHandler(routePath ?? "")
+            )
+        );
+
+        var failure = Assert.Single(registry.Failures);
+
+        Assert.Contains("does not constrain the token '{id}'", failure);
+        Assert.Contains("'{id:int}'", failure);
+        Assert.Contains("'{id:range}'", failure);
+    }
+
+    /// <summary>Any of the named constraints will do, and any term of the chain names it.</summary>
+    [Theory]
+    [InlineData("/acme/orders/{id:int}")]
+    [InlineData("/acme/orders/{id:range(1,10)}")]
+    [InlineData("/acme/orders/{id:min(1):int}")]
+    public void AConstraintTheHandlerNamedSatisfiesIt(string path)
+    {
+        var registry = new RouteRegistry(Provider, Catalog());
+
+        registry.Map(
+            path,
+            new RegisteredRouteHandler(
+                "GET",
+                ["id:int|range"],
+                static (_, routePath) => new StubHandler(routePath ?? "")
+            )
+        );
+
+        Assert.Empty(registry.Failures);
+    }
+
+    /// <summary>
+    /// A constraint that is not one of the named ones is refused, because it does not make the
+    /// test the converter makes. <c>{id:slug}</c> admits <c>north-yard</c>, which an <c>int</c>
+    /// parameter still cannot read.
+    /// </summary>
+    [Theory]
+    [InlineData("/acme/orders/{id:slug}")]
+    [InlineData("/acme/orders/{id:maxlength(4)}")]
+    public void AConstraintThatGuaranteesSomethingElseIsReported(string path)
+    {
+        var registry = new RouteRegistry(Provider, Catalog());
+
+        registry.Map(
+            path,
+            new RegisteredRouteHandler(
+                "GET",
+                ["id:int|range"],
+                static (_, routePath) => new StubHandler(routePath ?? "")
+            )
+        );
+
+        Assert.Contains("does not constrain the token '{id}'", Assert.Single(registry.Failures));
+    }
+
+    /// <summary>
+    /// A token with one constraint to offer names that one and stops, rather than trailing an
+    /// empty alternatives clause.
+    /// </summary>
+    [Fact]
+    public void ATokenWithOneSatisfyingConstraintNamesOnlyIt()
+    {
+        var registry = new RouteRegistry(Provider, Catalog());
+
+        registry.Map(
+            "/acme/orders/{id}",
+            new RegisteredRouteHandler(
+                "GET",
+                ["id:guid"],
+                static (_, routePath) => new StubHandler(routePath ?? "")
+            )
+        );
+
+        var failure = Assert.Single(registry.Failures);
+
+        Assert.Contains("Register it as '{id:guid}',", failure);
+        Assert.DoesNotContain("or as", failure);
+    }
+
+    /// <summary>
+    /// A token the handler reads as a string is held to nothing. A string binds as itself, so the
+    /// converter cannot refuse it and there is no 400 for a constraint to remove.
+    /// </summary>
+    [Fact]
+    public void AStringTokenNeedsNoConstraint()
+    {
+        var registry = new RouteRegistry(Provider, Catalog());
+
+        registry.Map(
+            "/acme/tags/{slug}",
+            new RegisteredRouteHandler(
+                "GET",
+                ["slug"],
+                static (_, routePath) => new StubHandler(routePath ?? "")
+            )
+        );
+
+        Assert.Empty(registry.Failures);
+    }
+
     [Fact]
     public void AGeneratedHandlerCannotBeRegisteredAfterStartup()
     {

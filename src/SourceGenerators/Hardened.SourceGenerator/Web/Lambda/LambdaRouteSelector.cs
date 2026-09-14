@@ -3,6 +3,7 @@ using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.OpenApiDocument;
 using Hardened.SourceGenerator.Requests;
 using Hardened.SourceGenerator.Shared;
+using Hardened.SourceGenerator.Web.Routing;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -126,10 +127,10 @@ public static class LambdaRouteSelector
         var response = Response(lambda);
 
         var handler = new RequestHandlerModel(
-            // The path the handler reports before it is constructed, which nothing reads: the
-            // registry always builds it with the template it registered, and WithPath replaces
-            // this.
-            new RequestHandlerNameModel("(registered)", verb),
+            // The tokens this handler reads and the constraint each needs, which is what the
+            // document writer reads a declared path for. The registry never reads it - it always
+            // builds the route with the template it registered, and WithPath replaces this.
+            new RequestHandlerNameModel(RequiredTemplate(parameters), verb),
             delegateType,
             "Invoke",
             TypeDefinition.Get(HandlerNamespace(context), HandlerName(invocation, verb)),
@@ -528,13 +529,65 @@ public static class LambdaRouteSelector
         return null;
     }
 
+    /// <summary>
+    /// The path tokens the emitted binder reads, each with the constraint names that would let it
+    /// read them without being able to refuse.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>id</c> where the parameter is a string, which binds as itself; <c>id:int|range</c> where
+    /// it is an <c>int</c>, which a value the router let through can still fail to convert to. The
+    /// registry holds the registration to one of the named constraints, and
+    /// <see cref="RequiredTemplate"/> is the same fact written as the template the document is
+    /// then written from.
+    /// </para>
+    /// <para>
+    /// A type no constraint guarantees gets no alternatives and is not held to anything. Its
+    /// operation keeps the 400 its converter can still answer.
+    /// </para>
+    /// </remarks>
     private static IReadOnlyList<string> BoundTokens(
         IReadOnlyList<RequestParameterInformation> parameters
     ) =>
-        parameters
-            .Where(parameter => parameter.BindingType == ParameterBindType.Path)
-            .Select(parameter => parameter.Name)
+        PathParameters(parameters)
+            .Select(parameter =>
+            {
+                var names = RouteConstraintFacts.SatisfyingNames(parameter.ParameterType.Name);
+
+                return names.Count == 0
+                    ? parameter.Name
+                    : parameter.Name + ":" + string.Join("|", names);
+            })
             .ToList();
+
+    /// <summary>
+    /// The route template this handler has to be registered under, as the tokens it reads and the
+    /// constraint each of them needs.
+    /// </summary>
+    /// <remarks>
+    /// Stands in for the declared path a controller's handler has, which is what the document
+    /// writer reads to decide whether a token can refuse a value. A lambda had a placeholder
+    /// there, so every registered operation published the 400 the converter would answer and not
+    /// the 404 the constraint produces instead - the reverse of what the same handler publishes
+    /// when it is declared with an attribute. The registry refuses a registration that does not
+    /// carry these constraints, so what is written here is true of every path this is served at.
+    /// </remarks>
+    private static string RequiredTemplate(IReadOnlyList<RequestParameterInformation> parameters) =>
+        string.Concat(
+            PathParameters(parameters)
+                .Select(parameter =>
+                {
+                    var names = RouteConstraintFacts.SatisfyingNames(parameter.ParameterType.Name);
+
+                    return names.Count == 0
+                        ? "/{" + parameter.Name + "}"
+                        : "/{" + parameter.Name + ":" + names[0] + "}";
+                })
+        );
+
+    private static IEnumerable<RequestParameterInformation> PathParameters(
+        IReadOnlyList<RequestParameterInformation> parameters
+    ) => parameters.Where(parameter => parameter.BindingType == ParameterBindType.Path);
 
     /// <summary>Where the handler class is emitted, beside the type that registered it.</summary>
     private static string HandlerNamespace(GeneratorSyntaxContext context) =>

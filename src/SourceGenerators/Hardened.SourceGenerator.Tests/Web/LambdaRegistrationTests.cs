@@ -59,7 +59,7 @@ public class LambdaRegistrationTests
 
         Assert.Contains("InterceptsLocation", emitted);
         Assert.Contains("\"GET\"", emitted);
-        Assert.Contains("new string[] { \"id\" }", emitted);
+        Assert.Contains("new string[] { \"id:int|range\" }", emitted);
     }
 
     /// <remarks>
@@ -97,7 +97,34 @@ public class LambdaRegistrationTests
     {
         var emitted = Emitted($$"""routes.Get("/orders/{id}", ({{parameter}}) => "ok");""");
 
-        Assert.Contains("new string[] { \"id\" }", emitted);
+        Assert.Contains("new string[] { \"id", emitted);
+    }
+
+    /// <summary>
+    /// And it names the constraints that would keep a value it cannot read away from its binder.
+    /// </summary>
+    /// <remarks>
+    /// The registry holds the registration to one of them. A registered route's operation is
+    /// written before its path exists, so whether a bad value answers 404 or 400 has to be settled
+    /// at the call site rather than read off a template the build never sees.
+    /// </remarks>
+    [Theory]
+    [InlineData("int id", "id:int|range")]
+    [InlineData("long id", "id:long|int|min|max|range")]
+    [InlineData("Guid id", "id:guid")]
+    [InlineData("bool id", "id:bool")]
+    [InlineData("DateOnly id", "id:date")]
+    [InlineData("DateTime id", "id:datetime|date")]
+    // A string binds as itself and its converter can refuse nothing, so it is held to nothing.
+    [InlineData("string id", "id")]
+    // And a type no constraint tests keeps the 400 its converter can still answer.
+    [InlineData("TimeSpan id", "id")]
+    [InlineData("Uri id", "id")]
+    public void APathTokenNamesTheConstraintsThatSatisfyIt(string parameter, string expected)
+    {
+        var emitted = Emitted($$"""routes.Get("/orders/{id}", ({{parameter}}) => "ok");""");
+
+        Assert.Contains($"new string[] {{ \"{expected}\" }}", emitted);
     }
 
     /// <remarks>

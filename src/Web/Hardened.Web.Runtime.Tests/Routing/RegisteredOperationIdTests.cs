@@ -22,6 +22,8 @@ public class RegisteredOperationIdTests
     [InlineData("GET", "/api/north-yard/readings/{id}", "apiNorthYardReadingsByIdGet")]
     [InlineData("GET", "/files/{*path}", "filesByPathGet")]
     [InlineData("PATCH", "/", "patch")]
+    [InlineData("GET", "/a/b", "aBGet")]
+    [InlineData("GET", "/files/{*path:slug}", "filesByPathGet")]
     public void ThePathAndTheVerbNameTheOperation(string method, string path, string expected) =>
         Assert.Equal(expected, RegisteredOperationId.For(method, path));
 
