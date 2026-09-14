@@ -1,0 +1,37 @@
+<Project>
+    <!--
+        One check, and it exists because the failure it replaces names nothing.
+
+        Google.Cloud.Functions.Hosting ships the target that writes a function's Main in build/
+        rather than buildTransitive/, and NuGet imports build/ for a direct reference only. So a
+        project that reaches that package through this one - which is the ordinary way to arrive,
+        since this package depends on it - gets the assemblies and not the target, and the build
+        fails with
+
+            error CS5001: Program does not contain a static 'Main' method suitable for an entry point
+
+        which says nothing about Cloud Functions and nothing about what to add. Measured on a
+        consumer built from the released packages; it is the first thing anyone following the
+        readme will hit.
+
+        A warning rather than an error: a project may legitimately write its own Main and call
+        Google.Cloud.Functions.Hosting.EntryPoint.StartAsync from it, and the assembly reference for
+        that does flow transitively. What is not legitimate is arriving here by accident.
+
+        OutputType=Exe, so a library or a test project consuming this package is silent.
+
+        AutoGenerateEntryPoint is the property Google's own props sets to true, so an empty value is
+        exactly "those assets were not imported". A project that sets it to false to keep its own
+        Main - which is how one assembly serves both Google deployment models, a Cloud Run container
+        and a 2nd gen function, from one compiled application - has set it, and is silent too.
+
+        buildTransitive/, and Package\ in the source tree, for the reasons the
+        Hardened.Gcp.CloudRun.PubSub csproj gives.
+    -->
+    <Target Name="HardenedCloudFunctionsEntryPointCheck"
+            BeforeTargets="PrepareForBuild"
+            Condition="'$(OutputType)' == 'Exe' AND '$(AutoGenerateEntryPoint)' == ''">
+        <Warning Code="HRDGF002"
+                 Text="This project references Hardened.Gcp.Functions.Runtime but not Google.Cloud.Functions.Hosting, so the Functions Framework entry point is not generated and the build has no Main. Add &lt;PackageReference Include=&quot;Google.Cloud.Functions.Hosting&quot; /&gt;, or set AutoGenerateEntryPoint to false if this project supplies its own." />
+    </Target>
+</Project>

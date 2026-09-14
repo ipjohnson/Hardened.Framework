@@ -66,6 +66,9 @@
     <Project Path="src/Clouds/Gcp/Hardened.Gcp.CloudRun.Storage/Hardened.Gcp.CloudRun.Storage.csproj" />
     <Project Path="src/Clouds/Gcp/Hardened.Gcp.CloudRun.Testing/Hardened.Gcp.CloudRun.Testing.csproj" />
     <Project Path="src/Clouds/Gcp/Hardened.Gcp.CloudRun.Runtime.Tests/Hardened.Gcp.CloudRun.Runtime.Tests.csproj" />
+    <Project Path="src/Clouds/Gcp/Hardened.Gcp.Functions.Runtime/Hardened.Gcp.Functions.Runtime.csproj" />
+    <Project Path="src/Clouds/Gcp/Hardened.Gcp.Functions.SourceGenerator/Hardened.Gcp.Functions.SourceGenerator.csproj" />
+    <Project Path="src/Clouds/Gcp/Hardened.Gcp.Functions.Runtime.Tests/Hardened.Gcp.Functions.Runtime.Tests.csproj" />
   </Folder>
   <Folder Name="/Clouds/Gcp/IntegrationTests/Blob/">
     <Project Path="src/Clouds/Gcp/IntegrationTests/Blob/Hardened.IntegrationTests.CloudRunBlob.SUT/Hardened.IntegrationTests.CloudRunBlob.SUT.csproj" />

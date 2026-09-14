@@ -339,6 +339,8 @@ jobs:
             src/Clouds/Gcp/Hardened.Gcp.CloudRun.Invoke/Hardened.Gcp.CloudRun.Invoke.csproj \
             src/Clouds/Gcp/Hardened.Gcp.CloudRun.Scheduler/Hardened.Gcp.CloudRun.Scheduler.csproj \
             src/Clouds/Gcp/Hardened.Gcp.CloudRun.Storage/Hardened.Gcp.CloudRun.Storage.csproj \
+            src/Clouds/Gcp/Hardened.Gcp.Functions.Runtime/Hardened.Gcp.Functions.Runtime.csproj \
+            src/Clouds/Gcp/Hardened.Gcp.Functions.SourceGenerator/Hardened.Gcp.Functions.SourceGenerator.csproj \
             src/Functions/Hardened.Functions.Runtime/Hardened.Functions.Runtime.csproj \
             src/Functions/Hardened.Functions.Testing/Hardened.Functions.Testing.csproj \
             src/Clouds/Aws/Hardened.Aws.Lambda/Hardened.Aws.Lambda.csproj \
@@ -421,7 +423,10 @@ jobs:
           # 65 with the rest of the Azure line: the HTTP, Timer, Event Hubs, Cosmos DB, Blobs and Event Grid
           # adapters and the Hardened.Azure.Functions meta package.
           # 66 with Hardened.Requests.Serializers.MessagePack.
-          EXPECTED=66
+          # 68 with the Cloud Functions host: Hardened.Gcp.Functions.Runtime and the generator that
+          # writes its FUNCTION_TARGET entry type. A second Google host rather than two more Cloud
+          # Run adapters, which is why they carry the Gcp.Functions prefix.
+          EXPECTED=68
           ACTUAL=$(ls -1 ./artifacts/*.nupkg 2>/dev/null | wc -l | tr -d ' ')
 
           if [ "$ACTUAL" != "$EXPECTED" ]; then
