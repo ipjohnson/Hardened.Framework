@@ -71,7 +71,7 @@ public static class RoutingTableGenerator
         (EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) models,
         WebGeneratorOptions? options = null,
         IReadOnlyList<RouteConstraintModel>? constraints = null,
-        (string Source, IOutputComponent Registration)? catalog = null
+        (string Source, IReadOnlyList<IOutputComponent> Registrations)? catalog = null
     )
     {
         _constraints = constraints;
@@ -157,7 +157,7 @@ public static class RoutingTableGenerator
             new RoutingTableOptions
             {
                 AdditionalRegistrations = catalog is { } declared
-                    ? new[] { declared.Registration }
+                    ? declared.Registrations
                     : Array.Empty<IOutputComponent>(),
             }
         );

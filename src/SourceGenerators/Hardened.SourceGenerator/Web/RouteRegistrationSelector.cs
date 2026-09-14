@@ -4,36 +4,86 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace Hardened.SourceGenerator.Web;
 
 /// <summary>
-/// Whether the compilation declares a type that registers routes at startup.
+/// The types in this compilation that register routes at startup.
 /// </summary>
 /// <remarks>
 /// <para>
-/// The gate on the handler catalog. An application that registers nothing at run time generates
-/// exactly what it generated before the feature existed, which keeps the checked-in routing
-/// fixtures and every existing application unchanged.
+/// Two things read this. It gates the handler catalog, so an application that registers nothing at
+/// run time generates exactly what it generated before the feature existed. And it registers each
+/// implementer in the container, so <c>IRouteRegistration</c> is a declaration rather than a
+/// declaration plus a registration somebody has to remember - which is also what lets the entry
+/// point implement it, since nothing puts an entry point in the container.
 /// </para>
 /// <para>
-/// <b>Syntactic, deliberately.</b> Reading the base type through the semantic model would mean
-/// binding every type declaration in the compilation to answer a question whose only consequence is
-/// whether one extra class is emitted. The cost of being wrong is an emitted catalog nothing
-/// resolves, which compiles and is dead; the cost of binding everything is paid on every keystroke.
+/// <b>Syntactic predicate, semantic transform.</b> The predicate runs on every type declaration in
+/// the compilation and only looks at the names written in the base list, which is a string compare.
+/// The transform binds, and only for the handful of declarations that named the interface - so an
+/// application with one registration binds one type rather than every type that has a base list at
+/// all.
 /// </para>
 /// </remarks>
 public static class RouteRegistrationSelector
 {
     private const string InterfaceName = "IRouteRegistration";
 
-    public static bool Predicate(SyntaxNode node, CancellationToken cancellationToken) =>
-        node is TypeDeclarationSyntax { BaseList: not null };
+    private const string InterfaceNamespace = "Hardened.Web.Runtime.Routing";
 
-    public static bool Transform(
+    public static bool Predicate(SyntaxNode node, CancellationToken cancellationToken) =>
+        node is TypeDeclarationSyntax { BaseList: not null } declaration
+        && Names(declaration.BaseList);
+
+    /// <summary>
+    /// The fully qualified name of the type, or null where it does not implement the interface or
+    /// cannot be constructed.
+    /// </summary>
+    public static string? Transform(
         GeneratorSyntaxContext context,
         CancellationToken cancellationToken
     )
     {
-        var declaration = (TypeDeclarationSyntax)context.Node;
+        if (
+            context.SemanticModel.GetDeclaredSymbol(context.Node, cancellationToken)
+            is not INamedTypeSymbol symbol
+        )
+        {
+            return null;
+        }
 
-        foreach (var baseType in declaration.BaseList!.Types)
+        // Abstract and static types are excluded rather than reported. An abstract base declaring
+        // the interface for its subclasses to implement is an ordinary thing to write, and
+        // registering it would be a container failure at startup about a type the author never
+        // meant to register.
+        if (symbol.IsAbstract || symbol.IsStatic)
+        {
+            return null;
+        }
+
+        foreach (var implemented in symbol.AllInterfaces)
+        {
+            if (
+                implemented.Name == InterfaceName
+                && implemented.ContainingNamespace?.ToDisplayString() == InterfaceNamespace
+            )
+            {
+                return symbol.ToDisplayString(
+                    SymbolDisplayFormat.FullyQualifiedFormat.WithGlobalNamespaceStyle(
+                        SymbolDisplayGlobalNamespaceStyle.Omitted
+                    )
+                );
+            }
+        }
+
+        return null;
+    }
+
+    /// <remarks>
+    /// The name as written, qualified or not. <c>Hardened.Web.Runtime.Routing.IRouteRegistration</c>
+    /// and a plain <c>IRouteRegistration</c> under a using both reach the transform, which is what
+    /// decides.
+    /// </remarks>
+    private static bool Names(BaseListSyntax baseList)
+    {
+        foreach (var baseType in baseList.Types)
         {
             if (Names(baseType.Type))
             {
@@ -44,10 +94,6 @@ public static class RouteRegistrationSelector
         return false;
     }
 
-    /// <remarks>
-    /// The name as written, qualified or not. <c>Hardened.Web.Runtime.Routing.IRouteRegistration</c>
-    /// and a plain <c>IRouteRegistration</c> under a using both reach here.
-    /// </remarks>
     private static bool Names(TypeSyntax type) =>
         type switch
         {

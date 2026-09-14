@@ -27,6 +27,7 @@ namespace TestApp
             serviceCollection.AddTransient<TenantController>();
             serviceCollection.AddTransient<Application.Links>();
             serviceCollection.AddSingleton<global::Hardened.Web.Runtime.Routing.IGeneratedRouteHandlerCatalog, TestApp.Application.RegisteredRouteHandlers>();
+            global::Microsoft.Extensions.DependencyInjection.Extensions.ServiceCollectionDescriptorExtensions.TryAddEnumerable(serviceCollection, global::Microsoft.Extensions.DependencyInjection.ServiceDescriptor.Singleton<global::Hardened.Web.Runtime.Routing.IRouteRegistration, global::TestApp.TenantRoutes>());
         }
 
         private class RoutingTable : IWebExecutionRequestHandlerProvider

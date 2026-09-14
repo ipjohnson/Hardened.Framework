@@ -34,7 +34,10 @@ public class TenantContext : ITenantContext
 /// <summary>
 /// One route per tenant, from a list that does not exist until the application runs.
 /// </summary>
-[SingletonService]
+/// <remarks>
+/// No <c>[SingletonService]</c>. Implementing the interface is the declaration, and the generator
+/// registers what it finds.
+/// </remarks>
 public class TenantRoutes : IRouteRegistration
 {
     private readonly ITenantCatalog _catalog;
@@ -60,6 +63,27 @@ public class TenantRoutes : IRouteRegistration
                     typeof(TenantController),
                     nameof(TenantController.File)
                 );
+
+            // The same shape registered as a lambda. It closes over the tenant, which is the whole
+            // reason the closure has to survive into the handler.
+            routes.Get(
+                $"/{tenant}/ping/{{id:int}}",
+                (int id) => Task.FromResult(new Order(id, tenant))
+            );
+
+            // A service from the container and a body, so the lambda form is held to the same
+            // binding the controller form gets.
+            routes.Post(
+                $"/{tenant}/echo",
+                (Order body, ITenantContext context) =>
+                    Task.FromResult(new Order(body.Id, tenant + ":" + context.Current))
+            );
+
+            routes.Map(
+                "DELETE",
+                $"/{tenant}/orders/{{id:int}}",
+                (int id) => Task.FromResult(new Order(id, tenant))
+            );
         }
 
         return default;

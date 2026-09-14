@@ -1400,12 +1400,26 @@ namespace Hardened.Web.Runtime.Routing
     public interface IRouteRegistry
     {
         System.IServiceProvider ServiceProvider { get; }
+        Hardened.Web.Runtime.Routing.IRouteRegistry Delete(string path, System.Delegate handler);
         Hardened.Web.Runtime.Routing.IRouteRegistry Delete(string path, System.Type controllerType, string handlerMethod);
+        Hardened.Web.Runtime.Routing.IRouteRegistry Get(string path, System.Delegate handler);
         Hardened.Web.Runtime.Routing.IRouteRegistry Get(string path, System.Type controllerType, string handlerMethod);
+        Hardened.Web.Runtime.Routing.IRouteRegistry Map(string path, Hardened.Web.Runtime.Routing.RegisteredRouteHandler handler);
+        Hardened.Web.Runtime.Routing.IRouteRegistry Map(string method, string path, System.Delegate handler);
         Hardened.Web.Runtime.Routing.IRouteRegistry Map(string method, string path, System.Type controllerType, string handlerMethod);
+        Hardened.Web.Runtime.Routing.IRouteRegistry Patch(string path, System.Delegate handler);
         Hardened.Web.Runtime.Routing.IRouteRegistry Patch(string path, System.Type controllerType, string handlerMethod);
+        Hardened.Web.Runtime.Routing.IRouteRegistry Post(string path, System.Delegate handler);
         Hardened.Web.Runtime.Routing.IRouteRegistry Post(string path, System.Type controllerType, string handlerMethod);
+        Hardened.Web.Runtime.Routing.IRouteRegistry Put(string path, System.Delegate handler);
         Hardened.Web.Runtime.Routing.IRouteRegistry Put(string path, System.Type controllerType, string handlerMethod);
+    }
+    public sealed class RegisteredRouteHandler
+    {
+        public RegisteredRouteHandler(string method, System.Collections.Generic.IReadOnlyList<string> boundTokens, Hardened.Web.Runtime.Routing.RouteHandlerFactory factory) { }
+        public System.Collections.Generic.IReadOnlyList<string> BoundTokens { get; }
+        public Hardened.Web.Runtime.Routing.RouteHandlerFactory Factory { get; }
+        public string Method { get; }
     }
     public sealed class RegisteredRouteProvider : Hardened.Web.Runtime.Handlers.IWebExecutionRequestHandlerProvider
     {
@@ -1475,11 +1489,18 @@ namespace Hardened.Web.Runtime.Routing
         public System.Collections.Generic.IReadOnlyList<string> Failures { get; }
         public System.IServiceProvider ServiceProvider { get; }
         public Hardened.Web.Runtime.Routing.RuntimeRouteTable Close() { }
+        public Hardened.Web.Runtime.Routing.IRouteRegistry Delete(string path, System.Delegate handler) { }
         public Hardened.Web.Runtime.Routing.IRouteRegistry Delete(string path, System.Type controllerType, string handlerMethod) { }
+        public Hardened.Web.Runtime.Routing.IRouteRegistry Get(string path, System.Delegate handler) { }
         public Hardened.Web.Runtime.Routing.IRouteRegistry Get(string path, System.Type controllerType, string handlerMethod) { }
+        public Hardened.Web.Runtime.Routing.IRouteRegistry Map(string path, Hardened.Web.Runtime.Routing.RegisteredRouteHandler handler) { }
+        public Hardened.Web.Runtime.Routing.IRouteRegistry Map(string method, string path, System.Delegate handler) { }
         public Hardened.Web.Runtime.Routing.IRouteRegistry Map(string method, string path, System.Type controllerType, string handlerMethod) { }
+        public Hardened.Web.Runtime.Routing.IRouteRegistry Patch(string path, System.Delegate handler) { }
         public Hardened.Web.Runtime.Routing.IRouteRegistry Patch(string path, System.Type controllerType, string handlerMethod) { }
+        public Hardened.Web.Runtime.Routing.IRouteRegistry Post(string path, System.Delegate handler) { }
         public Hardened.Web.Runtime.Routing.IRouteRegistry Post(string path, System.Type controllerType, string handlerMethod) { }
+        public Hardened.Web.Runtime.Routing.IRouteRegistry Put(string path, System.Delegate handler) { }
         public Hardened.Web.Runtime.Routing.IRouteRegistry Put(string path, System.Type controllerType, string handlerMethod) { }
     }
     public readonly struct RouteSegment

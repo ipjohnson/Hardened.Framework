@@ -28,18 +28,25 @@
 /// same shape of input: a string derived once, compared to decide whether the table re-runs. A
 /// provider of its own would have cost a fourth level on a tuple that is already three deep.
 /// </param>
-/// <param name="RouteRegistrationDeclared">
-/// Whether the compilation declares an <c>IRouteRegistration</c>. A bool rather than a provider of
-/// its own for the reason <paramref name="WritableContentTypes"/> gives: it is one value derived
-/// once, and the routing table's combine is already three levels deep.
+/// <param name="RouteRegistrations">
+/// The types in this compilation that implement <c>IRouteRegistration</c>, comma-joined and
+/// ordered. A string rather than a provider of its own for the reason
+/// <paramref name="WritableContentTypes"/> gives: it is one value derived once, compared to decide
+/// whether the table re-runs, and the routing table's combine is already three levels deep.
 /// </param>
 public record WebGeneratorOptions(
     string? AmbiguousRoutes,
     string? OpenApiVersion,
     string WritableContentTypes = SerializerContentTypes.AlwaysWritable,
-    bool RouteRegistrationDeclared = false
+    string RouteRegistrations = ""
 )
 {
     /// <summary>What a build that set nothing gets.</summary>
     public static readonly WebGeneratorOptions Default = new(null, null);
+
+    /// <summary>The registration types, or an empty list where the compilation declares none.</summary>
+    public IReadOnlyList<string> RegistrationTypes =>
+        RouteRegistrations.Length == 0
+            ? System.Array.Empty<string>()
+            : RouteRegistrations.Split(',');
 }

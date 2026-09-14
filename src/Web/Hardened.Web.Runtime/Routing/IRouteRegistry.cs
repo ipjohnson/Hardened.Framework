@@ -42,4 +42,38 @@ public interface IRouteRegistry
     IRouteRegistry Patch(string path, Type controllerType, string handlerMethod);
 
     IRouteRegistry Delete(string path, Type controllerType, string handlerMethod);
+
+    /// <summary>
+    /// Serves <paramref name="handler"/> at <paramref name="path"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The lambda form. The generator reads the lambda at the call site - its parameters, its
+    /// return type and any attribute written on it - emits a handler, a binder and a factory from
+    /// them, and rewrites this call to pass the factory. So the handler is compiled code and the
+    /// path is the only part that comes from run time, which is the same split the controller form
+    /// makes.
+    /// </para>
+    /// <para>
+    /// <b>These throw when they run.</b> The generated overload is the only one meant to execute; a
+    /// call reaching this one is a call the generator did not see, and doing something reasonable
+    /// instead would be a route that silently binds nothing.
+    /// </para>
+    /// </remarks>
+    IRouteRegistry Map(string method, string path, Delegate handler);
+
+    IRouteRegistry Get(string path, Delegate handler);
+
+    IRouteRegistry Post(string path, Delegate handler);
+
+    IRouteRegistry Put(string path, Delegate handler);
+
+    IRouteRegistry Patch(string path, Delegate handler);
+
+    IRouteRegistry Delete(string path, Delegate handler);
+
+    /// <summary>
+    /// Serves a handler the generator emitted. Called by generated code.
+    /// </summary>
+    IRouteRegistry Map(string path, RegisteredRouteHandler handler);
 }
