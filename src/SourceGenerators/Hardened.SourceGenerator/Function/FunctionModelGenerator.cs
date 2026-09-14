@@ -216,7 +216,12 @@ public class FunctionModelGenerator : BaseRequestModelGenerator
         int parameterIndex
     )
     {
-        var parameterType = parameter.Type?.GetTypeDefinition(generatorSyntaxContext)!;
+        var parameterType = parameter.Type?.GetTypeDefinition(generatorSyntaxContext);
+
+        if (parameterType == null)
+        {
+            return UnresolvedHandler.Parameter(parameter, parameterIndex);
+        }
 
         return CreateRequestParameterInformation(
             parameter,

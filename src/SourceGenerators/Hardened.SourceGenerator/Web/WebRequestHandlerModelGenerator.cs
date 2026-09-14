@@ -362,7 +362,17 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator
         int parameterIndex
     )
     {
-        var parameterType = parameter.Type?.GetTypeDefinition(generatorSyntaxContext)!;
+        var parameterType = parameter.Type?.GetTypeDefinition(generatorSyntaxContext);
+
+        // A binding attribute does not make a type resolvable. Every reading of the parameter
+        // below needs the type, so an unresolved one is recorded as such here rather than
+        // dereferenced two lines down - which threw out of the syntax transform and cost the whole
+        // assembly its generated code over one parameter the author was still typing.
+        if (parameterType == null)
+        {
+            return UnresolvedHandler.Parameter(parameter, parameterIndex);
+        }
+
         var name = parameter.Identifier.ValueText;
 
         string? defaultValue = null;

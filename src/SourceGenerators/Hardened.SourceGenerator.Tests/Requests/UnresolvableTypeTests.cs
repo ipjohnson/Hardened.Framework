@@ -158,4 +158,81 @@ public class UnresolvableTypeTests
 
         Assert.Equal(1, reported);
     }
+
+    /// <summary>
+    /// The same parameter with a binding attribute on it. The 2026-08-12 fix changed the
+    /// unattributed path and left every attributed one carrying the null behind a <c>!</c>, so
+    /// naming where a parameter comes from brought the crash back: one attribute, one unresolved
+    /// type, and the whole assembly lost its generated code again.
+    /// </summary>
+    /// <remarks>
+    /// Reported in the 0.36 trial as a parameter typed after the generated <c>Links</c> class,
+    /// which is one way to have a type the compilation does not declare. The attribute is what
+    /// decides it, not the type: the trial's own reading, that the type alone did it, is what the
+    /// unattributed cases above disprove.
+    /// </remarks>
+    [Theory]
+    [InlineData("[FromServices]")]
+    [InlineData("[FromBody]")]
+    [InlineData("[FromHeader(\"x-tenant\")]")]
+    [InlineData("[FromQueryString(\"tenant\")]")]
+    [InlineData("[FromCookie(\"tenant\")]")]
+    [InlineData("[FromForm(\"tenant\")]")]
+    public void ABindingAttributeDoesNotMakeAnUnresolvableTypeBind(string attribute)
+    {
+        var result = RequestGeneratorHarness.Generate(
+            RequestGeneratorHarness.Controller(
+                $$"""
+                    [Get("/orders")]
+                    public string List() => "";
+
+                    [Post("/orders")]
+                    public string Save({{attribute}} NotDeclaredAnywhere model) => "";
+                """
+            )
+        );
+
+        Assert.Empty(result.GeneratorExceptions);
+        Assert.Contains(result.GeneratedSources.Keys, key => key.Contains("List"));
+        Assert.DoesNotContain(result.GeneratedSources.Keys, key => key.Contains("Save"));
+
+        var diagnostic = Assert.Single(
+            result.GeneratorDiagnostics,
+            candidate => candidate.Id == UnresolvedHandler.DiagnosticId
+        );
+
+        Assert.Contains("model", diagnostic.GetMessage());
+    }
+
+    /// <summary>
+    /// An attribute the generator has no case for reaches the same null through
+    /// <c>DefaultGetParameterFromAttribute</c>, which had the same defect. Declared here rather
+    /// than in the theory above because the attribute class has to be a sibling of the controller.
+    /// </summary>
+    [Fact]
+    public void AnAttributeTheGeneratorDoesNotKnowDoesNotMakeItBindEither()
+    {
+        var result = RequestGeneratorHarness.Generate(
+            """
+            using System;
+            using Hardened.Web.Runtime.Attributes;
+
+            namespace TestApp;
+
+            public class TagAttribute : Attribute { }
+
+            public class TestController {
+                [Get("/orders")]
+                public string List() => "";
+
+                [Post("/orders")]
+                public string Save([Tag] NotDeclaredAnywhere model) => "";
+            }
+            """
+        );
+
+        Assert.Empty(result.GeneratorExceptions);
+        Assert.Contains(result.GeneratedSources.Keys, key => key.Contains("List"));
+        Assert.DoesNotContain(result.GeneratedSources.Keys, key => key.Contains("Save"));
+    }
 }

@@ -4,7 +4,7 @@ using Xunit;
 namespace Hardened.SourceGenerator.Tests.Function;
 
 /// <summary>
-/// Three inputs the function generator handles badly, pinned as they behave on 2026-08-12.
+/// Inputs the function generator handles badly, pinned as they behave on 2026-08-12.
 ///
 /// <para>
 /// These are characterisation tests, not approvals. Each records what the generator does today so
@@ -20,6 +20,12 @@ namespace Hardened.SourceGenerator.Tests.Function;
 /// along with the dependency registration. This is the same failure the web generator's
 /// <c>UnresolvableTypeTests</c> exists to prevent, and the reason that fix reported a diagnostic and
 /// skipped the single bad handler instead of throwing.
+/// </para>
+///
+/// <para>
+/// Two are gone. An unresolvable parameter type, attributed or not, took the whole compilation or
+/// left the provider naming an invoker that was never emitted; both now skip the one function and
+/// report <c>HOAG010</c>, which is what <see cref="FunctionUnresolvableTypeTests"/> holds them to.
 /// </para>
 /// </summary>
 public class FunctionGeneratorDefectTests
@@ -138,93 +144,6 @@ public class FunctionGeneratorDefectTests
 
         Assert.IsType<InvalidOperationException>(exception);
         Assert.Contains("Sequence contains no elements", exception.Message);
-    }
-
-    /// <summary>
-    /// A <c>[FromContext]</c> parameter whose type the compiler cannot resolve crashes the model
-    /// transform with a <c>NullReferenceException</c>.
-    ///
-    /// <para>
-    /// <c>FunctionModelGenerator.GetParameterInfoWithBinding</c> writes
-    /// <c>parameter.Type?.GetTypeDefinition(context)!</c> — the <c>?.</c> honest about resolution
-    /// returning null, the <c>!</c> suppressing the warning that said so, and the dereference two
-    /// frames later in <c>CreateRequestParameterInformation</c>. This is the exact pattern the
-    /// unresolved-parameter fix removed from <c>BaseRequestModelGenerator.GetParameterInfo</c> on
-    /// 2026-08-12; the attributed path in the function generator was not changed with it, so
-    /// <c>[FromContext]</c> still reaches it.
-    /// </para>
-    ///
-    /// <para>
-    /// It throws out of the syntax transform, so the whole generator contributes nothing. That is
-    /// what the earlier fix was for: an editor runs generators over half-written code constantly,
-    /// and a parameter type is unresolved for as long as it takes to write the class.
-    /// </para>
-    /// </summary>
-    [Fact]
-    public void AFromContextParameterWithAnUnresolvableTypeCrashesTheGenerator()
-    {
-        var result = FunctionGeneratorHarness.Generate(
-            FunctionGeneratorHarness.Application(
-                """
-                    [HardenedFunction]
-                    public void Process([FromContext("id")] NotDeclaredAnywhere id) { }
-                """,
-                FunctionGeneratorHarness.FromContextAttributeDeclaration
-            )
-        );
-
-        // Observed 2026-08-12. The right answer is the ParameterBindType.Unresolved path: record
-        // the parameter, skip this handler, report HOAG010.
-        Assert.Empty(result.GeneratedSources);
-        Assert.IsType<NullReferenceException>(Assert.Single(result.GeneratorExceptions));
-    }
-
-    /// <summary>
-    /// An unresolvable parameter on a plain (unattributed) function parameter is handled one step
-    /// better and still ends badly: the handler is skipped, and the provider goes on referring to
-    /// the invoker that was never emitted.
-    ///
-    /// <para>
-    /// The <c>ParameterBindType.Unresolved</c> fix taught the web generator's routing table to skip
-    /// a handler that could not bind — <c>UnresolvableTypeTests.TheRoutingTableDoesNotRouteToThe
-    /// HandlerThatWasSkipped</c> is that guarantee. The function generator's provider has no
-    /// equivalent guard, so it emits <c>new global::TestApp.Generated.TestFunctions_Process(...)</c>
-    /// for a type that does not exist, and the consumer gets CS0234 on generated code they did not
-    /// write instead of only the CS0246 they caused.
-    /// </para>
-    /// </summary>
-    [Fact]
-    public void AnUnresolvableParameterLeavesTheProviderReferencingAHandlerThatWasNeverGenerated()
-    {
-        var result = FunctionGeneratorHarness.Generate(
-            FunctionGeneratorHarness.Application(
-                """
-                    [HardenedFunction]
-                    public void Process(NotDeclaredAnywhere model) { }
-                """
-            )
-        );
-
-        // The invoker is skipped — the binding generator has no case for Unresolved and throws,
-        // which SourceGeneratorWrapper turns into an Error-severity diagnostic.
-        Assert.DoesNotContain("INVOKE.Process.FunctionHandler.cs", result.GeneratedSources.Keys);
-
-        Assert.Contains(
-            result.GeneratorDiagnostics,
-            diagnostic =>
-                diagnostic.Id == "HardenedException"
-                && diagnostic.GetMessage().Contains("Binding not supported yet: Unresolved")
-        );
-
-        // Observed 2026-08-12: the provider is emitted anyway and still names the missing type.
-        var provider = result.SourceContaining("FunctionHandlers.cs");
-
-        Assert.Contains("global::TestApp.Generated.TestFunctions_Process", provider);
-
-        Assert.Contains(
-            result.Errors,
-            error => error.Id == "CS0234" && error.GetMessage().Contains("Generated")
-        );
     }
 
     /// <summary>
