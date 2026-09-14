@@ -3,7 +3,6 @@ using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.PathTokens;
 using Hardened.Requests.Abstract.QueryString;
 using Hardened.Requests.Runtime.Headers;
-using Hardened.Requests.Runtime.PathTokens;
 using Hardened.Requests.Runtime.QueryString;
 using Hardened.Shared.Runtime.Collections;
 using Microsoft.Extensions.Primitives;
@@ -36,8 +35,6 @@ namespace Hardened.Gcp.CloudRun.Runtime.Execution;
 /// </remarks>
 public class CloudRunTriggerRequest : IExecutionRequest
 {
-    private IPathTokenCollection? _pathTokens;
-
     /// <param name="scheme">The trigger scheme - <c>QUEUE</c>, <c>TOPIC</c>, <c>EVENT</c>, <c>TIMER</c>.</param>
     /// <param name="path">The source's own name as a rooted path.</param>
     /// <param name="body">The message, which the request owns from here on.</param>
@@ -93,11 +90,7 @@ public class CloudRunTriggerRequest : IExecutionRequest
     /// <summary>Nothing. A message carries no query string.</summary>
     public IQueryStringCollection QueryString => EmptyQueryStringCollection.Instance;
 
-    public IPathTokenCollection PathTokens
-    {
-        get => _pathTokens ?? PathTokenCollection.Empty;
-        set => _pathTokens = value;
-    }
+    public PathTokenCollection PathTokens { get; set; }
 
     /// <summary>Nothing. There is no header to parse cookies from and no client to have set one.</summary>
     public IReadOnlyList<string> Cookies => Array.Empty<string>();

@@ -22,7 +22,7 @@ public class RouteRegistryTests
 
         registry.Get("/acme/orders/{id:int}", typeof(Orders), nameof(Orders.Get));
 
-        Assert.NotNull(registry.Close().Match("/acme/orders/7", "GET"));
+        Assert.NotNull(registry.Close().Matched("/acme/orders/7", "GET"));
     }
 
     [Fact]
@@ -34,8 +34,8 @@ public class RouteRegistryTests
 
         var table = registry.Close();
 
-        Assert.NotNull(table.Match("/catalog/acme/orders/7", "GET"));
-        Assert.Null(table.Match("/acme/orders/7", "GET"));
+        Assert.NotNull(table.Matched("/catalog/acme/orders/7", "GET"));
+        Assert.Null(table.Matched("/acme/orders/7", "GET"));
     }
 
     [Fact]
@@ -45,7 +45,7 @@ public class RouteRegistryTests
 
         registry.Get("/Acme/orders/{id:int}", typeof(Orders), nameof(Orders.Get));
 
-        Assert.NotNull(registry.Close().Match("/acme/orders/7", "GET"));
+        Assert.NotNull(registry.Close().Matched("/acme/orders/7", "GET"));
     }
 
     [Fact]
@@ -117,7 +117,7 @@ public class RouteRegistryTests
         }
 
         Assert.Empty(registry.Failures);
-        Assert.NotNull(registry.Close().Match("/acme/orders/7", verb));
+        Assert.NotNull(registry.Close().Matched("/acme/orders/7", verb));
     }
 
     /// <remarks>
@@ -130,7 +130,7 @@ public class RouteRegistryTests
 
         registry.Get("/acme/orders/{id:int}", typeof(Orders), nameof(Orders.Get));
 
-        Assert.NotNull(registry.Close().Match("/acme/orders/7", "GET"));
+        Assert.NotNull(registry.Close().Matched("/acme/orders/7", "GET"));
     }
 
     /// <remarks>
@@ -291,7 +291,7 @@ public class RouteRegistryTests
         );
 
         Assert.Empty(registry.Failures);
-        Assert.NotNull(registry.Close().Match("/acme/orders/7", "GET"));
+        Assert.NotNull(registry.Close().Matched("/acme/orders/7", "GET"));
     }
 
     [Fact]
@@ -308,7 +308,7 @@ public class RouteRegistryTests
             )
         );
 
-        Assert.NotNull(registry.Close().Match("/catalog/acme/orders", "POST"));
+        Assert.NotNull(registry.Close().Matched("/catalog/acme/orders", "POST"));
     }
 
     /// <remarks>

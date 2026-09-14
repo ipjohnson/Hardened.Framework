@@ -32,17 +32,18 @@ namespace Test.Api
                 _rootServiceProvider = serviceProvider;
             }
 
-            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? GetExecutionRequestHandler(global::Hardened.Requests.Abstract.Execution.IExecutionContext context)
+            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? GetExecutionRequestHandler(global::Hardened.Requests.Abstract.Execution.IExecutionContext context, ref global::Hardened.Requests.Abstract.PathTokens.PathTokenCollection pathTokens)
             {
                 var pathSpan = context.Request.Path.AsSpan();
                 return TestPath_Slash(
                     pathSpan,
                     0,
-                    context.Request.Method
+                    context.Request.Method,
+                    ref pathTokens
                 );
             }
 
-            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_Slash(global::System.ReadOnlySpan<char> charSpan, int index, string methodString)
+            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_Slash(global::System.ReadOnlySpan<char> charSpan, int index, string methodString, ref global::Hardened.Requests.Abstract.PathTokens.PathTokenCollection pathTokens)
             {
                 global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? handlerInfo = null;
                 if ((charSpan.Length >= index + 1) && (charSpan[index + 0] == '/'))
@@ -51,13 +52,14 @@ namespace Test.Api
                     handlerInfo = TestPath_SlashCaseStatement(
                         charSpan,
                         index,
-                        methodString
+                        methodString,
+                        ref pathTokens
                     );
                 }
                 return handlerInfo;
             }
 
-            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_SlashCaseStatement(global::System.ReadOnlySpan<char> charSpan, int index, string methodString)
+            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_SlashCaseStatement(global::System.ReadOnlySpan<char> charSpan, int index, string methodString, ref global::Hardened.Requests.Abstract.PathTokens.PathTokenCollection pathTokens)
             {
                 if (charSpan.Length > index)
                 {
@@ -67,20 +69,22 @@ namespace Test.Api
                             return TestPath_ets(
                                 charSpan,
                                 index + 1,
-                                methodString
+                                methodString,
+                                ref pathTokens
                             );
                         case 's':
                             return TestPath_tore(
                                 charSpan,
                                 index + 1,
-                                methodString
+                                methodString,
+                                ref pathTokens
                             );
                     }
                 }
                 return null;
             }
 
-            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_ets(global::System.ReadOnlySpan<char> charSpan, int index, string methodString)
+            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_ets(global::System.ReadOnlySpan<char> charSpan, int index, string methodString, ref global::Hardened.Requests.Abstract.PathTokens.PathTokenCollection pathTokens)
             {
                 global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? handlerInfo = null;
                 if ((charSpan.Length >= index + 3) && charSpan.Slice(index, 3).SequenceEqual("ets"))
@@ -92,10 +96,7 @@ namespace Test.Api
                         {
                             case "HEAD":
                             case "GET":
-                                return _infoPetController_ListPets ??= new global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo(
-                                    new global::Test.Api.Generated.PetController_ListPets(_rootServiceProvider),
-                                    global::Hardened.Requests.Runtime.PathTokens.PathTokenCollection.Empty
-                                );
+                                return _infoPetController_ListPets ??= new global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo(new global::Test.Api.Generated.PetController_ListPets(_rootServiceProvider));
                             default:
                                 return _methodNotAllowedGETHEAD;
                         }
@@ -103,13 +104,14 @@ namespace Test.Api
                     handlerInfo = TestPath_Slashfeatured(
                         charSpan,
                         index,
-                        methodString
+                        methodString,
+                        ref pathTokens
                     );
                 }
                 return handlerInfo;
             }
 
-            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_Slashfeatured(global::System.ReadOnlySpan<char> charSpan, int index, string methodString)
+            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_Slashfeatured(global::System.ReadOnlySpan<char> charSpan, int index, string methodString, ref global::Hardened.Requests.Abstract.PathTokens.PathTokenCollection pathTokens)
             {
                 global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? handlerInfo = null;
                 if ((charSpan.Length >= index + 9) && charSpan.Slice(index, 9).SequenceEqual("/featured"))
@@ -121,10 +123,7 @@ namespace Test.Api
                         {
                             case "HEAD":
                             case "GET":
-                                return _infoPetController_Featured ??= new global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo(
-                                    new global::Test.Api.Generated.PetController_Featured(_rootServiceProvider),
-                                    global::Hardened.Requests.Runtime.PathTokens.PathTokenCollection.Empty
-                                );
+                                return _infoPetController_Featured ??= new global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo(new global::Test.Api.Generated.PetController_Featured(_rootServiceProvider));
                             default:
                                 return _methodNotAllowedGETHEAD;
                         }
@@ -133,7 +132,7 @@ namespace Test.Api
                 return handlerInfo;
             }
 
-            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_tore(global::System.ReadOnlySpan<char> charSpan, int index, string methodString)
+            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_tore(global::System.ReadOnlySpan<char> charSpan, int index, string methodString, ref global::Hardened.Requests.Abstract.PathTokens.PathTokenCollection pathTokens)
             {
                 global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? handlerInfo = null;
                 if ((charSpan.Length >= index + 4) && charSpan.Slice(index, 4).SequenceEqual("tore"))
@@ -145,10 +144,7 @@ namespace Test.Api
                         {
                             case "HEAD":
                             case "GET":
-                                return _infoPetController_Store ??= new global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo(
-                                    new global::Test.Api.Generated.PetController_Store(_rootServiceProvider),
-                                    global::Hardened.Requests.Runtime.PathTokens.PathTokenCollection.Empty
-                                );
+                                return _infoPetController_Store ??= new global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo(new global::Test.Api.Generated.PetController_Store(_rootServiceProvider));
                             default:
                                 return _methodNotAllowedGETHEAD;
                         }

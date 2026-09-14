@@ -1,8 +1,8 @@
 using Hardened.Requests.Abstract.Attributes;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Outputs;
+using Hardened.Requests.Abstract.PathTokens;
 using Hardened.Requests.Runtime.Execution;
-using Hardened.Requests.Runtime.PathTokens;
 using Hardened.Web.Runtime.Handlers;
 using Hardened.Web.Runtime.Responses;
 
@@ -56,7 +56,10 @@ public class OpenApiUiProvider : IWebExecutionRequestHandlerProvider
     /// <summary>What a request to this path may do, when it did something else.</summary>
     private const string Allow = "GET, HEAD";
 
-    public RequestHandlerInfo? GetExecutionRequestHandler(IExecutionContext context)
+    public RequestHandlerInfo? GetExecutionRequestHandler(
+        IExecutionContext context,
+        ref PathTokenCollection pathTokens
+    )
     {
         if (!string.Equals(context.Request.Path, _configuration.Path, StringComparison.Ordinal))
         {
@@ -78,10 +81,7 @@ public class OpenApiUiProvider : IWebExecutionRequestHandlerProvider
             return RequestHandlerInfo.MethodNotAllowed(Allow);
         }
 
-        return new RequestHandlerInfo(
-            _handler ??= new Handler(_configuration, _serviceProvider),
-            PathTokenCollection.Empty
-        );
+        return new RequestHandlerInfo(_handler ??= new Handler(_configuration, _serviceProvider));
     }
 
     private sealed class Handler : BaseExecutionHandler<OpenApiUiController>

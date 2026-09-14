@@ -3,7 +3,7 @@
 #pragma warning disable CS1591 // generated members carry no doc comments
 using DependencyModules.Runtime.Helpers;
 using Hardened.Requests.Abstract.Execution;
-using Hardened.Requests.Runtime.PathTokens;
+using Hardened.Requests.Abstract.PathTokens;
 using Hardened.Web.Runtime.Handlers;
 using Microsoft.Extensions.DependencyInjection;
 using System;
@@ -40,17 +40,18 @@ namespace TestApp
                 _rootServiceProvider = serviceProvider;
             }
 
-            public RequestHandlerInfo? GetExecutionRequestHandler(IExecutionContext context)
+            public RequestHandlerInfo? GetExecutionRequestHandler(IExecutionContext context, ref PathTokenCollection pathTokens)
             {
                 var pathSpan = context.Request.Path.AsSpan();
                 return TestPath_Slashnow(
                     pathSpan,
                     0,
-                    context.Request.Method
+                    context.Request.Method,
+                    ref pathTokens
                 );
             }
 
-            public RequestHandlerInfo? TestPath_Slashnow(ReadOnlySpan<char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_Slashnow(ReadOnlySpan<char> charSpan, int index, string methodString, ref PathTokenCollection pathTokens)
             {
                 RequestHandlerInfo? handlerInfo = null;
                 if ((charSpan.Length >= index + 4) && charSpan.Slice(index, 4).SequenceEqual("/now"))
@@ -62,10 +63,7 @@ namespace TestApp
                         {
                             case "HEAD":
                             case "GET":
-                                return _infoClockController_Now_648 ??= new RequestHandlerInfo(
-                                    new ClockController_Now_648(_rootServiceProvider),
-                                    PathTokenCollection.Empty
-                                );
+                                return _infoClockController_Now_648 ??= new RequestHandlerInfo(new ClockController_Now_648(_rootServiceProvider));
                             default:
                                 return _methodNotAllowedGETHEAD;
                         }

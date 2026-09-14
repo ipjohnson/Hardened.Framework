@@ -4,7 +4,6 @@ using Hardened.Requests.Abstract.Authorization;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.PathTokens;
 using Hardened.Requests.Runtime.Execution;
-using Hardened.Requests.Runtime.PathTokens;
 using Hardened.Web.Runtime.Handlers;
 using Hardened.Web.Runtime.Responses;
 
@@ -148,7 +147,10 @@ public class OpenApiDocumentProvider : IWebExecutionRequestHandlerProvider
     /// <summary>What a request to this path may do, when it did something else.</summary>
     private const string Allow = "GET, HEAD";
 
-    public RequestHandlerInfo? GetExecutionRequestHandler(IExecutionContext context)
+    public RequestHandlerInfo? GetExecutionRequestHandler(
+        IExecutionContext context,
+        ref PathTokenCollection pathTokens
+    )
     {
         if (!string.Equals(context.Request.Path, _path, StringComparison.Ordinal))
         {
@@ -178,8 +180,7 @@ public class OpenApiDocumentProvider : IWebExecutionRequestHandlerProvider
                 _path,
                 _contentType,
                 _requirement
-            ),
-            PathTokenCollection.Empty
+            )
         );
     }
 

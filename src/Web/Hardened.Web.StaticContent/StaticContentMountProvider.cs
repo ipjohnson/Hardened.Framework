@@ -1,6 +1,6 @@
 using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Abstract.PathTokens;
 using Hardened.Requests.Runtime.Execution;
-using Hardened.Requests.Runtime.PathTokens;
 using Hardened.Web.Runtime.Handlers;
 using Hardened.Web.Runtime.Responses;
 using Microsoft.Extensions.DependencyInjection;
@@ -67,7 +67,10 @@ public class StaticContentMountProvider : IFallbackRequestHandlerProvider
         _serviceProvider = serviceProvider;
     }
 
-    public RequestHandlerInfo? GetExecutionRequestHandler(IExecutionContext context)
+    public RequestHandlerInfo? GetExecutionRequestHandler(
+        IExecutionContext context,
+        ref PathTokenCollection pathTokens
+    )
     {
         var mount = _mount ??= Mount.Resolve(_serviceProvider);
 
@@ -101,7 +104,7 @@ public class StaticContentMountProvider : IFallbackRequestHandlerProvider
         // HEAD reaches the same handler and runs it in full; WebExecutionHandlerService.Dispatch
         // drops the body on the way out and reports the length it would have had. Static content
         // never got that, because Dispatch is only reached by a matched handler.
-        return new RequestHandlerInfo(mount.Handler, PathTokenCollection.Empty);
+        return new RequestHandlerInfo(mount.Handler);
     }
 
     /// <summary>

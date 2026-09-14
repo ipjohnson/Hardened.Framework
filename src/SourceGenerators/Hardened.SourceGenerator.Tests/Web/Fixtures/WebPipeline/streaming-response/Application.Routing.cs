@@ -3,8 +3,8 @@
 #pragma warning disable CS1591 // generated members carry no doc comments
 using DependencyModules.Runtime.Helpers;
 using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Abstract.PathTokens;
 using Hardened.Requests.Abstract.Serializer;
-using Hardened.Requests.Runtime.PathTokens;
 using Hardened.Web.Runtime.Handlers;
 using Microsoft.Extensions.DependencyInjection;
 using System;
@@ -46,17 +46,18 @@ namespace TestApp
                 _rootServiceProvider = serviceProvider;
             }
 
-            public RequestHandlerInfo? GetExecutionRequestHandler(IExecutionContext context)
+            public RequestHandlerInfo? GetExecutionRequestHandler(IExecutionContext context, ref PathTokenCollection pathTokens)
             {
                 var pathSpan = context.Request.Path.AsSpan();
                 return TestPath_Slashfeed(
                     pathSpan,
                     0,
-                    context.Request.Method
+                    context.Request.Method,
+                    ref pathTokens
                 );
             }
 
-            public RequestHandlerInfo? TestPath_Slashfeed(ReadOnlySpan<char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_Slashfeed(ReadOnlySpan<char> charSpan, int index, string methodString, ref PathTokenCollection pathTokens)
             {
                 RequestHandlerInfo? handlerInfo = null;
                 if ((charSpan.Length >= index + 5) && charSpan.Slice(index, 5).SequenceEqual("/feed"))
@@ -68,10 +69,7 @@ namespace TestApp
                         {
                             case "HEAD":
                             case "GET":
-                                return _infoFeedController_Feed ??= new RequestHandlerInfo(
-                                    new FeedController_Feed(_rootServiceProvider),
-                                    PathTokenCollection.Empty
-                                );
+                                return _infoFeedController_Feed ??= new RequestHandlerInfo(new FeedController_Feed(_rootServiceProvider));
                             default:
                                 return _methodNotAllowedGETHEAD;
                         }

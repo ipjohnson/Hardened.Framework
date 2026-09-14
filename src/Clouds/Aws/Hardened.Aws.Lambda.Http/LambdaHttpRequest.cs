@@ -4,7 +4,6 @@ using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.PathTokens;
 using Hardened.Requests.Abstract.QueryString;
 using Hardened.Requests.Runtime.Headers;
-using Hardened.Requests.Runtime.PathTokens;
 using Hardened.Requests.Runtime.QueryString;
 using Microsoft.Extensions.Primitives;
 
@@ -22,7 +21,6 @@ public class LambdaHttpRequest : IExecutionRequest
 {
     private readonly APIGatewayHttpApiV2ProxyRequest _proxyRequest;
     private readonly string _method;
-    private IPathTokenCollection? _pathTokens;
     private IQueryStringCollection? _queryStringCollection;
     private IHeaderCollection? _headerCollection;
     private IReadOnlyList<string>? _cookies;
@@ -101,11 +99,7 @@ public class LambdaHttpRequest : IExecutionRequest
             _proxyRequest.QueryStringParameters
         );
 
-    public IPathTokenCollection PathTokens
-    {
-        get => _pathTokens ?? PathTokenCollection.Empty;
-        set => _pathTokens = value;
-    }
+    public PathTokenCollection PathTokens { get; set; }
 
     /// <summary>
     /// Empty rather than null when the request carried no cookies.

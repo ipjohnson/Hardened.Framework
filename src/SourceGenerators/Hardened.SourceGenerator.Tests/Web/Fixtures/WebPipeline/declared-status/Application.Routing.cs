@@ -3,7 +3,7 @@
 #pragma warning disable CS1591 // generated members carry no doc comments
 using DependencyModules.Runtime.Helpers;
 using Hardened.Requests.Abstract.Execution;
-using Hardened.Requests.Runtime.PathTokens;
+using Hardened.Requests.Abstract.PathTokens;
 using Hardened.Web.Runtime.Handlers;
 using Microsoft.Extensions.DependencyInjection;
 using System;
@@ -34,9 +34,9 @@ namespace TestApp
             private RequestHandlerInfo? _infoWidgetController_Create;
             private static readonly RequestHandlerInfo _methodNotAllowedPOST =             global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo.MethodNotAllowed("POST")
 ;
-            private WidgetController_Find_329? _fieldWidgetController_Find_329;
             private static readonly string[] _pathTokenNamesWidgetController_Find_329 =             new string[] { "id" }
 ;
+            private RequestHandlerInfo? _infoWidgetController_Find_329;
             private static readonly RequestHandlerInfo _methodNotAllowedGETHEAD =             global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo.MethodNotAllowed("GET, HEAD")
 ;
 
@@ -45,17 +45,18 @@ namespace TestApp
                 _rootServiceProvider = serviceProvider;
             }
 
-            public RequestHandlerInfo? GetExecutionRequestHandler(IExecutionContext context)
+            public RequestHandlerInfo? GetExecutionRequestHandler(IExecutionContext context, ref PathTokenCollection pathTokens)
             {
                 var pathSpan = context.Request.Path.AsSpan();
                 return TestPath_Slashwidgets(
                     pathSpan,
                     0,
-                    context.Request.Method
+                    context.Request.Method,
+                    ref pathTokens
                 );
             }
 
-            public RequestHandlerInfo? TestPath_Slashwidgets(ReadOnlySpan<char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_Slashwidgets(ReadOnlySpan<char> charSpan, int index, string methodString, ref PathTokenCollection pathTokens)
             {
                 RequestHandlerInfo? handlerInfo = null;
                 if ((charSpan.Length >= index + 8) && charSpan.Slice(index, 8).SequenceEqual("/widgets"))
@@ -66,10 +67,7 @@ namespace TestApp
                         switch (methodString)
                         {
                             case "POST":
-                                return _infoWidgetController_Create ??= new RequestHandlerInfo(
-                                    new WidgetController_Create(_rootServiceProvider),
-                                    PathTokenCollection.Empty
-                                );
+                                return _infoWidgetController_Create ??= new RequestHandlerInfo(new WidgetController_Create(_rootServiceProvider));
                             default:
                                 return _methodNotAllowedPOST;
                         }
@@ -77,13 +75,14 @@ namespace TestApp
                     handlerInfo = TestPath_Slash(
                         charSpan,
                         index,
-                        methodString
+                        methodString,
+                        ref pathTokens
                     );
                 }
                 return handlerInfo;
             }
 
-            public RequestHandlerInfo? TestPath_Slash(ReadOnlySpan<char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_Slash(ReadOnlySpan<char> charSpan, int index, string methodString, ref PathTokenCollection pathTokens)
             {
                 RequestHandlerInfo? handlerInfo = null;
                 if ((charSpan.Length >= index + 1) && (charSpan[index + 0] == '/'))
@@ -94,25 +93,27 @@ namespace TestApp
                         handlerInfo = TestPath_SlashWildCard(
                             charSpan,
                             index,
-                            methodString
+                            methodString,
+                            ref pathTokens
                         );
                     }
                 }
                 return handlerInfo;
             }
 
-            public RequestHandlerInfo? TestPath_SlashWildCard(ReadOnlySpan<char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_SlashWildCard(ReadOnlySpan<char> charSpan, int index, string methodString, ref PathTokenCollection pathTokens)
             {
                 RequestHandlerInfo? handlerInfo = null;
                 handlerInfo = TestPath_NoPathWildCardMatch(
                     charSpan,
                     index,
-                    methodString
+                    methodString,
+                    ref pathTokens
                 );
                 return handlerInfo;
             }
 
-            public RequestHandlerInfo? TestPath_NoPathWildCardMatch(ReadOnlySpan<char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_NoPathWildCardMatch(ReadOnlySpan<char> charSpan, int index, string methodString, ref PathTokenCollection pathTokens)
             {
                 if (charSpan.Length <= index)
                 {
@@ -126,14 +127,11 @@ namespace TestApp
                 {
                     case "HEAD":
                     case "GET":
-                        return new RequestHandlerInfo(
-                            _fieldWidgetController_Find_329 ??= new WidgetController_Find_329(_rootServiceProvider),
-                            new PathTokenCollection(
-                                1,
-                                _pathTokenNamesWidgetController_Find_329,
-                                charSpan.Slice(index).ToString()
-                            )
+                        pathTokens = new PathTokenCollection(
+                            _pathTokenNamesWidgetController_Find_329,
+                            charSpan.Slice(index).ToString()
                         );
+                        return _infoWidgetController_Find_329 ??= new RequestHandlerInfo(new WidgetController_Find_329(_rootServiceProvider));
                     default:
                         return _methodNotAllowedGETHEAD;
                 }

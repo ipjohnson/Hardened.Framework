@@ -1,5 +1,6 @@
 using BenchmarkDotNet.Attributes;
 using Hardened.Benchmarks.Infrastructure;
+using Hardened.Requests.Abstract.PathTokens;
 using Hardened.Web.Runtime.Handlers;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -60,9 +61,13 @@ public class RoutingBenchmarks
     [Benchmark]
     public object? Match()
     {
+        // The destination WebExecutionHandlerService owns, so what the match writes lands where a
+        // real request would put it rather than being allocated here and counted against the table.
+        var pathTokens = default(PathTokenCollection);
+
         foreach (var provider in _providers)
         {
-            var handler = provider.GetExecutionRequestHandler(_context);
+            var handler = provider.GetExecutionRequestHandler(_context, ref pathTokens);
 
             if (handler != null)
             {

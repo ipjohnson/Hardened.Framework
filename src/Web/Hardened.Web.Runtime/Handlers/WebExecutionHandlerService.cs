@@ -3,7 +3,7 @@ using Hardened.Requests.Abstract.Errors;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.Logging;
-using Hardened.Requests.Runtime.PathTokens;
+using Hardened.Requests.Abstract.PathTokens;
 using Hardened.Web.Runtime.Configuration;
 using Hardened.Web.Runtime.Responses;
 using Microsoft.Extensions.Options;
@@ -71,10 +71,11 @@ public partial class WebExecutionHandlerService : IWebExecutionHandlerService
         // path under this verb - and a 405 from the first that recognised the path would shadow it.
         string? allow = null;
         RequestHandlerInfo? match;
+        var pathTokens = default(PathTokenCollection);
 
         try
         {
-            match = Match(context, context.Request.Path, ref allow);
+            match = Match(context, context.Request.Path, ref allow, ref pathTokens);
         }
         catch (Exception exception)
         {
@@ -83,7 +84,7 @@ public partial class WebExecutionHandlerService : IWebExecutionHandlerService
 
         if (match != null)
         {
-            return Dispatch(context, match);
+            return Dispatch(context, match, pathTokens);
         }
 
         return ResolvedFromSecondarySources(chain, context, allow);
@@ -110,7 +111,12 @@ public partial class WebExecutionHandlerService : IWebExecutionHandlerService
     /// The first provider with a handler for <paramref name="path"/>, recording what any that
     /// merely recognised it said was allowed.
     /// </summary>
-    private RequestHandlerInfo? Match(IExecutionContext context, string path, ref string? allow)
+    private RequestHandlerInfo? Match(
+        IExecutionContext context,
+        string path,
+        ref string? allow,
+        ref PathTokenCollection pathTokens
+    )
     {
         var probe = string.Equals(path, context.Request.Path, StringComparison.Ordinal)
             ? context
@@ -118,7 +124,13 @@ public partial class WebExecutionHandlerService : IWebExecutionHandlerService
 
         foreach (var provider in _handlers)
         {
-            var handler = provider.GetExecutionRequestHandler(probe);
+            // Cleared between providers rather than trusted to be untouched. A table that
+            // path-matched under another verb has written nothing, but one that matched a route and
+            // was then rejected for its verb is free to have written what it found, and the next
+            // provider's route has different tokens in different positions.
+            pathTokens = default;
+
+            var handler = provider.GetExecutionRequestHandler(probe, ref pathTokens);
 
             if (handler == null)
             {
@@ -138,9 +150,13 @@ public partial class WebExecutionHandlerService : IWebExecutionHandlerService
         return null;
     }
 
-    private Task Dispatch(IExecutionContext context, RequestHandlerInfo match)
+    private Task Dispatch(
+        IExecutionContext context,
+        RequestHandlerInfo match,
+        PathTokenCollection pathTokens
+    )
     {
-        context.Request.PathTokens = match.PathTokens;
+        context.Request.PathTokens = pathTokens;
         context.HandlerInfo = match.Handler!.HandlerInfo;
 
         _requestLogger.RequestMapped(context);
@@ -234,10 +250,11 @@ public partial class WebExecutionHandlerService : IWebExecutionHandlerService
         // something at a URL where it may not.
         string? ignored = null;
         RequestHandlerInfo? match;
+        var pathTokens = default(PathTokenCollection);
 
         try
         {
-            match = Match(context, alternative, ref ignored);
+            match = Match(context, alternative, ref ignored, ref pathTokens);
         }
         catch (Exception exception)
         {
@@ -260,7 +277,7 @@ public partial class WebExecutionHandlerService : IWebExecutionHandlerService
             return true;
         }
 
-        await Dispatch(context, match);
+        await Dispatch(context, match, pathTokens);
 
         return true;
     }

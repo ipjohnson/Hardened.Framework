@@ -3,7 +3,7 @@
 #pragma warning disable CS1591 // generated members carry no doc comments
 using DependencyModules.Runtime.Helpers;
 using Hardened.Requests.Abstract.Execution;
-using Hardened.Requests.Runtime.PathTokens;
+using Hardened.Requests.Abstract.PathTokens;
 using Hardened.Web.Runtime.Handlers;
 using Microsoft.Extensions.DependencyInjection;
 using System;
@@ -33,9 +33,9 @@ namespace TestApp
         private class RoutingTable : IWebExecutionRequestHandlerProvider
         {
             private IServiceProvider _rootServiceProvider;
-            private TenantController_Get_329? _fieldTenantController_Get_329;
             private static readonly string[] _pathTokenNamesTenantController_Get_329 =             new string[] { "id" }
 ;
+            private RequestHandlerInfo? _infoTenantController_Get_329;
             private static readonly RequestHandlerInfo _methodNotAllowedGETHEAD =             global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo.MethodNotAllowed("GET, HEAD")
 ;
 
@@ -44,17 +44,18 @@ namespace TestApp
                 _rootServiceProvider = serviceProvider;
             }
 
-            public RequestHandlerInfo? GetExecutionRequestHandler(IExecutionContext context)
+            public RequestHandlerInfo? GetExecutionRequestHandler(IExecutionContext context, ref PathTokenCollection pathTokens)
             {
                 var pathSpan = context.Request.Path.AsSpan();
                 return TestPath_SlashordersSlash(
                     pathSpan,
                     0,
-                    context.Request.Method
+                    context.Request.Method,
+                    ref pathTokens
                 );
             }
 
-            public RequestHandlerInfo? TestPath_SlashordersSlash(ReadOnlySpan<char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_SlashordersSlash(ReadOnlySpan<char> charSpan, int index, string methodString, ref PathTokenCollection pathTokens)
             {
                 RequestHandlerInfo? handlerInfo = null;
                 if ((charSpan.Length >= index + 8) && charSpan.Slice(index, 8).SequenceEqual("/orders/"))
@@ -65,25 +66,27 @@ namespace TestApp
                         handlerInfo = TestPath_ordersSlashWildCard(
                             charSpan,
                             index,
-                            methodString
+                            methodString,
+                            ref pathTokens
                         );
                     }
                 }
                 return handlerInfo;
             }
 
-            public RequestHandlerInfo? TestPath_ordersSlashWildCard(ReadOnlySpan<char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_ordersSlashWildCard(ReadOnlySpan<char> charSpan, int index, string methodString, ref PathTokenCollection pathTokens)
             {
                 RequestHandlerInfo? handlerInfo = null;
                 handlerInfo = TestPath_NoPathWildCardMatch(
                     charSpan,
                     index,
-                    methodString
+                    methodString,
+                    ref pathTokens
                 );
                 return handlerInfo;
             }
 
-            public RequestHandlerInfo? TestPath_NoPathWildCardMatch(ReadOnlySpan<char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_NoPathWildCardMatch(ReadOnlySpan<char> charSpan, int index, string methodString, ref PathTokenCollection pathTokens)
             {
                 if (charSpan.Length <= index)
                 {
@@ -101,14 +104,11 @@ namespace TestApp
                 {
                     case "HEAD":
                     case "GET":
-                        return new RequestHandlerInfo(
-                            _fieldTenantController_Get_329 ??= new TenantController_Get_329(_rootServiceProvider),
-                            new PathTokenCollection(
-                                1,
-                                _pathTokenNamesTenantController_Get_329,
-                                charSpan.Slice(index).ToString()
-                            )
+                        pathTokens = new PathTokenCollection(
+                            _pathTokenNamesTenantController_Get_329,
+                            charSpan.Slice(index).ToString()
                         );
+                        return _infoTenantController_Get_329 ??= new RequestHandlerInfo(new TenantController_Get_329(_rootServiceProvider));
                     default:
                         return _methodNotAllowedGETHEAD;
                 }

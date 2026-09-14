@@ -3,7 +3,6 @@ using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.PathTokens;
 using Hardened.Requests.Runtime.Execution;
 using Hardened.Requests.Runtime.Middleware;
-using Hardened.Requests.Runtime.PathTokens;
 using Hardened.Requests.Runtime.QueryString;
 using Hardened.Requests.Testing;
 using Hardened.Web.Runtime.Cors;
@@ -138,7 +137,10 @@ public class CorsFilterTests
             _methods = new HashSet<string>(methods, StringComparer.OrdinalIgnoreCase);
         }
 
-        public RequestHandlerInfo? GetExecutionRequestHandler(IExecutionContext context)
+        public RequestHandlerInfo? GetExecutionRequestHandler(
+            IExecutionContext context,
+            ref PathTokenCollection pathTokens
+        )
         {
             if (!string.Equals(context.Request.Path, _path, StringComparison.Ordinal))
             {
@@ -147,10 +149,7 @@ public class CorsFilterTests
 
             if (_methods.Contains(context.Request.Method))
             {
-                return new RequestHandlerInfo(
-                    Substitute.For<IExecutionRequestHandler>(),
-                    PathTokenCollection.Empty
-                );
+                return new RequestHandlerInfo(Substitute.For<IExecutionRequestHandler>());
             }
 
             return RequestHandlerInfo.MethodNotAllowed(string.Join(", ", _methods));
@@ -617,9 +616,12 @@ public class CorsFilterTests
             _path = path;
         }
 
-        public RequestHandlerInfo? GetExecutionRequestHandler(IExecutionContext context) =>
+        public RequestHandlerInfo? GetExecutionRequestHandler(
+            IExecutionContext context,
+            ref PathTokenCollection pathTokens
+        ) =>
             string.Equals(context.Request.Path, _path, StringComparison.Ordinal)
-                ? new RequestHandlerInfo(null, PathTokenCollection.Empty)
+                ? new RequestHandlerInfo(null)
                 : null;
     }
 

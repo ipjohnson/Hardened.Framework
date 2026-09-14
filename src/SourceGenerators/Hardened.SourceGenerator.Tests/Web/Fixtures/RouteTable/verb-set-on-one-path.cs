@@ -1,6 +1,6 @@
 using DependencyModules.Runtime.Helpers;
 using Hardened.Requests.Abstract.Execution;
-using Hardened.Requests.Runtime.PathTokens;
+using Hardened.Requests.Abstract.PathTokens;
 using Hardened.Web.Runtime.Handlers;
 using Microsoft.Extensions.DependencyInjection;
 using System;
@@ -29,15 +29,15 @@ namespace Test.Api
         private class RoutingTable : IWebExecutionRequestHandlerProvider
         {
             private IServiceProvider _rootServiceProvider;
-            private PetController_GetPet? _fieldPetController_GetPet;
             private static readonly string[] _pathTokenNamesPetController_GetPet =             new string[] { "petId" }
 ;
-            private PetController_UpdatePet? _fieldPetController_UpdatePet;
+            private RequestHandlerInfo? _infoPetController_GetPet;
             private static readonly string[] _pathTokenNamesPetController_UpdatePet =             new string[] { "petId" }
 ;
-            private PetController_DeletePet? _fieldPetController_DeletePet;
+            private RequestHandlerInfo? _infoPetController_UpdatePet;
             private static readonly string[] _pathTokenNamesPetController_DeletePet =             new string[] { "petId" }
 ;
+            private RequestHandlerInfo? _infoPetController_DeletePet;
             private static readonly RequestHandlerInfo _methodNotAllowedDELETEGETHEADPUT =             global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo.MethodNotAllowed("DELETE, GET, HEAD, PUT")
 ;
 
@@ -46,17 +46,18 @@ namespace Test.Api
                 _rootServiceProvider = serviceProvider;
             }
 
-            public RequestHandlerInfo? GetExecutionRequestHandler(IExecutionContext context)
+            public RequestHandlerInfo? GetExecutionRequestHandler(IExecutionContext context, ref PathTokenCollection pathTokens)
             {
                 var pathSpan = context.Request.Path.AsSpan();
                 return TestPath_SlashpetsSlash(
                     pathSpan,
                     0,
-                    context.Request.Method
+                    context.Request.Method,
+                    ref pathTokens
                 );
             }
 
-            public RequestHandlerInfo? TestPath_SlashpetsSlash(ReadOnlySpan<char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_SlashpetsSlash(ReadOnlySpan<char> charSpan, int index, string methodString, ref PathTokenCollection pathTokens)
             {
                 RequestHandlerInfo? handlerInfo = null;
                 if ((charSpan.Length >= index + 6) && charSpan.Slice(index, 6).SequenceEqual("/pets/"))
@@ -67,25 +68,27 @@ namespace Test.Api
                         handlerInfo = TestPath_petsSlashWildCard(
                             charSpan,
                             index,
-                            methodString
+                            methodString,
+                            ref pathTokens
                         );
                     }
                 }
                 return handlerInfo;
             }
 
-            public RequestHandlerInfo? TestPath_petsSlashWildCard(ReadOnlySpan<char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_petsSlashWildCard(ReadOnlySpan<char> charSpan, int index, string methodString, ref PathTokenCollection pathTokens)
             {
                 RequestHandlerInfo? handlerInfo = null;
                 handlerInfo = TestPath_NoPathWildCardMatch(
                     charSpan,
                     index,
-                    methodString
+                    methodString,
+                    ref pathTokens
                 );
                 return handlerInfo;
             }
 
-            public RequestHandlerInfo? TestPath_NoPathWildCardMatch(ReadOnlySpan<char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_NoPathWildCardMatch(ReadOnlySpan<char> charSpan, int index, string methodString, ref PathTokenCollection pathTokens)
             {
                 if (charSpan.Length <= index)
                 {
@@ -99,32 +102,23 @@ namespace Test.Api
                 {
                     case "HEAD":
                     case "GET":
-                        return new RequestHandlerInfo(
-                            _fieldPetController_GetPet ??= new PetController_GetPet(_rootServiceProvider),
-                            new PathTokenCollection(
-                                1,
-                                _pathTokenNamesPetController_GetPet,
-                                charSpan.Slice(index).ToString()
-                            )
+                        pathTokens = new PathTokenCollection(
+                            _pathTokenNamesPetController_GetPet,
+                            charSpan.Slice(index).ToString()
                         );
+                        return _infoPetController_GetPet ??= new RequestHandlerInfo(new PetController_GetPet(_rootServiceProvider));
                     case "PUT":
-                        return new RequestHandlerInfo(
-                            _fieldPetController_UpdatePet ??= new PetController_UpdatePet(_rootServiceProvider),
-                            new PathTokenCollection(
-                                1,
-                                _pathTokenNamesPetController_UpdatePet,
-                                charSpan.Slice(index).ToString()
-                            )
+                        pathTokens = new PathTokenCollection(
+                            _pathTokenNamesPetController_UpdatePet,
+                            charSpan.Slice(index).ToString()
                         );
+                        return _infoPetController_UpdatePet ??= new RequestHandlerInfo(new PetController_UpdatePet(_rootServiceProvider));
                     case "DELETE":
-                        return new RequestHandlerInfo(
-                            _fieldPetController_DeletePet ??= new PetController_DeletePet(_rootServiceProvider),
-                            new PathTokenCollection(
-                                1,
-                                _pathTokenNamesPetController_DeletePet,
-                                charSpan.Slice(index).ToString()
-                            )
+                        pathTokens = new PathTokenCollection(
+                            _pathTokenNamesPetController_DeletePet,
+                            charSpan.Slice(index).ToString()
                         );
+                        return _infoPetController_DeletePet ??= new RequestHandlerInfo(new PetController_DeletePet(_rootServiceProvider));
                     default:
                         return _methodNotAllowedDELETEGETHEADPUT;
                 }

@@ -59,7 +59,8 @@ public class RoutingTableCompilesTests
             routing
         );
         Assert.Contains(
-            "public RequestHandlerInfo? GetExecutionRequestHandler(IExecutionContext context)",
+            "public RequestHandlerInfo? GetExecutionRequestHandler(IExecutionContext context, "
+                + "ref PathTokenCollection pathTokens)",
             routing
         );
     }
@@ -255,11 +256,11 @@ public class RoutingTableCompilesTests
     }
 
     /// <summary>
-    /// A route with no tokens shares one empty PathTokenCollection rather than allocating one per
-    /// request.
+    /// A route with no tokens never touches the token destination, and answers one record built on
+    /// first use.
     /// </summary>
     [Fact]
-    public void ARouteWithNoTokensUsesTheEmptyTokenCollection()
+    public void ARouteWithNoTokensBindsNothingAndReusesItsHandlerInfo()
     {
         var routing = RequestGeneratorHarness
             .Generate(
@@ -275,7 +276,42 @@ public class RoutingTableCompilesTests
             .AssertNoErrors()
             .SourceContaining("Routing");
 
-        Assert.Contains("PathTokenCollection.Empty", routing);
+        Assert.DoesNotContain("new PathTokenCollection(", routing);
+        Assert.Contains("_infoHealthController_Health ??= new RequestHandlerInfo(", routing);
+    }
+
+    /// <summary>
+    /// A route with a token answers the same one record, and writes what it captured into the
+    /// destination it was handed.
+    /// </summary>
+    /// <remarks>
+    /// The record used to carry the token values, which is what stopped a tokened route reusing
+    /// one: the handler was cached and the record around it was not. Both halves matter, so both
+    /// are asserted - a leaf that assigns the destination but rebuilds the record allocates the 40
+    /// bytes this removed.
+    /// </remarks>
+    [Fact]
+    public void ARouteWithATokenWritesItIntoTheDestinationAndReusesItsHandlerInfo()
+    {
+        var routing = RequestGeneratorHarness
+            .Generate(
+                Application(
+                    """
+                    public class OrderController {
+                        [Get("/orders/{id}")]
+                        public string Get(string id) => id;
+                    }
+                    """
+                )
+            )
+            .AssertNoErrors()
+            .SourceContaining("Routing");
+
+        Assert.Contains("pathTokens = new PathTokenCollection(", routing);
+
+        // The handler type of a tokened route carries a hash of the template, so the field is
+        // matched rather than spelled.
+        Assert.Matches(@"_infoOrderController_Get\w* \?\?= new RequestHandlerInfo\(", routing);
     }
 
     /// <summary>

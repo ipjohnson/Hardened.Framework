@@ -3,7 +3,6 @@ using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.PathTokens;
 using Hardened.Requests.Abstract.QueryString;
 using Hardened.Requests.Runtime.Headers;
-using Hardened.Requests.Runtime.PathTokens;
 using Hardened.Requests.Runtime.QueryString;
 using Hardened.Shared.Runtime.Collections;
 using Microsoft.AspNetCore.Http.Features;
@@ -34,7 +33,6 @@ public sealed class FeatureExecutionRequest : IExecutionRequest
 
     private IQueryStringCollection? _queryString;
     private IReadOnlyList<string>? _cookies;
-    private IPathTokenCollection? _pathTokens;
 
     public FeatureExecutionRequest(IHttpRequestFeature feature)
         : this(feature, null) { }
@@ -151,11 +149,7 @@ public sealed class FeatureExecutionRequest : IExecutionRequest
     public IQueryStringCollection QueryString =>
         _queryStringOverride ?? (_queryString ??= ParseQueryString(_feature.QueryString));
 
-    public IPathTokenCollection PathTokens
-    {
-        get => _pathTokens ?? PathTokenCollection.Empty;
-        set => _pathTokens = value;
-    }
+    public PathTokenCollection PathTokens { get; set; }
 
     /// <summary>
     /// The framework contract is the raw <c>name=value</c> form that API Gateway delivers, which
