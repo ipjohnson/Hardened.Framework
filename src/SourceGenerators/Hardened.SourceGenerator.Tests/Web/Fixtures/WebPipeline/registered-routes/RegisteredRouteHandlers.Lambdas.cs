@@ -5,17 +5,17 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace GeneratorTestAssembly.Generated
 {
-    public partial class Register_GET_97238be0 : global::Hardened.Requests.Runtime.Execution.BaseExecutionHandler<global::System.Func<int,global::System.Threading.Tasks.Task<int>>>
+    public partial class Register_GET_9475be61 : global::Hardened.Requests.Runtime.Execution.BaseExecutionHandler<global::System.Func<int,global::System.Threading.Tasks.Task<int>>>
     {
         private static readonly global::Hardened.Requests.Abstract.Execution.IExecutionRequestParameter[] _parameterInfo =         CreateParameterInfo()
 ;
         private static readonly global::Hardened.Requests.Runtime.Execution.ExecutionRequestHandlerInfo _handlerInfo =         new global::Hardened.Requests.Runtime.Execution.ExecutionRequestHandlerInfo("(registered)", "GET", typeof(global::System.Func<int,global::System.Threading.Tasks.Task<int>>), "Invoke", _parameterInfo)
 ;
 
-        public Register_GET_97238be0(global::System.IServiceProvider serviceProvider, global::System.Func<int,global::System.Threading.Tasks.Task<int>> target, string? routePath = null)
+        public Register_GET_9475be61(global::System.IServiceProvider serviceProvider, global::System.Func<int,global::System.Threading.Tasks.Task<int>> target, string? routePath = null)
             : base(global::Hardened.Requests.Runtime.Execution.ExecutionHelper.AsyncStandardFilterWithParameters<
             global::System.Func<int,global::System.Threading.Tasks.Task<int>>,
-            global::GeneratorTestAssembly.Generated.Register_GET_97238be0.Parameters
+            global::GeneratorTestAssembly.Generated.Register_GET_9475be61.Parameters
         >(
             serviceProvider,
             _handlerInfo.WithPath(routePath),
@@ -38,14 +38,14 @@ namespace GeneratorTestAssembly.Generated
             return returnArray;
         }
 
-        private static async global::System.Threading.Tasks.Task InvokeMethod(global::Hardened.Requests.Abstract.Execution.IExecutionContext context, global::System.Func<int,global::System.Threading.Tasks.Task<int>> controller, global::GeneratorTestAssembly.Generated.Register_GET_97238be0.Parameters parameters)
+        private static async global::System.Threading.Tasks.Task InvokeMethod(global::Hardened.Requests.Abstract.Execution.IExecutionContext context, global::System.Func<int,global::System.Threading.Tasks.Task<int>> controller, global::GeneratorTestAssembly.Generated.Register_GET_9475be61.Parameters parameters)
         {
             context.Response.ResponseValue = await controller.Invoke(parameters.id);
         }
 
         private static global::System.Threading.Tasks.Task<global::Hardened.Requests.Abstract.Execution.IExecutionRequestParameters> BindRequestParameters(global::Hardened.Requests.Abstract.Execution.IExecutionContext context)
         {
-            var parameters = new global::GeneratorTestAssembly.Generated.Register_GET_97238be0.Parameters();
+            var parameters = new global::GeneratorTestAssembly.Generated.Register_GET_9475be61.Parameters();
             parameters.id = context.KnownServices.StringConverterService.ParseRequired<global::System.Int32>(
                 context.Request.PathTokens.Get("id")!,
                 "id"
@@ -96,7 +96,7 @@ public static global::Hardened.Web.Runtime.Routing.IRouteRegistry GET_0(this glo
     routes.Map(path, new global::Hardened.Web.Runtime.Routing.RegisteredRouteHandler(
         "GET",
         new string[] { "id" },
-        (serviceProvider, routePath) => new global::GeneratorTestAssembly.Generated.Register_GET_97238be0(serviceProvider, (global::System.Func<int, global::System.Threading.Tasks.Task<int>>)handler, routePath)));
+        (serviceProvider, routePath) => new global::GeneratorTestAssembly.Generated.Register_GET_9475be61(serviceProvider, (global::System.Func<int, global::System.Threading.Tasks.Task<int>>)handler, routePath)));
     }
 }
 

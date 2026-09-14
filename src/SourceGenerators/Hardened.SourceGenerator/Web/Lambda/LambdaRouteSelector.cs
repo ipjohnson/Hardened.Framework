@@ -471,6 +471,13 @@ public static class LambdaRouteSelector
     /// build - which is not a reproducible build, and which the golden fixtures caught by
     /// disagreeing with themselves between two runs.
     /// </para>
+    /// <para>
+    /// <b>And it is seeded with the file name rather than the path</b>, because a deterministic
+    /// build rewrites source paths and the name would otherwise differ between a developer's
+    /// machine and CI. Two files of the same name in different folders is the case this cannot
+    /// separate, and the enclosing member and the offset separate it instead - a collision would be
+    /// a duplicate class rather than anything silent.
+    /// </para>
     /// </remarks>
     private static string HandlerName(InvocationExpressionSyntax invocation, string verb)
     {
@@ -480,7 +487,13 @@ public static class LambdaRouteSelector
             .Select(Named)
             .FirstOrDefault(name => name != null);
 
-        var hash = Fnv(invocation.SyntaxTree.FilePath, invocation.GetLocation().SourceSpan.Start);
+        // The file name rather than the path. A deterministic build rewrites source paths to /_/…,
+        // so hashing the path gave one name on a developer's machine and another in CI - which the
+        // golden fixtures caught by disagreeing across environments rather than across runs.
+        var hash = Fnv(
+            System.IO.Path.GetFileName(invocation.SyntaxTree.FilePath) ?? "",
+            invocation.GetLocation().SourceSpan.Start
+        );
 
         return (enclosing ?? "Registered") + "_" + verb + "_" + hash.ToString("x8");
     }
