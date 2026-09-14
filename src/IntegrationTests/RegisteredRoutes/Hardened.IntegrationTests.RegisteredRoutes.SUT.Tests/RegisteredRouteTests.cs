@@ -134,6 +134,33 @@ public class RegisteredRouteTests
         Assert.Equal(42, (await app.Get("/registered/acme/ping/42")).Deserialize<Order>().Id);
     }
 
+    /// <remarks>
+    /// A service parameter and a body parameter, classified by type because there is no template to
+    /// classify them against. Neither is a path token, and both arrive.
+    /// </remarks>
+    [HardenedTest]
+    public async Task ALambdaTakesAServiceAndABody(ITestWebApp app)
+    {
+        var response = await app.Post(new Order(9, "ignored"), "/registered/acme/echo");
+
+        Assert.Equal(200, response.StatusCode);
+
+        var order = response.Deserialize<Order>();
+
+        Assert.Equal(9, order.Id);
+        Assert.Equal("acme:any", order.Tenant);
+    }
+
+    /// <remarks>
+    /// Map names its verb in the call, which has to be a constant: the verb is written into the
+    /// handler's own information and into the table the route joins.
+    /// </remarks>
+    [HardenedTest]
+    public async Task MapRegistersTheVerbItNames(ITestWebApp app)
+    {
+        Assert.Equal(200, (await app.Delete("/registered/acme/orders/3")).StatusCode);
+    }
+
     [HardenedTest]
     public async Task AConstraintGuardsALambdaRouteToo(ITestWebApp app)
     {

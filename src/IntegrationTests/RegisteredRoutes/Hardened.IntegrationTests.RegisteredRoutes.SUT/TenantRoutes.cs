@@ -70,6 +70,20 @@ public class TenantRoutes : IRouteRegistration
                 $"/{tenant}/ping/{{id:int}}",
                 (int id) => Task.FromResult(new Order(id, tenant))
             );
+
+            // A service from the container and a body, so the lambda form is held to the same
+            // binding the controller form gets.
+            routes.Post(
+                $"/{tenant}/echo",
+                (Order body, ITenantContext context) =>
+                    Task.FromResult(new Order(body.Id, tenant + ":" + context.Current))
+            );
+
+            routes.Map(
+                "DELETE",
+                $"/{tenant}/orders/{{id:int}}",
+                (int id) => Task.FromResult(new Order(id, tenant))
+            );
         }
 
         return default;

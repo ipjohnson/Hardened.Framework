@@ -546,8 +546,57 @@ public class TenantRoutes : IRouteRegistration {
 registration serves the same generated handler at one more path per tenant.
 
 `IRouteRegistry` has `Get`, `Post`, `Put`, `Patch`, `Delete` and `Map`. Each returns the registry,
-so calls chain. Each takes the path, the controller type and the handler method name. `Map` takes
-the verb first.
+so calls chain. Each takes the path, then either the controller type and the handler method name, or
+a lambda. `Map` takes the verb first.
+
+### A lambda instead of a controller
+
+```csharp
+routes.Get($"/{tenant.Slug}/orders/{{id:int}}",
+           (int id, IOrderService orders) => orders.Get(tenant.Id, id));
+```
+
+The build reads the lambda where it is written: its parameters, its return type, and any attribute
+on it. It emits a handler from them and rewrites the call to one that carries it, so the handler is
+compiled code and the path is still the only part that comes from run time.
+
+The lambda closes over `tenant`, and that closure is the point. It cannot be replaced by a call to a
+method, and nothing resolves it from a container.
+
+Parameters are classified by type, because there is no template to classify them against.
+
+| Parameter | Binds from |
+|---|---|
+| A binding attribute | As written |
+| `IExecutionContext`, `IExecutionRequest`, `IExecutionResponse` | The execution context |
+| `IServiceProvider` | The container itself |
+| `CancellationToken` | The request's lifetime |
+| Any interface | The container |
+| A type that can be read from a string | The path token of that name |
+| Anything else | The request body |
+
+The last two are the difference from an attribute route, where the template answers the question.
+A type that can be read from a string is the set `StringConverterService` converts, plus any enum.
+`byte[]` is not in it: a `byte[]` parameter is the request body.
+
+The token names travel with the handler, so a template that does not declare one of them is a
+startup failure rather than a route that binds nothing.
+
+C# has allowed attributes on a lambda since version 10, so `[Compress]`, `[CacheResponse]` and
+`[RequireAuthorization]` attach here and a registered route keeps the declarative surface a
+controller method has.
+
+Two shapes the build cannot read, both `HRDR014`:
+
+```csharp
+Func<int, string> handler = id => id.ToString();
+
+routes.Get("/orders/{id:int}", handler);   // the lambda has to be written here
+routes.Map(verb, "/orders", () => "ok");   // the verb has to be a constant
+```
+
+Neither ships a route that silently binds nothing. The declared method throws, and the diagnostic
+points at the call site, which is where the thing to change is.
 
 The template language is the one the attributes use. The same tokens, the same constraints
 including the ones `[RouteConstraint]` declares, the same catch-all. `[BasePath]` on the entry point
@@ -632,6 +681,7 @@ path declared both ways answers from the declaration.
 | `HRDR005` | A route token that binds no parameter, beside one read from the body | Error |
 | `HRDR006` | Routes in an assembly with no routing generator referenced | Error |
 | `HRDR013` | A verb attribute on an interface member | Warning |
+| `HRDR014` | A lambda registration the build cannot read | Error |
 
 ## Next
 

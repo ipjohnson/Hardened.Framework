@@ -61,7 +61,10 @@ public static class GeneratorTestHarness
     )
     {
         var projectDir = ResolveProjectDir(buildProperties);
-        var parseOptions = new CSharpParseOptions(LanguageVersion.Latest);
+        var parseOptions = InterceptorsEnabled(
+            new CSharpParseOptions(LanguageVersion.Latest),
+            assemblyName
+        );
 
         var syntaxTrees = sources
             .Select(pair =>
@@ -178,7 +181,10 @@ public static class GeneratorTestHarness
     )
     {
         var projectDir = ResolveProjectDir(buildProperties);
-        var parseOptions = new CSharpParseOptions(LanguageVersion.Latest);
+        var parseOptions = InterceptorsEnabled(
+            new CSharpParseOptions(LanguageVersion.Latest),
+            "GeneratorTestAssembly"
+        );
         var references = GeneratorReferences.For(referenceAnchors ?? Array.Empty<Type>());
 
         Compilation Compile(IReadOnlyDictionary<string, string> sources) =>
@@ -313,4 +319,37 @@ public static class GeneratorTestHarness
         buildProperties != null && buildProperties.TryGetValue("ProjectDir", out var configured)
             ? configured
             : DefaultProjectDir;
+
+    /// <summary>
+    /// The compilation's own generated namespace, named as a namespace interceptors may be written
+    /// in.
+    /// </summary>
+    /// <remarks>
+    /// MSBuild carries this for a real project - the web runtime's targets set it from
+    /// <c>$(AssemblyName)</c> - and there is no MSBuild here. Without it a generated interceptor is
+    /// CS9137 and the route it serves is unreachable, which is a generator defect this harness
+    /// would otherwise be unable to see.
+    ///
+    /// <para>
+    /// Both spellings, because which one a compiler reads depends on its version and setting one it
+    /// does not know costs nothing.
+    /// </para>
+    /// </remarks>
+    private static CSharpParseOptions InterceptorsEnabled(
+        CSharpParseOptions options,
+        string assemblyName
+    ) =>
+        options.WithFeatures(
+            new[]
+            {
+                new KeyValuePair<string, string>(
+                    "InterceptorsNamespaces",
+                    assemblyName + ".Generated"
+                ),
+                new KeyValuePair<string, string>(
+                    "InterceptorsPreviewNamespaces",
+                    assemblyName + ".Generated"
+                ),
+            }
+        );
 }

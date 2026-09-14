@@ -17,9 +17,11 @@ public class LambdaRouteModel : IEquatable<LambdaRouteModel>
         string interceptsAttribute,
         ITypeDefinition delegateType,
         RequestHandlerModel handler,
-        IReadOnlyList<string> boundTokens
+        IReadOnlyList<string> boundTokens,
+        bool namesVerb
     )
     {
+        NamesVerb = namesVerb;
         Method = method;
         InterceptsAttribute = interceptsAttribute;
         DelegateType = delegateType;
@@ -28,6 +30,17 @@ public class LambdaRouteModel : IEquatable<LambdaRouteModel>
     }
 
     public string Method { get; }
+
+    /// <summary>
+    /// Whether the call named its verb in an argument, which <c>Map</c> does and the five verb
+    /// methods do not.
+    /// </summary>
+    /// <remarks>
+    /// It decides the interceptor's signature, which has to match the method it intercepts exactly.
+    /// The argument itself is not read: the verb was already resolved at build time, because it is
+    /// written into the handler's own information.
+    /// </remarks>
+    public bool NamesVerb { get; }
 
     /// <summary>
     /// The <c>[InterceptsLocation]</c> the compiler itself wrote for this call site.
@@ -50,6 +63,7 @@ public class LambdaRouteModel : IEquatable<LambdaRouteModel>
     public bool Equals(LambdaRouteModel? other) =>
         other != null
         && Method == other.Method
+        && NamesVerb == other.NamesVerb
         && InterceptsAttribute == other.InterceptsAttribute
         && Equals(DelegateType, other.DelegateType)
         && Handler.Equals(other.Handler)

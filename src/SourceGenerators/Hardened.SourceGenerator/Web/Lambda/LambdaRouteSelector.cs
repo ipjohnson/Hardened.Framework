@@ -40,16 +40,33 @@ public static class LambdaRouteSelector
         { "Delete", "DELETE" },
     };
 
+    /// <summary>The method that names its verb in its first argument.</summary>
+    public const string MapName = "Map";
+
+    /// <summary>
+    /// Whether this looks like a registration with a lambda, on names alone.
+    /// </summary>
+    /// <remarks>
+    /// Deliberately loose. The transform binds and decides; what this has to be is cheap, because
+    /// it runs on every invocation in the compilation.
+    /// </remarks>
     public static bool Predicate(SyntaxNode node, CancellationToken cancellationToken) =>
         node
             is InvocationExpressionSyntax
             {
                 Expression: MemberAccessExpressionSyntax member,
-                ArgumentList.Arguments.Count: 2,
+                ArgumentList.Arguments: var arguments,
             }
-        && Verbs.ContainsKey(member.Name.Identifier.ValueText)
-        && node is InvocationExpressionSyntax { ArgumentList.Arguments: var arguments }
-        && arguments[1].Expression is AnonymousFunctionExpressionSyntax;
+        && Named(member, arguments.Count)
+        && arguments[arguments.Count - 1].Expression is AnonymousFunctionExpressionSyntax;
+
+    /// <summary>Whether the name and the argument count are a registration's.</summary>
+    public static bool Named(MemberAccessExpressionSyntax member, int arguments)
+    {
+        var name = member.Name.Identifier.ValueText;
+
+        return (arguments == 2 && Verbs.ContainsKey(name)) || (arguments == 3 && name == MapName);
+    }
 
     public static LambdaRouteModel? Transform(
         GeneratorSyntaxContext context,
@@ -70,8 +87,10 @@ public static class LambdaRouteSelector
             return null;
         }
 
+        var arguments = invocation.ArgumentList.Arguments;
+
         var lambdaSyntax = (AnonymousFunctionExpressionSyntax)
-            invocation.ArgumentList.Arguments[1].Expression;
+            arguments[arguments.Count - 1].Expression;
 
         if (
             context.SemanticModel.GetSymbolInfo(lambdaSyntax, cancellationToken).Symbol
@@ -92,7 +111,15 @@ public static class LambdaRouteSelector
             return null;
         }
 
-        var verb = Verbs[member.Name.Identifier.ValueText];
+        var verb = Verb(context, member, arguments, cancellationToken);
+
+        if (verb == null)
+        {
+            // Map given a verb the build cannot read. LambdaRouteDiagnostics reports it; emitting
+            // nothing leaves the declared method to throw, which says the same thing later.
+            return null;
+        }
+
         var delegateType = DelegateType(lambda);
         var parameters = Parameters(context, parameterList, cancellationToken);
 
@@ -112,7 +139,44 @@ public static class LambdaRouteSelector
             IsDelegateHandler = true,
         };
 
-        return new LambdaRouteModel(verb, location, delegateType, handler, BoundTokens(parameters));
+        return new LambdaRouteModel(
+            verb,
+            location,
+            delegateType,
+            handler,
+            BoundTokens(parameters),
+            member.Name.Identifier.ValueText == MapName
+        );
+    }
+
+    /// <summary>
+    /// The verb the call registers, or null where <c>Map</c> was given one the build cannot read.
+    /// </summary>
+    /// <remarks>
+    /// A verb has to be known at build time: it is written into the handler's own information and
+    /// into the table the route joins. <c>Map(variable, path, lambda)</c> is therefore not a
+    /// registration this can emit for, and is reported rather than ignored.
+    /// </remarks>
+    public static string? Verb(
+        GeneratorSyntaxContext context,
+        MemberAccessExpressionSyntax member,
+        SeparatedSyntaxList<ArgumentSyntax> arguments,
+        CancellationToken cancellationToken
+    )
+    {
+        if (Verbs.TryGetValue(member.Name.Identifier.ValueText, out var verb))
+        {
+            return verb;
+        }
+
+        var declared = context.SemanticModel.GetConstantValue(
+            arguments[0].Expression,
+            cancellationToken
+        );
+
+        return declared is { HasValue: true, Value: string written } && written.Length > 0
+            ? written.ToUpperInvariant()
+            : null;
     }
 
     /// <summary>

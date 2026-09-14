@@ -72,6 +72,11 @@ internal static class LambdaRouteEmitter
     {
         var file = new CSharpFileDefinition(handlerNamespace);
 
+        // AddSingleton and GetRequiredService are extension methods, and an extension method is
+        // reachable only through a using of its namespace - global:: cannot name one. The routing
+        // table's file says the same thing for the same reason.
+        file.AddUsingNamespace(KnownTypes.Namespace.Microsoft.Extensions.DependencyInjection);
+
         foreach (var route in routes)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -99,7 +104,10 @@ internal static class LambdaRouteEmitter
 
         file.WriteOutput(outputContext);
 
-        return Attribute() + outputContext.Output();
+        // After the file rather than before it. A using directive has to precede every other member
+        // of a compilation unit, and CSharpAuthor writes the usings at the top of what it renders -
+        // so a namespace declaration in front of that output is CS1529.
+        return outputContext.Output() + Attribute();
     }
 
     /// <summary>
@@ -123,7 +131,8 @@ internal static class LambdaRouteEmitter
             + index.ToString(System.Globalization.CultureInfo.InvariantCulture)
             + "(this "
             + Registry
-            + " routes, string path, global::System.Delegate handler) =>\n    routes.Map(path, new "
+            + (route.NamesVerb ? " routes, string method, string path" : " routes, string path")
+            + ", global::System.Delegate handler) =>\n    routes.Map(path, new "
             + Handler
             + "(\n        \""
             + route.Method
@@ -174,7 +183,7 @@ internal static class LambdaRouteEmitter
     /// a second generator that emits its own, has one per file rather than a collision.
     /// </remarks>
     private static string Attribute() =>
-        "namespace System.Runtime.CompilerServices\n"
+        "\nnamespace System.Runtime.CompilerServices\n"
         + "{\n"
         + "    [global::System.AttributeUsage(global::System.AttributeTargets.Method, AllowMultiple = true)]\n"
         + "    file sealed class InterceptsLocationAttribute : global::System.Attribute\n"
@@ -185,5 +194,5 @@ internal static class LambdaRouteEmitter
         + "            _ = data;\n"
         + "        }\n"
         + "    }\n"
-        + "}\n\n";
+        + "}\n";
 }

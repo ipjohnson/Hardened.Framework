@@ -118,6 +118,18 @@ public static class WebIncrementalGenerator
             )
         );
 
+        // The registrations the build cannot read, on their own provider and carrying a location -
+        // the arrangement the authorization diagnostic uses, for the reason its remarks give.
+        initializationContext.RegisterSourceOutput(
+            initializationContext.SyntaxProvider.CreateSyntaxProvider(
+                Lambda.LambdaRouteDiagnostics.Predicate,
+                Lambda.LambdaRouteDiagnostics.Transform
+            ),
+            SourceGeneratorWrapper.Wrap<Lambda.UnreadableRegistrationModel?>(
+                Lambda.LambdaRouteDiagnostics.Report
+            )
+        );
+
         var invokeGenerator = new WebExecutionHandlerCodeGenerator();
 
         // The handler stage reports a route token nothing declares, so it has to know what the
