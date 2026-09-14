@@ -26,7 +26,8 @@ public sealed class GeneratedRouteHandler
         string handlerMethod,
         string method,
         string declaredPath,
-        RouteHandlerFactory factory
+        RouteHandlerFactory factory,
+        string operation = ""
     )
     {
         ControllerType = controllerType;
@@ -34,6 +35,7 @@ public sealed class GeneratedRouteHandler
         Method = method;
         DeclaredPath = declaredPath;
         Factory = factory;
+        Operation = operation;
     }
 
     public Type ControllerType { get; }
@@ -54,6 +56,13 @@ public sealed class GeneratedRouteHandler
     public string DeclaredPath { get; }
 
     public RouteHandlerFactory Factory { get; }
+
+    /// <summary>
+    /// What this handler publishes, as the operation object of an OpenAPI path item. See
+    /// <see cref="RegisteredRouteHandler.Operation"/>; a handler registered at a computed path
+    /// publishes the same operation it publishes at the path it was declared with.
+    /// </summary>
+    public string Operation { get; }
 }
 
 /// <summary>
@@ -97,4 +106,20 @@ public interface IGeneratedRouteHandlerCatalog
     /// template that only exists at run time can name it.
     /// </remarks>
     IReadOnlyDictionary<string, RouteConstraintTest> Constraints { get; }
+
+    /// <summary>
+    /// The compiled document up to the point inside <c>paths</c> where another entry can be
+    /// appended, or an empty string where the application serves no document.
+    /// </summary>
+    /// <remarks>
+    /// It ends with <c>{</c> when the application declares no route of its own, which is how the
+    /// assembler knows not to write a separator first.
+    /// </remarks>
+    string DocumentPrefix { get; }
+
+    /// <summary>
+    /// The close of <c>paths</c> and everything after it, <c>components</c> included - so a schema
+    /// a registered route refers to is already in here.
+    /// </summary>
+    string DocumentSuffix { get; }
 }

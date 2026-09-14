@@ -34,30 +34,29 @@ internal static class LambdaRouteEmitter
     /// <summary>
     /// Emits the file, or nothing where the compilation registers no lambda.
     /// </summary>
+    /// <param name="operations">
+    /// What each route publishes, in the order of <paramref name="routes"/>. Empty where the
+    /// application serves no document.
+    /// </param>
     public static void Generate(
         SourceProductionContext context,
-        ImmutableArray<LambdaRouteModel?> found
+        EntryPointSelector.Model appModel,
+        IReadOnlyList<LambdaRouteModel> routes,
+        IReadOnlyList<string> operations
     )
     {
-        // Ordered so the emitted file does not reshuffle between builds, which would dirty the
-        // incremental cache over nothing.
-        var routes = found
-            .Where(route => route != null)
-            .Select(route => route!)
-            .OrderBy(route => route.Handler.InvokeHandlerType.Name, StringComparer.Ordinal)
-            .ToList();
-
         if (routes.Count == 0)
         {
             return;
         }
 
         context.AddSource(
-            "RegisteredRouteHandlers.Lambdas",
+            appModel.EntryPointType.Name + ".RegisteredLambdas",
             GeneratedSource.Header(
                 Write(
                     routes[0].Handler.InvokeHandlerType.Namespace,
                     routes,
+                    operations,
                     context.CancellationToken
                 )
             )
@@ -67,6 +66,7 @@ internal static class LambdaRouteEmitter
     public static string Write(
         string handlerNamespace,
         IReadOnlyList<LambdaRouteModel> routes,
+        IReadOnlyList<string> operations,
         CancellationToken cancellationToken
     )
     {
@@ -95,7 +95,15 @@ internal static class LambdaRouteEmitter
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            interceptors.AddComponent(new CodeOutputComponent(Interceptor(routes[index], index)));
+            interceptors.AddComponent(
+                new CodeOutputComponent(
+                    Interceptor(
+                        routes[index],
+                        index,
+                        index < operations.Count ? operations[index] : ""
+                    )
+                )
+            );
         }
 
         var outputContext = new OutputContext(
@@ -118,7 +126,7 @@ internal static class LambdaRouteEmitter
     /// the receiver becomes the first argument. CSharpAuthor has no <c>this</c> parameter, so this
     /// one member is written rather than built; the file around it is not.
     /// </remarks>
-    private static string Interceptor(LambdaRouteModel route, int index)
+    private static string Interceptor(LambdaRouteModel route, int index, string operation)
     {
         var cast = "(" + Written(route.DelegateType) + ")handler";
 
@@ -144,7 +152,9 @@ internal static class LambdaRouteEmitter
             + route.Handler.InvokeHandlerType.Name
             + "(serviceProvider, "
             + cast
-            + ", routePath)));";
+            + ", routePath),\n        "
+            + Quoted(operation)
+            + "));";
     }
 
     /// <summary>
@@ -174,6 +184,9 @@ internal static class LambdaRouteEmitter
         // it is a conversion the compiler refuses.
         return type.IsNullable ? name + "?" : name;
     }
+
+    private static string Quoted(string value) =>
+        "\"" + value.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\n", "\\n") + "\"";
 
     private static string Tokens(LambdaRouteModel route) =>
         route.BoundTokens.Count == 0

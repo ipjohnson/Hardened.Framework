@@ -45,12 +45,71 @@ public static class OpenApiDocumentGenerator
         DocumentIdentity? identity = null
     )
     {
+        var split = Split(appModel, handlers, basePath, version, identity, null);
+
+        return split.Prefix + split.Suffix;
+    }
+
+    /// <summary>
+    /// A document in two halves, so a path that only exists at run time can be written between
+    /// them.
+    /// </summary>
+    /// <param name="Prefix">
+    /// Everything up to the point inside <c>paths</c> where another entry can be appended. It ends
+    /// with <c>{</c> when the application declares no route of its own, which is how a caller knows
+    /// not to write a separator first.
+    /// </param>
+    /// <param name="Suffix">
+    /// The close of <c>paths</c> and everything after it, <c>components</c> included - so a schema a
+    /// registered route refers to is already in here.
+    /// </param>
+    /// <param name="Operations">
+    /// The operation object for each registered handler, in the order it was given: <c>"get":{…}</c>
+    /// ready to be written inside a path entry.
+    /// </param>
+    public readonly struct SplitDocument
+    {
+        public SplitDocument(string prefix, string suffix, IReadOnlyList<string> operations)
+        {
+            Prefix = prefix;
+            Suffix = suffix;
+            Operations = operations;
+        }
+
+        public string Prefix { get; }
+
+        public string Suffix { get; }
+
+        public IReadOnlyList<string> Operations { get; }
+    }
+
+    /// <summary>
+    /// The document, split where a run-time path can be spliced in.
+    /// </summary>
+    /// <remarks>
+    /// <paramref name="registered"/> is written into no path - a registered route has no path at
+    /// build time - but it is read for everything else: its schemas join <c>components</c>, its
+    /// enums join the vocabularies, and its operation id is allocated against the same set, so a
+    /// spliced document is one document rather than two stapled together.
+    /// </remarks>
+    public static SplitDocument Split(
+        EntryPointSelector.Model appModel,
+        IReadOnlyList<RequestHandlerModel> handlers,
+        string basePath,
+        OpenApiVersion version,
+        DocumentIdentity? identity,
+        IReadOnlyList<RequestHandlerModel>? registered
+    )
+    {
         var builder = new StringBuilder();
 
         // Before anything reads a handler, because the entry point's rung says something about
         // every one of them. Both front ends arrive here, so a described application publishes what
         // its module declares on the same terms an attribute-routed one does.
+        registered ??= System.Array.Empty<RequestHandlerModel>();
+
         handlers = WithEntryPointRung(appModel, handlers);
+        registered = WithEntryPointRung(appModel, registered);
 
         // And [ErrorBodies(Json)] narrows every refusal, before any of them is written. Here rather
         // than inside ErrorContentTypes because the rule is about the service and the handlers are
@@ -62,6 +121,7 @@ public static class OpenApiDocumentGenerator
         // before any of that is read either. Same reason as above: what an application's views
         // produce is declared once on a marker, not per handler.
         handlers = WithOutputContentTypes(appModel, handlers);
+        registered = WithOutputContentTypes(appModel, registered);
 
         // Identity, in preference order: the contract's own (specification-first), an
         // [OpenApiInfo] on the entry point (code-first), then the fallbacks every application got
@@ -92,7 +152,7 @@ public static class OpenApiDocumentGenerator
         builder.Append(",\"paths\":{");
 
         var components = new SortedDictionary<string, string>(System.StringComparer.Ordinal);
-        var operationIds = OperationIds(handlers);
+        var operationIds = OperationIds(Union(handlers, registered));
 
         // The wire vocabulary of every enum the application serializes, keyed as emitted code
         // names the type. Collected once: a parameter whose C# type is one of these is an enum
@@ -100,7 +160,7 @@ public static class OpenApiDocumentGenerator
         // exactly as it does when the same enum sits in a body schema.
         var enums = new Dictionary<string, EnumVocabulary>(System.StringComparer.Ordinal);
 
-        foreach (var vocabulary in EnumVocabularies.Collect(handlers))
+        foreach (var vocabulary in EnumVocabularies.Collect(Union(handlers, registered)))
         {
             enums[vocabulary.QualifiedName] = vocabulary;
         }
@@ -160,6 +220,24 @@ public static class OpenApiDocumentGenerator
             firstPath = false;
         }
 
+        // Where a path that only exists at run time is spliced in. Everything after this point is
+        // the suffix, so a schema a registered operation refers to - written below into components -
+        // is already on the far side of the seam.
+        var prefix = builder.ToString();
+
+        builder.Clear();
+
+        var operations = new List<string>(registered.Count);
+
+        foreach (var handler in registered)
+        {
+            var operation = new StringBuilder();
+
+            WriteOperation(operation, handler, components, operationIds, version, enums);
+
+            operations.Add(operation.ToString());
+        }
+
         builder.Append('}');
 
         // The identity's schemes (a contract's declarations) unioned with the ones handlers
@@ -171,7 +249,7 @@ public static class OpenApiDocumentGenerator
                 ?? (IReadOnlyList<(string, string)>)System.Array.Empty<(string, string)>()
         );
 
-        foreach (var handler in handlers)
+        foreach (var handler in Union(handlers, registered))
         {
             foreach (var declared in handler.DeclaredSecuritySchemes)
             {
@@ -242,8 +320,21 @@ public static class OpenApiDocumentGenerator
             builder.Append('}');
         }
 
-        return builder.Append('}').ToString();
+        return new SplitDocument(prefix, builder.Append('}').ToString(), operations);
     }
+
+    /// <summary>
+    /// Both sets, once each.
+    /// </summary>
+    /// <remarks>
+    /// A handler is in both where a controller's method is served at the path it declares and at a
+    /// path a registration computed. It is one operation either way, so it gets one identifier and
+    /// contributes its schemas once.
+    /// </remarks>
+    private static IReadOnlyList<RequestHandlerModel> Union(
+        IReadOnlyList<RequestHandlerModel> handlers,
+        IReadOnlyList<RequestHandlerModel> registered
+    ) => registered.Count == 0 ? handlers : handlers.Concat(registered).Distinct().ToList();
 
     /// <summary>
     /// <paramref name="handlers"/> with what the entry point declares folded into each one.

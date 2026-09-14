@@ -11,7 +11,7 @@ namespace TestApp
         /// </summary>
         private sealed class RegisteredRouteHandlers : global::Hardened.Web.Runtime.Routing.IGeneratedRouteHandlerCatalog
         {
-            private static readonly global::Hardened.Web.Runtime.Routing.GeneratedRouteHandler[] _handlers = new global::Hardened.Web.Runtime.Routing.GeneratedRouteHandler[] { new global::Hardened.Web.Runtime.Routing.GeneratedRouteHandler(typeof(global::TestApp.TenantController), "Get", "GET", "/orders/{id:int}", static (serviceProvider, routePath) => new global::TestApp.Generated.TenantController_Get_329(serviceProvider, routePath)) };
+            private static readonly global::Hardened.Web.Runtime.Routing.GeneratedRouteHandler[] _handlers = new global::Hardened.Web.Runtime.Routing.GeneratedRouteHandler[] { new global::Hardened.Web.Runtime.Routing.GeneratedRouteHandler(typeof(global::TestApp.TenantController), "Get", "GET", "/orders/{id:int}", static (serviceProvider, routePath) => new global::TestApp.Generated.TenantController_Get_329(serviceProvider, routePath), "\"get\":{\"tags\":[\"Tenant\"],\"operationId\":\"get\",\"parameters\":[{\"name\":\"id\",\"in\":\"path\",\"required\":true,\"schema\":{\"type\":\"integer\",\"format\":\"int32\"}}],\"responses\":{\"200\":{\"description\":\"OK\",\"content\":{\"application/json\":{\"schema\":{\"type\":\"string\"}}}},\"404\":{\"description\":\"The path did not name a resource: a token failed its route constraint.\"}}}") };
             private static readonly global::System.Collections.Generic.IReadOnlyDictionary<string,global::Hardened.Web.Runtime.Routing.RouteConstraintTest> _constraints = new global::System.Collections.Generic.Dictionary<string, global::Hardened.Web.Runtime.Routing.RouteConstraintTest>();
 
             public global::System.Collections.Generic.IReadOnlyList<global::Hardened.Web.Runtime.Routing.GeneratedRouteHandler> Handlers => _handlers;
@@ -21,6 +21,10 @@ namespace TestApp
             public string BasePath => "";
 
             public global::System.Collections.Generic.IReadOnlyDictionary<string,global::Hardened.Web.Runtime.Routing.RouteConstraintTest> Constraints => _constraints;
+
+            public string DocumentPrefix => "{\"openapi\":\"3.2.0\",\"info\":{\"title\":\"Application\",\"version\":\"1.0.0\"},\"tags\":[{\"name\":\"Tenant\"}],\"paths\":{\"/orders/{id}\":{\"get\":{\"tags\":[\"Tenant\"],\"operationId\":\"get\",\"parameters\":[{\"name\":\"id\",\"in\":\"path\",\"required\":true,\"schema\":{\"type\":\"integer\",\"format\":\"int32\"}}],\"responses\":{\"200\":{\"description\":\"OK\",\"content\":{\"application/json\":{\"schema\":{\"type\":\"string\"}}}},\"404\":{\"description\":\"The path did not name a resource: a token failed its route constraint.\"}}}}";
+
+            public string DocumentSuffix => "},\"components\":{\"schemas\":{\"RequestValidationError\":{\"type\":\"object\",\"description\":\"How a request that failed validation is answered.\",\"required\":[\"type\",\"message\",\"errors\"],\"properties\":{\"type\":{\"type\":\"string\"},\"message\":{\"type\":\"string\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"required\":[\"field\",\"code\",\"message\"],\"properties\":{\"field\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"},\"message\":{\"type\":\"string\"}}}}}}}}}";
         }
     }
 }

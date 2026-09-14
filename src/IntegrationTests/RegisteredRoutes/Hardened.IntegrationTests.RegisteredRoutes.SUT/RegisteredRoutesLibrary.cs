@@ -1,6 +1,7 @@
 using Hardened.Shared.Runtime.Attributes;
 using Hardened.Web.Runtime.Attributes;
 using Hardened.Web.Runtime.DependencyInjection;
+using Hardened.Web.Runtime.OpenApi;
 using Hardened.Web.Runtime.Routing;
 
 namespace Hardened.IntegrationTests.RegisteredRoutes.SUT;
@@ -22,6 +23,7 @@ namespace Hardened.IntegrationTests.RegisteredRoutes.SUT;
 /// </remarks>
 [HardenedModule]
 [HardenedWebModule]
+[Enable<OpenApiDocumentPublishing>]
 [BasePath("/registered")]
 public partial class RegisteredRoutesLibrary : IRouteRegistration
 {

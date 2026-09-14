@@ -18,12 +18,14 @@ public sealed class RegisteredRouteHandler
     public RegisteredRouteHandler(
         string method,
         IReadOnlyList<string> boundTokens,
-        RouteHandlerFactory factory
+        RouteHandlerFactory factory,
+        string operation = ""
     )
     {
         Method = method;
         BoundTokens = boundTokens;
         Factory = factory;
+        Operation = operation;
     }
 
     public string Method { get; }
@@ -38,4 +40,22 @@ public sealed class RegisteredRouteHandler
     public IReadOnlyList<string> BoundTokens { get; }
 
     public RouteHandlerFactory Factory { get; }
+
+    /// <summary>
+    /// What this route publishes, as the operation object of an OpenAPI path item -
+    /// <c>"get":{…}</c>.
+    /// </summary>
+    /// <remarks>
+    /// Written by the build, because everything in it is known there: the parameters, their types
+    /// and constraints, the request body, every declared response. The path is the only hole, and
+    /// the path is what the registration supplies - so the served document is assembled by writing
+    /// this between the two halves of the compiled one. No JSON is parsed and no schema is written
+    /// at run time.
+    ///
+    /// <para>
+    /// Empty where the application serves no document, which is what an entry point without
+    /// <c>[OpenApiDocument]</c> gets.
+    /// </para>
+    /// </remarks>
+    public string Operation { get; }
 }

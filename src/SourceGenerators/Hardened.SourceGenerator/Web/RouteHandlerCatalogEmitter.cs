@@ -125,9 +125,11 @@ internal static class RouteHandlerCatalogEmitter
     /// </remarks>
     public static (string Source, IReadOnlyList<IOutputComponent> Registrations)? For(
         EntryPointSelector.Model appModel,
-        IReadOnlyList<RequestHandlerModel> handlers,
+        IReadOnlyList<RequestHandlerModel> routable,
         IReadOnlyList<RouteConstraintModel>? constraints,
-        IReadOnlyList<string> registrations
+        IReadOnlyList<string> registrations,
+        OpenApiDocument.OpenApiDocumentGenerator.SplitDocument? split,
+        IReadOnlyList<string> operations
     )
     {
         if (registrations.Count == 0)
@@ -135,17 +137,15 @@ internal static class RouteHandlerCatalogEmitter
             return null;
         }
 
-        // The same filter the routing table applies. A handler that was not generated must not be
-        // in a catalog that names its class.
-        var routable = handlers.Where(handler => !handler.CannotBeEmitted()).ToList();
-
         return (
             Write(
                 appModel,
                 routable,
                 constraints ?? System.Array.Empty<RouteConstraintModel>(),
                 RoutingTableGenerator.IsCaseInsensitive(appModel),
-                RoutingTableGenerator.GetBasePath(appModel)
+                RoutingTableGenerator.GetBasePath(appModel),
+                split,
+                operations
             ),
             Registrations(appModel, registrations)
         );
@@ -157,7 +157,9 @@ internal static class RouteHandlerCatalogEmitter
         IReadOnlyList<RequestHandlerModel> handlers,
         IReadOnlyList<RouteConstraintModel> constraints,
         bool caseInsensitive,
-        string basePath
+        string basePath,
+        OpenApiDocument.OpenApiDocumentGenerator.SplitDocument? split,
+        IReadOnlyList<string> operations
     )
     {
         var file = new CSharpFileDefinition(appModel.EntryPointType.Namespace);
@@ -165,7 +167,7 @@ internal static class RouteHandlerCatalogEmitter
 
         appClass.Modifiers |= ComponentModifier.Partial;
 
-        Emit(appClass, handlers, constraints, caseInsensitive, basePath);
+        Emit(appClass, handlers, constraints, caseInsensitive, basePath, split, operations);
 
         var outputContext = new OutputContext(
             new OutputContextOptions { TypeOutputMode = TypeOutputMode.Global }
@@ -181,7 +183,9 @@ internal static class RouteHandlerCatalogEmitter
         IReadOnlyList<RequestHandlerModel> handlers,
         IReadOnlyList<RouteConstraintModel> constraints,
         bool caseInsensitive,
-        string basePath
+        string basePath,
+        OpenApiDocument.OpenApiDocumentGenerator.SplitDocument? split,
+        IReadOnlyList<string> operations
     )
     {
         var container = appClass.AddClass(ContainerName);
@@ -198,7 +202,13 @@ internal static class RouteHandlerCatalogEmitter
             ComponentModifier.Private | ComponentModifier.Static | ComponentModifier.Readonly;
         handlerField.InitializeValue = new CodeOutputComponent(
             "new global::Hardened.Web.Runtime.Routing.GeneratedRouteHandler[] { "
-                + string.Join(", ", handlers.Select(Entry))
+                + string.Join(
+                    ", ",
+                    handlers.Select(
+                        (handler, index) =>
+                            Entry(handler, index < operations.Count ? operations[index] : "")
+                    )
+                )
                 + " }"
         )
         {
@@ -236,6 +246,23 @@ internal static class RouteHandlerCatalogEmitter
         Property(container, TypeDefinition.Get(typeof(string)), "BasePath", Quoted(basePath));
 
         Property(container, ConstraintDictionary(), "Constraints", ConstraintsField);
+
+        // The two halves the run time splices a registered path between. Emitted only here, so an
+        // application that registers nothing carries the compiled document and nothing else - these
+        // are the same bytes again, uncompressed.
+        Property(
+            container,
+            TypeDefinition.Get(typeof(string)),
+            "DocumentPrefix",
+            Quoted(split?.Prefix ?? "")
+        );
+
+        Property(
+            container,
+            TypeDefinition.Get(typeof(string)),
+            "DocumentSuffix",
+            Quoted(split?.Suffix ?? "")
+        );
     }
 
     private static ITypeDefinition ConstraintDictionary() =>
@@ -265,7 +292,7 @@ internal static class RouteHandlerCatalogEmitter
     /// The declared route rather than the composed one. The registry reads it for its token names,
     /// and the base path contributes none.
     /// </remarks>
-    private static string Entry(RequestHandlerModel handler) =>
+    private static string Entry(RequestHandlerModel handler, string operation) =>
         "new global::Hardened.Web.Runtime.Routing.GeneratedRouteHandler("
         + "typeof("
         + Global(handler.ControllerType)
@@ -278,7 +305,9 @@ internal static class RouteHandlerCatalogEmitter
         + ", "
         + "static (serviceProvider, routePath) => new "
         + Global(handler.InvokeHandlerType)
-        + "(serviceProvider, routePath))";
+        + "(serviceProvider, routePath), "
+        + Quoted(operation)
+        + ")";
 
     private static string Global(ITypeDefinition type) =>
         "global::" + type.Namespace + "." + type.Name;

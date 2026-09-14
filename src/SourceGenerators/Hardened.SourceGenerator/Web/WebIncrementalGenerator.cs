@@ -102,21 +102,14 @@ public static class WebIncrementalGenerator
         );
 
         // Routes registered with a lambda. Read from the call site rather than from a declaration,
-        // and emitted together: the interceptors share a static class and the attribute the
-        // compiler reads has to be declared once per compilation.
+        // and emitted with the routing table rather than on their own: they belong in the same
+        // document, and a document written twice is two documents.
         var lambdaRoutes = initializationContext
             .SyntaxProvider.CreateSyntaxProvider(
                 Lambda.LambdaRouteSelector.Predicate,
                 Lambda.LambdaRouteSelector.Transform
             )
             .Collect();
-
-        initializationContext.RegisterSourceOutput(
-            lambdaRoutes,
-            SourceGeneratorWrapper.Wrap<ImmutableArray<Lambda.LambdaRouteModel?>>(
-                Lambda.LambdaRouteEmitter.Generate
-            )
-        );
 
         // The registrations the build cannot read, on their own provider and carrying a location -
         // the arrangement the authorization diagnostic uses, for the reason its remarks give.
@@ -210,26 +203,27 @@ public static class WebIncrementalGenerator
             .WithComparer(new CombinedComparer());
 
         initializationContext.RegisterSourceOutput(
-            routeProvider.Combine(options).Combine(constraints),
+            routeProvider.Combine(options).Combine(constraints).Combine(lambdaRoutes),
             SourceGeneratorWrapper.Wrap<(
                 (
-                    (EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) Left,
-                    WebGeneratorOptions Right
+                    (
+                        (
+                            EntryPointSelector.Model Left,
+                            ImmutableArray<RequestHandlerModel> Right
+                        ) Left,
+                        WebGeneratorOptions Right
+                    ) Left,
+                    ImmutableArray<RouteConstraintModel> Right
                 ) Left,
-                ImmutableArray<RouteConstraintModel> Right
+                ImmutableArray<Lambda.LambdaRouteModel?> Right
             )>(
                 (context, pair) =>
-                    RoutingTableGenerator.GenerateRoute(
+                    WebPipeline.Generate(
                         context,
-                        pair.Left.Left,
+                        pair.Left.Left.Left,
+                        pair.Left.Left.Right,
                         pair.Left.Right,
-                        pair.Right,
-                        RouteHandlerCatalogEmitter.For(
-                            pair.Left.Left.Left,
-                            pair.Left.Left.Right,
-                            pair.Right,
-                            pair.Left.Right.RegistrationTypes
-                        )
+                        pair.Right
                     )
             )
         );
