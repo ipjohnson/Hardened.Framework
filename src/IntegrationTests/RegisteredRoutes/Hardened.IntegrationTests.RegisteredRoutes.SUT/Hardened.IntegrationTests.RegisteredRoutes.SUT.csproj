@@ -19,4 +19,11 @@
         <ProjectReference Include="..\..\..\SourceGenerators\Hardened.DependencyModules.SourceGenerator\Hardened.DependencyModules.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
     </ItemGroup>
 
+    <!--
+      Imported from the source tree rather than arriving with a package reference, the way every
+      other fixture in this repository does it. This one carries the interceptor namespace a route
+      registered with a lambda needs the compiler to honour.
+    -->
+    <Import Project="..\..\..\Web\Hardened.Web.Runtime\Package\Hardened.Web.Runtime.targets"/>
+
 </Project>

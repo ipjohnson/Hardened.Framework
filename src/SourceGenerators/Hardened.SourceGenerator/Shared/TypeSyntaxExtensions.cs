@@ -147,7 +147,15 @@ public static class TypeSyntaxExtensions
         return typeDef;
     }
 
-    private static ITypeDefinition GetTypeDefinitionFromType(ITypeSymbol typeSymbol)
+    /// <summary>
+    /// The type as the emitters write it, with its generic arguments and its array rank.
+    /// </summary>
+    /// <remarks>
+    /// Public because a lambda registered as a route has no type syntax to read - its parameter and
+    /// return types are only symbols. <see cref="GetTypeDefinition(ITypeSymbol)"/> is the older
+    /// entry point and answers the bare name, which turns <c>Task&lt;Order&gt;</c> into <c>Task</c>.
+    /// </remarks>
+    public static ITypeDefinition GetTypeDefinitionFromType(ITypeSymbol typeSymbol)
     {
         switch (typeSymbol.SpecialType)
         {

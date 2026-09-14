@@ -101,6 +101,23 @@ public static class WebIncrementalGenerator
             SourceGeneratorWrapper.Wrap<InterfaceRouteModel?>(InterfaceRouteDiagnostics.Report)
         );
 
+        // Routes registered with a lambda. Read from the call site rather than from a declaration,
+        // and emitted together: the interceptors share a static class and the attribute the
+        // compiler reads has to be declared once per compilation.
+        var lambdaRoutes = initializationContext
+            .SyntaxProvider.CreateSyntaxProvider(
+                Lambda.LambdaRouteSelector.Predicate,
+                Lambda.LambdaRouteSelector.Transform
+            )
+            .Collect();
+
+        initializationContext.RegisterSourceOutput(
+            lambdaRoutes,
+            SourceGeneratorWrapper.Wrap<ImmutableArray<Lambda.LambdaRouteModel?>>(
+                Lambda.LambdaRouteEmitter.Generate
+            )
+        );
+
         var invokeGenerator = new WebExecutionHandlerCodeGenerator();
 
         // The handler stage reports a route token nothing declares, so it has to know what the

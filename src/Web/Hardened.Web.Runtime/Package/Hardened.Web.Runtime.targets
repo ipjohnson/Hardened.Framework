@@ -14,4 +14,19 @@
     <ItemGroup>
         <CompilerVisibleProperty Include="HardenedHttpModule"/>
     </ItemGroup>
+
+    <!--
+        A route registered with a lambda is served by rewriting the registration call, and the
+        compiler only honours an interceptor in a namespace the project has named. The generator
+        emits into $(AssemblyName).Generated, so that is what is named here - an application does
+        not have to know the mechanism exists to use the feature.
+
+        Both spellings. InterceptorsPreviewNamespaces is what the 8.0.4xx SDKs read and
+        InterceptorsNamespaces is what replaced it; setting a property the compiler does not know
+        costs nothing, and setting only one leaves the feature silently off on the other.
+    -->
+    <PropertyGroup>
+        <InterceptorsNamespaces>$(InterceptorsNamespaces);$(AssemblyName).Generated</InterceptorsNamespaces>
+        <InterceptorsPreviewNamespaces>$(InterceptorsPreviewNamespaces);$(AssemblyName).Generated</InterceptorsPreviewNamespaces>
+    </PropertyGroup>
 </Project>

@@ -63,6 +63,13 @@ public class TenantRoutes : IRouteRegistration
                     typeof(TenantController),
                     nameof(TenantController.File)
                 );
+
+            // The same shape registered as a lambda. It closes over the tenant, which is the whole
+            // reason the closure has to survive into the handler.
+            routes.Get(
+                $"/{tenant}/ping/{{id:int}}",
+                (int id) => Task.FromResult(new Order(id, tenant))
+            );
         }
 
         return default;
