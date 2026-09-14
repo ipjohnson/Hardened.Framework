@@ -49,34 +49,19 @@ namespace TestApp
             public RequestHandlerInfo? GetExecutionRequestHandler(IExecutionContext context)
             {
                 var pathSpan = context.Request.Path.AsSpan();
-                return TestPath_Slash(
+                return TestPath_Slashfeed(
                     pathSpan,
                     0,
                     context.Request.Method
                 );
             }
 
-            public RequestHandlerInfo? TestPath_Slash(ReadOnlySpan<char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_Slashfeed(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 1) && (charSpan[index + 0] == '/'))
+                if ((charSpan.Length >= index + 5) && charSpan.Slice(index, 5).SequenceEqual("/feed"))
                 {
-                    index += 1;
-                    handlerInfo = TestPath_feed(
-                        charSpan,
-                        index,
-                        methodString
-                    );
-                }
-                return handlerInfo;
-            }
-
-            public RequestHandlerInfo? TestPath_feed(ReadOnlySpan<char> charSpan, int index, string methodString)
-            {
-                RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 4) && (charSpan[index + 0] == 'f') && (charSpan[index + 1] == 'e') && (charSpan[index + 2] == 'e') && (charSpan[index + 3] == 'd'))
-                {
-                    index += 4;
+                    index += 5;
                     if (charSpan.Length == index)
                     {
                         switch (methodString)

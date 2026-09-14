@@ -38,34 +38,19 @@ namespace Test.Api
             public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? GetExecutionRequestHandler(global::Hardened.Requests.Abstract.Execution.IExecutionContext context)
             {
                 var pathSpan = context.Request.Path.AsSpan();
-                return TestPath_Slash(
+                return TestPath_SlashaSlash(
                     pathSpan,
                     0,
                     context.Request.Method
                 );
             }
 
-            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_Slash(global::System.ReadOnlySpan<char> charSpan, int index, string methodString)
+            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_SlashaSlash(global::System.ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 1) && (charSpan[index + 0] == '/'))
+                if ((charSpan.Length >= index + 3) && charSpan.Slice(index, 3).SequenceEqual("/a/"))
                 {
-                    index += 1;
-                    handlerInfo = TestPath_aSlash(
-                        charSpan,
-                        index,
-                        methodString
-                    );
-                }
-                return handlerInfo;
-            }
-
-            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_aSlash(global::System.ReadOnlySpan<char> charSpan, int index, string methodString)
-            {
-                global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 2) && (charSpan[index + 0] == 'a') && (charSpan[index + 1] == '/'))
-                {
-                    index += 2;
+                    index += 3;
                     if (handlerInfo == null)
                     {
                         handlerInfo = TestPath_aSlashWildCard(
@@ -92,9 +77,9 @@ namespace Test.Api
             public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_SlashWildCardMatch(global::System.ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 var handlerInfo = (global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo?)null;
-                var currentIndex = index;
                 var segmentEnd = charSpan.Slice(index).IndexOf('/');
                 var segmentLimit = segmentEnd < 0 ? charSpan.Length : index + segmentEnd + 1;
+                var currentIndex = segmentEnd < 0 ? segmentLimit : index + segmentEnd;
                 while ((currentIndex < segmentLimit))
                 {
                     if (currentIndex > index && (charSpan.Length >= currentIndex + 1) && (charSpan[currentIndex + 0] == '/'))
@@ -127,7 +112,7 @@ namespace Test.Api
             public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_bSlash(global::System.ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 2) && (charSpan[index + 0] == 'b') && (charSpan[index + 1] == '/'))
+                if ((charSpan.Length >= index + 2) && charSpan.Slice(index, 2).SequenceEqual("b/"))
                 {
                     index += 2;
                     if (handlerInfo == null)
@@ -164,9 +149,9 @@ namespace Test.Api
             public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_Slash2(global::System.ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 var handlerInfo = (global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo?)null;
-                var currentIndex = index;
                 var segmentEnd = charSpan.Slice(index).IndexOf('/');
                 var segmentLimit = segmentEnd < 0 ? charSpan.Length : index + segmentEnd + 1;
+                var currentIndex = segmentEnd < 0 ? segmentLimit : index + segmentEnd;
                 while ((currentIndex < segmentLimit))
                 {
                     if (currentIndex > index && (charSpan.Length >= currentIndex + 1) && (charSpan[currentIndex + 0] == '/'))
@@ -199,7 +184,7 @@ namespace Test.Api
             public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_cSlash(global::System.ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 2) && (charSpan[index + 0] == 'c') && (charSpan[index + 1] == '/'))
+                if ((charSpan.Length >= index + 2) && charSpan.Slice(index, 2).SequenceEqual("c/"))
                 {
                     index += 2;
                     if (handlerInfo == null)

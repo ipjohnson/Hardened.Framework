@@ -43,34 +43,19 @@ namespace TestApp
             public RequestHandlerInfo? GetExecutionRequestHandler(IExecutionContext context)
             {
                 var pathSpan = context.Request.Path.AsSpan();
-                return TestPath_Slash(
+                return TestPath_SlashsignDashup(
                     pathSpan,
                     0,
                     context.Request.Method
                 );
             }
 
-            public RequestHandlerInfo? TestPath_Slash(ReadOnlySpan<char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_SlashsignDashup(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 1) && (charSpan[index + 0] == '/'))
+                if ((charSpan.Length >= index + 8) && charSpan.Slice(index, 8).SequenceEqual("/sign-up"))
                 {
-                    index += 1;
-                    handlerInfo = TestPath_signDashup(
-                        charSpan,
-                        index,
-                        methodString
-                    );
-                }
-                return handlerInfo;
-            }
-
-            public RequestHandlerInfo? TestPath_signDashup(ReadOnlySpan<char> charSpan, int index, string methodString)
-            {
-                RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 7) && (charSpan[index + 0] == 's') && (charSpan[index + 1] == 'i') && (charSpan[index + 2] == 'g') && (charSpan[index + 3] == 'n') && (charSpan[index + 4] == '-') && (charSpan[index + 5] == 'u') && (charSpan[index + 6] == 'p'))
-                {
-                    index += 7;
+                    index += 8;
                     if (charSpan.Length == index)
                     {
                         switch (methodString)

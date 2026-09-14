@@ -45,34 +45,19 @@ namespace TestApp
             public RequestHandlerInfo? GetExecutionRequestHandler(IExecutionContext context)
             {
                 var pathSpan = context.Request.Path.AsSpan();
-                return TestPath_Slash(
+                return TestPath_SlashsearchSlash(
                     pathSpan,
                     0,
                     context.Request.Method
                 );
             }
 
-            public RequestHandlerInfo? TestPath_Slash(ReadOnlySpan<char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_SlashsearchSlash(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 1) && (charSpan[index + 0] == '/'))
+                if ((charSpan.Length >= index + 8) && charSpan.Slice(index, 8).SequenceEqual("/search/"))
                 {
-                    index += 1;
-                    handlerInfo = TestPath_searchSlash(
-                        charSpan,
-                        index,
-                        methodString
-                    );
-                }
-                return handlerInfo;
-            }
-
-            public RequestHandlerInfo? TestPath_searchSlash(ReadOnlySpan<char> charSpan, int index, string methodString)
-            {
-                RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 7) && (charSpan[index + 0] == 's') && (charSpan[index + 1] == 'e') && (charSpan[index + 2] == 'a') && (charSpan[index + 3] == 'r') && (charSpan[index + 4] == 'c') && (charSpan[index + 5] == 'h') && (charSpan[index + 6] == '/'))
-                {
-                    index += 7;
+                    index += 8;
                     if (handlerInfo == null)
                     {
                         handlerInfo = TestPath_searchSlashWildCard(

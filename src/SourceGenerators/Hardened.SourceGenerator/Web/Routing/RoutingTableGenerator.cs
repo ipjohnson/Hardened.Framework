@@ -912,6 +912,30 @@ public static class RoutingTableGenerator
             }
         }
 
+        // A node with no leaf, no token and one child decides nothing. It contributes its own
+        // characters and hands the rest along, and the tree makes a great many of them: every
+        // collapsed prefix is wrapped in a node holding the character that led to it, and where a
+        // switch dispatched on that character the child is entered past it with nothing left to
+        // test. 292 of the 1,049 methods in a 504-route table were a call and a return.
+        //
+        // Folding the chain into this method does two things at once. It removes those frames, and
+        // it concatenates the paths, so the root's "/" and its only child's "api/v1/" become one
+        // "/api/v1/" - one span comparison rather than two comparisons and a call between them.
+        //
+        // Every node absorbed has nothing else to emit by the condition that absorbed it, so only
+        // the node the walk ends on contributes leaves, children and tokens below.
+        var node = routeNode;
+
+        while (
+            node.LeafNodes.Count == 0 && node.WildCardNodes.Count == 0 && node.ChildNodes.Count == 1
+        )
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            node = node.ChildNodes[0];
+            path += node.Path;
+        }
+
         var routeMethodName = GetRouteMethodName(routingClass, path);
 
         var testMethod = routingClass.AddMethod(routeMethodName);
@@ -929,18 +953,20 @@ public static class RoutingTableGenerator
 
         if (!string.IsNullOrEmpty(path))
         {
-            var pathIfStatement = CreatePathIfStatement(span, routeNode.Path, cancellationToken);
+            // The folded path, not routeNode's own: the characters tested here are every character
+            // the walk above absorbed, and index advances by exactly that many.
+            var pathIfStatement = CreatePathIfStatement(span, path, cancellationToken);
 
             block = testMethod.If(And(pathIfStatement));
 
             block.AddIndentedStatement("index += " + path.Length);
         }
 
-        if (routeNode.LeafNodes.Count > 0)
+        if (node.LeafNodes.Count > 0)
         {
             ProcessLeafNodes(
                 routingClass,
-                routeNode,
+                node,
                 block,
                 span,
                 index,
@@ -949,11 +975,11 @@ public static class RoutingTableGenerator
             );
         }
 
-        if (routeNode.ChildNodes.Count > 0)
+        if (node.ChildNodes.Count > 0)
         {
             ProcessChildNodes(
                 routingClass,
-                routeNode,
+                node,
                 block,
                 span,
                 index,
@@ -963,11 +989,11 @@ public static class RoutingTableGenerator
             );
         }
 
-        if (routeNode.WildCardNodes.Count > 0)
+        if (node.WildCardNodes.Count > 0)
         {
             ProcessWildCardNodes(
                 routingClass,
-                routeNode,
+                node,
                 block,
                 span,
                 index,
@@ -1145,20 +1171,15 @@ public static class RoutingTableGenerator
         var index = wildCardMethod.AddParameter(typeof(int), "index");
         var methodString = wildCardMethod.AddParameter(typeof(string), "methodString");
 
-        if (wildCardNode.ChildNodes.Count > 0)
-        {
-            GenerateWildCardChildMatch(
-                routingClass,
-                wildCardNode,
-                wildCardMethod,
-                methodString,
-                span,
-                index,
-                cancellationToken
-            );
-        }
-
-        if (wildCardNode.WildCardNodes.Count > 0)
+        // Once, for either kind of continuation. GenerateWildCardChildMatch emits the scan and
+        // handles ChildNodes and WildCardNodes inside it, so calling it per kind emitted the whole
+        // thing twice for a node that has both: two declarations of the same local, and a second
+        // AddField for a handler field that already existed. The generator threw there, and a
+        // generator that throws produces no source at all, so the project lost every generated
+        // file it had rather than just this route.
+        //
+        // /probe/{id}/events beside /probe/{id}/{sub} is all it takes.
+        if (wildCardNode.ChildNodes.Count > 0 || wildCardNode.WildCardNodes.Count > 0)
         {
             GenerateWildCardChildMatch(
                 routingClass,
@@ -1197,8 +1218,6 @@ public static class RoutingTableGenerator
             .Assign(StaticCast(KnownTypes.Web.RequestHandlerInfo.MakeNullable(), Null()))
             .ToVar("handlerInfo");
 
-        var currentIndex = wildCardMethod.Assign(index).ToVar("currentIndex");
-
         // The scan looks for this node's separator and, when the rest of the route does not match
         // from there, tries the next occurrence. The retry is what resolves /files/{name}.{ext}
         // against "a.b.json": the first '.' leaves "b.json", which is not "json", so it takes the
@@ -1217,6 +1236,20 @@ public static class RoutingTableGenerator
         // character at a time whenever the match fails.
         IOutputComponent whileLimit = span.Property("Length");
 
+        // Where the continuation is '/', the boundary is not searched for at all: IndexOf has
+        // already found it. The scan used to start at index and walk to it one character at a
+        // time, and every step before the last failed on the same comparison - there is no '/'
+        // between index and the first '/' by definition. A 36 character identifier cost 36
+        // iterations to reach a position already in a local.
+        //
+        // A continuation that starts with anything else still scans, because a later occurrence of
+        // it can be the match: that is the /files/{name}.{ext} case above.
+        var boundaryIsKnown =
+            !wildCardNode.WildCardIsCatchAll
+            && wildCardNode.Path.StartsWith("/", StringComparison.Ordinal);
+
+        IOutputComponent scanStart = index;
+
         if (!wildCardNode.WildCardIsCatchAll)
         {
             wildCardMethod
@@ -1232,7 +1265,19 @@ public static class RoutingTableGenerator
                 .ToVar("segmentLimit");
 
             whileLimit = CodeOutputComponent.Get("segmentLimit");
+
+            if (boundaryIsKnown)
+            {
+                // No '/' left means no match here at all, and segmentLimit is the span's length in
+                // that case, so starting there ends the loop before its first test rather than
+                // needing a return the leaf block below would skip.
+                scanStart = CodeOutputComponent.Get(
+                    $"segmentEnd < 0 ? segmentLimit : {index.Name} + segmentEnd"
+                );
+            }
         }
+
+        var currentIndex = wildCardMethod.Assign(scanStart).ToVar("currentIndex");
 
         var whileBlock = wildCardMethod.While(LessThan(currentIndex, whileLimit));
 
@@ -1642,6 +1687,29 @@ public static class RoutingTableGenerator
         return null;
     }
 
+    /// <summary>
+    /// The test that <paramref name="routeNodePath"/> is at <paramref name="indexName"/>, as a
+    /// conjunction the caller joins with <c>&amp;&amp;</c>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A literal of two characters or more is compared whole. This used to be one <c>==</c> per
+    /// character, which the JIT does not fold: for the seven characters of <c>inding/</c> it
+    /// emitted seven loads, seven compares, seven branches and seven bounds checks that the length
+    /// guard did not eliminate. The same test as a span comparison is two loads and no branches,
+    /// and stays that shape as the literal grows, which matters because a node's path is a whole
+    /// collapsed prefix - <c>preferences/summary/daily</c> is one node, and was twenty-five
+    /// compares.
+    /// </para>
+    /// <para>
+    /// The length guard has to stay and has to come first: <c>Slice</c> throws where an index
+    /// comparison would have returned false.
+    /// </para>
+    /// <para>
+    /// A single character keeps the direct comparison. Slicing to compare one character is more
+    /// work than comparing it.
+    /// </para>
+    /// </remarks>
     private static IReadOnlyList<IOutputComponent> CreatePathIfStatement(
         ParameterDefinition span,
         string routeNodePath,
@@ -1649,53 +1717,66 @@ public static class RoutingTableGenerator
         string indexName = "index"
     )
     {
-        var returnList = new List<IOutputComponent>();
+        cancellationToken.ThrowIfCancellationRequested();
 
-        returnList.Add(
-            GreaterThanOrEquals(span.Property("Length"), indexName + " + " + routeNodePath.Length)
-        );
-
-        int index = 0;
-        foreach (var pathChar in routeNodePath)
+        var returnList = new List<IOutputComponent>
         {
-            cancellationToken.ThrowIfCancellationRequested();
+            GreaterThanOrEquals(span.Property("Length"), indexName + " + " + routeNodePath.Length),
+        };
 
-            var equalStatement = EqualsStatement(
-                $"{span.Name}[{indexName} + {index}]",
-                "'" + pathChar + "'"
-            );
-
-            // One comparison per character, unless the module asked for case-insensitive matching.
-            // The second was emitted for every letter of every literal in every route, and ran on
-            // every request.
-            if (_caseInsensitive)
+        if (routeNodePath.Length <= 1)
+        {
+            if (routeNodePath.Length == 1)
             {
-                var upperChar = char.ToUpperInvariant(pathChar);
-
-                if (upperChar != pathChar)
-                {
-                    returnList.Add(
-                        Or(
-                            equalStatement,
-                            EqualsStatement(
-                                $"{span.Name}[{indexName} + {index}]",
-                                "'" + upperChar + "'"
-                            )
-                        )
-                    );
-
-                    index++;
-
-                    continue;
-                }
+                returnList.Add(SingleCharacterTest(span, indexName, routeNodePath[0]));
             }
 
-            returnList.Add(equalStatement);
-
-            index++;
+            return returnList;
         }
 
+        var slice = $"{span.Name}.Slice({indexName}, {routeNodePath.Length})";
+        var literal = QuoteString(routeNodePath);
+
+        // OrdinalIgnoreCase rather than a second comparison per character. It is vectorised for
+        // ASCII, and the pair of comparisons the character loop emitted was the other half of what
+        // made a case-insensitive table cost noticeably more than a case-sensitive one.
+        returnList.Add(
+            CodeOutputComponent.Get(
+                _caseInsensitive
+                    ? $"global::System.MemoryExtensions.Equals({slice}, {literal}, "
+                        + "global::System.StringComparison.OrdinalIgnoreCase)"
+                    : $"{slice}.SequenceEqual({literal})"
+            )
+        );
+
         return returnList;
+    }
+
+    /// <summary>
+    /// One character at <paramref name="indexName"/>, matched in both cases where the table is
+    /// case-insensitive and the character has a distinct upper case form.
+    /// </summary>
+    private static IOutputComponent SingleCharacterTest(
+        ParameterDefinition span,
+        string indexName,
+        char pathChar
+    )
+    {
+        var test = EqualsStatement($"{span.Name}[{indexName} + 0]", "'" + pathChar + "'");
+
+        if (!_caseInsensitive)
+        {
+            return test;
+        }
+
+        var upperChar = char.ToUpperInvariant(pathChar);
+
+        if (upperChar == pathChar)
+        {
+            return test;
+        }
+
+        return Or(test, EqualsStatement($"{span.Name}[{indexName} + 0]", "'" + upperChar + "'"));
     }
 
     private static string GetRouteMethodName(

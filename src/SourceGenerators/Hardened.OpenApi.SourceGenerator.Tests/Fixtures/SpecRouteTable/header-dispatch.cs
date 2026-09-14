@@ -51,34 +51,19 @@ namespace Test.Api
                     }
                 }
                 var pathSpan = context.Request.Path.AsSpan();
-                return TestPath_Slash(
+                return TestPath_Slashhealth(
                     pathSpan,
                     0,
                     context.Request.Method
                 );
             }
 
-            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_Slash(global::System.ReadOnlySpan<char> charSpan, int index, string methodString)
+            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_Slashhealth(global::System.ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 1) && (charSpan[index + 0] == '/'))
+                if ((charSpan.Length >= index + 7) && charSpan.Slice(index, 7).SequenceEqual("/health"))
                 {
-                    index += 1;
-                    handlerInfo = TestPath_health(
-                        charSpan,
-                        index,
-                        methodString
-                    );
-                }
-                return handlerInfo;
-            }
-
-            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_health(global::System.ReadOnlySpan<char> charSpan, int index, string methodString)
-            {
-                global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 6) && (charSpan[index + 0] == 'h') && (charSpan[index + 1] == 'e') && (charSpan[index + 2] == 'a') && (charSpan[index + 3] == 'l') && (charSpan[index + 4] == 't') && (charSpan[index + 5] == 'h'))
-                {
-                    index += 6;
+                    index += 7;
                     if (charSpan.Length == index)
                     {
                         switch (methodString)

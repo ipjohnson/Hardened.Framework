@@ -43,34 +43,19 @@ namespace TestApp
             public RequestHandlerInfo? GetExecutionRequestHandler(IExecutionContext context)
             {
                 var pathSpan = context.Request.Path.AsSpan();
-                return TestPath_Slash(
+                return TestPath_Slashsession(
                     pathSpan,
                     0,
                     context.Request.Method
                 );
             }
 
-            public RequestHandlerInfo? TestPath_Slash(ReadOnlySpan<char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_Slashsession(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 1) && (charSpan[index + 0] == '/'))
+                if ((charSpan.Length >= index + 8) && charSpan.Slice(index, 8).SequenceEqual("/session"))
                 {
-                    index += 1;
-                    handlerInfo = TestPath_session(
-                        charSpan,
-                        index,
-                        methodString
-                    );
-                }
-                return handlerInfo;
-            }
-
-            public RequestHandlerInfo? TestPath_session(ReadOnlySpan<char> charSpan, int index, string methodString)
-            {
-                RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 7) && (charSpan[index + 0] == 's') && (charSpan[index + 1] == 'e') && (charSpan[index + 2] == 's') && (charSpan[index + 3] == 's') && (charSpan[index + 4] == 'i') && (charSpan[index + 5] == 'o') && (charSpan[index + 6] == 'n'))
-                {
-                    index += 7;
+                    index += 8;
                     if (charSpan.Length == index)
                     {
                         switch (methodString)

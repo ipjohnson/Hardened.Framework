@@ -77,13 +77,13 @@ namespace TestApp
                     switch (charSpan[index])
                     {
                         case 'i':
-                            return TestPath_NoPath(
+                            return TestPath_temsSlash(
                                 charSpan,
                                 index + 1,
                                 methodString
                             );
                         case 's':
-                            return TestPath_NoPath2(
+                            return TestPath_lugsSlash(
                                 charSpan,
                                 index + 1,
                                 methodString
@@ -93,21 +93,10 @@ namespace TestApp
                 return null;
             }
 
-            public RequestHandlerInfo? TestPath_NoPath(ReadOnlySpan<char> charSpan, int index, string methodString)
-            {
-                RequestHandlerInfo? handlerInfo = null;
-                handlerInfo = TestPath_temsSlash(
-                    charSpan,
-                    index,
-                    methodString
-                );
-                return handlerInfo;
-            }
-
             public RequestHandlerInfo? TestPath_temsSlash(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 5) && (charSpan[index + 0] == 't') && (charSpan[index + 1] == 'e') && (charSpan[index + 2] == 'm') && (charSpan[index + 3] == 's') && (charSpan[index + 4] == '/'))
+                if ((charSpan.Length >= index + 5) && charSpan.Slice(index, 5).SequenceEqual("tems/"))
                 {
                     index += 5;
                     if (handlerInfo == null)
@@ -164,21 +153,10 @@ namespace TestApp
                 }
             }
 
-            public RequestHandlerInfo? TestPath_NoPath2(ReadOnlySpan<char> charSpan, int index, string methodString)
-            {
-                RequestHandlerInfo? handlerInfo = null;
-                handlerInfo = TestPath_lugsSlash(
-                    charSpan,
-                    index,
-                    methodString
-                );
-                return handlerInfo;
-            }
-
             public RequestHandlerInfo? TestPath_lugsSlash(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 5) && (charSpan[index + 0] == 'l') && (charSpan[index + 1] == 'u') && (charSpan[index + 2] == 'g') && (charSpan[index + 3] == 's') && (charSpan[index + 4] == '/'))
+                if ((charSpan.Length >= index + 5) && charSpan.Slice(index, 5).SequenceEqual("lugs/"))
                 {
                     index += 5;
                     if (handlerInfo == null)
@@ -196,7 +174,7 @@ namespace TestApp
             public RequestHandlerInfo? TestPath_lugsSlashWildCard(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
-                handlerInfo = TestPath_NoPath3(
+                handlerInfo = TestPath_NoPath2(
                     charSpan,
                     index,
                     methodString
@@ -204,7 +182,7 @@ namespace TestApp
                 return handlerInfo;
             }
 
-            public RequestHandlerInfo? TestPath_NoPath3(ReadOnlySpan<char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_NoPath2(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 if (charSpan.Length <= index)
                 {

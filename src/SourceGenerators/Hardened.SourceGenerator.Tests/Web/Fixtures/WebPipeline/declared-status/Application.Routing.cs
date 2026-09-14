@@ -48,34 +48,19 @@ namespace TestApp
             public RequestHandlerInfo? GetExecutionRequestHandler(IExecutionContext context)
             {
                 var pathSpan = context.Request.Path.AsSpan();
-                return TestPath_Slash(
+                return TestPath_Slashwidgets(
                     pathSpan,
                     0,
                     context.Request.Method
                 );
             }
 
-            public RequestHandlerInfo? TestPath_Slash(ReadOnlySpan<char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_Slashwidgets(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 1) && (charSpan[index + 0] == '/'))
+                if ((charSpan.Length >= index + 8) && charSpan.Slice(index, 8).SequenceEqual("/widgets"))
                 {
-                    index += 1;
-                    handlerInfo = TestPath_widgets(
-                        charSpan,
-                        index,
-                        methodString
-                    );
-                }
-                return handlerInfo;
-            }
-
-            public RequestHandlerInfo? TestPath_widgets(ReadOnlySpan<char> charSpan, int index, string methodString)
-            {
-                RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 7) && (charSpan[index + 0] == 'w') && (charSpan[index + 1] == 'i') && (charSpan[index + 2] == 'd') && (charSpan[index + 3] == 'g') && (charSpan[index + 4] == 'e') && (charSpan[index + 5] == 't') && (charSpan[index + 6] == 's'))
-                {
-                    index += 7;
+                    index += 8;
                     if (charSpan.Length == index)
                     {
                         switch (methodString)
@@ -89,7 +74,7 @@ namespace TestApp
                                 return _methodNotAllowedPOST;
                         }
                     }
-                    handlerInfo = TestPath_Slash2(
+                    handlerInfo = TestPath_Slash(
                         charSpan,
                         index,
                         methodString
@@ -98,7 +83,7 @@ namespace TestApp
                 return handlerInfo;
             }
 
-            public RequestHandlerInfo? TestPath_Slash2(ReadOnlySpan<char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_Slash(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
                 if ((charSpan.Length >= index + 1) && (charSpan[index + 0] == '/'))

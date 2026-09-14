@@ -43,34 +43,19 @@ namespace Test.Api
             public RequestHandlerInfo? GetExecutionRequestHandler(IExecutionContext context)
             {
                 var pathSpan = context.Request.Path.AsSpan();
-                return TestPath_Slash(
+                return TestPath_SlashpetsSlash(
                     pathSpan,
                     0,
                     context.Request.Method
                 );
             }
 
-            public RequestHandlerInfo? TestPath_Slash(ReadOnlySpan<char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_SlashpetsSlash(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 1) && (charSpan[index + 0] == '/'))
+                if ((charSpan.Length >= index + 6) && global::System.MemoryExtensions.Equals(charSpan.Slice(index, 6), "/pets/", global::System.StringComparison.OrdinalIgnoreCase))
                 {
-                    index += 1;
-                    handlerInfo = TestPath_petsSlash(
-                        charSpan,
-                        index,
-                        methodString
-                    );
-                }
-                return handlerInfo;
-            }
-
-            public RequestHandlerInfo? TestPath_petsSlash(ReadOnlySpan<char> charSpan, int index, string methodString)
-            {
-                RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 5) && ((charSpan[index + 0] == 'p') || (charSpan[index + 0] == 'P')) && ((charSpan[index + 1] == 'e') || (charSpan[index + 1] == 'E')) && ((charSpan[index + 2] == 't') || (charSpan[index + 2] == 'T')) && ((charSpan[index + 3] == 's') || (charSpan[index + 3] == 'S')) && (charSpan[index + 4] == '/'))
-                {
-                    index += 5;
+                    index += 6;
                     if (handlerInfo == null)
                     {
                         handlerInfo = TestPath_petsSlashWildCard(

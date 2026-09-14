@@ -51,34 +51,19 @@ namespace TestApp
             public RequestHandlerInfo? GetExecutionRequestHandler(IExecutionContext context)
             {
                 var pathSpan = context.Request.Path.AsSpan();
-                return TestPath_Slash(
+                return TestPath_SlashticketsSlash(
                     pathSpan,
                     0,
                     context.Request.Method
                 );
             }
 
-            public RequestHandlerInfo? TestPath_Slash(ReadOnlySpan<char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_SlashticketsSlash(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 1) && (charSpan[index + 0] == '/'))
+                if ((charSpan.Length >= index + 9) && charSpan.Slice(index, 9).SequenceEqual("/tickets/"))
                 {
-                    index += 1;
-                    handlerInfo = TestPath_ticketsSlash(
-                        charSpan,
-                        index,
-                        methodString
-                    );
-                }
-                return handlerInfo;
-            }
-
-            public RequestHandlerInfo? TestPath_ticketsSlash(ReadOnlySpan<char> charSpan, int index, string methodString)
-            {
-                RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 8) && (charSpan[index + 0] == 't') && (charSpan[index + 1] == 'i') && (charSpan[index + 2] == 'c') && (charSpan[index + 3] == 'k') && (charSpan[index + 4] == 'e') && (charSpan[index + 5] == 't') && (charSpan[index + 6] == 's') && (charSpan[index + 7] == '/'))
-                {
-                    index += 8;
+                    index += 9;
                     if (handlerInfo == null)
                     {
                         handlerInfo = TestPath_ticketsSlashWildCard(

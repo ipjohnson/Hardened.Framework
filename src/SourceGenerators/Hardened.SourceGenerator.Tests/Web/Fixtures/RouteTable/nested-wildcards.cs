@@ -46,34 +46,19 @@ namespace Test.Api
             public RequestHandlerInfo? GetExecutionRequestHandler(IExecutionContext context)
             {
                 var pathSpan = context.Request.Path.AsSpan();
-                return TestPath_Slash(
+                return TestPath_SlashaSlash(
                     pathSpan,
                     0,
                     context.Request.Method
                 );
             }
 
-            public RequestHandlerInfo? TestPath_Slash(ReadOnlySpan<char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_SlashaSlash(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 1) && (charSpan[index + 0] == '/'))
+                if ((charSpan.Length >= index + 3) && charSpan.Slice(index, 3).SequenceEqual("/a/"))
                 {
-                    index += 1;
-                    handlerInfo = TestPath_aSlash(
-                        charSpan,
-                        index,
-                        methodString
-                    );
-                }
-                return handlerInfo;
-            }
-
-            public RequestHandlerInfo? TestPath_aSlash(ReadOnlySpan<char> charSpan, int index, string methodString)
-            {
-                RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 2) && (charSpan[index + 0] == 'a') && (charSpan[index + 1] == '/'))
-                {
-                    index += 2;
+                    index += 3;
                     if (handlerInfo == null)
                     {
                         handlerInfo = TestPath_aSlashWildCard(
@@ -100,9 +85,9 @@ namespace Test.Api
             public RequestHandlerInfo? TestPath_SlashWildCardMatch(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 var handlerInfo = (RequestHandlerInfo?)null;
-                var currentIndex = index;
                 var segmentEnd = charSpan.Slice(index).IndexOf('/');
                 var segmentLimit = segmentEnd < 0 ? charSpan.Length : index + segmentEnd + 1;
+                var currentIndex = segmentEnd < 0 ? segmentLimit : index + segmentEnd;
                 while ((currentIndex < segmentLimit))
                 {
                     if (currentIndex > index && (charSpan.Length >= currentIndex + 1) && (charSpan[currentIndex + 0] == '/'))
@@ -135,7 +120,7 @@ namespace Test.Api
             public RequestHandlerInfo? TestPath_bSlash(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 2) && (charSpan[index + 0] == 'b') && (charSpan[index + 1] == '/'))
+                if ((charSpan.Length >= index + 2) && charSpan.Slice(index, 2).SequenceEqual("b/"))
                 {
                     index += 2;
                     if (handlerInfo == null)
@@ -172,9 +157,9 @@ namespace Test.Api
             public RequestHandlerInfo? TestPath_Slash2(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 var handlerInfo = (RequestHandlerInfo?)null;
-                var currentIndex = index;
                 var segmentEnd = charSpan.Slice(index).IndexOf('/');
                 var segmentLimit = segmentEnd < 0 ? charSpan.Length : index + segmentEnd + 1;
+                var currentIndex = segmentEnd < 0 ? segmentLimit : index + segmentEnd;
                 while ((currentIndex < segmentLimit))
                 {
                     if (currentIndex > index && (charSpan.Length >= currentIndex + 1) && (charSpan[currentIndex + 0] == '/'))
@@ -207,7 +192,7 @@ namespace Test.Api
             public RequestHandlerInfo? TestPath_cSlash(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 2) && (charSpan[index + 0] == 'c') && (charSpan[index + 1] == '/'))
+                if ((charSpan.Length >= index + 2) && charSpan.Slice(index, 2).SequenceEqual("c/"))
                 {
                     index += 2;
                     if (handlerInfo == null)

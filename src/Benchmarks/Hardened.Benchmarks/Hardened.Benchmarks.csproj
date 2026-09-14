@@ -38,6 +38,9 @@
         <ProjectReference Include="..\Hardened.Benchmarks.Contracts\Hardened.Benchmarks.Contracts.csproj"/>
         <ProjectReference Include="..\Hardened.Benchmarks.Sut\Hardened.Benchmarks.Sut.csproj"/>
         <ProjectReference Include="..\Hardened.Benchmarks.AspNetSut\Hardened.Benchmarks.AspNetSut.csproj"/>
+        <ProjectReference Include="..\Hardened.Benchmarks.RouteScale.Small.Sut\Hardened.Benchmarks.RouteScale.Small.Sut.csproj"/>
+        <ProjectReference Include="..\Hardened.Benchmarks.RouteScale.Medium.Sut\Hardened.Benchmarks.RouteScale.Medium.Sut.csproj"/>
+        <ProjectReference Include="..\Hardened.Benchmarks.RouteScale.Large.Sut\Hardened.Benchmarks.RouteScale.Large.Sut.csproj"/>
     </ItemGroup>
 
     <ItemGroup>

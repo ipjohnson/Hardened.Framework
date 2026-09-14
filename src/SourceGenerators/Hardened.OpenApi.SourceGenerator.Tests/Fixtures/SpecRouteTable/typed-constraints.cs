@@ -73,25 +73,25 @@ namespace Test.Api
                     switch (charSpan[index])
                     {
                         case 'f':
-                            return TestPath_NoPath(
+                            return TestPath_lagSlash(
                                 charSpan,
                                 index + 1,
                                 methodString
                             );
                         case 'i':
-                            return TestPath_NoPath2(
+                            return TestPath_temsSlash(
                                 charSpan,
                                 index + 1,
                                 methodString
                             );
                         case 'k':
-                            return TestPath_NoPath4(
+                            return TestPath_eySlash(
                                 charSpan,
                                 index + 1,
                                 methodString
                             );
                         case 'p':
-                            return TestPath_NoPath6(
+                            return TestPath_riceSlash(
                                 charSpan,
                                 index + 1,
                                 methodString
@@ -101,21 +101,10 @@ namespace Test.Api
                 return null;
             }
 
-            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_NoPath(global::System.ReadOnlySpan<char> charSpan, int index, string methodString)
-            {
-                global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? handlerInfo = null;
-                handlerInfo = TestPath_lagSlash(
-                    charSpan,
-                    index,
-                    methodString
-                );
-                return handlerInfo;
-            }
-
             public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_lagSlash(global::System.ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 4) && (charSpan[index + 0] == 'l') && (charSpan[index + 1] == 'a') && (charSpan[index + 2] == 'g') && (charSpan[index + 3] == '/'))
+                if ((charSpan.Length >= index + 4) && charSpan.Slice(index, 4).SequenceEqual("lag/"))
                 {
                     index += 4;
                     if (handlerInfo == null)
@@ -172,21 +161,10 @@ namespace Test.Api
                 }
             }
 
-            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_NoPath2(global::System.ReadOnlySpan<char> charSpan, int index, string methodString)
-            {
-                global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? handlerInfo = null;
-                handlerInfo = TestPath_temsSlash(
-                    charSpan,
-                    index,
-                    methodString
-                );
-                return handlerInfo;
-            }
-
             public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_temsSlash(global::System.ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 5) && (charSpan[index + 0] == 't') && (charSpan[index + 1] == 'e') && (charSpan[index + 2] == 'm') && (charSpan[index + 3] == 's') && (charSpan[index + 4] == '/'))
+                if ((charSpan.Length >= index + 5) && charSpan.Slice(index, 5).SequenceEqual("tems/"))
                 {
                     index += 5;
                     if (handlerInfo == null)
@@ -204,7 +182,7 @@ namespace Test.Api
             public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_temsSlashWildCard(global::System.ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? handlerInfo = null;
-                handlerInfo = TestPath_NoPath3(
+                handlerInfo = TestPath_NoPath2(
                     charSpan,
                     index,
                     methodString
@@ -212,7 +190,7 @@ namespace Test.Api
                 return handlerInfo;
             }
 
-            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_NoPath3(global::System.ReadOnlySpan<char> charSpan, int index, string methodString)
+            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_NoPath2(global::System.ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 if (charSpan.Length <= index)
                 {
@@ -243,21 +221,10 @@ namespace Test.Api
                 }
             }
 
-            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_NoPath4(global::System.ReadOnlySpan<char> charSpan, int index, string methodString)
-            {
-                global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? handlerInfo = null;
-                handlerInfo = TestPath_eySlash(
-                    charSpan,
-                    index,
-                    methodString
-                );
-                return handlerInfo;
-            }
-
             public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_eySlash(global::System.ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 3) && (charSpan[index + 0] == 'e') && (charSpan[index + 1] == 'y') && (charSpan[index + 2] == '/'))
+                if ((charSpan.Length >= index + 3) && charSpan.Slice(index, 3).SequenceEqual("ey/"))
                 {
                     index += 3;
                     if (handlerInfo == null)
@@ -275,7 +242,7 @@ namespace Test.Api
             public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_eySlashWildCard(global::System.ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? handlerInfo = null;
-                handlerInfo = TestPath_NoPath5(
+                handlerInfo = TestPath_NoPath3(
                     charSpan,
                     index,
                     methodString
@@ -283,7 +250,7 @@ namespace Test.Api
                 return handlerInfo;
             }
 
-            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_NoPath5(global::System.ReadOnlySpan<char> charSpan, int index, string methodString)
+            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_NoPath3(global::System.ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 if (charSpan.Length <= index)
                 {
@@ -314,21 +281,10 @@ namespace Test.Api
                 }
             }
 
-            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_NoPath6(global::System.ReadOnlySpan<char> charSpan, int index, string methodString)
-            {
-                global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? handlerInfo = null;
-                handlerInfo = TestPath_riceSlash(
-                    charSpan,
-                    index,
-                    methodString
-                );
-                return handlerInfo;
-            }
-
             public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_riceSlash(global::System.ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 5) && (charSpan[index + 0] == 'r') && (charSpan[index + 1] == 'i') && (charSpan[index + 2] == 'c') && (charSpan[index + 3] == 'e') && (charSpan[index + 4] == '/'))
+                if ((charSpan.Length >= index + 5) && charSpan.Slice(index, 5).SequenceEqual("rice/"))
                 {
                     index += 5;
                     if (handlerInfo == null)
@@ -346,7 +302,7 @@ namespace Test.Api
             public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_riceSlashWildCard(global::System.ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? handlerInfo = null;
-                handlerInfo = TestPath_NoPath7(
+                handlerInfo = TestPath_NoPath4(
                     charSpan,
                     index,
                     methodString
@@ -354,7 +310,7 @@ namespace Test.Api
                 return handlerInfo;
             }
 
-            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_NoPath7(global::System.ReadOnlySpan<char> charSpan, int index, string methodString)
+            public global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo? TestPath_NoPath4(global::System.ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 if (charSpan.Length <= index)
                 {
