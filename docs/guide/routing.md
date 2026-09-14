@@ -526,7 +526,6 @@ a handler declared the ordinary way, and the build generated it from that declar
 ```csharp
 using Hardened.Web.Runtime.Routing;
 
-[SingletonService]
 public class TenantRoutes : IRouteRegistration {
 
     private readonly ITenantCatalog _catalog;
@@ -545,9 +544,41 @@ public class TenantRoutes : IRouteRegistration {
 `OrderController.Get` is declared `[Get("/orders/{id:int}")]` and answers there as well. The
 registration serves the same generated handler at one more path per tenant.
 
+Implementing the interface is the whole declaration. The build finds the type and registers it, so
+there is no attribute to add and nothing to remember. It is constructed once, and its dependencies
+arrive through its constructor. `IRouteRegistry.ServiceProvider` is there for a dependency the
+constructor cannot take. An abstract class that declares the interface for its subclasses is not
+registered.
+
+The entry point can implement it too, which is the shape that needs no class of its own.
+
+```csharp
+[HardenedModule]
+[HardenedWebModule]
+public partial class Application : IRouteRegistration {
+
+    public async ValueTask Register(IRouteRegistry routes, CancellationToken cancellationToken) {
+        var catalog = routes.ServiceProvider.GetRequiredService<ITenantCatalog>();
+
+        foreach (var tenant in await catalog.Active(cancellationToken)) {
+            routes.Get($"/{tenant.Slug}/orders/{{id:int}}",
+                       typeof(OrderController), nameof(OrderController.Get));
+        }
+    }
+}
+```
+
+An entry point is a module rather than a service, so it takes its dependencies from
+`ServiceProvider` rather than through a constructor.
+
 `IRouteRegistry` has `Get`, `Post`, `Put`, `Patch`, `Delete` and `Map`. Each returns the registry,
 so calls chain. Each takes the path, then either the controller type and the handler method name, or
 a lambda. `Map` takes the verb first.
+
+The template language is the one the attributes use. The same tokens, the same constraints
+including the ones `[RouteConstraint]` declares, the same catch-all. `[BasePath]` on the entry point
+prefixes a registered path exactly as it prefixes an attribute route. `[CaseInsensitiveRoutes]`
+applies to both.
 
 ### A lambda instead of a controller
 
@@ -597,39 +628,6 @@ routes.Map(verb, "/orders", () => "ok");   // the verb has to be a constant
 
 Neither ships a route that silently binds nothing. The declared method throws, and the diagnostic
 points at the call site, which is where the thing to change is.
-
-The template language is the one the attributes use. The same tokens, the same constraints
-including the ones `[RouteConstraint]` declares, the same catch-all. `[BasePath]` on the entry point
-prefixes a registered path exactly as it prefixes an attribute route. `[CaseInsensitiveRoutes]`
-applies to both.
-
-Implementing the interface is the whole declaration. The build finds the type and registers it, so
-there is no attribute to add and nothing to remember. It is constructed once, and its dependencies
-arrive through its constructor. `IRouteRegistry.ServiceProvider` is there for a dependency the
-constructor cannot take.
-
-The entry point can implement it too, which is the shape that needs no class of its own.
-
-```csharp
-[HardenedModule]
-[HardenedWebModule]
-public partial class Application : IRouteRegistration {
-
-    public async ValueTask Register(IRouteRegistry routes, CancellationToken cancellationToken) {
-        var catalog = routes.ServiceProvider.GetRequiredService<ITenantCatalog>();
-
-        foreach (var tenant in await catalog.Active(cancellationToken)) {
-            routes.Get($"/{tenant.Slug}/orders/{{id:int}}",
-                       typeof(OrderController), nameof(OrderController.Get));
-        }
-    }
-}
-```
-
-An entry point is a module rather than a service, so it takes its dependencies from
-`ServiceProvider` rather than through a constructor.
-
-An abstract class that declares the interface for its subclasses is not registered.
 
 ### What runs when
 
