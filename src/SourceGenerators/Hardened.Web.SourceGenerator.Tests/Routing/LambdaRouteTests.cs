@@ -220,4 +220,82 @@ public class LambdaRouteTests
     {
         Assert.Null(Unreadable("""routes.Get("/orders/{id:int}", (int id) => id.ToString());"""));
     }
+
+    /// <summary>
+    /// What the lambda answers with, in the operation the registry splices. The return type
+    /// reached neither the 200 nor <c>components/schemas</c>, so every registered operation
+    /// published a bare <c>"200": {"description": "OK"}</c>.
+    /// </summary>
+    [Fact]
+    public void TheOperationCarriesWhatTheLambdaReturns()
+    {
+        var emitted = Emitted("""routes.Get("/orders/{id:int}", (int id) => new Order(id));""");
+
+        Assert.Contains(
+            """\"200\":{\"description\":\"OK\",\"content\":{\"application/json\":{\"schema\":{\"$ref\":\"#/components/schemas/Order\"}""",
+            emitted
+        );
+    }
+
+    /// <summary>
+    /// And what it reads. A lambda taking a model published no <c>requestBody</c> at all, so a
+    /// generated client had no parameter to send one with.
+    /// </summary>
+    [Fact]
+    public void TheOperationCarriesTheBodyTheLambdaReads()
+    {
+        var emitted = Emitted("""routes.Post("/orders", (Order body) => body.Id);""");
+
+        Assert.Contains(
+            """\"requestBody\":{\"required\":true,\"content\":{\"application/json\":{\"schema\":{\"$ref\":\"#/components/schemas/Order\"}""",
+            emitted
+        );
+    }
+
+    /// <summary>
+    /// The same, through <c>Task&lt;T&gt;</c>, which is how a registered route is usually written.
+    /// </summary>
+    [Fact]
+    public void AnAsyncLambdaPublishesTheTypeInsideTheTask()
+    {
+        var emitted = Emitted(
+            """routes.Get("/orders/{id:int}", async (int id) => await Task.FromResult(new Order(id)));"""
+        );
+
+        Assert.Contains("""#/components/schemas/Order""", emitted);
+        Assert.DoesNotContain("""schemas/Task""", emitted);
+    }
+
+    /// <summary>
+    /// The build writes no <c>operationId</c> for a registered route.
+    /// </summary>
+    /// <remarks>
+    /// One registration serves every path it is registered at, so a build-time id would be one id
+    /// on several operations. The registry writes it from the verb and the path instead. Before
+    /// that the id came from the handler's controller type and method, which for a lambda are its
+    /// delegate type and <c>Invoke</c> - so every registered operation in the application
+    /// published <c>funcInvoke</c>.
+    /// </remarks>
+    [Fact]
+    public void TheOperationLeavesItsIdToTheRegistry()
+    {
+        var emitted = Emitted("""routes.Get("/orders/{id:int}", (int id) => new Order(id));""");
+
+        Assert.DoesNotContain("operationId", emitted);
+        Assert.DoesNotContain("funcInvoke", emitted);
+    }
+
+    /// <summary>
+    /// The group a registered operation documents under is the class the registration is written
+    /// in. The tag came from the handler's controller type, and a lambda's is its delegate type,
+    /// so every one of them documented under <c>Func</c>.
+    /// </summary>
+    [Fact]
+    public void TheOperationDocumentsUnderTheRegisteringClass()
+    {
+        var emitted = Emitted("""routes.Get("/orders/{id:int}", (int id) => new Order(id));""");
+
+        Assert.Contains("""\"tags\":[\"Routes\"]""", emitted);
+        Assert.DoesNotContain("""\"Func\",""", emitted);
+    }
 }

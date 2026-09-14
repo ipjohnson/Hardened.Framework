@@ -417,10 +417,27 @@ public abstract class BaseRequestModelGenerator
         GeneratorSyntaxContext context,
         MethodDeclarationSyntax methodDeclaration,
         ResponseInformationModel response
+    ) =>
+        SchemaSubject(
+            context.SemanticModel.Compilation,
+            context.SemanticModel.GetTypeInfo(methodDeclaration.ReturnType).Type,
+            response
+        );
+
+    /// <summary>
+    /// The type the operation's success schema is written from, given what the handler returns.
+    /// </summary>
+    /// <remarks>
+    /// Takes the return symbol rather than the syntax it was read from, because a route registered
+    /// with a lambda has an <c>IMethodSymbol</c> and no method declaration, and its operation has
+    /// to be written from the same rules a declared handler's is.
+    /// </remarks>
+    public static ITypeSymbol? SchemaSubject(
+        Compilation compilation,
+        ITypeSymbol? declared,
+        ResponseInformationModel response
     )
     {
-        var declared = context.SemanticModel.GetTypeInfo(methodDeclaration.ReturnType).Type;
-
         // The invoker's substitution, made here as well: a bare Task is void with a different
         // spelling. Without it the schema writer walked Task itself, and the document published a
         // Task component with its BCL entourage as the operation's 200.
@@ -449,9 +466,7 @@ public abstract class BaseRequestModelGenerator
             // reference, which the forwarded BCL primitives are - so Created<string> lands here.
             // No schema is a gap; the wrapper is a shape no client ever receives, offered as the
             // contract.
-            return context.SemanticModel.Compilation.GetTypeByMetadataName(
-                single.BodyTypeName.Replace("global::", "")
-            );
+            return compilation.GetTypeByMetadataName(single.BodyTypeName.Replace("global::", ""));
         }
 
         var successStatus = response.DefaultStatusCode ?? 200;
@@ -462,9 +477,8 @@ public abstract class BaseRequestModelGenerator
 
         return success.TypeName == null
             ? declared
-            : context.SemanticModel.Compilation.GetTypeByMetadataName(
-                success.TypeName.Replace("global::", "")
-            ) ?? declared;
+            : compilation.GetTypeByMetadataName(success.TypeName.Replace("global::", ""))
+                ?? declared;
     }
 
     /// <summary>

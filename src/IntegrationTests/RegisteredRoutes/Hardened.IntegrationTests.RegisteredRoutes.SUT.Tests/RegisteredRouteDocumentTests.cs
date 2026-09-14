@@ -110,6 +110,111 @@ public class RegisteredRouteDocumentTests
         Assert.Contains("C:\\orders", description);
     }
 
+    /// <summary>
+    /// Every operation in the document has an id, and no two share one.
+    /// </summary>
+    /// <remarks>
+    /// The registry writes a registered route's id from the verb and the path, because one
+    /// registration serves every path it is registered at and a build-time id would be one id on
+    /// several operations. Before that, every lambda published <c>funcInvoke</c> - eighteen times
+    /// in the 0.36 trial - and a declared handler registered at three paths published its own id
+    /// three times.
+    /// </remarks>
+    [HardenedTest]
+    public async Task EveryOperationIdIsUnique(ITestWebApp app)
+    {
+        var paths = await Paths(app);
+
+        var ids = paths
+            .EnumerateObject()
+            .SelectMany(path => path.Value.EnumerateObject())
+            .Select(operation => operation.Value.GetProperty("operationId").GetString())
+            .ToList();
+
+        Assert.NotEmpty(ids);
+        Assert.Equal(ids.Count, ids.Distinct(StringComparer.Ordinal).Count());
+    }
+
+    /// <summary>
+    /// The path a route registered at is what names it, so the same handler at two paths is two
+    /// operations a client can tell apart.
+    /// </summary>
+    [HardenedTest]
+    public async Task ARegisteredRouteIsNamedAfterThePathItRegisteredAt(ITestWebApp app)
+    {
+        var paths = await Paths(app);
+
+        string Id(string path, string method) =>
+            paths.GetProperty(path).GetProperty(method).GetProperty("operationId").GetString()!;
+
+        Assert.Equal("registeredAcmeOrdersByIdGet", Id("/registered/acme/orders/{id}", "get"));
+        Assert.Equal("registeredGlobexOrdersByIdGet", Id("/registered/globex/orders/{id}", "get"));
+
+        // The lambda form, which used to be funcInvoke whatever it was registered at.
+        Assert.Equal("registeredAcmePingByIdGet", Id("/registered/acme/ping/{id}", "get"));
+    }
+
+    /// <summary>
+    /// A lambda's body reaches the document. Its schema was never read, so
+    /// <c>routes.Post(path, (Order body) =&gt; ...)</c> published nothing about the body it
+    /// requires and a generated client had no parameter to send one with.
+    /// </summary>
+    [HardenedTest]
+    public async Task ALambdaPublishesTheBodyItReads(ITestWebApp app)
+    {
+        var paths = await Paths(app);
+
+        var schema = paths
+            .GetProperty("/registered/acme/echo")
+            .GetProperty("post")
+            .GetProperty("requestBody")
+            .GetProperty("content")
+            .GetProperty("application/json")
+            .GetProperty("schema");
+
+        Assert.Equal("#/components/schemas/Order", schema.GetProperty("$ref").GetString());
+    }
+
+    /// <summary>
+    /// And what it answers with. The return type reached neither the 200 nor
+    /// <c>components/schemas</c>, so every registered operation published a bare
+    /// <c>"200": {"description": "OK"}</c> - exactly the half a client cannot be generated from.
+    /// </summary>
+    [HardenedTest]
+    public async Task ALambdaPublishesWhatItAnswersWith(ITestWebApp app)
+    {
+        var paths = await Paths(app);
+
+        var schema = paths
+            .GetProperty("/registered/acme/ping/{id}")
+            .GetProperty("get")
+            .GetProperty("responses")
+            .GetProperty("200")
+            .GetProperty("content")
+            .GetProperty("application/json")
+            .GetProperty("schema");
+
+        Assert.Equal("#/components/schemas/Order", schema.GetProperty("$ref").GetString());
+    }
+
+    /// <summary>
+    /// A registered operation documents under the class the registration is written in, which is
+    /// the group a reader is looking for. The tag came from the handler's controller type, and a
+    /// lambda's is its delegate type - so every one of them documented under <c>Func</c>.
+    /// </summary>
+    [HardenedTest]
+    public async Task ALambdaDocumentsUnderTheClassThatRegisteredIt(ITestWebApp app)
+    {
+        var paths = await Paths(app);
+
+        var tags = paths
+            .GetProperty("/registered/acme/ping/{id}")
+            .GetProperty("get")
+            .GetProperty("tags");
+
+        Assert.Equal("Tenant", tags[0].GetString());
+    }
+
     /// <remarks>
     /// A registered route's body model has to be in <c>components</c>, or its operation carries a
     /// <c>$ref</c> to nothing.

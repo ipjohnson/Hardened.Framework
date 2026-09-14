@@ -1,3 +1,4 @@
+using System.Text;
 using Hardened.Requests.Abstract.Execution;
 
 namespace Hardened.Web.Runtime.Routing;
@@ -90,7 +91,7 @@ public sealed class RouteRegistry : IRouteRegistry
             return this;
         }
 
-        Publishes(composed, handler.Operation);
+        Publishes(verb, composed, handler.Operation);
 
         return this;
     }
@@ -145,7 +146,7 @@ public sealed class RouteRegistry : IRouteRegistry
             return this;
         }
 
-        Publishes(composed, handler.Operation);
+        Publishes(handler.Method, composed, handler.Operation);
 
         return this;
     }
@@ -167,16 +168,62 @@ public sealed class RouteRegistry : IRouteRegistry
     /// Records what a route that did register publishes.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// Only a route that registered. A failed one is in the document of no application, because a
     /// failed registration fails startup.
+    /// </para>
+    /// <para>
+    /// And this is where the operation gets its id. The build writes every registered operation
+    /// without one, because one registration serves every path it registers at and an id is
+    /// unique across a document - see <see cref="RegisteredOperationId"/>.
+    /// </para>
     /// </remarks>
-    private void Publishes(string path, string operation)
+    private void Publishes(string method, string path, string operation)
     {
-        if (operation.Length > 0)
+        if (operation.Length == 0)
         {
-            _operations.Add((RouteTemplateParser.NamesOnly(path), operation));
+            return;
         }
+
+        var template = RouteTemplateParser.NamesOnly(path);
+
+        _operations.Add(
+            (template, Identified(operation, RegisteredOperationId.For(method, template)))
+        );
     }
+
+    /// <summary>
+    /// <paramref name="operation"/> with its <c>operationId</c> written in.
+    /// </summary>
+    /// <remarks>
+    /// After the brace that opens the operation object, which is where the build writes it for a
+    /// declared route - so the two read the same in a document and diff the same against the last
+    /// one. Nothing is parsed: that brace closes the verb key the build wrote first, so finding it
+    /// is a scan of at most seven characters.
+    /// </remarks>
+    private static string Identified(string operation, string id)
+    {
+        var open = operation.IndexOf('{');
+
+        if (open < 0)
+        {
+            return operation;
+        }
+
+        return new StringBuilder(operation.Length + id.Length + 20)
+            .Append(operation, 0, open + 1)
+            .Append("\"operationId\":\"")
+            .Append(Escape(id))
+            .Append("\",")
+            .Append(operation, open + 1, operation.Length - open - 1)
+            .ToString();
+    }
+
+    /// <summary>An id as a JSON string body. It is derived from a path the application computed.</summary>
+    private static string Escape(string value) =>
+        value.IndexOf('"') < 0 && value.IndexOf('\\') < 0
+            ? value
+            : value.Replace("\\", "\\\\").Replace("\"", "\\\"");
 
     private void Closed(string path)
     {

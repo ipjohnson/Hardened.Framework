@@ -233,7 +233,7 @@ public static class OpenApiDocumentGenerator
         {
             var operation = new StringBuilder();
 
-            WriteOperation(operation, handler, components, operationIds, version, enums);
+            WriteOperation(operation, handler, components, operationIds, version, enums, true);
 
             operations.Add(operation.ToString());
         }
@@ -635,23 +635,34 @@ public static class OpenApiDocumentGenerator
         return result;
     }
 
+    /// <param name="omitOperationId">
+    /// Written for a route whose path this build does not know. One registration serves every path
+    /// it is registered at, so a build-time id would be one id on several operations - which
+    /// OpenAPI forbids, and which published <c>funcInvoke</c> eighteen times on the application
+    /// that found it. The registry writes the id instead, from the verb and the path it registered
+    /// at, where the two are known and unique together.
+    /// </param>
     private static void WriteOperation(
         StringBuilder builder,
         RequestHandlerModel handler,
         SortedDictionary<string, string> components,
         IReadOnlyDictionary<string, string> operationIds,
         OpenApiVersion version,
-        IReadOnlyDictionary<string, EnumVocabulary> enums
+        IReadOnlyDictionary<string, EnumVocabulary> enums,
+        bool omitOperationId = false
     )
     {
         builder.Append('"').Append(handler.Name.Method.ToLowerInvariant()).Append("\":{");
 
-        builder.Append("\"tags\":[\"").Append(JsonSchemaWriter.Escape(Tag(handler))).Append("\"],");
+        builder.Append("\"tags\":[\"").Append(JsonSchemaWriter.Escape(Tag(handler))).Append("\"]");
 
-        builder
-            .Append("\"operationId\":\"")
-            .Append(JsonSchemaWriter.Escape(operationIds[HandlerKey(handler)]))
-            .Append('"');
+        if (!omitOperationId)
+        {
+            builder
+                .Append(",\"operationId\":\"")
+                .Append(JsonSchemaWriter.Escape(operationIds[HandlerKey(handler)]))
+                .Append('"');
+        }
 
         WriteText(builder, "summary", handler.Summary);
         WriteText(builder, "description", handler.Description);
