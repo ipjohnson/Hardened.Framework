@@ -44,34 +44,19 @@ namespace Test.Api
             public RequestHandlerInfo? GetExecutionRequestHandler(IExecutionContext context)
             {
                 var pathSpan = context.Request.Path.AsSpan();
-                return TestPath_Slash(
+                return TestPath_SlashapiSlashpets(
                     pathSpan,
                     0,
                     context.Request.Method
                 );
             }
 
-            public RequestHandlerInfo? TestPath_Slash(ReadOnlySpan<char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_SlashapiSlashpets(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 1) && (charSpan[index + 0] == '/'))
+                if ((charSpan.Length >= index + 9) && charSpan.Slice(index, 9).SequenceEqual("/api/pets"))
                 {
-                    index += 1;
-                    handlerInfo = TestPath_apiSlashpets(
-                        charSpan,
-                        index,
-                        methodString
-                    );
-                }
-                return handlerInfo;
-            }
-
-            public RequestHandlerInfo? TestPath_apiSlashpets(ReadOnlySpan<char> charSpan, int index, string methodString)
-            {
-                RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 8) && charSpan.Slice(index, 8).SequenceEqual("api/pets"))
-                {
-                    index += 8;
+                    index += 9;
                     if (charSpan.Length == index)
                     {
                         switch (methodString)
@@ -89,7 +74,7 @@ namespace Test.Api
                                 return _methodNotAllowedGETHEAD;
                         }
                     }
-                    handlerInfo = TestPath_Slash2(
+                    handlerInfo = TestPath_Slash(
                         charSpan,
                         index,
                         methodString
@@ -98,7 +83,7 @@ namespace Test.Api
                 return handlerInfo;
             }
 
-            public RequestHandlerInfo? TestPath_Slash2(ReadOnlySpan<char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_Slash(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
                 if ((charSpan.Length >= index + 1) && (charSpan[index + 0] == '/'))

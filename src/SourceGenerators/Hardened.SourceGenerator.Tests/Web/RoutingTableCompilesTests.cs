@@ -324,7 +324,7 @@ public class RoutingTableCompilesTests
             .AssertNoErrors()
             .SourceContaining("Routing");
 
-        Assert.Contains("v1/orders", routing);
+        Assert.Contains("/v1/orders", routing);
     }
 
     /// <summary>
@@ -354,7 +354,7 @@ public class RoutingTableCompilesTests
             .AssertNoErrors()
             .SourceContaining("Routing");
 
-        Assert.Contains(".SequenceEqual(\"orders\")", routing);
+        Assert.Contains(".SequenceEqual(\"/orders\")", routing);
         Assert.DoesNotContain("OrdinalIgnoreCase", routing);
     }
 
@@ -386,7 +386,7 @@ public class RoutingTableCompilesTests
             .SourceContaining("Routing");
 
         Assert.Contains("OrdinalIgnoreCase", routing);
-        Assert.Contains("\"orders\"", routing);
+        Assert.Contains("\"/orders\"", routing);
     }
 
     /// <summary>

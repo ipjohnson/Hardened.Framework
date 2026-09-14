@@ -81,25 +81,25 @@ namespace Test.Api
                     switch (charSpan[index])
                     {
                         case 'f':
-                            return TestPath_NoPath(
+                            return TestPath_lagSlash(
                                 charSpan,
                                 index + 1,
                                 methodString
                             );
                         case 'i':
-                            return TestPath_NoPath2(
+                            return TestPath_temsSlash(
                                 charSpan,
                                 index + 1,
                                 methodString
                             );
                         case 'k':
-                            return TestPath_NoPath4(
+                            return TestPath_eySlash(
                                 charSpan,
                                 index + 1,
                                 methodString
                             );
                         case 'p':
-                            return TestPath_NoPath6(
+                            return TestPath_riceSlash(
                                 charSpan,
                                 index + 1,
                                 methodString
@@ -107,17 +107,6 @@ namespace Test.Api
                     }
                 }
                 return null;
-            }
-
-            public RequestHandlerInfo? TestPath_NoPath(ReadOnlySpan<char> charSpan, int index, string methodString)
-            {
-                RequestHandlerInfo? handlerInfo = null;
-                handlerInfo = TestPath_lagSlash(
-                    charSpan,
-                    index,
-                    methodString
-                );
-                return handlerInfo;
             }
 
             public RequestHandlerInfo? TestPath_lagSlash(ReadOnlySpan<char> charSpan, int index, string methodString)
@@ -180,17 +169,6 @@ namespace Test.Api
                 }
             }
 
-            public RequestHandlerInfo? TestPath_NoPath2(ReadOnlySpan<char> charSpan, int index, string methodString)
-            {
-                RequestHandlerInfo? handlerInfo = null;
-                handlerInfo = TestPath_temsSlash(
-                    charSpan,
-                    index,
-                    methodString
-                );
-                return handlerInfo;
-            }
-
             public RequestHandlerInfo? TestPath_temsSlash(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
@@ -212,7 +190,7 @@ namespace Test.Api
             public RequestHandlerInfo? TestPath_temsSlashWildCard(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
-                handlerInfo = TestPath_NoPath3(
+                handlerInfo = TestPath_NoPath2(
                     charSpan,
                     index,
                     methodString
@@ -220,7 +198,7 @@ namespace Test.Api
                 return handlerInfo;
             }
 
-            public RequestHandlerInfo? TestPath_NoPath3(ReadOnlySpan<char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_NoPath2(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 if (charSpan.Length <= index)
                 {
@@ -251,17 +229,6 @@ namespace Test.Api
                 }
             }
 
-            public RequestHandlerInfo? TestPath_NoPath4(ReadOnlySpan<char> charSpan, int index, string methodString)
-            {
-                RequestHandlerInfo? handlerInfo = null;
-                handlerInfo = TestPath_eySlash(
-                    charSpan,
-                    index,
-                    methodString
-                );
-                return handlerInfo;
-            }
-
             public RequestHandlerInfo? TestPath_eySlash(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
@@ -283,7 +250,7 @@ namespace Test.Api
             public RequestHandlerInfo? TestPath_eySlashWildCard(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
-                handlerInfo = TestPath_NoPath5(
+                handlerInfo = TestPath_NoPath3(
                     charSpan,
                     index,
                     methodString
@@ -291,7 +258,7 @@ namespace Test.Api
                 return handlerInfo;
             }
 
-            public RequestHandlerInfo? TestPath_NoPath5(ReadOnlySpan<char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_NoPath3(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 if (charSpan.Length <= index)
                 {
@@ -322,17 +289,6 @@ namespace Test.Api
                 }
             }
 
-            public RequestHandlerInfo? TestPath_NoPath6(ReadOnlySpan<char> charSpan, int index, string methodString)
-            {
-                RequestHandlerInfo? handlerInfo = null;
-                handlerInfo = TestPath_riceSlash(
-                    charSpan,
-                    index,
-                    methodString
-                );
-                return handlerInfo;
-            }
-
             public RequestHandlerInfo? TestPath_riceSlash(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
@@ -354,7 +310,7 @@ namespace Test.Api
             public RequestHandlerInfo? TestPath_riceSlashWildCard(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
-                handlerInfo = TestPath_NoPath7(
+                handlerInfo = TestPath_NoPath4(
                     charSpan,
                     index,
                     methodString
@@ -362,7 +318,7 @@ namespace Test.Api
                 return handlerInfo;
             }
 
-            public RequestHandlerInfo? TestPath_NoPath7(ReadOnlySpan<char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_NoPath4(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 if (charSpan.Length <= index)
                 {

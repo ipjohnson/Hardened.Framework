@@ -912,6 +912,32 @@ public static class RoutingTableGenerator
             }
         }
 
+        // A node with no leaf, no token and one child decides nothing. It contributes its own
+        // characters and hands the rest along, and the tree makes a great many of them: every
+        // collapsed prefix is wrapped in a node holding the character that led to it, and where a
+        // switch dispatched on that character the child is entered past it with nothing left to
+        // test. 292 of the 1,049 methods in a 504-route table were a call and a return.
+        //
+        // Folding the chain into this method does two things at once. It removes those frames, and
+        // it concatenates the paths, so the root's "/" and its only child's "api/v1/" become one
+        // "/api/v1/" - one span comparison rather than two comparisons and a call between them.
+        //
+        // Every node absorbed has nothing else to emit by the condition that absorbed it, so only
+        // the node the walk ends on contributes leaves, children and tokens below.
+        var node = routeNode;
+
+        while (
+            node.LeafNodes.Count == 0
+            && node.WildCardNodes.Count == 0
+            && node.ChildNodes.Count == 1
+        )
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            node = node.ChildNodes[0];
+            path += node.Path;
+        }
+
         var routeMethodName = GetRouteMethodName(routingClass, path);
 
         var testMethod = routingClass.AddMethod(routeMethodName);
@@ -929,18 +955,20 @@ public static class RoutingTableGenerator
 
         if (!string.IsNullOrEmpty(path))
         {
-            var pathIfStatement = CreatePathIfStatement(span, routeNode.Path, cancellationToken);
+            // The folded path, not routeNode's own: the characters tested here are every character
+            // the walk above absorbed, and index advances by exactly that many.
+            var pathIfStatement = CreatePathIfStatement(span, path, cancellationToken);
 
             block = testMethod.If(And(pathIfStatement));
 
             block.AddIndentedStatement("index += " + path.Length);
         }
 
-        if (routeNode.LeafNodes.Count > 0)
+        if (node.LeafNodes.Count > 0)
         {
             ProcessLeafNodes(
                 routingClass,
-                routeNode,
+                node,
                 block,
                 span,
                 index,
@@ -949,11 +977,11 @@ public static class RoutingTableGenerator
             );
         }
 
-        if (routeNode.ChildNodes.Count > 0)
+        if (node.ChildNodes.Count > 0)
         {
             ProcessChildNodes(
                 routingClass,
-                routeNode,
+                node,
                 block,
                 span,
                 index,
@@ -963,11 +991,11 @@ public static class RoutingTableGenerator
             );
         }
 
-        if (routeNode.WildCardNodes.Count > 0)
+        if (node.WildCardNodes.Count > 0)
         {
             ProcessWildCardNodes(
                 routingClass,
-                routeNode,
+                node,
                 block,
                 span,
                 index,

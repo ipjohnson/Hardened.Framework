@@ -72,13 +72,13 @@ namespace Test.Api
                     switch (charSpan[index])
                     {
                         case 'p':
-                            return TestPath_NoPath(
+                            return TestPath_ets(
                                 charSpan,
                                 index + 1,
                                 methodString
                             );
                         case 's':
-                            return TestPath_NoPath2(
+                            return TestPath_tore(
                                 charSpan,
                                 index + 1,
                                 methodString
@@ -86,17 +86,6 @@ namespace Test.Api
                     }
                 }
                 return null;
-            }
-
-            public RequestHandlerInfo? TestPath_NoPath(ReadOnlySpan<char> charSpan, int index, string methodString)
-            {
-                RequestHandlerInfo? handlerInfo = null;
-                handlerInfo = TestPath_ets(
-                    charSpan,
-                    index,
-                    methodString
-                );
-                return handlerInfo;
             }
 
             public RequestHandlerInfo? TestPath_ets(ReadOnlySpan<char> charSpan, int index, string methodString)
@@ -119,7 +108,7 @@ namespace Test.Api
                                 return _methodNotAllowedGETHEAD;
                         }
                     }
-                    handlerInfo = TestPath_Slash2(
+                    handlerInfo = TestPath_Slashfeatured(
                         charSpan,
                         index,
                         methodString
@@ -128,27 +117,12 @@ namespace Test.Api
                 return handlerInfo;
             }
 
-            public RequestHandlerInfo? TestPath_Slash2(ReadOnlySpan<char> charSpan, int index, string methodString)
+            public RequestHandlerInfo? TestPath_Slashfeatured(ReadOnlySpan<char> charSpan, int index, string methodString)
             {
                 RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 1) && (charSpan[index + 0] == '/'))
+                if ((charSpan.Length >= index + 9) && charSpan.Slice(index, 9).SequenceEqual("/featured"))
                 {
-                    index += 1;
-                    handlerInfo = TestPath_featured(
-                        charSpan,
-                        index,
-                        methodString
-                    );
-                }
-                return handlerInfo;
-            }
-
-            public RequestHandlerInfo? TestPath_featured(ReadOnlySpan<char> charSpan, int index, string methodString)
-            {
-                RequestHandlerInfo? handlerInfo = null;
-                if ((charSpan.Length >= index + 8) && charSpan.Slice(index, 8).SequenceEqual("featured"))
-                {
-                    index += 8;
+                    index += 9;
                     if (charSpan.Length == index)
                     {
                         switch (methodString)
@@ -164,17 +138,6 @@ namespace Test.Api
                         }
                     }
                 }
-                return handlerInfo;
-            }
-
-            public RequestHandlerInfo? TestPath_NoPath2(ReadOnlySpan<char> charSpan, int index, string methodString)
-            {
-                RequestHandlerInfo? handlerInfo = null;
-                handlerInfo = TestPath_tore(
-                    charSpan,
-                    index,
-                    methodString
-                );
                 return handlerInfo;
             }
 
