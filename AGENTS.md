@@ -170,6 +170,23 @@ shows up as a diff in that file; commit it with the change. The export task read
 literal out of the compiled assembly under `{EntryPoint}.OpenApiDocument.GZip`, a name the
 generators and `Hardened.OpenApiDocument.BuildTask` both depend on.
 
+**A generated type name must not be seeded with anything that moves.** `string.GetHashCode` is
+randomised per process, so the same source names a class differently on every build; and the test
+harness gives each syntax tree a path under the project directory while a deterministic build
+rewrites paths to `/_/...`, so hashing the path names it differently on a developer's machine and in
+CI. Seed from the file *name* and a hash written out in the generator. Both of those shipped in one
+three-line method and both were caught by the golden fixtures - the first by disagreeing with itself
+across two runs, the second by disagreeing across environments.
+
+**An interceptor only intercepts in a namespace the project named.** A route registered with a
+lambda is served by rewriting the registration call, and the compiler ignores
+`[InterceptsLocation]` otherwise - CS9137, and the route is unreachable.
+`Hardened.Web.Runtime.targets` sets `InterceptorsNamespaces` and `InterceptorsPreviewNamespaces` to
+`$(AssemblyName).Generated`, so an application that consumes the package needs nothing. **A fixture
+in this repository references projects rather than packages, so it has to `<Import>` that targets
+file** the way the Azure HTTP fixture already does. `GeneratorTestHarness` sets the same pair as a
+parse-option feature, which is what lets the generator suites compile what they emit.
+
 **Generated sources under `obj/**/generated/` are not cleaned by a rename.** A generator that
 changes name leaves its old directory behind, and Rider compiles both. Debug and Release have
 separate directories, so an IDE reading one while you build the other reports errors `dotnet build`
