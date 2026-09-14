@@ -1,0 +1,79 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Description>Runs a Hardened application as a Google Cloud Functions 2nd gen function: a FunctionsStartup that populates the application into the Functions Framework's own container, and the host that runs a request through the Hardened chain from the features the framework's HttpContext carries. The triggers, the front door and the routing are Hardened.Gcp.CloudRun.Runtime's, unchanged - only the entry point differs.</Description>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>true</IsPackable>
+        <PackageId>Hardened.Gcp.Functions.Runtime</PackageId>
+        <PackageTags>Hardened;Hardened.Framework;gcp;cloudfunctions;serverless</PackageTags>
+    </PropertyGroup>
+
+    <!--
+      No IsAotCompatible, against every other package under src/Clouds/Gcp.
+
+      The property turns on the trim and AOT analyzers, and what they would report here is
+      accurate: the Functions Framework resolves FUNCTION_TARGET with Assembly.GetType and builds
+      the target through reflection, so an application hosted this way cannot be trimmed or
+      published NativeAOT whatever this assembly's own code does. Setting it would either produce
+      warnings this package cannot fix or, suppressed, claim a capability the deployment does not
+      have.
+
+      It is also a real difference between the two Google deployment models and worth stating
+      plainly: the Cloud Run container can ship a trimmed or NativeAOT binary and a 2nd gen
+      function, built from source by Google's buildpack, cannot.
+    -->
+
+    <!--
+      Beside Hardened.Gcp.CloudRun.* rather than under it. This is a second host, not a Cloud Run
+      adapter: the CloudRun prefix belongs to packages that teach the front door one envelope, and
+      a consumer reading this one as a seventh adapter would expect it to compose
+      [CloudRunRuntime] the way they do rather than to replace a Program.cs.
+    -->
+
+    <ItemGroup>
+        <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+    </ItemGroup>
+
+    <!--
+      Google.Cloud.Functions.Hosting, and not the Framework package beside it. Hosting is what
+      declares FunctionsStartup and the MSBuild targets that write the entry point's Main; it
+      depends on the Framework package, so IHttpFunction - which the generated entry type
+      implements, in the consumer's assembly - arrives with it.
+    -->
+    <ItemGroup>
+        <PackageReference Include="Google.Cloud.Functions.Hosting" />
+        <PackageReference Include="DependencyModules.Runtime" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    </ItemGroup>
+
+    <!--
+      Hardened.Gcp.CloudRun.Runtime, because the trigger front door, the dispatch and the module an
+      application declares are all there and none of them are Kestrel. A function deployment serves
+      the same envelopes through the same code; what this package replaces is the entry point.
+      Referencing it is also what carries that package's targets in, so [Get] stays bound to a
+      module on a service that has both web routes and triggers.
+    -->
+    <ItemGroup>
+        <ProjectReference Include="..\Hardened.Gcp.CloudRun.Runtime\Hardened.Gcp.CloudRun.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj"/>
+        <ProjectReference Include="..\..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\Web\Hardened.Web.Runtime\Hardened.Web.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\Web\Hardened.Web.Kestrel.Runtime\Hardened.Web.Kestrel.Runtime.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="Hardened.Gcp.Functions.Runtime.Tests"/>
+    </ItemGroup>
+
+    <!-- One build asset, and it is a diagnostic. See the targets file for what it catches. -->
+    <ItemGroup>
+        <Content Include="Package\Hardened.Gcp.Functions.Runtime.targets">
+            <Pack>true</Pack>
+            <PackagePath>buildTransitive/</PackagePath>
+            <PackageCopyToOutput>true</PackageCopyToOutput>
+        </Content>
+    </ItemGroup>
+
+</Project>
