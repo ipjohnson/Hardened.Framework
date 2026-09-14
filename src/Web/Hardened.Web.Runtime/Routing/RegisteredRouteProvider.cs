@@ -32,7 +32,7 @@ public sealed class RegisteredRouteProvider : IWebExecutionRequestHandlerProvide
     private readonly bool _expectsRegistrations;
 
     private RuntimeRouteTable? _table;
-    private IExecutionRequestHandler? _pending;
+    private RequestHandlerInfo? _pending;
 
     public RegisteredRouteProvider(IServiceProvider rootProvider, bool expectsRegistrations)
     {
@@ -76,7 +76,7 @@ public sealed class RegisteredRouteProvider : IWebExecutionRequestHandlerProvide
 
         // Registration has not closed. A 404 here would be a lie, and a lie a CDN or an API gateway
         // caches; 503 says come back, which is what is actually true.
-        return new RequestHandlerInfo(_pending ??= PendingHandler.For(_rootProvider));
+        return _pending ??= new RequestHandlerInfo(PendingHandler.For(_rootProvider));
     }
 
     /// <summary>

@@ -90,7 +90,7 @@ public struct PathTokenCollection : IPathTokenCollection
     {
         GuardIndex(index);
 
-        return new PathToken(_names![index] ?? "", ValueAt(index) ?? "");
+        return new PathToken(_names![index], ValueAt(index) ?? "");
     }
 
     public readonly StringValues Get(string id)
