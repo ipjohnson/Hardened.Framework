@@ -5,6 +5,7 @@ using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Requests;
 using Hardened.SourceGenerator.Shared;
 using Hardened.SourceGenerator.Web.Routing;
+using static CSharpAuthor.SyntaxHelpers;
 
 namespace Hardened.SourceGenerator.Web;
 
@@ -83,7 +84,7 @@ internal static class ServerSentEventManifestEmitter
         field.Modifiers |=
             ComponentModifier.Private | ComponentModifier.Static | ComponentModifier.Readonly;
         field.InitializeValue = new CodeOutputComponent(
-            "new string[] { " + string.Join(", ", handlers.Select(Quoted)) + " }"
+            "new string[] { " + string.Join(", ", handlers.Select(QuoteString)) + " }"
         )
         {
             Indented = false,
@@ -104,6 +105,4 @@ internal static class ServerSentEventManifestEmitter
         property.Get.LambdaSyntax = true;
         property.Get.AddCode(HandlersField + ";");
     }
-
-    private static string Quoted(string value) => "\"" + value.Replace("\"", "\\\"") + "\"";
 }

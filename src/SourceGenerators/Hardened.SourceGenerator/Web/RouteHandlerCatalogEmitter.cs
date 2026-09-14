@@ -243,7 +243,7 @@ internal static class RouteHandlerCatalogEmitter
             caseInsensitive ? "true" : "false"
         );
 
-        Property(container, TypeDefinition.Get(typeof(string)), "BasePath", Quoted(basePath));
+        Property(container, TypeDefinition.Get(typeof(string)), "BasePath", QuoteString(basePath));
 
         Property(container, ConstraintDictionary(), "Constraints", ConstraintsField);
 
@@ -254,14 +254,14 @@ internal static class RouteHandlerCatalogEmitter
             container,
             TypeDefinition.Get(typeof(string)),
             "DocumentPrefix",
-            Quoted(split?.Prefix ?? "")
+            QuoteString(split?.Prefix ?? "")
         );
 
         Property(
             container,
             TypeDefinition.Get(typeof(string)),
             "DocumentSuffix",
-            Quoted(split?.Suffix ?? "")
+            QuoteString(split?.Suffix ?? "")
         );
     }
 
@@ -297,16 +297,16 @@ internal static class RouteHandlerCatalogEmitter
         + "typeof("
         + Global(handler.ControllerType)
         + "), "
-        + Quoted(handler.HandlerMethod)
+        + QuoteString(handler.HandlerMethod)
         + ", "
-        + Quoted(handler.Name.Method)
+        + QuoteString(handler.Name.Method)
         + ", "
-        + Quoted(handler.Name.Path)
+        + QuoteString(handler.Name.Path)
         + ", "
         + "static (serviceProvider, routePath) => new "
         + Global(handler.InvokeHandlerType)
         + "(serviceProvider, routePath), "
-        + Quoted(operation)
+        + QuoteString(operation)
         + ")";
 
     private static string Global(ITypeDefinition type) =>
@@ -325,11 +325,9 @@ internal static class RouteHandlerCatalogEmitter
             + string.Join(
                 ", ",
                 declared.Select(constraint =>
-                    "{ " + Quoted(constraint.Name) + ", " + constraint.Call + " }"
+                    "{ " + QuoteString(constraint.Name) + ", " + constraint.Call + " }"
                 )
             )
             + " }";
     }
-
-    private static string Quoted(string value) => "\"" + value.Replace("\"", "\\\"") + "\"";
 }

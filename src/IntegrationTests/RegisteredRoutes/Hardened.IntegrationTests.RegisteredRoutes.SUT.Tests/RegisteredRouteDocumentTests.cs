@@ -84,6 +84,32 @@ public class RegisteredRouteDocumentTests
         Assert.True(orders.TryGetProperty("delete", out _));
     }
 
+    /// <summary>
+    /// The prose a handler documents itself with, through the splice and back out intact.
+    /// </summary>
+    /// <remarks>
+    /// <c>TenantController.Get</c> carries a double quote and a backslash for this. The catalog
+    /// writes its operation into a C# string literal, and 0.36.0-rc1000 escaped the quote and not
+    /// the backslash: a quote ended the literal, so an application declaring an
+    /// <c>IRouteRegistration</c> did not compile at all, and a backslash reached the served
+    /// document as a lone escape that <c>JsonDocument.Parse</c> refuses. Every test on this
+    /// class would fail on the second of those; this one says which defect it is.
+    /// </remarks>
+    [HardenedTest]
+    public async Task ADocCommentsQuoteAndBackslashSurviveTheSplice(ITestWebApp app)
+    {
+        var paths = await Paths(app);
+
+        var description = paths
+            .GetProperty("/registered/acme/orders/{id}")
+            .GetProperty("get")
+            .GetProperty("description")
+            .GetString();
+
+        Assert.Contains("\"null\"", description);
+        Assert.Contains("C:\\orders", description);
+    }
+
     /// <remarks>
     /// A registered route's body model has to be in <c>components</c>, or its operation carries a
     /// <c>$ref</c> to nothing.
