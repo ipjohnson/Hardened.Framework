@@ -1012,16 +1012,7 @@ public abstract class BaseRequestModelGenerator
         // cannot report one, so an attribute on a handler that streams nothing is carried forward
         // as a finding rather than rejected in place. The mismatch is decided here because this is
         // where the return type is known.
-        //
-        // Read off the declared media type rather than off [ServerSentEvents], which derives from
-        // [Produces] and declares exactly that type. The two spellings are one declaration, so
-        // [Produces("text/event-stream")] frames a stream as events without the second attribute.
-        var framing =
-            producedContentTypes != null
-            && producedContentTypes.IndexOf(Headers.EventStream, StringComparison.OrdinalIgnoreCase)
-                >= 0
-                ? StreamFramingNames.ServerSentEvents
-                : null;
+        var framing = StreamFraming(producedContentTypes);
 
         var successStatus = DeclaredSuccessStatus(context);
 
@@ -1155,12 +1146,26 @@ public abstract class BaseRequestModelGenerator
     private static string? DeclaredContentTypes(
         GeneratorSyntaxContext context,
         MethodDeclarationSyntax methodDeclaration
+    ) => DeclaredContentTypes(context, methodDeclaration.AttributeLists, methodDeclaration);
+
+    /// <summary>
+    /// The same two rungs, off whatever carries the attribute lists.
+    /// </summary>
+    /// <remarks>
+    /// A route registered with a lambda declares its media types on the lambda, and the class the
+    /// registration is written in is the second rung the way a controller is. One method so the
+    /// order is stated once: a handler written two ways still reads its declaration the same way.
+    /// </remarks>
+    public static string? DeclaredContentTypes(
+        GeneratorSyntaxContext context,
+        SyntaxList<AttributeListSyntax> attributeLists,
+        SyntaxNode declaredIn
     )
     {
-        return DeclaredOn(context, methodDeclaration.AttributeLists)
+        return DeclaredOn(context, attributeLists)
             ?? DeclaredOn(
                 context,
-                methodDeclaration
+                declaredIn
                     .Ancestors()
                     .OfType<TypeDeclarationSyntax>()
                     .FirstOrDefault()
@@ -1261,6 +1266,22 @@ public abstract class BaseRequestModelGenerator
     }
 
     /// <summary>
+    /// How a streamed response is framed, read off the media types the operation declares.
+    /// </summary>
+    /// <remarks>
+    /// Read off the declared media type rather than off <c>[ServerSentEvents]</c>, which derives
+    /// from <c>[Produces]</c> and declares exactly that type. The two spellings are one
+    /// declaration, so <c>[Produces("text/event-stream")]</c> frames a stream as events without the
+    /// second attribute.
+    /// </remarks>
+    public static string? StreamFraming(string? producedContentTypes) =>
+        producedContentTypes != null
+        && producedContentTypes.IndexOf(Headers.EventStream, StringComparison.OrdinalIgnoreCase)
+            >= 0
+            ? StreamFramingNames.ServerSentEvents
+            : null;
+
+    /// <summary>
     /// The content type to put on the response before the handler runs, or empty where nothing
     /// should be.
     /// </summary>
@@ -1278,7 +1299,7 @@ public abstract class BaseRequestModelGenerator
     /// raw handlers; <c>[Produces]</c> goes on both, so the return type is what separates them.
     /// </para>
     /// </remarks>
-    private static string CommittedContentType(
+    public static string CommittedContentType(
         string? producedContentTypes,
         bool returnsBytesOrText,
         bool isAsyncEnumerable
@@ -1298,51 +1319,27 @@ public abstract class BaseRequestModelGenerator
     }
 
     /// <summary>
-    /// Whether the handler's return value is already what goes on the wire, so no serializer can
-    /// structure it.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// <c>byte[]</c> and <c>Stream</c>, unwrapped from a <c>Task</c> or <c>ValueTask</c>. Returning
-    /// either is the handler saying it controls its own serialization, so the pass-through writer is
-    /// bound when the pipeline is composed and the response never reaches a serializer whatever it
-    /// declares. Stage 4 reads this; the build diagnostic that requires a declaration on these
-    /// handlers reads it too.
-    /// </para>
-    /// <para>
-    /// <b>A <c>string</c> is not one of them.</b> It has a JSON reading as well, a quoted string,
-    /// and that is what a handler declaring nothing answers with. It takes the pass-through writer
-    /// by declaring a media type instead - see <see cref="ReturnsBytesOrText"/>.
-    /// </para>
-    /// <para>
-    /// Read through the semantic model rather than the type name, so a <c>Stream</c> subclass is one
-    /// however it is named and a model called <c>EventStream</c> is not.
-    /// </para>
-    /// </remarks>
-    /// <summary>
     /// Whether a parameter's type is the payload rather than a shape to read out of one.
     /// </summary>
     /// <remarks>
-    /// <para>
-    /// The same two types <see cref="WritesRawBytes"/> recognises on a return type, asked the same
-    /// way and for the same reason: <c>byte[]</c> and <c>Stream</c> are bytes, so nothing
-    /// serializes them in either direction. Base types are walked, so a <c>MemoryStream</c>
-    /// parameter is a stream.
-    /// </para>
-    /// <para>
     /// Asked here, where the symbol exists. The type definition carried forward to the binder has
     /// a name and a namespace and no base type, so the answer cannot be recovered there.
-    /// </para>
     /// </remarks>
-    public static bool IsRawBodyType(GeneratorSyntaxContext context, ParameterSyntax parameter)
+    public static bool IsRawBodyType(GeneratorSyntaxContext context, ParameterSyntax parameter) =>
+        parameter.Type != null
+        && IsRawPayload(context.SemanticModel.GetTypeInfo(parameter.Type).Type);
+
+    /// <summary>
+    /// Whether a type is bytes rather than a shape read out of them.
+    /// </summary>
+    /// <remarks>
+    /// The one test both directions ask. A <c>byte[]</c> or a <c>Stream</c> is the payload, so
+    /// nothing serializes it inbound and nothing structures it outbound. Base types are walked, so
+    /// a <c>MemoryStream</c> is a stream, and the namespace is checked, so a model named
+    /// <c>EventStream</c> is not.
+    /// </remarks>
+    public static bool IsRawPayload(ITypeSymbol? type)
     {
-        if (parameter.Type == null)
-        {
-            return false;
-        }
-
-        var type = context.SemanticModel.GetTypeInfo(parameter.Type).Type;
-
         if (type is IArrayTypeSymbol array)
         {
             return array.ElementType.SpecialType == SpecialType.System_Byte;
@@ -1362,31 +1359,28 @@ public abstract class BaseRequestModelGenerator
         return false;
     }
 
+    /// <summary>
+    /// Whether the handler's return value is already what goes on the wire, so no serializer can
+    /// structure it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>byte[]</c> and <c>Stream</c>, unwrapped from a <c>Task</c> or <c>ValueTask</c>. Returning
+    /// either is the handler saying it controls its own serialization, so the pass-through writer is
+    /// bound when the pipeline is composed and the response never reaches a serializer whatever it
+    /// declares. Stage 4 reads this; the build diagnostic that requires a declaration on these
+    /// handlers reads it too.
+    /// </para>
+    /// <para>
+    /// <b>A <c>string</c> is not one of them.</b> It has a JSON reading as well, a quoted string,
+    /// and that is what a handler declaring nothing answers with. It takes the pass-through writer
+    /// by declaring a media type instead - see <see cref="ReturnsBytesOrText"/>.
+    /// </para>
+    /// </remarks>
     private static bool WritesRawBytes(
         GeneratorSyntaxContext context,
         MethodDeclarationSyntax methodDeclaration
-    )
-    {
-        var returnType = UnwrappedReturnType(context, methodDeclaration);
-
-        if (returnType is IArrayTypeSymbol array)
-        {
-            return array.ElementType.SpecialType == SpecialType.System_Byte;
-        }
-
-        for (var current = returnType; current != null; current = current.BaseType)
-        {
-            if (
-                current.Name == "Stream"
-                && current.ContainingNamespace?.ToDisplayString() == "System.IO"
-            )
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
+    ) => IsRawPayload(UnwrappedReturnType(context, methodDeclaration));
 
     /// <summary>
     /// <see cref="WritesRawBytes"/> and <c>string</c>, which is the set a content type is committed
@@ -1469,10 +1463,18 @@ public abstract class BaseRequestModelGenerator
     private static ITypeSymbol? UnwrappedReturnType(
         GeneratorSyntaxContext context,
         MethodDeclarationSyntax methodDeclaration
-    )
-    {
-        var returnType = context.SemanticModel.GetTypeInfo(methodDeclaration.ReturnType).Type;
+    ) => AwaitedType(context.SemanticModel.GetTypeInfo(methodDeclaration.ReturnType).Type);
 
+    /// <summary>
+    /// What a handler answers with, whether or not it is written as an awaitable.
+    /// </summary>
+    /// <remarks>
+    /// <c>Task&lt;T&gt;</c> is how a value is returned rather than what it is, so every question
+    /// about the response - is it bytes, can it be committed to a content type - is a question
+    /// about <c>T</c>.
+    /// </remarks>
+    public static ITypeSymbol? AwaitedType(ITypeSymbol? returnType)
+    {
         if (
             returnType is INamedTypeSymbol { IsGenericType: true } generic
             && generic.Name is "Task" or "ValueTask"

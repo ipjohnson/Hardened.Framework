@@ -266,4 +266,49 @@ public class RegisteredRouteDocumentTests
 
         Assert.True(schemas.TryGetProperty("Order", out _));
     }
+
+    /// <summary>
+    /// A registered lambda's declared media types, in the operation the registry splices.
+    /// </summary>
+    /// <remarks>
+    /// The declaration reached the handler's metadata and nothing else, so every registered
+    /// operation published a bare <c>application/json</c> whatever the lambda said it answers
+    /// with - and a client generated from the document sent an <c>Accept</c> the route does not
+    /// produce.
+    /// </remarks>
+    [HardenedTest]
+    public async Task ARegisteredLambdaPublishesTheMediaTypeItDeclares(ITestWebApp app)
+    {
+        var paths = await Paths(app);
+
+        var content = paths
+            .GetProperty("/registered/acme/label/{id}")
+            .GetProperty("get")
+            .GetProperty("responses")
+            .GetProperty("200")
+            .GetProperty("content");
+
+        Assert.True(content.TryGetProperty("text/plain", out _));
+        Assert.False(content.TryGetProperty("application/json", out _));
+    }
+
+    /// <remarks>
+    /// An operation whose response a view writes publishes what the view writes, not the model it
+    /// was handed - the same rule the declared form follows.
+    /// </remarks>
+    [HardenedTest]
+    public async Task ARegisteredLambdaNamingAViewPublishesWhatTheViewWrites(ITestWebApp app)
+    {
+        var paths = await Paths(app);
+
+        var content = paths
+            .GetProperty("/registered/acme/card/{id}")
+            .GetProperty("get")
+            .GetProperty("responses")
+            .GetProperty("200")
+            .GetProperty("content");
+
+        Assert.True(content.TryGetProperty("text/html", out var html));
+        Assert.Equal("string", html.GetProperty("schema").GetProperty("type").GetString());
+    }
 }

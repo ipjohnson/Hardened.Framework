@@ -124,7 +124,7 @@ public static class LambdaRouteSelector
 
         var delegateType = DelegateType(lambda);
         var parameters = Parameters(context, parameterList, cancellationToken);
-        var response = Response(lambda);
+        var response = Response(context, lambdaSyntax, lambda);
 
         var handler = new RequestHandlerModel(
             // The tokens this handler reads and the constraint each needs, which is what the
@@ -266,7 +266,55 @@ public static class LambdaRouteSelector
                 .MakeNullable()
             : TypeSyntaxExtensions.GetTypeDefinitionFromType(type);
 
-    private static ResponseInformationModel Response(IMethodSymbol lambda)
+    /// <summary>
+    /// What the lambda answers with: its return type, and what it declared about the response.
+    /// </summary>
+    /// <remarks>
+    /// The declarations reached the handler's metadata array and nothing else, so
+    /// <c>[Produces]</c> on a lambda changed neither negotiation, nor the document, nor the cache
+    /// key, and <c>[Output&lt;T&gt;]</c> was ignored and the model serialized in the view's place -
+    /// which is the disclosure the attribute exists to prevent. They are read here, off the rungs a
+    /// controller's are read off and into the fields a controller's are written to, so one handler
+    /// written two ways answers one way.
+    /// </remarks>
+    private static ResponseInformationModel Response(
+        GeneratorSyntaxContext context,
+        AnonymousFunctionExpressionSyntax lambdaSyntax,
+        IMethodSymbol lambda
+    )
+    {
+        var response = FromReturnType(lambda);
+
+        var attributeLists =
+            (lambdaSyntax as ParenthesizedLambdaExpressionSyntax)?.AttributeLists ?? default;
+
+        var produced = BaseRequestModelGenerator.DeclaredContentTypes(
+            context,
+            attributeLists,
+            lambdaSyntax
+        );
+
+        var answered = BaseRequestModelGenerator.AwaitedType(lambda.ReturnType);
+        var writesRawBytes = BaseRequestModelGenerator.IsRawPayload(answered);
+
+        var returnsBytesOrText =
+            writesRawBytes || answered?.SpecialType == SpecialType.System_String;
+
+        response.OutputType = OutputAttributeSelector.Read(context, attributeLists);
+        response.ProducedContentTypes = produced;
+        response.WritesRawBytes = writesRawBytes;
+        response.ReturnsBytesOrText = returnsBytesOrText;
+        response.StreamFraming = BaseRequestModelGenerator.StreamFraming(produced);
+        response.RawResponseContentType = BaseRequestModelGenerator.CommittedContentType(
+            produced,
+            returnsBytesOrText,
+            response.IsAsyncEnumerable
+        );
+
+        return response;
+    }
+
+    private static ResponseInformationModel FromReturnType(IMethodSymbol lambda)
     {
         if (lambda.ReturnsVoid)
         {

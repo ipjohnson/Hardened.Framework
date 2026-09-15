@@ -24,11 +24,12 @@ public class LambdaRouteTests
 {
     private static readonly Type[] Anchors = [typeof(GetAttribute), typeof(FromBodyAttribute)];
 
-    private static string Application(string body) =>
+    private static string Application(string body, string classAttribute) =>
         $$"""
             using System;
             using System.Threading;
             using System.Threading.Tasks;
+            using Hardened.Requests.Abstract.Attributes;
             using Hardened.Shared.Runtime.Attributes;
             using Hardened.Web.Runtime.Attributes;
             using Hardened.Web.Runtime.Routing;
@@ -42,6 +43,12 @@ public class LambdaRouteTests
 
             public record Order(int Id);
 
+            /// <summary>An output, in the one sense the generator cares about.</summary>
+            public class Card : Hardened.Requests.Abstract.Outputs.IHardenedResponseOutput<Order> {
+                public Task WriteOutput(Hardened.Requests.Abstract.Execution.IExecutionContext context) => Task.CompletedTask;
+            }
+
+            {{classAttribute}}
             public class Routes : IRouteRegistration {
                 public ValueTask Register(IRouteRegistry routes, CancellationToken cancellationToken) {
                     {{body}}
@@ -51,15 +58,15 @@ public class LambdaRouteTests
             }
             """;
 
-    private static GeneratorResult Generate(string body) =>
+    private static GeneratorResult Generate(string body, string classAttribute = "") =>
         GeneratorTestHarness.Run(
-            new Dictionary<string, string> { ["Test.cs"] = Application(body) },
+            new Dictionary<string, string> { ["Test.cs"] = Application(body, classAttribute) },
             new IIncrementalGenerator[] { new WebLibrarySourceGenerator() },
             Anchors
         );
 
-    private static string Emitted(string body) =>
-        Generate(body).AssertNoErrors().SourceContaining("RegisteredLambdas");
+    private static string Emitted(string body, string classAttribute = "") =>
+        Generate(body, classAttribute).AssertNoErrors().SourceContaining("RegisteredLambdas");
 
     [Fact]
     public void ALambdaRegistrationEmitsAHandlerAndAnInterceptor()
@@ -310,5 +317,121 @@ public class LambdaRouteTests
 
         Assert.Contains("""\"tags\":[\"Routes\"]""", emitted);
         Assert.DoesNotContain("""\"Func\",""", emitted);
+    }
+
+    // ---- what the lambda declares about its response ------------------------
+
+    /// <summary>
+    /// The media types the lambda declares, in the array negotiation reads. The attribute was
+    /// emitted into the handler's own metadata and read from nowhere, so it changed neither what
+    /// the handler answered with nor what the cache keyed on.
+    /// </summary>
+    [Fact]
+    public void TheMediaTypesTheLambdaDeclaresReachTheHandler()
+    {
+        var emitted = Emitted(
+            """
+            routes.Get("/orders/{id:int}", [Produces("application/json", "application/x-msgpack")] (int id) => new Order(id));
+            """
+        );
+
+        Assert.Contains(
+            """producedContentTypes: new string[] { "application/json", "application/x-msgpack" }""",
+            emitted
+        );
+    }
+
+    [Fact]
+    public void TheOperationPublishesTheMediaTypesTheLambdaDeclares()
+    {
+        var emitted = Emitted(
+            """
+            routes.Get("/orders/{id:int}", [Produces("application/json", "application/x-msgpack")] (int id) => new Order(id));
+            """
+        );
+
+        Assert.Contains(
+            """\"application/x-msgpack\":{\"schema\":{\"$ref\":\"#/components/schemas/Order\"}""",
+            emitted
+        );
+    }
+
+    /// <remarks>
+    /// The second rung a controller's declaration is read off. The class the registration is
+    /// written in groups its lambdas the way a controller groups its methods.
+    /// </remarks>
+    [Fact]
+    public void AMediaTypeOnTheRegisteringClassReachesItsLambdas()
+    {
+        var emitted = Emitted(
+            """routes.Get("/orders/{id:int}", (int id) => new Order(id));""",
+            classAttribute: """[Produces("application/x-msgpack")]"""
+        );
+
+        Assert.Contains(
+            """producedContentTypes: new string[] { "application/x-msgpack" }""",
+            emitted
+        );
+    }
+
+    [Fact]
+    public void ALambdaThatDeclaresNothingIsLeftNegotiating()
+    {
+        var emitted = Emitted("""routes.Get("/orders/{id:int}", (int id) => new Order(id));""");
+
+        Assert.DoesNotContain("producedContentTypes:", emitted);
+    }
+
+    /// <remarks>
+    /// One declared media type on a handler that writes its own bytes commits the response ahead
+    /// of the handler, which is what makes a lambda that throws answer under the type it promised.
+    /// </remarks>
+    [Fact]
+    public void ALambdaReturningTextCommitsTheOneTypeItDeclares()
+    {
+        var emitted = Emitted("""routes.Get("/label", [Produces("text/plain")] () => "ok");""");
+
+        Assert.Contains("""context.Response.ContentType = "text/plain";""", emitted);
+    }
+
+    /// <summary>
+    /// The view writes the response. The attribute was ignored and the model serialized in its
+    /// place, which is the disclosure <c>[Output&lt;T&gt;]</c> exists to prevent: a view usually
+    /// renders a subset of what its model holds.
+    /// </summary>
+    [Fact]
+    public void ALambdaNamingAViewWritesThroughIt()
+    {
+        var emitted = Emitted("""routes.Get("/card", [Output<Card>] () => new Order(1));""");
+
+        Assert.Contains("_outputFactory = static _ => new global::TestApp.Card()", emitted);
+        Assert.Contains("context.Response.OutputFactory = _outputFactory;", emitted);
+    }
+
+    /// <remarks>
+    /// The assignment the compiler binds, which is the one thing that makes "this view's model
+    /// matches this handler's return type" a build error across a generator boundary.
+    /// </remarks>
+    [Fact]
+    public void AViewNamedOnALambdaIsCheckedAgainstWhatItReturns()
+    {
+        var emitted = Emitted("""routes.Get("/card", [Output<Card>] () => new Order(1));""");
+
+        Assert.Contains(
+            "IHardenedResponseOutput<global::TestApp.Order> _outputCheck_Invoke",
+            emitted
+        );
+    }
+
+    [Fact]
+    public void AnOperationNamingAViewPublishesWhatTheViewWrites()
+    {
+        var emitted = Emitted("""routes.Get("/card", [Output<Card>] () => new Order(1));""");
+
+        Assert.Contains("""\"text/html\":{\"schema\":{\"type\":\"string\"}}""", emitted);
+        Assert.DoesNotContain(
+            """\"application/json\":{\"schema\":{\"$ref\":\"#/components/schemas/Order\"}""",
+            emitted
+        );
     }
 }

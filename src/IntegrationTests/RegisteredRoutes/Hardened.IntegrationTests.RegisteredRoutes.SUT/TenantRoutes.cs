@@ -1,4 +1,8 @@
+using System.Text;
 using DependencyModules.Runtime.Attributes;
+using Hardened.Requests.Abstract.Attributes;
+using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Abstract.Outputs;
 using Hardened.Web.Runtime.Routing;
 
 namespace Hardened.IntegrationTests.RegisteredRoutes.SUT;
@@ -29,6 +33,28 @@ public interface ITenantContext
 public class TenantContext : ITenantContext
 {
     public string Current => "any";
+}
+
+/// <summary>
+/// Something that writes a response itself, which is what a view is here.
+/// </summary>
+/// <remarks>
+/// Hand-written rather than a <c>.cshtml</c>, because what is under test is whether a lambda's
+/// <c>[Output&lt;T&gt;]</c> is read at all. It writes the id and not the tenant, so what arrives
+/// says which of the two wrote the response.
+/// </remarks>
+public class OrderCard : IHardenedResponseOutput<Order>
+{
+    public async Task WriteOutput(IExecutionContext context)
+    {
+        var order = (Order)context.Response.ResponseValue!;
+
+        context.Response.ContentType = "text/html";
+
+        var bytes = Encoding.UTF8.GetBytes("<p>" + order.Id + "</p>");
+
+        await context.Response.Body.WriteAsync(bytes, 0, bytes.Length);
+    }
 }
 
 /// <summary>
@@ -83,6 +109,23 @@ public class TenantRoutes : IRouteRegistration
                 "DELETE",
                 $"/{tenant}/orders/{{id:int}}",
                 (int id) => Task.FromResult(new Order(id, tenant))
+            );
+
+            // A media type declared on the lambda. It reached the handler's metadata array and
+            // nothing read it there, so the operation published nothing about what it answers and
+            // the wire answered a JSON string whatever was asked for.
+            routes.Get(
+                $"/{tenant}/label/{{id:int}}",
+                [Produces("text/plain")]
+                (int id) => id + ":" + tenant
+            );
+
+            // A view named on the lambda. Ignored the same way, and the model went out as JSON in
+            // the view's place - which is the disclosure the attribute exists to prevent.
+            routes.Get(
+                $"/{tenant}/card/{{id:int}}",
+                [Output<OrderCard>]
+                (int id) => new Order(id, tenant)
             );
         }
 

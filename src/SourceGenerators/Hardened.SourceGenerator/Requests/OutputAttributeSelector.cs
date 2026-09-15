@@ -42,9 +42,22 @@ public static class OutputAttributeSelector
     public static ITypeDefinition? Read(
         GeneratorSyntaxContext context,
         MethodDeclarationSyntax methodDeclaration
+    ) => Read(context, methodDeclaration.AttributeLists);
+
+    /// <summary>
+    /// The same, off whatever carries the attribute lists.
+    /// </summary>
+    /// <remarks>
+    /// C# has allowed attributes on a lambda since version 10, and a route registered with one is a
+    /// handler like any other - so the attribute is read off the lambda's own lists here rather
+    /// than off a method declaration it does not have.
+    /// </remarks>
+    public static ITypeDefinition? Read(
+        GeneratorSyntaxContext context,
+        SyntaxList<AttributeListSyntax> attributeLists
     )
     {
-        foreach (var attributeList in methodDeclaration.AttributeLists)
+        foreach (var attributeList in attributeLists)
         {
             foreach (var attribute in attributeList.Attributes)
             {

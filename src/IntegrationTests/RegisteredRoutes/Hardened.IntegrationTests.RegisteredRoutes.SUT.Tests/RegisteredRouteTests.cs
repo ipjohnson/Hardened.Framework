@@ -203,4 +203,53 @@ public class RegisteredRouteTests
 
         Assert.Equal(200, response.StatusCode);
     }
+
+    /// <summary>
+    /// The media type the lambda declares is what it answers under. Without it a string is a JSON
+    /// string, quotes included, which is what this route answered while the attribute went unread.
+    /// </summary>
+    [HardenedTest]
+    public async Task AMediaTypeDeclaredOnALambdaReachesTheWire(ITestWebApp app)
+    {
+        var response = await app.Get("/registered/acme/label/7");
+
+        Assert.Equal(200, response.StatusCode);
+        Assert.StartsWith("text/plain", response.Headers["Content-Type"].ToString());
+        Assert.Equal("7:acme", await response.ReadTextAsync());
+    }
+
+    /// <summary>
+    /// The view writes the response, and the model it was given does not go out beside it.
+    /// </summary>
+    /// <remarks>
+    /// <c>OrderCard</c> writes the id alone. The tenant is in the model and not on the page, so a
+    /// response carrying it is the serializer answering in the view's place.
+    /// </remarks>
+    [HardenedTest]
+    public async Task AViewNamedOnALambdaWritesTheResponse(ITestWebApp app)
+    {
+        var response = await app.Get("/registered/acme/card/7");
+
+        var body = await response.ReadTextAsync();
+
+        Assert.Equal(200, response.StatusCode);
+        Assert.StartsWith("text/html", response.Headers["Content-Type"].ToString());
+        Assert.Equal("<p>7</p>", body);
+        Assert.DoesNotContain("acme", body);
+    }
+
+    /// <remarks>
+    /// An output takes the response out of negotiation: a client asking for JSON is answered the
+    /// page rather than the model, because falling back to the model is what would disclose it.
+    /// </remarks>
+    [HardenedTest]
+    public async Task AViewAnswersACallerAskingForJson(ITestWebApp app)
+    {
+        var response = await app.Get(
+            "/registered/acme/card/7",
+            request => request.Headers["Accept"] = "application/json"
+        );
+
+        Assert.Equal("<p>7</p>", await response.ReadTextAsync());
+    }
 }

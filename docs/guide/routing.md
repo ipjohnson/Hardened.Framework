@@ -628,9 +628,17 @@ A type that can be read from a string is the set `StringConverterService` conver
 The token names travel with the handler, so a template that does not declare one of them is a
 startup failure rather than a route that binds nothing.
 
-C# has allowed attributes on a lambda since version 10, so `[Compress]`, `[CacheResponse]` and
-`[RequireAuthorization]` attach here and a registered route keeps the declarative surface a
-controller method has.
+C# has allowed attributes on a lambda since version 10, so `[Compress]`, `[CacheResponse]`,
+`[RequireAuthorization]`, `[Produces]` and `[Output<T>]` attach here and a registered route keeps
+the declarative surface a controller method has.
+
+```csharp
+routes.Get($"/{tenant}/state", [Produces("application/json", "application/x-msgpack")]
+    () => new TenantState(tenant));
+```
+
+`[Produces]` on the class the registration is written in covers every lambda it registers, the way
+it covers a controller's methods. A lambda's own declaration wins over it.
 
 Two shapes the build cannot read, both `HRDR014`:
 
