@@ -536,7 +536,18 @@ public static class UnionResponseSelector
     /// wrapper.
     /// </para>
     /// </remarks>
-    private static string? BodyType(ITypeSymbol caseType)
+    private static string? BodyType(ITypeSymbol caseType) =>
+        BodySymbol(caseType)?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+
+    /// <summary>
+    /// <see cref="BodyType"/> as a symbol, which is what a question about the type has to be asked
+    /// of.
+    /// </summary>
+    /// <remarks>
+    /// A name cannot be resolved back to one: <c>Compilation.GetTypeByMetadataName</c> answers null
+    /// for <c>System.Byte[]</c>, because an array type has no metadata name.
+    /// </remarks>
+    private static ITypeSymbol? BodySymbol(ITypeSymbol caseType)
     {
         if (!Implements(caseType, BodyInterfaceName))
         {
@@ -552,12 +563,48 @@ public static class UnionResponseSelector
 
         if (arguments.Length == 1)
         {
-            return arguments[0].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+            return arguments[0];
         }
 
         return arguments.Length == 2 && Implements(arguments[0], StatusCodeInterfaceName)
-            ? arguments[1].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
+            ? arguments[1]
             : null;
+    }
+
+    /// <summary>
+    /// The type the set's success case puts on the wire, or null where the return type is not a
+    /// response set.
+    /// </summary>
+    /// <remarks>
+    /// The case's body where it wraps one, and the case itself otherwise - the reading
+    /// <see cref="BodyType"/> makes, kept as a symbol. Everything the build wants to know about what
+    /// a handler answers with is a question about this type rather than about the return type:
+    /// <c>Response&lt;byte[], NotFound&gt;</c> is not bytes, and the thing it answers 200 with is.
+    /// </remarks>
+    public static ITypeSymbol? SuccessCaseType(
+        SemanticModel semanticModel,
+        MethodDeclarationSyntax methodDeclaration,
+        int? successStatus
+    )
+    {
+        var returned = Unwrap(semanticModel.GetTypeInfo(methodDeclaration.ReturnType).Type);
+
+        if (returned == null)
+        {
+            return null;
+        }
+
+        var status = successStatus ?? 200;
+
+        foreach (var caseType in CaseSymbols(returned))
+        {
+            if (Status(caseType, status) == status)
+            {
+                return BodySymbol(caseType) ?? caseType;
+            }
+        }
+
+        return null;
     }
 
     /// <summary>

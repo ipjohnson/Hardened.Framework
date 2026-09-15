@@ -8,9 +8,16 @@ namespace Hardened.SourceGenerator.Web;
 /// <remarks>
 /// <para>
 /// Two findings, at two severities, and the difference is what the build can know. A handler
-/// returning <c>byte[]</c> or <c>Stream</c> with no declaration is a fault entirely inside the code
-/// that wrote it: bytes have no media type anyone could infer, and nothing downstream can supply
-/// one. That is an error.
+/// answering with <c>byte[]</c> or <c>Stream</c> and declaring nothing is a fault entirely inside
+/// the code that wrote it: bytes have no media type anyone could infer, and nothing downstream can
+/// supply one. That is an error.
+/// </para>
+/// <para>
+/// <b>Answering with, not returning.</b> A handler returning <c>Response&lt;byte[], NotFound&gt;</c>
+/// puts bytes on the wire for its success and a model for its refusal, and read off the return type
+/// this saw a model and said nothing - so the shape that needed the declaration most was the one
+/// that never got it. What the success case of a response set carries is what this asks about; see
+/// <c>UnionResponseSelector.SuccessCaseType</c>.
 /// </para>
 /// <para>
 /// A declared media type nothing visible produces is a warning, because a library declaring
@@ -47,10 +54,11 @@ public static class ContentTypeDiagnostics
     private static DiagnosticDescriptor MissingDeclaration() =>
         new(
             id: MissingDeclarationId,
-            title: "handler returns bytes and declares no content type",
-            messageFormat: "'{0}' returns byte[] or Stream and carries no [Produces], so nothing says what the bytes "
-                + "are. Returning either means the handler writes its own response, and no serializer is "
-                + "consulted - declare the media type with [Produces(\"application/pdf\")] or return a model.",
+            title: "handler answers with bytes and declares no content type",
+            messageFormat: "'{0}' answers with byte[] or Stream and carries no [Produces], so nothing says what the "
+                + "bytes are. Answering with either means the handler writes its own response, and no serializer "
+                + "is consulted - declare the media type with [Produces(\"application/pdf\")] or answer with a "
+                + "model.",
             category: "Hardened.Web",
             defaultSeverity: DiagnosticSeverity.Error,
             isEnabledByDefault: true

@@ -65,7 +65,7 @@ front end only leaves a gap in the other.
 | `HRDR008` | error | More than one routing generator is compiling this assembly |
 | `HRDR009` | error | More than one parameter binds from the request body. The message names them and the ways out |
 | `HRDR010` | warning | A parameter binds from the body of a request that carries none, on a `GET`, `HEAD` or `DELETE` |
-| `HRDR011` | error | A handler returns `byte[]` or `Stream` and carries no `[Produces]`. Nothing else can say what the bytes are |
+| `HRDR011` | error | A handler answers with `byte[]` or `Stream`, bare or as a response set's success case, and carries no `[Produces]`. Nothing else can say what the bytes are |
 | `HRDR012` | warning | An operation declares a media type nothing in this compilation writes a model as. A host that registers a serializer for it makes this correct |
 | `HRDR013` | warning | A verb attribute sits on an interface member, which has no implementation to call, so no route is compiled for it |
 
