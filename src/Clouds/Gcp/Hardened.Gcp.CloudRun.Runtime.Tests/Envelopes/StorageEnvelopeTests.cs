@@ -50,6 +50,33 @@ public class StorageEnvelopeTests
         Assert.Equal("2026-09-07T10:00:00Z", body.GetProperty("eventTime").GetString());
     }
 
+    /// <summary>
+    /// The object under the name the other stores use for it, so one payload type binds on all
+    /// three hosts.
+    /// </summary>
+    /// <remarks>
+    /// Cloud Storage says name and S3 says key. A handler declaring Key bound on Lambda and
+    /// silently left it empty here, which no test noticed because every assertion used Storage's
+    /// own word.
+    /// </remarks>
+    [Fact]
+    public void TheBodyAlsoCarriesTheObjectUnderThePortableName()
+    {
+        var delivery = Deliveries.CloudEvent(
+            StorageEnvelope.ObjectTypePrefix + "finalized",
+            "//storage.googleapis.com/projects/_/buckets/uploads",
+            "objects/report.pdf"
+        );
+
+        var body = Body(Deliveries.Unwrap(Envelope, delivery, Metadata)!.Body);
+
+        Assert.Equal("report.pdf", body.GetProperty("key").GetString());
+
+        // Storage's own word is still there, because a handler already reading it keeps working.
+        Assert.Equal("report.pdf", body.GetProperty("name").GetString());
+        Assert.Equal("uploads", body.GetProperty("bucket").GetString());
+    }
+
     /// <summary>Both forms carry the notification's attribute names, so a handler reads one set.</summary>
     [Fact]
     public void AnEventarcObjectEventCarriesTheNotificationAttributesAsHeaders()

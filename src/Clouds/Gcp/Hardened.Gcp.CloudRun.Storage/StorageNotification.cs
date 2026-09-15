@@ -79,6 +79,13 @@ public sealed record StorageNotification(
             writer.WriteString("bucket", Bucket);
             writer.WriteString("name", Name);
 
+            // The same object under the name the other two stores use for it. Storage calls it the
+            // name and S3 calls it the key, and a handler that has to know which one it is talking
+            // to is a handler that changes with the host - which is the one thing a trigger
+            // attribute is supposed to make untrue. Written as well as "name" rather than instead
+            // of it, so a handler already reading Storage's own word keeps working.
+            writer.WriteString("key", Name);
+
             if (Size is { } size)
             {
                 writer.WriteNumber("size", size);

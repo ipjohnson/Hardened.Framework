@@ -18,6 +18,16 @@ public class Upload
 
     public string Name { get; set; } = "";
 
+    /// <summary>The container under the name the other two stores use for it.</summary>
+    public string Bucket { get; set; } = "";
+
+    /// <summary>
+    /// The blob under the name the other two stores use for it. Declared beside Name so one
+    /// fixture proves both spellings arrive, which is the claim that lets a handler move between
+    /// hosts without its payload type changing.
+    /// </summary>
+    public string Key { get; set; } = "";
+
     public long Size { get; set; }
 
     public string EventName { get; set; } = "";

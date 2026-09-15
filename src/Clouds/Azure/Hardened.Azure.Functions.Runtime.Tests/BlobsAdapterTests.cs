@@ -33,6 +33,33 @@ public class BlobsAdapterTests
     }
 
     /// <summary>
+    /// The same two values under the names the other stores use, so one payload type binds on all
+    /// three hosts.
+    /// </summary>
+    /// <remarks>
+    /// Azure says container and name, S3 says bucket and key, Cloud Storage says bucket and name.
+    /// A handler declaring Bucket and Key bound on Lambda and silently left both empty here, which
+    /// no test noticed because every assertion used Azure's own words.
+    /// </remarks>
+    [Fact]
+    public void TheBodyAlsoCarriesThePortableNames()
+    {
+        var request = Adapter.CreateRequest(
+            new FunctionsTrigger("BLOB", "/uploads", Blob),
+            Context("""{"Length":1024,"ContentType":"application/pdf","ETag":"\"0x8D\""}""")
+        );
+
+        using var body = JsonDocument.Parse(request.Body);
+
+        Assert.Equal("uploads", body.RootElement.GetProperty("bucket").GetString());
+        Assert.Equal("reports/my report.pdf", body.RootElement.GetProperty("key").GetString());
+
+        // Azure's own words are still there, because a handler already reading them keeps working.
+        Assert.Equal("uploads", body.RootElement.GetProperty("container").GetString());
+        Assert.Equal("reports/my report.pdf", body.RootElement.GetProperty("name").GetString());
+    }
+
+    /// <summary>
     /// The body is the notification: what Storage said about the blob, with the name decoded off
     /// the client, and never the blob's content.
     /// </summary>

@@ -90,6 +90,14 @@ public sealed class BlobsAdapter : ITriggerAdapter
             writer.WriteString("container", blob.BlobContainerName);
             writer.WriteString("name", blob.Name);
 
+            // The container and the blob under the names the other two stores use for them. Azure
+            // says container and name, S3 says bucket and key, Cloud Storage says bucket and name,
+            // and a handler that has to know which one it is talking to is a handler that changes
+            // with the host - which is the one thing a trigger attribute is supposed to make
+            // untrue. Written as well as Azure's own words rather than instead of them.
+            writer.WriteString("bucket", blob.BlobContainerName);
+            writer.WriteString("key", blob.Name);
+
             if (properties.Size is { } written)
             {
                 writer.WriteNumber("size", written);
