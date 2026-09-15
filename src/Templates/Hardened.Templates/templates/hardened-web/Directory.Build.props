@@ -57,10 +57,16 @@
     files on disk, since the engine does not unwind what it created, so this target is the
     backstop: it is what a build says to anyone who scaffolded past a non-zero exit.
 
+    Before Restore and PrepareForBuild, not before Build. BeforeTargets="Build" runs after
+    CoreBuild, so the compiler and every build task have already had their turn and the reader
+    meets their errors first. The Smithy refusal below is where that showed: it arrived after
+    HSMT033 had told the author to write an index onto every property, which is advice for a
+    combination that cannot work however many indices they write.
+
     Regenerate with the response model set to `response`, which declares the same set on net8.0
     and needs no preview anything.
   -->
-  <Target Name="HardenedTemplateRejectsLambdaUnion" BeforeTargets="Build">
+  <Target Name="HardenedTemplateRejectsLambdaUnion" BeforeTargets="Restore;PrepareForBuild">
     <Error Code="HTPL001"
            Text="--host aws-lambda cannot be combined with --response-model union: union requires net11.0 and the Lambda managed runtime is net8.0. Regenerate with --response-model response." />
   </Target>
@@ -73,7 +79,7 @@
     supports, which a preview is not. The build would be green and the host would fail to start
     the worker.
   -->
-  <Target Name="HardenedTemplateRejectsAzureFunctionsUnion" BeforeTargets="Build">
+  <Target Name="HardenedTemplateRejectsAzureFunctionsUnion" BeforeTargets="Restore;PrepareForBuild">
     <Error Code="HTPL007"
            Text="--host azure-functions cannot be combined with --response-model union: union requires net11.0 and the Functions host runs the worker on a released .NET. Regenerate with --response-model response." />
   </Target>
@@ -90,7 +96,7 @@
     dotnet new reports it first, through a post action; this is what a build says to anyone who
     scaffolded past a non-zero exit.
   -->
-  <Target Name="HardenedTemplateRejectsSmithyMessagePack" BeforeTargets="Build">
+  <Target Name="HardenedTemplateRejectsSmithyMessagePack" BeforeTargets="Restore;PrepareForBuild">
     <Error Code="HTPL008"
            Text="--contract smithy cannot be combined with --serializer message-pack-named or message-pack-keyed: a Smithy model states its wire format through its protocol, and there is no MessagePack protocol to state. Regenerate with --contract openapi, or with --serializer json." />
   </Target>

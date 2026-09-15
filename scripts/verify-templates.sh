@@ -7,11 +7,15 @@
 # The packed nupkg is installed rather than the template folder, deliberately. A template tested
 # from source proves nothing about packaging, which is where the 0.8.0-rc1000 quickstart broke.
 #
-# Usage: scripts/verify-templates.sh [host:contract[:model[:client[:tests[:mocks]]]] ...]
+# Usage: scripts/verify-templates.sh [host:contract[:model[:client[:tests[:mocks[:serializer[:ui]]]]]] ...]
 #        default: the template default (response) on three host/contract rows, throws and union
 #        on both spec directions, kestrel:smithy rows when the pinned CLI is present, three rows
-#        with --client refit, one row with --client none to prove the opt-out, and three rows off
-#        the default test framework or mock library
+#        with --client refit, one row with --client none to prove the opt-out, rows off the
+#        default test framework or mock library, two serializer rows and one --openapi-ui false
+#
+# The refusals are not combinations and are not in that list. They run after the loop whatever
+# arguments were passed, because a template that stops turning down a combination it cannot build
+# is a defect no combination anybody runs would show.
 #
 # smithy is skipped unless the Smithy CLI is on PATH at the pinned version - a build without it
 # fails by design (HSMT011), and that is the toolchain's problem rather than the template's.
@@ -55,39 +59,67 @@ if [ ${#COMBOS[@]} -eq 0 ]; then
     # that comment sat behind #if (unionMode).
     # The Kiota client is the default, so every row above exercises it. The refit rows cover the
     # other generator on both contract directions and on the throws model, whose client tests are
-    # the ones that differ; the last row is the opt-out, spelled with the model it keeps so the
-    # fourth field reads as the fourth option.
-    # The last three rows leave the default test framework or mock library, or both. Every
-    # assertion in the test project forks on the framework and the one mock test forks on the
-    # library, so each of NUnit, Moq and FakeItEasy has to compile and pass at least once, on a
-    # client variant that carries the fork: NUnit on the Kiota tests, Moq on the Refit tests, and
-    # NUnit with FakeItEasy on the pipeline tests the opt-out row scaffolds.
+    # the ones that differ; the opt-out row is spelled with the model it keeps so the fourth field
+    # reads as the fourth option.
+    #
+    # Every assertion in the test project forks on the test framework and the one mock test forks
+    # on the mock library, so the rows that leave the defaults are placed where the fork has
+    # something to say rather than where it is cheapest. NUnit sat on code-first Kiota, which is
+    # the arrangement of files every other NUnit row already had: the branch that had never
+    # reached the compiler was the one under a spec-first client, a Smithy client, a Refit client
+    # or the throws model. So NUnit now runs on openapi, on smithy and on code-first throws with
+    # Refit, and Moq moves onto the two client shapes whose mock test it had never been written
+    # into - the Kiota one and the pipeline one - rather than only the Refit one.
     # azure-functions is served by the Functions host rather than by `dotnet run`, so its
     # local-run probe needs Azure Functions Core Tools on PATH and is skipped with a note without
     # it; the row still generates, builds and tests.
-        # The serializer is the seventh field, so naming it means naming the six before it. Two rows,
-    # one per MessagePack mode, both on Refit: it is the only generator that reads the Liquid
-    # templates, so a Kiota row would prove the server half and say nothing about the client. The
-    # keyed row is spec-first, because that is where the index is stated in the contract and where
-    # an unstated one is a build error; the named row is code-first, where the author writes the
-    # attribute and the build carries it into the document.
+    # The serializer is the seventh field, so naming it means naming the six before it. Five rows,
+    # all on Refit: it is the only generator that reads the Liquid templates, so a Kiota row would
+    # prove the server half and say nothing about the client.
+    #
+    # Both modes on both contract directions, and the pairing is the point rather than the count.
+    # Keyed spec-first is where the index is stated in the contract and an unstated one is a build
+    # error. Named code-first is where the author writes the attribute and the build carries it
+    # into the document. The two that were missing are the ones where the option reaches MSBuild
+    # instead of the source: named spec-first is the only row that sets
+    # <HardenedSerializer>MessagePackNamed</HardenedSerializer>, which a build task reads before
+    # the compiler runs, and keyed code-first is the only row that writes integer keys onto a model
+    # the author owns.
+    #
+    # Two of the five also leave the response model, and that is the other thing the pair of rows
+    # was missing. The serializer-aware attribute in the generated controller sits inside each
+    # response model's own block, written out once per mode, so a copy of it had only ever been
+    # compiled inside the response one. The keyed row moves onto throws and the fourth row is union,
+    # which is the mode that needs net11.0 and so is the one most likely to drift.
+    #
+    # The eighth field is the reference page, and false is the only value of any flag no row
+    # passed. Turning it off drops launchSettings.json from the output altogether, so the row is
+    # checked on the file as well as on the port.
     COMBOS=(kestrel:code aspnet:code cloud-run:code azure-functions:code kestrel:openapi
             kestrel:code:throws kestrel:openapi:throws
             kestrel:code:union kestrel:openapi:union
-            kestrel:code:response:refit kestrel:code:throws:refit kestrel:openapi:response:refit
-            kestrel:code:response:none
-            kestrel:code:response:kiota:nunit
+            kestrel:code:response:refit kestrel:code:throws:refit:nunit kestrel:openapi:response:refit
+            kestrel:code:response:none:xunit:moq
+            kestrel:openapi:response:kiota:nunit:moq
             kestrel:openapi:response:refit:xunit:moq
             kestrel:code:throws:none:nunit:fakeiteasy
             kestrel:openapi:response:refit:xunit:nsubstitute:message-pack-keyed
-            kestrel:code:response:refit:xunit:nsubstitute:message-pack-named)
+            kestrel:code:response:refit:xunit:nsubstitute:message-pack-named
+            kestrel:openapi:response:refit:xunit:nsubstitute:message-pack-named
+            kestrel:code:throws:refit:xunit:nsubstitute:message-pack-keyed
+            kestrel:code:union:refit:xunit:nsubstitute:message-pack-named
+            kestrel:code:response:kiota:xunit:nsubstitute:json:false)
 
     if command -v smithy >/dev/null 2>&1 && [ "$(smithy --version 2>/dev/null)" = "$SMITHY_PIN" ]; then
         # The throws model too, not only the default. Smithy's half of the property had never run:
         # the targets file did not pass $(HardenedResponseModel) at all, so a Smithy project asking
         # for a response set got throws mode and got it silently. A row that only ever exercises
         # the default is how that survived.
-        COMBOS+=(kestrel:smithy kestrel:smithy:throws)
+        #
+        # The third is the NUnit one. A Smithy error is a named shape rather than a shared Problem,
+        # so its assertions name types no other contract produces, and the NUnit half of them had
+        # never been compiled against a generated client.
+        COMBOS+=(kestrel:smithy kestrel:smithy:throws kestrel:smithy:response:kiota:nunit)
     else
         FOUND="$(command -v smithy >/dev/null 2>&1 && smithy --version || echo none)"
         echo "note: skipping the smithy contract - it needs the Smithy CLI at $SMITHY_PIN, found $FOUND"
@@ -119,6 +151,50 @@ check_generated() {
         echo "   FAILED: a version token reached the output unstamped in $out"
         FAILED=1
     fi
+
+    # A directive that reached the output is one the engine never evaluated: a file type it has no
+    # conditional syntax for, or a symbol misspelled into a line it copied through. Neither fails a
+    # build wherever the directive sits on a comment line, and the reader is handed the template's
+    # own source instead of their project. Safe to match on the bare word because no template
+    # carries a real C# preprocessor directive: every #if in templates/ names a template symbol.
+    local directives
+
+    directives=$(grep -rn '^[[:space:]]*\(//\|#\|<!--\)\?[[:space:]]*#\(if\|else\|elseif\|endif\)\b' \
+        "$out" --exclude-dir=bin --exclude-dir=obj 2>/dev/null | head -5 || true)
+
+    if [ -n "$directives" ]; then
+        echo "   FAILED: a template directive reached the output in $out:"
+        echo "$directives" | sed 's/^/     /'
+        FAILED=1
+    fi
+
+    # Every project file the template writes has to parse, and MSBuild will not say so if one does
+    # not: it reads no properties from a file it cannot parse and carries on, so the first sign is
+    # a downstream error naming something else. That is how a double hyphen inside an XML comment -
+    # illegal, and easy to write when the comment quotes a command line - reached a release: the
+    # two combinations hardened-function refuses had a Directory.Build.props MSBuild could not read,
+    # so they never reached their own refusal and restore failed with "Invalid framework identifier"
+    # instead.
+    python3 - "$out" <<'PY' || FAILED=1
+import pathlib, sys, xml.etree.ElementTree as ET
+
+wrong = []
+
+for path in sorted(pathlib.Path(sys.argv[1]).rglob("*")):
+    if path.suffix not in (".props", ".csproj", ".targets"):
+        continue
+    if "bin" in path.parts or "obj" in path.parts:
+        continue
+    try:
+        ET.parse(path)
+    except ET.ParseError as error:
+        wrong.append("   FAILED: " + str(path) + " is not well-formed XML: " + str(error))
+
+for line in wrong:
+    print(line)
+
+sys.exit(1 if wrong else 0)
+PY
 
     # Every template's README ends with the same section and closing line, so a truncated one is
     # detectable without knowing which options were on.
@@ -527,19 +603,21 @@ for COMBO in "${COMBOS[@]}"; do
     # is what needs testing - and since 0.19.0 the default model is response, since 0.20.0 the
     # default client is kiota, and the test project defaults to xUnit and NSubstitute. Naming a
     # field exercises its flag.
-    IFS=: read -r HOST CONTRACT MODEL CLIENT TESTS MOCKS SERIALIZER <<<"$COMBO"
+    IFS=: read -r HOST CONTRACT MODEL CLIENT TESTS MOCKS SERIALIZER UI <<<"$COMBO"
     MODEL="${MODEL:-default}"
     CLIENT="${CLIENT:-default}"
     TESTS="${TESTS:-default}"
     MOCKS="${MOCKS:-default}"
     SERIALIZER="${SERIALIZER:-default}"
+    UI="${UI:-default}"
 
-    say "host: $HOST   contract: $CONTRACT   response model: $MODEL   client: $CLIENT   tests: $TESTS   mocks: $MOCKS   serializer: $SERIALIZER"
+    say "host: $HOST   contract: $CONTRACT   response model: $MODEL   client: $CLIENT   tests: $TESTS   mocks: $MOCKS   serializer: $SERIALIZER   openapi-ui: $UI"
     OUT="$WORK/$HOST-$CONTRACT-$MODEL"
     [ "$CLIENT" != "default" ] && OUT="$OUT-$CLIENT"
     [ "$TESTS" != "default" ] && OUT="$OUT-$TESTS"
     [ "$MOCKS" != "default" ] && OUT="$OUT-$MOCKS"
     [ "$SERIALIZER" != "default" ] && OUT="$OUT-$SERIALIZER"
+    [ "$UI" != "default" ] && OUT="$OUT-ui$UI"
 
     # --HardenedVersion is deliberately NOT passed. The template stamps the version it was
     # packed with as the default, and that default is what a real user gets - so it is what
@@ -550,11 +628,31 @@ for COMBO in "${COMBOS[@]}"; do
     [ "$TESTS" != "default" ] && ARGS+=(--test-framework "$TESTS")
     [ "$MOCKS" != "default" ] && ARGS+=(--mocks "$MOCKS")
     [ "$SERIALIZER" != "default" ] && ARGS+=(--serializer "$SERIALIZER")
+    [ "$UI" != "default" ] && ARGS+=(--openapi-ui "$UI")
 
     dotnet new hardened-web -n Sample -o "$OUT" "${ARGS[@]}"
 
     check_generated "$OUT"
     check_test_options "$OUT" Sample.Tests "$TESTS" "$MOCKS"
+
+    # The whole of what --openapi-ui false removes that a running application cannot show. The
+    # profile is excluded by the template rather than emptied, so an exclusion that stopped
+    # applying leaves a launch profile pointing at a page the application no longer serves - and
+    # every other check here passes either way. azure-functions drops the same file for its own
+    # reason, so the assertion is only made where the flag is the only thing that could have.
+    if [ "$HOST" != azure-functions ]; then
+        PROFILE="$OUT/src/Sample.Host/Properties/launchSettings.json"
+
+        if [ "$UI" = "false" ] && [ -e "$PROFILE" ]; then
+            echo "   FAILED: --openapi-ui false left $PROFILE behind"
+            FAILED=1
+        fi
+
+        if [ "$UI" != "false" ] && [ ! -s "$PROFILE" ]; then
+            echo "   FAILED: $PROFILE did not reach the output"
+            FAILED=1
+        fi
+    fi
 
     # The generated nuget.config names nuget.org only, which is what a real user wants. The
     # verification run also needs the framework build that has not been published yet.
@@ -994,12 +1092,23 @@ print(",".join(str(e.get("field","")) + ":" + str(e.get("code","")) for e in doc
         # Both were probed while their server was up; re-asking here would ask a dead port.
         echo "   /docs  development=$DOCS_DEV  production=$DOCS_PROD"
 
-        # Asserted for every contract. Code-first gates with
-        # [HardenedOpenApiUi(Environments = ...)]; spec-first with UiEnvironments metadata on the
-        # contract item. Both reach the same module, so both are held to the same answer.
-        if [ "$DOCS_DEV" != "200" ]; then
-            echo "   FAILED: the reference page should be served in development"
-            FAILED=1
+        if [ "$UI" = "false" ]; then
+            # The opt-out, and it is the environment gate's negative twin. Every other row proves
+            # the page is withheld in production, which a page that was never registered also
+            # passes - so the row that asks for no page has to be told apart from them by asking
+            # in the environment where a registered page does answer.
+            if [ "$DOCS_DEV" = "200" ]; then
+                echo "   FAILED: --openapi-ui false still served the reference page in development"
+                FAILED=1
+            fi
+        else
+            # Asserted for every contract. Code-first gates with
+            # [HardenedOpenApiUi(Environments = ...)]; spec-first with UiEnvironments metadata on
+            # the contract item. Both reach the same module, so both are held to the same answer.
+            if [ "$DOCS_DEV" != "200" ]; then
+                echo "   FAILED: the reference page should be served in development"
+                FAILED=1
+            fi
         fi
 
         if [ "$DOCS_PROD" = "200" ]; then
@@ -1060,10 +1169,16 @@ done
 # a two-argument GetFunctionHandler against an interface that had grown a third. One feed means a
 # template can only ever name packages this build produced.
 say "cloud function templates"
-# Every trigger at defaults, because each one is a different adapter, a different payload shape and
-# a different generated façade - a row nobody runs is a row nobody notices is broken. The runner and
-# mock permutations sit on two of them rather than on all seven: those options are orthogonal to the
-# trigger, and proving that costs two rows rather than fourteen.
+# Every trigger on every host that admits it, because each cell is a different adapter package, a
+# different payload shape and a different generated façade - a row nobody runs is a row nobody
+# notices is broken. AWS carries all seven. Google and Azure carried two each and the other eight
+# cells had never been scaffolded, so six adapter packages had never been restored by a generated
+# project and the two conditions that name a host and a trigger together had never been emitted.
+#
+# The runner and mock permutations ride on the cells rather than taking rows of their own. They are
+# orthogonal to the trigger, so the only thing that decides where they sit is which fork has never
+# reached the compiler: every assertion in the generated test project forks on the test framework,
+# and NUnit had only ever compiled the invoke one. It now sits on a row per remaining trigger.
 #
 # Each row is the template and its flags, then the test framework and mock library the flags named,
 # so the generated test project can be checked against what was asked for.
@@ -1118,10 +1233,18 @@ for AMZ in "hardened-function --trigger invoke|default|default" \
            "hardened-web --host aws-lambda|default|default" \
            "hardened-function --host gcp --trigger invoke|default|default" \
            "hardened-function --host gcp --trigger queue|default|default" \
+           "hardened-function --host gcp --trigger topic --test-framework nunit|nunit|default" \
+           "hardened-function --host gcp --trigger timer --test-framework nunit|nunit|default" \
+           "hardened-function --host gcp --trigger change|default|default" \
+           "hardened-function --host gcp --trigger blob|default|default" \
            "hardened-function --host azure --trigger queue|default|default" \
            "hardened-function --host azure --trigger timer|default|default" \
+           "hardened-function --host azure --trigger topic|default|default" \
+           "hardened-function --host azure --trigger change --test-framework nunit --mocks moq|nunit|moq" \
+           "hardened-function --host azure --trigger stream --test-framework nunit|nunit|default" \
+           "hardened-function --host azure --trigger blob --test-framework nunit --mocks fakeiteasy|nunit|fakeiteasy" \
            "hardened-function --trigger invoke --test-framework nunit --mocks moq|nunit|moq" \
-           "hardened-function --trigger queue --mocks fakeiteasy|default|fakeiteasy"; do
+           "hardened-function --trigger queue --test-framework nunit --mocks fakeiteasy|nunit|fakeiteasy"; do
     IFS='|' read -r AMZ_COMMAND TESTS MOCKS <<<"$AMZ"
     set -- $AMZ_COMMAND
     AMZ_TEMPLATE="$1"; shift
@@ -1156,19 +1279,73 @@ for AMZ in "hardened-function --trigger invoke|default|default" \
         EMULATOR_PORT=$((5600 + RANDOM % 200))
         PROBE_METHOD=GET
         PROBE_BODY=""
+        # Expanded below as ${PROBE_HEADERS[@]+...}: bash 3.2, which is what macOS ships and what
+        # /usr/bin/env bash finds there, treats "${empty[@]}" under set -u as an unbound variable.
+        PROBE_HEADERS=()
         if [[ "$*" == *"--host gcp"* ]]; then
             GCP_PORT=$((5900 + RANDOM % 200))
             ( cd "$AMZ_OUT/src/Sample" && PORT="$GCP_PORT" \
                 dotnet run --no-build >"$AMZ_OUT/serve.log" 2>&1 & )
             PROBE_METHOD=POST
-            if [[ "$*" == *"--trigger queue"* ]]; then
-                # {"id":"A-1","quantity":1}, base64, from a subscription named orders.
-                PROBE="http://localhost:$GCP_PORT/"
-                PROBE_BODY='{"message":{"data":"eyJpZCI6IkEtMSIsInF1YW50aXR5IjoxfQ==","messageId":"1"},"subscription":"projects/p/subscriptions/orders"}'
-            else
-                PROBE="http://localhost:$GCP_PORT/_triggers/invoke/Process"
-                PROBE_BODY='{"id":"A-1","quantity":1}'
-            fi
+            # The request each source actually sends, per trigger, because a Cloud Run function is
+            # one process behind one port and the envelope that recognises the request is the whole
+            # of the routing. A row probed with the wrong shape reaches no handler and answers 404,
+            # which is indistinguishable from an adapter that was never registered.
+            case "$*" in
+                *"--trigger queue"*)
+                    # A push subscription posts the body straight to the service root.
+                    # {"id":"A-1","quantity":1}, base64, from a subscription named orders.
+                    PROBE="http://localhost:$GCP_PORT/"
+                    PROBE_BODY='{"message":{"data":"eyJpZCI6IkEtMSIsInF1YW50aXR5IjoxfQ==","messageId":"1"},"subscription":"projects/p/subscriptions/orders"}'
+                    ;;
+                *"--trigger topic"*)
+                    # The same push body, wrapped. A push subscription's body never says which
+                    # topic the message was published to, so Eventarc delivers it as a CloudEvent
+                    # and the topic is the last segment of ce-source. That is what [Topic("orders")]
+                    # is matched against, and why this row carries headers the queue row does not.
+                    PROBE="http://localhost:$GCP_PORT/"
+                    PROBE_BODY='{"message":{"data":"eyJpZCI6IkEtMSIsInF1YW50aXR5IjoxfQ==","messageId":"1"},"subscription":"projects/p/subscriptions/eventarc-orders-sub"}'
+                    PROBE_HEADERS=(-H 'ce-specversion: 1.0' -H 'ce-id: evt-1'
+                                   -H 'ce-source: //pubsub.googleapis.com/projects/p/topics/orders'
+                                   -H 'ce-type: google.cloud.pubsub.topic.v1.messagePublished'
+                                   -H 'ce-time: 2026-09-07T10:00:00Z')
+                    ;;
+                *"--trigger timer"*)
+                    # Cloud Scheduler posts to a URL per job and carries the job name beside it.
+                    # The two have to agree: a job wired to another timer's URL is refused rather
+                    # than run under the wrong name, so sending both is what proves the route.
+                    PROBE="http://localhost:$GCP_PORT/_triggers/timer/nightly"
+                    PROBE_HEADERS=(-H 'X-CloudScheduler: true'
+                                   -H 'X-CloudScheduler-JobName: nightly'
+                                   -H 'X-CloudScheduler-ScheduleTime: 2026-09-07T02:00:00Z'
+                                   -H 'User-Agent: Google-Cloud-Scheduler')
+                    ;;
+                *"--trigger blob"*)
+                    # An object change as Eventarc sends it: the bucket is the last segment of
+                    # ce-source, which is what [Blob("uploads")] is matched against, and the body is
+                    # the object's own metadata rather than the object.
+                    PROBE="http://localhost:$GCP_PORT/"
+                    PROBE_BODY='{"kind":"storage#object","bucket":"uploads","name":"report.pdf","size":"1024","contentType":"application/pdf","generation":"7"}'
+                    PROBE_HEADERS=(-H 'ce-specversion: 1.0' -H 'ce-id: evt-1'
+                                   -H 'ce-source: //storage.googleapis.com/projects/_/buckets/uploads'
+                                   -H 'ce-type: google.cloud.storage.object.v1.finalized'
+                                   -H 'ce-subject: objects/report.pdf'
+                                   -H 'ce-time: 2026-09-07T10:00:00Z')
+                    ;;
+                *"--trigger change"*)
+                    # Not probed, and this is the one row here that says so. Firestore delivers a
+                    # document event as protobuf, not JSON: the body is a serialised
+                    # DocumentEventData, which curl cannot build and a shell has no business
+                    # hand-encoding. The envelope is covered by
+                    # Hardened.Gcp.CloudRun.Runtime.Tests and by the Change integration SUT; what
+                    # this row adds is that the template's project restores, compiles and tests.
+                    PROBE=""
+                    ;;
+                *)
+                    PROBE="http://localhost:$GCP_PORT/_triggers/invoke/Process"
+                    PROBE_BODY='{"id":"A-1","quantity":1}'
+                    ;;
+            esac
         elif [ "$AMZ_TEMPLATE" = hardened-web ]; then
             LAMBDA_PORT=$((5800 + RANDOM % 200))
             ( cd "$AMZ_OUT/src/Sample.Host" && PORT="$LAMBDA_PORT" HARDENED_LAMBDA_EMULATOR_PORT="$EMULATOR_PORT" \
@@ -1179,10 +1356,30 @@ for AMZ in "hardened-function --trigger invoke|default|default" \
                 dotnet run --no-build >"$AMZ_OUT/serve.log" 2>&1 & )
             PROBE="http://localhost:$EMULATOR_PORT/"
         fi
+        if [ -z "$PROBE" ]; then
+            # The application still has to come up, even where there is no request to send it:
+            # a Cloud Run function that cannot start is a defect this row would otherwise miss,
+            # and the log is where it says so.
+            for _ in $(seq 1 60); do
+                grep -q . "$AMZ_OUT/serve.log" 2>/dev/null && break
+                sleep 0.5
+            done
+
+            pkill -f "$AMZ_OUT/src/Sample" 2>/dev/null || true
+
+            if grep -q . "$AMZ_OUT/serve.log" 2>/dev/null; then
+                echo "   $AMZ_TEMPLATE $*: runs locally on PORT; no wire probe, see the case above"
+            else
+                echo "   FAILED: $AMZ_TEMPLATE $*: the application printed nothing and may not have started"
+                FAILED=1
+            fi
+        else
         CODE=000
         for _ in $(seq 1 100); do
             CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 2 -X "$PROBE_METHOD" \
-                -H 'Content-Type: application/json' ${PROBE_BODY:+-d "$PROBE_BODY"} "$PROBE" || true)
+                -H 'Content-Type: application/json' \
+                ${PROBE_HEADERS[@]+"${PROBE_HEADERS[@]}"} \
+                ${PROBE_BODY:+-d "$PROBE_BODY"} "$PROBE" || true)
             [ "$CODE" = "200" ] && break
             sleep 0.5
         done
@@ -1198,6 +1395,7 @@ for AMZ in "hardened-function --trigger invoke|default|default" \
             echo "   FAILED: $AMZ_TEMPLATE $*: $PROBE answered $CODE"
             tail -20 "$AMZ_OUT/serve.log"
             FAILED=1
+        fi
         fi
         fi
         # Worth printing: it is what says these resolved to this run's packages rather than to
@@ -1268,6 +1466,91 @@ if [ -d "$A" ] && [ -d "$B" ]; then
 else
     echo "   skipped: kestrel and $OTHER are not both in this run's combinations"
 fi
+done
+
+say "refusals"
+# The combinations the templates turn down, which nothing here had ever asked for. Every row above
+# is made of options that work together, so a template that quietly stopped refusing would scaffold
+# a project that cannot run and no row would notice: the files would be written, the exit code
+# would be zero and the first sign of trouble would be a deployed function that fails to load its
+# own assembly.
+#
+# Each is refused twice, and the two halves are asserted separately because they can fail
+# separately. dotnet new has no constraint that reads a symbol, so the refusal at generation is a
+# post action the CLI cannot run, whose non-zero exit is the whole mechanism. The generated project
+# then carries an MSBuild target that fails the first build, which is what a build says to anyone
+# who scaffolded past that exit - and the engine does not unwind what it created, so the files are
+# there to build either way.
+#
+# The two templates refuse at different points and the rows say which. hardened-web spends a post
+# action on it; hardened-function does not, and its refusals arrive at the build alone. Asserting
+# the difference rather than accepting a failure anywhere is what keeps a post action that stopped
+# running from looking like a template with nothing to refuse.
+#
+# Fields: template, flags, the code the build has to name, and where generation itself must fail.
+for REFUSAL in "hardened-web|--host aws-lambda --response-model union|HTPL001|generation" \
+               "hardened-web|--host azure-functions --response-model union|HTPL007|generation" \
+               "hardened-web|--contract smithy --serializer message-pack-keyed|HTPL008|generation" \
+               "hardened-function|--host gcp --trigger stream|HTPL005|build" \
+               "hardened-function|--host azure --trigger invoke|HTPL006|build"; do
+    IFS='|' read -r R_TEMPLATE R_FLAGS R_CODE R_WHEN <<<"$REFUSAL"
+    R_OUT="$WORK/refused-$(echo "$R_CODE" | tr 'A-Z' 'a-z')"
+
+    # The Smithy row builds a Smithy model on the way to the refusal, so without the CLI it would
+    # fail at HSMT011 and report the toolchain rather than the template. Skipped with a note for
+    # the same reason the smithy contract rows are.
+    if [[ "$R_FLAGS" == *"--contract smithy"* ]] && \
+       { ! command -v smithy >/dev/null 2>&1 || [ "$(smithy --version 2>/dev/null)" != "$SMITHY_PIN" ]; }; then
+        echo "   note: skipping the $R_CODE refusal - it needs the Smithy CLI at $SMITHY_PIN"
+        continue
+    fi
+
+    say "refusing: $R_TEMPLATE $R_FLAGS"
+
+    # set -e is on and a non-zero exit is the thing being tested, so the status is captured rather
+    # than allowed to end the run.
+    R_STATUS=0
+    dotnet new "$R_TEMPLATE" -n Sample -o "$R_OUT" $R_FLAGS --skip-restore \
+        >"$R_OUT.new.log" 2>&1 || R_STATUS=$?
+
+    if [ "$R_WHEN" = generation ]; then
+        if [ "$R_STATUS" = 0 ]; then
+            echo "   FAILED: dotnet new reported success for a combination the template refuses"
+            FAILED=1
+        else
+            echo "   dotnet new exits $R_STATUS, and says why:"
+            grep -i "cannot be combined" "$R_OUT.new.log" | head -2 | sed 's/^/     /' || true
+        fi
+    elif [ "$R_STATUS" != 0 ]; then
+        echo "   FAILED: dotnet new exited $R_STATUS, and this template refuses at the build rather than at generation"
+        tail -20 "$R_OUT.new.log"
+        FAILED=1
+    fi
+
+    # The backstop. Asserted on every row, including the ones whose generation already refused,
+    # because it is the half a user actually meets: the files are on disk and the next thing they
+    # type is a build.
+    if [ ! -f "$R_OUT/nuget.config" ]; then
+        echo "   FAILED: $R_OUT was not written, so the build refusal cannot be checked"
+        FAILED=1
+        continue
+    fi
+
+    dotnet nuget add source "$FEED" --name template-verify-local --configfile "$R_OUT/nuget.config" >/dev/null
+
+    R_BUILD=0
+    ( cd "$R_OUT" && dotnet build -v q --nologo ) >"$R_OUT/build.log" 2>&1 || R_BUILD=$?
+
+    if [ "$R_BUILD" = 0 ]; then
+        echo "   FAILED: the build succeeded, and $R_CODE is what should have refused it"
+        FAILED=1
+    elif ! grep -q "$R_CODE" "$R_OUT/build.log"; then
+        echo "   FAILED: the build failed without naming $R_CODE, so something else refused it first"
+        grep -E ": error" "$R_OUT/build.log" | head -5 | sed 's/^/     /' || true
+        FAILED=1
+    else
+        echo "   the build refuses with $R_CODE"
+    fi
 done
 
 say "renamed value"
