@@ -219,6 +219,102 @@ public class ResponseSetDocumentTests
     }
 
     /// <summary>
+    /// A set whose success case is bytes publishes them as bytes: the media type it declared,
+    /// carrying <c>{"type":"string","format":"binary"}</c>, which is exactly what the same handler
+    /// returning them bare publishes.
+    /// </summary>
+    /// <remarks>
+    /// It published <c>"200": {"description":"OK"}</c> and nothing else. The case type resolved to
+    /// no symbol at all - <c>Compilation.GetTypeByMetadataName</c> answers null for
+    /// <c>System.Byte[]</c>, since an array type has no metadata name - so the schema was written
+    /// from nothing and the operation described no success body.
+    /// </remarks>
+    [Fact]
+    public void ASetAnsweringWithBytesPublishesThem()
+    {
+        var responses = Responses(
+            Document(
+                """
+                    [Get("/todos/{id}/blob")]
+                    [Produces("application/octet-stream")]
+                    public Response<byte[], NotFound> Blob(string id) => new byte[] { 1 };
+                """
+            ),
+            "/todos/{id}/blob",
+            "get"
+        );
+
+        var success = responses.GetProperty("200").GetProperty("content");
+
+        Assert.Equal(
+            "binary",
+            success
+                .GetProperty("application/octet-stream")
+                .GetProperty("schema")
+                .GetProperty("format")
+                .GetString()
+        );
+    }
+
+    /// <remarks>
+    /// <c>Stream</c> resolves by name where <c>byte[]</c> does not, so it published the binary
+    /// schema already. It is here because the two have to stay one answer.
+    /// </remarks>
+    [Fact]
+    public void ASetAnsweringWithAStreamPublishesTheSameThing()
+    {
+        var responses = Responses(
+            Document(
+                """
+                    [Get("/todos/{id}/stream")]
+                    [Produces("application/octet-stream")]
+                    public Response<System.IO.Stream, NotFound> Streamed(string id) =>
+                        System.IO.Stream.Null;
+                """
+            ),
+            "/todos/{id}/stream",
+            "get"
+        );
+
+        Assert.Equal(
+            "binary",
+            responses
+                .GetProperty("200")
+                .GetProperty("content")
+                .GetProperty("application/octet-stream")
+                .GetProperty("schema")
+                .GetProperty("format")
+                .GetString()
+        );
+    }
+
+    /// <summary>
+    /// The refusal is a model, and a model is JSON. The declared media type describes the success
+    /// case, so publishing it on the 404 promised a shape nothing can write: an octet-stream
+    /// <c>NotFound</c>.
+    /// </summary>
+    [Fact]
+    public void TheRefusalOfASetAnsweringWithBytesStaysJson()
+    {
+        var responses = Responses(
+            Document(
+                """
+                    [Get("/todos/{id}/blob")]
+                    [Produces("application/octet-stream")]
+                    public Response<byte[], NotFound> Blob(string id) => new byte[] { 1 };
+                """
+            ),
+            "/todos/{id}/blob",
+            "get"
+        );
+
+        var refusal = responses.GetProperty("404").GetProperty("content");
+
+        Assert.True(refusal.TryGetProperty("application/json", out _));
+        Assert.False(refusal.TryGetProperty("application/octet-stream", out _));
+    }
+
+    /// <summary>
     /// Two shapes under one status is a real declaration rather than a mistake, so the last one must
     /// not silently win.
     /// </summary>

@@ -137,6 +137,8 @@ public class ContextSerializationService : IContextSerializationService
             return Task.CompletedTask;
         }
 
+        RefuseInJson(context);
+
         // Bound when the handler's pipeline was composed, which is every operation that declares one
         // media type or declares none. Only an operation genuinely offering a choice reaches the
         // locator, and only then does a request cost an Accept walk.
@@ -164,6 +166,41 @@ public class ContextSerializationService : IContextSerializationService
     /// <c>Response.ContentType = "text/csv"</c> work from a handler that never declared anything.
     /// </para>
     /// </remarks>
+    /// <summary>
+    /// A refusal the handler returned, on an operation that writes bytes, answers JSON.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The same rule the thrown path already follows, reached by the other road.
+    /// <c>ExceptionResponseSerializer</c> handles a refusal that was thrown; a response set answers
+    /// its 404 by returning a case, and that case is a model on an operation whose declared media
+    /// type only bytes can be written under.
+    /// </para>
+    /// <para>
+    /// Without it the refusal went to the locator carrying <c>application/octet-stream</c> - either
+    /// committed ahead of the handler or declared by the operation - and nothing could produce it:
+    /// <c>RawResponseSerializer.CanProduce</c> refuses a value that is not already bytes. So
+    /// <c>Response&lt;byte[], NotFound&gt;</c> answered its declared 404 with a 500 and an empty
+    /// body, which left no way to write the shape at all.
+    /// </para>
+    /// <para>
+    /// The document has said this since response sets were published: see
+    /// <c>OpenApiDocumentGenerator.ErrorContentTypes</c>, which answers JSON alone for an operation
+    /// that writes its own bytes. This is the runtime agreeing with it.
+    /// </para>
+    /// </remarks>
+    private static void RefuseInJson(IExecutionContext context)
+    {
+        if (
+            context.HandlerInfo?.WritesRawBytes == true
+            && context.Response.Status >= 400
+            && context.Response.ResponseValue is not (string or byte[] or Stream)
+        )
+        {
+            context.Response.ContentType = KnownContentType.Json;
+        }
+    }
+
     private static bool Honours(
         IResponseSerializer? bound,
         string? declaredContentType,

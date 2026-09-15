@@ -239,20 +239,25 @@ is the remainder. A warning rather than an error, because a `GET` carrying a bod
 APIs deliberately do, and `<NoWarn>HRDR010</NoWarn>` is how they say so. `DELETE` is not treated
 as bodyless, for the reason HRDR005 gives.
 
-### HRDR011 — handler returns bytes and declares no content type
+### HRDR011 — handler answers with bytes and declares no content type
 
-A handler returning `byte[]` or `Stream` with no `[Produces]`.
+A handler answering with `byte[]` or `Stream` and carrying no `[Produces]`.
 
 ```
-'ReportController.Report' returns byte[] or Stream and carries no [Produces], so nothing says what
-the bytes are. Returning either means the handler writes its own response, and no serializer is
-consulted - declare the media type with [Produces("application/pdf")] or return a model.
+'ReportController.Report' answers with byte[] or Stream and carries no [Produces], so nothing says
+what the bytes are. Answering with either means the handler writes its own response, and no
+serializer is consulted - declare the media type with [Produces("application/pdf")] or answer with
+a model.
 ```
 
-Returning either shape is the handler saying it controls its own serialization: the pass-through
-writer is bound when the pipeline is composed and the response never reaches a serializer. Nothing
-downstream can supply a media type for bytes, and nothing could infer one, so an operation that
-declares none has no answer at all.
+Answering with either shape is the handler saying it controls its own serialization: the
+pass-through writer is bound when the pipeline is composed and the response never reaches a
+serializer. Nothing downstream can supply a media type for bytes, and nothing could infer one, so an
+operation that declares none has no answer at all.
+
+Answering with, not returning. `Response<byte[], NotFound>` puts bytes on the wire for its success
+and a model for its refusal. Read off the return type this saw a model and said nothing, so the
+shape that needed the declaration most was the one that never got it.
 
 An error rather than a warning, and the difference from HRDR012 is what the build can know. This
 fault is entirely inside the code that wrote it: no registration anywhere makes it correct. A

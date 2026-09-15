@@ -33,8 +33,10 @@ public class ContentTypeDiagnosticTests
             using System.IO;
             using System.Threading.Tasks;
             using Hardened.Requests.Abstract.Attributes;
+            using Hardened.Requests.Abstract.Responses;
             using Hardened.Shared.Runtime.Attributes;
             using Hardened.Web.Runtime.Attributes;
+            using Hardened.Web.Runtime.Responses;
 
             {{assemblyAttributes}}
 
@@ -83,6 +85,76 @@ public class ContentTypeDiagnosticTests
 
         Assert.Equal(DiagnosticSeverity.Error, diagnostic.Severity);
         Assert.Contains("ReportController.Report", diagnostic.GetMessage());
+    }
+
+    /// <summary>
+    /// A response set answering with bytes is answering with bytes. Read off the return type this
+    /// saw <c>Response&lt;byte[], NotFound&gt;</c> - a model - and said nothing, so the shape that
+    /// needed the declaration most was the one that never got it: its bytes went out as base64
+    /// under <c>application/json</c> with no diagnostic anywhere.
+    /// </summary>
+    [Theory]
+    [InlineData("public Response<byte[], NotFound> Report() => new byte[] { 1 };")]
+    [InlineData("public Response<Stream, NotFound> Report() => Stream.Null;")]
+    [InlineData(
+        "public Task<Response<byte[], NotFound>> Report() => Task.FromResult<Response<byte[], NotFound>>(new byte[] { 1 });"
+    )]
+    public void ASetAnsweringWithBytesIsHRDR011(string handler)
+    {
+        var diagnostic = Assert.Single(
+            Reported(
+                Generate(
+                    $"""
+                    [Get("/report")]
+                    {handler}
+                    """
+                ),
+                ContentTypeDiagnostics.MissingDeclarationId
+            )
+        );
+
+        Assert.Equal(DiagnosticSeverity.Error, diagnostic.Severity);
+        Assert.Contains("ReportController.Report", diagnostic.GetMessage());
+    }
+
+    /// <summary>
+    /// And once it declares one, nothing complains that a model cannot be written as it. The
+    /// declaration is about the success case, which is bytes. HRDR012 read the return type and saw
+    /// the set, so the only correct spelling of this handler carried a warning saying it was wrong.
+    /// </summary>
+    [Fact]
+    public void ASetAnsweringWithBytesIsNotHRDR012()
+    {
+        var result = Generate(
+            """
+            [Get("/report")]
+            [Produces("application/octet-stream")]
+            public Response<byte[], NotFound> Report() => new byte[] { 1 };
+            """
+        );
+
+        Assert.Empty(Reported(result, ContentTypeDiagnostics.MissingDeclarationId));
+        Assert.Empty(Reported(result, ContentTypeDiagnostics.NothingProducesId));
+    }
+
+    /// <summary>
+    /// A set whose success case is a model is unchanged. The refusal case is a model either way,
+    /// and it is never what the operation declares a media type for.
+    /// </summary>
+    [Fact]
+    public void ASetAnsweringWithAModelIsUnchanged()
+    {
+        Assert.Empty(
+            Reported(
+                Generate(
+                    """
+                    [Get("/report")]
+                    public Response<Reading, NotFound> Report() => new Reading("r");
+                    """
+                ),
+                ContentTypeDiagnostics.MissingDeclarationId
+            )
+        );
     }
 
     [Fact]

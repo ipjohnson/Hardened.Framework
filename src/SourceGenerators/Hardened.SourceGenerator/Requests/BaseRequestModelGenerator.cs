@@ -256,7 +256,7 @@ public abstract class BaseRequestModelGenerator
             // under a member, which no client ever receives.
             var described = unionCase.BodyTypeName ?? unionCase.TypeName;
 
-            var symbol = Resolve(
+            var symbol = ResolveType(
                 context.SemanticModel.Compilation,
                 described.Replace("global::", "")
             );
@@ -373,6 +373,35 @@ public abstract class BaseRequestModelGenerator
     /// segment is the innermost type and every dot to its left is either another nesting or the
     /// end of the namespace.
     /// </remarks>
+    /// <summary>
+    /// A type by the name a response model carries, arrays included.
+    /// </summary>
+    /// <remarks>
+    /// <c>Compilation.GetTypeByMetadataName</c> answers null for <c>System.Byte[]</c>, because an
+    /// array type has no metadata name. So a <c>byte[]</c> case of a response set resolved to
+    /// nothing and its 200 was published with no content at all - while the same handler returning
+    /// the bytes bare published <c>{"type":"string","format":"binary"}</c>.
+    /// </remarks>
+    private static ITypeSymbol? ResolveType(Compilation compilation, string metadataName)
+    {
+        if (!metadataName.EndsWith("[]", StringComparison.Ordinal))
+        {
+            return Resolve(compilation, metadataName);
+        }
+
+        var name = metadataName.Substring(0, metadataName.Length - 2);
+
+        // byte[] is the array that matters here, since it is the payload itself rather than a
+        // sequence of numbers. Its element is asked for by SpecialType rather than by name,
+        // because GetTypeByMetadataName answers null for a BCL primitive forwarded from more than
+        // one reference - the same trap SchemaSubject documents for Created<string>.
+        var element = name is "System.Byte" or "byte"
+            ? compilation.GetSpecialType(SpecialType.System_Byte)
+            : (ITypeSymbol?)ResolveType(compilation, name);
+
+        return element == null ? null : compilation.CreateArrayTypeSymbol(element);
+    }
+
     private static INamedTypeSymbol? Resolve(Compilation compilation, string metadataName)
     {
         var name = metadataName;
@@ -477,8 +506,7 @@ public abstract class BaseRequestModelGenerator
 
         return success.TypeName == null
             ? declared
-            : compilation.GetTypeByMetadataName(success.TypeName.Replace("global::", ""))
-                ?? declared;
+            : ResolveType(compilation, success.TypeName.Replace("global::", "")) ?? declared;
     }
 
     /// <summary>
@@ -1005,16 +1033,33 @@ public abstract class BaseRequestModelGenerator
         }
 
         var producedContentTypes = DeclaredContentTypes(context, methodDeclaration);
-        var writesRawBytes = WritesRawBytes(context, methodDeclaration);
-        var returnsBytesOrText = ReturnsBytesOrText(context, methodDeclaration);
+
+        var successStatus = DeclaredSuccessStatus(context);
+
+        // What the handler puts on the wire on the way out. The success case of a response set,
+        // where it returns one, and the declared return type otherwise.
+        //
+        // Asked of the case rather than of the return type, because the two disagree exactly where
+        // it matters: Response<byte[], NotFound> is not bytes and the thing it answers 200 with is.
+        // Read off the return type alone, a handler wanting a blob and a declared 404 wrote its
+        // bytes out as base64 under application/json, published a 200 with no content, and got no
+        // diagnostic anywhere.
+        var answered =
+            UnionResponseSelector.SuccessCaseType(
+                context.SemanticModel,
+                methodDeclaration,
+                successStatus
+            ) ?? UnwrappedReturnType(context, methodDeclaration);
+
+        var writesRawBytes = IsRawPayload(answered);
+        var returnsBytesOrText =
+            writesRawBytes || answered?.SpecialType == SpecialType.System_String;
 
         // Framing is named here and reported where a diagnostic can be - a syntax transform
         // cannot report one, so an attribute on a handler that streams nothing is carried forward
         // as a finding rather than rejected in place. The mismatch is decided here because this is
         // where the return type is known.
         var framing = StreamFraming(producedContentTypes);
-
-        var successStatus = DeclaredSuccessStatus(context);
 
         // What the return type states about itself, for a handler with no set around it. Read
         // before the status below, because a type's own [HttpStatus] is what the document has to
@@ -1048,8 +1093,7 @@ public abstract class BaseRequestModelGenerator
             // may register one - see ContentTypeDiagnostics.
             UnproducibleContentTypeDiagnostic = UnproducibleContentTypes(
                 producedContentTypes,
-                context,
-                methodDeclaration,
+                returnsBytesOrText,
                 isAsyncEnumerable
             ),
             RawResponseContentType = CommittedContentType(
@@ -1360,49 +1404,6 @@ public abstract class BaseRequestModelGenerator
     }
 
     /// <summary>
-    /// Whether the handler's return value is already what goes on the wire, so no serializer can
-    /// structure it.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// <c>byte[]</c> and <c>Stream</c>, unwrapped from a <c>Task</c> or <c>ValueTask</c>. Returning
-    /// either is the handler saying it controls its own serialization, so the pass-through writer is
-    /// bound when the pipeline is composed and the response never reaches a serializer whatever it
-    /// declares. Stage 4 reads this; the build diagnostic that requires a declaration on these
-    /// handlers reads it too.
-    /// </para>
-    /// <para>
-    /// <b>A <c>string</c> is not one of them.</b> It has a JSON reading as well, a quoted string,
-    /// and that is what a handler declaring nothing answers with. It takes the pass-through writer
-    /// by declaring a media type instead - see <see cref="ReturnsBytesOrText"/>.
-    /// </para>
-    /// </remarks>
-    private static bool WritesRawBytes(
-        GeneratorSyntaxContext context,
-        MethodDeclarationSyntax methodDeclaration
-    ) => IsRawPayload(UnwrappedReturnType(context, methodDeclaration));
-
-    /// <summary>
-    /// <see cref="WritesRawBytes"/> and <c>string</c>, which is the set a content type is committed
-    /// ahead of the handler for.
-    /// </summary>
-    /// <remarks>
-    /// Exactly the return types <c>[RawResponse]</c> could be written on, which is what keeps the
-    /// committed-content-type behaviour identical for every handler that carried it. A handler
-    /// returning a model never commits: committing takes the response out of negotiation, which is
-    /// right for bytes and wrong for a model a client may legitimately ask for another way.
-    /// </remarks>
-    private static bool ReturnsBytesOrText(
-        GeneratorSyntaxContext context,
-        MethodDeclarationSyntax methodDeclaration
-    )
-    {
-        return WritesRawBytes(context, methodDeclaration)
-            || UnwrappedReturnType(context, methodDeclaration)?.SpecialType
-                == SpecialType.System_String;
-    }
-
-    /// <summary>
     /// The declared media types the return type alone does not rule producible, comma-joined, or
     /// null.
     /// </summary>
@@ -1428,16 +1429,11 @@ public abstract class BaseRequestModelGenerator
     /// </remarks>
     private static string? UnproducibleContentTypes(
         string? producedContentTypes,
-        GeneratorSyntaxContext context,
-        MethodDeclarationSyntax methodDeclaration,
+        bool returnsBytesOrText,
         bool isAsyncEnumerable
     )
     {
-        if (
-            producedContentTypes == null
-            || isAsyncEnumerable
-            || ReturnsBytesOrText(context, methodDeclaration)
-        )
+        if (producedContentTypes == null || isAsyncEnumerable || returnsBytesOrText)
         {
             return null;
         }

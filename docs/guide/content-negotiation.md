@@ -36,6 +36,19 @@ is consulted, on any request, whatever `Accept` said. Those handlers must carry 
 have no media type anyone could infer, and a handler that declares none is build error
 [`HRDR011`](/reference/diagnostics).
 
+A [response set](/guide/responses) answers with whatever its success case carries, so the same rule
+reaches it:
+
+```csharp
+[Get("/firmware/{id:int}")]
+[Produces("application/octet-stream")]
+public Response<byte[], NotFound> Download(int id) => ...
+```
+
+The 200 is the bytes under the declared media type. The 404 is the JSON problem document every
+other refusal is, because the declared media type describes the success case and nothing writes a
+model as an octet stream. The document says both.
+
 A `string` is not one of them. It has a JSON reading — a quoted string — and that is what a handler
 declaring nothing answers with. Declaring a media type is what sends it to the pass-through writer:
 
