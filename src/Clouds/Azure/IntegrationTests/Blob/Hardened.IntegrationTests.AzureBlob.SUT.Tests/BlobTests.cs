@@ -31,6 +31,38 @@ public class BlobTests
     }
 
     /// <summary>
+    /// A notification that spells the blob the way S3 does, which is what a handler written once
+    /// and moved here spells it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Before the adapter wrote the portable names, this reached nothing on the worker rung: the
+    /// delivery reads the blob's name off the message, found no <c>name</c> on a payload that
+    /// spelled it <c>Key</c>, and fell through to a synthesised <c>blob-0</c>. The handler bound
+    /// that, and no test noticed because every other one here uses Storage's own words.
+    /// </para>
+    /// <para>
+    /// Only the portable spelling is asserted, because only it means the same thing on both rungs.
+    /// The pipeline rung hands the handler the payload the test wrote, so nothing it left unset is
+    /// filled in; the worker rung rebuilds the notification through the adapter, which writes both
+    /// spellings. What both rungs owe is the object this test named, under the word it named it
+    /// with. That the adapter writes the other spelling beside it is
+    /// <c>BlobsAdapterTests.TheBodyAlsoCarriesThePortableNames</c>.
+    /// </para>
+    /// </remarks>
+    [HardenedTest]
+    public async Task ANotificationSpelledThePortableWayArrives(
+        AzureBlobTestApp.Blobs blobs,
+        [Mock] IUploadSink sink
+    )
+    {
+        await blobs.Uploads(new Upload { Key = "report.pdf", Size = 1024 });
+
+        sink.Received()
+            .Arrived(Arg.Is<Upload>(upload => upload.Key == "report.pdf" && upload.Size == 1024));
+    }
+
+    /// <summary>
     /// The name arrives decoded. The worker rung carries it through a blob URI, where a space is
     /// percent-encoded, and a handler seeing the encoding would fetch a blob that does not exist.
     /// </summary>

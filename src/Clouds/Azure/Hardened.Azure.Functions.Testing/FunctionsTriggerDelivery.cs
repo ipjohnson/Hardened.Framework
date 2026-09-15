@@ -373,7 +373,27 @@ public sealed class FunctionsTriggerDelivery : ITriggerDelivery
     /// is describing what Storage would say about a blob rather than the blob itself - which is
     /// what a blob handler binds. The name and size are read off the message under those
     /// properties; anything else on it is ignored, because a notification has nowhere to carry it.
+    ///
+    /// <c>Key</c> is read as well as <c>Name</c>, because the adapters write the object under both
+    /// and a handler is free to declare either. Without that a payload naming it Key fell through
+    /// to the synthesised name and the test asserted against a blob nobody had described.
     /// </remarks>
+    /// <summary>
+    /// The string under <paramref name="property"/>, or null when it is absent, not a string, or
+    /// empty.
+    /// </summary>
+    /// <remarks>
+    /// Empty counts as absent, and that is the point of the helper rather than an aside. A payload
+    /// declaring both spellings of the object serialises the one it did not set as "", so a caller
+    /// that took the first property it found would take the empty one and never look at the other.
+    /// </remarks>
+    private static string? Text(JsonElement element, string property) =>
+        element.TryGetProperty(property, out var value)
+        && value.ValueKind == JsonValueKind.String
+        && value.GetString() is { Length: > 0 } text
+            ? text
+            : null;
+
     private static (BlobClient Blob, IReadOnlyDictionary<string, object?> BindingData) Blob(
         string container,
         object message,
@@ -383,10 +403,9 @@ public sealed class FunctionsTriggerDelivery : ITriggerDelivery
         using var document = JsonDocument.Parse(JsonSerializer.SerializeToUtf8Bytes(message, Wire));
 
         var name =
-            document.RootElement.TryGetProperty("name", out var n)
-            && n.ValueKind == JsonValueKind.String
-                ? n.GetString() ?? ""
-                : $"blob-{index}";
+            Text(document.RootElement, "name")
+            ?? Text(document.RootElement, "key")
+            ?? $"blob-{index}";
 
         var size =
             document.RootElement.TryGetProperty("size", out var z)
