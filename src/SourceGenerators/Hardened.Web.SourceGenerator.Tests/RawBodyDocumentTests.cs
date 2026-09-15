@@ -152,4 +152,128 @@ public class RawBodyDocumentTests
 
         Assert.Equal("application/json", Assert.Single(content.EnumerateObject()).Name);
     }
+
+    // ---- the binder it emits -----------------------------------------------
+
+    private static string Binder(string handler) =>
+        GeneratorTestHarness
+            .Run(
+                $$"""
+                using System.IO;
+                using System.Threading.Tasks;
+                using Hardened.Requests.Abstract.Attributes;
+                using Hardened.Shared.Runtime.Attributes;
+                using Hardened.Web.Runtime.Attributes;
+
+                namespace TestApp;
+
+                [HardenedModule]
+                public partial class TestApplication { }
+
+                public record Firmware(string Version);
+
+                public class UploadController {
+                {{handler}}
+                }
+                """,
+                new WebLibrarySourceGenerator(),
+                Anchors
+            )
+            .AssertNoErrors()
+            .GeneratedSources.Select(pair => pair.Value)
+            .Select(BindRequestParameters)
+            .First(method => method != null)!;
+
+    /// <summary>
+    /// The binder method on its own, because the handler around it is async for its own reasons.
+    /// </summary>
+    private static string? BindRequestParameters(string source)
+    {
+        var start = source.IndexOf("BindRequestParameters(", StringComparison.Ordinal);
+
+        if (start < 0)
+        {
+            return null;
+        }
+
+        var line = source.LastIndexOf('\n', start) + 1;
+        var end = source.IndexOf("\n        }", start, StringComparison.Ordinal);
+
+        return source.Substring(line, end - line);
+    }
+
+    /// <summary>
+    /// A <c>Stream</c> body is handed over rather than read, so its binder has nothing to await.
+    /// Emitted <c>async</c> anyway it was CS1998, in a file the author cannot edit - so a project
+    /// building warnings as errors could not take a <c>Stream</c> body at all.
+    /// </summary>
+    [Fact]
+    public void AStreamBodyBindsWithoutAsync()
+    {
+        var binder = Binder(
+            """
+            [Put("/firmware")]
+            [Produces("application/json")]
+            public Task<Firmware> Upload(Stream payload) => Task.FromResult(new Firmware("1"));
+            """
+        );
+
+        Assert.DoesNotContain("async", binder);
+        Assert.Contains("Task.FromResult", binder);
+    }
+
+    /// <summary>
+    /// And a <c>byte[]</c> body does read the stream, so that one stays async.
+    /// </summary>
+    [Fact]
+    public void AByteArrayBodyStillBindsAsync()
+    {
+        var binder = Binder(
+            """
+            [Put("/firmware")]
+            [Produces("application/json")]
+            public Task<Firmware> Upload(byte[] payload) => Task.FromResult(new Firmware("1"));
+            """
+        );
+
+        Assert.Contains("async", binder);
+        Assert.Contains("await", binder);
+    }
+
+    /// <summary>
+    /// The warning itself, read off the compilation the harness builds from the generated trees.
+    /// </summary>
+    [Fact]
+    public void AStreamBodyEmitsNoUnawaitedAsyncWarning()
+    {
+        var result = GeneratorTestHarness.Run(
+            """
+            using System.IO;
+            using System.Threading.Tasks;
+            using Hardened.Requests.Abstract.Attributes;
+            using Hardened.Shared.Runtime.Attributes;
+            using Hardened.Web.Runtime.Attributes;
+
+            namespace TestApp;
+
+            [HardenedModule]
+            public partial class TestApplication { }
+
+            public record Firmware(string Version);
+
+            public class UploadController {
+                [Put("/firmware")]
+                [Produces("application/json")]
+                public Task<Firmware> Upload(Stream payload) => Task.FromResult(new Firmware("1"));
+            }
+            """,
+            new WebLibrarySourceGenerator(),
+            Anchors
+        );
+
+        Assert.DoesNotContain(
+            result.CompilationDiagnostics,
+            diagnostic => diagnostic.Id == "CS1998"
+        );
+    }
 }

@@ -1,0 +1,10 @@
+@using Hardened.Templates.RazorBlade.Tests.Models
+@*
+    A view that names its layout, on Hardened's base so the model attaches after construction the
+    way every generated view's does.
+*@
+@inherits global::Hardened.Templates.RazorBlade.HardenedHtmlTemplate<Hardened.Templates.RazorBlade.Tests.Models.FortunePage>
+<p>@Model.Fortunes.Count</p>
+@functions {
+    protected override global::RazorBlade.HtmlLayout? CreateLayout() => new Views.Shell();
+}

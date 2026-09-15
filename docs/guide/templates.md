@@ -203,12 +203,42 @@ Refusals keep their own bodies. A handler that threw has no model to render, so 
 never reached and the error goes out under the [error-body
 policy](/guide/content-negotiation) like any other.
 
-## Layouts, sections and partials
+## Layouts and sections
 
 These are RazorBlade's rather than Hardened's, so its
-[documentation](https://github.com/ltrzesniewski/RazorBlade) is the reference. In outline: a
-layout is a view deriving from `HtmlLayout`, a view opts into one with
-`@implements IUsesLayout<Views.Layout>`, and `RenderPartialAsync` composes views.
+[documentation](https://github.com/ltrzesniewski/RazorBlade) is the reference. What follows is the
+spelling that compiles against the version this page tells you to reference.
+
+A layout is a view deriving from `HtmlLayout`:
+
+```razor
+@inherits global::RazorBlade.HtmlLayout
+<html><body><main>@RenderBody()</main></body></html>
+```
+
+A view names its layout by overriding `CreateLayout` in a `@functions` block:
+
+```razor
+@inherits global::Hardened.Templates.RazorBlade.HardenedHtmlTemplate<Models.FortunePage>
+<p>@Model.Fortunes.Count</p>
+@functions {
+    protected override global::RazorBlade.HtmlLayout? CreateLayout() => new Views.Shell();
+}
+```
+
+The return type is `HtmlLayout`, not the `IRazorLayout` the base declares: that interface is
+internal, so an override written against it is `CS0122`.
+
+Sections are `DefineSection` and `RenderSection`. There is no partial: a view composes by rendering
+another view's output itself.
+
+Three spellings that do not work, all of which this page named until 0.37:
+
+| Written | What happens |
+|---|---|
+| `@implements IUsesLayout<Views.Shell>` | `CS0246`. No such type, in the assembly or the analyzer |
+| `@{ Layout = new Views.Shell(); }` | `CS0200`. `HtmlTemplate.Layout` is read only |
+| `RenderPartialAsync(...)` | `CS0103`. No such method on any RazorBlade base |
 
 ## Writing another engine
 
