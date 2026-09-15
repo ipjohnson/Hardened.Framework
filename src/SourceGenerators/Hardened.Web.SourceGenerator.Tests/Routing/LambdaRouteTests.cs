@@ -123,7 +123,8 @@ public class LambdaRouteTests
     /// <remarks>
     /// A type that can be read from a string is a path token, matched by name when the route
     /// registers. The names travel with the handler, because a template that does not declare one
-    /// binds nothing.
+    /// binds nothing - and so does the constraint each one needs, because a template that declares
+    /// the token and not the constraint lets a value the binder refuses through to it.
     /// </remarks>
     [Fact]
     public void AStringConvertibleParameterIsAPathToken()
@@ -132,7 +133,19 @@ public class LambdaRouteTests
             """routes.Get("/orders/{id:int}", (int id, Guid trace) => id.ToString());"""
         );
 
-        Assert.Contains("new string[] { \"id\", \"trace\" }", emitted);
+        Assert.Contains("new string[] { \"id:int|range\", \"trace:guid\" }", emitted);
+    }
+
+    /// <summary>
+    /// A string token needs no constraint, because a string binds as itself and the converter
+    /// cannot refuse it.
+    /// </summary>
+    [Fact]
+    public void AStringPathTokenIsNotHeldToAConstraint()
+    {
+        var emitted = Emitted("""routes.Get("/tags/{slug}", (string slug) => slug);""");
+
+        Assert.Contains("new string[] { \"slug\" }", emitted);
     }
 
     [Fact]

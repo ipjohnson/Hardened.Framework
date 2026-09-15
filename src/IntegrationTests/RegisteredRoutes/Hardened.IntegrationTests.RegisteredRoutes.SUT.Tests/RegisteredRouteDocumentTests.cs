@@ -215,6 +215,42 @@ public class RegisteredRouteDocumentTests
         Assert.Equal("Tenant", tags[0].GetString());
     }
 
+    /// <summary>
+    /// A constrained token on a lambda route publishes the 404 it answers and not the 400 it
+    /// cannot.
+    /// </summary>
+    /// <remarks>
+    /// The routing guide's rule is about the path the handler is served at, and a lambda had a
+    /// placeholder there - so every registered operation published the converter's 400 and not the
+    /// router's 404, the reverse of what the same handler publishes when it is declared with an
+    /// attribute. The build now states the constraint the token needs and the registry refuses a
+    /// registration without it, so the operation is true of every path the route is served at.
+    /// </remarks>
+    [HardenedTest]
+    public async Task ALambdaWithAConstrainedTokenPublishesThe404AndNotThe400(ITestWebApp app)
+    {
+        var paths = await Paths(app);
+
+        var responses = paths
+            .GetProperty("/registered/acme/ping/{id}")
+            .GetProperty("get")
+            .GetProperty("responses");
+
+        Assert.True(responses.TryGetProperty("404", out _));
+        Assert.False(responses.TryGetProperty("400", out _));
+    }
+
+    /// <summary>
+    /// And the wire agrees. This is the answer the document used not to describe.
+    /// </summary>
+    [HardenedTest]
+    public async Task AValueThatFailsTheConstraintAnswers404(ITestWebApp app)
+    {
+        var response = await app.Get("/registered/acme/ping/abc");
+
+        Assert.Equal(404, response.StatusCode);
+    }
+
     /// <remarks>
     /// A registered route's body model has to be in <c>components</c>, or its operation carries a
     /// <c>$ref</c> to nothing.

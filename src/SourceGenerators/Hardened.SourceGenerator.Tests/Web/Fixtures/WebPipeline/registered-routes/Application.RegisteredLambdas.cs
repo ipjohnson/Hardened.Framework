@@ -9,7 +9,7 @@ namespace GeneratorTestAssembly.Generated
     {
         private static readonly global::Hardened.Requests.Abstract.Execution.IExecutionRequestParameter[] _parameterInfo =         CreateParameterInfo()
 ;
-        private static readonly global::Hardened.Requests.Runtime.Execution.ExecutionRequestHandlerInfo _handlerInfo =         new global::Hardened.Requests.Runtime.Execution.ExecutionRequestHandlerInfo("(registered)", "GET", typeof(global::System.Func<int,global::System.Threading.Tasks.Task<int>>), "Invoke", _parameterInfo)
+        private static readonly global::Hardened.Requests.Runtime.Execution.ExecutionRequestHandlerInfo _handlerInfo =         new global::Hardened.Requests.Runtime.Execution.ExecutionRequestHandlerInfo("/{id:int}", "GET", typeof(global::System.Func<int,global::System.Threading.Tasks.Task<int>>), "Invoke", _parameterInfo)
 ;
 
         public Register_GET_9475be61(global::System.IServiceProvider serviceProvider, global::System.Func<int,global::System.Threading.Tasks.Task<int>> target, string? routePath = null)
@@ -95,9 +95,9 @@ namespace GeneratorTestAssembly.Generated
 public static global::Hardened.Web.Runtime.Routing.IRouteRegistry GET_0(this global::Hardened.Web.Runtime.Routing.IRouteRegistry routes, string path, global::System.Delegate handler) =>
     routes.Map(path, new global::Hardened.Web.Runtime.Routing.RegisteredRouteHandler(
         "GET",
-        new string[] { "id" },
+        new string[] { "id:int|range" },
         (serviceProvider, routePath) => new global::GeneratorTestAssembly.Generated.Register_GET_9475be61(serviceProvider, (global::System.Func<int, global::System.Threading.Tasks.Task<int>>)handler, routePath),
-        "\"get\":{\"tags\":[\"Tenant\"],\"parameters\":[{\"name\":\"id\",\"in\":\"path\",\"required\":true,\"schema\":{\"type\":\"integer\",\"format\":\"int32\"}}],\"responses\":{\"200\":{\"description\":\"OK\",\"content\":{\"application/json\":{\"schema\":{\"type\":\"integer\",\"format\":\"int32\"}}}},\"400\":{\"description\":\"The request failed validation.\",\"content\":{\"application/json\":{\"schema\":{\"$ref\":\"#/components/schemas/RequestValidationError\"}}}}}}"));
+        "\"get\":{\"tags\":[\"Tenant\"],\"parameters\":[{\"name\":\"id\",\"in\":\"path\",\"required\":true,\"schema\":{\"type\":\"integer\",\"format\":\"int32\"}}],\"responses\":{\"200\":{\"description\":\"OK\",\"content\":{\"application/json\":{\"schema\":{\"type\":\"integer\",\"format\":\"int32\"}}}},\"404\":{\"description\":\"The path did not name a resource: a token failed its route constraint.\"}}}"));
     }
 }
 

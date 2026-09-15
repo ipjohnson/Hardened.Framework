@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Text;
 using Hardened.Requests.Abstract.Execution;
 
@@ -329,6 +330,10 @@ public sealed class RouteRegistry : IRouteRegistry
             return false;
         }
 
+        // Names only. A declared handler carries its own constraint into the operation the catalog
+        // holds, and registering it under a different one - a [RouteConstraint] the application
+        // declared, at a path that only exists at run time - is a route the routing guide
+        // describes. Holding it to the declared constraint would refuse that.
         return DeclaresTokens(
             RouteTemplateParser.TokenNames(declared),
             composed,
@@ -338,8 +343,23 @@ public sealed class RouteRegistry : IRouteRegistry
     }
 
     /// <summary>
-    /// Whether <paramref name="composed"/> declares every token in <paramref name="required"/>.
+    /// Whether <paramref name="composed"/> declares every token in <paramref name="required"/>,
+    /// with a constraint each one names where it names any.
     /// </summary>
+    /// <param name="required">
+    /// One entry per token: <c>id</c> where any value will do, and <c>id:int|range</c> where the
+    /// handler reads a value the router has to guarantee. The alternatives are the constraints
+    /// that make the same test the converter makes, so a token carrying one of them cannot reach
+    /// the converter with a value it would refuse.
+    /// </param>
+    /// <remarks>
+    /// The constraint half is what lets the document be written before the path is known. A
+    /// registered route's operation is written at build time, and whether a bad value answers 404
+    /// or 400 depends on the template - so the build states which constraints it will accept, this
+    /// holds the registration to one of them, and the operation is true of every path the route is
+    /// served at. Registering without the constraint is refused here rather than served with a
+    /// document that describes the other outcome.
+    /// </remarks>
     private bool DeclaresTokens(
         IReadOnlyList<string> required,
         string composed,
@@ -359,21 +379,92 @@ public sealed class RouteRegistry : IRouteRegistry
             return false;
         }
 
-        var names = RouteTemplateParser.TokenNames(registered);
-
-        foreach (var name in required)
+        foreach (var entry in required)
         {
-            if (Array.IndexOf(names, name) >= 0)
+            var split = entry.IndexOf(':');
+            var name = split < 0 ? entry : entry.Substring(0, split);
+
+            var token = Token(registered, name);
+
+            if (token == null)
+            {
+                _failures.Add(
+                    $"'{asWritten}' does not declare the token '{{{name}}}', which {reader}"
+                );
+
+                return false;
+            }
+
+            if (split < 0)
             {
                 continue;
             }
 
-            _failures.Add($"'{asWritten}' does not declare the token '{{{name}}}', which {reader}");
+            var alternatives = entry.Substring(split + 1).Split('|');
+
+            if (Satisfies(token.Value.Constraint, alternatives))
+            {
+                continue;
+            }
+
+            _failures.Add(
+                $"'{asWritten}' does not constrain the token '{{{name}}}', which {reader}. "
+                    + $"Register it as '{{{name}:{alternatives[0]}}}'"
+                    + (
+                        alternatives.Length > 1
+                            ? $" - or as {string.Join(", ", alternatives.Skip(1).Select(a => $"'{{{name}:{a}}}'"))}"
+                            : ""
+                    )
+                    + ", so a value it cannot read answers 404 rather than reaching the handler's binder"
+            );
 
             return false;
         }
 
         return true;
+    }
+
+    /// <summary>The token called <paramref name="name"/>, or null where the template has none.</summary>
+    private static RouteSegment? Token(IReadOnlyList<RouteSegment> segments, string name)
+    {
+        foreach (var segment in segments)
+        {
+            if (segment.Kind != RouteSegmentKind.Literal && segment.Value == name)
+            {
+                return segment;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>Whether <paramref name="chain"/> names one of <paramref name="alternatives"/>.</summary>
+    /// <remarks>
+    /// Any term, not only the first. <c>{id:min(1):int}</c> guarantees the conversion as much as
+    /// <c>{id:int:min(1)}</c> does, and the order a route author writes a chain in is theirs.
+    /// </remarks>
+    private static bool Satisfies(string? chain, IReadOnlyList<string> alternatives)
+    {
+        if (chain == null || chain.Length == 0)
+        {
+            return false;
+        }
+
+        foreach (var term in chain.Split(':'))
+        {
+            var open = term.IndexOf('(');
+            var name = open < 0 ? term : term.Substring(0, open);
+
+            for (var i = 0; i < alternatives.Count; i++)
+            {
+                if (string.Equals(name, alternatives[i], StringComparison.Ordinal))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     private static string Describe(Type controllerType, string handlerMethod) =>
