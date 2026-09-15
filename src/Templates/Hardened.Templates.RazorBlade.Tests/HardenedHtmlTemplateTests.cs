@@ -156,4 +156,38 @@ public class HardenedHtmlTemplateTests
     {
         protected override Task ExecuteAsync() => Task.CompletedTask;
     }
+
+    /// <summary>
+    /// A layout, the way RazorBlade 1.0.0 actually spells it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The Views guide named three APIs that do not exist in the version it tells you to
+    /// reference: <c>IUsesLayout&lt;T&gt;</c> is in neither the assembly nor the analyzer,
+    /// <c>Layout</c> is get-only, and there is no <c>RenderPartialAsync</c>. What works is an
+    /// override of <c>CreateLayout</c> in a <c>@functions</c> block, typed to the public
+    /// <c>HtmlLayout</c> rather than the internal <c>IRazorLayout</c> the base declares.
+    /// </para>
+    /// <para>
+    /// <c>Views.LaidOutFortunes</c> compiling is the assertion, the way
+    /// <c>Views.AttachedFortunes</c> is for the pair above: if the spelling stops working, this
+    /// project stops building rather than this test failing. What the test adds is that the layout
+    /// is actually applied, which compiling alone does not say.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public async Task AViewRendersInsideTheLayoutItNames()
+    {
+        var context = Pipeline.Context(out var body);
+
+        context.Response.ResponseValue = Page;
+
+        await new Views.LaidOutFortunes().WriteOutput(context);
+
+        var rendered = Pipeline.Rendered(body);
+
+        Assert.Contains("<main>", rendered);
+        Assert.Contains("<p>2</p>", rendered);
+        Assert.StartsWith("<html>", rendered.TrimStart());
+    }
 }

@@ -18,7 +18,7 @@ public static class BindRequestParametersMethodGenerator
         invokeMethod.Modifiers = ComponentModifier.Private | ComponentModifier.Static;
 
         var needsAsync = requestHandlerModel.RequestParameterInformationList.Any(p =>
-            p.BindingType == ParameterBindType.Body
+            (p.BindingType == ParameterBindType.Body && !BindsSynchronously(p))
             || p.BindingType == ParameterBindType.CustomAttribute
             || p.BindingType == ParameterBindType.Form
         );
@@ -39,6 +39,22 @@ public static class BindRequestParametersMethodGenerator
 
         ProcessParameters(requestHandlerModel, classDefinition, invokeMethod, context, needsAsync);
     }
+
+    /// <summary>
+    /// Whether a body parameter is bound with nothing to await.
+    /// </summary>
+    /// <remarks>
+    /// A <c>Stream</c> body is handed over rather than read, so <c>RawBody.Body</c> returns it
+    /// directly and the binding has no await in it - the one body shape that does not.
+    /// <c>byte[]</c> reads the stream to its end and does await, and every other body goes through
+    /// the serialization service.
+    /// <para>
+    /// Emitted <c>async</c> anyway, the method was CS1998 in a file the author cannot edit, so a
+    /// project building warnings as errors could not take a <c>Stream</c> body at all.
+    /// </para>
+    /// </remarks>
+    private static bool BindsSynchronously(RequestParameterInformation parameter) =>
+        parameter.IsRawBody && !parameter.ParameterType.IsArray;
 
     private static void ProcessParameters(
         RequestHandlerModel requestHandlerModel,
