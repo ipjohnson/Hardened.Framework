@@ -793,6 +793,7 @@ public abstract class BaseRequestModelGenerator
         );
 
         body.IsRawBody = IsRawBodyType(generatorSyntaxContext, parameter);
+        body.ServiceRegisteredAs = ServiceRegisteredAs(generatorSyntaxContext, parameter);
 
         return body;
     }
@@ -803,6 +804,19 @@ public abstract class BaseRequestModelGenerator
     /// this way is one whatever its constructors take.
     /// </summary>
     private static readonly string[] RegistrationAttributes =
+    {
+        "SingletonServiceAttribute",
+        "ScopedServiceAttribute",
+        "TransientServiceAttribute",
+        "CrossWireServiceAttribute",
+    };
+
+    /// <summary>
+    /// The three that register a class against one service type, which is an interface wherever the
+    /// class declares one. <c>[CrossWireService]</c> is not among them: it registers the class and
+    /// then points the interfaces at that registration, so the class itself resolves.
+    /// </summary>
+    private static readonly string[] SingleTypeRegistrationAttributes =
     {
         "SingletonServiceAttribute",
         "ScopedServiceAttribute",
@@ -858,6 +872,93 @@ public abstract class BaseRequestModelGenerator
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// What a parameter's type is registered against, where that is not the type itself.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// See <see cref="RequestParameterInformation.ServiceRegisteredAs"/> for the readings. Asked of
+    /// the semantic model, because the attribute and the base list are both on the type's
+    /// declaration rather than on the parameter.
+    /// </para>
+    /// <para>
+    /// An interface outside <c>System</c> is the test, and it is a weaker statement than naming the
+    /// one DependencyModules picks. It is enough for the only question here: whichever it picks, it
+    /// is not the class, so the class does not resolve by its own type. The namespace is what makes
+    /// it safe - every interface DependencyModules passes over as a capability rather than a role is
+    /// under <c>System</c>, so this never reports a class that does register as itself.
+    /// </para>
+    /// </remarks>
+    protected static string? ServiceRegisteredAs(
+        GeneratorSyntaxContext generatorSyntaxContext,
+        ParameterSyntax parameter
+    )
+    {
+        if (
+            parameter.Type == null
+            || generatorSyntaxContext.SemanticModel.GetTypeInfo(parameter.Type).Type
+                is not INamedTypeSymbol { TypeKind: TypeKind.Class } type
+        )
+        {
+            return null;
+        }
+
+        var registered = false;
+
+        foreach (var attribute in type.GetAttributes())
+        {
+            var attributeClass = attribute.AttributeClass;
+
+            if (attributeClass?.ContainingNamespace?.ToDisplayString() != RegistrationNamespace)
+            {
+                continue;
+            }
+
+            if (attributeClass.Name == "CrossWireServiceAttribute")
+            {
+                return null;
+            }
+
+            registered |= Array.IndexOf(SingleTypeRegistrationAttributes, attributeClass.Name) >= 0;
+        }
+
+        if (!registered)
+        {
+            return null;
+        }
+
+        string? only = null;
+        var count = 0;
+
+        foreach (var contract in type.Interfaces)
+        {
+            count++;
+
+            if (!IsUnderSystem(contract))
+            {
+                only ??= contract.Name;
+            }
+        }
+
+        return only == null ? null
+            : count == 1 ? only
+            : "";
+    }
+
+    /// <summary>
+    /// Whether a type is declared in <c>System</c> or below it.
+    /// </summary>
+    private static bool IsUnderSystem(ITypeSymbol type)
+    {
+        var namespaceName = type.ContainingNamespace?.ToDisplayString();
+
+        return namespaceName != null
+            && (
+                namespaceName == "System"
+                || namespaceName.StartsWith("System.", StringComparison.Ordinal)
+            );
     }
 
     /// <summary>

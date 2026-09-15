@@ -70,6 +70,10 @@ public class WebExecutionHandlerCodeGenerator
         // here and fails in the serializer the emitted code calls into.
         ServiceParameterDiagnostics.Report(sourceProductionContext, requestHandlerModel);
 
+        // And the fix that one used to lead with: a service asked of the container by its own type,
+        // which is not the type it is registered against.
+        UnresolvableServiceDiagnostics.Report(sourceProductionContext, requestHandlerModel);
+
         // And once more: two compress declarations compile and run, with the method's winning
         // silently over the class's.
         CompressDiagnostics.Report(sourceProductionContext, requestHandlerModel);

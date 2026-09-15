@@ -397,6 +397,15 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator
             IsRawBody =
                 bindingType == ParameterBindType.Body
                 && IsRawBodyType(generatorSyntaxContext, parameter),
+
+            // [FromServices] resolves the parameter's own type, which is not what a service with an
+            // interface is registered against - so the attribute the diagnostics offer as the fix
+            // was the one that threw on the first request. Read here as well as on the body path,
+            // because this is the shape an author reaches for after being told to.
+            ServiceRegisteredAs =
+                bindingType == ParameterBindType.FromServiceProvider
+                    ? ServiceRegisteredAs(generatorSyntaxContext, parameter)
+                    : null,
         };
     }
 
@@ -597,6 +606,7 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator
                 RequestBodyName = body?.Name,
                 RequestBodyRequiresServices = body?.ConstructorRequiresServices ?? false,
                 RequestBodyRegisteredAsService = body?.RegisteredAsService ?? false,
+                RequestBodyServiceRegisteredAs = body?.ServiceRegisteredAs,
                 RequestBodyIsRaw = body?.IsRawBody ?? false,
                 ParameterOrder = parameters.OrderBy(p => p.ParameterIndex).Select(Wire).ToList(),
                 ParameterTypes = described.ToDictionary(
@@ -615,6 +625,9 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator
                 ParameterAttributes = described
                     .Where(p => p.CustomAttribute != null)
                     .ToDictionary(Wire, p => p.CustomAttribute!, StringComparer.Ordinal),
+                ParameterServiceRegistrations = described
+                    .Where(p => p.ServiceRegisteredAs != null)
+                    .ToDictionary(Wire, p => p.ServiceRegisteredAs!, StringComparer.Ordinal),
             },
         };
 

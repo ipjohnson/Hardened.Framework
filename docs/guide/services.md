@@ -35,13 +35,39 @@ decides which is which during the build; see [Parameter binding](/guide/paramete
 | `[ScopedService]` | One instance per request |
 | `[TransientService]` | A new instance each time it is resolved |
 
-With no arguments, the class registers as every interface it implements. `As` narrows it to one
-service type:
+With no arguments, the class registers as **one** service type: the first interface it declares,
+or the class itself where it declares none. `As` names the service type instead:
 
 ```csharp
 [SingletonService(As = typeof(IDynamoDbClientProvider))]
 public sealed class DynamoDbClientProvider : IDynamoDbClientProvider, IDisposable { }
 ```
+
+## Asking for the concrete type
+
+A class that declares an interface is not registered against itself, so nothing resolves it by its
+own type:
+
+```csharp
+[SingletonService]
+public class TodoStore : ITodoStore { }
+
+public class TodoController {
+    [Get("/todos")]
+    public string All([FromServices] TodoStore store) => "";   // HRDR015
+}
+```
+
+Type the parameter as `ITodoStore`, or register both with `[CrossWireService]`, which registers the
+class and points each interface at that registration so one instance answers either way:
+
+```csharp
+[CrossWireService(Lifetime = ServiceLifetime.Singleton)]
+public class TodoStore : ITodoStore { }
+```
+
+The build reports the parameter as [`HRDR015`](/reference/diagnostics) rather than leaving it to
+throw on the first request.
 
 A service is registered by the module in whose assembly it is compiled. Which assemblies come
 along is what [importing a module](/guide/modules#composing-modules) decides.

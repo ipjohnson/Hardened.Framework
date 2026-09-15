@@ -89,6 +89,23 @@ public sealed class OperationSymbols
     /// </remarks>
     public bool RequestBodyIsRaw { get; set; }
 
+    /// <summary>
+    /// What the body parameter's type is registered against, where that is not the type itself.
+    /// Carried for the reason <see cref="RequestBodyRequiresServices"/> is.
+    /// </summary>
+    public string? RequestBodyServiceRegisteredAs { get; set; }
+
+    /// <summary>
+    /// The same, per parameter, for the ones resolved from the container.
+    /// </summary>
+    /// <remarks>
+    /// A description has no way to say "inject this from the container", so it has no way to say
+    /// what the injected type is registered against either. Carried for the reason
+    /// <see cref="RequestBodyRequiresServices"/> is: this builder rebuilds the parameter list, and
+    /// what the front end read off the symbol is gone by the time HRDR015 reports on it.
+    /// </remarks>
+    public Dictionary<string, string>? ParameterServiceRegistrations { get; set; }
+
     /// <summary>Parameter types by parameter name, for the ones already resolved.</summary>
     public Dictionary<string, ITypeDefinition>? ParameterTypes { get; set; }
 

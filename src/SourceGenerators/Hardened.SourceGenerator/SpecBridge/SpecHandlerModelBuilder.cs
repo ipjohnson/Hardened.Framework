@@ -442,6 +442,7 @@ internal static class SpecHandlerModelBuilder
                     // way in: the writer splices it beside the schema it derives from the C# type.
                     SchemaFacets = param.SchemaFacets,
                     RequiredByConstraint = param.RequiredByConstraint,
+                    ServiceRegisteredAs = ServiceRegistration(symbols, param.Name),
                 }
             );
         }
@@ -462,6 +463,7 @@ internal static class SpecHandlerModelBuilder
                 )
                 {
                     IsRawBody = symbols?.RequestBodyIsRaw ?? IsRawBodyType(knownBodyType),
+                    ServiceRegisteredAs = symbols?.RequestBodyServiceRegisteredAs,
                 }
             );
         }
@@ -1283,6 +1285,12 @@ internal static class SpecHandlerModelBuilder
         symbols?.ParameterAttributes != null
         && symbols.ParameterAttributes.TryGetValue(name, out var attribute)
             ? attribute
+            : null;
+
+    private static string? ServiceRegistration(OperationSymbols? symbols, string name) =>
+        symbols?.ParameterServiceRegistrations != null
+        && symbols.ParameterServiceRegistrations.TryGetValue(name, out var registration)
+            ? registration
             : null;
 
     /// <summary>

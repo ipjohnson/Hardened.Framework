@@ -85,17 +85,31 @@ public static class ServiceParameterDiagnostics
     /// What to tell the author. Built here rather than in the message format so it can name the
     /// type as well as the parameter.
     /// </summary>
-    public static string Advice(RequestParameterInformation parameter) =>
-        parameter.RegisteredAsService
-            ? $"A parameter that names no route token and is not an interface binds from the "
-                + $"body, and '{parameter.ParameterType.Name}' is registered as a service by its "
-                + $"[SingletonService], [ScopedService] or [TransientService] attribute, so it was "
-                + $"never a body. Mark '{parameter.Name}' [FromServices], or type it as the interface "
-                + $"it is registered against."
-            : $"A parameter that names no route token and is not an interface binds from the "
-                + $"body, and '{parameter.ParameterType.Name}' has no constructor that does not take "
-                + $"one, so no body can be read into it. Mark '{parameter.Name}' [FromServices], or "
-                + $"type it as the interface it is registered against.";
+    public static string Advice(RequestParameterInformation parameter)
+    {
+        var why = parameter.RegisteredAsService
+            ? $"'{parameter.ParameterType.Name}' is registered as a service by its "
+                + "[SingletonService], [ScopedService], [TransientService] or [CrossWireService] "
+                + "attribute, so it was never a body"
+            : $"'{parameter.ParameterType.Name}' has no constructor that does not take one, so no "
+                + "body can be read into it";
+
+        // The order matters, and it is the finding this diagnostic used to hand to its reader.
+        // [FromServices] resolves the parameter's own type, which a service registered against an
+        // interface is not - so leading with it sent an author from a build error to a 500 on every
+        // request. Where the build can see that, it is not offered at all.
+        var fix =
+            parameter.ServiceRegisteredAs == null
+                ? $"Mark '{parameter.Name}' [FromServices], or type it as the interface it is "
+                    + "registered against"
+                : $"Type '{parameter.Name}' as "
+                    + UnresolvableServiceDiagnostics.Registration(parameter)
+                    + $", which is what '{parameter.ParameterType.Name}' is registered against - or "
+                    + "carry [CrossWireService] on it to register the class as well";
+
+        return "A parameter that names no route token and is not an interface binds from the body, "
+            + $"and {why}. {fix}.";
+    }
 
     /// <summary>Reports every finding, if the handler has any.</summary>
     public static void Report(SourceProductionContext context, RequestHandlerModel model)

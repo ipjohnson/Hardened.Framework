@@ -12,8 +12,10 @@ public interface IGreetingService
 /// Registered by the attribute on the class, rather than by a line in the module.
 /// </summary>
 /// <remarks>
-/// [SingletonService] registers this against every interface it implements. [ScopedService] and
-/// [TransientService] are the other two lifetimes and behave the same way.
+/// [SingletonService] registers this against IGreetingService and not against GreetingService:
+/// one service type, the interface where the class declares one. [ScopedService] and
+/// [TransientService] are the other two lifetimes and behave the same way. [CrossWireService]
+/// registers the class as well, where something has to name the concrete type.
 ///
 /// The dependency arrives through the constructor with nothing declaring it anywhere else - the
 /// generator resolved it at build time, and a missing registration is a build error rather than

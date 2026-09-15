@@ -290,7 +290,36 @@ replacing that one replaces it with another declaring the same media type.
 A streamed handler is skipped: its media types are its framing's, and the streaming writer produces
 both of them.
 
+### HRDR015 — service parameter is typed as a class nothing resolves
+
+A handler parameter resolved from the container, typed as a class that is registered against
+something else.
+
+```
+Parameter 'store' of 'TodoController.All' is resolved from the container as 'TodoStore', which is
+registered against 'ITodoStore' rather than against itself - so this throws on the first request.
+Type the parameter as 'ITodoStore', or carry [CrossWireService] on 'TodoStore' to register the
+class and point the interfaces at it.
+```
+
+`[SingletonService]`, `[ScopedService]` and `[TransientService]` register a class against one
+service type, and that is an interface wherever the class declares one. The class itself is not
+registered. `[FromServices] TodoStore` therefore compiles, publishes nothing unusual, and throws
+`No service for type 'TodoStore' has been registered` inside the generated binder.
+
+HRDR007 is the neighbouring finding and used to lead its reader straight into this one: it offered
+`[FromServices]` as the first of its two fixes, which is the one that fails whenever the service has
+an interface. Where the build can see that, it now names the interface instead.
+
+What the build can say about the registration is narrower than what DependencyModules decides.
+Which of several interfaces it picks is its rule, and restating that rule here would be a second
+copy of it. The test is an interface outside `System`: every interface DependencyModules passes over
+as a capability rather than a role is under `System`, so an interface outside it is one the class is
+registered against, whichever it picks. The interface is named only where the class declares exactly
+one.
+
 ## Validation
+
 
 ### HRDV001 — retired
 

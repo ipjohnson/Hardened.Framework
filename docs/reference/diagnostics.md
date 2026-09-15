@@ -68,6 +68,8 @@ front end only leaves a gap in the other.
 | `HRDR011` | error | A handler answers with `byte[]` or `Stream`, bare or as a response set's success case, and carries no `[Produces]`. Nothing else can say what the bytes are |
 | `HRDR012` | warning | An operation declares a media type nothing in this compilation writes a model as. A host that registers a serializer for it makes this correct |
 | `HRDR013` | warning | A verb attribute sits on an interface member, which has no implementation to call, so no route is compiled for it |
+| `HRDR014` | error | A [lambda registration](/guide/routing#registering-a-route-with-a-lambda) the build cannot read: the lambda is not written at the call site, or `Map` was given a verb that is not a constant |
+| `HRDR015` | error | A handler parameter is resolved from the container as a class that is [registered against an interface](/guide/services#asking-for-the-concrete-type) rather than against itself, so nothing can build it |
 
 ## Validation
 

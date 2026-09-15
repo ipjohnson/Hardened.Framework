@@ -134,6 +134,29 @@ public class RequestParameterInformation
     public bool RegisteredAsService { get; }
 
     /// <summary>
+    /// Set where the parameter's type is a service the container cannot resolve by that type:
+    /// null where it can, the interface's name where it is registered against exactly one, and
+    /// empty where it is registered against one of several.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A <c>[SingletonService]</c> class that implements an interface is registered against the
+    /// interface and not against itself, so <c>[FromServices] TodoStore</c> builds clean and
+    /// throws <c>No service for type 'TodoStore' has been registered</c> on the first request.
+    /// <c>[CrossWireService]</c> is the attribute that registers both, and a type carrying it is
+    /// resolvable by its own type, so this stays null for one.
+    /// </para>
+    /// <para>
+    /// A name only where the type declares exactly one interface, because which interface
+    /// DependencyModules picks from several is its rule to state - see
+    /// <c>ServiceModelUtility.GetBaseTypeRegistration</c> - and naming the wrong one is worse than
+    /// naming none. What is asked here is narrower and always true either way: an interface
+    /// outside <c>System</c> is one it will register the class against, whichever it picks.
+    /// </para>
+    /// </remarks>
+    public string? ServiceRegisteredAs { get; set; }
+
+    /// <summary>
     /// Whether this body parameter is the payload rather than a shape to read out of one -
     /// <c>byte[]</c>, or a <c>Stream</c>.
     /// </summary>
@@ -185,6 +208,7 @@ public class RequestParameterInformation
             SchemaFacets = SchemaFacets,
             RequiredByConstraint = RequiredByConstraint,
             IsRawBody = IsRawBody,
+            ServiceRegisteredAs = ServiceRegisteredAs,
         };
 
     public override bool Equals(object obj)
@@ -268,6 +292,11 @@ public class RequestParameterInformation
             return false;
         }
 
+        if (ServiceRegisteredAs != requestParameterInformation.ServiceRegisteredAs)
+        {
+            return false;
+        }
+
         return true;
     }
 
@@ -295,6 +324,9 @@ public class RequestParameterInformation
             hashCode = (hashCode * 397) ^ ConstructorRequiresServices.GetHashCode();
             hashCode = (hashCode * 397) ^ RegisteredAsService.GetHashCode();
             hashCode = (hashCode * 397) ^ IsRawBody.GetHashCode();
+            hashCode =
+                (hashCode * 397)
+                ^ (ServiceRegisteredAs != null ? ServiceRegisteredAs.GetHashCode() : 0);
 
             return hashCode;
         }

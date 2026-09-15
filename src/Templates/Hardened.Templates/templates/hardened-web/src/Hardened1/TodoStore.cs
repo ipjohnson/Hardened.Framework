@@ -93,7 +93,9 @@ public record NewTodo([property: StringLength(1, 64)] string Title);
 /// An interface, and not only for testability. A handler parameter is bound from the request unless
 /// the generator can tell it is a service, and an unattributed concrete class is taken as the body -
 /// so injecting TodoStore directly generates DeserializeRequestBody&lt;TodoStore&gt;, and on a route
-/// that also takes a real body, two of them. [FromServices] says the same thing explicitly.
+/// that also takes a real body, two of them. [FromServices] says "this is a service" explicitly,
+/// but it does not make TodoStore resolvable - the registration is against ITodoStore - so the
+/// build refuses that spelling too. Ask for the interface.
 /// </remarks>
 public interface ITodoStore
 {
@@ -112,9 +114,11 @@ public interface ITodoStore
 /// In memory, because the point of the sample is the request pipeline rather than storage.
 /// </summary>
 /// <remarks>
-/// [SingletonService] registers this against every interface it implements and against the class
-/// itself. The module lists nothing, so registration cannot fall out of step with what exists -
-/// which is also what lets a test replace it with [Mock] without changing any wiring here.
+/// [SingletonService] registers this against ITodoStore and not against TodoStore, which is the
+/// rule for any class that declares an interface: ask for the interface. [CrossWireService]
+/// registers the class as well, where something has to name the concrete type. The module lists
+/// nothing either way, so registration cannot fall out of step with what exists - which is also
+/// what lets a test replace it with [Mock] without changing any wiring here.
 #if (specFirst)
 ///
 /// Todo and NewTodo are not declared here: the contract declares them, and the build writes them

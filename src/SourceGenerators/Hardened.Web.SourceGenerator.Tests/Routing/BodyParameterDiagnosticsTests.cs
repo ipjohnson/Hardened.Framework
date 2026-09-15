@@ -48,6 +48,15 @@ public class BodyParameterDiagnosticsTests
                 [SingletonService]
                 public class Counter : ICounter { }
 
+                [SingletonService]
+                public class Audit { }
+
+                [CrossWireService]
+                public class Wired : ICounter { }
+
+                [SingletonService]
+                public class Closer : System.IDisposable { public void Dispose() { } }
+
                 public record Reading(string Sensor, int Value);
 
                 public class EventController {
@@ -175,8 +184,58 @@ public class BodyParameterDiagnosticsTests
         Assert.Equal(DiagnosticSeverity.Error, diagnostic.Severity);
         Assert.Contains("'Counter' is registered as a service", diagnostic.GetMessage());
         Assert.Contains("[SingletonService]", diagnostic.GetMessage());
-        Assert.Contains("[FromServices]", diagnostic.GetMessage());
         Assert.Empty(Reported(result, BodyParameterDiagnostics.BodylessVerbDiagnosticId));
+    }
+
+    /// <summary>
+    /// The fix it offers has to be one that works. <c>Counter</c> is registered against
+    /// <c>ICounter</c> and not against itself, so <c>[FromServices] Counter</c> - which this led
+    /// with - builds clean and throws on the first request. It names the interface instead.
+    /// </summary>
+    [Fact]
+    public void TheAdviceForAServiceWithAnInterfaceDoesNotOfferFromServices()
+    {
+        var message = Assert
+            .Single(
+                Reported(
+                    Generate(
+                        """
+                        [Get("/events")]
+                        public string Handle(Counter counter) => "";
+                        """
+                    ),
+                    ServiceParameterDiagnostics.DiagnosticId
+                )
+            )
+            .GetMessage();
+
+        Assert.Contains("Type 'counter' as 'ICounter'", message);
+        Assert.Contains("[CrossWireService]", message);
+        Assert.DoesNotContain("[FromServices]", message);
+    }
+
+    /// <summary>
+    /// And where it does work it is still offered. A service with no interface is registered
+    /// against itself, so the container can build it by the type the parameter names.
+    /// </summary>
+    [Fact]
+    public void TheAdviceForAServiceWithNoInterfaceStillOffersFromServices()
+    {
+        var message = Assert
+            .Single(
+                Reported(
+                    Generate(
+                        """
+                        [Get("/events")]
+                        public string Handle(Audit audit) => "";
+                        """
+                    ),
+                    ServiceParameterDiagnostics.DiagnosticId
+                )
+            )
+            .GetMessage();
+
+        Assert.Contains("[FromServices]", message);
     }
 
     [Fact]
@@ -253,5 +312,132 @@ public class BodyParameterDiagnosticsTests
             .AssertNoErrors();
 
         Assert.Empty(Reported(result, BodyParameterDiagnostics.BodylessVerbDiagnosticId));
+    }
+
+    // ------------------------------------------------- HRDR015, the service nothing resolves
+
+    /// <summary>
+    /// The 500 the advice above used to lead people into. <c>[SingletonService]</c> registers
+    /// <c>Counter</c> against <c>ICounter</c> and not against itself, so asking the container for
+    /// a <c>Counter</c> compiles, publishes nothing unusual, and throws inside the generated binder
+    /// on the first request.
+    /// </summary>
+    [Fact]
+    public void AServiceAskedForByItsOwnTypeIsHRDR015()
+    {
+        var diagnostic = Assert.Single(
+            Reported(
+                Generate(
+                    """
+                    [Get("/events")]
+                    public string Handle([FromServices] Counter counter) => "";
+                    """
+                ),
+                UnresolvableServiceDiagnostics.DiagnosticId
+            )
+        );
+
+        Assert.Equal(DiagnosticSeverity.Error, diagnostic.Severity);
+        Assert.Contains("'ICounter'", diagnostic.GetMessage());
+        Assert.Contains("[CrossWireService]", diagnostic.GetMessage());
+    }
+
+    /// <summary>
+    /// A service with no interface is registered against itself, so the parameter resolves.
+    /// </summary>
+    [Fact]
+    public void AServiceWithNoInterfaceIsNotReported()
+    {
+        Assert.Empty(
+            Reported(
+                Generate(
+                    """
+                    [Get("/events")]
+                    public string Handle([FromServices] Audit audit) => "";
+                    """
+                ),
+                UnresolvableServiceDiagnostics.DiagnosticId
+            )
+        );
+    }
+
+    /// <summary>
+    /// <c>[CrossWireService]</c> registers the class and points the interfaces at that
+    /// registration, which is the fix the other two diagnostics name.
+    /// </summary>
+    [Fact]
+    public void ACrossWiredServiceIsNotReported()
+    {
+        Assert.Empty(
+            Reported(
+                Generate(
+                    """
+                    [Get("/events")]
+                    public string Handle([FromServices] Wired wired) => "";
+                    """
+                ),
+                UnresolvableServiceDiagnostics.DiagnosticId
+            )
+        );
+    }
+
+    /// <summary>
+    /// The interface is what the container was asked for, so there is nothing to report.
+    /// </summary>
+    [Fact]
+    public void AnInterfaceParameterIsNotReported()
+    {
+        Assert.Empty(
+            Reported(
+                Generate(
+                    """
+                    [Get("/events")]
+                    public string Handle(ICounter counter) => "";
+                    """
+                ),
+                UnresolvableServiceDiagnostics.DiagnosticId
+            )
+        );
+    }
+
+    /// <summary>
+    /// A class carrying no registration attribute is not a service, and asking the container for
+    /// one is an ordinary thing to do against a registration written by hand.
+    /// </summary>
+    [Fact]
+    public void AnUnregisteredClassIsNotReported()
+    {
+        Assert.Empty(
+            Reported(
+                Generate(
+                    """
+                    [Get("/events")]
+                    public string Handle([FromServices] Reading reading) => "";
+                    """
+                ),
+                UnresolvableServiceDiagnostics.DiagnosticId
+            )
+        );
+    }
+
+    /// <summary>
+    /// Only interfaces outside <c>System</c> count, because those are the ones DependencyModules
+    /// registers a class against. It passes over <c>IDisposable</c> as a capability rather than a
+    /// role, so a service declaring one is registered against itself and resolves.
+    /// </summary>
+    [Fact]
+    public void AServiceWhoseOnlyInterfaceIsACapabilityIsNotReported()
+    {
+        Assert.Empty(
+            Reported(
+                Generate(
+                    """
+                    [Get("/events")]
+                    public string Handle([FromServices] Closer closer) => "";
+                    """
+                ),
+                UnresolvableServiceDiagnostics.DiagnosticId
+            )
+        );
     }
 }
