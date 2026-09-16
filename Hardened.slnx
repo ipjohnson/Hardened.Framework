@@ -211,6 +211,10 @@
     <Project Path="src/IntegrationTests/StaticContent/Hardened.IntegrationTests.StaticContent.SUT.Tests/Hardened.IntegrationTests.StaticContent.SUT.Tests.csproj" />
     <Project Path="src/IntegrationTests/StaticContent/Hardened.IntegrationTests.StaticContent.SUT/Hardened.IntegrationTests.StaticContent.SUT.csproj" />
   </Folder>
+  <Folder Name="/IntegrationTests/Validation/">
+    <Project Path="src/IntegrationTests/Validation/Hardened.IntegrationTests.Validation.SUT.Tests/Hardened.IntegrationTests.Validation.SUT.Tests.csproj" />
+    <Project Path="src/IntegrationTests/Validation/Hardened.IntegrationTests.Validation.SUT/Hardened.IntegrationTests.Validation.SUT.csproj" />
+  </Folder>
   <Folder Name="/IntegrationTests/Union/">
     <Project Path="src/IntegrationTests/Union/Hardened.IntegrationTests.Union.SUT.Tests/Hardened.IntegrationTests.Union.SUT.Tests.csproj" />
     <Project Path="src/IntegrationTests/Union/Hardened.IntegrationTests.Union.SUT/Hardened.IntegrationTests.Union.SUT.csproj" />
