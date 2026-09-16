@@ -1,0 +1,50 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!--
+        A Hardened application whose validators come from ValidationModules.SourceGenerator rather
+        than from Hardened.Validation.SourceGenerator.
+
+        That generator is deliberately absent. Two generators reading the same constraint attributes
+        emit the same validators twice, which is the hazard ValidationModulesImpl.props names, so a
+        project takes one or the other. This one takes ValidationModules', which also reads
+        IValidationRulesFor<T> - a front end Hardened's generator compiles in and never calls.
+    -->
+    <PropertyGroup>
+        <IsPackable>false</IsPackable>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj"/>
+        <ProjectReference Include="..\..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>
+        <!-- What turns [HardenedModule] into an IDependencyModule keyed on DependencyRegistry<Application>. -->
+        <ProjectReference Include="..\..\..\SourceGenerators\Hardened.DependencyModules.SourceGenerator\Hardened.DependencyModules.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+    </ItemGroup>
+
+    <!--
+        ValidationModules' own generator, resolved the way the rest of the repository resolves
+        ValidationModules: a sibling checkout when one is there, the published package otherwise.
+
+        The package leg needs the release that registers validators into the entry point. Before it,
+        the generator emits a ValidationModule class beside the entry point that nothing can load,
+        and every test in the .Tests project resolves nothing.
+    -->
+    <PropertyGroup>
+        <ValidationModulesRoot Condition="'$(ValidationModulesRoot)' == ''">$(MSBuildThisFileDirectory)..\..\..\..\..\ValidationModules</ValidationModulesRoot>
+        <ValidationModulesGeneratorProject>$(ValidationModulesRoot)\src\ValidationModules.SourceGenerator\ValidationModules.SourceGenerator.csproj</ValidationModulesGeneratorProject>
+        <UseLocalValidationModules Condition="'$(UseLocalValidationModules)' == '' And Exists('$(ValidationModulesGeneratorProject)')">true</UseLocalValidationModules>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Condition="'$(UseLocalValidationModules)' == 'true'"
+                          Include="$(ValidationModulesGeneratorProject)"
+                          OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <PackageReference Condition="'$(UseLocalValidationModules)' != 'true'"
+                          Include="ValidationModules.SourceGenerator" PrivateAssets="all"/>
+    </ItemGroup>
+
+</Project>

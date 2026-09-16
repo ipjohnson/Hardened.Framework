@@ -30,6 +30,8 @@
       "src\\IntegrationTests\\StaticContent\\Hardened.IntegrationTests.StaticContent.Manifest.SUT\\Hardened.IntegrationTests.StaticContent.Manifest.SUT.csproj",
       "src\\IntegrationTests\\StaticContent\\Hardened.IntegrationTests.StaticContent.SUT.Tests\\Hardened.IntegrationTests.StaticContent.SUT.Tests.csproj",
       "src\\IntegrationTests\\StaticContent\\Hardened.IntegrationTests.StaticContent.SUT\\Hardened.IntegrationTests.StaticContent.SUT.csproj",
+      "src\\IntegrationTests\\Validation\\Hardened.IntegrationTests.Validation.SUT.Tests\\Hardened.IntegrationTests.Validation.SUT.Tests.csproj",
+      "src\\IntegrationTests\\Validation\\Hardened.IntegrationTests.Validation.SUT\\Hardened.IntegrationTests.Validation.SUT.csproj",
       "src\\IntegrationTests\\Union\\Hardened.IntegrationTests.Union.SUT.Tests\\Hardened.IntegrationTests.Union.SUT.Tests.csproj",
       "src\\IntegrationTests\\Union\\Hardened.IntegrationTests.Union.SUT\\Hardened.IntegrationTests.Union.SUT.csproj",
       "src\\IntegrationTests\\Web\\Hardened.IntegrationTests.Web.SUT\\Hardened.IntegrationTests.Web.SUT.csproj",
