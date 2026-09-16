@@ -43,7 +43,11 @@ public sealed record Ok<T>(T Value, IReadOnlyDictionary<string, string>? Headers
     /// A 200 carrying one header, which is the common case - an <c>ETag</c>.
     /// </summary>
     public Ok(T value, string headerName, string headerValue)
-        : this(value, new Dictionary<string, string> { [headerName] = headerValue }) { }
+        : this(value, null)
+    {
+        _headerName = headerName;
+        _headerValue = headerValue;
+    }
 
     public static int StatusCode => 200;
 
@@ -51,10 +55,18 @@ public sealed record Ok<T>(T Value, IReadOnlyDictionary<string, string>? Headers
 
     object? ICarriesResponseBody.Body => Value;
 
+    private string? _headerName;
+    private string? _headerValue;
+
     public void ApplyHeaders(IDictionary<string, StringValues> headers)
     {
         if (Headers == null)
         {
+            if (_headerName != null)
+            {
+                headers[_headerName] = _headerValue;
+            }
+
             return;
         }
 
