@@ -18,8 +18,8 @@
         PackageValidationModulesIncludeSource, which is the switch that exists for exactly this.
     -->
     <PropertyGroup>
-        <!-- This file sits in src/SourceGenerators, so four levels up is the workspace root. -->
-        <ValidationModulesRoot Condition="'$(ValidationModulesRoot)' == ''">$(MSBuildThisFileDirectory)..\..\..\..\ValidationModules</ValidationModulesRoot>
+        <!-- This file sits in src/SourceGenerators, so three levels up is beside this repository. -->
+        <ValidationModulesRoot Condition="'$(ValidationModulesRoot)' == ''">$(MSBuildThisFileDirectory)..\..\..\ValidationModules</ValidationModulesRoot>
         <ValidationModulesImplProject>$(ValidationModulesRoot)\src\ValidationModules.SourceGenerator.Impl\ValidationModules.SourceGenerator.Impl.csproj</ValidationModulesImplProject>
         <UseLocalValidationModules Condition="'$(UseLocalValidationModules)' == '' And Exists('$(ValidationModulesImplProject)')">true</UseLocalValidationModules>
     </PropertyGroup>

@@ -43,7 +43,7 @@
         published rather than failing on a path that does not exist.
     -->
     <PropertyGroup>
-        <ValidationModulesRoot Condition="'$(ValidationModulesRoot)' == ''">$(MSBuildThisFileDirectory)..\..\..\..\..\ValidationModules</ValidationModulesRoot>
+        <ValidationModulesRoot Condition="'$(ValidationModulesRoot)' == ''">$(MSBuildThisFileDirectory)..\..\..\..\ValidationModules</ValidationModulesRoot>
         <ValidationModulesRuntimeProject>$(ValidationModulesRoot)\src\ValidationModules.Runtime\ValidationModules.Runtime.csproj</ValidationModulesRuntimeProject>
         <UseLocalValidationModules Condition="'$(UseLocalValidationModules)' == '' And Exists('$(ValidationModulesRuntimeProject)')">true</UseLocalValidationModules>
     </PropertyGroup>
