@@ -87,6 +87,76 @@ public class SpecParsingTests
         Assert.Equal("string", id.Type);
     }
 
+    /// <summary>
+    /// A <c>$ref</c> to a named map becomes that map, the way a map written inline on the property
+    /// is read. No type is generated for a map, so the reference has nothing to name.
+    /// </summary>
+    [Fact]
+    public void ARefToANamedMapBecomesThatMap()
+    {
+        var model = Parse(
+            """
+            openapi: "3.0.0"
+            info: { title: T, version: "1.0" }
+            paths: {}
+            components:
+              schemas:
+                Labels:
+                  type: object
+                  additionalProperties: { type: string }
+                Product:
+                  type: object
+                  properties:
+                    labels:
+                      $ref: '#/components/schemas/Labels'
+            """
+        );
+
+        var labels = model
+            .Schemas.First(s => s.Name == "Product")
+            .Properties.First(p => p.Name == "labels");
+
+        Assert.Null(labels.Ref);
+        Assert.True(labels.IsDictionary);
+        Assert.Equal("string", labels.DictionaryValueType);
+    }
+
+    /// <summary>And a named map of objects keeps the reference to its value type.</summary>
+    [Fact]
+    public void ARefToANamedMapOfObjectsKeepsItsValueType()
+    {
+        var model = Parse(
+            """
+            openapi: "3.0.0"
+            info: { title: T, version: "1.0" }
+            paths: {}
+            components:
+              schemas:
+                Pet:
+                  type: object
+                  properties:
+                    name: { type: string }
+                PetsByName:
+                  type: object
+                  additionalProperties:
+                    $ref: '#/components/schemas/Pet'
+                Shelter:
+                  type: object
+                  properties:
+                    pets:
+                      $ref: '#/components/schemas/PetsByName'
+            """
+        );
+
+        var pets = model
+            .Schemas.First(s => s.Name == "Shelter")
+            .Properties.First(p => p.Name == "pets");
+
+        Assert.Null(pets.Ref);
+        Assert.True(pets.IsDictionary);
+        Assert.Equal("#/components/schemas/Pet", pets.DictionaryValueRef);
+    }
+
     /// <summary>A <c>$ref</c> to an enum is kept — an enum does get a generated C# type.</summary>
     [Fact]
     public void ARefToAnEnumIsKept()
