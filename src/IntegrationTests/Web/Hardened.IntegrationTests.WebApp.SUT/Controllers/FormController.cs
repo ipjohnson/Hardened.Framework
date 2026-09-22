@@ -1,3 +1,4 @@
+using Hardened.IntegrationTests.WebApp.SUT.Models;
 using Hardened.Web.Runtime.Attributes;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Controllers;
@@ -36,4 +37,19 @@ public class FormController
     [Post("/optional")]
     public string Optional([FromForm] string present, [FromForm] string missing = "fallback") =>
         present + ":" + missing;
+
+    /// <summary>The eight fields of RequestBench's form, bound as one model and echoed.</summary>
+    [Post("/search")]
+    public SearchForm Search([FromForm] SearchForm search) => search;
+
+    /// <summary>A model written as a class, with each kind of member the binder handles.</summary>
+    [Post("/profile")]
+    public string Profile([FromForm] ProfileForm profile) =>
+        profile.DisplayName
+        + ":"
+        + profile.Age
+        + ":"
+        + profile.Theme
+        + ":"
+        + string.Join(",", profile.Interests ?? []);
 }

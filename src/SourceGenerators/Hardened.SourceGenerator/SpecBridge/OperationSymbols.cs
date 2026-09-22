@@ -123,6 +123,16 @@ public sealed class OperationSymbols
     public Dictionary<string, AttributeModel>? ParameterAttributes { get; set; }
 
     /// <summary>
+    /// The members a form or query string parameter is bound from, for a parameter whose type is a
+    /// model.
+    /// </summary>
+    /// <remarks>
+    /// Carried for the reason <see cref="RequestBodyRequiresServices"/> is: the front end read the
+    /// members off the parameter's symbol, and this builder rebuilds the parameter list without one.
+    /// </remarks>
+    public Dictionary<string, BoundModel>? ParameterModels { get; set; }
+
+    /// <summary>
     /// The parameter names in declaration order.
     /// </summary>
     /// <remarks>

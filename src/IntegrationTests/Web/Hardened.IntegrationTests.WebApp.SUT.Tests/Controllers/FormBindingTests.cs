@@ -1,4 +1,5 @@
 using Hardened.Requests.Abstract.Headers;
+using Hardened.Requests.Runtime.Validation;
 using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
@@ -124,5 +125,106 @@ public class FormBindingTests
         var response = await testWebApp.Post(new { present = "ignored" }, "/form/optional");
 
         response.Assert.BadRequest();
+    }
+
+    private const string SearchBody =
+        "page=417&size=38&status=paid&category=garden&sort=created&q=alpha+bravo&minPrice=1200&maxPrice=34000";
+
+    private const string SearchEcho = """
+        {"page":417,"size":38,"status":"paid","category":"garden","sort":"created","q":"alpha bravo","minPrice":1200,"maxPrice":34000}
+        """;
+
+    /// <summary>
+    /// RequestBench's <c>forms.urlencoded</c> body bound to one model, and echoed with the numbers
+    /// as numbers.
+    /// </summary>
+    [HardenedTest]
+    public async Task AFormBindsToAModel(ITestWebApp testWebApp)
+    {
+        var response = await testWebApp.Post(SearchBody, "/form/search", AsForm);
+
+        response.Assert.Ok();
+        Assert.Equal(SearchEcho, await response.ReadTextAsync());
+    }
+
+    /// <summary>A missing member is refused by the field the client should have sent.</summary>
+    [HardenedTest]
+    public async Task AMissingMemberIsRefusedByItsFieldName(ITestWebApp testWebApp)
+    {
+        var response = await testWebApp.Post(
+            SearchBody.Replace("size=38&", ""),
+            "/form/search",
+            AsForm
+        );
+
+        response.Assert.BadRequest();
+
+        var field = Assert.Single(response.Deserialize<RequestValidationError>()!.Errors!);
+
+        Assert.Equal("size", field.Field);
+        Assert.Equal("required", field.Code);
+    }
+
+    /// <summary>A member renamed for JSON is renamed on the form too.</summary>
+    [HardenedTest]
+    public async Task ARenamedMemberBindsFromItsJsonName(ITestWebApp testWebApp)
+    {
+        var response = await testWebApp.Post(
+            "display_name=Ada&age=36&theme=dark",
+            "/form/profile",
+            AsForm
+        );
+
+        response.Assert.Ok();
+        Assert.Equal("Ada:36:dark:", response.Deserialize<string>());
+    }
+
+    /// <summary>An absent field leaves the member's initializer in place.</summary>
+    [HardenedTest]
+    public async Task AnAbsentMemberKeepsItsInitializer(ITestWebApp testWebApp)
+    {
+        var response = await testWebApp.Post("display_name=Ada&age=36", "/form/profile", AsForm);
+
+        response.Assert.Ok();
+        Assert.Equal("Ada:36:light:", response.Deserialize<string>());
+    }
+
+    /// <summary>A field sent more than once fills a collection member.</summary>
+    [HardenedTest]
+    public async Task ARepeatedFieldFillsACollectionMember(ITestWebApp testWebApp)
+    {
+        var response = await testWebApp.Post(
+            "display_name=Ada&age=36&interests=math&interests=engines",
+            "/form/profile",
+            AsForm
+        );
+
+        response.Assert.Ok();
+        Assert.Equal("Ada:36:light:math,engines", response.Deserialize<string>());
+    }
+
+    /// <summary>
+    /// The model's own constraints are enforced once it is bound, the way a body model's are.
+    /// </summary>
+    [HardenedTest]
+    public async Task AMembersConstraintIsEnforced(ITestWebApp testWebApp)
+    {
+        var response = await testWebApp.Post("display_name=Ada&age=12", "/form/profile", AsForm);
+
+        response.Assert.BadRequest();
+        Assert.Contains(
+            response.Deserialize<RequestValidationError>()!.Errors!,
+            error => error.Field.EndsWith("age", StringComparison.Ordinal)
+        );
+    }
+
+    /// <summary>The same model binds from the query string.</summary>
+    [HardenedTest]
+    public async Task AQueryStringBindsToAModel(ITestWebApp testWebApp)
+    {
+        var response = await testWebApp.Get("/binding/query-model?" + SearchBody);
+
+        response.Assert.Ok();
+        Assert.Equal(SearchEcho, await response.ReadTextAsync());
     }
 }

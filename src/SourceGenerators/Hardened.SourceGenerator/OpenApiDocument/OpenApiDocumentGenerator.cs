@@ -690,7 +690,7 @@ public static class OpenApiDocumentGenerator
         }
 
         WriteParameters(builder, handler, version, enums);
-        WriteRequestBody(builder, handler, components);
+        WriteRequestBody(builder, handler, components, version, enums);
         WriteResponses(builder, handler, components, version);
         WriteTimeout(builder, handler);
 
@@ -938,6 +938,7 @@ public static class OpenApiDocumentGenerator
     {
         var bound = handler
             .RequestParameterInformationList.Where(p => Location(p.BindingType) != null)
+            .SelectMany(Published)
             .ToList();
 
         // A header a filter reads is dropped where the handler binds one of that name: the
@@ -1034,14 +1035,29 @@ public static class OpenApiDocumentGenerator
         builder.Append(']');
     }
 
+    /// <summary>
+    /// A parameter as the document lists it: one entry for a value, and one per member for a
+    /// query string model, because the members are what a caller sends.
+    /// </summary>
+    private static IEnumerable<RequestParameterInformation> Published(
+        RequestParameterInformation parameter
+    ) =>
+        parameter.Model is { Problem: null } model
+            ? model.Members.Select(member => member.Value)
+            : new[] { parameter };
+
     private static void WriteRequestBody(
         StringBuilder builder,
         RequestHandlerModel handler,
-        SortedDictionary<string, string> components
+        SortedDictionary<string, string> components,
+        OpenApiVersion version,
+        IReadOnlyDictionary<string, EnumVocabulary> enums
     )
     {
         if (handler.RequestSchema == null)
         {
+            WriteFormRequestBody(builder, handler, components, version, enums);
+
             return;
         }
 
@@ -1058,6 +1074,118 @@ public static class OpenApiDocumentGenerator
             .Append(JsonSchemaWriter.Escape(contentType))
             .Append("\":{\"schema\":")
             .Append(handler.RequestSchema.Schema)
+            .Append("}}}");
+    }
+
+    /// <summary>
+    /// The request body of a handler that binds from a form.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A form binding published nothing at all, because <c>[FromForm]</c> has no parameter
+    /// location and the parameter writer skips anything without one. A client generated from the
+    /// document had no way to send the fields.
+    /// </para>
+    /// <para>
+    /// A form model is its own schema by reference, which is correct because the binder names each
+    /// field the way that schema names the member. Fields bound one at a time become one property
+    /// each, described the way a query value of the same type is. A handler binding both gets the
+    /// two joined with <c>allOf</c>.
+    /// </para>
+    /// </remarks>
+    private static void WriteFormRequestBody(
+        StringBuilder builder,
+        RequestHandlerModel handler,
+        SortedDictionary<string, string> components,
+        OpenApiVersion version,
+        IReadOnlyDictionary<string, EnumVocabulary> enums
+    )
+    {
+        var schemas = new List<string>();
+        var properties = new StringBuilder();
+        var required = new List<string>();
+        var anyRequired = false;
+
+        foreach (var parameter in handler.RequestParameterInformationList)
+        {
+            if (parameter.BindingType != ParameterBindType.Form)
+            {
+                continue;
+            }
+
+            if (parameter.Model != null)
+            {
+                // A model with a problem is HRDW007, which fails the build, so it publishes nothing.
+                if (parameter.Model is { Problem: null, Schema: { } schema })
+                {
+                    Merge(components, schema);
+                    schemas.Add(schema.Schema);
+
+                    anyRequired |= parameter.Model.Members.Any(member =>
+                        member.Value.Required && member.Value.DefaultValue == null
+                    );
+                }
+
+                continue;
+            }
+
+            var name = BoundName(parameter);
+
+            if (properties.Length > 0)
+            {
+                properties.Append(',');
+            }
+
+            properties
+                .Append('"')
+                .Append(JsonSchemaWriter.Escape(name))
+                .Append("\":")
+                .Append(ParameterSchema(parameter, version, enums));
+
+            if (
+                (parameter.Required || parameter.RequiredByConstraint)
+                && parameter.DefaultValue == null
+            )
+            {
+                required.Add(name);
+            }
+        }
+
+        if (properties.Length > 0)
+        {
+            var inline = new StringBuilder("{\"type\":\"object\"");
+
+            if (required.Count > 0)
+            {
+                inline
+                    .Append(",\"required\":[")
+                    .Append(
+                        string.Join(
+                            ",",
+                            required.Select(name => "\"" + JsonSchemaWriter.Escape(name) + "\"")
+                        )
+                    )
+                    .Append(']');
+            }
+
+            inline.Append(",\"properties\":{").Append(properties).Append("}}");
+
+            schemas.Add(inline.ToString());
+            anyRequired |= required.Count > 0;
+        }
+
+        if (schemas.Count == 0)
+        {
+            return;
+        }
+
+        builder
+            .Append(",\"requestBody\":{\"required\":")
+            .Append(anyRequired ? "true" : "false")
+            .Append(",\"content\":{\"application/x-www-form-urlencoded\":{\"schema\":")
+            .Append(
+                schemas.Count == 1 ? schemas[0] : "{\"allOf\":[" + string.Join(",", schemas) + "]}"
+            )
             .Append("}}}");
     }
 

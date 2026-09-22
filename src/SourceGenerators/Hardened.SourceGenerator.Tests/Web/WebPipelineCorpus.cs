@@ -22,6 +22,7 @@ public static class WebPipelineCorpus
         "injected-service",
         "cookie-and-header",
         "form-fields",
+        "form-model",
         "execution-context",
         "streaming-response",
         "raw-response",
@@ -115,6 +116,25 @@ public static class WebPipelineCorpus
                         [FromForm] string email,
                         [FromForm("display_name")] string displayName) =>
                         Task.FromResult(email + displayName);
+                }
+                """,
+
+                "form-model" => """
+                public record Search(int Page, string Q, int Size = 20);
+
+                public class Paging {
+                    public int Page { get; set; }
+                    public int Size { get; set; } = 20;
+                    public required string Sort { get; init; }
+                }
+
+                public class SearchController {
+                    [Post("/search")]
+                    public Task<string> Search([FromForm] Search search) => Task.FromResult(search.Q);
+
+                    [Get("/list")]
+                    public Task<string> List([FromQueryString] Paging paging) =>
+                        Task.FromResult(paging.Sort);
                 }
                 """,
 

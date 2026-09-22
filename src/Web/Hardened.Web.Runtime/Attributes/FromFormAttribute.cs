@@ -23,6 +23,11 @@ namespace Hardened.Web.Runtime.Attributes;
 /// leaving one of them to come back empty.
 /// </para>
 /// <para>
+/// <b>A model binds one field per member.</b> A type the string converter cannot read from one
+/// value is constructed from the fields its members are named by, the way <c>System.Text.Json</c>
+/// names them. <c>[FromQueryString]</c> does the same from the query string.
+/// </para>
+/// <para>
 /// Fields only. <c>multipart/form-data</c>, which is what a form with a file input posts, is a
 /// different wire format and is not read by this.
 /// </para>

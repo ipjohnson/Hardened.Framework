@@ -62,6 +62,10 @@ public class WebExecutionHandlerCodeGenerator
         // class that was never written.
         FormAndBodyDiagnostics.Report(sourceProductionContext, requestHandlerModel);
 
+        // And again: a form or query string model the binder cannot build compiles, bound as one
+        // field named after the parameter, and refuses every request.
+        BoundModelDiagnostics.Report(sourceProductionContext, requestHandlerModel);
+
         // And the same treatment again: a token that binds nothing leaves a handler that compiles
         // and routes, and refuses every request once it is running.
         RouteBindingDiagnostics.Report(sourceProductionContext, requestHandlerModel);

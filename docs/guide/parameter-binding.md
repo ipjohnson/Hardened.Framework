@@ -56,8 +56,47 @@ A handler cannot bind form fields and a body model at once — there is one body
 are different. The generator reports that combination rather than leaving one of them to come back
 empty.
 
+The published operation carries an `application/x-www-form-urlencoded` request body with one
+property per field.
+
 Fields only. `multipart/form-data`, which is what a form with a file input posts, is a different
 wire format and is not read by this.
+
+### A model from fields
+
+`[FromForm]` or `[FromQueryString]` on a model binds one field per member:
+
+```csharp
+public record Search(int Page, int Size, string Q, string Sort = "created");
+
+[Post("/search")]
+public Page<Item> Find([FromForm] Search search) => ...;   // page=2&size=20&q=lamp
+```
+
+A field is named the way `System.Text.Json` names the member: camelCase, or its
+`[JsonPropertyName]`. Names match exactly, including case. The document already describes the model
+under those names, so a form model's request body is a `$ref` to the model's schema, and a query
+string model is published as one query parameter per member.
+
+The constructor is the one `System.Text.Json` would choose: the one marked `[JsonConstructor]`,
+otherwise a public parameterless one, otherwise the only public one. Its parameters bind first, then
+every public property with a setter or `init` that it did not set. A member marked `[JsonIgnore]`
+is not bound.
+
+A member with no default is required when it is non-nullable or carries `[Required]`, which is the
+rule the model's schema is published under. A missing required member answers 400 with `required`,
+naming the field. An absent field takes the constructor parameter's default, or leaves a property's
+initializer in place. The model's constraints are enforced after it is bound, as a body model's
+are.
+
+A type the string converter reads from one value stays one field: the scalars, enums, collections of
+those, anything in a `System` or `Microsoft` namespace, and any type with a static `Parse` or
+`TryParse`. The last covers a type an application registers an `IStringConverter` for, which the
+build cannot see.
+
+`HRDW007` fails the build for a model that cannot be built from fields: a member that is an object, a
+nullable model parameter, a field name on the attribute, an `init` member with an initializer, or no
+constructor the rule above can choose.
 
 ## Types
 

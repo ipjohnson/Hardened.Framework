@@ -94,6 +94,10 @@ public class BindingController
     [Get("/query-typed")]
     public int TypedQuery([FromQueryString] int page) => page + 1;
 
+    /// <summary>The model <c>/form/search</c> binds, bound from the query string instead.</summary>
+    [Get("/query-model")]
+    public SearchForm QueryModel([FromQueryString] SearchForm search) => search;
+
     #region collections
 
     /// <summary>
