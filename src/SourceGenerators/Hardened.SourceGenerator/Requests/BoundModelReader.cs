@@ -116,6 +116,10 @@ public static class BoundModelReader
     }
 
     /// <summary>Whether a parameter of this type is bound member by member.</summary>
+    /// <remarks>
+    /// A collection is never a model, even one the application declares. Its public members are
+    /// things like <c>Capacity</c>, not fields anyone sends.
+    /// </remarks>
     public static bool IsModel(ITypeSymbol type) =>
         type
             is INamedTypeSymbol
@@ -124,7 +128,10 @@ public static class BoundModelReader
                 IsAbstract: false,
             } named
         && !IsFrameworkType(named)
-        && !IsScalar(named);
+        && !IsScalar(named)
+        && !named.AllInterfaces.Any(candidate =>
+            candidate.SpecialType == SpecialType.System_Collections_IEnumerable
+        );
 
     private static string? ReadMembers(
         INamedTypeSymbol type,

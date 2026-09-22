@@ -352,6 +352,31 @@ public class FormBindingTests
         );
     }
 
+    /// <summary>
+    /// A collection the application declares binds as one value, as it did before models were
+    /// bound member by member.
+    /// </summary>
+    [Fact]
+    public void ACollectionTypeIsNotAModel()
+    {
+        var result = Generate(
+            """
+                [Get("/tags")]
+                public int Tags([FromQueryString] TagList tags) => tags.Count;
+            """,
+            """
+            public class TagList : List<string> { }
+            """
+        );
+
+        result.AssertNoErrors();
+
+        var source = Compact(result.SourceContaining("Tags"));
+
+        Assert.Contains("ParseRequired<global::TestApp.TagList>", source);
+        Assert.DoesNotContain("capacity", source);
+    }
+
     /// <summary>A model the binder cannot build one field at a time is a build error.</summary>
     [Theory]
     [InlineData(
