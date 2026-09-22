@@ -59,8 +59,32 @@ empty.
 The published operation carries an `application/x-www-form-urlencoded` request body with one
 property per field.
 
-Fields only. `multipart/form-data`, which is what a form with a file input posts, is a different
-wire format and is not read by this.
+`[FromForm]` reads a field of a `multipart/form-data` body the same way, and an `IFormFile` from one
+of its file parts:
+
+```csharp
+[Post("/documents")]
+public Created<Document> Upload([FromForm] string title, [FromForm] IFormFile file) => ...;
+```
+
+A required file that was not sent answers 400 with `required`, like a missing field. `IFormFile?` is
+optional, and `IReadOnlyList<IFormFile>` takes every part sent under the name. An `IFormFile` bound
+any other way is `HRDW008`. The operation is then published as `multipart/form-data`, with each file
+as `{"type": "string", "format": "binary"}`.
+
+The whole body is read into memory before the handler runs, so a field can follow a file, and a file
+is valid only while the request is. A body longer than `MaxBodyBytes`, 30,000,000 bytes unless
+changed, answers 413:
+
+```csharp
+services.ConfigureForms(forms => forms.MaxBodyBytes = 5_000_000);
+```
+
+A body that is not a multipart body under its boundary answers 400 with `invalid` against `body`,
+as a malformed JSON body does. A larger upload keeps using a `Stream` body parameter.
+
+In a project on the Web SDK, whose implicit usings import `Microsoft.AspNetCore.Http`, `IFormFile`
+needs an alias: `using IFormFile = Hardened.Requests.Abstract.Forms.IFormFile;`.
 
 ### A model from fields
 
@@ -94,9 +118,11 @@ those, anything in a `System` or `Microsoft` namespace, and any type with a stat
 `TryParse`. The last covers a type an application registers an `IStringConverter` for, which the
 build cannot see. A collection type the application declares is never a model either.
 
+A form model's `IFormFile` member binds from the file part of its name.
+
 `HRDW007` fails the build for a model that cannot be built from fields: a member that is an object, a
-nullable model parameter, a field name on the attribute, an `init` member with an initializer, or no
-constructor the rule above can choose.
+nullable model parameter, a field name on the attribute, an `init` member with an initializer, a
+file on a query string model, or no constructor the rule above can choose.
 
 ## Types
 

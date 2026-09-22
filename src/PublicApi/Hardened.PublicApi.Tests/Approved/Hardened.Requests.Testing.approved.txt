@@ -13,6 +13,7 @@ namespace Hardened.Requests.Testing.Conformance
     public abstract class ExecutionRequestConformanceTests : Hardened.Requests.Testing.Conformance.PayloadExecutionRequestConformanceTests
     {
         protected ExecutionRequestConformanceTests() { }
+        public void ABinaryBodyAndItsContentTypeArriveIntact() { }
         public void CookiesAreSurfaced() { }
         public void QueryStringIsSurfaced() { }
         public void QueryStringValuesArriveDecoded() { }

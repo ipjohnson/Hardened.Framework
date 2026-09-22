@@ -23,6 +23,7 @@ public static class WebPipelineCorpus
         "cookie-and-header",
         "form-fields",
         "form-model",
+        "form-file",
         "execution-context",
         "streaming-response",
         "raw-response",
@@ -135,6 +136,18 @@ public static class WebPipelineCorpus
                     [Get("/list")]
                     public Task<string> List([FromQueryString] Paging paging) =>
                         Task.FromResult(paging.Sort);
+                }
+                """,
+
+                "form-file" => """
+                public record Upload(string Tenant, Hardened.Requests.Abstract.Forms.IFormFile File);
+
+                public class UploadController {
+                    [Post("/upload")]
+                    public Task<long> Upload(
+                        [FromForm] Upload upload,
+                        [FromForm] IReadOnlyList<Hardened.Requests.Abstract.Forms.IFormFile>? extras) =>
+                        Task.FromResult(upload.File.Length);
                 }
                 """,
 

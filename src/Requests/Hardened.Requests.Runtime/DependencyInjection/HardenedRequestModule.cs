@@ -9,6 +9,7 @@ using Hardened.Requests.Abstract.Timeouts;
 using Hardened.Requests.Runtime.Authorization;
 using Hardened.Requests.Runtime.Configuration;
 using Hardened.Requests.Runtime.Filters;
+using Hardened.Requests.Runtime.Forms;
 using Hardened.Requests.Runtime.Serializer;
 using Hardened.Requests.Runtime.Streaming;
 using Hardened.Shared.Runtime.Application;
@@ -64,6 +65,7 @@ public partial class HardenedRequestModule : IServiceCollectionConfiguration
                         IStreamingConfiguration,
                         StreamingConfiguration
                     >(null),
+                    new NewConfigurationValueProvider<IFormConfiguration, FormConfiguration>(null),
                 }
             )
         );
@@ -94,6 +96,16 @@ public partial class HardenedRequestModule : IServiceCollectionConfiguration
                     .GetConfiguration<IStreamingConfiguration>()
             )
         );
+
+        services.AddSingleton(s =>
+            Options.Create(
+                s.GetRequiredService<IConfigurationManager>().GetConfiguration<IFormConfiguration>()
+            )
+        );
+
+        // One per request, so a form is read once however many readers ask for it. See
+        // RequestFormCache.
+        services.TryAddScoped<RequestFormCache>();
 
         // The caller, as a service a handler can take. Scoped rather than resolved from the
         // context, because the container has no per-request instance of the context to build one

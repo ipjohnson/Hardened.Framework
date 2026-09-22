@@ -149,6 +149,13 @@ public static class JsonSchemaWriter
             return BinaryPayload;
         }
 
+        // A file part is bytes on the wire as well, and reflecting the interface would publish its
+        // name, content type and length as though a client sent them as fields.
+        if (Requests.FormFileType.Is(type))
+        {
+            return BinaryPayload;
+        }
+
         if (type is IArrayTypeSymbol array)
         {
             // byte[] is the payload itself, not a sequence of numbers. Every element type below

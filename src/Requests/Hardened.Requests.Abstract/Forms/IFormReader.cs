@@ -3,7 +3,8 @@ using Hardened.Requests.Abstract.Execution;
 namespace Hardened.Requests.Abstract.Forms;
 
 /// <summary>
-/// Reads a request's form fields.
+/// Reads a request's form: the fields of a url-encoded body, or the fields and files of a
+/// multipart one.
 /// </summary>
 /// <remarks>
 /// Asynchronous because it reads the body. The generated binder awaits it once per handler and

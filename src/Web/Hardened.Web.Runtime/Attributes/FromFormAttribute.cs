@@ -1,7 +1,8 @@
 namespace Hardened.Web.Runtime.Attributes;
 
 /// <summary>
-/// Binds a parameter from a field of an <c>application/x-www-form-urlencoded</c> body.
+/// Binds a parameter from a field of an <c>application/x-www-form-urlencoded</c> or
+/// <c>multipart/form-data</c> body, or from a file part of the second.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -28,8 +29,9 @@ namespace Hardened.Web.Runtime.Attributes;
 /// names them. <c>[FromQueryString]</c> does the same from the query string.
 /// </para>
 /// <para>
-/// Fields only. <c>multipart/form-data</c>, which is what a form with a file input posts, is a
-/// different wire format and is not read by this.
+/// <b>A file binds to <c>IFormFile</c>.</b> A part carrying a <c>filename</c> is a file, and a
+/// parameter or model member typed <c>IFormFile</c>, <c>IFormFile?</c> or a list of them binds from
+/// the parts sent under its name.
 /// </para>
 /// </remarks>
 public class FromFormAttribute : Attribute

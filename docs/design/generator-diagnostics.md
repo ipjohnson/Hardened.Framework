@@ -409,12 +409,28 @@ The message names one of these:
 - An `init` or `required` member has an initializer. Such a member can only be set in the object
   initializer, which cannot leave it out when its field is absent, so the initializer's value would
   be replaced.
+- A query string model has a file member. Only a multipart form carries a file.
 - The type has no public constructor, or has several and none is marked `[JsonConstructor]`.
 - The type has no constructor parameters and no settable properties.
 
 Before this diagnostic, such a parameter compiled, bound as one field named after the parameter, and
 answered 400 to every request. The binder still emits that reading, so the build fails on this
 error alone.
+
+### HRDW008 — a file is bound from somewhere other than the form
+
+An `IFormFile`, or a collection of them, is bound by anything but `[FromForm]`.
+
+```
+'UploadController.Upload' binds 'file', a file, from the container. A file only arrives as a part
+of a multipart form, so bind it with [FromForm].
+```
+
+With no attribute, `IFormFile` is an interface and is taken for a service, which the container does
+not have. With `[FromBody]` the JSON deserializer is asked to build one, and with
+`[FromQueryString]`, `[FromHeader]` or `[FromCookie]` the string converter is asked to read one from
+text. Each compiles and refuses every request. A custom binding attribute is not reported, since
+reading a file is something one can be written to do.
 
 ## Compression
 

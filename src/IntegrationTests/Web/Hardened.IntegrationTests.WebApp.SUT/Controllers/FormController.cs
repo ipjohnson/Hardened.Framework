@@ -1,5 +1,7 @@
 using Hardened.IntegrationTests.WebApp.SUT.Models;
+using Hardened.Requests.Abstract.Attributes;
 using Hardened.Web.Runtime.Attributes;
+using IFormFile = Hardened.Requests.Abstract.Forms.IFormFile;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Controllers;
 
@@ -52,4 +54,46 @@ public class FormController
         + profile.Theme
         + ":"
         + string.Join(",", profile.Interests ?? []);
+
+    /// <summary>
+    /// RequestBench's <c>forms.multipart</c>: two fields and a file, answered with the file's name
+    /// and length and the fields echoed.
+    /// </summary>
+    [Post("/upload")]
+    public Uploaded Upload(
+        [FromForm] string tenant,
+        [FromForm] string requestId,
+        [FromForm] IFormFile file
+    ) => new(new UploadedFile(file.FileName, file.Length), new UploadEcho(tenant, requestId));
+
+    /// <summary>The same parts bound to one model.</summary>
+    [Post("/upload-model")]
+    public Uploaded UploadModel([FromForm] UploadForm upload) =>
+        new(
+            new UploadedFile(upload.File.FileName, upload.File.Length),
+            new UploadEcho(upload.Tenant, upload.RequestId)
+        );
+
+    /// <summary>Every file sent under one name, and an optional one beside them.</summary>
+    [Post("/upload-many")]
+    public string UploadMany(
+        [FromForm] IReadOnlyList<IFormFile> photos,
+        [FromForm] IFormFile? thumbnail
+    ) =>
+        string.Join(",", photos.Select(photo => photo.FileName + ":" + photo.Length))
+        + "|"
+        + (thumbnail?.FileName ?? "none");
+
+    /// <summary>A file's bytes, answered as they arrived.</summary>
+    [Post("/upload-echo")]
+    [Produces("application/octet-stream")]
+    public byte[] UploadEcho([FromForm] IFormFile file)
+    {
+        using var stream = file.OpenReadStream();
+        using var copy = new MemoryStream();
+
+        stream.CopyTo(copy);
+
+        return copy.ToArray();
+    }
 }

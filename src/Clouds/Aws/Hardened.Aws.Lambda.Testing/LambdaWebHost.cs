@@ -269,7 +269,18 @@ public sealed class LambdaWebHost : ITestHost
         var path = split < 0 ? request.PathAndQuery : request.PathAndQuery.Substring(0, split);
         var query = split < 0 ? "" : request.PathAndQuery.Substring(split + 1);
 
-        var body = new StreamReader(request.Body).ReadToEnd();
+        using var bytes = new MemoryStream();
+
+        request.Body.CopyTo(bytes);
+
+        var (body, base64) = Body(
+            bytes.ToArray(),
+            request
+                .Headers.FirstOrDefault(header =>
+                    string.Equals(header.Key, "Content-Type", StringComparison.OrdinalIgnoreCase)
+                )
+                .Value
+        );
 
         var headers = string.Join(
             ",",
@@ -312,8 +323,37 @@ public sealed class LambdaWebHost : ITestHost
              "queryStringParameters":{ {{parameters}} },
              "requestContext":{"domainName":"apigateway.test","http":{{http}} },
              "body":{{JsonSerializer.Serialize(body)}},
-             "isBase64Encoded":false}
+             "isBase64Encoded":{{(base64 ? "true" : "false")}}}
             """;
+    }
+
+    /// <summary>
+    /// The body the way an HTTP API delivers it: as text for a text media type, and base64 for
+    /// anything else.
+    /// </summary>
+    /// <remarks>
+    /// It was read as UTF-8 whatever it was, so a binary file part arrived changed and a test
+    /// through this host passed on a body a real HTTP API would have delivered differently. A
+    /// request with no content type stays text, as it always was here.
+    /// </remarks>
+    private static (string Body, bool Base64) Body(byte[] bytes, string? contentType)
+    {
+        var type = (contentType ?? "").Split(';')[0].Trim().ToLowerInvariant();
+
+        var text =
+            type.Length == 0
+            || type.StartsWith("text/", StringComparison.Ordinal)
+            || type.EndsWith("+json", StringComparison.Ordinal)
+            || type.EndsWith("+xml", StringComparison.Ordinal)
+            || type
+                is "application/json"
+                    or "application/xml"
+                    or "application/javascript"
+                    or "application/x-www-form-urlencoded";
+
+        return text
+            ? (Encoding.UTF8.GetString(bytes), false)
+            : (Convert.ToBase64String(bytes), true);
     }
 
     /// <summary>

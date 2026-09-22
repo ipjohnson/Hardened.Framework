@@ -173,7 +173,7 @@ public static class BoundModelReader
                 covered.Add(property.Name);
             }
 
-            if (MemberTypeProblem(parameter.Name, parameter.Type) is { } problem)
+            if (MemberTypeProblem(parameter.Name, parameter.Type, binding) is { } problem)
             {
                 return problem;
             }
@@ -216,12 +216,15 @@ public static class BoundModelReader
                 continue;
             }
 
-            if (MemberTypeProblem(property.Name, property.Type) is { } problem)
+            if (MemberTypeProblem(property.Name, property.Type, binding) is { } problem)
             {
                 return problem;
             }
 
-            var hasInitializer = JsonSchemaWriter.HasInitializer(property);
+            // A file member has nothing an initializer could usefully hold, so an absent part is
+            // simply an absent file.
+            var hasInitializer =
+                !IsFile(property.Type) && JsonSchemaWriter.HasInitializer(property);
 
             BoundMemberKind kind;
 
@@ -311,8 +314,19 @@ public static class BoundModelReader
         || (type.IsValueType && NullableValueType(type) == null)
         || declarations.Any(SchemaConstraintWriter.IsRequired);
 
-    private static string? MemberTypeProblem(string name, ITypeSymbol type)
+    private static string? MemberTypeProblem(
+        string name,
+        ITypeSymbol type,
+        ParameterBindType binding
+    )
     {
+        if (IsFile(type))
+        {
+            return binding == ParameterBindType.Form
+                ? null
+                : $"its member '{name}' is a file, and only a multipart form carries one";
+        }
+
         // A type that does not resolve already has the compiler's error, and a second one saying it
         // is not a value would only be noise beside it.
         if (
@@ -428,6 +442,10 @@ public static class BoundModelReader
 
         return null;
     }
+
+    /// <summary>Whether a member is <c>IFormFile</c> or a collection of it.</summary>
+    private static bool IsFile(ITypeSymbol type) =>
+        FormFileType.Is(type) || (ItemType(type) is { } item && FormFileType.Is(item));
 
     private static bool IsFrameworkType(ITypeSymbol type)
     {
