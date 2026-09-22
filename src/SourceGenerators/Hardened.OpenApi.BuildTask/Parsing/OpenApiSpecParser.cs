@@ -522,6 +522,7 @@ internal static class OpenApiSpecParser
         // CS0246.
         var emittable = new HashSet<string>();
         var arrays = new Dictionary<string, SchemaModel>();
+        var maps = new Dictionary<string, SchemaModel>();
 
         foreach (var schema in model.Schemas)
         {
@@ -538,6 +539,11 @@ internal static class OpenApiSpecParser
             {
                 arrays[schema.Name] = schema;
             }
+
+            if (schema.Kind == SchemaKind.Dictionary)
+            {
+                maps[schema.Name] = schema;
+            }
         }
 
         bool Missing(string? reference) =>
@@ -548,11 +554,17 @@ internal static class OpenApiSpecParser
                 ? found
                 : null;
 
+        SchemaModel? Map(string? reference) =>
+            reference != null && maps.TryGetValue(TypeMapper.GetRefName(reference), out var found)
+                ? found
+                : null;
+
         foreach (var schema in model.Schemas)
         {
             foreach (var property in schema.Properties)
             {
                 var target = Array(property.Ref);
+                var map = Map(property.Ref);
 
                 if (target != null)
                 {
@@ -562,6 +574,17 @@ internal static class OpenApiSpecParser
                     property.ArrayItemsRef = target.ArrayItemsRef;
                     property.ArrayItemsType = target.ArrayItemsType;
                     property.ArrayItemsFormat = target.ArrayItemsFormat;
+                }
+                else if (map != null)
+                {
+                    // And a map the same way. Dropped as missing, it left a property with no type:
+                    // JsonElement in the model, and "string" in the published document, where the
+                    // same map written inline was a Dictionary and published as one.
+                    property.Ref = null;
+                    property.IsDictionary = true;
+                    property.DictionaryValueType = map.DictionaryValueType;
+                    property.DictionaryValueRef = map.DictionaryValueRef;
+                    property.DictionaryValueFormat = map.DictionaryValueFormat;
                 }
                 else if (Missing(property.Ref))
                 {
