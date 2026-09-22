@@ -92,7 +92,7 @@ are.
 A type the string converter reads from one value stays one field: the scalars, enums, collections of
 those, anything in a `System` or `Microsoft` namespace, and any type with a static `Parse` or
 `TryParse`. The last covers a type an application registers an `IStringConverter` for, which the
-build cannot see.
+build cannot see. A collection type the application declares is never a model either.
 
 `HRDW007` fails the build for a model that cannot be built from fields: a member that is an object, a
 nullable model parameter, a field name on the attribute, an `init` member with an initializer, or no
