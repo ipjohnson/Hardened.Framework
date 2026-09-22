@@ -27,6 +27,11 @@ public class KnownContentType
     public static StringValues FormUrlEncodedStringValues = new StringValues(FormUrlEncoded);
 
     /// <summary>
+    /// A form carrying files: parts separated by the boundary its <c>Content-Type</c> names.
+    /// </summary>
+    public const string MultipartFormData = "multipart/form-data";
+
+    /// <summary>
     /// Newline-delimited JSON: one document per line, separated by <c>0x0A</c>.
     /// </summary>
     /// <remarks>

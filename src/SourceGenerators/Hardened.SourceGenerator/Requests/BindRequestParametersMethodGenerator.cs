@@ -14,6 +14,11 @@ public static class BindRequestParametersMethodGenerator
         "StringValues"
     );
 
+    private static readonly ITypeDefinition FormFileBindingType = TypeDefinition.Get(
+        "Hardened.Requests.Runtime.Forms",
+        "FormFileBinding"
+    );
+
     public static void Implement(
         RequestHandlerModel requestHandlerModel,
         ClassDefinition classDefinition
@@ -315,7 +320,8 @@ public static class BindRequestParametersMethodGenerator
                     context
                         .Property("Request")
                         .Property("QueryString")
-                        .Invoke("Get", QuoteString(field))
+                        .Invoke("Get", QuoteString(field)),
+                null
             );
 
             return;
@@ -391,6 +397,15 @@ public static class BindRequestParametersMethodGenerator
         InstanceDefinition formVar
     )
     {
+        if (FormFileType.Binds(parameterInformation.ParameterType))
+        {
+            invokeMethod
+                .Assign(File(parameterInformation, formVar))
+                .To(parametersVar.Property(parameterInformation.MemberName));
+
+            return;
+        }
+
         if (parameterInformation.Model is { Problem: null } model)
         {
             BindModel(
@@ -399,7 +414,8 @@ public static class BindRequestParametersMethodGenerator
                 invokeMethod,
                 context,
                 parametersVar,
-                field => formVar.Invoke("Get", QuoteString(field))
+                field => formVar.Invoke("Get", QuoteString(field)),
+                formVar
             );
 
             return;
@@ -549,6 +565,60 @@ public static class BindRequestParametersMethodGenerator
     }
 
     /// <summary>
+    /// A file, or every file, the form carried under a parameter's name.
+    /// </summary>
+    /// <remarks>
+    /// Checked by <c>FormFileBinding</c> rather than the string converter, which has nothing to
+    /// convert, and refused with the same <c>required</c> a missing field gets. A list, array or
+    /// read-only collection takes what <c>GetFiles</c> answers, copied only where the declared type
+    /// needs one.
+    /// </remarks>
+    private static IOutputComponent File(
+        RequestParameterInformation parameter,
+        InstanceDefinition formVar
+    )
+    {
+        var name = string.IsNullOrEmpty(parameter.BindingName)
+            ? parameter.Name
+            : parameter.BindingName;
+
+        var type = parameter.ParameterType;
+
+        if (FormFileType.Is(type))
+        {
+            var file = formVar.Invoke("GetFile", QuoteString(name));
+
+            return parameter.Required
+                ? Invoke(FormFileBindingType, "Required", file, QuoteString(name))
+                : file;
+        }
+
+        var files = formVar.Invoke("GetFiles", QuoteString(name));
+
+        IOutputComponent bound = parameter.Required
+            ? Invoke(FormFileBindingType, "RequiredMany", files, QuoteString(name))
+            : Invoke(FormFileBindingType, "OptionalMany", files);
+
+        var copy =
+            type.IsArray ? "ToArray"
+            : type.Name is "List" or "IList" or "ICollection" ? "ToList"
+            : null;
+
+        if (copy == null)
+        {
+            return bound;
+        }
+
+        IOutputComponent copied = parameter.Required
+            ? bound.Invoke(copy)
+            : Question(bound).Invoke(copy);
+
+        copied.AddUsingNamespace("System.Linq");
+
+        return copied;
+    }
+
+    /// <summary>
     /// A model built from one field per member, each converted the way a parameter of the
     /// member's type would be.
     /// </summary>
@@ -569,13 +639,18 @@ public static class BindRequestParametersMethodGenerator
         MethodDefinition invokeMethod,
         ParameterDefinition context,
         InstanceDefinition parametersVar,
-        Func<string, IOutputComponent> field
+        Func<string, IOutputComponent> field,
+        InstanceDefinition? formVar
     )
     {
         var converter = context.Property("KnownServices").Property("StringConverterService");
 
+        // A file member only reaches here on a form, because HRDW007 refuses one on a query
+        // string model.
         IOutputComponent Converted(RequestParameterInformation member) =>
-            Convert(member, converter, Bang(field(member.BindingName)), member.BindingName);
+            formVar != null && FormFileType.Binds(member.ParameterType)
+                ? File(member, formVar)
+                : Convert(member, converter, Bang(field(member.BindingName)), member.BindingName);
 
         var arguments = new List<IOutputComponent>();
         var initializers = new List<Ex>();

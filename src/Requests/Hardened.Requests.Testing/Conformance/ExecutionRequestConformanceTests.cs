@@ -83,4 +83,32 @@ public abstract class ExecutionRequestConformanceTests : PayloadExecutionRequest
         Assert.Contains(request.Cookies, c => c.Contains("session=abc123"));
         Assert.Contains(request.Cookies, c => c.Contains("theme=dark"));
     }
+
+    /// <summary>
+    /// A binary body arrives byte for byte, and the parameter on its content type with it.
+    /// </summary>
+    /// <remarks>
+    /// A multipart upload is both at once: file bytes that are not UTF-8, and a <c>boundary</c>
+    /// the body cannot be read without. Read to its end rather than rewound, because four of the
+    /// transports hand over a stream that cannot seek.
+    /// </remarks>
+    [Fact]
+    public void ABinaryBodyAndItsContentTypeArriveIntact()
+    {
+        var payload = Enumerable.Range(0, 256).Select(value => (byte)value).ToArray();
+
+        var request = Create(s =>
+        {
+            s.Headers["Content-Type"] = "multipart/form-data; boundary=rb-7c4f1e0a9d";
+            s.Body = payload;
+        });
+
+        Assert.Equal("multipart/form-data; boundary=rb-7c4f1e0a9d", request.ContentType);
+
+        using var copy = new MemoryStream();
+
+        request.Body.CopyTo(copy);
+
+        Assert.Equal(payload, copy.ToArray());
+    }
 }

@@ -38,4 +38,6 @@ public class SimpleFormCollection : IFormCollection
 
     public StringValues Get(string key) =>
         _fields.TryGetValue(key, out var value) ? value : StringValues.Empty;
+
+    public IEnumerable<string> Keys => _fields.Keys;
 }

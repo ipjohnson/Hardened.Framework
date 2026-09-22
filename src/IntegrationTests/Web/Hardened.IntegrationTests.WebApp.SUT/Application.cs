@@ -2,6 +2,7 @@
 using Hardened.IntegrationTests.Web.SUT;
 using Hardened.Requests.Abstract.Authorization;
 using Hardened.Requests.Caching.Memory;
+using Hardened.Requests.Runtime.Forms;
 using Hardened.Requests.Serializers.MessagePack;
 using Hardened.Requests.Testing;
 using Hardened.Shared.Runtime.Application;
@@ -58,6 +59,9 @@ public partial class Application : IServiceCollectionConfiguration
         services.ConfigureCompression(compression =>
             compression.MaxDecompressedRequestBytes = 4096
         );
+
+        // Room for RequestBench's 33,067-byte upload, and small enough for a test to exceed.
+        services.ConfigureForms(forms => forms.MaxBodyBytes = 100_000);
     }
 
     public static WebApplicationBuilder CreateBuilder(string[] args)

@@ -515,7 +515,18 @@ namespace Hardened.Requests.Abstract.Forms
     public interface IFormCollection
     {
         int Count { get; }
+        System.Collections.Generic.IEnumerable<string> Keys { get; }
         Microsoft.Extensions.Primitives.StringValues Get(string key);
+        Hardened.Requests.Abstract.Forms.IFormFile? GetFile(string name);
+        System.Collections.Generic.IReadOnlyList<Hardened.Requests.Abstract.Forms.IFormFile> GetFiles(string name);
+    }
+    public interface IFormFile
+    {
+        string ContentType { get; }
+        string FileName { get; }
+        long Length { get; }
+        string Name { get; }
+        System.IO.Stream OpenReadStream();
     }
     public interface IFormReader
     {
@@ -568,6 +579,7 @@ namespace Hardened.Requests.Abstract.Headers
         public const string Html = "text/html";
         public const string Js = "text/js";
         public const string Json = "application/json";
+        public const string MultipartFormData = "multipart/form-data";
         public const string NdJson = "application/x-ndjson";
         public static Microsoft.Extensions.Primitives.StringValues CssStringValues;
         public static Microsoft.Extensions.Primitives.StringValues EventStreamStringValues;

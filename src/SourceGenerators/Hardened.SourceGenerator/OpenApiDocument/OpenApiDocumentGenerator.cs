@@ -1087,6 +1087,10 @@ public static class OpenApiDocumentGenerator
     /// document had no way to send the fields.
     /// </para>
     /// <para>
+    /// <c>multipart/form-data</c> when anything bound is a file, whether a parameter or a model's
+    /// member, and a file is <c>format: binary</c>, the spelling a raw body already publishes.
+    /// </para>
+    /// <para>
     /// A form model is its own schema by reference, which is correct because the binder names each
     /// field the way that schema names the member. Fields bound one at a time become one property
     /// each, described the way a query value of the same type is. A handler binding both gets the
@@ -1105,6 +1109,7 @@ public static class OpenApiDocumentGenerator
         var properties = new StringBuilder();
         var required = new List<string>();
         var anyRequired = false;
+        var multipart = false;
 
         foreach (var parameter in handler.RequestParameterInformationList)
         {
@@ -1124,6 +1129,9 @@ public static class OpenApiDocumentGenerator
                     anyRequired |= parameter.Model.Members.Any(member =>
                         member.Value.Required && member.Value.DefaultValue == null
                     );
+                    multipart |= parameter.Model.Members.Any(member =>
+                        Requests.FormFileType.Binds(member.Value.ParameterType)
+                    );
                 }
 
                 continue;
@@ -1136,11 +1144,19 @@ public static class OpenApiDocumentGenerator
                 properties.Append(',');
             }
 
+            var file = Requests.FormFileType.Binds(parameter.ParameterType);
+
+            multipart |= file;
+
             properties
                 .Append('"')
                 .Append(JsonSchemaWriter.Escape(name))
                 .Append("\":")
-                .Append(ParameterSchema(parameter, version, enums));
+                .Append(
+                    !file ? ParameterSchema(parameter, version, enums)
+                    : Requests.FormFileType.Is(parameter.ParameterType) ? BinarySchema
+                    : "{\"type\":\"array\",\"items\":" + BinarySchema + "}"
+                );
 
             if (
                 (parameter.Required || parameter.RequiredByConstraint)
@@ -1182,12 +1198,16 @@ public static class OpenApiDocumentGenerator
         builder
             .Append(",\"requestBody\":{\"required\":")
             .Append(anyRequired ? "true" : "false")
-            .Append(",\"content\":{\"application/x-www-form-urlencoded\":{\"schema\":")
+            .Append(",\"content\":{\"")
+            .Append(multipart ? "multipart/form-data" : "application/x-www-form-urlencoded")
+            .Append("\":{\"schema\":")
             .Append(
                 schemas.Count == 1 ? schemas[0] : "{\"allOf\":[" + string.Join(",", schemas) + "]}"
             )
             .Append("}}}");
     }
+
+    private const string BinarySchema = "{\"type\":\"string\",\"format\":\"binary\"}";
 
     /// <summary>
     /// The operation's <c>responses</c>, which is every status it can answer with.

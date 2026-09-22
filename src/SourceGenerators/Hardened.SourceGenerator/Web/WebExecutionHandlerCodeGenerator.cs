@@ -66,6 +66,9 @@ public class WebExecutionHandlerCodeGenerator
         // field named after the parameter, and refuses every request.
         BoundModelDiagnostics.Report(sourceProductionContext, requestHandlerModel);
 
+        // And again: a file bound from anywhere but the form compiles and refuses every request.
+        FormFileDiagnostics.Report(sourceProductionContext, requestHandlerModel);
+
         // And the same treatment again: a token that binds nothing leaves a handler that compiles
         // and routes, and refuses every request once it is running.
         RouteBindingDiagnostics.Report(sourceProductionContext, requestHandlerModel);

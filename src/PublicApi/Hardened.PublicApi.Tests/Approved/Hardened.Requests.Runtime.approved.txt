@@ -561,16 +561,42 @@ namespace Hardened.Requests.Runtime.Forms
         public int Count { get; }
         public Microsoft.Extensions.Primitives.StringValues Get(string key) { }
     }
+    public class FormBodyTooLargeException : Hardened.Requests.Abstract.Errors.StatusCodeException
+    {
+        public FormBodyTooLargeException(long limit) { }
+        public long Limit { get; }
+    }
+    public class FormConfiguration : Hardened.Requests.Runtime.Forms.IFormConfiguration
+    {
+        public const long DefaultMaxBodyBytes = 30000000;
+        public FormConfiguration() { }
+        public long MaxBodyBytes { get; set; }
+    }
+    public static class FormFileBinding
+    {
+        public static System.Collections.Generic.IReadOnlyList<Hardened.Requests.Abstract.Forms.IFormFile>? OptionalMany(System.Collections.Generic.IReadOnlyList<Hardened.Requests.Abstract.Forms.IFormFile> files) { }
+        public static Hardened.Requests.Abstract.Forms.IFormFile Required(Hardened.Requests.Abstract.Forms.IFormFile? file, string name) { }
+        public static System.Collections.Generic.IReadOnlyList<Hardened.Requests.Abstract.Forms.IFormFile> RequiredMany(System.Collections.Generic.IReadOnlyList<Hardened.Requests.Abstract.Forms.IFormFile> files, string name) { }
+    }
     [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
     public class FormReader : Hardened.Requests.Abstract.Forms.IFormReader
     {
         public FormReader() { }
         public System.Threading.Tasks.ValueTask<Hardened.Requests.Abstract.Forms.IFormCollection> ReadForm(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
     }
+    public static class FormServiceCollectionExtensions
+    {
+        public static Microsoft.Extensions.DependencyInjection.IServiceCollection ConfigureForms(this Microsoft.Extensions.DependencyInjection.IServiceCollection services, System.Action<Hardened.Requests.Runtime.Forms.FormConfiguration> configure) { }
+    }
+    public interface IFormConfiguration
+    {
+        long MaxBodyBytes { get; }
+    }
     public class SimpleFormCollection : Hardened.Requests.Abstract.Forms.IFormCollection
     {
         public SimpleFormCollection(System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> fields) { }
         public int Count { get; }
+        public System.Collections.Generic.IEnumerable<string> Keys { get; }
         public Microsoft.Extensions.Primitives.StringValues Get(string key) { }
     }
     public static class UrlEncodedParser

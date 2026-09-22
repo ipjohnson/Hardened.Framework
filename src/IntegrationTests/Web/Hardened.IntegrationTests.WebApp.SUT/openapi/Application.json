@@ -3940,6 +3940,257 @@
         "x-hardened-timeout": 300000
       }
     },
+    "/form/upload": {
+      "post": {
+        "tags": [
+          "Form"
+        ],
+        "operationId": "upload",
+        "summary": "RequestBench's forms.multipart: two fields and a file, answered with the file's name and length and the fields echoed.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "tenant",
+                  "requestId",
+                  "file"
+                ],
+                "properties": {
+                  "tenant": {
+                    "type": "string"
+                  },
+                  "requestId": {
+                    "type": "string"
+                  },
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Uploaded"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          }
+        },
+        "x-hardened-timeout": 300000
+      }
+    },
+    "/form/upload-echo": {
+      "post": {
+        "tags": [
+          "Form"
+        ],
+        "operationId": "uploadEcho",
+        "summary": "A file's bytes, answered as they arrived.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "file"
+                ],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          }
+        },
+        "x-hardened-timeout": 300000
+      }
+    },
+    "/form/upload-many": {
+      "post": {
+        "tags": [
+          "Form"
+        ],
+        "operationId": "uploadMany",
+        "summary": "Every file sent under one name, and an optional one beside them.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "photos"
+                ],
+                "properties": {
+                  "photos": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "binary"
+                    }
+                  },
+                  "thumbnail": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          }
+        },
+        "x-hardened-timeout": 300000
+      }
+    },
+    "/form/upload-model": {
+      "post": {
+        "tags": [
+          "Form"
+        ],
+        "operationId": "uploadModel",
+        "summary": "The same parts bound to one model.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadForm"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Uploaded"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          }
+        },
+        "x-hardened-timeout": 300000
+      }
+    },
     "/hello": {
       "post": {
         "tags": [
@@ -7237,6 +7488,76 @@
         "properties": {
           "value": {
             "type": "string"
+          }
+        }
+      },
+      "UploadEcho": {
+        "type": "object",
+        "description": "And the two fields it sent beside it, echoed.",
+        "required": [
+          "tenant",
+          "requestId"
+        ],
+        "properties": {
+          "tenant": {
+            "type": "string"
+          },
+          "requestId": {
+            "type": "string"
+          }
+        }
+      },
+      "UploadForm": {
+        "type": "object",
+        "description": "The same three parts, bound as one model.",
+        "required": [
+          "tenant",
+          "requestId",
+          "file"
+        ],
+        "properties": {
+          "tenant": {
+            "type": "string"
+          },
+          "requestId": {
+            "type": "string"
+          },
+          "file": {
+            "type": "string",
+            "format": "binary"
+          }
+        }
+      },
+      "Uploaded": {
+        "type": "object",
+        "description": "RequestBench's forms.multipart answer.",
+        "required": [
+          "file",
+          "echo"
+        ],
+        "properties": {
+          "file": {
+            "$ref": "#/components/schemas/UploadedFile"
+          },
+          "echo": {
+            "$ref": "#/components/schemas/UploadEcho"
+          }
+        }
+      },
+      "UploadedFile": {
+        "type": "object",
+        "description": "What RequestBench's forms.multipart test answers about the file.",
+        "required": [
+          "name",
+          "bytes"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "bytes": {
+            "type": "integer",
+            "format": "int64"
           }
         }
       }
