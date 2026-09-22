@@ -89,6 +89,7 @@ front end only leaves a gap in the other.
 | `HRDW004` | error | [`[ServerSentEvents]`](/guide/streaming) on a handler that does not return `IAsyncEnumerable<T>` |
 | `HRDW005` | warning | [Response caching](/guide/response-caching) is declared and no store is registered. Names the package and the module attribute |
 | `HRDW006` | error | [`[Timeout]`](/guide/request-timeouts) declares no budget. The budget must be positive; an unbounded handler declares none |
+| `HRDW007` | error | A [form or query string model](/guide/parameter-binding#a-model-from-fields) cannot be built from fields: a member is an object, the parameter is nullable or names a field, an `init` member has an initializer, or no constructor can be chosen |
 
 ## Responses
 

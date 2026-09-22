@@ -595,7 +595,7 @@ public static class JsonSchemaWriter
     /// read nothing for it without anything failing. The attribute on a positional record
     /// parameter reaches the property it declares, which is where this reads it.
     /// </remarks>
-    private static string WireName(IPropertySymbol property)
+    internal static string WireName(IPropertySymbol property)
     {
         foreach (var attribute in property.GetAttributes())
         {
@@ -734,7 +734,7 @@ public static class JsonSchemaWriter
     /// A property declared in more than one place cannot carry two initializers, so the first
     /// reference that is a property declaration answers for all of them.
     /// </remarks>
-    private static bool HasInitializer(IPropertySymbol property)
+    internal static bool HasInitializer(IPropertySymbol property)
     {
         foreach (var reference in property.DeclaringSyntaxReferences)
         {
@@ -850,7 +850,7 @@ public static class JsonSchemaWriter
             _ => null,
         };
 
-    private static string CamelCase(string name) =>
+    internal static string CamelCase(string name) =>
         name.Length == 0 || char.IsLower(name[0])
             ? name
             : char.ToLowerInvariant(name[0]) + name.Substring(1);

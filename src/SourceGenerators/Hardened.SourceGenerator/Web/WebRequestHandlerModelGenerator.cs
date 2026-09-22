@@ -615,6 +615,9 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator
                 ParameterAttributes = described
                     .Where(p => p.CustomAttribute != null)
                     .ToDictionary(Wire, p => p.CustomAttribute!, StringComparer.Ordinal),
+                ParameterModels = described
+                    .Where(p => p.Model != null)
+                    .ToDictionary(Wire, p => p.Model!, StringComparer.Ordinal),
             },
         };
 

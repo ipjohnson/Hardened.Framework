@@ -104,7 +104,7 @@ public abstract class BaseRequestModelGenerator
             declared.Headers(model.ResponseInformation.DefaultStatusCode ?? 200, typeHeaders)
             ?? (typeHeaders.Count > 0 ? typeHeaders : null);
 
-        model.ParameterEnums = ParameterEnums(context, methodDeclaration);
+        model.ParameterEnums = ParameterEnums(context, methodDeclaration, parameters);
 
         // Off the modifier list rather than the symbol: a method is static exactly when it says so,
         // including in a static class, where the compiler requires the keyword rather than
@@ -125,16 +125,23 @@ public abstract class BaseRequestModelGenerator
     /// string and no wire converter was emitted for it. An enum that also appears in a body
     /// resolves to the same entry by qualified name, which is what masked this - the fixture's
     /// enum happened to be in a response too.
+    /// <para>
+    /// A model bound from a form or a query string binds each member as a parameter of its own, so
+    /// an enum member, or a collection of one, needs its vocabulary for the same reason.
+    /// </para>
     /// </remarks>
     private static IReadOnlyList<EnumVocabulary> ParameterEnums(
         GeneratorSyntaxContext context,
-        MethodDeclarationSyntax methodDeclaration
+        MethodDeclarationSyntax methodDeclaration,
+        IReadOnlyList<RequestParameterInformation> parameters
     )
     {
         List<EnumVocabulary>? found = null;
 
-        foreach (var parameter in methodDeclaration.ParameterList.Parameters)
+        for (var i = 0; i < methodDeclaration.ParameterList.Parameters.Count; i++)
         {
+            var parameter = methodDeclaration.ParameterList.Parameters[i];
+
             if (parameter.Type == null)
             {
                 continue;
@@ -143,49 +150,82 @@ public abstract class BaseRequestModelGenerator
             var symbol = context.SemanticModel.GetTypeInfo(parameter.Type).Type;
 
             if (
-                symbol is INamedTypeSymbol
+                i < parameters.Count
+                && parameters[i].Model is { Problem: null }
+                && symbol is INamedTypeSymbol model
+            )
+            {
+                foreach (var property in BoundModelReader.Properties(model))
                 {
-                    OriginalDefinition.SpecialType: SpecialType.System_Nullable_T
-                } nullable
-            )
-            {
-                symbol = nullable.TypeArguments[0];
-            }
+                    var memberType =
+                        property.Type is IArrayTypeSymbol array ? array.ElementType
+                        : property.Type is INamedTypeSymbol { TypeArguments.Length: 1 } generic
+                        && generic.OriginalDefinition.SpecialType != SpecialType.System_Nullable_T
+                            ? generic.TypeArguments[0]
+                        : property.Type;
 
-            if (
-                symbol is not INamedTypeSymbol { TypeKind: TypeKind.Enum } enumSymbol
-                || !EnumWireNaming.IsOwned(enumSymbol, context.SemanticModel.Compilation.Assembly)
-            )
-            {
+                    AddEnum(context, memberType, ref found);
+                }
+
                 continue;
             }
 
-            var naming = EnumWireNaming.For(enumSymbol, EnumWireNaming.AssemblyDefault(enumSymbol));
-            var members = EnumWireNaming.Members(enumSymbol, naming);
-
-            if (members.Count == 0)
+            if (symbol != null)
             {
-                continue;
-            }
-
-            var qualified = "global::" + enumSymbol.ToDisplayString();
-
-            found ??= new List<EnumVocabulary>();
-
-            if (found.All(vocabulary => vocabulary.QualifiedName != qualified))
-            {
-                found.Add(
-                    new EnumVocabulary(
-                        qualified,
-                        enumSymbol.Name,
-                        naming,
-                        members.Select(pair => new EnumWireValue(pair.Member, pair.Wire)).ToList()
-                    )
-                );
+                AddEnum(context, symbol, ref found);
             }
         }
 
         return found ?? (IReadOnlyList<EnumVocabulary>)System.Array.Empty<EnumVocabulary>();
+    }
+
+    private static void AddEnum(
+        GeneratorSyntaxContext context,
+        ITypeSymbol symbol,
+        ref List<EnumVocabulary>? found
+    )
+    {
+        if (
+            symbol is INamedTypeSymbol
+            {
+                OriginalDefinition.SpecialType: SpecialType.System_Nullable_T
+            } nullable
+        )
+        {
+            symbol = nullable.TypeArguments[0];
+        }
+
+        if (
+            symbol is not INamedTypeSymbol { TypeKind: TypeKind.Enum } enumSymbol
+            || !EnumWireNaming.IsOwned(enumSymbol, context.SemanticModel.Compilation.Assembly)
+        )
+        {
+            return;
+        }
+
+        var naming = EnumWireNaming.For(enumSymbol, EnumWireNaming.AssemblyDefault(enumSymbol));
+        var members = EnumWireNaming.Members(enumSymbol, naming);
+
+        if (members.Count == 0)
+        {
+            return;
+        }
+
+        var qualified = "global::" + enumSymbol.ToDisplayString();
+
+        found ??= new List<EnumVocabulary>();
+
+        if (found.All(vocabulary => vocabulary.QualifiedName != qualified))
+        {
+            found.Add(
+                new EnumVocabulary(
+                    qualified,
+                    enumSymbol.Name,
+                    naming,
+                    members.Select(pair => new EnumWireValue(pair.Member, pair.Wire)).ToList()
+                )
+            );
+        }
     }
 
     /// <summary>
@@ -612,14 +652,30 @@ public abstract class BaseRequestModelGenerator
             // which reads the same attributes through ValidationModules; this reads only the ones
             // the document can say, so the two are the same statement written twice, as they are
             // for a property.
-            if (
-                PublishesFacets(parameterInformation.BindingType)
-                && generatorSyntaxContext.SemanticModel.GetDeclaredSymbol(parameter) is { } symbol
-            )
+            var symbol = generatorSyntaxContext.SemanticModel.GetDeclaredSymbol(parameter);
+
+            if (PublishesFacets(parameterInformation.BindingType) && symbol != null)
             {
                 parameterInformation.SchemaFacets = SchemaConstraintWriter.FacetsOf(symbol);
                 parameterInformation.RequiredByConstraint = SchemaConstraintWriter.IsRequired(
                     symbol
+                );
+            }
+
+            // A form or query string parameter whose type is a model is bound member by member,
+            // and the members are read here because this is where the type's symbol is.
+            if (
+                parameterInformation.BindingType
+                    is ParameterBindType.Form
+                        or ParameterBindType.QueryString
+                && symbol != null
+            )
+            {
+                parameterInformation.Model = BoundModelReader.Read(
+                    symbol.Type,
+                    parameterInformation.BindingType,
+                    parameterInformation.BindingName != parameterInformation.Name,
+                    generatorSyntaxContext.SemanticModel.Compilation
                 );
             }
 
@@ -639,7 +695,8 @@ public abstract class BaseRequestModelGenerator
             is ParameterBindType.Path
                 or ParameterBindType.QueryString
                 or ParameterBindType.Header
-                or ParameterBindType.Cookie;
+                or ParameterBindType.Cookie
+                or ParameterBindType.Form;
 
     protected virtual RequestParameterInformation? DefaultGetParameterFromAttribute(
         AttributeSyntax attribute,

@@ -373,6 +373,49 @@ Descending by default is the better answer and is on the table for 1.0. It canno
 a 0.x release: it changes what an existing application answers, from 201 to 400, on payloads it
 accepts today.
 
+## Forms
+
+### HRDW002 — handler binds both a form and a body
+
+A handler binds a parameter with `[FromForm]` and another from the request body.
+
+```
+'SignInController.SignIn' binds 'username' with [FromForm] and 'credentials' from the request body.
+There is one body and the two read it differently, so whichever runs second sees a consumed stream.
+Bind the fields individually with [FromForm], or take the body as a model - not both.
+```
+
+There is one body, and a form and a deserializer read it differently. On a body that cannot be
+rewound, whichever reads second gets nothing, so one of the two parameters comes back empty on a
+handler that compiles and routes. An error: bind every field with `[FromForm]`, including as a
+model, or take the whole body as one model.
+
+### HRDW007 — form or query string model cannot be bound
+
+A `[FromForm]` or `[FromQueryString]` parameter's type is a model, and the binder cannot construct
+it from one field per member.
+
+```
+'SearchController.Find' binds 'search' from the form one field per member, but its member
+'Address' is a 'Shop.Address', and a field carries a value rather than an object.
+```
+
+The message names one of these:
+
+- A member is an object, or a collection of objects. Fields are flat, and dotted names are not read.
+- The parameter is nullable. The model is constructed whether or not any field was sent, so it is
+  never null.
+- The attribute names a field. A model's fields are named by its members.
+- An `init` or `required` member has an initializer. Such a member can only be set in the object
+  initializer, which cannot leave it out when its field is absent, so the initializer's value would
+  be replaced.
+- The type has no public constructor, or has several and none is marked `[JsonConstructor]`.
+- The type has no constructor parameters and no settable properties.
+
+Before this diagnostic, such a parameter compiled, bound as one field named after the parameter, and
+answered 400 to every request. The binder still emits that reading, so the build fails on this
+error alone.
+
 ## Compression
 
 ### HRDW003 — handler declares `[Compress]` more than once

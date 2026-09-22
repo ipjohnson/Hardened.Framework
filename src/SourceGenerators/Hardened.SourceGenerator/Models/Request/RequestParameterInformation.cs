@@ -154,6 +154,16 @@ public class RequestParameterInformation
     /// </remarks>
     public bool IsRawBody { get; set; }
 
+    /// <summary>
+    /// The members a <c>[FromForm]</c> or <c>[FromQueryString]</c> parameter is bound from, when its
+    /// type is a model rather than one value.
+    /// </summary>
+    /// <remarks>
+    /// Recorded at the syntax transform for the reason <see cref="IsRawBody"/> is: the members are
+    /// read off the type's symbol. Null for every parameter that binds as one value.
+    /// </remarks>
+    public BoundModel? Model { get; set; }
+
     public int ParameterIndex { get; }
 
     /// <summary>
@@ -185,6 +195,7 @@ public class RequestParameterInformation
             SchemaFacets = SchemaFacets,
             RequiredByConstraint = RequiredByConstraint,
             IsRawBody = IsRawBody,
+            Model = Model,
         };
 
     public override bool Equals(object obj)
@@ -268,6 +279,13 @@ public class RequestParameterInformation
             return false;
         }
 
+        // The binder and the document are both written from the members, so a model whose
+        // members changed has to compare unequal or neither is regenerated.
+        if (!Equals(Model, requestParameterInformation.Model))
+        {
+            return false;
+        }
+
         return true;
     }
 
@@ -295,6 +313,7 @@ public class RequestParameterInformation
             hashCode = (hashCode * 397) ^ ConstructorRequiresServices.GetHashCode();
             hashCode = (hashCode * 397) ^ RegisteredAsService.GetHashCode();
             hashCode = (hashCode * 397) ^ IsRawBody.GetHashCode();
+            hashCode = (hashCode * 397) ^ (Model?.GetHashCode() ?? 0);
 
             return hashCode;
         }

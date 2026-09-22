@@ -1,4 +1,5 @@
 ﻿using CSharpAuthor;
+using CSharpAuthor.Expressions;
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Shared;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -8,6 +9,11 @@ namespace Hardened.SourceGenerator.Requests;
 
 public static class BindRequestParametersMethodGenerator
 {
+    private static readonly ITypeDefinition StringValuesType = TypeDefinition.Get(
+        "Microsoft.Extensions.Primitives",
+        "StringValues"
+    );
+
     public static void Implement(
         RequestHandlerModel requestHandlerModel,
         ClassDefinition classDefinition
@@ -294,6 +300,27 @@ public static class BindRequestParametersMethodGenerator
         InstanceDefinition parametersVar
     )
     {
+        if (
+            parameterInformation.BindingType == ParameterBindType.QueryString
+            && parameterInformation.Model is { Problem: null } model
+        )
+        {
+            BindModel(
+                parameterInformation,
+                model,
+                invokeMethod,
+                context,
+                parametersVar,
+                field =>
+                    context
+                        .Property("Request")
+                        .Property("QueryString")
+                        .Invoke("Get", QuoteString(field))
+            );
+
+            return;
+        }
+
         var bindingName = parameterInformation.BindingName;
 
         if (string.IsNullOrEmpty(bindingName))
@@ -364,6 +391,20 @@ public static class BindRequestParametersMethodGenerator
         InstanceDefinition formVar
     )
     {
+        if (parameterInformation.Model is { Problem: null } model)
+        {
+            BindModel(
+                parameterInformation,
+                model,
+                invokeMethod,
+                context,
+                parametersVar,
+                field => formVar.Invoke("Get", QuoteString(field))
+            );
+
+            return;
+        }
+
         var bindingName = parameterInformation.BindingName;
 
         if (string.IsNullOrEmpty(bindingName))
@@ -397,14 +438,33 @@ public static class BindRequestParametersMethodGenerator
         InstanceDefinition stringInvokeStatement,
         IOutputComponent valueStatement,
         string bindingName
+    ) =>
+        Convert(
+            parameterInformation.ParameterType,
+            parameterInformation.Required,
+            parameterInformation.DefaultValue,
+            stringInvokeStatement,
+            valueStatement,
+            bindingName
+        );
+
+    private static IOutputComponent Convert(
+        ITypeDefinition type,
+        bool required,
+        string? defaultValue,
+        InstanceDefinition stringInvokeStatement,
+        IOutputComponent valueStatement,
+        string bindingName
     )
     {
-        var itemType = CollectionParameter.ItemType(parameterInformation.ParameterType);
+        var itemType = CollectionParameter.ItemType(type);
 
         if (itemType != null)
         {
             return ConvertMany(
-                parameterInformation,
+                type,
+                required,
+                defaultValue,
                 stringInvokeStatement,
                 valueStatement,
                 bindingName,
@@ -412,22 +472,22 @@ public static class BindRequestParametersMethodGenerator
             );
         }
 
-        if (!string.IsNullOrEmpty(parameterInformation.DefaultValue))
+        if (!string.IsNullOrEmpty(defaultValue))
         {
             return stringInvokeStatement.InvokeGeneric(
                 "ParseWithDefault",
-                new[] { parameterInformation.ParameterType },
+                new[] { type },
                 valueStatement,
                 QuoteString(bindingName),
-                parameterInformation.DefaultValue!
+                defaultValue!
             );
         }
 
-        if (parameterInformation.Required)
+        if (required)
         {
             return stringInvokeStatement.InvokeGeneric(
                 "ParseRequired",
-                new[] { parameterInformation.ParameterType },
+                new[] { type },
                 valueStatement,
                 QuoteString(bindingName)
             );
@@ -435,7 +495,7 @@ public static class BindRequestParametersMethodGenerator
 
         return stringInvokeStatement.InvokeGeneric(
             "ParseOptional",
-            new[] { parameterInformation.ParameterType },
+            new[] { type },
             valueStatement,
             QuoteString(bindingName)
         );
@@ -451,16 +511,16 @@ public static class BindRequestParametersMethodGenerator
     /// case adds the copy - and it is a copy either way, since the list is built one item at a time.
     /// </remarks>
     private static IOutputComponent ConvertMany(
-        RequestParameterInformation parameterInformation,
+        ITypeDefinition type,
+        bool required,
+        string? defaultValue,
         InstanceDefinition stringInvokeStatement,
         IOutputComponent valueStatement,
         string bindingName,
         ITypeDefinition itemType
     )
     {
-        var required =
-            parameterInformation.Required
-            && string.IsNullOrEmpty(parameterInformation.DefaultValue);
+        required = required && string.IsNullOrEmpty(defaultValue);
 
         IOutputComponent invokeStatement = stringInvokeStatement.InvokeGeneric(
             required ? "ParseRequiredMany" : "ParseOptionalMany",
@@ -469,7 +529,7 @@ public static class BindRequestParametersMethodGenerator
             QuoteString(bindingName)
         );
 
-        if (parameterInformation.ParameterType.IsArray)
+        if (type.IsArray)
         {
             // Null-conditional on the optional side: an absent parameter stays absent rather than
             // becoming an empty array, which is the distinction ParseOptionalMany draws.
@@ -480,12 +540,125 @@ public static class BindRequestParametersMethodGenerator
             invokeStatement.AddUsingNamespace("System.Linq");
         }
 
-        if (!string.IsNullOrEmpty(parameterInformation.DefaultValue))
+        if (!string.IsNullOrEmpty(defaultValue))
         {
-            return NullCoalesce(invokeStatement, parameterInformation.DefaultValue!);
+            return NullCoalesce(invokeStatement, defaultValue!);
         }
 
         return invokeStatement;
+    }
+
+    /// <summary>
+    /// A model built from one field per member, each converted the way a parameter of the
+    /// member's type would be.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Built in a local and assigned last, because a struct model held in a property of
+    /// <c>Parameters</c> cannot have its members set through that property.
+    /// </para>
+    /// <para>
+    /// A member with a setter and an initializer is assigned only when the field was sent, so an
+    /// absent field leaves the initializer's value rather than null or zero. Inside that branch the
+    /// value is known to be present, which is why it is parsed as required.
+    /// </para>
+    /// </remarks>
+    private static void BindModel(
+        RequestParameterInformation parameterInformation,
+        BoundModel model,
+        MethodDefinition invokeMethod,
+        ParameterDefinition context,
+        InstanceDefinition parametersVar,
+        Func<string, IOutputComponent> field
+    )
+    {
+        var converter = context.Property("KnownServices").Property("StringConverterService");
+
+        IOutputComponent Converted(RequestParameterInformation member) =>
+            Convert(member, converter, Bang(field(member.BindingName)), member.BindingName);
+
+        var arguments = new List<IOutputComponent>();
+        var initializers = new List<Ex>();
+
+        foreach (var member in model.Members)
+        {
+            if (member.Kind == BoundMemberKind.ConstructorArgument)
+            {
+                arguments.Add(Converted(member.Value));
+            }
+            else if (member.Kind == BoundMemberKind.Initializer)
+            {
+                initializers.Add(
+                    Ex.Assign(Ex.Id(member.Value.Name), Ex.Value(Converted(member.Value)))
+                );
+            }
+        }
+
+        IOutputComponent construction =
+            initializers.Count == 0
+                ? New(parameterInformation.ParameterType, arguments.ToArray<object>())
+                : Ex.NewWithInitializer(
+                    parameterInformation.ParameterType,
+                    arguments.Count == 0 ? null : arguments.Select(Ex.Value).ToList(),
+                    initializers.ToArray()
+                );
+
+        // Off Name rather than MemberName: MemberName is escaped, and "@eventModel" is not an
+        // identifier.
+        var modelVar = invokeMethod.Assign(construction).ToVar(parameterInformation.Name + "Model");
+
+        foreach (var member in model.Members)
+        {
+            var value = member.Value;
+
+            if (member.Kind == BoundMemberKind.Assigned)
+            {
+                invokeMethod.Assign(Converted(value)).To(modelVar.Property(value.MemberName));
+            }
+            else if (member.Kind == BoundMemberKind.AssignedWhenSent)
+            {
+                var itemType = CollectionParameter.ItemType(value.ParameterType);
+
+                // The two readings of "sent" the converter already draws: a collection is absent
+                // when no value arrived under its name, and a scalar when that value is empty too.
+                var sent =
+                    itemType != null
+                        ? Ex.GreaterThan(Ex.Value(field(value.BindingName)).Dot("Count"), 0)
+                        : Ex.Not(
+                            Ex.Call(
+                                StringValuesType,
+                                "IsNullOrEmpty",
+                                Ex.Value(field(value.BindingName))
+                            )
+                        );
+
+                IOutputComponent converted =
+                    itemType != null
+                        ? Bang(
+                            ConvertMany(
+                                value.ParameterType,
+                                false,
+                                null,
+                                converter,
+                                field(value.BindingName),
+                                value.BindingName,
+                                itemType
+                            )
+                        )
+                        : Convert(
+                            value.ParameterType,
+                            true,
+                            null,
+                            converter,
+                            Bang(field(value.BindingName)),
+                            value.BindingName
+                        );
+
+                invokeMethod.If(sent).Assign(converted).To(modelVar.Property(value.MemberName));
+            }
+        }
+
+        invokeMethod.Assign(modelVar).To(parametersVar.Property(parameterInformation.MemberName));
     }
 
     /// <summary>
