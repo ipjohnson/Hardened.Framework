@@ -80,7 +80,7 @@ public class SpecFirstDocumentTests
         return PublishedDocumentFrom(result);
     }
 
-    private static JsonElement PublishedDocumentFrom(GeneratorResult result)
+    internal static JsonElement PublishedDocumentFrom(GeneratorResult result)
     {
         var source = result
             .GeneratedSources.First(pair => pair.Key.Contains("OpenApiDocument"))

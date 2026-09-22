@@ -40,12 +40,23 @@ internal static class OpenApiGenerator
     internal const string DiagnosticHintName = "_SpecModelDiagnostic.g.cs";
 
     /// <summary>Runs the generator over one specification and the supplied C#.</summary>
+    /// <param name="configure">
+    /// What the task sets on the model from the item's metadata - <c>PublishUrl</c>,
+    /// <c>SourceUrl</c>, <c>UiUrl</c> - which yaml has no way to say.
+    /// </param>
     internal static GeneratorResult Run(
         string spec,
         string source = MinimalEntryPoint,
         string specFileName = "petstore.yaml",
-        IReadOnlyDictionary<string, string>? buildProperties = null
-    ) => Run(new Dictionary<string, string> { [specFileName] = spec }, source, buildProperties);
+        IReadOnlyDictionary<string, string>? buildProperties = null,
+        Action<ServiceSpecModel>? configure = null
+    ) =>
+        Run(
+            new Dictionary<string, string> { [specFileName] = spec },
+            source,
+            buildProperties,
+            configure: configure
+        );
 
     /// <summary>Runs the generator over several specifications at once.</summary>
     /// <remarks>
@@ -57,7 +68,8 @@ internal static class OpenApiGenerator
         IReadOnlyDictionary<string, string> specs,
         string source,
         IReadOnlyDictionary<string, string>? buildProperties = null,
-        IReadOnlyList<Microsoft.CodeAnalysis.MetadataReference>? additionalReferences = null
+        IReadOnlyList<Microsoft.CodeAnalysis.MetadataReference>? additionalReferences = null,
+        Action<ServiceSpecModel>? configure = null
     )
     {
         // Must resolve exactly as the generator does, and against the same defaults the harness
@@ -103,14 +115,25 @@ internal static class OpenApiGenerator
 
             model.ResponseModel = responseModel;
 
+            configure?.Invoke(model);
+
             // Emit before serialising, in that order, because emitting records what it named -
             // the parameter interface and validator per operation - onto the model, and the
             // generator reads those out of the serialised copy. ExtractOpenApiSpec does the same;
             // doing it the other way round hands the generator a model with no validation in it and
             // nothing wired to any handler, on a build that still compiles.
+            // The task embeds the contract when a spec is to be served as written, and the
+            // registration names the type that embedding emits.
             var emitted = new KeyValuePair<string, string>(
                 $"{model.FileName}.g.cs",
-                SpecFileEmitter.Emit(model, ns, excludeFromCoverage, responseModel: responseModel)
+                SpecFileEmitter.Emit(
+                    model,
+                    ns,
+                    excludeFromCoverage,
+                    model.SourceUrl.Length > 0 ? spec.Value : "",
+                    spec.Key,
+                    responseModel
+                )
             );
 
             sources[emitted.Key] = emitted.Value;
