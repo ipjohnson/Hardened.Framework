@@ -126,16 +126,6 @@ public async Task CreateTodo_AnswersCreated(TodosClient client, [Mock] ITodoStor
 No port, no host and no serializer is named. [Writing a test](/guide/testing) covers the
 parameters a test can take.
 
-## Two repositories, one framework
-
-The core framework and the AWS integrations version and ship separately, so an application only
-carries what it uses.
-
-| Repository | What it holds |
-|---|---|
-| [Hardened.Framework](https://github.com/ipjohnson/Hardened.Framework) | Modules, DI, configuration, routing, binding, templates, testing |
-| [Hardened.Framework](https://github.com/ipjohnson/Hardened.Framework) | Lambda runtimes, DynamoDB and SQS clients, CDK constructs |
-
 </div>
 
 <style>
