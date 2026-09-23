@@ -87,6 +87,7 @@ const guide = [
       { text: 'Registered routes', link: '/guide/registered-routes' },
       { text: 'Triggers', link: '/guide/triggers' },
       { text: 'Parameter binding', link: '/guide/parameter-binding' },
+      { text: 'Forms and files', link: '/guide/forms' },
       { text: 'Declared responses', link: '/guide/responses' },
       { text: 'Validation', link: '/guide/validation' },
     ],

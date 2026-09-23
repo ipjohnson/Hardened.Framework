@@ -240,7 +240,7 @@ The 415 is answered for a `Content-Encoding` nothing can decode.
 None of that applies to a body parameter declared `byte[]` or `Stream`. Those are the payload, so
 no deserializer is located and the `Content-Type` selects nothing. It is the same rule the table
 above applies to the same two types as a return type, read in the other direction. See
-[A body that is bytes](/guide/parameter-binding#a-body-that-is-bytes).
+[A body that is bytes](/guide/parameter-binding#the-body-as-bytes-or-a-stream).
 
 ## Next
 

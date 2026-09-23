@@ -204,7 +204,7 @@ public async Task<Pet?> GetPet(string petId) {
 An anonymous error, which is what a `$ref` to a shared `Problem` schema is, binds to the record
 the framework ships for that status. A code-first handler returns the same type. An error under a
 `components/responses` key keeps that name instead; see
-[When the build still generates a type](/guide/responses#when-the-build-still-generates-a-type).
+[When the build still generates a type](/guide/responses).
 
 ## Declaring the whole response set
 
@@ -231,7 +231,7 @@ public async Task<GetPetResponse> GetPet(string petId) {
 
 The 404 is the framework's own `NotFound`. The container converts it into the `NotFound<Problem>`
 the document declares, filling the `Problem` from the record and its detail from the handler.
-[Declared responses](/guide/responses#specification-first) has the rule.
+[Declared responses](/guide/responses) has the rule.
 
 `Throws`, `Response` or `Union`; absent means `Throws`. Two rules hold in every mode: a non-200
 success is honoured, so a `201` in the document is a 201 on the wire, and an operation declaring

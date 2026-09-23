@@ -73,7 +73,7 @@ front end only leaves a gap in the other.
 
 | Id | | Meaning |
 |---|---|---|
-| `HRDV001` | retired | Retired. It warned that a constraint on a handler parameter was not compiled; [they are compiled now](/guide/validation#constraints-on-handler-parameters) |
+| `HRDV001` | retired | Retired. It warned that a constraint on a handler parameter was not compiled; [they are compiled now](/guide/validation#constraints-on-parameters) |
 | `HRDV002` | warning | Two validators claimed the same generated file |
 | `HRDV003` | warning | A required member of a value type cannot be found missing, so `[Required]` there does nothing |
 | `HRDV004` | warning | Nested constraints are never reached |
@@ -89,8 +89,8 @@ front end only leaves a gap in the other.
 | `HRDW004` | error | [`[ServerSentEvents]`](/guide/streaming) on a handler that does not return `IAsyncEnumerable<T>` |
 | `HRDW005` | warning | [Response caching](/guide/response-caching) is declared and no store is registered. Names the package and the module attribute |
 | `HRDW006` | error | [`[Timeout]`](/guide/request-timeouts) declares no budget. The budget must be positive; an unbounded handler declares none |
-| `HRDW007` | error | A [form or query string model](/guide/parameter-binding#a-model-from-fields) cannot be built from fields: a member is an object, the parameter is nullable or names a field, an `init` member has an initializer, a query string model has a file, or no constructor can be chosen |
-| `HRDW008` | error | An [`IFormFile`](/guide/parameter-binding#form-fields) is bound from somewhere other than the form. Bind it with `[FromForm]` |
+| `HRDW007` | error | A [form or query string model](/guide/parameter-binding#models-that-fail-the-build) cannot be built from fields: a member is an object, the parameter is nullable or names a field, an `init` member has an initializer, a query string model has a file, or no constructor can be chosen |
+| `HRDW008` | error | An [`IFormFile`](/guide/forms#fields) is bound from somewhere other than the form. Bind it with `[FromForm]` |
 
 ## Responses
 
@@ -98,7 +98,7 @@ front end only leaves a gap in the other.
 |---|---|---|
 | `HRDRM003` | error | A [response case](/guide/responses) is `object` or `dynamic`, so the dispatch would answer that case's status for every response |
 | `HRDRM004` | error | Two cases at different statuses where one is assignable to the other |
-| `HRDT001` | error | A [`[Throws<T>]`](/guide/responses#declaring-what-a-handler-throws) names a type with no `[HttpStatus]` and states no status of its own |
+| `HRDT001` | error | A [`[Throws<T>]`](/guide/responses#the-throws-model) names a type with no `[HttpStatus]` and states no status of its own |
 | `HRDSC001` | warning | An [authentication scheme](/guide/authentication#declaring-the-scheme) attribute is not read where it was written |
 
 ## Authorization
@@ -134,7 +134,7 @@ Shared between `HOAT` and `HSMT`.
 | `015` | error | `HSMT` only. More than one `PublishUrl` or `UiUrl` |
 | `016` | error | `UiUrl` without `PublishUrl` |
 | `017` | error | `SourceUrl` without `EmbedDocument` |
-| `026` | warning | `$(HardenedResponseModel)` is `Standard`, [the throws mode's name before 0.19.0](/guide/responses#choosing-a-mode). The mode is unchanged; write `Throws` |
+| `026` | warning | `$(HardenedResponseModel)` is `Standard`, [the throws mode's name before 0.19.0](/guide/responses#response-models). The mode is unchanged; write `Throws` |
 
 ### The model-diagnostics pass
 
@@ -152,7 +152,7 @@ the document rather than as compiler errors in a generated file.
 
 `025` is retired. It rejected two error responses at one status on one operation, which a valid
 Smithy model says routinely. A declared error is now named for the error or
-[binds to a shipped wrapper](/guide/responses#when-the-build-still-generates-a-type), so two shapes
+[binds to a shipped wrapper](/guide/responses), so two shapes
 at one status are two types either way. A model that used to be rejected now builds.
 
 ### The document export

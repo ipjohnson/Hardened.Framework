@@ -133,7 +133,7 @@ is required of a caller because the reader reads the model's nullable annotation
 reflection — so under AOT that member becomes optional again while the document still publishes it
 as required. Say it in the model instead, with `required string Title` or `[JsonRequired]`: the
 source generator reads both, and a contract-first model needs neither, because its `required` was
-compiled in at build time. See [Validation](/guide/validation#required-members-and-absent-values).
+compiled in at build time. See [Validation](/guide/validation).
 
 ## Next
 

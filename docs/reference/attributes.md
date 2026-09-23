@@ -53,13 +53,13 @@ All take `As` to narrow the service type, and `Using` to choose the registration
 | `[RawResponse(contentType?)]` | Method | Deprecated, and now `[Produces]` under its old name. A handler returning `byte[]` or `Stream` writes its own bytes whatever it declares, so the "raw" half is the return type's job |
 
 `ICustomBindingAttribute` is the interface an attribute implements to bind a parameter itself. See
-[Parameter binding](/guide/parameter-binding#custom-binding).
+[Parameter binding](/guide/parameter-binding#custom-binding-attributes).
 
 `Hardened.Requests.Abstract.Responses`
 
 | Attribute | Target | Purpose |
 |---|---|---|
-| `[Throws<T>(status?)]` | Method | [Declares a thrown response](/guide/responses#declaring-what-a-handler-throws) for the document. The status comes from `T`'s `[HttpStatus]`, or from the argument |
+| `[Throws<T>(status?)]` | Method | [Declares a thrown response](/guide/responses#the-throws-model) for the document. The status comes from `T`'s `[HttpStatus]`, or from the argument |
 | `[AnswersStatus(status, typeof(body))]` | Class, interface | On a filter attribute: every operation carrying it [publishes](/guide/openapi-document#what-a-guard-on-the-operation-publishes) that status. How `[RateLimit]` publishes its 429 |
 
 `Hardened.Requests.Runtime.Filters`

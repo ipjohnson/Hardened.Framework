@@ -49,7 +49,7 @@ Expected 404 (NotFound<NotFound>), the call was answered 200 carrying a Todo.
 | `Accepted` | 202 | `Location` |
 | `NotModified` | 304 | `ETag` |
 
-Every status in the [built-in response types](/guide/responses#the-built-in-response-types) has
+Every status in the [built-in response types](/guide/responses#built-in-response-types) has
 its `<T>` form here, and the bodiless ones (`Accepted`, `NoContent`, `NotModified`,
 `NotAcceptable`) are expectations as they are.
 
