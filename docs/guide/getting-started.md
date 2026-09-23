@@ -1,7 +1,7 @@
 # Getting started
 
-A Hardened application starts from the `hardened-web` template. The template writes an HTTP API: a
-library for the handlers, a host project, a client project and a test project.
+The easiest way to get started is with the `hardened-web` template. The template writes an HTTP API:
+a library for the handlers, a host project, a client project and a test project.
 
 ```bash
 dotnet new install Hardened.Templates
