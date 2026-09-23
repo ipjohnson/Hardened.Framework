@@ -51,7 +51,8 @@ public interface IStreamFraming
     /// <remarks>
     /// Always called, including for an empty stream, and that is the point: Lambda Function URLs do
     /// not close a zero-byte body promptly, so a reader waiting on one hangs. Every framing has to
-    /// put at least one byte on the wire.
+    /// put at least one byte on the wire. A framing whose items end themselves writes nothing after
+    /// one, because anything more would reach a reader as an extra item.
     /// </remarks>
     ValueTask WriteCompletion(IExecutionContext context);
 

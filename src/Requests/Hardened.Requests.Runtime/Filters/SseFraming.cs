@@ -98,7 +98,7 @@ public class SseFraming : IStreamFraming
         // Only when nothing was written, a heartbeat included. Every event already ends with a
         // blank line, so a stream that produced anything is complete, and adding to it would
         // dispatch an empty event.
-        if (NothingWritten(context))
+        if (StreamBody.NothingWritten(context))
         {
             await context.Response.Body.WriteAsync(
                 EmptyStreamComment,
@@ -107,24 +107,6 @@ public class SseFraming : IStreamFraming
                 context.CancellationToken
             );
         }
-    }
-
-    /// <summary>
-    /// Whether the stream has put nothing on the wire yet.
-    /// </summary>
-    /// <remarks>
-    /// Asked of the body's position where the body can answer - a buffer the cache or a test
-    /// holds - and of the response otherwise. Kestrel's response body throws
-    /// <c>NotSupportedException</c> from <c>Position</c>, so reading it unconditionally ended
-    /// every event stream on a real socket with a logged fault after the last event had already
-    /// gone out. On a transport the filter flushes after every item and every heartbeat, so a
-    /// response that has started is one that carried something.
-    /// </remarks>
-    private static bool NothingWritten(IExecutionContext context)
-    {
-        var body = context.Response.Body;
-
-        return body.CanSeek ? body.Position == 0 : !context.Response.ResponseStarted;
     }
 
     public async ValueTask<bool> WriteHeartbeat(IExecutionContext context)
