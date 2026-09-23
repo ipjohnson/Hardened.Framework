@@ -96,7 +96,7 @@ public sealed class ShortRetriesAttribute : Attribute, IHardenedTestConfiguratio
 ```
 
 The `IAppConfig` is registered as the test's `IConfigurationPackage`, so the amender runs the
-first time the model is resolved. See [Amending configuration](/guide/configuration#amending-configuration).
+first time the model is resolved. See [Configuration](/guide/configuration#amend-a-model).
 
 ## Deriving from a shipped attribute
 

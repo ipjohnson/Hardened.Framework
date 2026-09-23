@@ -1,173 +1,301 @@
 # Modules
 
-A module is the unit an application is composed from. An application imports a library module
-with one attribute, and the library's handlers, services, configuration and routes come along.
+A module is a `partial` class marked `[HardenedModule]`. The build writes an attribute for each
+module, named after the class. A module imports another module by applying that module's
+attribute.
 
-```csharp
-// In the library assembly
-[HardenedModule]
-[HardenedWebModule]
-[BasePath("/billing")]
-public partial class BillingLibrary {
-    public string Tenant { get; set; } = "default";
-}
-```
-
-```csharp
-// In the application
-[HardenedModule]
-[KestrelRuntime]
-[BillingLibrary(Tenant = "acme")]
-public partial class Application;
-```
-
-`[BillingLibrary]` is generated from the library's module class. `[KestrelRuntime]`,
-`[HardenedWebModule]` and `[DynamoDbClientModule]` are the same thing: each is the companion attribute
-of a module of that name.
-
-## Declaring a module
+The application is a module that imports the others. In the template, `Application` in
+`src/Todos.Host` imports `TodosLibrary` from `src/Todos`, which holds the handlers:
 
 ```csharp
 using Hardened.Shared.Runtime.Attributes;
+using Hardened.Web.Kestrel.Runtime;
+
+namespace Todos.Host;
 
 [HardenedModule]
-public partial class Application { }
+[KestrelRuntime]
+[TodosLibrary]
+public partial class Application;
 ```
 
-`partial`, because the generator writes the other half:
+The imported module's handlers, services and configuration models are registered wherever the
+importing module is:
 
-- `IDependencyModule` and a public `PopulateServiceCollection(IServiceCollection)`. That method is
-  the seam into any host. ASP.NET Core calls it with `builder.Services`, a console application
-  calls it with a collection it made itself, and the test framework calls it for you.
-- `ApplicationAttribute`, so another module can import this one. A public settable property on the
-  module becomes a property on the attribute, which is how `Tenant` was set above.
+```http
+GET /todos/1
 
-## Composing modules
+HTTP/1.1 200 OK
+Content-Type: application/json
 
-Attribute one module with another and its registrations come along:
-
-```csharp
-[HardenedModule]
-[HardenedWebModule]      // routing, static content, CORS
-[DynamoDbClientModule]   // IDynamoDbClientProvider
-public partial class Application { }
+{"id":1,"title":"Read the generated code","done":true}
 ```
 
-Order does not matter. Importing the same module twice is harmless, because modules deduplicate
-by equality.
+Without `[TodosLibrary]` on `Application`, the application builds with no warning. `GET /todos/1`
+then answers 404.
 
-A library module in another assembly carries its own handlers, services and route prefix.
-`[BasePath]` on it prefixes every route in that assembly, so the application lists none of the
-library's routes. See [The route attributes](/guide/routing#the-route-attributes).
+## Declare a module
 
-## Registering by hand
+`[HardenedModule]` is in the namespace `Hardened.Shared.Runtime.Attributes`, in the package
+`Hardened.Shared.Runtime`. [From scratch](/guide/from-scratch) covers the packages, why the class is
+`partial`, and the files the build generates.
 
-Most registration is an attribute on the class; see
-[Registering services](/guide/services). A module that has to compute a registration implements
-`IServiceCollectionConfiguration` and gets the collection directly:
+A second `[HardenedModule]` class in the same project fails the build with the error `HRDR004`.
+
+A module registers what its own project declares: the classes with a lifetime attribute, the
+handlers and the routing table, the configuration models, the validators and the startup services.
+
+The generator writes a public method `PopulateServiceCollection(IServiceCollection)` on the module.
+It registers the module and every module it imports. The host project's `Program.cs` calls it on the
+application module. [Hosts](/guide/hosts) shows `Program.cs` for each host.
+
+The attribute class that the build writes is public and is in the module's namespace. Its name is
+the module's name with `Attribute` appended. `TodosLibrary` gets `TodosLibraryAttribute`, written
+`[TodosLibrary]`.
+
+`dotnet new hardened-library` writes a project whose module holds services and no host.
+[Project templates](/guide/project-templates) covers it.
+
+## Import a module
+
+The attributes that choose the host and add framework features are module attributes too.
+`[KestrelRuntime]` is the attribute of the module `KestrelRuntime`. `[HardenedWebModule]` is the
+attribute of the module `HardenedWebModule`.
+
+Imports are transitive. `[KestrelRuntime]` imports `[HardenedWebModule]`. An application that names
+only `[KestrelRuntime]` therefore serves `/health/live`, which the web module registers.
+
+Imports are followed depth first, in the order they are written. A module that is reached more than
+once is applied once. The `Equals` the generator writes for a `[HardenedModule]` class compares the
+type alone. When such a module is imported twice with different property values, the first import
+reached is applied and the other is dropped. The build reports nothing. A module class can override
+`Equals`. `HardenedOpenApiUi` compares its `Path`, so two imports with different paths both apply.
+
+Modules are applied in the reverse of the order they are first reached. The application module is
+reached first, so it is applied last. A registration in the application module therefore wins a
+single resolve over an imported module's registration of the same service type. When two modules
+that the application imports register the same service type, the one written first on the
+application wins a single resolve. [Registering services](/guide/services) covers replacing a
+registration.
+
+## Module properties
+
+A public property with a setter on a module becomes a property of the module's attribute. The
+template's application sets two properties of an imported framework module this way:
+`[HardenedOpenApiUi(Title = "Todos", Environments = "development")]`.
+
+`TodosLibrary` in `src/Todos/TodosLibrary.cs` declares an `Owner` property:
 
 ```csharp
 using DependencyModules.Runtime.Interfaces;
+using Hardened.Shared.Runtime.Attributes;
+using Hardened.Web.Runtime.Attributes;
+using Hardened.Web.Runtime.DependencyInjection;
+using Hardened.Web.Runtime.OpenApi;
+using Microsoft.Extensions.DependencyInjection;
+using System.Text.Json.Serialization.Metadata;
+
+namespace Todos;
 
 [HardenedModule]
-public partial class Application : IServiceCollectionConfiguration {
-    public void ConfigureServices(IServiceCollection services) {
-        services.AddSingleton<IBatchProcessorExceptionHandler, StrictExceptionHandler>();
-    }
+[HardenedWebModule]
+[BasePath("/todos")]
+[Server("http://localhost:5080", "Local")]
+[Enable<OpenApiDocumentPublishing>]
+public partial class TodosLibrary : IServiceCollectionConfiguration
+{
+    public string Owner { get; set; } = "nobody";
 
-    // Optional. Runs after every module has registered, which is where decoration belongs.
-    public void ConfigureDecorators(IServiceCollection services) { }
-}
-```
-
-`IEnvironmentServiceCollectionConfiguration` is the same with the environment handed in:
-
-```csharp
-public void ConfigureServices(IServiceCollection services, IModuleEnvironment environment) {
-    if (environment.EnvironmentName == "development") {
-        services.AddSingleton<IEmailSender, ConsoleEmailSender>();
+    public void ConfigureServices(IServiceCollection services)
+    {
+        services.AddSingleton<IJsonTypeInfoResolver>(TodosJsonContext.Default);
+        services.AddSingleton(new TodoOwner(Owner));
     }
 }
+
+public record TodoOwner(string Name);
 ```
 
-For a condition on the environment name, prefer `[IfEnvironment]` and its siblings. They are
-decided during the build. See [Conditional registration](/guide/services#conditional-registration).
-
-## Startup work
-
-An `IStartupService` runs once, after the provider is built and before the application serves
-anything:
+`Application` in `src/Todos.Host/Application.cs` sets it:
 
 ```csharp
-public interface IStartupService {
-    Task<bool> Startup(IServiceProvider rootProvider);
+using Hardened.Shared.Runtime.Attributes;
+using Hardened.Web.Kestrel.Runtime;
+
+namespace Todos.Host;
+
+[HardenedModule]
+[KestrelRuntime]
+[TodosLibrary(Owner = "ian")]
+public partial class Application;
+```
+
+The attribute creates the module with `new` and copies each property it carries onto it. The
+module's `ConfigureServices` runs on that instance, so it reads the value the importer set. A handler
+in `src/Todos/OwnerController.cs` receives the `TodoOwner` that `ConfigureServices` registered:
+
+```csharp
+using Hardened.Requests.Abstract.Attributes;
+using Hardened.Web.Runtime.Attributes;
+
+namespace Todos;
+
+public class OwnerController
+{
+    [Get("/owner")]
+    public string Owner([FromServices] TodoOwner owner) => owner.Name;
 }
 ```
 
+```http
+GET /todos/owner
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+"ian"
+```
+
+A property of a reference type that the attribute leaves unset keeps its initializer. Under
+`[TodosLibrary]` with no arguments, `Owner` is `nobody`.
+
+::: warning
+A property of a value type, such as `int` or `bool`, is copied whether the attribute sets it or not.
+In every application that imports the module without setting the property, the module gets the
+type's default, `0` or `false`, whatever the initializer says.
+:::
+
+## Register services in code
+
+A class with a lifetime attribute registers itself. [Registering services](/guide/services) covers
+the attributes.
+
+A module that computes a registration implements `IServiceCollectionConfiguration`, from the
+namespace `DependencyModules.Runtime.Interfaces`. Its `ConfigureServices(IServiceCollection)`
+receives the application's service collection. `TodosLibrary` above does this. The interface has a
+second method, `ConfigureDecorators(IServiceCollection)`, which does nothing unless the module
+declares it.
+
+`IEnvironmentServiceCollectionConfiguration`, in the same namespace, has one method,
+`ConfigureServices(IServiceCollection, IModuleEnvironment)`. The environment that this method
+receives is the one `[IfEnvironment]` reads. Its `EnvironmentName` is the Hardened environment's
+name.
+
+A module that implements both interfaces gets both calls. The methods run in this order:
+
+| Method | Interface | Runs |
+|---|---|---|
+| `ConfigureServices(IServiceCollection)` | `IServiceCollectionConfiguration` | After the module's attribute registrations |
+| `ConfigureServices(IServiceCollection, IModuleEnvironment)` | `IEnvironmentServiceCollectionConfiguration` | Next, on a module that implements both |
+| `ConfigureDecorators(IServiceCollection)` | `IServiceCollectionConfiguration` | After every module's `ConfigureServices` and the declared decorators |
+
+`ConfigureServices` can therefore read or replace the module's attribute registrations.
+
+With the code below, the application logs at `Debug` in `development`, which is the environment when
+`HARDENED_ENVIRONMENT` is unset. It does not log at `Debug` in `production`.
+
 ```csharp
-[SingletonService(As = typeof(IStartupService))]
-public class WarmCaches : IStartupService {
-    public async Task<bool> Startup(IServiceProvider rootProvider) {
-        await rootProvider.GetRequiredService<IRateTable>().Load();
+using DependencyModules.Runtime.Interfaces;
+using Hardened.Shared.Runtime.Attributes;
+using Hardened.Web.Kestrel.Runtime;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+namespace Todos.Host;
+
+[HardenedModule]
+[KestrelRuntime]
+[TodosLibrary]
+public partial class Application : IEnvironmentServiceCollectionConfiguration
+{
+    public void ConfigureServices(IServiceCollection services, IModuleEnvironment environment)
+    {
+        if (environment.EnvironmentName == "development")
+        {
+            services.AddLogging(logging => logging.SetMinimumLevel(LogLevel.Debug));
+        }
+    }
+}
+```
+
+A class that should exist in some environments only takes `[IfEnvironment]` instead of code.
+[Registering services](/guide/services) covers it. [Environments](/guide/environments) covers the
+environment's name.
+
+## Run code at startup
+
+`IStartupService` is in the namespace `Hardened.Shared.Runtime.Application`. Its one method is
+`Task<bool> Startup(IServiceProvider rootProvider)`. Each registered startup service runs once,
+after the service provider is built and before the host takes its first request.
+
+`TodoCountLogger` in `src/Todos/TodoCountLogger.cs` logs how many todos the store holds:
+
+```csharp
+using DependencyModules.Runtime.Attributes;
+using Hardened.Shared.Runtime.Application;
+using Microsoft.Extensions.Logging;
+
+namespace Todos;
+
+[SingletonService]
+public class TodoCountLogger(ITodoStore store, ILogger<TodoCountLogger> logger) : IStartupService
+{
+    public async Task<bool> Startup(IServiceProvider rootProvider)
+    {
+        var todos = await store.All();
+
+        logger.LogInformation("Starting with {Count} todos", todos.Count);
 
         return true;
     }
 }
 ```
 
-Every registered startup service is launched together and awaited as a group, so they cannot
-depend on each other's order. Returning `false` or throwing fails startup.
+In the output of `dotnet run --project src/Todos.Host`, its line comes before `Listening on`:
 
-## Self-hosting entry points
-
-An ASP.NET Core application builds its own host, so the module only needs
-`PopulateServiceCollection`. A console application or a Lambda function has no host to build, so
-the generator writes one: constructors, a root service provider, and `IApplicationRoot`.
-
-```csharp
-var application = new Application(args);
-
-var result = await application.Run();
-
-await application.DisposeAsync();
-
-return result;
+```console
+info: Todos.TodoCountLogger[0] Starting with 2 todos
+info: Todos.Host[0] Listening on http://localhost:5080
 ```
 
-For those entry points, three method names on the module are called if present:
+`[SingletonService]` registers `TodoCountLogger` as `IStartupService`, the first interface it
+declares. A class that declares another interface first is registered as that interface. Its
+`Startup` never runs. `[SingletonService(As = typeof(IStartupService))]` registers such a class as a
+startup service.
 
-| Method | Effect |
+`Startup` receives the root service provider. A startup service is resolved from the container, so
+its constructor takes services too.
+
+The host starts every startup service, then waits for all of them. They run at the same time, so one
+must not depend on another having finished. Hardened registers startup services of its own, for
+CORS, authentication, authorization and routes registered at startup. The application's startup
+services run at the same time as these.
+
+The host does not use the `bool` that `Startup` returns:
+
+| `Startup` | The application |
 |---|---|
-| `Task<bool> Startup(IServiceProvider)` | Runs alongside the registered `IStartupService`s |
-| `void ConfigureLogging(ILoggingBuilder)` <br> `void ConfigureLogging(IHardenedEnvironment, ILoggingBuilder)` | Configures the logging builder |
-| `LogLevel ConfigureLogLevel(IHardenedEnvironment)` | Sets the minimum level without touching the builder |
+| Returns `true` | Starts |
+| Returns `false` | Starts and answers requests |
+| Throws | Does not start. The exception ends the process once the other startup services finish |
 
-```csharp
-[HardenedModule]
-[CommandsLibrary]
-public partial class Application {
-    private void ConfigureLogging(IHardenedEnvironment environment, ILoggingBuilder builder) {
-        builder.SetMinimumLevel(
-            environment.Matches("production") ? LogLevel.Warning : LogLevel.Debug);
-    }
-}
-```
+When a startup service throws, the call that runs the startup services throws. On Kestrel,
+`StartAsync` throws the exception. On ASP.NET Core, `UseHardened` throws an `AggregateException`
+that wraps it.
 
-::: warning Matched by name, not by an interface
-A typo in `ConfigureLogging` is a method nobody calls, not a compile error. If a hook does
-nothing, check the spelling against the table, then check the generated entry point under `obj/`
-for whether it is mentioned.
-:::
+In a `[HardenedTest]`, the startup services run before the test method. [Hosts](/guide/hosts) covers
+when each host runs the startup services. A startup service can register a filter for every handler.
+[The execution pipeline](/guide/execution-pipeline) covers it.
 
-## DependencyModules
+## Limits
 
-Hardened's module system is [DependencyModules](https://ipjohnson.github.io/DependencyModules/).
-`[HardenedModule]` is a Hardened-flavoured `[DependencyModule]`, and `[SingletonService]`,
-`[ScopedService]`, `[TransientService]`, conventions, decorators, interception and
-environment-conditional registration all come from that package.
+The Azure Functions host does not run the startup services.
 
 ## Next
 
-- [Registering services](/guide/services): the lifetime attributes
-- [Configuration](/guide/configuration): the models a module carries
-- [Environments](/guide/environments): what `[IfEnvironment]` reads
+| Page | Covers |
+|---|---|
+| [Registering services](/guide/services) | The lifetime attributes, service types and `[IfEnvironment]` |
+| [Configuration](/guide/configuration) | The configuration models a module carries |
+| [Environments](/guide/environments) | The environment a module reads |
+| [Hosts](/guide/hosts) | Each host's `Program.cs`, and when it runs the startup services |

@@ -243,4 +243,4 @@ looks a name up in a dictionary of conventions.
 
 - [Validation](/guide/validation): constraints on the values that were bound
 - [Routing](/guide/routing#path-tokens): the tokens a path declares
-- [Registering services](/guide/services#injecting-into-handlers): services as method parameters
+- [Registering services](/guide/services#services-in-handlers): services as method parameters

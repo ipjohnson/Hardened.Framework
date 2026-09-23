@@ -64,7 +64,7 @@ handler once per item. Whether a failure is reported per item is
 the event source mapping.
 
 **The log level from the environment.** `Information`, or `Debug` in `development` and `test`,
-overridden by `LOG_LEVEL`. See [Log level](/guide/environments#log-level).
+overridden by `LOG_LEVEL`.
 
 ## Cold start
 

@@ -101,7 +101,7 @@ config.Amend((DynamoDbOptions options) =>
     options.DefaultClient = provider => new AmazonDynamoDBClient(RegionEndpoint.EUWest2));
 ```
 
-See [Amending configuration](/guide/configuration#amending-configuration) for where `Amend` is
+See [Configuration](/guide/configuration#amend-a-model) for where `Amend` is
 called from.
 
 ## Testing against a real DynamoDB

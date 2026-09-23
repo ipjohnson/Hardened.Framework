@@ -67,13 +67,13 @@ const guide = [
       { text: 'Project templates', link: '/guide/project-templates' },
       { text: 'From scratch', link: '/guide/from-scratch' },
       { text: 'Hosts', link: '/guide/hosts' },
-      { text: 'Modules', link: '/guide/modules' },
-      { text: 'Registering services', link: '/guide/services' },
     ],
   },
   {
     text: 'Application',
     items: [
+      { text: 'Modules', link: '/guide/modules' },
+      { text: 'Registering services', link: '/guide/services' },
       { text: 'Configuration', link: '/guide/configuration' },
       { text: 'Environments', link: '/guide/environments' },
     ],

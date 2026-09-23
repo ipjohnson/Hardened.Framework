@@ -16,7 +16,7 @@ Every attribute in the framework, by the package it comes from.
 
 Every `[HardenedModule]` class also produces `<Name>Attribute`, which is how one module imports
 another. `[AspNetCoreRuntime]`, `[HardenedWebModule]`, `[DynamoDbClientModule]` and the rest are all
-generated this way. See [Modules](/guide/modules#declaring-a-module).
+generated this way. See [Modules](/guide/modules#declare-a-module).
 
 ## Service registration
 
