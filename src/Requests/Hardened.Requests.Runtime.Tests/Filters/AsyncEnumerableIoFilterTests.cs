@@ -20,8 +20,8 @@ namespace Hardened.Requests.Runtime.Tests.Filters;
 /// caller can start reading before the handler has finished producing.
 ///
 /// <para>
-/// The shape of the output is the contract: one item per line, and a trailing newline even
-/// when nothing was produced.
+/// The shape of the output is the contract: one item per line, and a single newline when nothing
+/// was produced.
 /// </para>
 /// </summary>
 public class AsyncEnumerableIoFilterTests
@@ -81,7 +81,7 @@ public class AsyncEnumerableIoFilterTests
             )
             .Next();
 
-        Assert.Equal("alpha\nbeta\ngamma\n\n", Body(context));
+        Assert.Equal("alpha\nbeta\ngamma\n", Body(context));
     }
 
     [Fact]
@@ -378,7 +378,7 @@ public class AsyncEnumerableIoFilterTests
             .Next();
 
         Assert.Equal("yes", context.Response.Headers["X-Stream"].ToString());
-        Assert.Equal("item\n\n", Body(context));
+        Assert.Equal("item\n", Body(context));
     }
 
     #region a 204 ends a subscription
@@ -686,7 +686,7 @@ public class AsyncEnumerableIoFilterTests
             )
             .Next();
 
-        Assert.Equal("alpha\n\n", Body(context));
+        Assert.Equal("alpha\n", Body(context));
     }
 
     /// <summary>
@@ -809,7 +809,7 @@ public class AsyncEnumerableIoFilterTests
     /// </summary>
     [Theory]
     [InlineData("sse", "id: 1\ndata: alpha\n\ndata: beta\n\n")]
-    [InlineData("ndjson", "alpha\nbeta\n\n")]
+    [InlineData("ndjson", "alpha\nbeta\n")]
     public async Task AFramingWritesNothingSynchronously(string framing, string expected)
     {
         var context = Pipeline.Context();

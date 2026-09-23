@@ -107,7 +107,7 @@ public class StreamingOverASocketTests
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("application/x-ndjson", response.Content.Headers.ContentType?.MediaType);
         Assert.Equal(
-            "alpha\nbeta\n\n",
+            "alpha\nbeta\n",
             await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken)
         );
     }
