@@ -197,4 +197,4 @@ answer flushed and its cache entry written on an already-cancelled token.
 
 - [Rate limiting](/guide/rate-limiting): the other bound on an operation
 - [The execution pipeline](/guide/execution-pipeline#filter-order): the stages inside and outside the budget
-- [Generating from OpenAPI](/guide/openapi#a-deadline-from-the-description): `x-hardened-timeout` in a contract
+- [Generating from OpenAPI](/guide/openapi#extension-keys): `x-hardened-timeout` in a contract

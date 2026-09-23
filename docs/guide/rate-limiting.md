@@ -168,4 +168,4 @@ recorded failure rather than reading "still travelling" as "still permitted".
 
 - [Request timeouts](/guide/request-timeouts): the other bound on an operation
 - [The execution pipeline](/guide/execution-pipeline#refuse-a-request): how a refusal ahead of the line travels
-- [The OpenAPI document](/guide/openapi-document#what-a-guard-on-the-operation-publishes): the 429 the document carries
+- [The OpenAPI document](/guide/openapi-document#statuses-a-filter-attribute-publishes): the 429 the document carries

@@ -159,4 +159,4 @@ resolved per request; see
 
 - [Authorization](/guide/authorization): what the caller may do
 - [Credentials](/guide/testing-credentials): the caller a test sends as
-- [The OpenAPI document](/guide/openapi-document#what-a-guard-on-the-operation-publishes): the 401 the document carries
+- [The OpenAPI document](/guide/openapi-document#statuses-a-filter-attribute-publishes): the 401 the document carries

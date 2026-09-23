@@ -60,7 +60,7 @@ All take `As` to narrow the service type, and `Using` to choose the registration
 | Attribute | Target | Purpose |
 |---|---|---|
 | `[Throws<T>(status?)]` | Method | [Declares a thrown response](/guide/responses#the-throws-model) for the document. The status comes from `T`'s `[HttpStatus]`, or from the argument |
-| `[AnswersStatus(status, typeof(body))]` | Class, interface | On a filter attribute: every operation carrying it [publishes](/guide/openapi-document#what-a-guard-on-the-operation-publishes) that status. How `[RateLimit]` publishes its 429 |
+| `[AnswersStatus(status, typeof(body))]` | Class, interface | On a filter attribute: every operation carrying it [publishes](/guide/openapi-document#statuses-a-filter-attribute-publishes) that status. How `[RateLimit]` publishes its 429 |
 
 `Hardened.Requests.Runtime.Filters`
 

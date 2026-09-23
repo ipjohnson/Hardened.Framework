@@ -133,7 +133,7 @@ public async Task GetTodo_MalformedId_IsBadRequest(ITestWebApp app) {
 ```
 
 What Kiota does and does not generate from a Hardened document is on
-[Generated clients](/guide/clients#what-kiota-does-with-a-hardened-document).
+[Generated clients](/guide/clients#what-each-generator-writes).
 
 ## Next
 
