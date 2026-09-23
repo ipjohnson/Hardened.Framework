@@ -155,7 +155,8 @@ and binding do not change with the host.
 | Google Cloud Run | `[CloudRunRuntime]` | `Hardened.Gcp.CloudRun.Runtime` |
 | Azure Functions, isolated worker | `[HttpModule]` | `Hardened.Azure.Functions.Http` |
 
-`--host` on the `hardened-web` template selects one. Only the host project changes.
+`--host` on the `hardened-web` template selects one. `src/Todos` and `src/Todos.Client` are the
+same for every host. `src/Todos.Host` changes, and the tests differ only in the host they run on.
 `Hardened.Gcp.Functions.Runtime` runs the same `[CloudRunRuntime]` application as a Google Cloud
 Functions (2nd gen) function.
 
@@ -476,7 +477,7 @@ An HTTP API: a library for the handlers, a host project, a client project and te
 
 | Option | Values | Selects |
 |---|---|---|
-| `--host` | `kestrel`, `aspnet`, `aws-lambda`, `cloud-run`, `azure-functions` | Where the application runs. Only the host project changes |
+| `--host` | `kestrel`, `aspnet`, `aws-lambda`, `cloud-run`, `azure-functions` | Where the application runs. See [Hosts](#hosts) |
 | `--contract` | `code`, `openapi`, `smithy` | The contract style. See [Contracts](#contracts) |
 | `--response-model` | `response`, `throws`, `union` | How a handler declares its statuses. See [Responses](#responses) |
 | `--client` | `kiota`, `refit`, `none` | The generated client, and the tests that use it |
