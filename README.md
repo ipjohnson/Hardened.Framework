@@ -517,8 +517,9 @@ because the generated code and the runtime that it calls ship together.
 
 The templates reference the packages that each project needs. A project assembled by hand needs the
 runtime packages and the source generator packages. Analyzers do not flow through a package
-reference, so the project that declares the application must reference the generators directly.
-Without `Hardened.Web.SourceGenerator`, the application compiles and answers 404 to every request.
+reference, so each project must reference the generators it uses. A project with route attributes
+that references `Hardened.Library.SourceGenerator` but not `Hardened.Web.SourceGenerator` fails to
+build with `HRDR006`.
 
 A code-first Kestrel application references these packages:
 
