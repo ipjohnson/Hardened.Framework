@@ -197,4 +197,4 @@ Both hosts work under xUnit and NUnit. The runner package decides which; see
 
 - [Sending requests](/guide/testing-web): what `ITestWebApp` does on the pipeline
 - [Typed clients](/guide/testing-clients): the clients that send to the socket
-- [Getting started](/guide/getting-started#hosting-it-somewhere-else): the hosts an application names
+- [Hosts](/guide/hosts): the hosts an application names

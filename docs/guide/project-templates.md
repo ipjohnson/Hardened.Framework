@@ -1,7 +1,7 @@
 # Project templates
 
-`dotnet new hardened-web` writes a solution that builds, tests and serves. Two more templates
-write a serverless function and a reusable library.
+The `Hardened.Templates` package installs three `dotnet new` templates: `hardened-web`,
+`hardened-function` and `hardened-library`.
 
 ```bash
 dotnet new install Hardened.Templates
@@ -10,293 +10,316 @@ cd Todos
 dotnet run --project src/Todos.Host
 ```
 
-```console
-$ curl localhost:5080/todos
-[{"id":1,"title":"Read the generated code","done":true},{"id":2,"title":"Add an endpoint","done":false}]
+```http
+GET /todos/1
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"id":1,"title":"Read the generated code","done":true}
 ```
 
-The reference page is at `http://localhost:5080/docs`.
+The default host, `kestrel`, listens on port 5080. [Hosts](/guide/hosts) gives the port of each
+host.
 
-| Short name | Writes |
+The three templates write these solutions:
+
+| Template | Writes |
 |---|---|
-| `hardened-web` | An HTTP API on Kestrel, ASP.NET Core, AWS Lambda, Google Cloud Run or Azure Functions |
-| `hardened-function` | A function that is not an HTTP API, on AWS Lambda, Google Cloud Run or Azure Functions |
-| `hardened-library` | A module other applications compose |
+| `hardened-web` | An HTTP API: a library for the handlers, a host project, a client project and a test project |
+| `hardened-function` | A function for one trigger on one cloud, and its tests |
+| `hardened-library` | A module that an application imports with one attribute, and its tests |
+
+The scaffolded tests pass when `dotnet test` runs in the solution directory.
+
+## Install the templates
+
+`dotnet new install Hardened.Templates` installs the newest version from nuget.org. Every version is
+a prerelease version. The command still finds the newest one.
+
+`dotnet new install Hardened.Templates::<version>` installs a specific version:
+
+```bash
+dotnet new install Hardened.Templates::0.0.0-HARDENED-VERSION
+```
+
+The .NET 8 SDK rejects the form `Hardened.Templates@<version>` with "is not supported" and exit
+code 106. The .NET 10 SDK accepts both forms. It prints a deprecation notice for the `::` form.
+
+The version of the template package is the Hardened version that the templates write into each new
+project. [Package versions](#package-versions) describes how a project pins it.
 
 ## hardened-web
 
-```bash
-dotnet new hardened-web -n Todos [options]
-```
+`dotnet new hardened-web -n Todos` writes a solution into a directory named `Todos`. The name given
+with `-n` names the projects and two classes. `-n Todos` gives the library module `TodosLibrary`
+and the JSON context `TodosJsonContext`. In the class names, the template drops any character that
+a C# identifier cannot hold.
 
-| Option | Values | Default |
+With the default options, the solution holds these projects:
+
+| Project | Contents |
+|---|---|
+| `src/Todos` | The handlers, the models, the services and the library module `TodosLibrary` |
+| `src/Todos.Host` | `Application.cs` and `Program.cs` for the chosen host |
+| `src/Todos.Client` | A client that the build generates from the OpenAPI document |
+| `tests/Todos.Tests` | Tests that send requests to `TodosLibrary` in process |
+
+The first build writes the application's OpenAPI document to `src/Todos/openapi/Todos.json`. The
+client project generates the client from that file. `dotnet new` does not write the file.
+
+The root `.config/dotnet-tools.json` pins the Kiota tool, `microsoft.openapi.kiota`. The client
+project restores and runs it during the build.
+
+`src/Todos.Host/Properties/launchSettings.json` holds a launch profile that opens a browser at
+`http://localhost:5080/docs`. The application serves the reference page at `/docs` only in the
+`development` environment. The [environment](/guide/environments) is `development` when
+`HARDENED_ENVIRONMENT` is not set. With `HARDENED_ENVIRONMENT=production`, `/docs` answers 404 and
+`/openapi.json` answers 200.
+
+`hardened-web` takes these options, in addition to the
+[options on every template](#options-on-every-template):
+
+| Option | Short name | Values | Default | Selects |
+|---|---|---|---|---|
+| `--host` | `-ho` | `kestrel`, `aspnet`, `aws-lambda`, `cloud-run`, `azure-functions` | `kestrel` | Where the application runs. See [Hosts](/guide/hosts) |
+| `--contract` | `-c` | `code`, `openapi`, `smithy` | `code` | Where the API contract lives. See [Generating from OpenAPI](/guide/openapi) and [Generating from Smithy](/guide/smithy) |
+| `--response-model` | `-rm` | `response`, `throws`, `union` | `response` | How a handler declares its statuses. See [Declared responses](/guide/responses) |
+| `--client` | `-cl` | `kiota`, `refit`, `none` | `kiota` | The generated client. See [Generated clients](/guide/clients) |
+| `--serializer` | `-s` | `json`, `message-pack-named`, `message-pack-keyed` | `json` | MessagePack as a second representation beside JSON. See [MessagePack](/guide/message-pack) |
+| `--openapi-ui` | None | `true`, `false` | `true` | A reference page at `/docs`. See [The OpenAPI document](/guide/openapi-document) |
+
+`--host` changes the host project. `src/Todos` and `src/Todos.Client` are the same for all five
+hosts. Depending on the host, `--host` also changes the test project, `Directory.Packages.props`,
+`README.md` and `AGENTS.md`. Each host adds files:
+
+| `--host` | Host attribute in the test project | Added files |
 |---|---|---|
-| `-ho, --host` | `kestrel`, `aspnet`, `aws-lambda`, `cloud-run`, `azure-functions` | `kestrel` |
-| `-c, --contract` | `code`, `openapi`, `smithy` | `code` |
-| `-rm, --response-model` | `response`, `throws`, `union` | `response` |
-| `-cl, --client` | `kiota`, `refit`, `none` | `kiota` |
-| `-s, --serializer` | `json`, `message-pack-named`, `message-pack-keyed` | `json` |
-| `--test-framework` | `xunit`, `nunit` | `xunit` |
-| `--mocks` | `nsubstitute`, `moq`, `fakeiteasy` | `nsubstitute` |
-| `--openapi-ui` | `true`, `false` | `true` |
-| `--hardened-version` | a published version | the version the template shipped with |
-| `--skip-restore` | `true`, `false` | `false` |
+| `kestrel` | `[assembly: KestrelTesting]` | `tests/Todos.Tests/TodosSocketTests.cs` |
+| `aspnet` | `[assembly: AspNetCoreTesting]` | `tests/Todos.Tests/TodosSocketTests.cs` |
+| `aws-lambda` | None | `src/Todos.Host/.config/dotnet-tools.json`, which pins the AWS Lambda Test Tool |
+| `cloud-run` | `[assembly: KestrelTesting]` | `Dockerfile`, `.dockerignore`, `tests/Todos.Tests/TodosSocketTests.cs` |
+| `azure-functions` | `[assembly: AzureFunctionsWebTesting]` | `src/Todos.Host/host.json`, `src/Todos.Host/local.settings.json`. There is no launch profile |
 
-### What you get
+`TodosSocketTests.cs` runs the application on a real socket. The other tests send requests in
+process.
 
-```
-Todos.sln
-.config/dotnet-tools.json        the client generator, Kiota or Refitter
-Directory.Packages.props         every version, in one place
-src/Todos/                       the implementation. Knows nothing about where it runs
-src/Todos/openapi/Todos.json     the served document, written by the build and committed
-src/Todos.Host/                  the runtime, and Program.cs
-src/Todos.Client/                the generated client. No hand-written code
-tests/Todos.Tests/               tests against the library, not the host
-```
+The remaining option values change the default scaffold:
 
-Swapping `--host` changes only the host project. The library, the client and the tests are the
-same whichever host you pick.
+| Option value | What changes |
+|---|---|
+| `--contract openapi` | Adds `src/Todos/contracts/todos.yaml`, declared as a `HardenedOpenApiSpec` item, and `TodoService.cs`, which implements the generated interface. Removes `TodoController.cs` and `TodosJsonContext.cs` |
+| `--contract smithy` | The same, with `src/Todos/contracts/todos.smithy` declared as a `HardenedSmithyModel` item. The build needs the Smithy CLI |
+| `--response-model throws` | `TodoController.cs` and the tests |
+| `--response-model union` | Every project targets `net11.0`. `global.json` pins the .NET SDK `11.0.100-preview.7.26381.103`. `src/Todos` sets `LangVersion` to `preview` |
+| `--client refit` | `src/Todos.Client` holds a Refit interface that Refitter generates. The tool manifest pins `refitter`. The tests use `[assembly: RefitTesting]` |
+| `--client none` | No `src/Todos.Client` and no `.config/dotnet-tools.json`. The build does not write the document to a file. The tests send requests with `ITestWebApp` |
+| `--serializer message-pack-named` or `message-pack-keyed` | Adds the `Hardened.Requests.Serializers.MessagePack` package, `[MessagePackSerializerLibrary]` and `[JsonErrorBodies]` on `TodosLibrary`, and `[Produces(KnownContentType.Json, MessagePackContentType.Value)]` on each route. With `--client refit` it also adds Liquid templates and `MessagePackContentSerializer.cs` to the client, and `MessagePackClientFactory.cs` to the tests |
+| `--openapi-ui false` | Removes `[HardenedOpenApiUi]` from `Application` in a code-first project, or `<UiUrl>` and `<UiEnvironments>` from the contract item. Removes the launch profile |
 
-### The host
-
-`kestrel` serves HTTP through Kestrel without the ASP.NET Core request pipeline.
-
-`aspnet` is for an application that needs ASP.NET Core's own middleware, authentication and
-authorization, or its hosting diagnostics. Instrumentation that subscribes to the ASP.NET
-`DiagnosticSource` names sees nothing under Kestrel. The [Kestrel host's README][kestrel] lists
-the trade-offs.
-
-`aws-lambda` puts the application on Lambda, behind an API Gateway HTTP API or a function URL. The
-host project has a `Program.cs` like every other host, and the call to
-`LambdaEmulator.StartIfLocal` in it is what starts the AWS Lambda Test Tool beside the process when
-it is not the Lambda service running it. The application answers on 5080 through the tool's API
-Gateway emulator, so `dotnet run --project src/Todos.Host` and F5 work the way they do on the other
-hosts; see [Running it locally](/aws/lambda-web#running-it-locally).
-
-`cloud-run` runs the application as a Google Cloud Run service: the Kestrel host in a container,
-listening on `PORT`, with `CloudRunHost.RunAsync` draining a request in flight when Cloud Run sends
-`SIGTERM`. The template writes the `Dockerfile`, and `gcloud run deploy --source .` is the
-deployment; see [Web services](/gcp/web).
-
-`azure-functions` runs the application as an Azure Functions isolated worker: the host project's
-`Program.cs` builds the worker with `ConfigureFunctionsWorkerDefaults` and `UseHardened<Application>()`,
-its application writes `[HttpModule]` because the routes live in the library, and the generated
-`Http` function catches every route. The template writes `host.json` with an empty route prefix
-and `local.settings.json`; `func start` runs the same host locally, and `az functionapp create`
-followed by `func azure functionapp publish` is the deployment. `--response-model union` is
-refused with `HTPL007`, because the worker's managed runtime is `net8.0`; see
-[Web applications](/azure/web).
-
-[kestrel]: https://github.com/ipjohnson/Hardened.Framework/blob/main/src/Web/Hardened.Web.Kestrel.Runtime/README.md
-
-### The contract
-
-`code`: the C# is the contract. Routes are attributes on methods, and the OpenAPI document is
-generated from them.
-
-`openapi`: an [OpenAPI document](/guide/openapi) is the contract. The models, the service
-interface, the routes and the validation are generated from it.
-
-`smithy`: the same, from a [Smithy model](/guide/smithy). The build runs the [Smithy CLI][smithy]
-and names the version it expects if yours differs.
-
-With `openapi` or `smithy` there are no route attributes in the project. Add an operation to the
-contract and the build fails until the service implements it.
-
-[smithy]: https://smithy.io/2.0/guides/smithy-cli/index.html
-
-### The response model
-
-`--response-model` decides how a handler declares more than one kind of response. The scaffolded
-routes show the difference: they answer 404 and 409 in every mode, and creating a todo answers 201
-under `response` and `union` and 200 under `throws`. [Declared responses](/guide/responses) covers
-the three.
-
-`union` writes a `net11.0` project pinned to the .NET 11 SDK in `global.json`. It cannot be combined
-with `--host aws-lambda`, whose managed runtime is `net8.0`, or with `--host azure-functions`, whose
-worker runs the versions the Functions host supports.
-
-Either combination is refused at instantiation: `dotnet new` prints the reason and exits non-zero.
-The files are written first and stay, because the template engine does not unwind what it created,
-so the first build of them refuses again with `HTPL001`.
-
-`standard` is accepted as the old name for `throws` and writes the same project.
-
-### The client
-
-`kiota` writes a Kiota client under `src/Todos.Client`, generated during the build from the
-document the library writes, and tests that drive it through the pipeline. `refit` writes a Refit
-interface with Refitter instead, and every operation on it returns `IApiResponse<T>`. `none`
-leaves out the client project and the tool manifest, and the same tests drive the pipeline through
-`ITestWebApp`. See [Generated clients](/guide/clients) and [Typed clients](/guide/testing-clients).
-
-### The serializer
-
-`--serializer` decides what an operation can answer besides JSON. Both MessagePack modes wire the
-package, the module attribute, the media types on every scaffolded route and — with
-`--client refit` — the two Liquid templates that put the same attributes on the generated client.
-
-`message-pack-named` identifies each member on the wire by the name the document publishes.
-`message-pack-keyed` identifies it by an integer the contract states: smaller on the wire, and the
-identity survives a rename. Nothing assigns an index — an index the build chose would move the next
-time a property was added above it — so a member without one is a build error naming the member and
-the next free index.
-
-It cannot be combined with `--contract smithy`. A Smithy model states its wire format through its
-protocol trait, and there is no MessagePack protocol to state, so the contract has nowhere to name
-the media type and nowhere to state an index. Refused at instantiation the way the union
-combinations are, with `HTPL008` as the build's backstop.
-
-Both modes also add `[JsonErrorBodies]`, so failures answer JSON while successes stay MessagePack.
-That is what lets the scaffolded Refit client run its whole test suite over MessagePack: Refit
-cannot read a binary error body. [MessagePack](/guide/message-pack) covers why, and the rest.
-
-### The reference page
-
-`--openapi-ui` serves a page at `/docs` describing every operation, and the document behind it at
-`/openapi.json`. It is served in the `development` environment only. Name more:
-
-```csharp
-[HardenedOpenApiUi(Title = "Todos", Environments = "development,staging")]
-```
-
-The environment is `HARDENED_ENVIRONMENT`, which defaults to `development`. See
-[Environments](/guide/environments).
+`/openapi.json` does not depend on `--openapi-ui`. `[Enable<OpenApiDocumentPublishing>]` on the
+library module serves the document. `--openapi-ui false` leaves the module unchanged.
 
 ## hardened-function
 
-```bash
-dotnet new hardened-function -n OrderIntake [options]
-```
+`dotnet new hardened-function -n OrderIntake` writes one project, `src/OrderIntake`, and a test
+project, `tests/OrderIntake.Tests`. There is no host project. `src/OrderIntake` holds the handler
+class `OrderHandler`, its models and services, `Application.cs` and `Program.cs`. `Program.cs` is
+the entry point for the chosen cloud. The project references the one adapter package that serves
+the trigger on the chosen cloud.
 
-| Option | Values | Default |
-|---|---|---|
-| `--trigger` | `invoke`, `queue`, `topic`, `timer`, `change`, `stream`, `blob` | `invoke` |
-| `-ho, --host` | `aws`, `gcp`, `azure` | `aws` |
-| `--test-framework` | `xunit`, `nunit` | `xunit` |
-| `--mocks` | `nsubstitute`, `moq`, `fakeiteasy` | `nsubstitute` |
-| `--hardened-version` | a published version | the version the template shipped with |
-| `--skip-restore` | `true`, `false` | `false` |
+`hardened-function` takes these options, in addition to the
+[options on every template](#options-on-every-template):
 
-```
-src/OrderIntake/               the function: its handler, models and services
-src/OrderIntake/Program.cs     the entry point, and the local emulator
-tests/OrderIntake.Tests/       tests that invoke it the way Lambda does
-```
-
-The handler is a plain class:
-
-```csharp
-public class OrderHandler(OrderLog log) {
-
-    [HardenedFunction]
-    public Task<OrderAccepted> Process(Order order) { ... }
-}
-```
-
-There is no separate host project. The deployed artifact is this assembly, and `Program.cs` is the
-entry point the runtime starts — written rather than generated, so do not add a `Main` of your own.
-
-`--trigger` picks which source the scaffolded handler serves, and with it the one adapter package
-the project references. Each is a [trigger attribute](/guide/triggers) naming the queue, topic,
-schedule, table, stream or bucket, and nothing in the project names a cloud:
-
-| `--trigger` | Handler carries | AWS adapter | Cloud Run adapter | Azure adapter |
+| Option | Short name | Values | Default | Selects |
 |---|---|---|---|---|
-| `invoke` | `[HardenedFunction]` | `Hardened.Aws.Lambda.Invoke` | `Hardened.Gcp.CloudRun.Invoke` | none; `HTPL006` refuses the combination |
-| `queue` | `[Queue("orders")]` | `Hardened.Aws.Lambda.Sqs` | `Hardened.Gcp.CloudRun.PubSub` | `Hardened.Azure.Functions.ServiceBus` |
-| `topic` | `[Topic("orders")]` | `Hardened.Aws.Lambda.Sns` | `Hardened.Gcp.CloudRun.PubSub` | `Hardened.Azure.Functions.ServiceBus` |
-| `timer` | `[Timer("nightly")]` | `Hardened.Aws.Lambda.EventBridge` | `Hardened.Gcp.CloudRun.Scheduler` | `Hardened.Azure.Functions.Timer` |
-| `change` | `[Change("orders")]` | `Hardened.Aws.Lambda.DynamoDb` | `Hardened.Gcp.CloudRun.Firestore` | `Hardened.Azure.Functions.CosmosDb` |
-| `stream` | `[Stream("orders")]` | `Hardened.Aws.Lambda.Kinesis` | none; `HTPL005` refuses the combination | `Hardened.Azure.Functions.EventHubs` |
-| `blob` | `[Blob("uploads")]` | `Hardened.Aws.Lambda.S3` | `Hardened.Gcp.CloudRun.Storage` | `Hardened.Azure.Functions.Blobs` |
+| `--trigger` | `-tr` | `invoke`, `queue`, `topic`, `timer`, `change`, `stream`, `blob` | `invoke` | The trigger attribute on the handler. See [Triggers](/guide/triggers) |
+| `--host` | `-ho` | `aws`, `gcp`, `azure` | `aws` | AWS Lambda, Google Cloud Run or Azure Functions |
 
-On a batched trigger the runtime unpacks the batch and calls the handler once per item. Returning
-handles the item; throwing fails the invocation, which is what returns the batch to the source.
-Reporting individual failures instead is a deployment setting the application has to opt into, and
-it has to match the event source mapping — see
-[Batches](/guide/triggers#batches-and-what-a-failure-means).
+Each `--trigger` value writes one method on the handler class:
 
-Running the project starts the AWS Lambda Test Tool on 5050, which is where a payload is posted;
-there is no HTTP API and nothing on 5080. Most of the time there is nothing to run, because the
-tests invoke the function through the real pipeline with no AWS account and nothing to deploy. See
-[Lambda functions](/aws/lambda-function).
+| `--trigger` | Handler method |
+|---|---|
+| `invoke` | `[HardenedFunction]` on `public OrderAccepted Process(Order order)` |
+| `queue` | `[Queue("orders")]` on `public void OnOrder(Order order)` |
+| `topic` | `[Topic("orders")]` on `public void OnOrder(Order order)` |
+| `timer` | `[Timer("nightly")]` on `public void OnNightly()` |
+| `change` | `[Change("orders")]` on `public void OnOrderChanged(Order order)` |
+| `stream` | `[Stream("orders")]` on `public void OnOrder(Order order)` |
+| `blob` | `[Blob("uploads")]` on `public void OnUpload(Upload upload)` |
 
-With `--host gcp` the application names its host, `[CloudRunRuntime]`, because a Cloud Run service
-is a container listening on a port. Running the project is the service on 8080, or `PORT`, and a
-trigger is an HTTP request that can be posted to it by hand; there is no emulator to start. The
-template writes the `Dockerfile`, and the README shows the `gcloud` command that wires each source
-to the deployed service. See [Google Cloud Run](/gcp/).
+`OrderHandler.cs` is the same for every `--host`. `--host` changes `Application.cs`, `Program.cs`,
+the package references and the testing attributes in the test project. Each cloud adds files:
 
-With `--host azure` the application names nothing: the handler's trigger picks the adapter, and
-the generator writes the function the Functions host indexes. `Program.cs` builds the isolated
-worker with `ConfigureFunctionsWorkerDefaults` and `UseHardened<Application>()`, and the project
-references `Microsoft.Azure.Functions.Worker.Sdk`, which writes the host's metadata beside the
-build output. `func start --script-root src/OrderIntake/bin/Debug/net8.0` runs the same host
-locally against `local.settings.json`, with Azurite for the host's storage and the Service Bus or
-Event Hubs emulator for the source. A topic writes `[ServiceBusModule(Subscription = "...")]` and
-a change feed `[CosmosDbModule(Database = "...")]` on the application, because those are
-deployment facts the trigger has no slot for. There is no IaC; the README shows the `az` commands
-that create the function app and the setting that wires each source. See
-[Azure Functions](/azure/).
+| `--host` | Testing attributes in the test project | Added files |
+|---|---|---|
+| `aws` | `[assembly: FunctionTesting]`, `[assembly: LambdaTesting]` | `.config/dotnet-tools.json`, which pins the AWS Lambda Test Tool |
+| `gcp` | `[assembly: FunctionTesting]`, `[assembly: CloudRunTesting]`, `[assembly: WebTesting]` | `Dockerfile`, `.dockerignore` |
+| `azure` | `[assembly: FunctionTesting]`, `[assembly: AzureFunctionsTesting]` | `src/OrderIntake/host.json`, `src/OrderIntake/local.settings.json` |
+
+The cloud overviews for [AWS](/aws/), [Google Cloud](/gcp/) and [Azure](/azure/) cover running and
+deploying a function.
 
 ## hardened-library
 
-```bash
-dotnet new hardened-library -n Acme.Greeting
-```
+`dotnet new hardened-library -n Acme.Greeting` writes `src/Acme.Greeting` and
+`tests/Acme.Greeting.Tests`. The module class is the name without the characters that a C#
+identifier cannot hold, plus `Library`. `-n Acme.Greeting` gives `AcmeGreetingLibrary`. The module
+has no host attribute. The library project references only `Hardened.Shared.Runtime` and
+`Hardened.Library.SourceGenerator`.
 
-A module that names no runtime, so one package serves Kestrel, ASP.NET Core and Lambda. The build
-writes an attribute named after the module, and an application composes it the way it composes a
-runtime:
+The generator writes the attribute class `AcmeGreetingLibraryAttribute`. An application imports the
+library by putting `[AcmeGreetingLibrary]` on its application module:
 
 ```csharp
+using Acme.Greeting;
+using Hardened.Shared.Runtime.Attributes;
+using Hardened.Web.Kestrel.Runtime;
+
+namespace Todos.Host;
+
 [HardenedModule]
 [KestrelRuntime]
 [AcmeGreetingLibrary]
 public partial class Application;
 ```
 
-There is no `AddAcmeGreeting()` to call and no options object to thread through. To carry HTTP
-routes as well as services, add `[HardenedWebModule]` to the module class and reference
-`Hardened.Web.Runtime` and `Hardened.Web.SourceGenerator`. See [Modules](/guide/modules).
+To serve HTTP routes from the library, add `[HardenedWebModule]` to the module class. The attribute
+is in the `Hardened.Web.Runtime.DependencyInjection` namespace:
 
-## Versions
+```csharp
+using Hardened.Shared.Runtime.Attributes;
+using Hardened.Web.Runtime.DependencyInjection;
 
-Every template writes a `Directory.Packages.props` with one version for every Hardened package:
+namespace Acme.Greeting;
+
+[HardenedModule]
+[HardenedWebModule]
+public partial class AcmeGreetingLibrary;
+```
+
+The library also needs the `Hardened.Web.Runtime` and `Hardened.Web.SourceGenerator` packages. The
+template's `Directory.Packages.props` has no version for them. A reference without a version fails
+the restore with `NU1010`. Add both `PackageVersion` lines to `Directory.Packages.props`:
+
+```xml
+<PackageVersion Include="Hardened.Web.Runtime" Version="$(HardenedVersion)" />
+<PackageVersion Include="Hardened.Web.SourceGenerator" Version="$(HardenedVersion)" />
+```
+
+Reference both packages in `src/Acme.Greeting/Acme.Greeting.csproj`:
+
+```xml
+<PackageReference Include="Hardened.Web.Runtime" />
+<PackageReference Include="Hardened.Web.SourceGenerator" />
+```
+
+`GreetingController` declares a route in the library:
+
+```csharp
+using Hardened.Web.Runtime.Attributes;
+
+namespace Acme.Greeting;
+
+public class GreetingController
+{
+    [Get("/greeting/{name}")]
+    public string Greet(IGreetingService greetings, string name) => greetings.Greet(name);
+}
+```
+
+The application that imports the library serves the route:
+
+```http
+GET /greeting/world
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+"Hello, world!"
+```
+
+## Files in every solution
+
+All three templates write these files:
+
+| File | Contents |
+|---|---|
+| `global.json` | Pins the .NET SDK `8.0.401` with `rollForward` set to `latestFeature`. `--response-model union` pins `11.0.100-preview.7.26381.103` instead |
+| `nuget.config` | Clears the package sources and adds nuget.org |
+| `Directory.Build.props` | The target framework `net8.0` (`net11.0` with `--response-model union`), nullable reference types, implicit usings and `EmitCompilerGeneratedFiles` |
+| `Directory.Packages.props` | Every package version. The Hardened packages use `$(HardenedVersion)` |
+| `README.md` | How the solution builds, runs and tests, written for the options chosen |
+| `AGENTS.md` | Rules and traps for anyone who edits the code, written for the options chosen |
+
+`EmitCompilerGeneratedFiles` keeps the generated C# on disk. [Getting started](/guide/getting-started)
+gives its location.
+
+## Options on every template
+
+All three templates take these options:
+
+| Option | Short name | Values | Default | Selects |
+|---|---|---|---|---|
+| `--test-framework` | `-tf` | `xunit`, `nunit` | `xunit` | xUnit v3 with `Hardened.Shared.Testing.xUnit`, or NUnit 4 with `Hardened.Shared.Testing.NUnit` |
+| `--mocks` | `-mo` on `hardened-web`, `-m` on the other two | `nsubstitute`, `moq`, `fakeiteasy` | `nsubstitute` | The library behind `[Mock]`: the package `DependencyModules.NSubstitute`, `DependencyModules.Moq` or `DependencyModules.FakeItEasy`, and the assembly attribute `NSubstituteSupport`, `MoqSupport` or `FakeItEasySupport` |
+| `--hardened-version` | `-hv` on `hardened-function` and `hardened-library`, none on `hardened-web` | A package version | The version of the template package | The value of `HardenedVersion`. See [Package versions](#package-versions) |
+| `--skip-restore` | None | `true`, `false` | `false` | Skips the restore that `dotnet new` runs after writing the files |
+
+## Refused combinations
+
+The templates refuse five combinations:
+
+| Command | `dotnet new` | The build | Regenerate with |
+|---|---|---|---|
+| `hardened-web --host aws-lambda --response-model union` | Exits with code 105 | Fails with `HTPL001` | `--response-model response` |
+| `hardened-web --host azure-functions --response-model union` | Exits with code 105 | Fails with `HTPL007` | `--response-model response` |
+| `hardened-web --contract smithy` with `--serializer message-pack-named` or `message-pack-keyed` | Exits with code 105 | Fails with `HTPL008` | `--contract openapi`, or `--serializer json` |
+| `hardened-function --host gcp --trigger stream` | Succeeds | Fails with `HTPL005` | `--trigger queue` |
+| `hardened-function --host azure --trigger invoke` | Succeeds | Fails with `HTPL006` | `--trigger queue`, or `hardened-web --host azure-functions` |
+
+For the three `hardened-web` rows, `dotnet new` writes the files, prints the reason and exits with
+code 105. It does not run the restore.
+
+```console
+$ dotnet new hardened-web -n Todos --host aws-lambda --response-model union
+The template "Hardened Web Application" was created successfully.
+
+Processing post-creation actions...
+The post action 84c0da21-51c8-4541-9940-6ca19af04ee6 is not supported.
+Description: --response-model union cannot be combined with this host: union needs net11.0, and neither the AWS Lambda managed runtime nor the Azure Functions worker runs a net11.0 assembly.
+Manual instructions: Regenerate with --response-model response, which declares the same set on net8.0. The project written here does not build as it stands - the first build refuses with HTPL001.
+```
+
+The files stay on disk. Building them fails with the code in the table.
+
+For the two `hardened-function` rows, `dotnet new` exits 0 without a warning. The first build fails
+with the code in the table.
+
+## Package versions
+
+Every template writes `Directory.Packages.props` with a `HardenedVersion` property:
 
 ```xml
 <HardenedVersion>0.0.0-HARDENED-VERSION</HardenedVersion>
 ```
 
-It is the version the template package shipped with, and `--hardened-version` overrides it.
-Generated code and the runtime it targets ship together, so the packages move as a set.
+Every Hardened package version in the file is `$(HardenedVersion)`. The value is the version of the
+template package that wrote the project. `--hardened-version` writes another value into
+`HardenedVersion`. No other file changes.
 
-Templates do not update themselves. A newer release is a newer template package:
+A scaffolded project keeps its `HardenedVersion` when a newer template package is installed. To
+move a project to another release, change `HardenedVersion`.
 
-```bash
-dotnet new install Hardened.Templates                     # latest
-dotnet new install Hardened.Templates@0.0.0-HARDENED-VERSION       # a specific one
-```
-
-Existing projects keep the version in their own `Directory.Packages.props` until you change it.
-
-The Lambda templates used to float a `Hardened.Amz` pin, because the AWS packages released from a
-second repository and for a window an exact pin named a version that did not exist yet. There is
-one repository and one line now, so every template pins `HardenedVersion` like everything else.
-
-## Each project explains itself
-
-Every generated project carries a `README.md` on how it runs and how its projects fit together,
-and an `AGENTS.md` with the invariants for whoever edits the code. Both are written for the
-combination you chose.
+`Directory.Packages.props` also sets `DependencyModulesVersion`. It versions the mock package in the
+test project. Its value is the DependencyModules release that `Hardened.Shared.Testing` depends on.
 
 ## Next
 
-- [Getting started](/guide/getting-started): the same project assembled by hand
-- [Modules](/guide/modules): how `[HardenedModule]` composes
-- [Writing a test](/guide/testing): what the scaffolded tests do
-- [AWS](/aws/): the Lambda runtimes in depth
-- [Google Cloud Run](/gcp/): the Cloud Run runtime in depth
-- [Azure Functions](/azure/): the Functions runtime in depth
+| Page | Covers |
+|---|---|
+| [Getting started](/guide/getting-started) | The same application built from packages, without a template |
+| [Hosts](/guide/hosts) | What each `--host` value runs, and its `Program.cs` |
+| [Modules](/guide/modules) | How one module imports another |
+| [Writing a test](/guide/testing) | How the scaffolded tests run |
+| [Triggers](/guide/triggers) | The trigger attributes, and the adapter each cloud uses |

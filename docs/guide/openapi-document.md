@@ -72,7 +72,7 @@ public partial class Application { }
 ```
 
 The template serves the page in the `development` environment only; see
-[The reference page](/guide/project-templates#the-reference-page).
+[Project templates](/guide/project-templates).
 
 ### Serving the script yourself
 

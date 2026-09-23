@@ -65,6 +65,7 @@ const guide = [
     items: [
       { text: 'Getting started', link: '/guide/getting-started' },
       { text: 'Project templates', link: '/guide/project-templates' },
+      { text: 'Hosts', link: '/guide/hosts' },
       { text: 'Modules', link: '/guide/modules' },
       { text: 'Registering services', link: '/guide/services' },
     ],
