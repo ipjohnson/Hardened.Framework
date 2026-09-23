@@ -94,7 +94,7 @@ All take `As` to narrow the service type, and `Using` to choose the registration
 | Attribute | Target | Purpose |
 |---|---|---|
 | `[AuthorizeGrants(grants)]` | Class, method | Requires every grant named. What a generator emits from a specification |
-| `[AuthorizeGrants<T>]` | Class, method | Requires every grant in the [`IGrantProvider`](/guide/authorization#typed-grant-sets) `T` names. The typed spelling |
+| `[AuthorizeGrants<T>]` | Class, method | Requires every grant in the [`IGrantProvider`](/guide/authorization#grant-sets) `T` names. The typed spelling |
 | `[Authorize<TAuth>]` | Class, method | Requires an authenticated caller and declares the [authentication scheme](/guide/authentication) `TAuth` in the document. Which scheme established the caller is not checked at runtime |
 | `[Authorize<TAuth, TPolicy>]` | Class, method | The same, and the [policy](/guide/authorization#policies)'s requirement as well. The only form that can express *or* |
 | `[AllowAnonymous]` | Class, method | Makes an operation public on purpose. Beats every requirement on the same handler, including a convention |
@@ -106,7 +106,7 @@ attributes inherited from a base attribute and requirements added by an
 `Requirement` the pipeline reads. Alternatives are expressible only inside a single policy.
 
 `[AuthorizeGrants]` is not sealed. Deriving from it is
-[one of the two ways](/guide/authorization#named-attributes) to require grants without writing
+[one of the two ways](/guide/authorization#attributes-of-your-own) to require grants without writing
 strings. `IAuthorizeAttribute` is the interface anything the pipeline honours implements, including
 attributes of your own, and it is what the `HAUTH001` diagnostic tests.
 

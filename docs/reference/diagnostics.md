@@ -99,13 +99,13 @@ front end only leaves a gap in the other.
 | `HRDRM003` | error | A [response case](/guide/responses) is `object` or `dynamic`, so the dispatch would answer that case's status for every response |
 | `HRDRM004` | error | Two cases at different statuses where one is assignable to the other |
 | `HRDT001` | error | A [`[Throws<T>]`](/guide/responses#the-throws-model) names a type with no `[HttpStatus]` and states no status of its own |
-| `HRDSC001` | warning | An [authentication scheme](/guide/authentication#declaring-the-scheme) attribute is not read where it was written |
+| `HRDSC001` | warning | An [authentication scheme](/guide/authentication#declaring-a-scheme) attribute is not read where it was written |
 
 ## Authorization
 
 | Id | | Meaning |
 |---|---|---|
-| `HAUTH001` | warning | The module carries [`[RequireAuthorization]`](/guide/authorization#requiring-authorization-everywhere) and this handler declares nothing. `<NoWarn>` is the only lever: neither `#pragma` nor an `.editorconfig` severity affects a generator-reported diagnostic. Anything implementing `IAuthorizeAttribute` satisfies it, including attributes of your own |
+| `HAUTH001` | warning | The module carries [`[RequireAuthorization]`](/guide/authorization#deny-by-default) and this handler declares nothing. `<NoWarn>` is the only lever: neither `#pragma` nor an `.editorconfig` severity affects a generator-reported diagnostic. Anything implementing `IAuthorizeAttribute` satisfies it, including attributes of your own |
 
 ## The code-first document
 
