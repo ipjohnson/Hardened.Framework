@@ -188,7 +188,7 @@ public string Tenant([FromHeader("X-Tenant")] string tenant) => tenant;
 ## A lambda has no template
 
 Everything above is a handler method, whose route template says which parameters are path tokens. A
-route [registered at startup with a lambda](/guide/routing#a-lambda-instead-of-a-controller) has no
+route [registered at startup with a lambda](/guide/registered-routes#registering-a-lambda) has no
 template to read, so the type decides instead: a type that can be read from a string is a path
 token, matched by name when the route registers, and anything else is the request body.
 

@@ -132,7 +132,7 @@ See [Authorization](/guide/authorization).
 | `[Tag(name)]` | Class | The [OpenAPI tag](/guide/openapi-document) this controller's operations group under. Defaults to the class name minus `Controller` |
 | `[Operation(id)]` | Method | The [`operationId`](/guide/openapi-document) the handler publishes, which a generated client names its method after. Defaults to the method name in camelCase. Two handlers declaring one id is `HRDOA004` |
 | `[Server(url, description?)]` | Class | A base URL the generated document lists under `servers`. Read off the `[HardenedModule]` class in the compilation that writes the document. The assembly target compiles and publishes nothing, and a described contract's own `servers` block wins over it |
-| `[CaseInsensitiveRoutes]` | Class | Matches this module's routes [without regard to case](/guide/routing#case-and-trailing-slashes) |
+| `[CaseInsensitiveRoutes]` | Class | Matches this module's routes [without regard to case](/guide/routing#case-sensitivity) |
 | `[RouteConstraint(name)]` | Method | Declares a [route constraint](/guide/routing#declaring-a-constraint). `static bool(ReadOnlySpan<char>)` |
 
 `Hardened.Web.Runtime.Compression`
@@ -150,7 +150,7 @@ See [Authorization](/guide/authorization).
 
 Every filter attribute above goes on a `[HardenedModule]` class as well, where it covers each
 handler compiled with it. That is the form to reach for: the declaration stays inside the
-compilation, so the [document publishes what the pipeline installs](/guide/execution-pipeline#attaching-a-filter-to-a-module).
+compilation, so the [document publishes what the pipeline installs](/guide/execution-pipeline#attach-a-filter).
 
 The `[Enable<T>]` forms below do the same at run time, and are what a host writes for handlers it
 only references:

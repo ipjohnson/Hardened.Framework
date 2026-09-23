@@ -207,7 +207,7 @@ validated against is the one the document advertises. See [Validation](/guide/va
 
 ## Routes registered at startup
 
-A route registered by an [`IRouteRegistration`](/guide/routing#routes-registered-at-startup) is
+A route registered by an [`IRouteRegistration`](/guide/registered-routes) is
 described at the path it was registered at, and so is a model it binds.
 
 Nothing writes an operation at run time. Everything in one is known at build time except its path

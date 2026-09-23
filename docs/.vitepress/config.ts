@@ -81,12 +81,14 @@ const guide = [
   {
     text: 'Handlers',
     items: [
+      { text: 'The execution pipeline', link: '/guide/execution-pipeline' },
       { text: 'Routing', link: '/guide/routing' },
+      { text: 'Route links', link: '/guide/route-links' },
+      { text: 'Registered routes', link: '/guide/registered-routes' },
       { text: 'Triggers', link: '/guide/triggers' },
       { text: 'Parameter binding', link: '/guide/parameter-binding' },
       { text: 'Declared responses', link: '/guide/responses' },
       { text: 'Validation', link: '/guide/validation' },
-      { text: 'The execution pipeline', link: '/guide/execution-pipeline' },
     ],
   },
   {

@@ -160,4 +160,4 @@ member.
 
 - [Response caching](/guide/response-caching): skipping the handler as well as the transfer
 - [Compression](/guide/compression): why a gzip client holds a different tag
-- [The execution pipeline](/guide/execution-pipeline#ordering): where the conditional stage sits
+- [The execution pipeline](/guide/execution-pipeline#filter-order): where the conditional stage sits
