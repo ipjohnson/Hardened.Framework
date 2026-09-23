@@ -928,7 +928,7 @@ public class ResponseCompressionFilterTests
 
         var whole = Decode(transport.ToArray(), KnownEncoding.GZip);
 
-        Assert.Equal("\"first\"\n\"second\"\n\n", whole);
+        Assert.Equal("\"first\"\n\"second\"\n", whole);
         Assert.Equal(1, CountMembers(transport.ToArray()));
     }
 
