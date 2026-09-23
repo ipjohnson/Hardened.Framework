@@ -116,7 +116,7 @@ const guide = [
       { text: 'JSON serialization', link: '/guide/json' },
       { text: 'MessagePack', link: '/guide/message-pack' },
       { text: 'Streaming responses', link: '/guide/streaming' },
-      { text: 'Views', link: '/guide/templates' },
+      { text: 'Views', link: '/guide/views' },
     ],
   },
   {

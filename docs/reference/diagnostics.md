@@ -112,7 +112,7 @@ front end only leaves a gap in the other.
 | Id | | Meaning |
 |---|---|---|
 | `HRDOA001` | error | `<HardenedOpenApiVersion>` is not `3.0.0`, `3.1.0` or `3.2.0` |
-| `HRDOA002` | warning | A [streamed response](/guide/streaming#what-the-document-says) under a document version with no `itemSchema`; the operation is described without a schema |
+| `HRDOA002` | warning | A [streamed response](/guide/streaming#the-openapi-document) under a document version with no `itemSchema`; the operation is described without a schema |
 | `HRDOA003` | warning | `[Enable<OpenApiDocumentPublishing>]` sits on a module declaring no routes, so the document is empty |
 | `HRDOA004` | error | Two handlers declare the same [`[Operation]`](/guide/openapi-document) id, so a generated client would have two methods with one name |
 

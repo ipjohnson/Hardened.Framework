@@ -48,7 +48,7 @@ All take `As` to narrow the service type, and `Using` to choose the registration
 | `[Handler]` | Class | Marks an implementation of a [generated OpenAPI service interface](/guide/openapi) |
 | `[FromBody]` | Parameter | Binds from the request body |
 | `[FromServices]` | Parameter | Binds from the container |
-| `[Output<T>]` | Method | Hands the response to a [view or other output](/guide/templates) instead of serialising it. Takes the response out of negotiation: the output writes whatever the caller asked for |
+| `[Output<T>]` | Method | Hands the response to a [view or other output](/guide/views) instead of serialising it. Takes the response out of negotiation: the output writes whatever the caller asked for |
 | `[Produces(types…)]` | Method, class, assembly | The media types the operation [produces](/guide/content-negotiation#declaring-what-an-operation-produces), in preference order. One is a declaration and skips negotiation; several are a set the client chooses from. Nothing declared means JSON |
 | `[RawResponse(contentType?)]` | Method | Deprecated, and now `[Produces]` under its old name. A handler returning `byte[]` or `Stream` writes its own bytes whatever it declares, so the "raw" half is the return type's job |
 
