@@ -552,7 +552,7 @@ Balancer send that format. The `hardened-web` template has no `--host` value for
 
 ## Next
 
-- [Getting started](/guide/getting-started): an application assembled by hand on Kestrel
+- [From scratch](/guide/from-scratch): an application assembled by hand on Kestrel
 - [Test hosts](/guide/testing-hosts): running the tests on each host
 - [AWS Lambda](/aws/lambda-web), [Google Cloud](/gcp/web) and [Azure Functions](/azure/web):
   deploying to each cloud

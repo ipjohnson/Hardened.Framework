@@ -1,26 +1,16 @@
 # Project templates
 
 The `Hardened.Templates` package installs three `dotnet new` templates: `hardened-web`,
-`hardened-function` and `hardened-library`.
+`hardened-function` and `hardened-library`. Options on `dotnet new` choose what the template
+writes.
 
 ```bash
-dotnet new install Hardened.Templates
-dotnet new hardened-web -n Todos
-cd Todos
-dotnet run --project src/Todos.Host
+dotnet new hardened-web -n Todos --host aws-lambda --contract openapi
 ```
 
-```http
-GET /todos/1
-
-HTTP/1.1 200 OK
-Content-Type: application/json
-
-{"id":1,"title":"Read the generated code","done":true}
-```
-
-The default host, `kestrel`, listens on port 5080. [Hosts](/guide/hosts) gives the port of each
-host.
+The command writes the same four projects as the default `hardened-web` scaffold, with an AWS
+Lambda host and an OpenAPI contract. [Getting started](/guide/getting-started) takes the default
+scaffold from install to passing tests. This page covers the three templates and their options.
 
 The three templates write these solutions:
 
@@ -252,7 +242,7 @@ All three templates write these files:
 | `README.md` | How the solution builds, runs and tests, written for the options chosen |
 | `AGENTS.md` | Rules and traps for anyone who edits the code, written for the options chosen |
 
-`EmitCompilerGeneratedFiles` keeps the generated C# on disk. [Getting started](/guide/getting-started)
+`EmitCompilerGeneratedFiles` keeps the generated C# on disk. [From scratch](/guide/from-scratch)
 gives its location.
 
 ## Options on every template
@@ -318,8 +308,8 @@ test project. Its value is the DependencyModules release that `Hardened.Shared.T
 
 | Page | Covers |
 |---|---|
-| [Getting started](/guide/getting-started) | The same application built from packages, without a template |
+| [Getting started](/guide/getting-started) | The default `hardened-web` scaffold, run and tested |
+| [From scratch](/guide/from-scratch) | An application built from packages, without a template |
 | [Hosts](/guide/hosts) | What each `--host` value runs, and its `Program.cs` |
-| [Modules](/guide/modules) | How one module imports another |
 | [Writing a test](/guide/testing) | How the scaffolded tests run |
 | [Triggers](/guide/triggers) | The trigger attributes, and the adapter each cloud uses |
