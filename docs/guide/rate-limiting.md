@@ -1,171 +1,555 @@
 # Rate limiting
 
-`[RateLimit]` caps how often a handler may be called.
+`[RateLimit]` limits how many requests each caller can make to a handler in a window of time. A
+request over the limit gets 429 Too Many Requests with a `Retry-After` header, and the handler does
+not run.
+
+In this excerpt of `src/Todos/TodoController.cs`, the limit on `All` allows each caller three
+requests a minute:
 
 ```csharp
 using Hardened.Requests.Runtime.RateLimiting;
+using Hardened.Web.Runtime.Attributes;
 
-[Post("/tokens")]
-[RateLimit(PermitLimit = 10, WindowSeconds = 60)]
-public Task<Token> Issue(Credentials credentials) => _tokens.Issue(credentials);
+namespace Todos;
+
+public class TodoController
+{
+    [Operation("listTodos")]
+    [Get("/")]
+    [RateLimit(PermitLimit = 3, WindowSeconds = 60)]
+    public Task<IReadOnlyList<Todo>> All(ITodoStore store) => store.All();
+}
 ```
 
+Every allowed response carries `RateLimit-Limit`, `RateLimit-Remaining` and `RateLimit-Reset`. The
+first request gets 200:
+
+```http
+GET /todos
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+RateLimit-Limit: 3
+RateLimit-Remaining: 2
+RateLimit-Reset: 60
+
+[{"id":1,"title":"Read the generated code","done":true},{"id":2,"title":"Add an endpoint","done":false}]
 ```
-POST /tokens
+
+The fourth request within the minute gets 429:
+
+```http
+GET /todos
+
 HTTP/1.1 429 Too Many Requests
-Retry-After: 42
+Content-Type: application/json
+Retry-After: 60
+RateLimit-Limit: 3
+RateLimit-Remaining: 0
+RateLimit-Reset: 60
+
+{"type":"RateLimitExceededException","message":"Rate limit exceeded.","details":""}
 ```
 
-A caller over the limit gets 429 with `Retry-After`. Every allowed request carries the
-`RateLimit-Limit`, `RateLimit-Remaining` and `RateLimit-Reset` headers, so a client can pace
-itself rather than discover the limit by hitting it.
+`[RateLimit]` is in the namespace `Hardened.Requests.Runtime.RateLimiting`. Nothing has to be
+installed or registered. `InProcessRateLimitStore` is registered by default. It counts in the
+application's memory.
 
-| | Default |
+## Declaring a limit
+
+`[RateLimit]` takes these properties:
+
+| Property | Default | Meaning |
+|---|---|---|
+| `PermitLimit` | `100` | Requests allowed in the window |
+| `WindowSeconds` | `60` | The window, in seconds |
+| `Name` | `"default"` | The count the limit uses. See [What a limit counts](#what-a-limit-counts) |
+| `Scope` | `RateLimitScope.Transport` | Where the limit runs. See [Scope](#scope) |
+
+A limit covers different handlers depending on where it is declared:
+
+| Declaration | Covers |
 |---|---|
-| `PermitLimit` | 100 |
-| `WindowSeconds` | 60 |
-| `Name` | `"default"` |
-| `Scope` | `RateLimitScope.Transport` |
+| `[RateLimit]` on a handler method | That handler |
+| `[RateLimit]` on a controller class | Every handler in the class. A method's own `[RateLimit]` applies as well |
+| `[RateLimit]` on a `[HardenedModule]` class | Every handler compiled in the module's project, except a handler whose method or class has its own `[RateLimit]`. It does not cover the framework's handlers |
+| `services.AddGlobalFilter(new RateLimitAttribute { ... })` | Every handler in the application, the health endpoints and `/openapi.json` included. A handler's own `[RateLimit]` applies as well |
 
-## Turning it on
+`[RateLimit]` can be written more than once on one method or class, as in
+[Two limits on one handler](#two-limits-on-one-handler).
 
-The attribute is the declaration. The counting needs a store, and `InProcessRateLimitStore` is
-registered for you, so a handler carrying `[RateLimit]` is limited with nothing else written.
-A handler with no store registered is not limited: the filter resolves `IRateLimitStore` per
-request and passes the request straight through when there is none.
-
-It goes on a `[HardenedModule]` class as well, where it caps every handler compiled with it and
-publishes the 429 on each of them:
+A limit on the module goes on the `[HardenedModule]` class in `src/Todos/TodosLibrary.cs`:
 
 ```csharp
+using DependencyModules.Runtime.Interfaces;
+using Hardened.Requests.Runtime.RateLimiting;
+using Hardened.Shared.Runtime.Attributes;
+using Hardened.Web.Runtime.Attributes;
+using Hardened.Web.Runtime.DependencyInjection;
+using Hardened.Web.Runtime.OpenApi;
+using Microsoft.Extensions.DependencyInjection;
+using System.Text.Json.Serialization.Metadata;
+
+namespace Todos;
+
 [HardenedModule]
 [HardenedWebModule]
+[BasePath("/todos")]
+[Server("http://localhost:5080", "Local")]
+[Enable<OpenApiDocumentPublishing>]
 [RateLimit(PermitLimit = 100, WindowSeconds = 60)]
-public partial class Catalog { }
+public partial class TodosLibrary : IServiceCollectionConfiguration
+{
+    public void ConfigureServices(IServiceCollection services)
+    {
+        services.AddSingleton<IJsonTypeInfoResolver>(TodosJsonContext.Default);
+    }
+}
 ```
 
-A handler carrying its own `[RateLimit]` keeps that one instead.
+A module's `[RateLimit]` is one count for each caller across every handler it covers.
 
-::: danger Each instance counts separately
-Two replicas behind a load balancer allow twice the configured limit between them. On Lambda
-every execution environment has its own count, and the number of environments is what you do
-not control, so there this is not a limit and the work belongs in an API Gateway usage plan or a
-WAF. A shared count needs a [store of your own](#where-the-counting-happens).
+`AddGlobalFilter` in `ConfigureServices` limits every handler in the application:
+
+```csharp
+using DependencyModules.Runtime.Interfaces;
+using Hardened.Requests.Runtime.Filters;
+using Hardened.Requests.Runtime.RateLimiting;
+using Hardened.Shared.Runtime.Attributes;
+using Hardened.Web.Runtime.Attributes;
+using Hardened.Web.Runtime.DependencyInjection;
+using Hardened.Web.Runtime.OpenApi;
+using Microsoft.Extensions.DependencyInjection;
+using System.Text.Json.Serialization.Metadata;
+
+namespace Todos;
+
+[HardenedModule]
+[HardenedWebModule]
+[BasePath("/todos")]
+[Server("http://localhost:5080", "Local")]
+[Enable<OpenApiDocumentPublishing>]
+public partial class TodosLibrary : IServiceCollectionConfiguration
+{
+    public void ConfigureServices(IServiceCollection services)
+    {
+        services.AddSingleton<IJsonTypeInfoResolver>(TodosJsonContext.Default);
+
+        services.AddGlobalFilter(
+            new RateLimitAttribute { PermitLimit = 1000, WindowSeconds = 60, Name = "application" }
+        );
+    }
+}
+```
+
+`AddGlobalFilter` is an extension method in `Hardened.Requests.Runtime.Filters`. Its optional
+`when` argument chooses the handlers. [The execution pipeline](/guide/execution-pipeline) page
+covers both.
+
+`[RateLimit]` on a method, a class or a module puts a 429 in the OpenAPI document for each handler
+it covers. A limit added with `AddGlobalFilter` puts nothing there.
+[The OpenAPI document](/guide/openapi-document) page lists what `[RateLimit]` publishes.
+
+## What a limit counts
+
+A limit counts each caller's requests over a sliding window of `WindowSeconds`. A permit that a
+request spends returns one window later. The window moves in steps of one eighth of
+`WindowSeconds`.
+
+Requests spend permits as follows:
+
+| Request | Spends |
+|---|---|
+| A request that the limit allows, whatever its response | A permit. A 400 for a route value or a body that did not bind, a 404, a 409 and a 500 each spend one |
+| A HEAD request | A permit from its GET handler's limit |
+| A request that reaches no handler, such as one answered 405 | Nothing |
+| A request that the limit refuses | Nothing |
+
+A request over the limit is refused at once. No request waits for a permit. `[RateLimit]` does not
+limit how many requests run at the same time.
+
+The count is kept for each `Name` and caller, not for each handler. Handlers whose limits have the
+same `Name` spend from one count. A count takes its `PermitLimit` and `WindowSeconds` from the
+request that created it. A handler under the same `Name` with a different `PermitLimit` is held to
+the count's `PermitLimit`. Its `RateLimit-Limit` header still shows its own `PermitLimit`.
+
+::: warning
+A `[RateLimit]` without a `Name` is named `"default"`. Two handlers that each carry one share a
+count for each caller. The count is held to the limit of the handler that the caller reached first.
+Nothing reports it. A limit that should count on its own needs a `Name` that no other limit uses.
 :::
 
-## Decide what is being limited
+The in-process store counts in the memory of one process. Each instance of the application keeps
+its own counts. Two instances with `PermitLimit = 3` allow six requests between them. On AWS Lambda
+each execution environment is a separate process, so each keeps its own counts. A count shared by
+every instance needs a store of the application's own. See [Stores](#stores).
 
-`Scope` decides both whose volume is counted and where the filter runs.
+## Headers and the 429 response
 
-`RateLimitScope.Transport` runs at `FilterOrder.RateLimitTransport`, ahead of authentication. It
-refuses without reading the request body, which is what makes it useful against a flood. A
-limiter meant to blunt credential stuffing cannot wait for the credential to be examined,
-because examining it is the work being flooded.
+The rate limit headers take these values:
 
-`RateLimitScope.Principal` runs at `FilterOrder.RateLimitPrincipal`, after authentication and
-ahead of grant authorization. It counts the authenticated caller's volume. A caller who would
-have been refused by authorization anyway still spends a permit.
+| Header | On an allowed response | On a 429 |
+|---|---|---|
+| `RateLimit-Limit` | The handler's `PermitLimit` | The handler's `PermitLimit` |
+| `RateLimit-Remaining` | Permits left in the count | `0` |
+| `RateLimit-Reset` | `WindowSeconds` | The same value as `Retry-After` |
+| `Retry-After` | Not sent | Seconds to wait, rounded up and at least 1 |
+
+`RateLimit-Reset` on an allowed response is the length of the window. It is not the time until a
+permit returns. With the in-process store, `Retry-After` is always `WindowSeconds`, however soon a
+permit returns.
+
+The 429's body is
+`{"type":"RateLimitExceededException","message":"Rate limit exceeded.","details":""}`. A refused
+request's body is not read. A request over the limit with a malformed JSON body gets the 429, not a
+400.
+
+When a later filter also refuses the request, that filter's answer is sent in place of the 429. The
+answer carries no rate limit headers. An anonymous request over the limit to a handler with
+`[Authorize<TScheme>]` gets 401. A request over the limit with `Content-Encoding: deflate` gets 415.
+[Authentication](/guide/authentication) covers `[Authorize<TScheme>]`.
+[Compression](/guide/compression) covers the 415.
+
+## Scope
+
+`Scope` sets where the limit runs in the filter chain:
+
+| `Scope` | Runs at |
+|---|---|
+| `RateLimitScope.Transport`, the default | `FilterOrder.RateLimitTransport`, 1000 |
+| `RateLimitScope.Principal` | `FilterOrder.RateLimitPrincipal`, 3000 |
+
+[Authentication](/guide/authentication) runs before every filter, so a limit sees the
+authenticated caller in either scope. The default partitioner in [Partitions](#partitions) gives
+the same partition in both. The application's principal sources run for every request, including a
+request that the limit refuses. Both scopes refuse before the request body is read.
+
+No filter that ships with Hardened runs between the two positions. `Scope` decides whether a limit
+runs before or after a filter of the application's own that is ordered between them.
+[The execution pipeline](/guide/execution-pipeline) page covers filter order.
 
 ## Two limits on one handler
 
-`[RateLimit]` is `AllowMultiple`. A burst limit beside an hourly one needs different `Name`
-values, or the two share a counter:
+A handler can carry a short limit and a long one. Each needs its own `Name`. Two limits with the
+same `Name` on one handler spend twice from one count on each request.
+
+In this excerpt of `src/Todos/TodoController.cs`, `Create` allows each caller five requests a
+second and 500 an hour:
 
 ```csharp
-[Post("/search")]
-[RateLimit(PermitLimit = 5, WindowSeconds = 1, Name = "burst")]
-[RateLimit(PermitLimit = 500, WindowSeconds = 3600, Name = "hourly")]
-public Task<Results> Search(Query query) => _index.Search(query);
-```
+using Hardened.Requests.Abstract.Responses;
+using Hardened.Requests.Runtime.RateLimiting;
+using Hardened.Web.Runtime.Attributes;
+using Hardened.Web.Runtime.Responses;
 
-## Whose allowance a request draws from
+namespace Todos;
 
-`IRateLimitPartitioner` answers that. The default partitions by authenticated subject, falling
-back to a configured header and then to one shared anonymous bucket:
+public class TodoController
+{
+    [Operation("createTodo")]
+    [Post("/")]
+    [RateLimit(PermitLimit = 5, WindowSeconds = 1, Name = "burst")]
+    [RateLimit(PermitLimit = 500, WindowSeconds = 3600, Name = "hourly")]
+    public async Task<Response<Created<Todo>, Conflict>> Create(ITodoStore store, NewTodo request)
+    {
+        if (await store.TitleExists(request.Title))
+        {
+            return new Conflict($"A todo titled '{request.Title}' already exists.");
+        }
 
-```csharp
-services.AddSingleton(new RateLimitConfiguration { PartitionHeader = "X-Api-Key" });
-```
+        var todo = await store.Add(request.Title);
 
-`RateLimitConfiguration` is registered with `RegistrationType.Try`, so a registration the
-application makes is the one that wins.
-
-::: warning Only trust a header your proxy sets
-A header the caller can set is a bucket the caller can choose. The proxy in front of the
-application has to write it and strip it from the inbound request.
-:::
-
-There is no partition by remote address. Behind API Gateway, an ALB or CloudFront the socket peer
-is the proxy, and `X-Forwarded-For` is a header the caller can write. Unattributable requests
-share one bucket rather than getting one each, because a distinct partition per anonymous caller
-is unbounded memory with a rate limiter's name on it.
-
-Replace the partitioner by implementing the interface:
-
-```csharp
-[SingletonService(Using = RegistrationType.Replace)]
-public class ByTenant : IRateLimitPartitioner {
-    public string Partition(IExecutionContext context) =>
-        context.Request.Headers.TryGetValue("X-Tenant", out var tenant)
-            ? "tenant:" + tenant
-            : DefaultRateLimitPartitioner.Anonymous;
+        return new Created<Todo>(todo, $"/todos/{todo.Id}");
+    }
 }
 ```
 
-## Where the counting happens
+A request that one limit refuses still spends a permit from the other. An allowed response's
+`RateLimit-*` headers describe one of the limits. With both on the method, it is the one written
+last. The first request gets 201:
 
-`IRateLimitStore` has one method, `Acquire`, which says whether this request fits in this
-allowance. Eviction, clock skew, single-flight refresh and what to do when the backing store is
-unreachable are properties of an implementation, not of the contract.
+```http
+POST /todos
+Content-Type: application/json
 
-`InProcessRateLimitStore` ships and is registered with `Try`, so replacing it takes no framework
-change. It uses the BCL's sliding-window limiter, so a caller cannot spend the whole allowance in
-the last instant of one window and the whole of the next in the first instant of the following.
+{"title":"Todo 1"}
 
-An application that needs one shared count implements the interface against something shared:
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /todos/3
+RateLimit-Limit: 500
+RateLimit-Remaining: 499
+RateLimit-Reset: 3600
+
+{"id":3,"title":"Todo 1","done":false}
+```
+
+A 429's headers describe the limit that refused. The sixth request within the same second gets 429
+from `burst`:
+
+```http
+POST /todos
+Content-Type: application/json
+
+{"title":"Todo 6"}
+
+HTTP/1.1 429 Too Many Requests
+Content-Type: application/json
+Retry-After: 1
+RateLimit-Limit: 5
+RateLimit-Remaining: 0
+RateLimit-Reset: 1
+
+{"type":"RateLimitExceededException","message":"Rate limit exceeded.","details":""}
+```
+
+## Partitions
+
+The partition decides which count a request spends from. `DefaultRateLimitPartitioner` chooses it
+from the request, in this order:
+
+| The request has | It counts as | The partition a store receives |
+|---|---|---|
+| An authenticated caller with a subject | That caller | `sub:ada` |
+| The header `PartitionHeader` names, with a value | That value | `X-Api-Key:build-server` |
+| Neither | One count shared by every such request | `anonymous` |
+
+The default partitioner does not read the client's address. `PartitionHeader` is empty by default,
+so every request without an authenticated caller shares the `anonymous` count.
+
+A `RateLimitConfiguration` registered in `ConfigureServices` sets `PartitionHeader`. The framework
+registers its own with `RegistrationType.Try`, so the application's is used. The library module in
+`src/Todos/TodosLibrary.cs` partitions requests without an authenticated caller by the `X-Api-Key`
+header:
 
 ```csharp
-[SingletonService(Using = RegistrationType.Replace)]
-public class RedisRateLimitStore : IRateLimitStore {
-    public ValueTask<RateLimitDecision> Acquire(
-        string partition, RateLimitPolicy policy, CancellationToken cancellationToken) { ... }
+using DependencyModules.Runtime.Interfaces;
+using Hardened.Requests.Runtime.RateLimiting;
+using Hardened.Shared.Runtime.Attributes;
+using Hardened.Web.Runtime.Attributes;
+using Hardened.Web.Runtime.DependencyInjection;
+using Hardened.Web.Runtime.OpenApi;
+using Microsoft.Extensions.DependencyInjection;
+using System.Text.Json.Serialization.Metadata;
+
+namespace Todos;
+
+[HardenedModule]
+[HardenedWebModule]
+[BasePath("/todos")]
+[Server("http://localhost:5080", "Local")]
+[Enable<OpenApiDocumentPublishing>]
+public partial class TodosLibrary : IServiceCollectionConfiguration
+{
+    public void ConfigureServices(IServiceCollection services)
+    {
+        services.AddSingleton<IJsonTypeInfoResolver>(TodosJsonContext.Default);
+
+        services.AddSingleton(new RateLimitConfiguration { PartitionHeader = "X-Api-Key" });
+    }
 }
 ```
 
-`RateLimitDecision` carries `RetryAfter`, because a distributed store is the only thing that
-knows it and a second round trip to ask would double the cost of the request that was just
-refused.
+The default partitioner uses the header's value as the request sends it. A request that sends a
+different value counts for a different partition. The header name is matched without regard to
+case. With the limit from the first example on `All`, the fourth request with one key is refused:
 
-### The partition cap
+```http
+GET /todos
+X-Api-Key: build-server
 
-The in-process store tracks 10,000 partitions by default and fails open at the cap:
+HTTP/1.1 429 Too Many Requests
+Content-Type: application/json
+Retry-After: 60
+RateLimit-Limit: 3
+RateLimit-Remaining: 0
+RateLimit-Reset: 60
 
-```csharp
-services.AddSingleton(new RateLimitConfiguration { MaxTrackedPartitions = 50_000 });
+{"type":"RateLimitExceededException","message":"Rate limit exceeded.","details":""}
 ```
 
-A partition per caller is unbounded by construction. Refusing at the cap would let anyone who can
-mint partition keys deny service to everybody by filling the table. Failing open means the limit
-stops being enforced for new partitions, which is the same position as not having deployed a
-limiter.
+The next request, with another key, is allowed:
 
-## How a refusal travels
+```http
+GET /todos
+X-Api-Key: dashboard
 
-Ahead of `FilterOrder.Serialization`, the filter records the refusal on the response and calls
-`Next()` anyway. The filter that turns a failure into bytes sits behind it, so returning early
-would produce a 429 with an empty body. The serialization filter finds a request already decided,
-reads no body, invokes no handler, and writes the refusal on the way out. Authorization follows
-the same rule, and the [response cache](/guide/response-caching#handlers-that-are-not-cached) checks for a
-recorded failure rather than reading "still travelling" as "still permitted".
+HTTP/1.1 200 OK
+Content-Type: application/json
+RateLimit-Limit: 3
+RateLimit-Remaining: 2
+RateLimit-Reset: 60
 
-## Not built
+[{"id":1,"title":"Read the generated code","done":true},{"id":2,"title":"Add an endpoint","done":false}]
+```
 
-- **Queueing and concurrency limits.** `[RateLimit]` expresses a permit count over a window and
-  nothing else.
-- **A distributed store.** The interface is the seam; only the in-process implementation ships.
+### Replacing the partitioner
+
+A class that implements `IRateLimitPartitioner` and carries
+`[SingletonService(Using = RegistrationType.Replace)]` replaces the default partitioner. The
+interface has one method, `Partition(IExecutionContext context)`, which returns the partition.
+`DefaultRateLimitPartitioner.Anonymous` is `"anonymous"`. [Registering services](/guide/services)
+covers `RegistrationType`.
+
+The application's principal source puts a `tenant` claim on the caller. The partitioner in
+`src/Todos/TenantPartitioner.cs` reads that claim and counts every caller of one tenant together:
+
+```csharp
+using DependencyModules.Runtime.Attributes;
+using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Runtime.RateLimiting;
+
+namespace Todos;
+
+[SingletonService(Using = RegistrationType.Replace)]
+public class TenantPartitioner : IRateLimitPartitioner
+{
+    public string Partition(IExecutionContext context)
+    {
+        if (context.CallerPrincipal.TryGetClaim("tenant", out var tenant))
+        {
+            return "tenant:" + tenant;
+        }
+
+        return DefaultRateLimitPartitioner.Anonymous;
+    }
+}
+```
+
+[Authentication](/guide/authentication) covers principal sources and claims.
+
+## Stores
+
+`IRateLimitStore` does the counting. Its one method is
+`Acquire(string partition, RateLimitPolicy policy, CancellationToken cancellationToken)`, which
+returns `ValueTask<RateLimitDecision>`. Each limit calls `Acquire` once for each request. The policy
+carries the limit's `PermitLimit`, `Window` and `Name`.
+
+`RateLimitDecision.Allow(limit, remaining)` lets the request through.
+`RateLimitDecision.Refuse(limit, retryAfter)` refuses it. The decision's values become the headers
+in [Headers and the 429 response](#headers-and-the-429-response).
+
+A store that carries `[SingletonService(Using = RegistrationType.Replace)]` replaces the in-process
+store. When `Acquire` throws, the request gets 500 with an empty body. The request is logged as
+failed.
+
+The next example keeps a fixed-window count in Redis through `StackExchange.Redis`, so every
+instance of the application shares it. It needs Redis 7.0 or later, for `ExpireWhen.HasNoExpiry`.
+In the solution directory, this command adds the package to `src/Todos`:
+
+```bash
+dotnet add src/Todos package StackExchange.Redis
+```
+
+`src/Todos/RedisRateLimitStore.cs` holds the store:
+
+```csharp
+using DependencyModules.Runtime.Attributes;
+using Hardened.Requests.Runtime.RateLimiting;
+using StackExchange.Redis;
+
+namespace Todos;
+
+[SingletonService(Using = RegistrationType.Replace)]
+public class RedisRateLimitStore(IConnectionMultiplexer redis) : IRateLimitStore
+{
+    public async ValueTask<RateLimitDecision> Acquire(
+        string partition,
+        RateLimitPolicy policy,
+        CancellationToken cancellationToken
+    )
+    {
+        var database = redis.GetDatabase();
+        var key = $"rate-limit:{policy.Name}:{partition}";
+
+        var count = await database.StringIncrementAsync(key);
+
+        await database.KeyExpireAsync(key, policy.Window, ExpireWhen.HasNoExpiry);
+
+        if (count <= policy.PermitLimit)
+        {
+            return RateLimitDecision.Allow(policy.PermitLimit, policy.PermitLimit - (int)count);
+        }
+
+        var retryAfter = await database.KeyTimeToLiveAsync(key) ?? policy.Window;
+
+        return RateLimitDecision.Refuse(policy.PermitLimit, retryAfter);
+    }
+}
+```
+
+The library module in `src/Todos/TodosLibrary.cs` registers the Redis connection:
+
+```csharp
+using DependencyModules.Runtime.Interfaces;
+using Hardened.Shared.Runtime.Attributes;
+using Hardened.Web.Runtime.Attributes;
+using Hardened.Web.Runtime.DependencyInjection;
+using Hardened.Web.Runtime.OpenApi;
+using Microsoft.Extensions.DependencyInjection;
+using StackExchange.Redis;
+using System.Text.Json.Serialization.Metadata;
+
+namespace Todos;
+
+[HardenedModule]
+[HardenedWebModule]
+[BasePath("/todos")]
+[Server("http://localhost:5080", "Local")]
+[Enable<OpenApiDocumentPublishing>]
+public partial class TodosLibrary : IServiceCollectionConfiguration
+{
+    public void ConfigureServices(IServiceCollection services)
+    {
+        services.AddSingleton<IJsonTypeInfoResolver>(TodosJsonContext.Default);
+
+        services.AddSingleton<IConnectionMultiplexer>(
+            _ => ConnectionMultiplexer.Connect("localhost:6379")
+        );
+    }
+}
+```
+
+With the limit from the first example on `All`, three requests go to two instances. A fourth
+request, sent to the second instance, is refused:
+
+```http
+GET /todos
+
+HTTP/1.1 429 Too Many Requests
+Content-Type: application/json
+Retry-After: 60
+RateLimit-Limit: 3
+RateLimit-Remaining: 0
+RateLimit-Reset: 60
+
+{"type":"RateLimitExceededException","message":"Rate limit exceeded.","details":""}
+```
+
+### How many counts the in-process store keeps
+
+The in-process store keeps at most `MaxTrackedPartitions` counts, 10,000 by default. Each pair of
+`Name` and partition is one count. Once the store keeps that many, a request for a new pair is let
+through without being counted. Its response has `RateLimit-Remaining` equal to `PermitLimit`. The
+pairs the store already keeps are still limited.
+
+The store removes no count while the process runs. A partition that first arrives once the store is
+full is not limited until the process restarts.
+
+Set these on the rate limit configuration, registered as in [Partitions](#partitions):
+
+| Property | Default | Meaning |
+|---|---|---|
+| `PartitionHeader` | `""` | The header that partitions requests without an authenticated caller |
+| `MaxTrackedPartitions` | `10_000` | The most counts the in-process store keeps |
 
 ## Next
 
-- [Request timeouts](/guide/request-timeouts): the other bound on an operation
-- [The execution pipeline](/guide/execution-pipeline#the-line-at-serialization): how a refusal ahead of the line travels
-- [The OpenAPI document](/guide/openapi-document#what-a-guard-on-the-operation-publishes): the 429 the document carries
+| Page | Covers |
+|---|---|
+| [The OpenAPI document](/guide/openapi-document) | The 429 that `[RateLimit]` publishes |
+| [Authentication](/guide/authentication) | Principal sources, which set the caller a partition comes from |
+| [The execution pipeline](/guide/execution-pipeline) | Filter order, and `AddGlobalFilter` |
+| [Request timeouts](/guide/request-timeouts) | Bounding how long a handler runs |
+| [Declared responses](/guide/responses) | `RateLimited`, a 429 that a handler returns itself |

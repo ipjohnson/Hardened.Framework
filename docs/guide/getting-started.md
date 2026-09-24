@@ -1,9 +1,7 @@
 # Getting started
 
-One command writes an API that builds, serves and tests. This page runs it, then assembles the
-same application by hand.
-
-## The short way
+The easiest way to get started is with the `hardened-web` template. The template writes an HTTP API:
+a library for the handlers, a host project, a client project and a test project.
 
 ```bash
 dotnet new install Hardened.Templates
@@ -12,155 +10,188 @@ cd Todos
 dotnet run --project src/Todos.Host
 ```
 
-```console
-$ curl localhost:5080/todos/1
+`dotnet new install Hardened.Templates` installs the templates from nuget.org.
+`dotnet run --project src/Todos.Host` starts the API on port 5080.
+
+```http
+GET /todos/1
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+
 {"id":1,"title":"Read the generated code","done":true}
 ```
 
-That is a working API with a reference page at `/docs`, a generated client, and tests that drive
-the client through the application's own pipeline:
+## Requirements
+
+The solution's `global.json` pins the .NET 8 SDK, version 8.0.401 or a later 8.0 release.
+
+## Run the API
+
+The host logs its address and the address of a reference page for the API:
+
+```console
+$ dotnet run --project src/Todos.Host
+info: Todos.Host[0] Listening on http://localhost:5080
+info: Todos.Host[0] Browse http://localhost:5080/docs to access your API.
+```
+
+The reference page is at `/docs`. The host serves it only in the `development` environment. The
+environment is `development` when the environment variable `HARDENED_ENVIRONMENT` is not set.
+
+The OpenAPI document is at `/openapi.json`. [The OpenAPI document](/guide/openapi-document) covers
+the document and the reference page.
+
+## The handler
+
+`src/Todos/TodoController.cs` holds the handlers. This excerpt shows one of them:
 
 ```csharp
-[HardenedTest]
-public async Task CreateTodo_AnswersCreatedWithALocation(TodosClient client) {
-    var created = await client.Todos.PostAsync(new ClientModels.NewTodo { Title = "ship it" })
-        .Returns<Created<ClientModels.Todo>>();
+using Hardened.Requests.Abstract.Responses;
+using Hardened.Web.Runtime.Attributes;
+using Hardened.Web.Runtime.Responses;
+using ValidationModules.Constraints;
 
-    Assert.Equal("ship it", created.Value.Title);
-    Assert.Equal($"/todos/{created.Value.Id}", created.Location);
+namespace Todos;
+
+public class TodoController
+{
+    [Operation("getTodo")]
+    [Get("/{id}")]
+    public async Task<Response<Todo, NotFound>> ById(ITodoStore store, [Range(Min = 1)] int id)
+    {
+        var todo = await store.Find(id);
+
+        if (todo is null)
+        {
+            return new NotFound("todo", $"No todo has id {id}.");
+        }
+
+        return todo;
+    }
 }
 ```
 
-`dotnet test` runs them. [Project templates](/guide/project-templates) covers the options: the
-host, the contract, the response model and the client.
+A route attribute on a method makes the method a handler. `[Get("/{id}")]` routes `GET /todos/{id}`
+to `ById`. The `/todos` prefix is the library module's base path.
 
-::: warning Everything is prerelease
-`dotnet add package` needs `--prerelease` or it finds nothing. The templates pin explicit versions
-and are unaffected.
-:::
+The generator binds `id` from the path and `store` from the container. `TodoStore` in
+`src/Todos/TodoStore.cs` carries `[SingletonService]`. The attribute registers the class as
+`ITodoStore`. [Registering services](/guide/services) covers the lifetime attributes.
 
-## What the build wrote
+`[Range(Min = 1)]` is checked before the handler runs. `GET /todos/0` gets a 400.
 
-Every project the template writes has `EmitCompilerGeneratedFiles` on. After a build,
-`src/Todos/obj/Debug/net8.0/generated/` holds one directory per generator: the routing table, a
-handler per route, the parameter binding and the module registration, as ordinary C#.
+The return type declares a 200 with a `Todo` and a 404 with a `NotFound`. `[Operation("getTodo")]`
+names the operation in the OpenAPI document. The document lists 200, 400 and 404 for
+`GET /todos/{id}`.
 
-## The same application by hand
+[Routing](/guide/routing), [Parameter binding](/guide/parameter-binding),
+[Declared responses](/guide/responses) and [Validation](/guide/validation) cover these parts of the
+handler.
 
-### Packages
+## The modules
 
-Two kinds of package reference, the runtime and the source generators:
-
-```xml
-<ItemGroup>
-    <PackageReference Include="Hardened.Shared.Runtime" Version="0.0.0-HARDENED-VERSION" />
-    <PackageReference Include="Hardened.Web.Runtime" Version="0.0.0-HARDENED-VERSION" />
-    <PackageReference Include="Hardened.Web.Kestrel.Runtime" Version="0.0.0-HARDENED-VERSION" />
-
-    <PackageReference Include="Hardened.Library.SourceGenerator" Version="0.0.0-HARDENED-VERSION" />
-    <PackageReference Include="Hardened.Web.SourceGenerator" Version="0.0.0-HARDENED-VERSION" />
-</ItemGroup>
-```
-
-::: danger The generators do not arrive with the runtime packages
-Analyzers do not flow through a package reference. Reference only the runtime packages and the
-project still compiles, into an application whose `Application` class has no
-`PopulateServiceCollection`, or one that builds cleanly and answers 404 to every route. Nothing
-says what is missing. The templates reference the right generators.
-:::
-
-To read what the generators emit, turn on `EmitCompilerGeneratedFiles`:
-
-```xml
-<PropertyGroup>
-    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
-</PropertyGroup>
-```
-
-### The application
-
-An application is a `partial class` marked `[HardenedModule]`, plus the runtime module that says
-where it runs:
+`src/Todos/TodosLibrary.cs` is the library module. It holds the routes:
 
 ```csharp
+using DependencyModules.Runtime.Interfaces;
 using Hardened.Shared.Runtime.Attributes;
-using Hardened.Web.Kestrel.Runtime;
+using Hardened.Web.Runtime.Attributes;
+using Hardened.Web.Runtime.DependencyInjection;
+using Hardened.Web.Runtime.OpenApi;
+using Microsoft.Extensions.DependencyInjection;
+using System.Text.Json.Serialization.Metadata;
 
 namespace Todos;
 
 [HardenedModule]
-[KestrelRuntime]
-public partial class Application;
-```
-
-`partial` is required. The generator writes the other half of the class, including
-`PopulateServiceCollection`.
-
-### A handler
-
-A plain class. No base type, no interface, no registration:
-
-```csharp
-using Hardened.Web.Runtime.Attributes;
-
-namespace Todos;
-
-public class GreetingController {
-    [Get("/hello/{name}")]
-    public string Hello(string name) => $"Hello, {name}!";
+[HardenedWebModule]
+[BasePath("/todos")]
+[Server("http://localhost:5080", "Local")]
+[Enable<OpenApiDocumentPublishing>]
+public partial class TodosLibrary : IServiceCollectionConfiguration
+{
+    public void ConfigureServices(IServiceCollection services)
+    {
+        services.AddSingleton<IJsonTypeInfoResolver>(TodosJsonContext.Default);
+    }
 }
 ```
 
-### Program.cs
+`src/Todos.Host/Application.cs` is the application module. It names the host and imports the
+library:
 
 ```csharp
-using Hardened.Shared.Runtime.Application;
+using Hardened.Shared.Runtime.Attributes;
 using Hardened.Web.Kestrel.Runtime;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Todos;
+using Hardened.Web.Runtime.OpenApi;
 
-var services = new ServiceCollection();
+namespace Todos.Host;
 
-services.AddLogging(logging => logging.AddSimpleConsole(options => options.SingleLine = true));
-services.AddHardenedEnvironment(args);
-
-new Application().PopulateServiceCollection(services);
-
-await using var app = HardenedKestrelApplication.Create(
-    services, kestrel => kestrel.ListenAnyIP(5080));
-
-await app.RunAsync();
+[HardenedModule]
+[KestrelRuntime]
+[HardenedOpenApiUi(Title = "Todos", Environments = "development")]
+[TodosLibrary]
+public partial class Application;
 ```
 
-Two of those lines matter more than they look. `AddLogging` needs a provider, or the application
-serves in silence. `AddHardenedEnvironment` registers the environment under both interfaces the
-framework reads; see [Registering one](/guide/environments#registering-one).
+The two modules have these attributes:
 
-```console
-$ dotnet run
-$ curl localhost:5080/hello/world
-"Hello, world!"
-```
-
-## Hosting it somewhere else
-
-The runtime attribute is the only thing that changes:
-
-| Attribute | Package | Runs |
+| Attribute | On | Does |
 |---|---|---|
-| `[KestrelRuntime]` | `Hardened.Web.Kestrel.Runtime` | Kestrel, without the ASP.NET Core request pipeline |
-| `[AspNetCoreRuntime]` | `Hardened.Web.AspNetCore.Runtime` | Inside ASP.NET Core's pipeline, behind `app.UseHardened()` |
-| `[LambdaHttpModule]` | `Hardened.Aws.Lambda.Http` | On Lambda, behind an API Gateway HTTP API or a function URL. See [AWS](/aws/) |
+| `[HardenedModule]` | Both | Makes the `partial` class a module |
+| `[HardenedWebModule]` | `TodosLibrary` | Serves the routes in the library's assembly |
+| `[BasePath("/todos")]` | `TodosLibrary` | Prefixes every route in the library's assembly |
+| `[Server("http://localhost:5080", "Local")]` | `TodosLibrary` | Names the server in the OpenAPI document |
+| `[Enable<OpenApiDocumentPublishing>]` | `TodosLibrary` | Serves the OpenAPI document at `/openapi.json` |
+| `[KestrelRuntime]` | `Application` | Runs the application on Kestrel |
+| `[HardenedOpenApiUi(Title = "Todos", Environments = "development")]` | `Application` | Serves the reference page at `/docs` in `development` |
+| `[TodosLibrary]` | `Application` | Imports the library module |
 
-Handlers, filters, binding and the generated routing table do not change with the host. The
-templates put the implementation in one project and the host in another, and point the tests at
-the implementation.
+[Modules](/guide/modules) covers modules.
+
+`TodosLibrary.ConfigureServices` registers `TodosJsonContext` as the JSON type resolver.
+[JSON serialization](/guide/json) covers this registration.
+
+`src/Todos.Host/Program.cs` starts the host. [Hosts](/guide/hosts) shows `Program.cs` for each host.
+
+## The tests
+
+`dotnet test` in the solution directory runs the tests in `tests/Todos.Tests`:
+
+```bash
+dotnet test
+```
+
+The tests pass. This test is from `tests/Todos.Tests/TodoTests.cs`:
+
+```csharp
+[HardenedTest]
+public async Task GetTodo_ReturnsTheTodo(TodosClient client)
+{
+    var todo = await client.Todos[1].GetAsync().Returns<Ok<ClientModels.Todo>>();
+
+    Assert.Equal("Read the generated code", todo.Value.Title);
+}
+```
+
+`[HardenedTest]` builds the application for the test and supplies its parameters. `TodosClient` is
+the client that `src/Todos.Client` generates from the OpenAPI document.
+`tests/Todos.Tests/Bootstrap.cs` holds the assembly attributes that set up the tests.
+`[assembly: KiotaTesting]` among them makes the client a test parameter. In a test, the client sends
+its requests into the application in process, with no socket.
+`Returns<Ok<ClientModels.Todo>>()` asserts that the call answered with that declared response.
+
+`tests/Todos.Tests/Usings.cs` declares the namespaces the tests use as global usings.
+
+[Writing a test](/guide/testing) covers the testing attributes and parameters.
 
 ## Next
 
-- [Project templates](/guide/project-templates): the options, and what each one writes
-- [Modules](/guide/modules): how `[HardenedModule]` composes
-- [Routing](/guide/routing): the route attributes and their status codes
-- [Writing a test](/guide/testing): booting this application inside a test
-- [AWS](/aws/): the same handlers on Lambda
+| Page | Covers |
+|---|---|
+| [Project templates](/guide/project-templates) | The other templates, and the options for the host, the contract, the response model, the client and the serializer |
+| [From scratch](/guide/from-scratch) | The same kind of application assembled from packages, and the code the build generates |
+| [Hosts](/guide/hosts) | The other hosts and their `Program.cs` |
+| [Routing](/guide/routing) | Route attributes and path tokens |
+| [Writing a test](/guide/testing) | The testing attributes and parameters |

@@ -1,188 +1,280 @@
 # Web applications
 
-`[LambdaHttpModule]` runs the routes you already wrote on Lambda. The controllers, filters and
-binding are the same as [any web application](/guide/routing).
+`[LambdaHttpModule]` serves an application's routes from AWS Lambda, behind an API Gateway HTTP API
+or a function URL. Each request reaches the function as an invocation that carries an API Gateway
+payload format 2.0 event.
+
+`dotnet new hardened-web -n Todos --host aws-lambda` writes a library with the routes and a host
+project for Lambda. The application class in `src/Todos.Host/Application.cs` declares the attribute:
 
 ```csharp
 using Hardened.Aws.Lambda.Http;
 using Hardened.Shared.Runtime.Attributes;
+
+namespace Todos.Host;
+
+[HardenedModule]
+[LambdaHttpModule]
+[TodosLibrary]
+public partial class Application;
+```
+
+A request through the [local API Gateway emulator](#running-it-locally) reaches a route in the
+library:
+
+```http
+GET /todos/1
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"id":1,"title":"Read the generated code","done":true}
+```
+
+The adapter turns the event into the request that the routing table matches. It turns the response
+into the function's answer. The routes, filters and parameter binding are the ones that the
+application has on every host. [Routing](/guide/routing) covers them.
+
+## Packages and registration
+
+The host project references two packages:
+
+```xml
+<PackageReference Include="Hardened.Aws.Lambda.Runtime" Version="0.0.0-HARDENED-VERSION" />
+<PackageReference Include="Hardened.Aws.Lambda.Http" Version="0.0.0-HARDENED-VERSION" />
+```
+
+The AWS [Overview](/aws/) lists the other packages that every Lambda project references.
+
+`Hardened.Aws.Lambda.Http` sets the build property `HardenedHttpModule` to
+`Hardened.Aws.Lambda.Http.LambdaHttpModule`. When a project compiles `[Get]`, `[Post]`, `[Put]`,
+`[Patch]` or `[Delete]` handlers together with its application class, the build registers
+`LambdaHttpModule` from that property. The application class then names no module.
+
+When the routes are compiled in a referenced library, as in the template, the application class
+declares `[LambdaHttpModule]` itself. Without the attribute, the host project still builds. The
+application stops at startup with this exception:
+
+```text
+Unhandled exception. System.InvalidOperationException: No service for type 'Hardened.Aws.Lambda.Runtime.Hosting.LambdaInvocationHandler' has been registered.
+```
+
+The attribute has no settings. It does not bring `[HardenedWebModule]`. The module that holds the
+routes declares that attribute, as the template's `TodosLibrary` does. [Hosts](/guide/hosts) covers
+it.
+
+## What a handler receives
+
+| The request's | Comes from the event's |
+|---|---|
+| Method | `requestContext.http.method` |
+| Path | `rawPath`, with the stage removed |
+| Query string | `queryStringParameters` |
+| Headers | `headers` |
+| Cookies | `cookies` |
+| Body | `body`, decoded from base64 when `isBase64Encoded` is true |
+
+When `rawPath` starts with `/` and the stage's name, the adapter removes them before routing. The
+same route then answers under every stage. [Route links](/guide/route-links) covers putting the
+stage back into the links that the application builds.
+
+A handler's `CancellationToken` is not cancelled when the client disconnects. The AWS
+[Overview](/aws/) covers the deadline that does cancel it.
+
+## What the function answers
+
+| The response's | Goes into the answer's |
+|---|---|
+| Status | `statusCode`, 200 when the handler set none |
+| Headers | `headers`. A header with several values goes as one, its values joined with commas |
+| Cookies | `cookies`, one `Set-Cookie` string for each cookie |
+| Body | `body`: text, or base64 with `isBase64Encoded` set to `true` when the response is marked binary |
+
+## Binary responses
+
+`IsBinary` on the response marks the body as binary. A response compressed by Hardened's response
+compression is marked binary.
+
+The response is `IExecutionResponse`, in `Hardened.Requests.Abstract.Execution`. A handler marks it
+binary through an `IExecutionContext` parameter, with `context.Response.IsBinary = true`. That
+interface is in the same namespace. The body is then sent base64-encoded. The client receives the
+bytes as written. The library's `[BasePath("/todos")]` puts this handler at `/todos/badge`:
+
+```csharp
+using Hardened.Requests.Abstract.Attributes;
+using Hardened.Requests.Abstract.Execution;
 using Hardened.Web.Runtime.Attributes;
 
-[HardenedModule]
-[LambdaHttpModule]
-public partial class Application;
+namespace Todos;
 
-public class ProductController {
-    [Get("/api/products/{id}")]
-    public Product GetProduct(string id) => _repository.Find(id);
-}
-```
+public class BadgeController
+{
+    private static readonly byte[] Signature = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
 
-```csharp
-[HardenedTest]
-public async Task GetsAProduct(ITestWebApp testWebApp) {
-    var response = await testWebApp.Get("/api/products/42");
+    [Get("/badge")]
+    [Produces("image/png")]
+    public byte[] Badge(IExecutionContext context)
+    {
+        context.Response.IsBinary = true;
 
-    response.Assert.Ok();
-    Assert.Equal("42", response.Deserialize<Product>().Id);
-}
-```
-
-`dotnet new hardened-web --host aws-lambda` writes this shape, and running it answers on 5080 the
-way the Kestrel host does.
-
-## The module
-
-`[LambdaHttpModule]` brings the HTTP payload adapter and, through the runtime module it composes,
-the invocation loop and the web pipeline.
-
-It is named here rather than inferred, which is the one place a Lambda application does name its
-cloud. A function whose handlers sit beside its entry point gets its adapter from their
-[trigger attributes](/guide/triggers) — `[Get]` and `[Post]` bind `HardenedHttpModule` like any
-other trigger. The templates put the handlers in a library project and the entry point in a host
-project, and a generator only sees the compilation it runs in, so the host says which adapter serves
-the routes it cannot see. The Kestrel and ASP.NET Core hosts name theirs for the same reason.
-
-The payload format is API Gateway HTTP API, version 2.0, which is also what a function URL
-delivers. The module is named for the shape it binds rather than for one sender, because both of
-those front doors send it. There is no option for the REST API's payload format 1.0, and an ALB
-sends a different shape again, which this does not serve.
-
-## Configuration
-
-Response headers are a [configuration model](/guide/configuration) the web runtime defines, and an
-application amends it:
-
-```csharp
-using DependencyModules.Runtime.Interfaces;
-using Hardened.Requests.Runtime.Configuration;
-using Hardened.Shared.Runtime.Configuration;
-
-[HardenedModule]
-[LambdaHttpModule]
-public partial class Application : IServiceCollectionConfiguration {
-    public void ConfigureServices(IServiceCollection services) {
-        var config = new AppConfig();
-
-        config.Amend((ResponseHeaderConfiguration response) =>
-            response.Add("Access-Control-Allow-Origin", "*"));
-
-        services.AddSingleton<IConfigurationPackage>(config);
+        return Signature;
     }
 }
 ```
 
-## Running it locally
-
-Run the host project, from the IDE or with `dotnet run`:
-
-```bash
-dotnet run --project src/Todos.Host
+```console
+$ curl -s http://localhost:5080/todos/badge | xxd
+00000000: 8950 4e47 0d0a 1a0a                      .PNG....
 ```
 
-```
-Started the AWS Lambda Test Tool on http://localhost:5050
-Listening on http://localhost:5080
-```
+Without the `IsBinary` line, the same handler sends this:
 
-```bash
-curl localhost:5080/todos
+```console
+$ curl -s http://localhost:5080/todos/badge | xxd
+00000000: efbf bd50 4e47 0d0a 1a0a                 ...PNG....
 ```
 
-A Lambda web application has no HTTP server of its own, and nothing starts it locally the way the
-Lambda service does. So when `AWS_LAMBDA_RUNTIME_API` is unset, `LambdaEmulator.StartIfLocal` in
-`Program.cs` starts the
-[AWS Lambda Test Tool](https://github.com/aws/aws-lambda-dotnet/tree/master/Tools/LambdaTestTool-v2)
-as a child process and points the bootstrap at it. The tool's API Gateway emulator takes HTTP on
-5080, turns each request into a payload format 2.0 event, and hands the function's response back as
-HTTP. The debugger is on the process the Lambda service would start, running the same `Main`,
-bootstrap and event serialization.
-
-| Variable | Default | |
-|---|---|---|
-| `PORT` | `5080` | The API Gateway emulator, where the application answers |
-| `HARDENED_LAMBDA_EMULATOR_PORT` | `5050` | The Lambda Runtime API emulator and the tool's page |
-| `AWS_LAMBDA_RUNTIME_API` | unset | Set by Lambda and by the runtime interface emulator. When set, none of this runs |
-
-The tool is a dotnet tool. The [templates](/guide/project-templates) pin it in the host project's
-tool manifest and restore it in the build. Elsewhere,
-`dotnet tool install -g amazon.lambda.testtool`. A tool left running by the debugger's stop button
-is found on its port and reused by the next start.
-
-::: info Program.cs is written, not generated
-The host project has a `Main`, and the call to `LambdaEmulator.StartIfLocal` in it is what brings
-the tool up. Deleting `Program.cs` leaves the project with no entry point at all, and the deployed
-handler fails on its first invocation with "Entry point not found".
+::: warning
+A handler that returns `byte[]` or `Stream` does not mark its response binary. The handler still
+answers 200. In `buffered` [response mode](#response-mode), the default, each byte of the body that
+is not valid UTF-8 reaches the client as the three bytes `EF BF BD`, the Unicode replacement
+character. An image or a PDF arrives corrupted, with no error. Set
+`context.Response.IsBinary = true` in such a handler.
 :::
+
+## Failures
+
+| Case | The function answers |
+|---|---|
+| The handler throws | 500 with the application's error body |
+| A refusal, such as a failed validation | Its status and error body, 400 for a failed validation |
+| No route matches the path | 404 with no body |
+
+The invocation succeeds in each case. It fails only when the adapter cannot read the event.
+[Limits](#limits) has the case.
 
 ## Response mode
 
-A function answers in one of two ways, and the deployment picks which:
+`HARDENED_LAMBDA_RESPONSE_MODE` sets how a response leaves the function. The value has to match the
+HTTP API or function URL in front of the function:
 
-| `HARDENED_LAMBDA_RESPONSE_MODE` | What leaves the function | Front door |
+| `HARDENED_LAMBDA_RESPONSE_MODE` | The response leaves the function | In front of the function |
 |---|---|---|
-| `buffered` (the default) | One payload format 2.0 response when the handler returns | An HTTP API, or a function URL in `BUFFERED` invoke mode |
-| `stream` | A stream that opens at the first body byte | A function URL in `RESPONSE_STREAM` invoke mode |
+| `buffered`, the default | As one payload format 2.0 answer when the handler finishes | An HTTP API, or a function URL in `BUFFERED` invoke mode |
+| `stream` | As a Lambda response stream that opens at the first byte of the body | A function URL in `RESPONSE_STREAM` invoke mode |
 
-The variable has to match the invoke mode of the front door in front of it. The wire protocol is
-fixed there rather than chosen by the function: `RESPONSE_STREAM` expects an HTTP prelude before the
-body, `BUFFERED` and an HTTP API expect the JSON envelope, and neither accepts the other. The event
-the function receives is the same document either way, which is why something has to say which.
+The variable is read once, at startup. Case and surrounding spaces are ignored. An unset or empty
+variable means `buffered`. Any other value stops the application at startup, before the first
+request:
 
-An unrecognised value fails the application at startup rather than falling back. A deployment that
-spelt it wrong would otherwise run buffered behind a front door expecting the prelude, and the first
-request would be a 500 with nothing in the logs to say why.
+```text
+Unhandled exception. System.InvalidOperationException: HARDENED_LAMBDA_RESPONSE_MODE is 'streaming'. It must be 'buffered' or 'stream'. A function URL in RESPONSE_STREAM invoke mode takes 'stream'; every other deployment takes 'buffered'.
+```
+
+`ConfigureLambdaResponseMode`, in `Hardened.Aws.Lambda.Runtime.Streaming`, sets the mode in code.
+It runs after the variable is read, so the function uses the mode it sets. A second part of the
+template's `Application`, in `src/Todos.Host/ResponseMode.cs`, calls it:
 
 ```csharp
-// Amending it from the application, for a host that decides its own mode.
-services.ConfigureLambdaResponseMode(mode => mode.Mode = LambdaResponseMode.Stream);
+using DependencyModules.Runtime.Interfaces;
+using Hardened.Aws.Lambda.Runtime.Streaming;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Todos.Host;
+
+public partial class Application : IServiceCollectionConfiguration
+{
+    public void ConfigureServices(IServiceCollection services)
+    {
+        services.ConfigureLambdaResponseMode(mode => mode.Mode = LambdaResponseMode.Stream);
+    }
+}
 ```
 
-In `stream` mode the status, headers and cookies are sent as the prelude that opens the stream, and
-they are read at the **first body byte** rather than when the handler returns. Anything set after
-the first write is recorded on the response and never reaches the client. That is what makes a
-refusal work: the pipeline serializes it before any handler wrote, so the stream opens with the
-refusal's own status.
+The table compares what the client receives in each mode:
 
-Only a web-shaped source can stream. A queue, a topic, a stream record or a scheduled rule has no
-caller holding a connection, so a function serving one stays buffered under a `stream` variable
-rather than failing. That keeps the setting safe to apply account-wide.
+| | `buffered` | `stream` |
+|---|---|---|
+| Status, headers and cookies are sent | When the handler finishes | With the first byte of the body |
+| A status or header set after a stream's first item | Is sent | Is not sent |
+| A refusal or an exception before the first byte | Sent with its status and error body | Sent with its status and error body |
+| A `byte[]` body not marked binary | Bytes that are not valid UTF-8 are replaced | Sent as written |
+| A response with no body, such as a 204 | No body | A body of one newline |
 
-`[ServerSentEvents]` handlers need `stream`. Under `buffered` their events are delivered together
-when the invocation ends, or never when the function times out first. An application that has them
-and was deployed buffered logs a warning at startup naming the routes:
+Under `stream`, only a function that serves routes answers with a stream. A function that serves a
+trigger or `[HardenedFunction]` answers buffered.
 
+The [AWS Lambda Test Tool](#running-it-locally) cannot run `stream`. The first request gets no
+answer. After 30 seconds the process exits with
+`FormatException: The input string '5050/Todos.Host' was not in a correct format.` The AWS
+[Testing](/aws/testing) page covers running `stream` in a test.
+
+### Server-sent events in buffered mode
+
+In `buffered` mode, a `[ServerSentEvents]` handler's events all arrive together when the handler
+finishes. [Streaming responses](/guide/streaming) covers these handlers. At startup in `buffered`
+mode, an application that has any of them logs a warning that names them. For a handler at
+`/todos/events` in the template, the local run prints:
+
+```text
+Warning: [Warning] Hardened.Aws.Lambda.Runtime.Streaming.ServerSentEventsResponseModeStartupService: HARDENED_LAMBDA_RESPONSE_MODE is buffered and 1 handler(s) answer text/event-stream: GET /events. Their events are delivered when the invocation ends, or never if it times out first. Deploy behind a function URL in RESPONSE_STREAM invoke mode with HARDENED_LAMBDA_RESPONSE_MODE=stream, or remove [ServerSentEvents].
 ```
-HARDENED_LAMBDA_RESPONSE_MODE is buffered and 1 handler(s) answer text/event-stream:
-GET /orders/live. Their events are delivered when the invocation ends, or never if it times
-out first. Deploy behind a function URL in RESPONSE_STREAM invoke mode with
-HARDENED_LAMBDA_RESPONSE_MODE=stream, or remove [ServerSentEvents].
-```
 
-A warning rather than a refusal to start: the other routes are served correctly, and the build
-cannot catch this on its own. The compilation that knows a handler carries `[ServerSentEvents]` does
-not know how the function will be deployed, and the deployment that sets the mode has no view of the
-handlers. Newline-delimited streams are not named, because they arrive late in buffered mode but
-intact.
+The warning names each handler by its verb and its path without the module's base path. A handler
+that streams NDJSON gets no warning.
 
-See [Streaming responses](/guide/streaming).
+## Running it locally
 
-## Testing
-
-Routes are ordinary Hardened routes, so [`ITestWebApp`](/guide/testing-web) drives them without any
-Lambda involvement:
+The template's `Program.cs` starts the AWS Lambda Test Tool with this line:
 
 ```csharp
-[assembly: WebTesting]
-[assembly: HardenedTestEntryPoint(typeof(Application))]
+using Hardened.Aws.Lambda.Runtime.Development;
+
+using var emulator = await LambdaEmulator.StartIfLocal(typeof(Application), apiGateway: true);
 ```
 
-That covers routing, binding, filters and serialization. It does not cover the payload format 2.0
-event conversion. `[LambdaWebTesting]` puts a real proxy event through the invocation loop instead;
-see [Testing AWS handlers](/aws/testing).
+[Hosts](/guide/hosts) shows the whole file, its two ports and the pinned version of the tool.
+
+`apiGateway: true` puts the tool's API Gateway emulator in front of the function, on the port in
+`PORT`, 5080 by default. The emulator sends every method on every path to the function as a payload
+format 2.0 event. It does not pass on the `cookies` of the function's answer, so a local client
+receives no `Set-Cookie`.
+
+Without `apiGateway: true`, the tool starts without the emulator. The application prints only
+`Started the AWS Lambda Test Tool on http://localhost:5050`. Nothing listens on 5080.
+
+`stream` does not run locally, as [Response mode](#response-mode) describes.
+
+## Deploying
+
+The function serves an API Gateway HTTP API whose Lambda integration uses payload format version
+2.0, or a function URL. Each of them reads only its own response format. Set
+`HARDENED_LAMBDA_RESPONSE_MODE` to the value that [Response mode](#response-mode) lists for it. The AWS [Overview](/aws/) covers the
+rest of a deployment.
+
+## Limits
+
+An event in payload format 1.0, which a REST API and an Application Load Balancer send, fails the
+invocation with `NullReferenceException`.
+
+The adapter splits every request header value at its commas. A `string` parameter bound to such a
+header reads the parts joined by a comma with no space. `X-Date: Tue, 01 Sep 2026 12:00:00 GMT`
+binds `Tue,01 Sep 2026 12:00:00 GMT`.
+
+`If-Modified-Since` never matches, for the same reason. `[ConditionalGet]` answers 200 to a request
+that sends only `If-Modified-Since`. A request with `If-None-Match` gets a 304, as on other hosts.
+[Conditional requests](/guide/conditional-requests) covers both headers.
+
+The adapter compares the start of `rawPath` with `/` and the stage's name as text, not as a path
+segment. An event with the stage `todo` and the `rawPath` `/todos/1` is routed as `s/1`. It answers
+404.
 
 ## Next
 
-- [Triggers](/guide/triggers): the sources other than HTTP
-- [Testing AWS handlers](/aws/testing): the two fidelity levels
-- [Routing](/guide/routing): the routes themselves, unchanged by the host
+| Page | Covers |
+|---|---|
+| [Overview](/aws/) | The packages, the entry point and deploying a Lambda function |
+| [Hosts](/guide/hosts) | The Lambda host's `Program.cs` and its local ports |
+| [Streaming responses](/guide/streaming) | Streaming a response, and which hosts stream |
+| [Testing](/aws/testing) | Testing a web application on Lambda |
+| [Invocations](/aws/invoke) | A function that a caller invokes directly |

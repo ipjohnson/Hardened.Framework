@@ -65,13 +65,15 @@ const guide = [
     items: [
       { text: 'Getting started', link: '/guide/getting-started' },
       { text: 'Project templates', link: '/guide/project-templates' },
-      { text: 'Modules', link: '/guide/modules' },
-      { text: 'Registering services', link: '/guide/services' },
+      { text: 'From scratch', link: '/guide/from-scratch' },
+      { text: 'Hosts', link: '/guide/hosts' },
     ],
   },
   {
     text: 'Application',
     items: [
+      { text: 'Modules', link: '/guide/modules' },
+      { text: 'Registering services', link: '/guide/services' },
       { text: 'Configuration', link: '/guide/configuration' },
       { text: 'Environments', link: '/guide/environments' },
     ],
@@ -79,12 +81,14 @@ const guide = [
   {
     text: 'Handlers',
     items: [
+      { text: 'The execution pipeline', link: '/guide/execution-pipeline' },
       { text: 'Routing', link: '/guide/routing' },
-      { text: 'Triggers', link: '/guide/triggers' },
+      { text: 'Route links', link: '/guide/route-links' },
+      { text: 'Registered routes', link: '/guide/registered-routes' },
       { text: 'Parameter binding', link: '/guide/parameter-binding' },
+      { text: 'Forms and files', link: '/guide/forms' },
       { text: 'Declared responses', link: '/guide/responses' },
       { text: 'Validation', link: '/guide/validation' },
-      { text: 'The execution pipeline', link: '/guide/execution-pipeline' },
     ],
   },
   {
@@ -111,7 +115,7 @@ const guide = [
       { text: 'JSON serialization', link: '/guide/json' },
       { text: 'MessagePack', link: '/guide/message-pack' },
       { text: 'Streaming responses', link: '/guide/streaming' },
-      { text: 'Views', link: '/guide/templates' },
+      { text: 'Views', link: '/guide/views' },
     ],
   },
   {
@@ -129,25 +133,31 @@ const guide = [
     items: [
       { text: 'Writing a test', link: '/guide/testing' },
       { text: 'Sending requests', link: '/guide/testing-web' },
-      { text: 'Substituting services', link: '/guide/testing-mocks' },
-      { text: 'Credentials', link: '/guide/testing-credentials' },
       { text: 'Typed clients', link: '/guide/testing-clients' },
-      { text: 'Asserting a response', link: '/guide/testing-responses' },
+      { text: 'Substituting services', link: '/guide/testing-mocks' },
       { text: 'Test hosts', link: '/guide/testing-hosts' },
-      { text: 'Steps and retries', link: '/guide/testing-steps' },
-      { text: 'Writing a test attribute', link: '/guide/testing-attributes' },
+      { text: 'Testing functions', link: '/guide/testing-functions' },
     ],
+  },
+  {
+    text: 'Functions',
+    items: [{ text: 'Triggers', link: '/guide/triggers' }],
   },
   {
     text: 'AWS',
     items: [
       { text: 'Overview', link: '/aws/' },
       { text: 'Web applications', link: '/aws/lambda-web' },
-      { text: 'Lambda functions', link: '/aws/lambda-function' },
-      { text: 'Queues and topics', link: '/aws/sqs' },
-      { text: 'Streams and change feeds', link: '/aws/ddb-streams' },
+      { text: 'Invocations', link: '/aws/invoke' },
+      { text: 'Queues', link: '/aws/queue' },
+      { text: 'Topics', link: '/aws/topic' },
+      { text: 'Timers', link: '/aws/timer' },
+      { text: 'Events', link: '/aws/event' },
+      { text: 'Changes', link: '/aws/change' },
+      { text: 'Streams', link: '/aws/stream' },
+      { text: 'Blobs', link: '/aws/blob' },
       { text: 'DynamoDB client', link: '/aws/dynamodb' },
-      { text: 'Testing AWS handlers', link: '/aws/testing' },
+      { text: 'Testing', link: '/aws/testing' },
     ],
   },
   {
@@ -155,14 +165,14 @@ const guide = [
     items: [
       { text: 'Overview', link: '/gcp/' },
       { text: 'Web services', link: '/gcp/web' },
+      { text: 'Invocations', link: '/gcp/invoke' },
       { text: 'Queues', link: '/gcp/queue' },
       { text: 'Topics', link: '/gcp/topic' },
       { text: 'Timers', link: '/gcp/timer' },
-      { text: 'Invocations', link: '/gcp/invoke' },
-      { text: 'Blobs', link: '/gcp/blob' },
-      { text: 'Changes', link: '/gcp/change' },
       { text: 'Events', link: '/gcp/event' },
-      { text: 'Testing Cloud Run handlers', link: '/gcp/testing' },
+      { text: 'Changes', link: '/gcp/change' },
+      { text: 'Blobs', link: '/gcp/blob' },
+      { text: 'Testing', link: '/gcp/testing' },
     ],
   },
   {
@@ -173,11 +183,11 @@ const guide = [
       { text: 'Queues', link: '/azure/queue' },
       { text: 'Topics', link: '/azure/topic' },
       { text: 'Timers', link: '/azure/timer' },
-      { text: 'Streams', link: '/azure/stream' },
-      { text: 'Changes', link: '/azure/change' },
-      { text: 'Blobs', link: '/azure/blob' },
       { text: 'Events', link: '/azure/event' },
-      { text: 'Testing Azure handlers', link: '/azure/testing' },
+      { text: 'Changes', link: '/azure/change' },
+      { text: 'Streams', link: '/azure/stream' },
+      { text: 'Blobs', link: '/azure/blob' },
+      { text: 'Testing', link: '/azure/testing' },
     ],
   },
 ];
@@ -185,9 +195,8 @@ const guide = [
 export default defineConfig({
   title: 'Hardened',
   description:
-    'A compile-time .NET framework for web APIs, AWS Lambda, Google Cloud Run and Azure Functions. Routing, dependency injection, ' +
-    'configuration and parameter binding are generated during the build — nothing reflects, ' +
-    'nothing scans at startup.',
+    'Hardened is a .NET framework for HTTP APIs and serverless functions, with source generators that write ' +
+    'the routing table, the parameter binding and the service registration during the build.',
   base,
   lang: 'en-GB',
   cleanUrls: true,
@@ -220,7 +229,8 @@ export default defineConfig({
       'meta',
       {
         property: 'og:description',
-        content: 'A compile-time .NET framework for web APIs, AWS Lambda, Google Cloud Run and Azure Functions.',
+        content:
+          'A Hardened application runs on Kestrel, ASP.NET Core, AWS Lambda, Google Cloud Run, Google Cloud Functions and Azure Functions.',
       },
     ],
   ],

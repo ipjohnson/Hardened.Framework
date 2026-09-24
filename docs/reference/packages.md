@@ -1,276 +1,263 @@
 # Packages
 
-Every published package. All of them are on **nuget.org**, with no private feed and no token, and
-all of them ship together on one version. [Project templates](/guide/project-templates) reference
-the right ones for you; this page is for assembling a project by hand.
+The Hardened release publishes 68 packages. The tables on this page list every one of them.
 
-Source generator packages are referenced as analysers:
+A Kestrel application references these packages, including three source generators:
 
 ```xml
-<PackageReference Include="Hardened.Web.SourceGenerator" Version="..."
-                  OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+<ItemGroup>
+  <PackageReference Include="Hardened.Shared.Runtime" Version="0.0.0-HARDENED-VERSION" />
+  <PackageReference Include="Hardened.Web.Runtime" Version="0.0.0-HARDENED-VERSION" />
+  <PackageReference Include="Hardened.Web.Kestrel.Runtime" Version="0.0.0-HARDENED-VERSION" />
+  <PackageReference Include="Hardened.Library.SourceGenerator" Version="0.0.0-HARDENED-VERSION" PrivateAssets="all" />
+  <PackageReference Include="Hardened.Web.SourceGenerator" Version="0.0.0-HARDENED-VERSION" PrivateAssets="all" />
+  <PackageReference Include="Hardened.Validation.SourceGenerator" Version="0.0.0-HARDENED-VERSION" PrivateAssets="all" />
+</ItemGroup>
 ```
 
-## Framework
+Every package is on nuget.org. A release publishes all 68 packages at one version.
+[Project templates](/guide/project-templates) reference the packages that each project needs.
 
-### Core
+## Referencing a source generator
 
-| Package | Contents |
+Reference a source generator package with `PrivateAssets="all"`, as the example does. The eight
+generator packages are `Hardened.Library.SourceGenerator`, `Hardened.Web.SourceGenerator`,
+`Hardened.Validation.SourceGenerator`, `Hardened.Function.SourceGenerator`,
+`Hardened.OpenApi.SourceGenerator`, `Hardened.Smithy.SourceGenerator`,
+`Hardened.Azure.Functions.SourceGenerator` and `Hardened.Gcp.Functions.SourceGenerator`. The
+Generator column of the tables below marks each one.
+
+`PrivateAssets` decides which projects run the generator:
+
+| Reference | The generator runs in |
 |---|---|
-| `Hardened.Shared.Runtime` | Module entry points, configuration binding, environment, application lifecycle, metrics |
-| `Hardened.Shared.Testing` | `[HardenedTestEntryPoint]`, `[Mock]`, `ITestContext`, the retry engine and the test attribute interfaces. Needs a runner package beside it |
-| `Hardened.Shared.Testing.xUnit` | `[HardenedTest]` for xUnit v3 |
-| `Hardened.Shared.Testing.NUnit` | `[HardenedTest]` for NUnit |
-| `Hardened.SourceGeneration.Testing` | Harness for testing source generators against a real compilation |
+| `PrivateAssets="all"` | The project that declares the reference |
+| No `PrivateAssets` | That project, and every project that references it through a `ProjectReference` |
 
-### Requests
+Without `PrivateAssets="all"`, a library's generators also run in a test project that references the
+library.
 
-| Package | Contents |
-|---|---|
-| `Hardened.Requests.Abstract` | `IExecutionContext`, `IExecutionRequest`, `IExecutionResponse`, `IExecutionFilter` |
-| `Hardened.Requests.Runtime` | The pipeline: filters, serialisation, validation, error handling |
-| `Hardened.Requests.Testing` | Test doubles, and the transport conformance suite every `IExecutionRequest` is held to |
-| `Hardened.Requests.Serializers.Newtonsoft` | A Newtonsoft.Json serialiser, for payloads `System.Text.Json` cannot round-trip |
-| `Hardened.Requests.Caching.Memory` | `[HardenedMemoryResponseCache]`, an in-process `IResponseCacheStore`. Nothing registers a store by default; see [Response caching](/guide/response-caching) |
+Each project that declares a `[HardenedModule]` or handlers references the generators it needs. A
+host project with no `Hardened.Library.SourceGenerator` reference of its own fails with `CS1061`
+when the library it references declares that package with `PrivateAssets="all"`:
 
-### Web
+```text
+'Application' does not contain a definition for 'PopulateServiceCollection'
+```
 
-| Package | Contents |
-|---|---|
-| `Hardened.Web.Runtime` | Routing, [CORS](/guide/cors), the OpenAPI document and reference page |
-| `Hardened.Web.Kestrel.Runtime` | `[KestrelRuntime]` and `HardenedKestrelApplication`. Kestrel without the ASP.NET Core request pipeline, and the host to reach for first |
-| `Hardened.Web.AspNetCore.Runtime` | `[AspNetCoreRuntime]` and `app.UseHardened()`, when you need ASP.NET Core's middleware, authentication or hosting diagnostics |
-| `Hardened.Web.StaticContent` | Static file serving, manifests and content compression |
-| `Hardened.Web.Testing` | `ITestWebApp`, `TestWebRequest`, `TestWebResponse`, `PipelineHttpMessageHandler`, the credential attributes, `ITestClientFactory<T>`, `ITestClientRoute`, `Returns<T>()`, `LastResponse`. Names no client generator |
-| `Hardened.Web.Kestrel.Testing` | `[KestrelTesting]`: runs a test carrying `[KestrelRuntime]` on Kestrel, on a loopback port |
-| `Hardened.Web.AspNetCore.Testing` | `[AspNetCoreTesting]`: the same for `[AspNetCoreRuntime]`, inside a real `WebApplication` |
+`Hardened.OpenApi.SourceGenerator` and `Hardened.Smithy.SourceGenerator` bring
+`Hardened.Idl.SourceGenerator` with them. When a library references either one without
+`PrivateAssets="all"`, a host project that references the library and `Hardened.Web.SourceGenerator`
+fails with `HRDR008`. The build also reports `CS0102` and `CS0111` on the generated routing names.
+[Diagnostics](/reference/diagnostics) covers `HRDR008`.
 
-No package ships a client. The `src/Todos.Client` project the `hardened-web` template scaffolds
-depends on `Microsoft.Kiota.Bundle` alone; see [Clients](/guide/clients).
+## Core
 
-### Client testing
+| Package | Serves | Attribute | Page |
+|---|---|---|---|
+| `Hardened.Shared.Runtime` | `[HardenedModule]`, `[Enable<T>]`, configuration models and the environment | `[HardenedModule]` | [Modules](/guide/modules) |
+| `Hardened.Shared.Testing` | `[HardenedTestEntryPoint]` and `ITestContext`, for a test project. A runner package goes beside it | `[HardenedTestEntryPoint]` | [Writing a test](/guide/testing) |
+| `Hardened.Shared.Testing.xUnit` | `[HardenedTest]` for xUnit v3 | `[HardenedTest]` | [Writing a test](/guide/testing) |
+| `Hardened.Shared.Testing.NUnit` | `[HardenedTest]` for NUnit | `[HardenedTest]` | [Writing a test](/guide/testing) |
 
-One package per generator, because a Kiota method and a Refit method hand an answer back in
-different shapes. Each names its generator's runtime and nothing else of it.
+## Request pipeline
 
-| Package | Contents |
-|---|---|
-| `Hardened.Kiota.Testing` | `[assembly: KiotaTesting]`: the route that makes every Kiota client a test parameter built over the pipeline, and reads what a call through one answered for `Returns<T>()` |
-| `Hardened.Refit.Testing` | `[assembly: RefitTesting]`: the same for a Refit interface, generated by Refitter with `--use-api-response` or written by hand |
+| Package | Serves | Attribute | Page |
+|---|---|---|---|
+| `Hardened.Requests.Abstract` | The pipeline interfaces `IExecutionContext`, `IExecutionRequest`, `IExecutionResponse` and `IExecutionFilter`, `Response<T1, T2>`, `[HardenedFunction]` and `BatchFailureMode` | | [The execution pipeline](/guide/execution-pipeline) |
+| `Hardened.Requests.Runtime` | The pipeline: filters, serialization, validation and error handling, and `[RequireAuthorization]`, `[CacheResponse<T>]`, `[RateLimit]`, `[Timeout]` and `[Retry]` | | [The execution pipeline](/guide/execution-pipeline) |
+| `Hardened.Requests.Testing` | Test doubles for the pipeline, and the conformance tests for an `IExecutionRequest` implementation. `Hardened.Web.Testing` and `Hardened.Functions.Testing` bring it | | None |
+| `Hardened.Requests.Caching.Memory` | An in-process store for `[CacheResponse<T>]` | `[HardenedMemoryResponseCache]` | [Response caching](/guide/response-caching) |
+| `Hardened.Requests.Serializers.MessagePack` | A MessagePack reader and writer | `[MessagePackSerializerLibrary]` | [MessagePack](/guide/message-pack) |
+| `Hardened.Requests.Serializers.Newtonsoft` | A Newtonsoft.Json serializer for requests and responses | None. See [Limits](#limits) | None |
 
-The vocabulary both assert in, `Created<T>`, `NotFound<T>`, `NoContent` and the rest, is
-`Hardened.Requests.Abstract.Responses`; see [Clients](/guide/testing-responses).
+## Web
 
-### Templates
+| Package | Serves | Attribute | Page |
+|---|---|---|---|
+| `Hardened.Web.Runtime` | Routing and the route attributes such as `[Get]` and `[BasePath]`, the OpenAPI document, CORS, compression, conditional requests and the health endpoints | `[HardenedWebModule]` | [Routing](/guide/routing) |
+| `Hardened.Web.Kestrel.Runtime` | The Kestrel host, without the ASP.NET Core request pipeline: `HardenedKestrelApplication` | `[KestrelRuntime]` | [Hosts](/guide/hosts) |
+| `Hardened.Web.AspNetCore.Runtime` | The ASP.NET Core host: `app.UseHardened()` | `[AspNetCoreRuntime]` | [Hosts](/guide/hosts) |
+| `Hardened.Web.StaticContent` | Serves a directory of files as routes | `[HardenedStaticContent]` | None |
+| `Hardened.Web.Testing` | `ITestWebApp`, `TestWebRequest`, `TestWebResponse` and the credential attributes, for sending requests in a test | `[WebTesting]` | [Sending requests](/guide/testing-web) |
+| `Hardened.Web.Kestrel.Testing` | Runs a test's requests through Kestrel, on a loopback port the kernel picks | `[KestrelTesting]` | [Test hosts](/guide/testing-hosts) |
+| `Hardened.Web.AspNetCore.Testing` | Runs a test's requests through the ASP.NET Core pipeline, on a loopback port the kernel picks | `[AspNetCoreTesting]` | [Test hosts](/guide/testing-hosts) |
 
-Two unrelated senses of the word, in two packages.
+## Client testing
 
-| Package | Contents |
-|---|---|
-| `Hardened.Templates` | The `dotnet new` project templates: `hardened-web`, `hardened-function`, `hardened-library`. See [Project templates](/guide/project-templates) |
-| `Hardened.Templates.RazorBlade` | View rendering: `RazorTemplates`, `HardenedHtmlTemplate<T>`. Renders `.cshtml` with no ASP.NET Core dependency. See [Views](/guide/templates) |
+| Package | Serves | Attribute | Page |
+|---|---|---|---|
+| `Hardened.Kiota.Testing` | Makes each Kiota client a test parameter that sends its requests into the application | `[KiotaTesting]` | [Typed clients](/guide/testing-clients) |
+| `Hardened.Refit.Testing` | Makes each Refit interface a test parameter that sends its requests into the application | `[RefitTesting]` | [Typed clients](/guide/testing-clients) |
 
-`IHardenedResponseOutput<T>`, what a view implements, and the `[TemplateBase]` /
-`[TemplateContentType]` vocabulary a rendering engine's marker declares both live in
-`Hardened.Requests.Abstract`, so naming a view or shipping another engine does not depend on
-RazorBlade.
+## Views and project templates
 
-### Console
+| Package | Serves | Attribute | Page |
+|---|---|---|---|
+| `Hardened.Templates.RazorBlade` | Views written as `.cshtml` files and compiled by RazorBlade. The project also references the `RazorBlade` package | `[Enable<RazorTemplates>]` | [Views](/guide/views) |
+| `Hardened.Templates` | The `dotnet new` templates `hardened-web`, `hardened-function` and `hardened-library`. `dotnet new install Hardened.Templates` installs it, and no project references it | | [Project templates](/guide/project-templates) |
 
-| Package | Contents |
-|---|---|
-| `Hardened.Commands` | `[Command]`, `[Option]`, `ICommandHandler<T>`, the parser and help printer |
-| `Hardened.Console.SourceGenerator` | Console entry points and command definitions |
+## Source generators
 
-::: warning Retired
-Both are last published at `0.4.0-rc1000`, their source is no longer in the repository, and
-nothing will be released on that line again. They will not have the fixes the packages above
-carry, and mixing release lines within one application is not a supported combination.
-:::
-
-### Source generators
-
-Analyzers do not flow through a package reference, so a generator has to be referenced by the
-project that needs it. Referencing only the runtime packages produces an application that compiles
-and answers 404 to everything.
-
-| Package | Emits |
-|---|---|
-| `Hardened.Library.SourceGenerator` | Module wiring for `[HardenedModule]`: `PopulateServiceCollection`, `CreateServiceProvider` and the configuration implementations. Carries `Hardened.DependencyModules.SourceGenerator` inside it, so that one is not referenced separately |
-| `Hardened.Web.SourceGenerator` | Route tables and request handlers for `[Get]`, `[Post]`, `[Put]`, `[Delete]`, `[Patch]` |
-| `Hardened.Function.SourceGenerator` | Function handlers for `[HardenedFunction]` |
-| `Hardened.Validation.SourceGenerator` | Validators from constraint attributes, and their registration |
-| `Hardened.OpenApi.SourceGenerator` | Front end: an [OpenAPI document](/guide/openapi) into the normalised model |
-| `Hardened.Smithy.SourceGenerator` | Front end: a [Smithy model](/guide/smithy) into the normalised model. Needs the Smithy CLI on `PATH` |
-| `Hardened.Idl.SourceGenerator` | Back end for both front ends: models, service interfaces, handlers, routes and validation |
-| `Hardened.SourceGenerator` | The shared generator library the others build on. Not referenced directly |
+| Package | Serves | Build item or property | Generator | Page |
+|---|---|---|---|---|
+| `Hardened.Library.SourceGenerator` | Each module's generated half: `PopulateServiceCollection`, the module's attribute, `CreateServiceProvider` and the configuration. It holds the `Hardened.DependencyModules.SourceGenerator` generator as well | | Yes | [From scratch](/guide/from-scratch) |
+| `Hardened.Web.SourceGenerator` | The routing table, a handler class for each route, the typed links and the OpenAPI document | | Yes | [From scratch](/guide/from-scratch) |
+| `Hardened.Validation.SourceGenerator` | Validators for constraint attributes | | Yes | [Validation](/guide/validation) |
+| `Hardened.Function.SourceGenerator` | Handlers for `[HardenedFunction]` and the trigger attributes | | Yes | [Triggers](/guide/triggers) |
+| `Hardened.OpenApi.SourceGenerator` | Models, the service interface, handlers and routes from an OpenAPI document named by a `HardenedOpenApiSpec` item | `HardenedOpenApiSpec` item | Yes | [Generating from OpenAPI](/guide/openapi) |
+| `Hardened.Smithy.SourceGenerator` | The same from a Smithy model named by a `HardenedSmithyModel` item. The build needs the Smithy CLI | `HardenedSmithyModel` item | Yes | [Generating from Smithy](/guide/smithy) |
+| `Hardened.Idl.SourceGenerator` | The generator the two packages above bring with them. A project does not reference it | | Brought by the two above | [Generating from OpenAPI](/guide/openapi) |
+| `Hardened.SourceGenerator` | The generators' shared source. A project that sets `PackageHardenedIncludeSource` to `true` compiles it in. An application does not reference it | `PackageHardenedIncludeSource` | | None |
+| `Hardened.SourceGeneration.Testing` | `GeneratorTestHarness`, which runs a generator over an in-memory compilation in a test | | | None |
 
 ## Functions
 
-Provider-neutral. The trigger attributes name a source and no cloud, so these packages are the same
-whichever runtime serves them; see [Triggers](/guide/triggers).
+| Package | Serves | Attribute | Page |
+|---|---|---|---|
+| `Hardened.Functions.Runtime` | The trigger attributes `[Queue]`, `[Topic]`, `[Timer]`, `[Event]`, `[Change]`, `[Stream]` and `[Blob]` | The seven trigger attributes | [Triggers](/guide/triggers) |
+| `Hardened.Functions.Testing` | `ITriggerDelivery`, the generated trigger façades a test sends through, and `[PipelineDelivery]` | `[FunctionTesting]` | [Testing functions](/guide/testing-functions) |
+| `Hardened.CloudEvents` | The CloudEvents 1.0 reader that the Eventarc, Cloud Storage, Firestore and Event Grid adapters use. They bring it | | None |
 
-| Package | Contents |
-|---|---|
-| `Hardened.Functions.Runtime` | `[Queue]`, `[Topic]`, `[Timer]`, `[Event]`, `[Change]`, `[Stream]`, `[Blob]`, and `BatchFailureMode` |
-| `Hardened.Functions.Testing` | `[assembly: FunctionTesting]`: the generated trigger façades a test sends through, and `[PipelineDelivery]`, which opts a class back to that delivery under a provider's testing attribute |
-| `Hardened.CloudEvents` | `CloudEvent`, `CloudEventReader` for the structured and binary forms, `CloudEventHeaders` and `CloudEventRoutes`. What the Eventarc adapters read through; names no cloud |
+## Cloud adapters
+
+Each adapter package sets an MSBuild property to its module's full type name. For example,
+`Hardened.Aws.Lambda.Sqs` sets `HardenedQueueModule` to `Hardened.Aws.Lambda.Sqs.SqsModule`. The
+build uses the property to register the module. [Triggers](/guide/triggers) covers these
+properties. It also covers the cases where an application applies the module attribute itself.
+
+Each adapter's module is in a namespace with the same name as its package. Each adapter's module
+brings its cloud's runtime module: `LambdaRuntimeModule` on AWS, `CloudRunRuntime` on Google Cloud
+and `FunctionsRuntimeModule` on Azure.
 
 ## AWS
 
-On the framework's version line, and released with it. One host package, and one adapter per source
-— an adapter is a package rather than a flag so a function carries only the event models it can
-reach.
+`Hardened.Aws.DynamoDbClient` is the DynamoDB client. `Hardened.Aws.Lambda.DynamoDb` is the DynamoDB
+Streams adapter.
 
-### The host
+| Package | Serves | Attribute and build property | Page |
+|---|---|---|---|
+| `Hardened.Aws.Lambda.Runtime` | The Lambda host: `HardenedLambdaBootstrap`, the invocation loop, and `LambdaEmulator` for running locally | None. Each adapter's module brings `LambdaRuntimeModule` | AWS [Overview](/aws/) |
+| `Hardened.Aws.Lambda.Http` | `[Get]`, `[Post]`, `[Put]`, `[Patch]` and `[Delete]`, behind an API Gateway HTTP API or a function URL | `[LambdaHttpModule]`, `HardenedHttpModule` | AWS [Web applications](/aws/lambda-web) |
+| `Hardened.Aws.Lambda.Invoke` | `[HardenedFunction]`, invoked directly | `[InvokeModule]`, `HardenedInvokeModule` | AWS [Invocations](/aws/invoke) |
+| `Hardened.Aws.Lambda.Sqs` | `[Queue]`, from Amazon SQS | `[SqsModule]`, `HardenedQueueModule` | AWS [Queues](/aws/queue) |
+| `Hardened.Aws.Lambda.Sns` | `[Topic]`, from Amazon SNS | `[SnsModule]`, `HardenedTopicModule` | AWS [Topics](/aws/topic) |
+| `Hardened.Aws.Lambda.EventBridge` | `[Timer]` and `[Event]`, from Amazon EventBridge | `[EventBridgeModule]`, `HardenedTimerModule` and `HardenedEventModule` | AWS [Timers](/aws/timer) and [Events](/aws/event) |
+| `Hardened.Aws.Lambda.DynamoDb` | `[Change]`, from DynamoDB Streams, with `[NewImage]` and `[OldImage]` | `[DynamoDbStreamsModule]`, `HardenedChangeModule` | AWS [Changes](/aws/change) |
+| `Hardened.Aws.Lambda.Kinesis` | `[Stream]`, from Kinesis Data Streams | `[KinesisModule]`, `HardenedStreamModule` | AWS [Streams](/aws/stream) |
+| `Hardened.Aws.Lambda.S3` | `[Blob]`, from S3 object notifications | `[S3Module]`, `HardenedBlobModule` | AWS [Blobs](/aws/blob) |
+| `Hardened.Aws.Lambda` | The runtime and the eight adapters above, in one reference | Every attribute and property above | AWS [Overview](/aws/) |
+| `Hardened.Aws.Lambda.Testing` | Delivers a test's messages through the envelope each source sends and the invocation loop, and runs web requests through API Gateway | `[LambdaTesting]`, `[LambdaWebTesting]` | AWS [Testing](/aws/testing) |
+| `Hardened.Aws.DynamoDbClient` | `IDynamoDbClientProvider`: named DynamoDB clients | `[DynamoDbClientModule]` | AWS [DynamoDB client](/aws/dynamodb) |
+| `Hardened.Aws.DynamoDbClient.Testing` | DynamoDB Local in a Testcontainers container, for a test | `[LocalDynamoDb]` | AWS [DynamoDB client](/aws/dynamodb) |
 
-| Package | Contents |
-|---|---|
-| `Hardened.Aws.Lambda.Runtime` | `HardenedLambdaBootstrap`, the invocation loop, the deadline, structured CloudWatch logging and embedded metrics, and `LambdaEmulator` for running locally |
-| `Hardened.Aws.Lambda` | The host and every adapter in one reference. Convenience rather than the recommended reference: it puts every `Amazon.Lambda` event assembly in the bundle whatever the function is triggered by, which is the state the package split exists to end. `HRDF003` reports each adapter the project does not use |
+## Google Cloud
 
-### Adapters
+| Package | Serves | Attribute and build property | Generator | Page |
+|---|---|---|---|---|
+| `Hardened.Gcp.CloudRun.Runtime` | The Cloud Run host, on Kestrel: `CloudRunHost`, `TriggerFrontDoor` and `CloudRunTriggerRequest` | `[CloudRunRuntime]`, `HardenedHttpModule` | | Google Cloud [Overview](/gcp/) |
+| `Hardened.Gcp.CloudRun.PubSub` | `[Queue]`, from a Pub/Sub push subscription, and `[Topic]`, from an Eventarc trigger on a Pub/Sub topic | `[PubSubModule]`, `HardenedQueueModule` and `HardenedTopicModule` | | Google Cloud [Queues](/gcp/queue) and [Topics](/gcp/topic) |
+| `Hardened.Gcp.CloudRun.Scheduler` | `[Timer]`, from a Cloud Scheduler job | `[SchedulerModule]`, `HardenedTimerModule` | | Google Cloud [Timers](/gcp/timer) |
+| `Hardened.Gcp.CloudRun.Invoke` | `[HardenedFunction]`, invoked by a POST to the service | `[InvokeModule]`, `HardenedInvokeModule` | | Google Cloud [Invocations](/gcp/invoke) |
+| `Hardened.Gcp.CloudRun.Storage` | `[Blob]`, from Cloud Storage, through Eventarc or a Pub/Sub notification | `[StorageModule]`, `HardenedBlobModule` | | Google Cloud [Blobs](/gcp/blob) |
+| `Hardened.Gcp.CloudRun.Firestore` | `[Change]`, from Firestore through Eventarc, with `[OldValue]` | `[FirestoreModule]`, `HardenedChangeModule` | | Google Cloud [Changes](/gcp/change) |
+| `Hardened.Gcp.CloudRun.Eventarc` | `[Event]`, any CloudEvent that Eventarc delivers | `[EventarcModule]`, `HardenedEventModule` | | Google Cloud [Events](/gcp/event) |
+| `Hardened.Gcp.CloudRun` | The runtime and the six adapters above, in one reference | Every attribute and property above | | Google Cloud [Overview](/gcp/) |
+| `Hardened.Gcp.CloudRun.Testing` | Delivers a test's messages as the push, CloudEvent, Scheduler request or invocation that Cloud Run receives | `[CloudRunTesting]` | | Google Cloud [Testing](/gcp/testing) |
+| `Hardened.Gcp.Functions.Runtime` | Runs a `[CloudRunRuntime]` application as a Cloud Functions 2nd gen function: `HardenedFunctionsStartup<TApplication>` and `CloudFunctionHost` | | | Google Cloud [Web services](/gcp/web) |
+| `Hardened.Gcp.Functions.SourceGenerator` | Writes the function's entry type | | Yes | Google Cloud [Web services](/gcp/web) |
 
-| Package | Serves | Module |
+## Azure
+
+| Package | Serves | Attribute and build property | Generator | Page |
+|---|---|---|---|---|
+| `Hardened.Azure.Functions.Runtime` | The isolated worker host: `UseHardened<TApplication>` and `FunctionsInvocationHandler`. Every Azure project references it, beside `Microsoft.Azure.Functions.Worker.Sdk` | None. Each adapter's module brings `FunctionsRuntimeModule` | | Azure [Overview](/azure/) |
+| `Hardened.Azure.Functions.SourceGenerator` | Writes the functions, the metadata provider that lists them and the executor that runs them | | Yes | Azure [Overview](/azure/) |
+| `Hardened.Azure.Functions.ServiceBus` | `[Queue]`, from a Service Bus queue, and `[Topic]`, from a subscription of a Service Bus topic | `[ServiceBusModule]`, `HardenedQueueModule` and `HardenedTopicModule` | | Azure [Queues](/azure/queue) and [Topics](/azure/topic) |
+| `Hardened.Azure.Functions.Timer` | `[Timer]`, from a timer trigger | `[TimerModule]`, `HardenedTimerModule` | | Azure [Timers](/azure/timer) |
+| `Hardened.Azure.Functions.EventHubs` | `[Stream]`, from Event Hubs | `[EventHubsModule]`, `HardenedStreamModule` | | Azure [Streams](/azure/stream) |
+| `Hardened.Azure.Functions.CosmosDb` | `[Change]`, from the Cosmos DB change feed | `[CosmosDbModule]`, `HardenedChangeModule` | | Azure [Changes](/azure/change) |
+| `Hardened.Azure.Functions.Blobs` | `[Blob]`, from Blob Storage through Event Grid | `[BlobsModule]`, `HardenedBlobModule` | | Azure [Blobs](/azure/blob) |
+| `Hardened.Azure.Functions.EventGrid` | `[Event]`, from Event Grid in the CloudEvents schema | `[EventGridModule]`, `HardenedEventModule` | | Azure [Events](/azure/event) |
+| `Hardened.Azure.Functions.Http` | The web routes, behind one anonymous HTTP function | `[HttpModule]`, `HardenedHttpModule` | | Azure [Web applications](/azure/web) |
+| `Hardened.Azure.Functions` | The runtime and the seven adapters above, in one reference | Every attribute and property above | | Azure [Overview](/azure/) |
+| `Hardened.Azure.Functions.Testing` | Builds the trigger data the worker binds and passes it to the invocation handler | `[AzureFunctionsTesting]`, `[AzureFunctionsWebTesting]` | | Azure [Testing](/azure/testing) |
+
+## Retired packages
+
+Besides the 68 packages above, nuget.org holds 21 retired package ids. The release does not publish
+them. The table lists all 21.
+
+| Package | Last version | Current package |
 |---|---|---|
-| `Hardened.Aws.Lambda.Http` | `[Get]`, `[Post]`, `[Put]`, `[Patch]`, `[Delete]` | `[LambdaHttpModule]` |
-| `Hardened.Aws.Lambda.Invoke` | `[HardenedFunction]` | `[InvokeModule]` |
-| `Hardened.Aws.Lambda.Sqs` | `[Queue]` | `[SqsModule]` |
-| `Hardened.Aws.Lambda.Sns` | `[Topic]` | `[SnsModule]` |
-| `Hardened.Aws.Lambda.EventBridge` | `[Timer]` and `[Event]` | `[EventBridgeModule]` |
-| `Hardened.Aws.Lambda.DynamoDb` | `[Change]`, with `[NewImage]` and `[OldImage]` | `[DynamoDbStreamsModule]` |
-| `Hardened.Aws.Lambda.Kinesis` | `[Stream]` | `[KinesisModule]` |
-| `Hardened.Aws.Lambda.S3` | `[Blob]` | `[S3Module]` |
+| `Hardened.Aws.Lambda.ApiGateway` | 0.33.0-rc1000 | `Hardened.Aws.Lambda.Http`, with `[LambdaHttpModule]` in place of `[ApiGatewayModule]` |
+| `Hardened.Amz.DynamoDbClient` | 0.22.0-rc1000 | `Hardened.Aws.DynamoDbClient` |
+| `Hardened.Amz.DynamoDbClient.Testing` | 0.22.0-rc1000 | `Hardened.Aws.DynamoDbClient.Testing` |
+| `Hardened.Amz.Shared.Lambda.Runtime` | 0.22.0-rc1000 | `Hardened.Aws.Lambda.Runtime` |
+| `Hardened.Amz.Shared.Lambda.Testing` | 0.22.0-rc1000 | `Hardened.Aws.Lambda.Testing` |
+| `Hardened.Amz.Web.Lambda.Runtime` | 0.22.0-rc1000 | `Hardened.Aws.Lambda.Http` |
+| `Hardened.Amz.Web.Lambda.SourceGenerator` | 0.22.0-rc1000 | None. A Lambda web project uses `Hardened.Web.SourceGenerator` |
+| `Hardened.Amz.Web.Lambda.Streaming` | 0.18.0-rc1000 | `Hardened.Aws.Lambda.Runtime` |
+| `Hardened.Amz.Web.Lambda.Harness` | 0.21.0-rc1000 | `LambdaEmulator`, in `Hardened.Aws.Lambda.Runtime` |
+| `Hardened.Amz.Function.Lambda.Runtime` | 0.22.0-rc1000 | `Hardened.Aws.Lambda.Invoke` |
+| `Hardened.Amz.Function.Lambda.SourceGenerator` | 0.22.0-rc1000 | `Hardened.Function.SourceGenerator` |
+| `Hardened.Amz.Function.Lambda.Streaming` | 0.18.0-rc1000 | `Hardened.Aws.Lambda.Runtime` |
+| `Hardened.Amz.Function.Lambda.Testing` | 0.22.0-rc1000 | `Hardened.Aws.Lambda.Testing` |
+| `Hardened.Amz.Function.Sqs.Runtime` | 0.22.0-rc1000 | `Hardened.Aws.Lambda.Sqs` |
+| `Hardened.Amz.Function.Sqs.Testing` | 0.22.0-rc1000 | `Hardened.Aws.Lambda.Testing` |
+| `Hardened.Amz.Function.DDB.Runtime` | 0.22.0-rc1000 | `Hardened.Aws.Lambda.DynamoDb` |
+| `Hardened.Amz.Function.DDB.Testing` | 0.22.0-rc1000 | `Hardened.Aws.Lambda.Testing` |
+| `Hardened.Amz.Cdk` | 0.22.0-rc1000 | None |
+| `Hardened.Commands` | 0.4.0-rc1000 | None |
+| `Hardened.Console.SourceGenerator` | 0.4.0-rc1000 | None |
+| `Hardened.DependencyModules.SourceGenerator` | 0.1.0-rc1 | `Hardened.Library.SourceGenerator`, which holds this generator |
 
-An application does not normally write a module out. The trigger on a handler binds it, through a
-build property the adapter package declares. `[LambdaHttpModule]` is the exception, because a web
-host's routes are in a library the generator cannot see; and any adapter is written out to set
-`ReportBatchItemFailures`, which is a fact about the deployment rather than the code.
+Moving from a `Hardened.Amz` Lambda adapter to its current package takes more than a new id. The
+module attributes differ. For example, `Hardened.Amz.Function.Sqs.Runtime` has `[SqsLambda]`, and
+`Hardened.Aws.Lambda.Sqs` has `[SqsModule]`.
 
-### Clients
+The last version of each `Hardened.Amz` package is unlisted on nuget.org.
+`Hardened.Aws.Lambda.ApiGateway` 0.33.0-rc1000 and `Hardened.DependencyModules.SourceGenerator`
+0.1.0-rc1 are unlisted too. The nuget.org search shows the version before the unlisted one. The
+search does not show `Hardened.DependencyModules.SourceGenerator` at all. A restore that names an
+unlisted version exactly succeeds.
 
-Not a host and not an adapter, so it stands apart from the Lambda packages: an application uses
-these on Lambda, on Kestrel or in a console the same way.
+## Versions
 
-| Package | Contents |
-|---|---|
-| `Hardened.Aws.DynamoDbClient` | `IDynamoDbClientProvider`, `DynamoDbOptions`, `[DynamoDbClientModule]`. See [DynamoDB client](/aws/dynamodb) |
-| `Hardened.Aws.DynamoDbClient.Testing` | `[LocalDynamoDb]` and `LocalDynamoDb`: DynamoDB Local in a Testcontainers container |
+A release is tagged `v{line}-rc1000`. The tag without its `v` is the version of every package. The current release
+is `0.0.0-HARDENED-VERSION`. Reference every Hardened package at the same version. The templates set
+the version of every Hardened package to `$(HardenedVersion)`.
 
-Note that `Hardened.Aws.Lambda.DynamoDb` is a different thing — the Streams adapter that serves
-`[Change]`, not a client. The module names say which is which: `[DynamoDbClientModule]` here,
-`[DynamoDbStreamsModule]` there.
+Each push to `main` whose build passes publishes every package to GitHub Packages as
+`{line}-preview{build}`. `{line}` is the next release's line. `{build}` is the workflow run number,
+zero-padded to six digits. A preview sorts below the release of its line. The feed is
+`https://nuget.pkg.github.com/ipjohnson/index.json`. GitHub Packages asks for a GitHub token to
+restore, even for a public package.
 
-### Testing
+GitHub Packages also holds versions `1.0.0-preview10132` to `1.0.0-preview10199` of 18 packages.
+`Hardened.Web.Runtime` is one of them. These versions sort above every release. A restore that asks
+for a version on neither feed resolves to the lowest version above it.
 
-| Package | Contents |
-|---|---|
-| `Hardened.Aws.Lambda.Testing` | `[assembly: LambdaTesting]`, which delivers through the real AWS envelope rather than straight into the pipeline, and `[LambdaWebTesting]`, API Gateway as a test host |
-
-::: info The Hardened.Amz line
-The AWS packages were `Hardened.Amz.*` until `0.22.0-rc1000`, in a repository of their own. That
-line has stopped, is not moving, and is not being renamed — the packages above replace it, with
-different module attributes and a different test harness. They stay on nuget.org, restorable, and
-mixing the two lines within one application is not a supported combination.
-
-The DynamoDB client and its test container are the exception: they were the only part of that line
-that was not a host, so they came across as `Hardened.Aws.DynamoDbClient` and
-`Hardened.Aws.DynamoDbClient.Testing` rather than being rebuilt.
+::: warning
+With GitHub Packages configured, a version that is not published yet restores as a `1.0.0-preview`
+build. NuGet warns `NU1603`, and the restore succeeds.
 :::
 
-## Google Cloud Run
+## Limits
 
-On the framework's version line, and released with it. One host package, and one adapter per
-source. Every delivery reaches a Cloud Run service as an HTTP request, and none of the adapters
-references a Google SDK except Firestore, whose events are protobuf; see
-[Google Cloud Run](/gcp/).
+`Hardened.Requests.Serializers.Newtonsoft` has no module that an application can apply.
+`[NewtonsoftSerializerLibrary]` fails with `CS0616`:
 
-### The host
+```text
+'NewtonsoftSerializerLibrary' is not an attribute class
+```
 
-| Package | Contents |
+## Next
+
+| Page | Covers |
 |---|---|
-| `Hardened.Gcp.CloudRun.Runtime` | `[CloudRunRuntime]`, `CloudRunHost`, the trigger front door and `CloudRunTriggerRequest`. Serves the web verbs itself, on Kestrel |
-| `Hardened.Gcp.CloudRun` | The host and every adapter in one reference. Convenience rather than the recommended reference: `HRDF003` names the adapters the service does not use |
-
-### Adapters
-
-| Package | Serves | Module |
-|---|---|---|
-| `Hardened.Gcp.CloudRun.PubSub` | `[Queue]` from a push subscription, `[Topic]` from an Eventarc trigger on a topic | `[PubSubModule]` |
-| `Hardened.Gcp.CloudRun.Scheduler` | `[Timer]` | `[SchedulerModule]`, with `Prefix` |
-| `Hardened.Gcp.CloudRun.Invoke` | `[HardenedFunction]` | `[InvokeModule]`, with `Prefix` |
-| `Hardened.Gcp.CloudRun.Storage` | `[Blob]`, from Eventarc or a bucket notification | `[StorageModule]` |
-| `Hardened.Gcp.CloudRun.Firestore` | `[Change]`, with `[OldValue]` | `[FirestoreModule]` |
-| `Hardened.Gcp.CloudRun.Eventarc` | `[Event]` | `[EventarcModule]` |
-
-An application does not write an adapter module out. The trigger on a handler binds it, through a
-build property the adapter package declares; `[SchedulerModule]` and `[InvokeModule]` are written
-out only to move their URL prefix. `[CloudRunRuntime]` is on every application, because the host
-is a fact about the deployment. There is no `[Stream]` adapter, and `HRDF001` names the gap.
-
-### Testing
-
-| Package | Contents |
-|---|---|
-| `Hardened.Gcp.CloudRun.Testing` | `[assembly: CloudRunTesting]`, which delivers through the push, CloudEvent or Scheduler request Cloud Run actually receives rather than straight into the pipeline |
-
-## Azure Functions
-
-On the framework's version line, and released with it. One runtime package, one generator, and
-one adapter per source. The application is an isolated worker the Functions host starts, and
-every function the host indexes is generated from the handlers; see [Azure Functions](/azure/).
-
-### The host
-
-| Package | Contents |
-|---|---|
-| `Hardened.Azure.Functions.Runtime` | `UseHardened<T>()`, `FunctionsInvocationHandler`, the request shapes and the targets that keep the Worker SDK's own generated provider out. Every Azure application references it, beside `Microsoft.Azure.Functions.Worker.Sdk` |
-| `Hardened.Azure.Functions.SourceGenerator` | Writes one `[Function]` per source, the `IFunctionMetadataProvider` the host indexes and the `IFunctionExecutor` it invokes. An analyzer reference |
-| `Hardened.Azure.Functions` | The runtime and every adapter in one reference. Convenience rather than the recommended reference: `HRDF003` names the adapters the function app does not use |
-
-### Adapters
-
-| Package | Serves | Module |
-|---|---|---|
-| `Hardened.Azure.Functions.ServiceBus` | `[Queue]` from a queue, `[Topic]` from a subscription | `[ServiceBusModule]`, with `Subscription`, `Connection` and `ReportsItemFailures` |
-| `Hardened.Azure.Functions.Timer` | `[Timer]`, on the schedule in `Hardened:Timers:{name}` | `[TimerModule]` |
-| `Hardened.Azure.Functions.EventHubs` | `[Stream]` | `[EventHubsModule]`, with `Connection`, `ConsumerGroup`, and `RetryCount` with `RetryDelay` for the host's fixed-delay retry |
-| `Hardened.Azure.Functions.CosmosDb` | `[Change]`, the current document only | `[CosmosDbModule]`, with `Database`, `Connection`, `LeaseContainer`, and `RetryCount` with `RetryDelay` |
-| `Hardened.Azure.Functions.Blobs` | `[Blob]`, fed by Event Grid | `[BlobsModule]`, with `Connection` |
-| `Hardened.Azure.Functions.EventGrid` | `[Event]`, in the CloudEvents schema | `[EventGridModule]` |
-| `Hardened.Azure.Functions.Http` | The web verbs, behind one anonymous HTTP trigger | `[HttpModule]`, written out by a host project whose routes live in a library |
-
-An application does not write an adapter module out unless it carries a deployment fact: the
-subscription a topic is read through and the database a container lives in are required, and
-`HRDAZ003` names one that is missing. The application names no host attribute at all. There is
-no `[HardenedFunction]` adapter, because Azure Functions has no direct invocation of a function;
-`HRDF001` names the gap, and the web verbs are the way in.
-
-### Testing
-
-| Package | Contents |
-|---|---|
-| `Hardened.Azure.Functions.Testing` | `[assembly: AzureFunctionsTesting]` and `[assembly: AzureFunctionsWebTesting]`, which build the trigger data the worker would bind and hand it to the real invocation handler; `RecordingMessageActions` for settlement tests, and `MetadataAgreement` for the build's metadata against the generated provider |
-
-## Versioning
-
-Everything releases on one version line, from a `v*` tag:
-
-| | Released | Continuous feed |
-|---|---|---|
-| Every package on this page | `{line}-rc1000` | `{line}-preview{build}` on every push to main |
-| `Hardened.Amz.*`, retired | `0.22.0-rc1000`, its last | none |
-
-The current line is **`0.0.0-HARDENED-VERSION`**. Releases go to nuget.org; the continuous feed is
-[GitHub Packages](https://nuget.pkg.github.com/ipjohnson/index.json). Under one line, `preview`
-sorts below `rc`, so a preview never shadows the release it precedes.
-
-Pin exact versions across a solution. The generated code and the runtime it targets ship together,
-so mixing framework builds within one application is not a supported combination.
-
-Avoid a floating pin. A float that stops matching anything new does not fail. It keeps resolving
-whatever it last found, with a green build throughout.
-
-The Lambda templates used to float their `Hardened.Amz` pin, because two repositories released in
-sequence and for a window an exact pin named a version that did not exist yet. There is one
-repository and one line now, so every template pins `$(HardenedVersion)` like everything else.
+| [Project templates](/guide/project-templates) | The templates and the packages each project references |
+| [From scratch](/guide/from-scratch) | An application assembled from packages, and the files the generators write |
+| [Triggers](/guide/triggers) | The adapter for each trigger on each cloud, and how the build binds it |
+| [Diagnostics](/reference/diagnostics) | `HRDR008` and the other build diagnostics |
+| [Repository](/reference/repository) | The repository's folders, and how to build and test it |
