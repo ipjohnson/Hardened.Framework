@@ -545,6 +545,26 @@ internal static class SmithySpecParser
             }
         }
 
+        // The validation mode, into the same model field the OpenAPI front end fills, for the
+        // reason the deadline above goes into one.
+        if (SmithyAst.TryGetTrait(operation, SmithyTraits.Validation, out var validation))
+        {
+            var written =
+                validation.ValueKind == JsonValueKind.String ? validation.GetString() : null;
+
+            if (ValidationModeNames.FromWritten(written) is { } mode)
+            {
+                model.ValidationMode = mode;
+            }
+            else
+            {
+                context.Diagnostics.Add(
+                    $"operation '{name}' declares an @validation of {validation.GetRawText()}. "
+                        + $"It has to be {ValidationModeNames.Accepted}."
+                );
+            }
+        }
+
         // Authentication only, because that is all the language carries. An operation may opt out of
         // an authenticated service; it cannot opt in to one that declares no scheme, because there
         // would be nothing to authenticate against.

@@ -720,6 +720,7 @@ internal static class SpecModelSerializer
         record.Add("TimeoutMilliseconds", operation.Timeout?.Milliseconds);
         record.Add("TimeoutStatus", operation.Timeout?.Status);
         record.Add("TimeoutRetryAfterSeconds", operation.Timeout?.RetryAfterSeconds);
+        record.Add("ValidationMode", operation.ValidationMode);
         record.Add("ResponseRef", operation.ResponseRef);
         record.Add("ResponseType", operation.ResponseType);
         record.Add("ResponseFormat", operation.ResponseFormat);
@@ -865,6 +866,7 @@ internal static class SpecModelSerializer
                     RetryAfterSeconds = record.Int("TimeoutRetryAfterSeconds") ?? 0,
                 }
                 : null,
+            ValidationMode = record.String("ValidationMode"),
         };
 
     private static void WriteParameter(StringBuilder builder, ParameterModel parameter)

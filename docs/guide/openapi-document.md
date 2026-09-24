@@ -238,9 +238,9 @@ typed case for the refusal it will be sent. Declarations on the method, its clas
 assembly are all read, nearest first. A `401` is published separately for any operation carrying
 a security requirement, with the `WWW-Authenticate` challenge beside it.
 
-This holds for the code-first document. A described contract publishes the `401` and the
-`x-hardened-timeout` it declares, and none of the `403`, `429` or `504` the guards on its
-implementation answer. Declare those in the contract until the writer reads the implementation.
+This holds for the code-first document. A described contract publishes the `401`, and the
+`x-hardened-timeout` and `x-hardened-validation` it declares. It publishes none of the `403`, `429`
+or `504` the guards on its implementation answer. Declare those in the contract until the writer reads the implementation.
 
 An authorization attribute of your own publishes the `403` without doing anything, because the
 declaration lives on `IAuthorizeAttribute`. A filter vocabulary of your own publishes its status

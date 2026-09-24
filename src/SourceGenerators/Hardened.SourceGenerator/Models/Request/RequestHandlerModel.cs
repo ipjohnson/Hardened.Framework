@@ -66,6 +66,7 @@ public class RequestHandlerModel
             SingleResponseHeaders = SingleResponseHeaders,
             DeclaredResponsesAreComplete = DeclaredResponsesAreComplete,
             DeclaredTimeout = DeclaredTimeout,
+            DeclaredValidationMode = DeclaredValidationMode,
             RequestSchema = RequestSchema,
             RequestContentType = RequestContentType,
             Tag = Tag,
@@ -215,6 +216,17 @@ public class RequestHandlerModel
     /// vanished the moment its contract left the repository.
     /// </remarks>
     public (int Milliseconds, int Status, int RetryAfterSeconds)? DeclaredTimeout { get; set; }
+
+    /// <summary>
+    /// The <c>ValidationStopMode</c> member this operation's validation declares, for
+    /// <c>x-hardened-validation</c> on the document, or null.
+    /// </summary>
+    /// <remarks>
+    /// Published so the exported document round-trips, for the reason <see cref="DeclaredTimeout"/>
+    /// is. A declaration's arguments reach the model's equality through the filters, where the
+    /// attribute already is, so this adds nothing to it.
+    /// </remarks>
+    public string? DeclaredValidationMode { get; set; }
 
     public IReadOnlyList<ResponseSchemaModel> ResponseSchemas { get; set; } =
         Array.Empty<ResponseSchemaModel>();
