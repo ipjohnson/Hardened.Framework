@@ -165,14 +165,14 @@ const guide = [
     items: [
       { text: 'Overview', link: '/gcp/' },
       { text: 'Web services', link: '/gcp/web' },
+      { text: 'Invocations', link: '/gcp/invoke' },
       { text: 'Queues', link: '/gcp/queue' },
       { text: 'Topics', link: '/gcp/topic' },
       { text: 'Timers', link: '/gcp/timer' },
-      { text: 'Invocations', link: '/gcp/invoke' },
-      { text: 'Blobs', link: '/gcp/blob' },
-      { text: 'Changes', link: '/gcp/change' },
       { text: 'Events', link: '/gcp/event' },
-      { text: 'Testing Cloud Run handlers', link: '/gcp/testing' },
+      { text: 'Changes', link: '/gcp/change' },
+      { text: 'Blobs', link: '/gcp/blob' },
+      { text: 'Testing', link: '/gcp/testing' },
     ],
   },
   {
