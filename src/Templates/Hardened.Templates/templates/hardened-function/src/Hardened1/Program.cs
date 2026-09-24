@@ -71,8 +71,7 @@ await app.StartAsync();
 Console.WriteLine($"Listening on {string.Join(", ", app.Addresses)}");
 
 // SIGTERM is how Cloud Run retires an instance, ten seconds before SIGKILL. This waits for it and
-// gives what is in flight those ten seconds; the plain RunAsync returns on ProcessExit and the
-// process exits before the server has drained.
+// gives what is in flight those ten seconds.
 await CloudRunHost.RunAsync(app);
 #endif
 #if (azure)

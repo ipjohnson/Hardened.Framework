@@ -17,6 +17,7 @@
       "src\\IntegrationTests\\Benchmark\\Hardened.IntegrationTests.Benchmark.SUT\\Hardened.IntegrationTests.Benchmark.SUT.csproj",
       "src\\IntegrationTests\\Conformance\\Hardened.IntegrationTests.Conformance.CodeFirst.SUT.Tests\\Hardened.IntegrationTests.Conformance.CodeFirst.SUT.Tests.csproj",
       "src\\IntegrationTests\\Conformance\\Hardened.IntegrationTests.Conformance.CodeFirst.SUT\\Hardened.IntegrationTests.Conformance.CodeFirst.SUT.csproj",
+      "src\\IntegrationTests\\Kestrel\\Hardened.IntegrationTests.Kestrel.SUT.Tests\\Hardened.IntegrationTests.Kestrel.SUT.Tests.csproj",
       "src\\IntegrationTests\\Kestrel\\Hardened.IntegrationTests.Kestrel.SUT\\Hardened.IntegrationTests.Kestrel.SUT.csproj",
       "src\\IntegrationTests\\OpenApi\\Hardened.IntegrationTests.OpenApi.ResponseModel.SUT.Tests\\Hardened.IntegrationTests.OpenApi.ResponseModel.SUT.Tests.csproj",
       "src\\IntegrationTests\\OpenApi\\Hardened.IntegrationTests.OpenApi.ResponseModel.SUT\\Hardened.IntegrationTests.OpenApi.ResponseModel.SUT.csproj",

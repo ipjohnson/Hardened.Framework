@@ -167,8 +167,7 @@ if (environment.Matches("development"))
 #endif
 
 // SIGTERM is how Cloud Run retires an instance, ten seconds before SIGKILL. This waits for it and
-// gives what is in flight those ten seconds; the plain RunAsync returns on ProcessExit and the
-// process exits before the server has drained.
+// gives what is in flight those ten seconds.
 await CloudRunHost.RunAsync(app);
 #endif
 #if (azureFunctions)

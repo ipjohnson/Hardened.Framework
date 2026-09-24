@@ -185,6 +185,7 @@
     <Project Path="src/IntegrationTests/Conformance/Hardened.IntegrationTests.Conformance.CodeFirst.SUT/Hardened.IntegrationTests.Conformance.CodeFirst.SUT.csproj" />
   </Folder>
   <Folder Name="/IntegrationTests/Kestrel/">
+    <Project Path="src/IntegrationTests/Kestrel/Hardened.IntegrationTests.Kestrel.SUT.Tests/Hardened.IntegrationTests.Kestrel.SUT.Tests.csproj" />
     <Project Path="src/IntegrationTests/Kestrel/Hardened.IntegrationTests.Kestrel.SUT/Hardened.IntegrationTests.Kestrel.SUT.csproj" />
   </Folder>
   <Folder Name="/IntegrationTests/OpenApi/">

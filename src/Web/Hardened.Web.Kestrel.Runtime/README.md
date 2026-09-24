@@ -42,8 +42,16 @@ Kestrel → HardenedHttpApplication → chain                         (this)
 ```
 
 Kestrel itself is untouched — HTTP/1.1, HTTP/2, TLS, connection lifecycle and header parsing all
-still come from it. `ListenOptions.UseHttps(...)` works normally, because TLS is connection-level
-in Kestrel rather than part of the request pipeline.
+still come from it. TLS is set up in the callback `Create` takes, with `ListenOptions.UseHttps`:
+
+```csharp
+await using var app = HardenedKestrelApplication.Create(
+    services, kestrel => kestrel.ListenAnyIP(5443, listen => listen.UseHttps()));
+```
+
+`UseHttps` resolves its HTTPS configuration, a host environment and Kestrel's metrics from the
+application's services, and `[KestrelRuntime]` registers them. A generic host's own
+`IHostEnvironment` is kept.
 
 ## Measured difference
 

@@ -371,8 +371,8 @@ lists it. On the pipeline host, each request has a container of its own, so the 
 The template's `ContainerIsolationTests` carries `[PipelineHost]`, which keeps that class on the
 pipeline host. [Writing a test](/guide/testing) covers containers and `[PipelineHost]`.
 
-`[AzureFunctionsWebTesting]` runs the application's startup services before the first request. A
-deployed function app does not run them. [Web applications](/azure/web) covers what that changes.
+`[AzureFunctionsWebTesting]` runs the application's startup services before the first request, as
+the worker does when it starts.
 
 The attribute does not apply `[Grants]` or `[Subject]`. It records no `LastResponse`.
 [Test hosts](/guide/testing-hosts) covers both.

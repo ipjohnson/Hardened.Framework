@@ -31,6 +31,10 @@ namespace Hardened.Azure.Functions.Runtime.Hosting;
 /// answers the host's metadata request, then loads functions, so a missing registration fails at
 /// start with the name of what was missing rather than on the first message of the day.
 /// </para>
+/// <para>
+/// <b>The startup services run before the first invocation too.</b> <c>WorkerStartup</c>
+/// runs them as the host starts, before the worker connects to the Functions host.
+/// </para>
 /// </remarks>
 public static class HardenedFunctionsWorkerBuilderExtensions
 {
@@ -68,6 +72,8 @@ public static class HardenedFunctionsWorkerBuilderExtensions
 
         application.PopulateServiceCollection(builder.Services);
         application.ConfigureFunctionsWorker(builder.Services);
+
+        builder.Services.AddHostedService<WorkerStartup>();
 
         return builder;
     }

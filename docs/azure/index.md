@@ -215,8 +215,8 @@ built from the process's command line. [Environments](/guide/environments) cover
 [Hosts](/guide/hosts) shows the web application's `Program.cs`, which passes the environment to
 `UseHardened`.
 
-The worker never runs the application's startup services, its `IStartupService` registrations. The
-tests run them. [Web applications](/azure/web) covers what this turns off for routes.
+The worker runs the application's startup services, its `IStartupService` registrations, when it
+starts, before it connects to the Functions host. [Modules](/guide/modules) covers startup services.
 
 The worker starts without creating any handler. When a handler needs a service that nothing
 registers, the worker still starts. Each invocation that reaches that handler fails.
@@ -411,5 +411,5 @@ source needs. It also covers wiring the source to the function app. The trigger 
 | [Triggers](/guide/triggers) | The trigger attributes, batches, and what `HRDF001` and `HRDF003` mean |
 | [Queues](/azure/queue) | Service Bus queues, and settling a batch message by message |
 | [Streams](/azure/stream) | Event Hubs, with its connection and consumer group |
-| [Web applications](/azure/web) | Web routes on Azure Functions, and what the worker does not run |
+| [Web applications](/azure/web) | Web routes on Azure Functions |
 | [Testing](/azure/testing) | Testing on Azure |

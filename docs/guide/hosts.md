@@ -104,7 +104,7 @@ The template's host project behaves differently on each host:
 
 | Host | Start it with | Port | A path with no route | SIGTERM with a request in flight |
 |---|---|---|---|---|
-| Kestrel | `dotnet run --project src/Todos.Host` | `PORT`, or 5080, on every interface | 404 | The request gets no response |
+| Kestrel | `dotnet run --project src/Todos.Host` | `PORT`, or 5080, on every interface | 404 | The request finishes |
 | ASP.NET Core | `dotnet run --project src/Todos.Host` | `PORT`, or 5080, on `localhost` only | Passed on to the rest of the ASP.NET Core pipeline | The request finishes |
 | AWS Lambda | `dotnet run --project src/Todos.Host`, which also starts the AWS Lambda Test Tool | `PORT`, or 5080 | 404 | Not applicable: there is no server |
 | Google Cloud Run | `dotnet run --project src/Todos.Host` | `PORT`, or 5080, on every interface | 404 | The request finishes, within 10 seconds |
@@ -119,19 +119,29 @@ the collection and a Kestrel server that uses it. The `configureKestrel` callbac
 Kestrel's `KestrelServerOptions`. Without the callback, the server listens on port 5000 on every
 interface.
 
+The callback also sets up HTTPS, with Kestrel's `UseHttps` on a listen address. In the Kestrel
+`Program.cs` above, this call serves HTTPS on port 5443 with the ASP.NET Core development
+certificate:
+
+```csharp
+using Microsoft.AspNetCore.Hosting;
+
+await using var app = HardenedKestrelApplication.Create(
+    services,
+    kestrel => kestrel.ListenAnyIP(5443, listen => listen.UseHttps())
+);
+```
+
+Without an argument, `UseHttps()` uses the development certificate that `dotnet dev-certs https`
+creates. Other overloads take a certificate, a certificate file or a certificate store. A relative
+certificate file path is resolved against the current directory.
+
 `StartAsync` runs the registered startup services, adds routing, and then starts listening. The
 startup services are the application's `IStartupService` registrations.
 [Modules](/guide/modules) covers them.
 
-`RunAsync` starts the server if `StartAsync` has not, and then waits. On Ctrl-C (SIGINT),
-`RunAsync` stops the server and lets requests in flight finish before it returns. On SIGTERM, the
-process exits without waiting for requests in flight.
-
-::: warning
-The template's Kestrel `Program.cs` ends with `app.RunAsync()`. When a container stops the process
-with SIGTERM, the requests it is serving get no response. Use the `RunAsync(signals, grace)`
-overload or `AddHardenedKestrel` for a process that is stopped with SIGTERM.
-:::
+`RunAsync` starts the server if `StartAsync` has not, and then waits. On Ctrl-C (SIGINT) or
+SIGTERM, `RunAsync` stops the server and lets requests in flight finish before it returns.
 
 The overload `RunAsync(signals, grace)` handles the signals it is given. It then stops the server
 and lets requests in flight finish for up to `grace`. In the Kestrel `Program.cs` above, this call
@@ -206,8 +216,8 @@ registered startup services and adds routing as the last step of the Hardened mi
 logged.
 
 `UseHardened` waits up to 15 seconds for the startup services, then continues. The Kestrel, Cloud
-Run, Lambda and Cloud Functions hosts wait for the startup services to finish before they take a
-request.
+Run, Lambda, Cloud Functions and Azure Functions hosts wait for the startup services to finish
+before they take a request.
 
 Each request that reaches the Hardened middleware has one of three outcomes:
 
@@ -420,7 +430,8 @@ host.Run();
 ```
 
 `UseHardened<TApplication>(environment)` adds the application's services to the worker's own
-service collection. It also registers the generated function with the worker.
+service collection. It also registers the generated function with the worker. The worker runs the
+startup services when it starts, before it connects to the Functions host.
 
 `[HttpModule]` makes `Hardened.Azure.Functions.SourceGenerator` write one HTTP function, named
 `Http`, for every method on every path. The function's authorization level is `Anonymous`. The
