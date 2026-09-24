@@ -126,7 +126,7 @@ headers, settings and failures for that cloud.
 
 | Cloud | Overview | Trigger pages |
 |---|---|---|
-| AWS | [Overview](/aws/) | [Invocations](/aws/invoke), [Queues](/aws/queue), [Topics](/aws/topic) |
+| AWS | [Overview](/aws/) | [Invocations](/aws/invoke), [Queues](/aws/queue), [Topics](/aws/topic), [Timers](/aws/timer), [Events](/aws/event), [Changes](/aws/change), [Streams](/aws/stream), [Blobs](/aws/blob) |
 | Google Cloud | [Overview](/gcp/) | [Invocations](/gcp/invoke), [Queues](/gcp/queue), [Topics](/gcp/topic), [Timers](/gcp/timer), [Events](/gcp/event), [Changes](/gcp/change), [Blobs](/gcp/blob) |
 | Azure | [Overview](/azure/) | [Queues](/azure/queue), [Topics](/azure/topic), [Timers](/azure/timer), [Events](/azure/event), [Changes](/azure/change), [Streams](/azure/stream), [Blobs](/azure/blob) |
 
@@ -370,7 +370,7 @@ idempotent. In a batch, the attribute retries each item on its own.
 | | AWS: DynamoDB Streams | Google Cloud: Firestore | Azure: Cosmos DB change feed |
 |---|---|---|---|
 | `[Change(name)]` names | The table | The collection the document is in | The container |
-| The parameter binds | The item after the change, without DynamoDB's type wrappers. On a `REMOVE`, the item before it | The document after the change, as JSON. On a delete, the document as it was | The document as it is now, with Cosmos DB's system properties such as `_etag` and `_ts` |
+| The parameter binds | On a stream that carries new images, the item after the change, without DynamoDB's type wrappers. On a `REMOVE`, the item before it. [Changes](/aws/change) covers the other stream views | The document after the change, as JSON. On a delete, the document as it was | The document as it is now, with Cosmos DB's system properties such as `_etag` and `_ts` |
 | The previous version | `[OldImage]`, in DynamoDB's own form. Null on an `INSERT`, and when the stream does not carry old images | `[OldValue]`, as the handler's type or as Firestore's `Document`. Null on a create | Not available |
 | The kind of change | Header `x-amz-ddb-event-name`: `INSERT`, `MODIFY` or `REMOVE` | Header `ce-type`, ending in `created`, `updated`, `deleted` or `written` | No header |
 | Delivery | A batch, `Checkpoint` | One event per request | A batch, `Checkpoint` |

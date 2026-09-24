@@ -383,7 +383,7 @@ public class TestAttributeTests
 `LocalDynamoDbAttribute` in `Hardened.Aws.DynamoDbClient.Testing` is a registration and startup
 attribute to derive from. It points the application's `IDynamoDbClientProvider` at DynamoDB Local
 in a container. A derived class overrides `DdbSetup` to create tables. The AWS
-[Testing](/aws/testing) page covers it.
+[DynamoDB client](/aws/dynamodb) page covers it.
 
 ## Next
 
@@ -392,4 +392,4 @@ in a container. A derived class overrides `DdbSetup` to create tables. The AWS
 | [Writing a test](/guide/testing) | The parameters a test takes, and what each test builds |
 | [Sending requests](/guide/testing-web) | Requests through `ITestWebApp` |
 | [Configuration](/guide/configuration) | Configuration models and `Amend` |
-| [Testing](/aws/testing) | DynamoDB Local in a test, and the AWS test hosts |
+| [DynamoDB client](/aws/dynamodb) | DynamoDB Local in a test |

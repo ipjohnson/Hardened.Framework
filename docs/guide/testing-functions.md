@@ -549,6 +549,15 @@ The function testing attributes deliver to trigger handlers and `[HardenedFuncti
 through `ITestWebApp`. [Sending requests](/guide/testing-web) and [Test hosts](/guide/testing-hosts)
 cover route tests.
 
+Under `[FunctionTesting]` alone, a call that runs one handler with no batch does not report the
+handler's exception. A `[Timer]` handler that throws leaves its call returning normally. A
+`[HardenedFunction]` that throws makes the call throw `InvalidCastException`. Under `[LambdaTesting]`
+the call throws the handler's own exception.
+
+In a function whose only adapter module is `EventBridgeModule`, `ITriggerDelivery` under
+`[FunctionTesting]` alone never runs an `[Event]` handler that takes a payload, and the call returns
+normally. The event test above runs because the template's function also has `SqsModule`.
+
 A test cannot see a response-cache hit through `Application.Invocations`. Under `[LambdaTesting]`,
 each call has its own container and its own cache store. A second identical call runs the handler
 again, with or without `[Shared]` on the façade parameter. Under `[FunctionTesting]` alone, the
