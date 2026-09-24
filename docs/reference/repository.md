@@ -1,76 +1,142 @@
 # Repository
 
-Hardened is one repository. The framework, the cloud packages and this site release together on one
-version, so a change and the page describing it land in the same commit.
-
-**[github.com/ipjohnson/Hardened.Framework](https://github.com/ipjohnson/Hardened.Framework)**
-
-| Path | Contents |
-|---|---|
-| [`src/Shared`](https://github.com/ipjohnson/Hardened.Framework/tree/main/src/Shared) | Module entry points, configuration, environment, metrics, the test framework |
-| [`src/Requests`](https://github.com/ipjohnson/Hardened.Framework/tree/main/src/Requests) | The execution pipeline and its abstractions |
-| [`src/Web`](https://github.com/ipjohnson/Hardened.Framework/tree/main/src/Web) | Routing, the Kestrel and ASP.NET Core hosts, static content, the web test client |
-| [`src/Functions`](https://github.com/ipjohnson/Hardened.Framework/tree/main/src/Functions) | The [trigger](/guide/triggers) attributes and the test façades, naming no cloud |
-| [`src/Clouds`](https://github.com/ipjohnson/Hardened.Framework/tree/main/src/Clouds) | The [AWS Lambda](/aws/) host and one adapter per source |
-| [`src/Templates`](https://github.com/ipjohnson/Hardened.Framework/tree/main/src/Templates) | The `dotnet new` templates, and RazorBlade view rendering |
-| [`src/Clients`](https://github.com/ipjohnson/Hardened.Framework/tree/main/src/Clients) | Kiota and Refit test clients |
-| [`src/SourceGenerators`](https://github.com/ipjohnson/Hardened.Framework/tree/main/src/SourceGenerators) | Every generator and build task, and the shared library they build on |
-| [`src/IntegrationTests`](https://github.com/ipjohnson/Hardened.Framework/tree/main/src/IntegrationTests) | Working applications driven through the real pipeline. The worked examples in the codebase |
-| [`src/PublicApi`](https://github.com/ipjohnson/Hardened.Framework/tree/main/src/PublicApi) | The approved public surface of every shipped assembly |
-| [`src/Benchmarks`](https://github.com/ipjohnson/Hardened.Framework/tree/main/src/Benchmarks) | The pipeline measured against ASP.NET Core, on the same machine |
-| [`docs`](https://github.com/ipjohnson/Hardened.Framework/tree/main/docs) | This site, and the maintainer notes under `design/` |
-| [`build`](https://github.com/ipjohnson/Hardened.Framework/tree/main/build) | Coverage and allocation baselines, the coverage run settings, the OpenAPI lint ruleset |
-
-The framework is documented in the [Guide](/guide/getting-started), the AWS packages under
-[AWS](/aws/).
-
-## What used to be separate
-
-`Hardened.Docs` held this site and is now `docs/`, so a page and the change that made it wrong land
-in the same commit.
-
-`Hardened.Amz` held the AWS packages. Its history is here and almost none of its source is: the
-line was replaced by the `Hardened.Aws.Lambda` packages in `src/Clouds/Aws` rather than renamed, so
-there was nothing to carry forward. It stays on nuget.org at `0.22.0-rc1000`, restorable and no
-longer moving. The [AWS pages](/aws/) describe the packages that replaced it.
-
-The [DynamoDB client](/aws/dynamodb) and its testing package came across, as
-`Hardened.Aws.DynamoDbClient` and `Hardened.Aws.DynamoDbClient.Testing`. They were the only part of
-that line that was not a host, so the rebuild left them correct as they stood.
-
-## What is deliberately outside
-
-[LambdaWidgets](https://github.com/ipjohnson/LambdaWidgets) consumes Hardened as packages from
-nuget.org, never as a project reference to a checkout beside it. That is the point of it: a local
-project reference hides the packaging defects an external consumer is the only thing positioned to
-find. Any repository whose value is being an external consumer stays external.
-
-## Building it
+Hardened is one repository,
+[github.com/ipjohnson/Hardened.Framework](https://github.com/ipjohnson/Hardened.Framework). It holds
+the framework, the cloud packages, the templates and this site.
 
 ```bash
 dotnet build Hardened.slnx
-dotnet test  Hardened.slnx
+dotnet test Hardened.slnx
 ```
 
-`filters/framework.slnf` cuts it down for daily work. The repository stays whole; what an editor
-loads does not have to be.
+`Hardened.slnx` holds every project except the simulator tests: 205 projects.
 
-The site is [VitePress](https://vitepress.dev), built from `docs/`:
+## Top-level folders and files
+
+| Path | Holds |
+|---|---|
+| `src/` | Every project: the packages, their tests, the integration tests and the benchmarks |
+| `docs/` | This site, and the maintainer notes in `docs/design/` |
+| `build/` | The coverage run settings, the coverage and allocation baselines, and the Spectral ruleset that CI lints the OpenAPI document with |
+| `filters/` | Solution filters over `Hardened.slnx` |
+| `scripts/` | The CI gates and the maintenance scripts |
+| `assets/` | The logo images |
+| `.github/workflows/` | The CI, template, documentation, benchmark, allocation and release workflows |
+| `.githooks/` | A pre-commit hook that refuses unformatted C# |
+| `.config/dotnet-tools.json` | The local tools: CSharpier 1.3.0 and Kiota 1.34.1 |
+| `Hardened.slnx` | Every project except the simulator tests |
+| `Hardened.Simulators.slnx` | The simulator tests |
+| `AGENTS.md` | The rules and traps for editing the repository |
+| `global.json` | The .NET 11 preview SDK the build uses |
+| `nuget.config` | nuget.org as the only package source |
+| `README.md` | The repository's readme. Every package carries it as its nuget.org readme |
+| `LICENSE` | The MIT License |
+
+`src/Directory.Build.props` holds the build settings for every project.
+`src/Directory.Packages.props` holds every package version.
+
+The site's build leaves out `docs/design/`.
+
+## Source folders
+
+| Folder | Holds |
+|---|---|
+| `src/Shared` | `Hardened.Shared.Runtime`, and the test packages `Hardened.Shared.Testing`, `Hardened.Shared.Testing.xUnit` and `Hardened.Shared.Testing.NUnit` |
+| `src/Requests` | The request pipeline, the response cache store and the serializers |
+| `src/Web` | Routing, the Kestrel and ASP.NET Core hosts, static content and the web test packages |
+| `src/Functions` | The trigger attributes, the function test package and `Hardened.CloudEvents` |
+| `src/Clouds` | `Aws`, `Gcp` and `Azure`: each cloud's host, adapters, test package and integration tests, and the DynamoDB client |
+| `src/Templates` | The `dotnet new` templates, and RazorBlade views |
+| `src/Clients` | The Kiota and Refit test packages |
+| `src/SourceGenerators` | Every generator and build task, and the source they share |
+| `src/IntegrationTests` | Applications driven through the real pipeline, and their tests |
+| `src/PublicApi` | A test that compares the public API of the shipped assemblies with approved copies |
+| `src/Benchmarks` | Benchmarks of the pipeline, with a comparison against ASP.NET Core |
+
+[Packages](/reference/packages) lists every package that the repository publishes.
+
+## Solutions and filters
+
+| File | Holds |
+|---|---|
+| `Hardened.slnx` | Every project except the simulator tests, 205 projects. CI builds and tests it |
+| `Hardened.Simulators.slnx` | The simulator tests, 11 projects. Each runs an application inside its cloud's host image against the cloud's emulator, through Testcontainers |
+| `filters/framework.slnf` | The framework: 97 projects, none from `src/Clouds` or `src/Functions` |
+| `filters/gcp.slnf` | The Cloud Run packages, their tests and integration tests, and `Hardened.CloudEvents`: 29 projects |
+| `filters/azure.slnf` | The Azure Functions packages, their tests and integration tests, and the projects they build on: 51 projects |
+
+A filter opens a subset of `Hardened.slnx` in an editor. AWS has no filter. `dotnet build` also
+takes a filter:
+
+```bash
+dotnet build filters/framework.slnf
+```
+
+## Scripts
+
+| Script | Does |
+|---|---|
+| `scripts/coverage-gate.py` | Fails when an assembly's line coverage falls below its entry in `build/coverage-baseline.json`. CI runs it after the tests |
+| `scripts/allocation-gate.py` | Fails when a benchmark allocates more bytes per operation than its entry in `build/allocation-baseline.json`. The allocation workflow runs it |
+| `scripts/verify-templates.sh` | Builds and packs the framework and the templates, installs the packed templates, generates a project for each supported combination of options, and builds, tests and calls each one. The templates workflow runs it |
+| `scripts/compare-matcher-runs.py` | Compares two BenchmarkDotNet result tables and prints the change |
+| `scripts/generate-route-scale-sut.py` | Writes the route-scale benchmark applications |
+| `scripts/orchestration/guard-paths.sh` | A hook that blocks a cloud-line agent from editing files outside the paths it owns |
+
+`python3 scripts/coverage-gate.py --summary <Summary.json> --update` rewrites the coverage baseline.
+`AGENTS.md` says to take the summary from a CI run, not from a local run.
+
+`scripts/verify-templates.sh` skips the Smithy combinations when the Smithy CLI is missing or at
+another version. It prints a note when it skips them.
+
+## AGENTS.md
+
+`AGENTS.md` holds the rules and traps for editing the repository. Its sections cover the layout, the
+commands, formatting with CSharpier, the two SDKs, the generators, the one request executor, the
+Smithy CLI, the approved public API, the coverage gate, releasing, and the traps that catch
+contributors out. It ends with a list of the maintainer notes in `docs/design/`.
+
+## Building and testing
+
+`global.json` pins the .NET 11 SDK `11.0.100-preview.7.26381.103`, which compiles every project. The
+tests target `net8.0`, so they also need the .NET 8 runtime.
+
+The build also needs the Smithy CLI 1.73.0 on `PATH`, for the Smithy integration test. Without the
+CLI, the build fails with `HSMT010`. With another version, the build warns with `HSMT011`. A build
+with `ContinuousIntegrationBuild=true` fails instead.
+
+`ContinuousIntegrationBuild=true` turns every warning into an error. CI builds with it, in
+`Release`:
+
+```bash
+dotnet build Hardened.slnx --configuration Release -p:ContinuousIntegrationBuild=true
+```
+
+`dotnet test Hardened.slnx` runs every test except the simulator tests.
+`dotnet test Hardened.Simulators.slnx` runs the simulator tests. They need Docker.
+
+```bash
+dotnet build Hardened.Simulators.slnx
+dotnet test Hardened.Simulators.slnx
+```
+
+## Documentation site
+
+VitePress builds the site from `docs/`.
 
 ```bash
 cd docs
 npm ci
-npm run dev      # local server with hot reload
-npm run build    # what CI runs; fails on a dead internal link
+npm run dev
+npm run build
 ```
 
-Every page has an "Edit this page on GitHub" link at the bottom.
+`npm run dev` serves the site locally. `npm run build` builds the site. A dead internal link fails
+the build. CI runs `npm ci` and `npm run build` on Node.js 22.
 
-## Related
+## Next
 
-**[DependencyModules](https://ipjohnson.github.io/DependencyModules/)**,
-[github.com/ipjohnson/DependencyModules](https://github.com/ipjohnson/DependencyModules)
-
-Compile-time dependency injection for .NET, and the foundation Hardened's module system is built on.
-`[SingletonService]`, `[ScopedService]`, `[TransientService]`, conventions, decorators and
-interception all come from there and all work in a Hardened application unchanged.
+- [Packages](/reference/packages): every package that the repository publishes
+- [Diagnostics](/reference/diagnostics): the build diagnostics, such as `HSMT010`
+- [Project templates](/guide/project-templates): the templates that `scripts/verify-templates.sh`
+  checks

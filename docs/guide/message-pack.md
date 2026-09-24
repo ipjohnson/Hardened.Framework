@@ -1,110 +1,274 @@
 # MessagePack
 
-An operation can answer MessagePack as well as JSON, and the client's `Accept` decides. Import
-`Hardened.Requests.Serializers.MessagePack`, name the media type on the operation, and annotate the
-model.
+`Hardened.Requests.Serializers.MessagePack` writes and reads MessagePack beside JSON. An operation answers MessagePack when it declares `MessagePackContentType.Value` with `[Produces]` and the request's `Accept` asks for it.
+
+`[MessagePackSerializerLibrary]` on a module registers the writer and the reader. The library module in `src/Todos/TodosLibrary.cs` carries it. The module is the one that `--serializer message-pack-keyed` scaffolds, without the `[JsonErrorBodies]` that the template also puts on it. [Error and built-in response bodies](#error-and-built-in-response-bodies) covers that attribute.
 
 ```csharp
+using DependencyModules.Runtime.Interfaces;
+using Hardened.Requests.Serializers.MessagePack;
+using Hardened.Shared.Runtime.Attributes;
+using Hardened.Web.Runtime.Attributes;
+using Hardened.Web.Runtime.DependencyInjection;
+using Hardened.Web.Runtime.OpenApi;
+using Microsoft.Extensions.DependencyInjection;
+using System.Text.Json.Serialization.Metadata;
+
+namespace Todos;
+
 [HardenedModule]
 [HardenedWebModule]
 [MessagePackSerializerLibrary]
-public partial class AppLibrary;
-
-[MessagePackObject]
-public partial record Reading([property: Key(0)] string Sensor, [property: Key(1)] int Value);
-
-[Get("/readings/{id}")]
-[Produces(KnownContentType.Json, MessagePackContentType.Value)]
-public Reading Get(int id) => new("sensor-" + id, id * 3);
+[BasePath("/todos")]
+[Server("http://localhost:5080", "Local")]
+[Enable<OpenApiDocumentPublishing>]
+public partial class TodosLibrary : IServiceCollectionConfiguration
+{
+    public void ConfigureServices(IServiceCollection services)
+    {
+        services.AddSingleton<IJsonTypeInfoResolver>(TodosJsonContext.Default);
+    }
+}
 ```
 
-```
-GET /readings/3
-Accept: application/x-msgpack
-```
-
-The media type is `application/x-msgpack`, and that is the only spelling. `application/msgpack` and
-`application/vnd.msgpack` are both in use; supporting more than one would not work, because the
-compile-time binding resolves a serializer by an exact lookup on its own content type.
-
-Importing the package changes what nothing answers. The serializer registers under
-`application/x-msgpack` and is asked only where an operation declares it, so a service that imports
-the package and declares nothing still answers JSON everywhere. It also installs formatters for
-Hardened's own response bodies — see [below](#hardened-s-own-response-bodies).
-
-JSON is listed first above, so a client expressing no preference gets JSON. The order is the
-operation's.
-
-## The request side is not negotiated
-
-A reader is chosen by the inbound `Content-Type`, whether or not the operation names the media type.
-So a handler with a body reads MessagePack from a client that sends it and JSON from one that does
-not, with nothing declared.
-
-## Annotating the model
-
-MessagePack writes a formatter for a type at build, from `[MessagePackObject]` and a `partial`
-declaration. There is no reflection fallback in the resolver chain this package installs, which is
-deliberate: a model nobody annotated would serialize on a developer's machine and throw
-`PlatformNotSupportedException` after a NativeAOT publish, and the one configuration where the
-mistake is invisible must not be the one you build in. A model that is not annotated fails the same
-way everywhere.
-
-Two ways to identify a member on the wire.
-
-**By name.** `[MessagePackObject(true)]` is `keyAsPropertyName`. Pin the name the document
-publishes rather than leaving the C# member's:
+MessagePack writes a model through a formatter. MessagePack's source generator writes the formatter for a type with `[MessagePackObject]`, such as `Todo` in `src/Todos/TodoStore.cs`:
 
 ```csharp
-[MessagePackObject(true)]
-public partial record Reading([property: Key("sensor")] string Sensor);
+using MessagePack;
+
+namespace Todos;
+
+[MessagePackObject]
+public partial record Todo(
+    [property: Key(0)] int Id,
+    [property: Key(1)] string Title,
+    [property: Key(2)] bool Done
+);
 ```
 
-Without the `[Key]` the wire carries `Sensor`, and a client generated from a document that says
-`sensor` reads nothing.
+The operation in `src/Todos/TodoController.cs` declares both media types:
 
-**By index.** `[MessagePackObject]` and `[Key(n)]`. Smaller on the wire, and the identity survives a
-rename. The numbers are the contract: renaming `Sensor` is free, renumbering it breaks every client
-generated before the change.
+```csharp
+using Hardened.Requests.Abstract.Attributes;
+using Hardened.Requests.Abstract.Headers;
+using Hardened.Requests.Abstract.Responses;
+using Hardened.Requests.Serializers.MessagePack;
+using Hardened.Web.Runtime.Attributes;
+using Hardened.Web.Runtime.Responses;
+using ValidationModules.Constraints;
 
-## The index reaches the document
+namespace Todos;
 
-A key is no use to a client generator that cannot see it, so Hardened publishes it as
-`x-message-pack-index` on the property's schema:
+public class TodoController
+{
+    [Operation("getTodo")]
+    [Get("/{id}")]
+    [Produces(KnownContentType.Json, MessagePackContentType.Value)]
+    public async Task<Response<Todo, NotFound>> ById(ITodoStore store, [Range(Min = 1)] int id)
+    {
+        var todo = await store.Find(id);
+
+        if (todo is null)
+        {
+            return new NotFound("todo", $"No todo has id {id}.");
+        }
+
+        return todo;
+    }
+}
+```
+
+The operation answers these two requests:
+
+```http
+GET /todos/1
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"id":1,"title":"Read the generated code","done":true}
+```
+
+```http
+GET /todos/1
+Accept: application/x-msgpack
+
+HTTP/1.1 200 OK
+Content-Type: application/x-msgpack
+```
+
+The second response's body is these bytes, in hex:
+
+```text
+93 01 b7 52 65 61 64 20 74 68 65 20 67 65 6e 65 72 61 74 65 64 20 63 6f 64 65 c3
+```
+
+The body decodes to the array `[1, "Read the generated code", true]`.
+
+## Adding the package
+
+Run this command in the solution directory:
+
+```bash
+dotnet add src/Todos package Hardened.Requests.Serializers.MessagePack --version 0.0.0-HARDENED-VERSION
+```
+
+The package depends on `MessagePack` 3.1.8, which brings MessagePack's source generator into the project.
+
+The template's solution uses central package management. There, the command adds a `PackageReference` to `src/Todos/Todos.csproj` and a `PackageVersion` to `Directory.Packages.props`. The `PackageVersion` holds the version as a literal. The template's other Hardened packages use `$(HardenedVersion)`.
+
+`dotnet new hardened-web --serializer message-pack-keyed` or `message-pack-named` adds the package, the module attribute and the declarations. [Project templates](/guide/project-templates) covers the option.
+
+## Declaring MessagePack on an operation
+
+`MessagePackContentType` is in the namespace `Hardened.Requests.Serializers.MessagePack`. Its `Value` is `application/x-msgpack`. The package changes no response by itself, because the MessagePack writer is not a default writer. The declaration and the request's `Accept` decide the response:
+
+| Operation | `Accept` | Response |
+|---|---|---|
+| No media type declared | `application/x-msgpack` | JSON |
+| `[Produces(KnownContentType.Json, MessagePackContentType.Value)]` | None | JSON |
+| `[Produces(KnownContentType.Json, MessagePackContentType.Value)]` | `application/x-msgpack` | MessagePack |
+| `[Produces(KnownContentType.Json, MessagePackContentType.Value)]` | `application/msgpack` or `application/vnd.msgpack` | 406 |
+| `[Produces(MessagePackContentType.Value)]` | None | MessagePack |
+| `[Produces(MessagePackContentType.Value)]` | `application/json` | 406 |
+
+`application/x-msgpack` is the only spelling. A request for `application/msgpack` gets a 406:
+
+```http
+GET /todos/1
+Accept: application/msgpack
+
+HTTP/1.1 406 Not Acceptable
+Content-Type: application/json
+
+{"type":"NotAcceptable","message":"This operation produces application/json, application/x-msgpack.","details":"application/json, application/x-msgpack"}
+```
+
+The package tells the build that it writes `application/x-msgpack`, so the build does not warn `HRDR012` when an operation declares it. [Content negotiation](/guide/content-negotiation) covers `[Produces]`, how `Accept` is matched and the 406.
+
+## Request bodies
+
+A body whose `Content-Type` contains `application/x-msgpack` is read as MessagePack, whatever the operation declares. Any other body is read as JSON. A request body model needs a MessagePack formatter too. The template's `NewTodo` carries `[MessagePackObject]`.
+
+This request creates a todo from a MessagePack body:
+
+```http
+POST /todos
+Content-Type: application/x-msgpack
+Accept: application/x-msgpack
+
+HTTP/1.1 201 Created
+Content-Type: application/x-msgpack
+Location: /todos/3
+```
+
+The first line is the request body and the second is the response body, in hex:
+
+```text
+91 a8 42 75 79 20 6d 69 6c 6b
+93 03 a8 42 75 79 20 6d 69 6c 6b c2
+```
+
+The request body is the array `["Buy milk"]`, a keyed `NewTodo`. The response decodes to `[3, "Buy milk", false]`.
+
+[Content negotiation](/guide/content-negotiation) covers how the deserializer is chosen.
+
+## Keying a model
+
+A model's MessagePack attributes decide its shape on the wire and what the OpenAPI document adds for it:
+
+| Model | On the wire | In the OpenAPI document |
+|---|---|---|
+| `[MessagePackObject]`, `[Key(n)]` on each member | An array, in index order | `"x-message-pack-index": n` on each property |
+| `[MessagePackObject(true)]`, `[Key("id")]` on each member | A map keyed `id`, `title`, `done` | Nothing added |
+| `[MessagePackObject(true)]` with no `[Key]` | A map keyed `Id`, `Title`, `Done` | Nothing added |
+| No `[MessagePackObject]` | 500, with an empty body | Nothing added |
+
+The index in `[Key(n)]` is the key on the wire, so changing it breaks a client built before the change. Renaming the member does not.
+
+Under `[MessagePackObject(true)]`, each member's key is its C# name unless `[Key("name")]` gives another. The OpenAPI document publishes the JSON name, so pin the key to it. The template declares `Todo` this way for `--serializer message-pack-named`:
+
+```csharp
+using MessagePack;
+
+namespace Todos;
+
+[MessagePackObject(true)]
+public partial record Todo(
+    [property: Key("id")] int Id,
+    [property: Key("title")] string Title,
+    [property: Key("done")] bool Done
+);
+```
+
+With this model, a request for MessagePack gets a map:
+
+```http
+GET /todos/1
+Accept: application/x-msgpack
+
+HTTP/1.1 200 OK
+Content-Type: application/x-msgpack
+```
+
+The body is these bytes, in hex:
+
+```text
+83 a2 69 64 01 a5 74 69 74 6c 65 b7 52 65 61 64 20 74 68 65 20 67 65 6e 65 72 61 74 65 64 20 63 6f 64 65 a4 64 6f 6e 65 c3
+```
+
+It decodes to the map `{"id": 1, "title": "Read the generated code", "done": true}`.
+
+MessagePack's source generator also uses an `IMessagePackFormatter<T>` declared in the project, with no registration.
+
+::: warning
+The package has no fallback for a model with no MessagePack formatter. The build reports nothing. JSON responses are unaffected. A request for MessagePack gets a 500 with an empty body. In a contract, no generated model has a formatter when the build property `HardenedSerializer` is not set.
+:::
+
+## Keys in the OpenAPI document
+
+A member with `[Key(n)]` publishes `"x-message-pack-index": n` on its property's schema. Hardened adds no index of its own. `[Key("name")]` publishes nothing. The OpenAPI document describes the keyed `Todo` this way:
 
 ```json
-"Reading": {
+"Todo": {
   "type": "object",
+  "description": "A todo, as it goes over the wire.",
+  "required": [
+    "id",
+    "title",
+    "done"
+  ],
   "properties": {
-    "sensor": { "type": "string", "x-message-pack-index": 0 },
-    "value":  { "type": "integer", "format": "int32", "x-message-pack-index": 1 }
+    "id": {
+      "type": "integer",
+      "format": "int32",
+      "x-message-pack-index": 0
+    },
+    "title": {
+      "type": "string",
+      "x-message-pack-index": 1
+    },
+    "done": {
+      "type": "boolean",
+      "x-message-pack-index": 2
+    }
   }
 }
 ```
 
-Code-first, that is read off the `[Key(n)]` you wrote. Hardened does not add the attribute and does
-not invent an index: a source generator cannot add an attribute to a member of a type it did not
-declare, and an index chosen for the document alone would describe a wire format the server does not
-speak.
+[The OpenAPI document](/guide/openapi-document) covers the rest of the schema.
 
-## Specification-first
+## Keys in a contract
 
-A contract states the index, and the build writes the attributes.
+In an OpenAPI-first project, the build property `HardenedSerializer` decides which MessagePack attributes the generated models carry. The value is compared without case. An absent or unknown value is `Json`.
 
-```yaml
-components:
-  schemas:
-    Reading:
-      type: object
-      properties:
-        sensor:
-          type: string
-          x-message-pack-index: 0
-        value:
-          type: integer
-          format: int32
-          x-message-pack-index: 1
-```
+| `HardenedSerializer` | Each generated model carries | Indexes in the contract |
+|---|---|---|
+| `Json`, the default | No MessagePack attributes | Not required |
+| `MessagePackNamed` | `[MessagePackObject(true)]`, and `[Key("name")]` with the contract's property name | Not required |
+| `MessagePackKeyed` | `[MessagePackObject]`, and `[Key(n)]` from `x-message-pack-index` | Required on every property |
+
+`--serializer` sets the property in a scaffolded project. [Project templates](/guide/project-templates) lists its values. A project made with `--serializer message-pack-keyed --contract openapi` carries it in `src/Todos/Todos.csproj`:
 
 ```xml
 <PropertyGroup>
@@ -112,214 +276,242 @@ components:
 </PropertyGroup>
 ```
 
-`$(HardenedSerializer)` takes `Json`, `MessagePackNamed` or `MessagePackKeyed`, and absent means
-`Json`. A build property rather than an attribute, because the models are written by a task that
-runs before the compiler and a task that runs first cannot read one.
+A response declares MessagePack with an `application/x-msgpack` entry under `content:`. The contract in `src/Todos/contracts/todos.yaml` declares both media types for `getTodo`:
 
-Under `MessagePackNamed` nothing has to be stated: the property names are already in the contract,
-and the build pins each one with `[Key("...")]`.
-
-Under `MessagePackKeyed` every member has to state an index, and a member that does not is a build
-error naming the member and the next free index:
-
+```yaml
+paths:
+  /todos/{id}:
+    get:
+      operationId: getTodo
+      responses:
+        '200':
+          description: The todo.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Todo'
+            application/x-msgpack:
+              schema:
+                $ref: '#/components/schemas/Todo'
 ```
-HOAT033: Property 'note' of schema 'Reading' declares no x-message-pack-index, and
-$(HardenedSerializer) is MessagePackKeyed. Nothing assigns one, because an index this build
-chose would move when a property is added above it. Write "x-message-pack-index: 8" on the
-property.
+
+A property states its index with `x-message-pack-index`. A negative index is read as absent. The contract's `Todo` schema gives each property an index:
+
+```yaml
+components:
+  schemas:
+    Todo:
+      type: object
+      required:
+        - id
+        - title
+        - done
+      properties:
+        id:
+          type: integer
+          format: int32
+          x-message-pack-index: 0
+        title:
+          type: string
+          x-message-pack-index: 1
+        done:
+          type: boolean
+          x-message-pack-index: 2
 ```
 
-**Nothing assigns an index.** That is the design rather than a gap. An index taken from declaration
-order moves the first time a property is inserted above it, and the document diff that moved it
-reads as an addition — every client generated before it then reads the wrong member, with nothing
-failing anywhere. An index hashed from the name is stable and collides. A keyed wire format is worth
-having because the key is stable, so the only safe answer is the one the contract states.
+The served document keeps each contract index.
 
-Two members at one index is the same error, for the same reason.
+Under `MessagePackKeyed`, a property with no index fails the build with `HOAT033`. The error names the next free index. This is the error with `x-message-pack-index` removed from `done`:
 
-A member bound to a response header is skipped. It leaves as a header rather than in the body, so it
-is excluded from the payload with `[IgnoreMember]` rather than keyed.
+```text
+src/Todos/contracts/todos.yaml : error HOAT033: Property 'done' of schema 'Todo' declares no x-message-pack-index, and $(HardenedSerializer) is MessagePackKeyed. Nothing assigns one, because an index this build chose would move when a property is added above it. Write "x-message-pack-index: 2" on the property.
+```
 
-The index round-trips: the parser reads it on the way in and the generator writes it back out, so a
-service generated from a published document gets the indices the original contract declared.
+Two properties at one index fail with `HOAT033` too. This is the error with `title` given index 0:
 
-## Generating a client
+```text
+src/Todos/contracts/todos.yaml : error HOAT033: Schema 'Todo' keys both 'id' and 'title' to x-message-pack-index 0. One index identifies one member; give one of them another.
+```
 
-The document carries the key; a generator has to be taught to read it. For Refitter that is two
-Liquid files, which the project templates ship:
+## `oneOf` schemas
 
-```json
+A `oneOf` schema gets no MessagePack formatter. Under `MessagePackNamed` or `MessagePackKeyed`, the build warns `HOAT034`. This is the warning for a `Payload` schema that is a `oneOf` of `Todo` and `NewTodo`, answered by `getPayload`:
+
+```text
+src/Todos/contracts/todos.yaml : warning HOAT034: Schema 'Payload' is a oneOf, and MessagePack does not carry one - a choice is resolved from a discriminator in the payload, which is a JSON-only shape here. It is generated and serialized as JSON as before; an operation that answers it as application/x-msgpack fails at the response. Declare that operation as JSON only.
+```
+
+The operation still answers the `oneOf` as JSON. A request for MessagePack gets a 500 with an empty body. Declare an operation that answers a `oneOf` as JSON only.
+
+## Error and built-in response bodies
+
+An operation that declares MessagePack sends a failure as MessagePack to a request for it: the 404 the handler returns, a validation or bind 400, a 409 and a 500. This is the 404 from `getTodo`, on a module without `[JsonErrorBodies]`:
+
+```http
+GET /todos/99
+Accept: application/x-msgpack
+
+HTTP/1.1 404 Not Found
+Content-Type: application/x-msgpack
+```
+
+The body decodes to the map `{"resource": "todo", "detail": "No todo has id 99.", "type": "urn:hardened:problem:not-found", "title": "Not Found", "status": 404}`.
+
+Hardened's own response bodies go out this way:
+
+| Response | MessagePack body |
+|---|---|
+| The error envelopes, `ErrorModel` and `RequestValidationError` | A map |
+| A built-in response record that carries a body, such as `NotFound` or `Conflict` | A map |
+| A generic response record, such as `Created<T>` | Its payload, written by the payload's own formatter |
+| A response record with no body, such as `NoContent` | Nothing |
+
+`HardenedFormatterResolver` writes the maps. Each map has the keys and the order of its JSON body, under `MessagePackKeyed` too.
+
+`[JsonErrorBodies]` on the module answers every failure as JSON instead. [Content negotiation](/guide/content-negotiation) covers it. `--serializer message-pack-named` and `message-pack-keyed` put `[JsonErrorBodies]` on the scaffold's library module.
+
+A .NET client that reads one of these bodies composes `HardenedFormatterResolver.Instance` into its options. This `Program.cs` is from a console project that references `Hardened.Requests.Serializers.MessagePack`:
+
+```csharp
+using Hardened.Requests.Serializers.MessagePack;
+using Hardened.Web.Runtime.Responses;
+using MessagePack;
+using MessagePack.Resolvers;
+
+var options = MessagePackSerializerOptions.Standard.WithResolver(
+    CompositeResolver.Create([], [HardenedFormatterResolver.Instance, StandardResolver.Instance])
+);
+
+using var http = new HttpClient();
+
+using var request = new HttpRequestMessage(HttpMethod.Get, "http://localhost:5080/todos/99");
+
+request.Headers.Accept.ParseAdd("application/x-msgpack");
+
+using var response = await http.SendAsync(request);
+
+var notFound = MessagePackSerializer.Deserialize<NotFound>(
+    await response.Content.ReadAsByteArrayAsync(),
+    options
+);
+
+Console.WriteLine($"{(int)response.StatusCode} {notFound.Title}: {notFound.Detail}");
+```
+
+The program prints `404 Not Found: No todo has id 99.`
+
+## Adding a resolver
+
+An `IFormatterResolver` registered in the container is asked before the package's own resolvers, for every type. `NativeGuidResolver` from MessagePack writes a `Guid` as 16 bytes rather than as a 36-character string. This `ConfigureServices` in `src/Todos/TodosLibrary.cs` registers it. The `using` lines at the top are the ones the change adds to the file:
+
+```csharp
+using MessagePack;
+using MessagePack.Resolvers;
+
+public void ConfigureServices(IServiceCollection services)
 {
-  "openApiPath": "../App/openapi/App.json",
-  "customTemplateDirectory": "templates"
+    services.AddSingleton<IJsonTypeInfoResolver>(TodosJsonContext.Default);
+
+    services.AddSingleton<IFormatterResolver>(NativeGuidResolver.Instance);
 }
 ```
 
-`Class.Annotations.liquid` puts `[MessagePackObject]` on each generated contract and
-`Class.Property.Annotations.liquid` puts `[Key]` on each member, reading
-`property.ExtensionData["x-message-pack-index"]`. NJsonSchema ships both templates empty and renders
-them into every class and property, so overriding them adds attributes and changes nothing else; a
-custom template directory overrides one file at a time and falls back to the embedded template for
-every name it does not find.
+## Changing the options
 
-**The attributes alone do not change the wire.** Refit picks its format from
-`RefitSettings.ContentSerializer`, and the default is System.Text.Json — so a generated client with
-every key in the right place still sends and receives JSON until it is given one:
+`MessagePackSerializerConfiguration` is a configuration model in the namespace `Hardened.Requests.Serializers.MessagePack`. Amend it the way any configuration model is amended. [Configuration](/guide/configuration) covers `AppConfig`.
+
+The model's `OptionsProvider` is a function from the service provider to the `MessagePackSerializerOptions` that the writer and the reader use. The function returns `MessagePackSerializerOptions.Standard` by default.
+
+The package replaces the resolver of the options that the function returns with its own. A resolver chosen there is not used. Register a resolver in the container instead.
+
+This `ConfigureServices` in `src/Todos/TodosLibrary.cs` amends the configuration model. The `using` lines at the top are the ones the change adds to the file:
 
 ```csharp
-var client = RestService.For<ITodosClient>(
-    http, new RefitSettings { ContentSerializer = new MessagePackContentSerializer() });
+using Hardened.Shared.Runtime.Configuration;
+using MessagePack;
+
+public void ConfigureServices(IServiceCollection services)
+{
+    services.AddSingleton<IJsonTypeInfoResolver>(TodosJsonContext.Default);
+
+    var config = new AppConfig();
+
+    config.Amend(
+        (MessagePackSerializerConfiguration messagePack) =>
+            messagePack.OptionsProvider = _ =>
+                MessagePackSerializerOptions.Standard.WithCompression(
+                    MessagePackCompression.Lz4BlockArray
+                )
+    );
+
+    services.AddSingleton<IConfigurationPackage>(config);
+}
 ```
 
-The template writes that serializer into the client project — about fifty lines over `Refit` and
-`MessagePack`, and no Hardened package, because every body it reads is one of its own generated
-contracts. It is yours to edit: adding LZ4 compression, or a resolver for a type you wrote by hand,
-happens there. `tests/App.Tests/MessagePackClientFactory.cs` hands it to the client the tests drive, so every
-client test in a scaffolded project runs over MessagePack — the typed 404, 409 and 400 bodies
-included.
+With these options, a response body goes out compressed with LZ4. A short body goes out uncompressed. A client must read LZ4 to read a compressed body.
 
-**The order in the contract is the client's preference.** Refitter reads an operation's media types
-in document order and pins them on the interface as
-`[Headers("Accept: application/json, application/x-msgpack")]`. That header is on the request, and a
-header on the request wins over `HttpClient.DefaultRequestHeaders` — so a client cannot change its
-mind by setting a default, and overrides `Accept` per request through a `DelegatingHandler`.
-Whichever representation you want your clients to reach for by default, declare it first.
+## The reference page
 
-### Refit cannot read a binary error body
-
-`ApiException` carries the response content as a `string`. Refit reads an error response with
-`ReadAsStringAsync` and disposes the content, and `GetContentAsAsync<T>()` re-wraps that string for
-your serializer — so bytes that are not valid UTF-8 are U+FFFD before anything is asked to parse
-them. Request bodies and success bodies are unaffected; those reach the serializer as real
-`HttpContent`.
-
-Nothing on the client can recover them, so the answer is on the service: send text.
+`DecodeMessagePack = true` on `[HardenedOpenApiUi]` makes the reference page decode MessagePack response bodies in its request panel and show them as JSON. `src/Todos.Host/Application.cs` sets it:
 
 ```csharp
+using Hardened.Shared.Runtime.Attributes;
+using Hardened.Web.Kestrel.Runtime;
+using Hardened.Web.Runtime.OpenApi;
+
+namespace Todos.Host;
+
 [HardenedModule]
-[HardenedWebModule]
-[MessagePackSerializerLibrary]
-[JsonErrorBodies]
-public partial class AppLibrary;
+[KestrelRuntime]
+[HardenedOpenApiUi(Title = "Todos", Environments = "development", DecodeMessagePack = true)]
+[TodosLibrary]
+public partial class Application;
 ```
 
-Every failed request then answers JSON whatever it negotiated, and successes are untouched. A
-description says the same with `x-hardened-error-bodies: json` at its root.
+The page decodes bodies of `application/x-msgpack` and `application/msgpack`. JSON bodies keep the page's own rendering. A keyed body is shown with the document's property names, read from `x-message-pack-index`. An array that the indexes do not fit is shown as it arrived. The indexes do not fit when a property has no index or the array is too short.
 
-It is one answer for the whole service, for the reason `[ContentNegotiation]` is: a policy that has
-to be repeated is one that ends up applied unevenly. And the published document follows — an error
-response declares `application/json` and nothing else — so a generated client reads what it is
-actually sent.
+The page loads the decoder from `MessagePackScriptUrl`. By default, that is `@msgpack/msgpack` 3.1.3 on jsDelivr. [The OpenAPI document](/guide/openapi-document) covers the page's other properties, and what the setting changes about the page's scripts.
 
-The client side is then one serializer that reads both, which is what a client facing a negotiating
-service should be anyway. The template's `MessagePackContentSerializer` dispatches on the payload:
-a body starting `{` or `[` is JSON, everything else is MessagePack. It sniffs rather than reading
-the content type because `GetContentAsAsync` throws that away, and it is safe for the bodies in
-play — a MessagePack map header is `0x80`–`0x8F`, `0xDE` or `0xDF`, and an array `0x90`–`0x9F`,
-`0xDC` or `0xDD`.
+## A Refit client
 
-Two more things Refitter decides for you. It pins the document's media types on the interface as
-`[Headers("Accept: ...", "Content-Type: ...")]`, in document order, and a header on the request
-wins over `HttpClient.DefaultRequestHeaders` — so a client preferring the other representation
-overrides both through a `DelegatingHandler`. Leave `Content-Type` alone and the service reads a
-MessagePack body as JSON and answers 400.
+With `--client refit`, the template's client project carries the MessagePack attributes on its models. [Generated clients](/guide/clients) covers what the template adds.
 
-Kiota is not supported and not for want of an extension point. Its models carry no serialization
-attributes at all — they implement `IParsable` with hand-written `Serialize` and
-`GetFieldDeserializers` — so an attribute would have nothing to act on. Supporting MessagePack
-through Kiota means writing a Kiota serialization writer.
+A Refit client sends and reads JSON until `RefitSettings.ContentSerializer` is set. The template writes `MessagePackContentSerializer` into the client project for it. The serializer reads a body that starts with `{` or `[` as JSON, and any other body as MessagePack.
 
-## Scaffolding
+The generated interface puts the document's media types on each call as headers. The call with a body carries `[Headers("Accept: application/json, application/x-msgpack", "Content-Type: application/json")]`. A header on the call wins over `HttpClient.DefaultRequestHeaders`. To send and receive MessagePack, replace both headers on each request with a `DelegatingHandler`. The template's `MessagePackClientFactory`, in the test project, does this.
 
-```bash
-dotnet new hardened-web -n Sample --serializer message-pack-keyed --contract openapi --client refit
+Refit reads an error response's body as a string, so it cannot read a MessagePack error body. Declare `[JsonErrorBodies]`, which the template does.
+
+## Limits
+
+A request body that cannot be read gets one of these responses:
+
+| Request body | Response |
+|---|---|
+| MessagePack that does not decode | 500, with a `ServerError` body |
+| An empty MessagePack body | 500, with a `ServerError` body |
+| A MessagePack map, where the model is keyed by index | 500, with a `ServerError` body |
+| JSON that does not parse | 400 |
+
+This request sends the one-byte body `c1`:
+
+```http
+POST /todos
+Content-Type: application/x-msgpack
+
+HTTP/1.1 500 Internal Server Error
+Content-Type: application/json
+
+{"type":"ServerError","message":"The server could not complete this request.","details":""}
 ```
 
-`--serializer` takes `json`, `message-pack-named` and `message-pack-keyed`. It wires the package,
-the module attribute, the media types on the contract and the two Liquid templates.
+The OpenAPI document lists a request body under `application/json` alone, including when a contract lists `application/x-msgpack` for it.
 
-It cannot be combined with `--contract smithy`. A Smithy model states its wire format through its
-protocol trait, and there is no MessagePack protocol to state — so the contract has nowhere to say
-that an operation answers `application/x-msgpack`, and nowhere to state a member's index.
+## Next
 
-## Hardened's own response bodies
-
-They are covered, so an operation can declare MessagePack whatever it answers with.
-
-`ExceptionResponseSerializer` negotiates the error body through the same locator the success goes
-through, so an operation declaring MessagePack answers its refusals as MessagePack — and a declared
-status whose body is a framework type does the same. `HardenedFormatterResolver` answers for the two
-error envelopes, `ErrorModel` and `RequestValidationError`, and for every built-in response type
-that reaches a serializer:
-
-```csharp
-[Get("/readings/{id}")]
-[Produces(KnownContentType.Json, MessagePackContentType.Value)]
-public Response<Reading, NotFound> Get(int id) => ...   // the 404 answers MessagePack too
-```
-
-None of those types can carry `[MessagePackObject]` themselves — they live in
-`Hardened.Requests.Abstract`, `.Runtime` and `Hardened.Web.Runtime`, which every application
-references and none of which is taking a MessagePack dependency for them. The formatters are
-written by hand in the serializer package instead, with the keys and the member order the JSON
-representation uses, so a caller switching on `type` reads the same body either way.
-
-**Named keys, under the keyed mode too.** The document publishes no `x-message-pack-index` for a
-framework type, so a client generated from it keys these by name whichever mode it is in. Writing
-integers would disagree with every such client on every error body.
-
-Most of the built-in types never reach a serializer at all, which is why this is a short list. The
-generated dispatch assigns `ICarriesResponseBody.Body` rather than the wrapper, so `Created<T>`,
-`NotFound<T>` and the other generic wrappers send their payload; a type with `HasBody => false` —
-`NoContent`, `Accepted`, `NotModified` — writes nothing.
-
-A .NET client reading one of these bodies composes options with the same resolver:
-
-```csharp
-var options = MessagePackSerializerOptions.Standard
-    .WithResolver(CompositeResolver.Create(
-        [], [HardenedFormatterResolver.Instance, StandardResolver.Instance]));
-```
-
-## A `oneOf` is JSON only
-
-MessagePack does not carry a choice, and will not. The JSON side resolves one with a generated
-converter that reads a discriminator out of the payload before it knows which type to build;
-MessagePack binds a formatter to a static type at build and has no equivalent step, and a binary
-format that carries no discriminator of its own is the wrong place to put a choice.
-
-So a contract declaring a `oneOf` generates and serializes it as JSON exactly as before, and the
-build says the other representation is short of it:
-
-```
-HOAT034: Schema 'Payload' is a oneOf, and MessagePack does not carry one - a choice is
-resolved from a discriminator in the payload, which is a JSON-only shape here. It is
-generated and serialized as JSON as before; an operation that answers it as
-application/x-msgpack fails at the response. Declare that operation as JSON only.
-```
-
-A warning rather than an error, because a contract is free to declare a choice that no MessagePack
-operation ever answers with.
-
-## Answering for a type the generator skipped
-
-Register an `IFormatterResolver` with the container. Registered resolvers are composed ahead of the
-package's own chain, so they are asked first:
-
-```csharp
-public void ConfigureServices(IServiceCollection services) {
-    services.AddSingleton<IFormatterResolver>(MyResolver.Instance);
-}
-```
-
-`MessagePackSerializerConfiguration` is a `[ConfigurationModel]`, so the options themselves are
-amended the way any model is — see [Configuration](/guide/configuration). Its `OptionsProvider` is a
-factory over the service provider, because a resolver worth configuring is usually one built from
-something in the container.
-
-## Where to go next
-
-- [Content negotiation](/guide/content-negotiation) — how `Accept` is matched, and what a 406 means
-- [Response caching](/guide/response-caching#caching-an-operation-that-negotiates) — one entry per representation, and `Vary: Accept`
-- [JSON serialization](/guide/json) — the representation every operation still answers
-- [Clients](/guide/clients) — generating one from the published document
+| Page | Covers |
+|---|---|
+| [Content negotiation](/guide/content-negotiation) | `[Produces]`, `Accept` and `[JsonErrorBodies]` |
+| [Generated clients](/guide/clients) | The Refit client project and its templates |
+| [Generating from OpenAPI](/guide/openapi) | A contract as the source of the models |
+| [Project templates](/guide/project-templates) | The `--serializer` option |
