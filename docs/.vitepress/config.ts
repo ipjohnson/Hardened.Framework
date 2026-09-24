@@ -134,13 +134,10 @@ const guide = [
     items: [
       { text: 'Writing a test', link: '/guide/testing' },
       { text: 'Sending requests', link: '/guide/testing-web' },
-      { text: 'Substituting services', link: '/guide/testing-mocks' },
-      { text: 'Credentials', link: '/guide/testing-credentials' },
       { text: 'Typed clients', link: '/guide/testing-clients' },
-      { text: 'Asserting a response', link: '/guide/testing-responses' },
+      { text: 'Substituting services', link: '/guide/testing-mocks' },
       { text: 'Test hosts', link: '/guide/testing-hosts' },
-      { text: 'Steps and retries', link: '/guide/testing-steps' },
-      { text: 'Writing a test attribute', link: '/guide/testing-attributes' },
+      { text: 'Testing functions', link: '/guide/testing-functions' },
     ],
   },
   {

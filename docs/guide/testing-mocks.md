@@ -1,142 +1,395 @@
 # Substituting services
 
-`[Mock]` on a parameter replaces a service for the whole application and hands the substitute to
-the test. The handler, the service that calls it and the test all hold the one instance.
+`[Mock]` on a test parameter registers a test double for the parameter's type in the test's
+container, in place of the application's own registration. The test receives the same double that
+the application's code resolves.
 
 ```csharp
+using DependencyModules.Testing.Attributes;
+using Hardened.Shared.Testing.Attributes;
+using Hardened.Web.Testing;
 using NSubstitute;
+using Xunit;
 
-public class OrderServiceTests {
+namespace Todos.Tests;
+
+public class TodoMockTests
+{
+    [HardenedTest]
+    public async Task GetTodo_ReadsTheMock(ITestWebApp app, [Mock] ITodoStore store)
+    {
+        store.Find(1).Returns(new Todo(1, "from the mock", false));
+
+        var response = await app.Get("/todos/1");
+
+        Assert.Equal("from the mock", response.Deserialize<Todo>().Title);
+        await store.Received().Find(1);
+    }
+}
+```
+
+The handler calls the double that the test set up. The test can check those calls afterwards.
+
+The examples are tests in `tests/Todos.Tests`, the test project of `dotnet new hardened-web -n Todos`.
+`ITodoStore` is the template's store, which starts with two todos, ids 1 and 2.
+
+`[Mock]` is `MockAttribute` in `DependencyModules.Testing.Attributes`. `Hardened.Shared.Testing`
+brings it through its dependency on `DependencyModules.Testing`.
+
+The runner registers `[Mock]` parameters after the application's modules and after every test
+registration attribute, so the mock replaces both.
+
+## Mock libraries
+
+`[Mock]` asks a mock library for the double. A support attribute names the library.
+
+| Library | Package | Attribute | Namespace |
+|---|---|---|---|
+| NSubstitute | `DependencyModules.NSubstitute` | `[NSubstituteSupport]` | `DependencyModules.NSubstitute` |
+| Moq | `DependencyModules.Moq` | `[MoqSupport]` | `DependencyModules.Moq` |
+| FakeItEasy | `DependencyModules.FakeItEasy` | `[FakeItEasySupport]` | `DependencyModules.FakeItEasy` |
+
+The support attribute goes on a method, a class or the assembly. The template puts it on the
+assembly in `Bootstrap.cs`, which [Writing a test](/guide/testing) covers. `--mocks` chooses the
+library when the template writes the project. [Project templates](/guide/project-templates) covers
+the option.
+
+Without a support attribute in scope, a test with a `[Mock]` parameter fails with
+`System.Exception`: "Mock library not found, please ensure the Type or Assembly is attributed
+correctly."
+
+With FakeItEasy, the test sets up the parameter with `A.CallTo(() => store.Find(1)).Returns(...)`.
+
+A mock replaces the whole service, so a member that the test does not set up returns the
+library's default. With an unconfigured `[Mock] ITodoStore`, `GET /todos/2` answers 404. Moq's mocks are
+loose, so an unconfigured member returns the default under Moq too.
+
+## Moq's `Mock<T>`
+
+Under `[MoqSupport]`, a parameter typed `Mock<ITodoStore>` receives the Moq mock. The container
+resolves `ITodoStore` to the mock's `Object`. The parameter needs no `[Mock]`.
+
+```csharp
+using Hardened.Shared.Testing.Attributes;
+using Hardened.Web.Testing;
+using Moq;
+using Xunit;
+
+namespace Todos.Tests;
+
+public class TodoMoqTests
+{
+    [HardenedTest]
+    public async Task GetTodo_ReadsTheMock(ITestWebApp app, Mock<ITodoStore> store)
+    {
+        store.Setup(s => s.Find(1)).ReturnsAsync(new Todo(1, "from the mock", false));
+
+        var response = await app.Get("/todos/1");
+
+        Assert.Equal("from the mock", response.Deserialize<Todo>().Title);
+        store.Verify(s => s.Find(1), Times.Once());
+    }
+}
+```
+
+A parameter typed `ITodoStore` and marked `[Mock]` receives the `Object` instead. `Mock.Get(store)`
+returns the mock behind it. A test that takes both parameters gets one mock. Its
+`[Mock] ITodoStore` is the `Object` of its `Mock<ITodoStore>`.
+
+## A mock across requests
+
+A `[Mock]` is one object for the whole test. Every container that the test builds gets it,
+including the container each request runs in on the pipeline host.
+[Writing a test](/guide/testing) covers the container per request and which hosts build one.
+
+A second method of `TodoMockTests` sends two requests to one mock:
+
+```csharp
+    [HardenedTest]
+    public async Task EveryRequestReachesTheSameMock(ITestWebApp app, [Mock] ITodoStore store)
+    {
+        store.Find(1).Returns(new Todo(1, "from the mock", false));
+
+        await app.Get("/todos/1");
+        await app.Get("/todos/1");
+
+        await store.Received(2).Find(1);
+    }
+```
+
+The mock reaches the handler both through `ITestWebApp` and through a generated client.
+
+A parameter marked both `[Mock]` and `[FromKeyedServices("archive")]` replaces the keyed
+registration. The unkeyed registration stays in place.
+
+## A class of your own
+
+`[TestExport]` registers a class of your own for every test it covers. The attribute is
+`TestExportAttribute` in `DependencyModules.Testing.Attributes`. It goes on a method, a class or
+the assembly. Several can apply to one test.
+
+`EmptyTodoStore` implements `ITodoStore` in the test project:
+
+```csharp
+namespace Todos.Tests;
+
+public sealed class EmptyTodoStore : ITodoStore
+{
+    public Task<IReadOnlyList<Todo>> All() => Task.FromResult<IReadOnlyList<Todo>>([]);
+
+    public Task<Todo?> Find(int id) => Task.FromResult<Todo?>(null);
+
+    public Task<bool> TitleExists(string title) => Task.FromResult(false);
+
+    public Task<Todo> Add(string title) => Task.FromResult(new Todo(1, title, false));
+
+    public Task<bool> Remove(int id) => Task.FromResult(false);
+}
+```
+
+`[TestExport]` on `EmptyStoreTests` registers `EmptyTodoStore` for every test in the class:
+
+```csharp
+using DependencyModules.Testing.Attributes;
+using Hardened.Shared.Testing.Attributes;
+using Hardened.Web.Testing;
+using Xunit;
+
+namespace Todos.Tests;
+
+[TestExport(typeof(ITodoStore), Implementation = typeof(EmptyTodoStore))]
+public class EmptyStoreTests
+{
+    [HardenedTest]
+    public async Task ListsNothing(ITestWebApp app)
+    {
+        var todos = (await app.Get("/todos")).Deserialize<List<Todo>>();
+
+        Assert.Empty(todos);
+    }
+}
+```
+
+The runner registers an export after the application's modules, so it replaces the application's
+registration. A `[Mock]` of the same service on a test still replaces the export.
+
+`Lifetime` sets the registration's lifetime. The default is `ServiceLifetime.Transient`. A test
+parameter of the exported service is the object the requests use only when `Lifetime` is
+`ServiceLifetime.Singleton`. With the default, the test's instance and each request's are
+different objects.
+
+On the pipeline host, a singleton export that no parameter holds is built again for each request.
+`Shared = true` keeps one instance across the requests.
+
+An attribute that implements `IHardenedTestDependencyRegistrationAttribute` does the same in code.
+Its registrations also come after the application's modules.
+
+```csharp
+using System.Reflection;
+using Hardened.Shared.Runtime.Application;
+using Hardened.Shared.Testing.Attributes;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Todos.Tests;
+
+public sealed class EmptyStoreAttribute : Attribute, IHardenedTestDependencyRegistrationAttribute
+{
+    public void RegisterDependencies(
+        AttributeCollection attributeCollection,
+        MethodInfo methodInfo,
+        IHardenedEnvironment environment,
+        IServiceCollection serviceCollection
+    )
+    {
+        serviceCollection.AddSingleton<ITodoStore, EmptyTodoStore>();
+    }
+}
+```
+
+With `[EmptyStore]` on a test, `GET /todos` lists nothing:
+
+```csharp
+    [HardenedTest]
+    [EmptyStore]
+    public async Task ListsNothing(ITestWebApp app)
+    {
+        var todos = (await app.Get("/todos")).Deserialize<List<Todo>>();
+
+        Assert.Empty(todos);
+    }
+```
+
+## Writing a test attribute
+
+An attribute that implements one of five interfaces in `Hardened.Shared.Testing.Attributes` runs
+at a fixed point while each test is built. The runner calls them in this order:
+
+| Interface | Runs | Receives |
+|---|---|---|
+| `IHardenedTestEnvironmentAttribute` | When the environment is built, before the modules, after the `[EnvironmentValue]` values are in | The environment's name, and its values as an `IDictionary<string, object>` to change |
+| `IHardenedTestDependencyRegistrationAttribute` | After the application's modules | The `IServiceCollection` |
+| `IHardenedParameterProviderAttribute` | After the registration attributes | The `IServiceCollection`, and `null` for the parameter |
+| `IHardenedTestConfigurationAttribute` | After the parameter providers | An `IAppConfig` |
+| `IHardenedTestStartupAttribute` | After the container is built and the application's startup services have run, in every container the test builds | The `IServiceProvider` |
+
+The runner reads these attributes from the method, its class and the assembly. All five
+interfaces extend `IHardenedOrderedAttribute`. Its `Order` defaults to 10. Attributes of one
+interface run in `Order`, lowest first, across the method, the class and the assembly.
+
+Each interface method also receives an `AttributeCollection` and the test's `MethodInfo`. The
+collection holds the attributes of the method, its class and the assembly. `GetAttribute<T>()`
+returns the attribute of type `T` from the narrowest of the three. `GetAttributes<T>()` returns
+all of them.
+
+An environment attribute can set any number of values. Each attribute target can carry only one
+`[EnvironmentValue]`. `FeatureFlagsAttribute` sets two values:
+
+```csharp
+using System.Reflection;
+using Hardened.Shared.Testing.Attributes;
+
+namespace Todos.Tests;
+
+public sealed class FeatureFlagsAttribute : Attribute, IHardenedTestEnvironmentAttribute
+{
+    public void ConfigureEnvironment(
+        AttributeCollection attributeCollection,
+        MethodInfo methodInfo,
+        string environmentName,
+        IDictionary<string, object> environment
+    )
+    {
+        environment["TODOS_EXPORT"] = "on";
+        environment["TODOS_ARCHIVE"] = "on";
+    }
+}
+```
+
+An environment attribute's value replaces an `[EnvironmentValue]` for the same variable.
+[Writing a test](/guide/testing) covers `[EnvironmentValue]`.
+
+The runner never calls `IHardenedParameterProviderAttribute.ProvideParameterValue`. A parameter
+comes from the container, so a registration attribute that registers the parameter's type
+supplies it.
+
+The `IAppConfig` that a configuration attribute receives is registered as the test's
+`IConfigurationPackage`. Its amendments run when a model is first built, after the application's
+amendments. [Configuration](/guide/configuration) covers `Amend`. `PageSizeAttribute` amends
+`TodoListOptions`, the model from that page:
+
+```csharp
+using System.Reflection;
+using Hardened.Shared.Runtime.Application;
+using Hardened.Shared.Runtime.Configuration;
+using Hardened.Shared.Testing.Attributes;
+
+namespace Todos.Tests;
+
+public sealed class PageSizeAttribute(int size) : Attribute, IHardenedTestConfigurationAttribute
+{
+    public void Configure(
+        AttributeCollection attributeCollection,
+        MethodInfo methodInfo,
+        IHardenedEnvironment environment,
+        IAppConfig appConfig
+    )
+    {
+        appConfig.Amend((TodoListOptions options) => options.PageSize = size);
+    }
+}
+```
+
+`ExtraTodoAttribute` is a startup attribute that adds a todo through the application's
+`ITodoStore`:
+
+```csharp
+using System.Reflection;
+using Hardened.Shared.Runtime.Application;
+using Hardened.Shared.Testing.Attributes;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Todos.Tests;
+
+public sealed class ExtraTodoAttribute(string title) : Attribute, IHardenedTestStartupAttribute
+{
+    public async Task Startup(
+        AttributeCollection attributeCollection,
+        MethodInfo methodInfo,
+        IHardenedEnvironment environment,
+        IServiceProvider serviceProvider
+    )
+    {
+        await serviceProvider.GetRequiredService<ITodoStore>().Add(title);
+    }
+}
+```
+
+::: warning
+A startup attribute runs again in each container that a request runs in. A service that the test
+takes as a parameter is the same object in all of those containers, so the attribute runs on it
+once per container. With `ITodoStore` as a parameter and `[ExtraTodo("Write a test")]`, the store
+holds the seeded todo twice after one request.
+:::
+
+The tests in `TestAttributeTests` carry the four attributes:
+
+```csharp
+using Hardened.Shared.Runtime.Application;
+using Hardened.Shared.Testing.Attributes;
+using Hardened.Web.Testing;
+using Xunit;
+
+namespace Todos.Tests;
+
+public class TestAttributeTests
+{
+    [HardenedTest]
+    [EmptyStore]
+    public async Task ListsNothing(ITestWebApp app)
+    {
+        var todos = (await app.Get("/todos")).Deserialize<List<Todo>>();
+
+        Assert.Empty(todos);
+    }
 
     [HardenedTest]
-    public async Task FallsBackWhenRatesAreUnavailable(IOrderService orders, [Mock] IRateTable rates) {
-        rates.Lookup(Arg.Any<string>()).Returns((decimal?)null);
+    [ExtraTodo("Write a test")]
+    public async Task EveryRequestSeesTheSeededTodo(ITestWebApp app)
+    {
+        var todos = (await app.Get("/todos")).Deserialize<List<Todo>>();
 
-        var order = await orders.Price("SKU-1");
+        Assert.Equal([1, 2, 3], todos.Select(todo => todo.Id));
+    }
 
-        Assert.Equal(0m, order.Total);
+    [HardenedTest]
+    [PageSize(1)]
+    public async Task ListsOneTodo(ITestWebApp app)
+    {
+        var todos = (await app.Get("/todos")).Deserialize<List<Todo>>();
+
+        Assert.Single(todos);
+    }
+
+    [HardenedTest]
+    [FeatureFlags]
+    public void TurnsOnBothFlags(IHardenedEnvironment environment)
+    {
+        Assert.Equal("on", environment.Value<string>("TODOS_EXPORT"));
+        Assert.Equal("on", environment.Value<string>("TODOS_ARCHIVE"));
     }
 }
 ```
 
-`orders` is the application's real `IOrderService`, constructed against the mock. The wiring under
-test is the application's own.
-
-## How a mock lands
-
-The substitute is `Substitute.For<T>()` from NSubstitute, registered as a singleton over the
-application's registration of `T`. The last registration wins, so the container hands out the
-substitute wherever `T` is asked for. The test receives the same instance, so a `Returns` set up
-in the test and a `Received()` check afterwards are against what the application used.
-
-The mock library is a package and an assembly attribute. `DependencyModules.NSubstitute` with
-`[assembly: NSubstituteSupport]` gives `[Mock]` NSubstitute; `DependencyModules.Moq` with
-`[assembly: MoqSupport]` and `DependencyModules.FakeItEasy` with `[assembly: FakeItEasySupport]`
-give it Moq and FakeItEasy. Without the attribute a `[Mock]` parameter fails with *Mock library
-not found*. `dotnet new hardened-web --mocks` writes the pair for the library named, and `[Mock]`
-itself is `DependencyModules.Testing.Attributes.MockAttribute`, which `Hardened.Shared.Testing`
-brings in.
-
-With Moq, a parameter typed `Mock<T>` is the mock to configure and the container is given its
-`Object`; a parameter typed as the service and marked `[Mock]` receives that `Object`.
-
-## Behind a route
-
-A mock is a test parameter, so it is one object for the whole test even where each request runs
-against a container of its own. It reaches the handler through `ITestWebApp` and through a typed
-client alike:
-
-```csharp
-[HardenedTest]
-public async Task CreateTodo_StoresTheTodo(TodosClient client, [Mock] ITodoStore store) {
-    store.Add("ship it").Returns(new Todo(7, "ship it", false));
-
-    var created = await client.Todos.PostAsync(new ClientModels.NewTodo { Title = "ship it" })
-        .Returns<Created<ClientModels.Todo>>();
-
-    Assert.Equal("/todos/7", created.Location);
-}
-```
-
-The id came from the mock, so the handler used it. What else survives a rebuilt container is
-in [A container per request](/guide/testing-hosts#a-container-per-request).
-
-## A fake instead of a mock
-
-A substitute with behaviour of its own is a class. A test attribute registers it once for every
-test that carries the attribute:
-
-```csharp
-public sealed class FixedClock : TimeProvider {
-    private DateTimeOffset _now = new(2026, 9, 5, 9, 0, 0, TimeSpan.Zero);
-
-    public override DateTimeOffset GetUtcNow() => _now;
-
-    public void Advance(TimeSpan by) => _now += by;
-}
-
-public sealed class FixedClockAttribute : Attribute, IHardenedTestDependencyRegistrationAttribute {
-
-    public int Order => 0;
-
-    public void RegisterDependencies(
-        AttributeCollection attributes, MethodInfo method,
-        IHardenedEnvironment environment, IServiceCollection services) {
-        services.AddSingleton<FixedClock>();
-        services.AddSingleton<TimeProvider>(provider => provider.GetRequiredService<FixedClock>());
-    }
-}
-```
-
-```csharp
-[HardenedTest]
-[FixedClock]
-public async Task ACachedAnswerExpires(ITestWebApp app, FixedClock clock, [Mock] IRateSource rates) {
-    rates.Latest("EUR").Returns(1.10m, 1.20m);
-
-    var first = (await app.Get("/rates/EUR")).Deserialize<Rate>();
-
-    clock.Advance(TimeSpan.FromHours(2));
-
-    var second = (await app.Get("/rates/EUR")).Deserialize<Rate>();
-
-    Assert.Equal(1.20m, second.Value);
-}
-```
-
-The handler behind `/rates/EUR` caches for an hour. Without the `Advance` the second request is a
-hit and reads `1.10m` again.
-
-Registration attributes run after the application's modules, so a registration here replaces one
-there. They are valid on a method, a class or the assembly.
-[Writing a test attribute](/guide/testing-attributes) has the other interfaces, and
-[The store clock](/guide/response-caching#the-in-memory-store) is the response cache's side of
-this example.
-
-## Choosing a registration by environment
-
-A registration that exists only in one environment is reached by naming that environment:
-
-```csharp
-[SingletonService(As = typeof(IEmailSender))]
-[IfNotEnvironment("development", "test")]
-public class SmtpEmailSender : IEmailSender { }
-```
-
-```csharp
-[HardenedTest]
-[EnvironmentName("production")]
-public void UsesTheProductionSender(IEmailSender sender) {
-    Assert.IsType<SmtpEmailSender>(sender);
-}
-```
-
-The environment is registered before the modules are applied, so `[IfEnvironment]` is decided
-against the test's name. [Environments in tests](/guide/testing#environments-in-tests) has the
-attributes.
+`LocalDynamoDbAttribute` in `Hardened.Aws.DynamoDbClient.Testing` is a registration and startup
+attribute to derive from. It points the application's `IDynamoDbClientProvider` at DynamoDB Local
+in a container. A derived class overrides `DdbSetup` to create tables. The AWS
+[Testing](/aws/testing) page covers it.
 
 ## Next
 
-- [Writing a test attribute](/guide/testing-attributes): the five setup interfaces
-- [Sending requests](/guide/testing-web): a mock behind a route
-- [Typed clients](/guide/testing-clients): a mock behind a generated client
+| Page | Covers |
+|---|---|
+| [Writing a test](/guide/testing) | The parameters a test takes, and what each test builds |
+| [Sending requests](/guide/testing-web) | Requests through `ITestWebApp` |
+| [Configuration](/guide/configuration) | Configuration models and `Amend` |
+| [Testing](/aws/testing) | DynamoDB Local in a test, and the AWS test hosts |

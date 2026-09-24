@@ -740,7 +740,7 @@ An application can register its own `IResponseCacheStore` instead. The applicati
 
 ### In a test
 
-A test that expects a hit sends its requests through an `ITestWebApp` marked `[Shared]`. Without `[Shared]`, each request gets its own container, and the store with it. [Test hosts](/guide/testing-hosts) covers `[Shared]` and the container per request.
+A test that expects a hit sends its requests through an `ITestWebApp` marked `[Shared]`. Without `[Shared]`, each request gets its own container, and the store with it. [Writing a test](/guide/testing) covers `[Shared]` and the container per request.
 
 ## Functions and AWS Lambda
 
