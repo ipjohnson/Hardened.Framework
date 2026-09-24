@@ -730,6 +730,9 @@ on a module class.
 The build reports none of these. Under `[RequireAuthorization]`, `HAUTH001` reports the affected
 handlers as unannotated.
 
+On Azure Functions, the worker never runs the startup services, so no authorization attribute is
+enforced. The Azure [Web applications](/azure/web) page covers it.
+
 ## Next
 
 | Page | Covers |

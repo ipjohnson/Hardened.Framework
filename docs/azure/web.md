@@ -1,21 +1,49 @@
 # Web applications
 
-The routes you wrote for Kestrel run behind one HTTP trigger:
+`[HttpModule]` serves an application's routes from Azure Functions, through one HTTP function named
+`Http`. The routes, filters and parameter binding are the ones that the application has on every
+host. [Routing](/guide/routing) covers them.
+
+`dotnet new hardened-web -n Todos --host azure-functions` writes a library with the routes, a host
+project for Azure Functions, a client project and a test project. The application class in
+`src/Todos.Host/Application.cs` names `[HttpModule]`. With `--openapi-ui false`, and without its
+comments and an unused `using` line, the class is this:
 
 ```csharp
-using Hardened.Web.Runtime.Attributes;
+using Hardened.Azure.Functions.Http;
+using Hardened.Shared.Runtime.Attributes;
 
-public class OrderRoutes {
+namespace Todos.Host;
 
-    [Get("/orders/{id}")]
-    public Task<Order> Get(string id, IOrderStore store) => store.Get(id);
-
-    [Post("/orders")]
-    public Task<Order> Place(NewOrder order, IOrderStore store) => store.Place(order);
-}
+[HardenedModule]
+[HttpModule]
+[TodosLibrary]
+public partial class Application;
 ```
 
-## Packages
+After `func start` in `src/Todos.Host`, the template's route answers:
+
+```http
+GET /todos/1
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"id":1,"title":"Read the generated code","done":true}
+```
+
+The Functions host receives each request and hands it to the worker. The adapter turns the worker's
+`HttpRequestData` into the request that the routing table matches. It turns the response into the
+worker's `HttpResponseData`.
+
+[Hosts](/guide/hosts) covers the `Http` function, the host project's `Program.cs`,
+`local.settings.json`, and running the application with `func start` on port 7071. The Azure
+[Overview](/azure/) covers the storage account that the Functions host uses locally.
+
+## Packages and the application class
+
+The host project references four Azure packages. The template keeps their versions in
+`Directory.Packages.props`. Without central package management, the references are these:
 
 ```xml
 <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.1.0" />
@@ -24,26 +52,45 @@ public class OrderRoutes {
 <PackageReference Include="Hardened.Azure.Functions.SourceGenerator" Version="0.0.0-HARDENED-VERSION" PrivateAssets="all" />
 ```
 
-`dotnet new hardened-web --host azure-functions` writes this shape: a library with the routes
-and their tests, and a host project the Functions host starts. The library is the same one the
-`aspnet` and `cloud-run` hosts build, and the template verifier proves it, file for file.
+The Azure [Overview](/azure/) lists the other Azure packages.
 
-## The function
+`Hardened.Azure.Functions.Http` sets the build property `HardenedHttpModule` to
+`Hardened.Azure.Functions.Http.HttpModule`. When a project compiles its routes together with its
+application class, the build registers `HttpModule` from that property and writes the `Http`
+function. The application class then names no Azure attribute.
 
-Every route is served by one function, named `Http`, bound by
-`[HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", "put", "patch", "delete", "head", "options", Route = "{*path}")]`.
-The host matches the catch-all and hands over the path it matched, and Hardened's routing table
-does the routing, so `GET /orders/{id}` is dispatched exactly as it is on Kestrel. Anonymous,
-because authorization is the application's, as it is on every other host; a function app that
-wants the host's keys in front of it puts them in front with API Management or a front door.
+When the routes are in a referenced library, as in the template, the application class names
+`[HttpModule]` itself. The host project still builds without the attribute. Under `func start`, the
+Functions host finds no function:
 
-The route prefix is the host's. It serves every function under `api` unless `host.json` says
-otherwise, and the adapter takes the prefix off through the catch-all's value, so a route
-registered as `/orders/{id}` answers at `/api/orders/{id}` by default and at `/orders/{id}` with:
+```text
+No job functions found. Try making your job classes and methods public. If you're using binding extensions (e.g. Azure Storage, ServiceBus, Timers, etc.) make sure you've called the registration method for the extension(s) in your startup code (e.g. builder.AddAzureStorage(), builder.AddServiceBus(), builder.AddTimers(), etc.).
+```
+
+Every request then answers 404.
+
+`[HttpModule]` has no settings. It does not bring `[HardenedWebModule]`. The module that holds the
+routes declares that attribute, as the template's `TodosLibrary` does. [Hosts](/guide/hosts) covers
+the attribute.
+
+## The route prefix
+
+The Functions host serves HTTP functions under the path prefix `api`, unless `host.json` sets
+`extensions.http.routePrefix`. The template's `src/Todos.Host/host.json` sets the prefix to an empty
+string:
 
 ```json
 {
   "version": "2.0",
+  "logging": {
+    "applicationInsights": {
+      "samplingSettings": {
+        "isEnabled": true,
+        "excludedTypes": "Request"
+      },
+      "enableLiveMetricsFilters": true
+    }
+  },
   "extensions": {
     "http": {
       "routePrefix": ""
@@ -52,66 +99,213 @@ registered as `/orders/{id}` answers at `/api/orders/{id}` by default and at `/o
 }
 ```
 
-The template writes that `host.json`, so a route answers at the same path on every host.
+Each route then answers at its own path, as on every other host. [Hosts](/guide/hosts) covers
+`host.json`.
 
-## The host project
+The adapter routes on the path that the host matched under `{*path}`. The routing table never sees
+the prefix. Without the `extensions` section, the host uses its default prefix. The routes then
+answer under `/api`. `GET /api/todos/1` reaches the route `GET /todos/1`:
 
-The routes live in the library, the generator runs in the host project, and a generator sees
-only the compilation it runs in. The host project therefore names the adapter, the way a Lambda
-host writes `[LambdaHttpModule]`:
+```http
+GET /api/todos/1
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"id":1,"title":"Read the generated code","done":true}
+```
+
+A request outside the prefix never reaches the application. The host answers it with 404 and no
+body.
+
+The paths that the application writes, and the links that it builds, do not carry the prefix.
+`POST /api/todos` answers with `Location: /todos/3`:
+
+```http
+POST /api/todos
+Content-Type: application/json
+
+{"title":"Write the docs"}
+
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /todos/3
+
+{"id":3,"title":"Write the docs","done":false}
+```
+
+[Route links](/guide/route-links) covers giving the links a base path.
+
+## What a handler receives
+
+| The request's | Comes from the worker's `HttpRequestData` |
+|---|---|
+| Method | `Method` |
+| Path | The path that the host matched under `{*path}`, with `/` in front. The route prefix is not part of it |
+| Query string | `Query`, which the worker has already decoded |
+| Headers | `Headers` |
+| Cookies | `Cookies`, as `name=value` strings |
+| Body | `Body`, the stream that the host filled |
+
+The Azure [Overview](/azure/) covers the `CancellationToken` that a handler receives.
+
+## What the function answers
+
+| The response's | Goes to the caller as |
+|---|---|
+| Status | The status code. 200 when the handler set none |
+| Headers | Headers. A header with several values goes as one line, its values joined with commas |
+| Cookies | One `Set-Cookie` header for each cookie. The host adds `path=/` to a cookie that names no path |
+| Body | The bytes that the pipeline wrote, unchanged |
+
+A `byte[]` that a handler returns reaches the caller as written. The adapter does not read the
+response's `IsBinary`.
+
+## Failures
+
+| Request | Answer |
+|---|---|
+| The handler throws | 500 with the error body. The host logs the invocation as succeeded |
+| No route matches the path | 404 with no body |
+| A validation constraint fails | 400 with the error body |
+| The path is outside the route prefix | 404 with no body, from the host |
+
+[Declared responses](/guide/responses) covers the error body.
+
+The Azure [Overview](/azure/) covers what a trigger's source does after a failed invocation.
+
+## Startup services
+
+::: warning
+The Azure Functions worker never runs the application's startup services. A deployed function app
+enforces no authorization attribute, asks no principal source and applies no CORS policy, so every
+route answers every caller. `[AzureFunctionsWebTesting]` runs the startup services before its first
+request. The tests see the authorization, CORS and registered routes that the deployed function does
+not have, so they pass while the deployed function is open.
+:::
+
+On every host, startup services install authentication, authorization, CORS and the routes
+registered at startup, so none of them is in place on Azure Functions:
+
+| Installed at startup on other hosts | On Azure Functions |
+|---|---|
+| Authentication: the application's principal sources | Never asked. Every request is anonymous |
+| Authorization: `[AuthorizeGrants]`, `[Authorize<TScheme>]`, `[RequireAuthorization]` and conventions | Not enforced. A guarded handler runs for a caller with no credentials |
+| CORS, with `CORS_ALLOWED_ORIGINS` set | No CORS headers. Without registered routes, a preflight `OPTIONS` request answers 405 |
+| Routes registered with `IRouteRegistration` | Never registered. Every request that no attribute route answers gets 503 with `Retry-After: 1`, the preflight included |
+| Filters registered through `IGlobalFilterRegistry` in a startup service | Never added |
+| The application's own `IStartupService` classes | Never run |
+
+With `[RequireAuthorization]` on the application class in `src/Todos.Host/Application.cs`, a request
+with no credentials reaches the handler:
 
 ```csharp
+using Hardened.Azure.Functions.Http;
+using Hardened.Requests.Runtime.Authorization;
+using Hardened.Shared.Runtime.Attributes;
+
+namespace Todos.Host;
+
 [HardenedModule]
 [HttpModule]
+[RequireAuthorization]
+[TodosLibrary]
 public partial class Application;
 ```
 
-That is what makes the generator write the `Http` function into a project with no routes of its
-own. A single-project application with its routes beside the entry point does not write it. The
-entry point is the worker host:
+```http
+GET /todos
 
-```csharp
-var host = new HostBuilder()
-    .ConfigureFunctionsWorkerDefaults(worker => worker.UseHardened<Application>())
-    .Build();
+HTTP/1.1 200 OK
+Content-Type: application/json
 
-host.Run();
+[{"id":1,"title":"Read the generated code","done":true},{"id":2,"title":"Add an endpoint","done":false}]
 ```
 
-`ConfigureFunctionsWorkerDefaults`, never `ConfigureFunctionsWebApplication`: the second starts
-an ASP.NET Core server in the worker and hands the function `HttpRequest`; this line binds
-`HttpRequestData`, which arrives over the worker channel, and nothing on the path references
-ASP.NET Core.
+Filter attributes, validation, and filters added with `AddGlobalFilter` apply as on the other hosts.
 
-## What the handler sees
+The Azure [Overview](/azure/) covers the worker. [Authentication](/guide/authentication),
+[Authorization](/guide/authorization), [CORS](/guide/cors),
+[Registered routes](/guide/registered-routes) and [The execution pipeline](/guide/execution-pipeline)
+cover each feature on the other hosts.
 
-A request: the method, the path with the prefix taken off, the query string, the headers, the
-cookies and the body as the stream the host filled. The response goes back as the status, the
-headers, the cookies and the buffer the pipeline wrote, without a copy. A thrown exception is
-answered with the application's 500 rather than the host's, because a caller is waiting on the
-connection and the host's text is not what the application chose.
+## Trigger handlers in the same function app
+
+A web function app can also serve trigger handlers. The host project references the trigger's
+adapter package and `Hardened.Function.SourceGenerator`. For a timer, these lines go in
+`src/Todos.Host/Todos.Host.csproj`:
+
+```xml
+<PackageReference Include="Hardened.Azure.Functions.Timer" />
+<PackageReference Include="Hardened.Function.SourceGenerator" PrivateAssets="all" />
+```
+
+The web template's `Directory.Packages.props` pins neither package. Without a `PackageVersion` line
+for each, the restore fails with `NU1010`. These lines go in `Directory.Packages.props`:
+
+```xml
+<PackageVersion Include="Hardened.Azure.Functions.Timer" Version="$(HardenedVersion)" />
+<PackageVersion Include="Hardened.Function.SourceGenerator" Version="$(HardenedVersion)" />
+```
+
+The handler is in the host project, as in `src/Todos.Host/Housekeeping.cs`:
+
+```csharp
+using Hardened.Functions.Runtime.Attributes;
+
+namespace Todos.Host;
+
+public class Housekeeping
+{
+    [Timer("nightly")]
+    public void Nightly() => Console.WriteLine("Nightly housekeeping ran");
+}
+```
+
+The timer's schedule is the app setting `Hardened:Timers:nightly`. Locally, the setting goes in
+`local.settings.json`. Without it, the Functions host disables the timer function. The routes still
+answer.
+[Timers](/azure/timer) covers the setting.
+
+The Azure [Overview](/azure/) covers the trigger functions, running them locally through the host's
+admin endpoint, and what a failed trigger does.
 
 ## Deploying
 
-```bash
-az functionapp create --name orders --resource-group orders --storage-account ordersstorage \
-    --consumption-plan-location eastus --runtime dotnet-isolated --functions-version 4
-func azure functionapp publish orders
-curl https://orders.azurewebsites.net/orders/A-1
-```
+The Azure [Overview](/azure/) covers creating the function app and `func azure functionapp publish`.
 
-Locally, `func start` in the host project's directory serves the same routes on port 7071.
+The `Http` function's authorization level is `Anonymous`, so a deployed route asks for no function
+key. [Hosts](/guide/hosts) covers the level.
+
+The deployed function app reads the template's `host.json`, so its routes answer at their own paths.
 
 ## Testing
 
-The routes' tests are the library's, under `[assembly: WebTesting]`, and they name no host. The
-host project's test assembly adds `[assembly: AzureFunctionsWebTesting]`, which sends the same
-tests' requests as the `HttpRequestData` the worker would bind, through the real invocation
-handler and the adapter, so the prefix handling, the headers and the cookies are exercised too.
-No test method changes. See [Testing Azure handlers](/azure/testing).
+[Testing](/azure/testing) covers testing a web application on Azure Functions.
+[Startup services](#startup-services) covers what `[AzureFunctionsWebTesting]` runs that a deployed
+function does not.
+
+## Limits
+
+Azure's load balancer answers 502 to a request whose function has not responded within 230 seconds.
+The function keeps running.
+
+The Functions host keeps the paths that start with `/admin` and `/runtime` for its own APIs. With the
+template's empty prefix, a route under either path does not reach the application in Azure.
+
+`func start` answers the host's own paths, such as `POST /admin/functions/<name>`. It passes
+`GET /admin/stats` and `GET /runtime/info` to the application's routes for those paths, so a local
+run does not show the limit.
+
+[Azure Functions HTTP trigger](https://learn.microsoft.com/azure/azure-functions/functions-bindings-http-webhook-trigger)
+on Microsoft Learn covers both limits.
 
 ## Next
 
-- [Queues](/azure/queue): a function app serves routes and queue handlers together
-- [Testing Azure handlers](/azure/testing): the three rungs
-- [Application types](https://github.com/ipjohnson/Hardened.Framework/blob/main/docs/design/azure/application-types.md): the design in full
+| Page | Covers |
+|---|---|
+| [Overview](/azure/) | The Azure packages, the worker's entry point, and deploying a function app |
+| [Hosts](/guide/hosts) | The `Http` function, the host project's `Program.cs` and `func start` |
+| [Testing](/azure/testing) | Testing on Azure |
+| [Authorization](/guide/authorization) | The authorization attributes that the warning is about |
+| [Streaming responses](/guide/streaming) | Streaming a response, and which hosts stream |

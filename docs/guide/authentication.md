@@ -534,6 +534,9 @@ application writes its own.
 A source cannot answer with a challenge of its own, such as `error="invalid_token"`. A rejected
 credential gets the same 401 as a missing one.
 
+On Azure Functions, the worker never runs the startup services, so it asks no principal source and
+every request is anonymous. The Azure [Web applications](/azure/web) page covers it.
+
 ## Next
 
 | Page | Covers |

@@ -498,7 +498,9 @@ call throws the first failure. The test above fails there on `Received(2)`, with
 When the application reports failures per message, a failed message does not fail the call. The
 source's `BatchFailureMode` then decides which messages run after it. The enum is in
 `Hardened.Requests.Abstract.Execution`. [Triggers](/guide/triggers) covers the modes and the module
-setting that turns reporting on.
+setting that turns reporting on. On Azure, `[AzureFunctionsTesting]` reports a Service Bus message's failure only
+when the test's container holds a `ServiceBusMessageActions`. The Azure [Testing](/azure/testing) page
+shows how a test supplies one.
 
 The table is for a batch of three with reporting on, after the second message fails:
 

@@ -293,6 +293,9 @@ compressed.
 One configuration covers every route of the application. No attribute or setting changes CORS for
 one route.
 
+On Azure Functions, the worker never runs the startup services, so no CORS policy applies. The Azure
+[Web applications](/azure/web) page covers it.
+
 ## Next
 
 - [Authentication](/guide/authentication): the credentials a cross-origin request carries
