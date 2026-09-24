@@ -1,163 +1,351 @@
 # Conditional requests
 
-A client that polls a resource every ten seconds downloads the same bytes every ten seconds.
-`[ConditionalGet]` answers a caller who already holds the response with a 304 and no body.
+`[ConditionalGet]` on a GET handler makes the response carry an `ETag` header. A later request that sends that tag in `If-None-Match` gets `304 Not Modified` and no body.
 
 ```csharp
+using Hardened.Requests.Abstract.Responses;
+using Hardened.Web.Runtime.Attributes;
 using Hardened.Web.Runtime.Conditional;
+using Hardened.Web.Runtime.Responses;
+using ValidationModules.Constraints;
 
-[Get("/rates/{symbol}")]
-[ConditionalGet]
-public Rate Read(string symbol) => _rates.Latest(symbol);
-```
+namespace Todos;
 
-```
-GET /rates/EUR
-HTTP/1.1 200 OK
-ETag: "OybX3FuqNfSKoSm+h1FJqQ=="
+public class TodoController
+{
+    [Operation("getTodo")]
+    [Get("/{id}")]
+    [ConditionalGet]
+    public async Task<Response<Todo, NotFound>> ById(ITodoStore store, [Range(Min = 1)] int id)
+    {
+        var todo = await store.Find(id);
 
-GET /rates/EUR
-If-None-Match: "OybX3FuqNfSKoSm+h1FJqQ=="
-HTTP/1.1 304 Not Modified
-ETag: "OybX3FuqNfSKoSm+h1FJqQ=="
-```
+        if (todo is null)
+        {
+            return new NotFound("todo", $"No todo has id {id}.");
+        }
 
-## Turning it on
-
-The attribute goes on an operation, on a class, or on a module. For every GET handler compiled with
-that module:
-
-```csharp
-[HardenedModule]
-[HardenedWebModule]
-[ConditionalGet]
-public partial class Catalog { }
-```
-
-The module-wide form stands down for any handler carrying `[ConditionalGet]` itself, so explicit
-beats convention.
-
-Write it there rather than as `[Enable<ConditionalGet>]`, which does the same thing at run time and
-publishes nothing:
-
-```csharp
-GET /library/books                    ['200', '400']
-GET /library/books/{id}               ['200', '304', '400', '404']   ← the one with [ConditionalGet]
-```
-
-Every one of those answers a 304 over the wire. Only the operation that spelled the attribute says
-so, because `[Enable<T>]` registers the filter at startup and the document is written at build time
-- so a generated client has no branch for the answer it will actually be sent. A declaration on the
-module class stays inside the compilation, and the document publishes the 304, the `ETag` on both
-statuses and both conditional request headers on every read the filter covers.
-
-`[Enable<ConditionalGet>]` still works, and is still what a **host** writes to switch the feature on
-for handlers it only references. It cannot publish into a library's document: they are separate
-compilations, and the library's was written first.
-
-GET handlers only, in both forms. The routing table sends a HEAD to the GET leaf, and on any
-other method the conditional headers mean a 412, which this does not answer. A class-level
-declaration on a controller that also writes installs nothing on the writes.
-
-## What it costs
-
-Nothing answers a 304 until one of those two declarations is written, so a service whose
-responses are small and change on every read pays nothing for one.
-
-The filter decides on the first write. A response that already carries an `ETag` is decided
-there and then, either a 304 or the bytes straight through. A response carrying none is held back
-and tagged over the bytes as sent once they are all there. That is a buffer and a hash per
-response, and it buys bandwidth only: the handler ran, and a 304 computed from a hash of its
-output saves the transfer and the client's parse, not the work.
-
-It is worth having for a large or frequently polled response, and for a shared cache in front of
-the service, which revalidates when its copy expires and keeps its copy on a 304.
-
-::: warning Not on a stream
-Do not declare it on a handler returning `IAsyncEnumerable<T>`. Holding a stream back to hash it
-is buffering it.
-:::
-
-## Write your own validator
-
-A handler that knows its resource's version writes it, and is passed straight through rather
-than held back:
-
-```csharp
-using Hardened.Requests.Abstract.Headers;
-
-[Get("/documents/{id}")]
-[ConditionalGet]
-public Document Read(string id, IExecutionContext context) {
-    var document = _documents.Find(id);
-
-    context.Response.Headers[KnownHeaders.ETag] = "\"" + document.Version + "\"";
-    context.Response.Headers[KnownHeaders.LastModified] = HttpDate.Format(document.UpdatedAt);
-
-    return document;
+        return todo;
+    }
 }
 ```
 
-This still costs the handler. Skipping the work would need the validator before the handler
-runs, which is not built.
+```http
+GET /todos/1
 
-`If-None-Match` is evaluated when it is present, and `If-Modified-Since` only when it is not,
-including when the tag does not match. That is RFC 9110 §13.2.1's order, implemented once and
-shared with static content.
+HTTP/1.1 200 OK
+Content-Type: application/json
+ETag: "+x0430/JrxmEstC33HEuf0Yg/61Cvwmwtx2WMTybq/s="
 
-## Pair it with the response cache
-
-```csharp
-[Get("/rates/{symbol}")]
-[CacheResponse<VaryByRoute>(Duration = 3600, Tags = ["rates"])]
-[ConditionalGet]
-public Rate Read(string symbol) => _rates.Latest(symbol);
+{"id":1,"title":"Read the generated code","done":true}
 ```
 
-Every entry the [response cache](/guide/response-caching) stores carries an entity-tag, computed
-as the response is captured when the handler wrote none. The tag goes out with the miss and is
-replayed with the hit, so a cached handler is never held back for a hash, and a revalidating
-caller is answered 304 without running the handler and without sending the stored body.
+```http
+GET /todos/1
+If-None-Match: "+x0430/JrxmEstC33HEuf0Yg/61Cvwmwtx2WMTybq/s="
 
-The conditional stage sits outside the cache, so a cached response can be revalidated. A
-handler's own `ETag` is kept when the response is also cached.
+HTTP/1.1 304 Not Modified
+ETag: "+x0430/JrxmEstC33HEuf0Yg/61Cvwmwtx2WMTybq/s="
+```
 
-## What a 304 carries
+The example adds the attribute and its `using` line to the `ById` handler of a project made with `dotnet new hardened-web -n Todos`. The attribute is in the namespace `Hardened.Web.Runtime.Conditional`, from the `Hardened.Web.Runtime` package. The template's `src/Todos` project compiles the example with no package added.
 
-The status, and the headers RFC 9110 §15.4.5 says a 304 repeats when a 200 would have sent them:
-`ETag`, `Last-Modified`, `Cache-Control`, `Vary` and whatever else the handler and the filters
-wrote. `Content-Type`, `Content-Length` and `Content-Encoding` are removed, because they describe
-content the response does not have. A HEAD answered 304 reports no length for the same reason.
+## Where to declare it
 
-A 304 stands in for a 200 and nothing else. A 404 or a 500 is sent as it is, and so is a refusal.
-Authorization and rate limiting record theirs ahead of this stage and the filter reads what they
-recorded, so a caller who may not read the resource is not told that it has not changed.
+Each declaration installs `ConditionalGetFilter` on the GET handlers it covers:
 
-## Compression and the tag
+| Declaration | Covers | In the OpenAPI document |
+|---|---|---|
+| `[ConditionalGet]` on a method | That GET handler | Yes |
+| `[ConditionalGet]` on a controller class | Every GET handler in the class | Yes |
+| `[ConditionalGet]` on a `[HardenedModule]` class | Every GET handler compiled in the module's project | Yes |
+| `[Enable<ConditionalGet>]` on the application module | Every GET handler in the application, the framework's included | No |
 
-The tag covers the bytes as sent. The compression filter sits inside the conditional stage, so a
-client that accepts gzip holds a different tag from an identity client, and both are strong: each
-is computed over the bytes that client received, and each revalidates against its own. A tag the
-handler wrote is the exception. It names the identity bytes, so `CompressingResponseStream`
-weakens it, `W/"..."`, on the way out through gzip, and `If-None-Match` compares weakly either
-way. This is the same thing that happens for a compressed static file.
+Every declaration covers GET handlers only. A POST, PUT, PATCH or DELETE handler in a class with `[ConditionalGet]` gets nothing. A HEAD request is routed to the GET handler. It gets the same `ETag`, and a 304 when the tag matches. Every declaration leaves out a handler that returns `IAsyncEnumerable<T>`. That handler gets no `ETag`, no 304 and nothing in the OpenAPI document.
 
-## In a contract
+`[ConditionalGet]` on a module class leaves out the framework's handlers and the handlers in other projects, including the host project that imports the module. On the library module in `src/Todos/TodosLibrary.cs`, it covers the GET handlers in `src/Todos`:
 
-A described operation leaves the `ETag` header out of its contract. `[ConditionalGet]` on the
-implementation writes the tag itself, and a header declared on the 200 becomes a member the
-handler must fill: in throws mode the operation turns into a response set with a
-`GetTodoOk(Todo Body, string ETag)` case, and in the declared modes the success case gains the
-member.
+```csharp
+using DependencyModules.Runtime.Interfaces;
+using Hardened.Shared.Runtime.Attributes;
+using Hardened.Web.Runtime.Attributes;
+using Hardened.Web.Runtime.Conditional;
+using Hardened.Web.Runtime.DependencyInjection;
+using Hardened.Web.Runtime.OpenApi;
+using Microsoft.Extensions.DependencyInjection;
+using System.Text.Json.Serialization.Metadata;
 
-## Not built
+namespace Todos;
 
-- **`If-Match` and `If-Unmodified-Since`.** They guard a write against a lost update and answer
-  412, which needs the current validator before the handler runs.
-- **Skipping the handler on a validator it knows.** Only a response-cache hit skips the handler.
+[HardenedModule]
+[HardenedWebModule]
+[BasePath("/todos")]
+[Server("http://localhost:5080", "Local")]
+[Enable<OpenApiDocumentPublishing>]
+[ConditionalGet]
+public partial class TodosLibrary : IServiceCollectionConfiguration
+{
+    public void ConfigureServices(IServiceCollection services)
+    {
+        services.AddSingleton<IJsonTypeInfoResolver>(TodosJsonContext.Default);
+    }
+}
+```
+
+`[Enable<ConditionalGet>]` on the application module covers handlers in referenced projects, handlers in the host project, and the framework's `/health/live`, `/openapi.json` and `/docs`. The `ConditionalGet` type is in the same namespace as the attribute. The application module in `src/Todos.Host/Application.cs` enables it for the whole application:
+
+```csharp
+using Hardened.Shared.Runtime.Attributes;
+using Hardened.Web.Kestrel.Runtime;
+using Hardened.Web.Runtime.Conditional;
+using Hardened.Web.Runtime.OpenApi;
+
+namespace Todos.Host;
+
+[HardenedModule]
+[KestrelRuntime]
+[Enable<ConditionalGet>]
+[HardenedOpenApiUi(Title = "Todos", Environments = "development")]
+[TodosLibrary]
+public partial class Application;
+```
+
+The three `[ConditionalGet]` declarations add a 304 response to each GET operation they cover in the OpenAPI document. They also declare the `ETag` header on the 200 and the 304, and the optional `If-None-Match` and `If-Modified-Since` request headers. `[Enable<ConditionalGet>]` is applied at startup, so the document does not show it.
+
+A handler with `[ConditionalGet]` on its method or class keeps only its own declaration. `[Enable<ConditionalGet>]` and `[ConditionalGet]` on the module skip it. `[ConditionalGet]` on both a method and its class installs two filters. The second filter finds the first in place and passes the request through. The handler behaves as it does with one filter.
+
+## How the tag is computed
+
+When the response has no `ETag` at its first write, the filter holds the whole body in memory. When the handler finishes, the filter sets `ETag` to the SHA-256 hash of the body bytes, base64-encoded and quoted. The tag is strong. The same bytes always get the same tag.
+
+When the response already has an `ETag` at its first write, the filter does not hold the body. It sends the body or answers 304 at once.
+
+The handler runs on every request, including a request that ends in a 304. A 304 saves sending the body.
+
+Only a 200 response gets a tag or a 304. The filter sends any other status unchanged, whatever `If-None-Match` says. A request refused by authorization or rate limiting is never answered 304. When the handler throws, the filter sends the error response unchanged, with no tag.
+
+## Setting a validator in the handler
+
+A handler can set `ETag` on the response. The filter then does not hold the body or compute a hash. It compares the request with the handler's tag.
+
+::: warning
+The handler's tag must include the double quotes. An unquoted tag never matches when a client sends it back, so every request gets 200 and nothing reports it.
+:::
+
+A handler can also set `Last-Modified`, which the filter compares with `If-Modified-Since`. Only an `ETag` stops the filter from holding the body. When the handler sets only `Last-Modified`, the filter still holds and hashes the body. The response then carries the computed `ETag` as well as the handler's `Last-Modified`.
+
+The handler in `src/Todos/DocumentController.cs` sets both headers through an `IExecutionContext` parameter:
+
+```csharp
+using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Abstract.Headers;
+using Hardened.Requests.Abstract.Responses;
+using Hardened.Web.Runtime.Attributes;
+using Hardened.Web.Runtime.Conditional;
+using Hardened.Web.Runtime.Headers;
+using Hardened.Web.Runtime.Responses;
+
+namespace Todos;
+
+public class DocumentController
+{
+    [Get("/documents/{id}")]
+    [ConditionalGet]
+    public async Task<Response<Document, NotFound>> Read(
+        IDocumentStore documents,
+        string id,
+        IExecutionContext context
+    )
+    {
+        var document = await documents.Find(id);
+
+        if (document is null)
+        {
+            return new NotFound("document", $"No document has id {id}.");
+        }
+
+        context.Response.Headers[KnownHeaders.ETag] = $"\"{document.Version}\"";
+        context.Response.Headers[KnownHeaders.LastModified] = HttpDate.Format(document.UpdatedAt);
+
+        return document;
+    }
+}
+```
+
+It reads from the store in `src/Todos/DocumentStore.cs`:
+
+```csharp
+using DependencyModules.Runtime.Attributes;
+
+namespace Todos;
+
+public record Document(string Id, string Text, int Version, DateTimeOffset UpdatedAt);
+
+public interface IDocumentStore
+{
+    Task<Document?> Find(string id);
+}
+
+[SingletonService]
+public class DocumentStore : IDocumentStore
+{
+    private readonly Dictionary<string, Document> _documents = new()
+    {
+        ["a"] = new Document("a", "Hello", 7, new DateTimeOffset(2026, 9, 1, 12, 0, 0, TimeSpan.Zero)),
+    };
+
+    public Task<Document?> Find(string id) =>
+        Task.FromResult(_documents.TryGetValue(id, out var document) ? document : null);
+}
+```
+
+Requests for document `a` get the handler's tag and date:
+
+```http
+GET /todos/documents/a
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+ETag: "7"
+Last-Modified: Tue, 01 Sep 2026 12:00:00 GMT
+
+{"id":"a","text":"Hello","version":7,"updatedAt":"2026-09-01T12:00:00+00:00"}
+```
+
+```http
+GET /todos/documents/a
+If-None-Match: "7"
+
+HTTP/1.1 304 Not Modified
+ETag: "7"
+Last-Modified: Tue, 01 Sep 2026 12:00:00 GMT
+```
+
+The example uses three Hardened types to set the headers:
+
+| Type | Namespace |
+|---|---|
+| `IExecutionContext` | `Hardened.Requests.Abstract.Execution` |
+| `KnownHeaders` | `Hardened.Requests.Abstract.Headers` |
+| `HttpDate` | `Hardened.Web.Runtime.Headers` |
+
+`HttpDate.Format(DateTimeOffset)` writes the date in the format `Last-Modified` uses, in GMT.
+
+A handler that returns `Ok<T>` with an `ETag` header gives the filter its tag the same way. [Declared responses](/guide/responses) covers that type.
+
+## How a request is matched
+
+The filter checks one of two request headers:
+
+| Request header | Checked when | Answers 304 when |
+|---|---|---|
+| `If-None-Match` | It is present | One of its tags matches the response's `ETag` by weak comparison, or it is `*` |
+| `If-Modified-Since` | `If-None-Match` is absent | The response's `Last-Modified` is at or before the date |
+
+A request with a non-matching `If-None-Match` gets a 200, even when its `If-Modified-Since` would match. The filter follows the order in RFC 9110, section 13.2.1.
+
+`If-None-Match: W/"7"` matches `ETag: "7"`, and `If-None-Match: "7"` matches `ETag: W/"7"`. A request can send several tags in `If-None-Match`, separated by commas or in several headers. The header matches when any of its tags matches.
+
+The filter compares `If-Modified-Since` to the second, so a `Last-Modified` in the same second counts as unchanged. The filter also accepts the RFC 850 and asctime date forms in `If-Modified-Since`. It ignores a value that is not a date and sends the 200.
+
+A response without `Last-Modified` never matches `If-Modified-Since`. The filter does not add a `Last-Modified` when it computes a tag.
+
+## The 304 response
+
+The filter removes `Content-Type`, `Content-Length` and `Content-Encoding` from a 304. Every other header that the 200 would have had stays, including `ETag`, `Last-Modified`, `Cache-Control`, `Vary` and the handler's own headers. The 304 to a HEAD request has no `Content-Length` either.
+
+## With the response cache
+
+`[CacheResponse<T>]` puts the same SHA-256 tag as the filter on every response it stores, unless the handler set one. With both attributes on a handler, a request whose `If-None-Match` matches a stored entry gets a 304. The handler does not run. The response cache does not send the stored body. [The execution pipeline](/guide/execution-pipeline) gives the order of the two filters.
+
+The response cache needs a store, which [Response caching](/guide/response-caching) covers. The example runs with `[HardenedMemoryResponseCache]` on `TodosLibrary`.
+
+```csharp
+using Hardened.Requests.Abstract.Responses;
+using Hardened.Requests.Runtime.Caching;
+using Hardened.Web.Runtime.Attributes;
+using Hardened.Web.Runtime.Caching;
+using Hardened.Web.Runtime.Conditional;
+using Hardened.Web.Runtime.Responses;
+using ValidationModules.Constraints;
+
+namespace Todos;
+
+public class TodoController
+{
+    [Operation("getTodo")]
+    [Get("/{id}")]
+    [CacheResponse<VaryByRoute>(Duration = 3600)]
+    [ConditionalGet]
+    public async Task<Response<Todo, NotFound>> ById(ITodoStore store, [Range(Min = 1)] int id)
+    {
+        var todo = await store.Find(id);
+
+        if (todo is null)
+        {
+            return new NotFound("todo", $"No todo has id {id}.");
+        }
+
+        return todo;
+    }
+}
+```
+
+The requests below go to a freshly started application, in this order. The third request matches the stored entry and gets a 304. The handler would have answered it with a 404.
+
+```http
+GET /todos/1
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+ETag: "+x0430/JrxmEstC33HEuf0Yg/61Cvwmwtx2WMTybq/s="
+
+{"id":1,"title":"Read the generated code","done":true}
+```
+
+```http
+DELETE /todos/1
+
+HTTP/1.1 204 No Content
+```
+
+```http
+GET /todos/1
+If-None-Match: "+x0430/JrxmEstC33HEuf0Yg/61Cvwmwtx2WMTybq/s="
+
+HTTP/1.1 304 Not Modified
+ETag: "+x0430/JrxmEstC33HEuf0Yg/61Cvwmwtx2WMTybq/s="
+```
+
+## With compression
+
+A tag that the filter computes covers the bytes as sent. A client that accepts gzip gets a different strong tag from a client that does not. Each client gets a 304 for its own tag and a 200 for the other's.
+
+A tag set before compression, by the handler or by the response cache, becomes weak on a compressed response. The tag `"7"` is sent as `W/"7"`. A client that sends back `W/"7"` or `"7"` gets a 304, because the comparison is weak. The 304 for a compressed response keeps its `Vary: Accept-Encoding` header.
+
+[Compression](/guide/compression) covers turning compression on and the rest of what it does to a response.
+
+## In a contract-first project
+
+In an OpenAPI-first or Smithy-first project, put `[ConditionalGet]` on the module class. It covers the described GET operations. The served document then lists the 304 and the two request headers on each GET operation, and not on the others. The attribute does not change the contract file.
+
+Do not declare `ETag` as a response header on an operation's 200 in the contract. A header declared on a success response becomes a member of the generated success case. The handler then has to fill it. In a project made from the template with `--contract openapi`, `headers: ETag` on the 200 of `getTodo` in `src/Todos/contracts/todos.yaml` makes the generated case `GetTodoOk(Todo Body, string ETag)`. The template's `return todo;` then fails with `CS0029`:
+
+```text
+src/Todos/TodoService.cs(62,16): error CS0029: Cannot implicitly convert type 'Todos.Models.Todo' to 'Todos.Models.GetTodoResponse'
+```
+
+[Generating from OpenAPI](/guide/openapi) and [Generating from Smithy](/guide/smithy) cover contract-first projects.
+
+## Limits
+
+The filter does not evaluate `If-Match` or `If-Unmodified-Since`. No request gets a 412.
+
+Nothing skips the handler based on a validator known before the handler runs. Only a response cache hit skips the handler.
 
 ## Next
 
-- [Response caching](/guide/response-caching): skipping the handler as well as the transfer
-- [Compression](/guide/compression): why a gzip client holds a different tag
-- [The execution pipeline](/guide/execution-pipeline#filter-order): where the conditional stage sits
+- [Response caching](/guide/response-caching): the response cache and its store
+- [Compression](/guide/compression): turning on response compression
+- [The execution pipeline](/guide/execution-pipeline): filter order
+- [The OpenAPI document](/guide/openapi-document): the OpenAPI document the application serves
