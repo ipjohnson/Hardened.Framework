@@ -104,7 +104,7 @@ The template's host project behaves differently on each host:
 
 | Host | Start it with | Port | A path with no route | SIGTERM with a request in flight |
 |---|---|---|---|---|
-| Kestrel | `dotnet run --project src/Todos.Host` | `PORT`, or 5080, on every interface | 404 | The request gets no response |
+| Kestrel | `dotnet run --project src/Todos.Host` | `PORT`, or 5080, on every interface | 404 | The request finishes |
 | ASP.NET Core | `dotnet run --project src/Todos.Host` | `PORT`, or 5080, on `localhost` only | Passed on to the rest of the ASP.NET Core pipeline | The request finishes |
 | AWS Lambda | `dotnet run --project src/Todos.Host`, which also starts the AWS Lambda Test Tool | `PORT`, or 5080 | 404 | Not applicable: there is no server |
 | Google Cloud Run | `dotnet run --project src/Todos.Host` | `PORT`, or 5080, on every interface | 404 | The request finishes, within 10 seconds |
@@ -140,15 +140,8 @@ certificate file path is resolved against the current directory.
 startup services are the application's `IStartupService` registrations.
 [Modules](/guide/modules) covers them.
 
-`RunAsync` starts the server if `StartAsync` has not, and then waits. On Ctrl-C (SIGINT),
-`RunAsync` stops the server and lets requests in flight finish before it returns. On SIGTERM, the
-process exits without waiting for requests in flight.
-
-::: warning
-The template's Kestrel `Program.cs` ends with `app.RunAsync()`. When a container stops the process
-with SIGTERM, the requests it is serving get no response. Use the `RunAsync(signals, grace)`
-overload or `AddHardenedKestrel` for a process that is stopped with SIGTERM.
-:::
+`RunAsync` starts the server if `StartAsync` has not, and then waits. On Ctrl-C (SIGINT) or
+SIGTERM, `RunAsync` stops the server and lets requests in flight finish before it returns.
 
 The overload `RunAsync(signals, grace)` handles the signals it is given. It then stops the server
 and lets requests in flight finish for up to `grace`. In the Kestrel `Program.cs` above, this call

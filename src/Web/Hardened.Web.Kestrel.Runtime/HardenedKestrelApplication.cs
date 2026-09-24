@@ -31,6 +31,8 @@ namespace Hardened.Web.Kestrel.Runtime;
 /// </summary>
 public sealed class HardenedKestrelApplication : IAsyncDisposable
 {
+    private static readonly PosixSignal[] StopSignals = [PosixSignal.SIGINT, PosixSignal.SIGTERM];
+
     private readonly ServiceProvider _provider;
     private readonly KestrelServerRunner _runner;
 
@@ -69,47 +71,21 @@ public sealed class HardenedKestrelApplication : IAsyncDisposable
 
     /// <summary>
     /// Starts listening if it has not already, and returns when the token is cancelled, or on
-    /// Ctrl-C or SIGTERM. In-flight requests are drained before this returns.
+    /// SIGINT (Ctrl-C) or SIGTERM. In-flight requests are drained before this returns, for as long
+    /// as they take.
     ///
     /// Starting is conditional so that a caller who needs something in between — reading
     /// <see cref="Addresses"/> after binding, most often — can call <see cref="StartAsync"/>
     /// first and then hand over to this.
     /// </summary>
-    public async Task RunAsync(CancellationToken cancellationToken = default)
-    {
-        if (!IsStarted)
-        {
-            await StartAsync(cancellationToken);
-        }
-
-        var shutdown = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-
-        await using var registration = cancellationToken.Register(() => shutdown.TrySetResult());
-
-        void OnCancelKeyPress(object? sender, ConsoleCancelEventArgs eventArgs)
-        {
-            // Take over the signal so the process drains rather than terminating immediately.
-            eventArgs.Cancel = true;
-            shutdown.TrySetResult();
-        }
-
-        void OnProcessExit(object? sender, EventArgs eventArgs) => shutdown.TrySetResult();
-
-        Console.CancelKeyPress += OnCancelKeyPress;
-        AppDomain.CurrentDomain.ProcessExit += OnProcessExit;
-
-        try
-        {
-            await shutdown.Task;
-        }
-        finally
-        {
-            Console.CancelKeyPress -= OnCancelKeyPress;
-            AppDomain.CurrentDomain.ProcessExit -= OnProcessExit;
-
-            await StopAsync(CancellationToken.None);
-        }
-    }
+    /// <remarks>
+    /// SIGTERM is how <c>docker stop</c>, Kubernetes, Cloud Run and Container Apps stop a
+    /// container, so it is handled the same way as Ctrl-C. Left to the runtime, SIGTERM raises
+    /// <c>ProcessExit</c> and the process exits as soon as the handlers return, before the server
+    /// has stopped, and a request in flight gets a closed connection.
+    /// </remarks>
+    public Task RunAsync(CancellationToken cancellationToken = default) =>
+        RunAsync(StopSignals, Timeout.InfiniteTimeSpan, cancellationToken);
 
     /// <summary>
     /// Starts listening if it has not already, and returns once <paramref name="cancellationToken"/>
@@ -118,17 +94,15 @@ public sealed class HardenedKestrelApplication : IAsyncDisposable
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Opt-in, beside <see cref="RunAsync(CancellationToken)"/>. That one returns on
-    /// <c>ProcessExit</c>, which is what the runtime raises for SIGTERM when nothing has registered
-    /// for the signal, and the process then exits as soon as the handlers return, before the
-    /// server has stopped: a container stopped with a request in flight answers it with a closed
-    /// connection. Observed on 2026-09-08 in <c>mcr.microsoft.com/dotnet/aspnet:8.0</c> under
-    /// <c>docker stop</c>, which is the Cloud Run and Container Apps contract exactly.
+    /// For a caller that bounds the drain, or names its own signals.
+    /// <see cref="RunAsync(CancellationToken)"/> is this with SIGINT and SIGTERM and no bound.
+    /// The grace to pass is the platform's time between SIGTERM and SIGKILL: ten seconds on Cloud
+    /// Run, and thirty by default on Container Apps. What is still running when it ends is aborted
+    /// by Kestrel rather than cut off by the kill.
     /// </para>
     /// <para>
     /// A registration with <c>Cancel = true</c> takes the signal away from the runtime, so the stop
-    /// that follows is a drain rather than a race with process exit. Both platforms send SIGTERM
-    /// and follow it with SIGKILL ten seconds later, which is the grace to pass.
+    /// that follows is a drain rather than a race with process exit.
     /// </para>
     /// </remarks>
     public async Task RunAsync(

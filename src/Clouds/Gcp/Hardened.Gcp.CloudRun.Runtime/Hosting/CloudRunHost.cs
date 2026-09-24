@@ -15,10 +15,9 @@ namespace Hardened.Gcp.CloudRun.Runtime.Hosting;
 /// later, <c>SIGKILL</c>; a request still in flight when the signal arrives has those ten seconds
 /// to finish. <see cref="Listen"/> is the first half and <see cref="RunAsync"/> the second, and
 /// both are the Kestrel host's own members with Cloud Run's values filled in:
-/// <see cref="KestrelListen.FromEnvironment"/>, and the <c>RunAsync</c> overload that takes the
-/// signal away from the runtime and stops within a grace period. The plain
-/// <c>HardenedKestrelApplication.RunAsync</c> returns on <c>ProcessExit</c> and the process exits
-/// before the server has drained; the container tier's shutdown test saw a request cut off that way.
+/// <see cref="KestrelListen.FromEnvironment"/>, and the <c>RunAsync</c> overload that stops within a
+/// grace period. The plain <c>HardenedKestrelApplication.RunAsync</c> handles the same signals and
+/// drains with no bound, so a drain longer than ten seconds would end in the kill.
 /// </para>
 /// </remarks>
 public static class CloudRunHost

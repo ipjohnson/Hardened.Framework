@@ -19,8 +19,10 @@ namespace Hardened.Web.Kestrel.Runtime.Tests;
 /// <remarks>
 /// The signal itself is not sent here. Registering SIGTERM in the test process and raising it would
 /// be a test of the runtime's signal plumbing under a runner that also owns the process; what this
-/// holds is the contract around it, and the container tier under <c>src/Clouds/Gcp</c> is where a
-/// real <c>docker stop</c> shows the drain: a three-second request in flight finishes with a 200.
+/// holds is the contract around it. <c>SignalTests</c> beside the Kestrel integration application
+/// sends the signal to that application's own process, and the container tier under
+/// <c>src/Clouds/Gcp</c> sends it with a real <c>docker stop</c>. In both, a three-second request in
+/// flight finishes with a 200.
 /// </remarks>
 public class ShutdownTests
 {

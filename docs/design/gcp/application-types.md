@@ -70,9 +70,9 @@ await CloudRunHost.RunAsync(app);
 `CloudRunHost.Listen` is `KestrelListen.FromEnvironment` with 8080 as the default: every
 interface on `PORT`. `CloudRunHost.RunAsync` is the Kestrel application's `RunAsync` overload
 that registers `SIGTERM` and `SIGINT` with `PosixSignalRegistration`, cancels the runtime's own
-handling, and stops the server within ten seconds, Cloud Run's grace. The plain `RunAsync` returns
-on `ProcessExit` and the process exits before the server has drained; the container tier's
-shutdown test saw a response cut off that way, which is why the helper exists.
+handling, and stops the server within ten seconds, Cloud Run's grace. The plain `RunAsync` handles
+the same two signals and drains with no bound, so a drain longer than ten seconds would end in
+Cloud Run's kill.
 
 The project is an `Exe`. The container tier runs the build output as `dotnet <assembly>.dll` in
 `mcr.microsoft.com/dotnet/aspnet:8.0`, and the templates' Dockerfile publishes it into the same

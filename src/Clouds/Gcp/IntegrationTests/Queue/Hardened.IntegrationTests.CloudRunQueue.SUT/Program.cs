@@ -28,7 +28,6 @@ await app.StartAsync();
 // Printed rather than logged so a harness can wait on it without depending on log configuration.
 Console.WriteLine($"LISTENING {string.Join(",", app.Addresses)}");
 
-// Rather than app.RunAsync(): that returns on ProcessExit, which is what SIGTERM raises when
-// nothing has registered for it, and the process then exits before the server has drained. The
-// container tier's ShutdownTests saw a request in flight cut off that way.
+// The template's Cloud Run host ends the same way: SIGTERM, then up to ten seconds for what is in
+// flight.
 await CloudRunHost.RunAsync(app);
