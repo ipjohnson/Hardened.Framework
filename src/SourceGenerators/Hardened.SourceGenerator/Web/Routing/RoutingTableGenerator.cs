@@ -403,6 +403,24 @@ public static class RoutingTableGenerator
         );
     }
 
+    /// <summary>
+    /// Whether the entry point or any handler declares <c>[Cors]</c>, in either form.
+    /// </summary>
+    /// <remarks>
+    /// A described handler's list already carries what its implementation declared, so one check
+    /// covers both tables.
+    /// </remarks>
+    private static bool DeclaresCors(
+        EntryPointSelector.Model applicationModel,
+        IReadOnlyList<RequestHandlerModel> handlers
+    ) =>
+        applicationModel.FilterDeclarations.Any(IsCors)
+        || handlers.Any(handler => handler.Filters.Any(IsCors));
+
+    private static bool IsCors(AttributeModel attribute) =>
+        attribute.TypeDefinition.Namespace == KnownTypes.Web.CorsAttribute.Namespace
+        && attribute.TypeDefinition.Name == KnownTypes.Web.CorsAttribute.Name;
+
     private static void CreateConstructor(ClassDefinition appClass)
     {
         var field = appClass.AddField(typeof(IServiceProvider), "_rootServiceProvider");
@@ -473,6 +491,19 @@ public static class RoutingTableGenerator
                                 + ApplicationFilterEmitter.ContainerName
                         ),
                     }
+                )
+            );
+        }
+
+        // Only where a route or the entry point declares [Cors]. Its presence moves CORS from the
+        // whole application to the routes that declare it, so an application declaring none keeps
+        // what it had.
+        if (DeclaresCors(applicationModel, webEndPointModels))
+        {
+            diMethod.AddIndentedStatement(
+                serviceCollection.InvokeGeneric(
+                    "AddSingleton",
+                    new[] { KnownTypes.Web.CorsManifest }
                 )
             );
         }

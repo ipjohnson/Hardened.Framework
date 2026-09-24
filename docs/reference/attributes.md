@@ -154,6 +154,13 @@ See [Authorization](/guide/authorization).
 |---|---|---|
 | `[ConditionalGet]` | Module, class, method | Answers a caller holding the response with a [304](/guide/conditional-requests). GET handlers only |
 
+`Hardened.Web.Runtime.Cors`
+
+| Attribute | Target | Purpose |
+|---|---|---|
+| `[Cors]` | Module, class, method | Answers [cross-origin requests](/guide/cors) with the application's `CorsConfiguration`. Once one is declared, routes without one get no CORS |
+| `[Cors<TPolicy>]` | Module, class, method | The same, with the policy `AddCorsPolicy<TPolicy>` registered |
+
 Every filter attribute above goes on a `[HardenedModule]` class as well, where it covers each
 handler compiled with it. That is the form to reach for: the declaration stays inside the
 compilation, so the [document publishes what the pipeline installs](/guide/execution-pipeline#attaching-a-filter-to-a-module).
