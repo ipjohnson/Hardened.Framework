@@ -101,6 +101,7 @@ const guide = [
     items: [
       { text: 'Authentication', link: '/guide/authentication' },
       { text: 'Authorization', link: '/guide/authorization' },
+      { text: 'CORS', link: '/guide/cors' },
     ],
   },
   {

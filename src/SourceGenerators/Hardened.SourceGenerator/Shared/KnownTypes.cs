@@ -74,6 +74,8 @@ public static class KnownTypes
 
                 public const string RuntimeHandlers = "Hardened.Web.Runtime.Handlers";
 
+                public const string Cors = "Hardened.Web.Runtime.Cors";
+
                 /// <summary>
                 /// Where the runtime matcher and the registration API live. The generated table is
                 /// emitted code; these are the types a route registered at startup goes through.
@@ -513,6 +515,20 @@ public static class KnownTypes
             TypeDefinitionEnum.InterfaceDefinition,
             Namespace.Hardened.Web.RuntimeRouting,
             "IGeneratedRouteHandlerCatalog"
+        );
+
+        /// <summary>
+        /// <c>[Cors]</c> and <c>[Cors&lt;TPolicy&gt;]</c>, which share this name once the generic
+        /// arguments are set aside.
+        /// </summary>
+        public static readonly ITypeDefinition CorsAttribute = TypeDefinition.Get(
+            Namespace.Hardened.Web.Cors,
+            "CorsAttribute"
+        );
+
+        public static readonly ITypeDefinition CorsManifest = TypeDefinition.Get(
+            Namespace.Hardened.Web.Cors,
+            "CorsManifest"
         );
     }
 

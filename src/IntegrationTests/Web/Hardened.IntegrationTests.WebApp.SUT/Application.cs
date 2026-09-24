@@ -9,6 +9,7 @@ using Hardened.Shared.Runtime.Application;
 using Hardened.Shared.Runtime.Attributes;
 using Hardened.Web.AspNetCore.Runtime;
 using Hardened.Web.Runtime.Compression;
+using Hardened.Web.Runtime.Cors;
 using Hardened.Web.Runtime.Handlers;
 using Hardened.Web.Runtime.OpenApi;
 
@@ -62,6 +63,17 @@ public partial class Application : IServiceCollectionConfiguration
 
         // Room for RequestBench's 33,067-byte upload, and small enough for a test to exceed.
         services.ConfigureForms(forms => forms.MaxBodyBytes = 100_000);
+
+        // The origin CorsController's routes allow. Registered after the web module's own, which
+        // reads CORS_ALLOWED_ORIGINS, and the container resolves the last registration.
+        services.AddSingleton(_ =>
+        {
+            var cors = new CorsConfiguration();
+
+            cors.AllowOrigin("https://app.example.com");
+
+            return cors;
+        });
     }
 
     public static WebApplicationBuilder CreateBuilder(string[] args)
