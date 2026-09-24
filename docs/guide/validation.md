@@ -2,7 +2,9 @@
 
 Constraint attributes on the members of a request body's type, or on a handler's parameters, are
 checked after the request is bound and before the handler runs. `Hardened.Validation.SourceGenerator`
-compiles the attributes from `ValidationModules.Constraints` into the check.
+compiles the attributes into that check.
+
+The body type goes in `src/Todos/NewList.cs`:
 
 ```csharp
 using ValidationModules.Constraints;
@@ -20,6 +22,8 @@ public class NewList
 }
 ```
 
+The handler goes in `src/Todos/ListController.cs`:
+
 ```csharp
 using Hardened.Web.Runtime.Attributes;
 
@@ -33,8 +37,12 @@ public class ListController
 }
 ```
 
-The handler declares no filter and registers nothing. A request that fails a constraint answers 400.
-The body names each field that failed, with a code and a message.
+The examples on this page add files to `src/Todos` in an application made with
+`dotnet new hardened-web -n Todos`. Their routes answer under `/todos`, which the template's library
+module sets with `[BasePath("/todos")]`.
+
+A request that fails a constraint answers 400. The body names each field that failed, with a code
+and a message:
 
 ```http
 POST /todos/lists
@@ -48,6 +56,8 @@ Content-Type: application/json
 {"type":"ValidationError","message":"One or more validation errors occurred.","errors":[{"field":"list.name","code":"string_length","message":"name must be between 3 and 40 characters."},{"field":"list.capacity","code":"range","message":"capacity must be between 1 and 50."}]}
 ```
 
+A body that passes reaches the handler:
+
 ```http
 POST /todos/lists
 Content-Type: application/json
@@ -60,37 +70,38 @@ Content-Type: application/json
 {"name":"Groceries","capacity":5}
 ```
 
+The handler declares no filter and registers nothing.
+
 ## Packages
 
-`ValidationModules.Constraints` is in the `ValidationModules.Runtime` package, which
-`Hardened.Web.Runtime` brings.
+The constraint attributes are in `ValidationModules.Constraints`. That namespace is in the
+`ValidationModules.Runtime` package, which `Hardened.Web.Runtime` brings.
 
 `Hardened.Validation.SourceGenerator` goes in the project that holds the constrained handlers. The
-`hardened-web` template references it in `src/Todos`. The C# examples on this page are files in that
-project. The library module's `[BasePath("/todos")]` puts their routes under `/todos`. A project that
-sets package versions in its project file adds this reference:
+`hardened-web` template references it in `src/Todos`. A project that sets versions in its project
+file references it with this line:
 
 ```xml
 <PackageReference Include="Hardened.Validation.SourceGenerator" Version="0.0.0-HARDENED-VERSION" />
 ```
 
-The two generator packages give these results:
+The generator reads constraint attributes only. A ValidationModules rules class, an
+`IValidationRulesFor<T>`, produces no check and no warning.
 
-| The project references | Result |
+Other generator references have these results:
+
+| Validation generator in the project | Result |
 |---|---|
-| `Hardened.Validation.SourceGenerator` alone | The constraints are checked |
-| Neither | No constraint is checked. The build reports warning `HRDV006` once for the project, naming one handler |
-| `ValidationModules.SourceGenerator` alone | It generates validators and registers them. No handler runs them. The build reports `HRDV006` |
+| None | No constraint is checked. The build reports warning `HRDV006` once for the project, naming one handler |
+| `ValidationModules.SourceGenerator` in place of `Hardened.Validation.SourceGenerator` | It generates validators and registers them. No handler runs them. The build reports `HRDV006` |
 | Both | The build fails with `CS0111` and `CS0102` in the generated validators |
-
-`Hardened.Validation.SourceGenerator` reads constraint attributes only. A ValidationModules rules
-class, an `IValidationRulesFor<T>`, produces no check and no warning.
 
 ## Constraint attributes
 
-The generator compiles these attributes:
+Each attribute reports the code in the table when it fails. The last column is what the OpenAPI
+document publishes for it.
 
-| Attribute | Arguments | `code` | In the OpenAPI document |
+| Attribute | Arguments | Code | In the OpenAPI document |
 |---|---|---|---|
 | `[Required]` | `AllowEmptyStrings` | `required` | The member is listed in the schema's `required` |
 | `[StringLength]` | `(min, max)`, or `Min` and `Max` | `string_length` | `minLength`, `maxLength` |
@@ -107,10 +118,13 @@ The generator compiles these attributes:
 | `[CreditCard]` | None | `credit_card` | Nothing |
 | `[Base64String]` | None | `base64` | Nothing |
 | `[FileExtensions]` | `Extensions`, by default `png,jpg,jpeg,gif` | `file_extension` | Nothing |
-| `[ValidateNested]` | Optionally a `Polymorphism`. See [Nested models](#nested-models) | The codes of the member type's constraints | Nothing |
+| `[ValidateNested]` | Optionally a `Polymorphism`, described in [Nested models](#nested-models) | The codes of the member type's constraints | Nothing |
 
 `[Required]` fails on null, on an empty string and on a string of white space. With
-`AllowEmptyStrings = true`, it fails on null only. Every other constraint passes a null value.
+`AllowEmptyStrings = true`, it fails on null only. When `[Required]` fails, the member's other
+constraints are not checked. When two other constraints fail on one member, both are reported.
+
+Every constraint except `[Required]` passes a null value.
 
 ::: warning
 A member without `[Required]` accepts null, whatever else constrains it. The template's
@@ -118,22 +132,21 @@ A member without `[Required]` accepts null, whatever else constrains it. The tem
 `POST /todos` answers 201 with `{"id":3,"title":null,"done":false}`.
 :::
 
-When `[Required]` fails, the member's other constraints are not checked. Two constraints other than
-`[Required]` that fail on one member are both reported.
-
-`[Range]` takes `int`, `long`, `double` or `string` bounds. A `decimal` bound is written as a string,
-such as `[Range("0.5", "30")]`. The OpenAPI document publishes it as a number. An exclusive bound is
-published under `exclusiveMinimum` or `exclusiveMaximum`, with the bound as its value. For
-`[Range(0.0, 1.0, ExclusiveMax = true)]`, the document publishes `"minimum": 0, "exclusiveMaximum": 1`.
+`[Range]` takes `int`, `long`, `double` or `string` bounds. A `decimal` bound is written as a
+string, such as `[Range("0.5", "30")]`. The OpenAPI document publishes it as a number. An exclusive
+bound is published under `exclusiveMinimum` or `exclusiveMaximum`, with the bound as its value.
+The OpenAPI document publishes `[Range(0.0, 1.0, ExclusiveMax = true)]` as
+`"minimum": 0, "exclusiveMaximum": 1`.
 
 Every constraint takes `Code` and `Message`, which replace the error's code and message. `{field}`
 in `Message` becomes the member's name.
 
-On a model's member, `When` names a `bool` member of the same model. The constraint is checked only
-when that member is true. `Unless` checks the constraint only when the member it names is false.
+On a model's member, `When` names a `bool` member of the same model. The constraint is then checked
+only when that member is true. `Unless` checks the constraint only when the member it names is
+false.
 
-The OpenAPI document publishes the constraints on the model's schema. The first example's `NewList`
-publishes this schema:
+The OpenAPI document publishes the constraints on the model's schema. This is the schema for the
+first example's `NewList`:
 
 ```json
 "NewList": {
@@ -161,12 +174,13 @@ publishes this schema:
 }
 ```
 
-`capacity` is in `required` because its type is `int`. [The OpenAPI document](/guide/openapi-document)
-covers the rest of the schema.
+`capacity` is in `required` because its type is `int`.
+[The OpenAPI document](/guide/openapi-document) covers the rest of the schema.
 
 ## Constraints on parameters
 
-A constraint on a path, query or header parameter is checked like one on a model's member.
+A constraint on a path, query or header parameter is checked like one on a model's member. The
+handler in `src/Todos/SearchController.cs` constrains three parameters:
 
 ```csharp
 using Hardened.Web.Runtime.Attributes;
@@ -195,6 +209,8 @@ public class SearchController
 }
 ```
 
+This request fails all three:
+
 ```http
 GET /todos/search?q=a&limit=0
 X-Region: USA
@@ -216,22 +232,22 @@ Content-Type: application/json
 {"type":"ValidationError","message":"One or more validation errors occurred.","errors":[{"field":"limit","code":"invalid","message":"limit is not a valid Int32."}]}
 ```
 
-A non-nullable query or header parameter that the request leaves out answers with code `required`.
-An omitted nullable parameter is not checked.
+A non-nullable query or header parameter that the request leaves out answers `required`. An
+omitted nullable parameter is not checked.
+
+The OpenAPI document publishes a parameter's constraints on the parameter's schema.
 
 A route constraint is checked before any value constraint. With a route `/page/{count:int}` and
-`[Range(Min = 1, Max = 100)] int count`, `/page/abc` answers 404 and `/page/0` answers 400.
+`[Range(Min = 1, Max = 100)] int count`, `/page/abc` answers 404. `/page/0` answers 400.
 [Routing](/guide/routing) covers route constraints.
 
 `When` or `Unless` on a parameter's constraint fails the build with `HRDV005`.
 
-The OpenAPI document publishes a parameter's constraints on the parameter's schema.
-
 ## Nested models
 
-`[ValidateNested]` on a member checks the constraints of the member's type on an object, on each
-element of a collection, or on each value of a dictionary. This `NewList` replaces the one in the
-first example:
+`[ValidateNested]` on a member checks the constraints of the member's type. It checks an object,
+each element of a collection, or each value of a dictionary. This `src/Todos/NewList.cs` replaces
+the first one and adds a list of items:
 
 ```csharp
 using ValidationModules.Constraints;
@@ -260,6 +276,8 @@ public class NewList
 }
 ```
 
+The second item fails `[Required]`:
+
 ```http
 POST /todos/lists
 Content-Type: application/json
@@ -272,40 +290,51 @@ Content-Type: application/json
 {"type":"ValidationError","message":"One or more validation errors occurred.","errors":[{"field":"list.items[1].title","code":"required","message":"title is required."}]}
 ```
 
-Without `[ValidateNested]`, the member type's constraints are not checked. The build reports warning
-`HRDV004` for such a member when its parent declares a constraint of its own and the member's type is
-declared in the same project. A member that is null is not checked.
+Without `[ValidateNested]`, the member type's constraints are not checked. The build reports
+warning `HRDV004` for such a member when its parent declares a constraint of its own and the
+member's type is declared in the same project. A member that is null is not checked.
 
-The build reports warning `VM1503` for `[ValidateNested]` on a member whose type is not sealed. Seal
-the type, or write `[ValidateNested(Polymorphism.DeclaredOnly)]`, which checks the declared type's
-constraints only. `Polymorphism` is in `ValidationModules.Constraints`.
+`[ValidateNested]` on a member whose type is not sealed reports warning `VM1503`. Seal the type, or
+write `[ValidateNested(Polymorphism.DeclaredOnly)]`, which checks the declared type's constraints
+only. `Polymorphism` is in `ValidationModules.Constraints`.
 
 ## The failure response
 
-The body has these members:
+The body of a validation refusal has three members:
 
 | Member | Value |
 |---|---|
 | `type` | `ValidationError` |
 | `message` | `One or more validation errors occurred.` |
-| `errors` | An entry for each failed constraint, with `field`, `code` and `message` |
+| `errors` | The failures. Each entry has `field`, `code` and `message` |
 
-`message` differs only for a `ValidationModules.ValidationException`, which
-[Throw from the handler](#throw-from-the-handler) covers. `errors` lists every failed constraint. A
-member whose `[Required]` fails reports that failure alone.
+[Rules the attributes cannot state](#rules-the-attributes-cannot-state) describes the one exception
+to that `message`.
 
-Each of these refusals answers with the same body:
+`errors` lists every failed constraint, not only the first. The constraints after a failed
+`[Required]` are the exception. A handler under
+`[ValidationMode(ValidationStopMode.StopOnFirstError)]` lists only the first, as
+[Stop at the first failure](#stop-at-the-first-failure) describes.
+
+The same body answers each of these refusals:
 
 | The request | `field` | `code` | `message` |
 |---|---|---|---|
-| Fails a constraint | The field. See [Field names](#field-names) | The constraint's code | The constraint's message |
-| Has a path or query value that does not convert, or a member of a query-string or form model that does not | The parameter's or the field's name | `invalid` | Such as `limit is not a valid Int32.` |
-| Leaves out a non-nullable query or header value, or a required member of a query-string or form model | The parameter's or the field's name | `required` | Such as `q is required.` |
+| Fails a constraint | The field, named as in [Field names](#field-names) | The constraint's code | The constraint's message |
+| Has a path or query value that does not convert, or a member of a query-string or form model that does not | The parameter's or the field's name | `invalid` | `limit is not a valid Int32.` |
+| Leaves out a non-nullable query or header value, or a required member of a query-string or form model | The parameter's or the field's name | `required` | `q is required.` |
 | Has a body that is not JSON | The body parameter's name | `invalid` | The parser's message, such as `Expected depth to be zero at the end of the JSON payload. There is an open JSON object or array that should be closed.` |
-| Has a body member of the wrong JSON type | The member's field | `invalid` | Such as `The JSON value could not be converted to Todos.NewTodo.` |
-| Has an empty body, or the body `null` | The body parameter's name | `required` | Such as `request is required.` |
+| Has a body member of the wrong JSON type | The member's field | `invalid` | `The JSON value could not be converted to Todos.NewTodo.` |
+| Has an empty body, or the body `null` | The body parameter's name | `required` | `request is required.` |
 
-The template's `POST /todos` takes its body as `NewTodo request`:
+A handler whose body parameter is nullable, such as `NewTodo? request`, receives null for the body
+`null`. An empty body still answers `required`.
+
+A value an enum does not declare is refused as `invalid` when it is read, before any constraint
+runs.
+
+The body parameter of the template's `POST /todos` is `NewTodo request`. A body that is not JSON
+answers with the parser's message:
 
 ```http
 POST /todos
@@ -319,18 +348,13 @@ Content-Type: application/json
 {"type":"ValidationError","message":"One or more validation errors occurred.","errors":[{"field":"request","code":"invalid","message":"Expected depth to be zero at the end of the JSON payload. There is an open JSON object or array that should be closed."}]}
 ```
 
-A handler whose body parameter is nullable, such as `NewTodo? request`, receives null for the body
-`null`. An empty body still answers `required`.
-
-A value an enum does not declare is refused as `invalid` when it is read, before any constraint runs.
-
-For an operation that validates, the OpenAPI document lists a 400 with the `RequestValidationError`
-schema. [The execution pipeline](/guide/execution-pipeline) shows where the check runs among the
+The OpenAPI document lists a 400 with the `RequestValidationError` schema for an operation that
+validates. [The execution pipeline](/guide/execution-pipeline) shows where the check runs among the
 filters.
 
 ## Field names
 
-`field` names the value that failed:
+Each entry's `field` depends on where the value is:
 
 | Where the value is | `field` | Example |
 |---|---|---|
@@ -341,13 +365,14 @@ filters.
 | A member of a `[FromQueryString]` or `[FromForm]` model that fails a constraint | The model parameter's name, a dot, then the member | `filter.limit` |
 | A member of such a model that is missing or does not convert | The field's name alone | `limit` |
 
-A member's name has its first letter in lower case. `DueDate` reports as `dueDate`. `message` spells
-the member's name the same way, as in `name must be between 3 and 40 characters.`
-`ValidationModules_FieldNaming` changes the spelling of a member's name.
-[Build properties](#build-properties) lists its values.
+A member's name is written with its first letter in lower case: `DueDate` reports as `dueDate`.
+The member's name in `message` is spelled the same way, as in
+`name must be between 3 and 40 characters.` `ValidationModules_FieldNaming` changes the spelling,
+as [Build properties](#build-properties) describes.
 
 A model bound from the query string or a form is checked after it is bound, like a body model.
-[Forms and files](/guide/forms) covers binding a model from fields.
+[Forms and files](/guide/forms) covers binding a model from fields. The handler in
+`src/Todos/TodoFilterController.cs` binds one from the query string:
 
 ```csharp
 using Hardened.Web.Runtime.Attributes;
@@ -367,6 +392,8 @@ public class TodoFilterController
     public string Find([FromQueryString] TodoFilter filter) => $"{filter.Limit} {filter.Text}";
 }
 ```
+
+This request fails both constraints:
 
 ```http
 GET /todos/filtered?limit=0&text=a
@@ -391,14 +418,109 @@ Content-Type: application/json
 
 Only the first missing member is reported.
 
+## Stop at the first failure
+
+`[ValidationMode(ValidationStopMode.StopOnFirstError)]` on a handler method, or on its class,
+answers a request that fails validation with its first failure only. `errors` then has one entry.
+`ValidationStopMode.CollectAll` answers with every failure. A handler that declares no mode gets
+`CollectAll`.
+
+The class in `src/Todos/QuickListController.cs` declares `StopOnFirstError`. Its `CreateFull` method
+declares `CollectAll`. `NewList` is the version from [Nested models](#nested-models):
+
+```csharp
+using Hardened.Requests.Runtime.Validation;
+using Hardened.Web.Runtime.Attributes;
+using ValidationModules;
+
+namespace Todos;
+
+[BasePath("/quick-lists")]
+[ValidationMode(ValidationStopMode.StopOnFirstError)]
+public class QuickListController
+{
+    [Post("/")]
+    public NewList Create(NewList list) => list;
+
+    [Post("/full")]
+    [ValidationMode(ValidationStopMode.CollectAll)]
+    public NewList CreateFull(NewList list) => list;
+}
+```
+
+`Create` answers the first example's body with one entry:
+
+```http
+POST /todos/quick-lists
+Content-Type: application/json
+
+{"name":"ab","capacity":0}
+
+HTTP/1.1 400 Bad Request
+Content-Type: application/json
+
+{"type":"ValidationError","message":"One or more validation errors occurred.","errors":[{"field":"list.name","code":"string_length","message":"name must be between 3 and 40 characters."}]}
+```
+
+`CreateFull` answers the same body with both failures:
+
+```http
+POST /todos/quick-lists/full
+Content-Type: application/json
+
+{"name":"ab","capacity":0}
+
+HTTP/1.1 400 Bad Request
+Content-Type: application/json
+
+{"type":"ValidationError","message":"One or more validation errors occurred.","errors":[{"field":"list.name","code":"string_length","message":"name must be between 3 and 40 characters."},{"field":"list.capacity","code":"range","message":"capacity must be between 1 and 50."}]}
+```
+
+`ValidationModeAttribute` is in `Hardened.Requests.Runtime.Validation`, in the
+`Hardened.Requests.Runtime` package. `ValidationStopMode` is ValidationModules' own enum, in the
+namespace `ValidationModules` of `ValidationModules.Runtime`. `Hardened.Web.Runtime` brings that
+package.
+
+These declarations set the mode:
+
+| Declared on | Sets the mode of |
+|---|---|
+| A handler method | The handler. The nearest declaration wins: a method's mode beats its class's |
+| A handler class | Its handlers |
+| A `[HardenedModule]` class | Every handler compiled in the module's project that declares no mode. Only `CollectAll` compiles there, as [Limits](#limits) describes |
+| An operation in a contract, with `x-hardened-validation` in an OpenAPI document or `@validation` in a Smithy model | The operation. The contract's mode beats a `[ValidationMode]` on the module class and one on the implementation |
+
+[Generating from OpenAPI](/guide/openapi) and [Generating from Smithy](/guide/smithy) cover
+`x-hardened-validation` and `@validation`. The OpenAPI document publishes the mode as
+`x-hardened-validation`. [The OpenAPI document](/guide/openapi-document) covers the published
+extension.
+
+The refusal keeps its body and its status: 400, or the 422 that
+[Change the status to 422](#change-the-status-to-422) sets.
+
+The mode belongs to the handler, not to the model. `NewList` gets every failure at `/todos/lists`
+and only the first at `/todos/quick-lists`.
+
+The first failure is the first in declaration order: the parameters in the order the handler
+declares them, a model's members in the order its type declares them, and one member's constraints
+in the order they are written. The checks after the first failure do not run: the member's other
+constraints, the other members and parameters, and the elements of a collection. At
+`/todos/quick-lists`, the body
+`{"name":"Groceries","capacity":5,"items":[{"title":""},{"title":""}]}` reports
+`list.items[0].title` alone.
+
+A validator registered for the body type runs before the generated check for that type.
+[Rules the attributes cannot state](#rules-the-attributes-cannot-state) shows one. Under
+`StopOnFirstError`, when both fail, the refusal names the registered validator's failure alone. A
+registered validator that reports two failures has only its first reported.
+
+A `ValidationException` the handler throws is answered with every error it holds, in either mode.
+
 ## Change the status to 422
 
-`[Throws<RequestValidationError>(422)]` on a handler answers every validation refusal of that handler
-with 422: a failed constraint, a body that cannot be read, and a `ValidationException` the handler
-throws. The OpenAPI document then lists the 422 with the `RequestValidationError` schema, and no 400.
-
-`RequestValidationError` is in `Hardened.Requests.Runtime.Validation`. `[Throws<T>]` is in
-`Hardened.Web.Runtime.Responses`. [Declared responses](/guide/responses) covers it.
+`[Throws<RequestValidationError>(422)]` on a handler answers every validation refusal of that
+handler with 422: a failed constraint, a body that cannot be read, and a `ValidationException` the
+handler throws. The handler in `src/Todos/ImportController.cs` declares it:
 
 ```csharp
 using Hardened.Requests.Runtime.Validation;
@@ -416,6 +538,8 @@ public class ImportController
 }
 ```
 
+A failed constraint answers 422:
+
 ```http
 POST /todos/imports
 Content-Type: application/json
@@ -428,16 +552,21 @@ Content-Type: application/json
 {"type":"ValidationError","message":"One or more validation errors occurred.","errors":[{"field":"request.title","code":"string_length","message":"title must be between 1 and 64 characters."}]}
 ```
 
-## Replace the failure body
+The OpenAPI document then lists the 422 with the `RequestValidationError` schema, and no 400.
+
+`RequestValidationError` is in `Hardened.Requests.Runtime.Validation`. `[Throws<T>]` is in
+`Hardened.Web.Runtime.Responses`. [Declared responses](/guide/responses) covers it.
+
+## Change the body
 
 The registered `IExceptionToModelConverter` writes the body of every refusal that comes from an
-exception, a validation failure included. The interface is in `Hardened.Requests.Abstract.Errors`.
-The default converter is `ExceptionToModelConverter`, in `Hardened.Requests.Runtime.Errors`.
+exception, a validation failure included. A class with
+`[SingletonService(Using = RegistrationType.Replace)]` that implements it replaces the default.
+`ExceptionToModelConverter` is the default. A replacement can call it for the status and the body
+it would have sent.
 
-A class that implements the interface and carries
-`[SingletonService(Using = RegistrationType.Replace)]` replaces the default converter.
-`RegistrationType` is in `DependencyModules.Runtime.Attributes`. The replacement can call the default
-converter for the status and the body it would have sent.
+The converter in `src/Todos/ValidationProblemConverter.cs` replaces the body of a validation
+refusal:
 
 ```csharp
 using DependencyModules.Runtime.Attributes;
@@ -473,7 +602,7 @@ public class ValidationProblemConverter : IExceptionToModelConverter
 }
 ```
 
-A request that fails a constraint then answers with the new body:
+`GET /todos/0` then answers with the new body:
 
 ```http
 GET /todos/0
@@ -487,14 +616,17 @@ Content-Type: application/json
 A response the handler returns, such as a `NotFound`, does not pass through the converter. The
 OpenAPI document still describes the 400 with the `RequestValidationError` schema.
 
+The interface is in `Hardened.Requests.Abstract.Errors`. The default is in
+`Hardened.Requests.Runtime.Errors`. `RegistrationType` is in `DependencyModules.Runtime.Attributes`.
+
 ## Rules the attributes cannot state
 
-### Throw from the handler
+A handler can throw `ValidationException`, from `Hardened.Requests.Runtime.Validation`, with a
+`ValidationModules.ValidationResult`. The request then answers with the same body and status as a
+failed constraint. `ValidationModules` also declares a `ValidationException`. The example names
+Hardened's through an alias.
 
-A handler throws `ValidationException`, from `Hardened.Requests.Runtime.Validation`, with a
-`ValidationModules.ValidationResult`. The request answers with the same body and status as a failed
-constraint. `ValidationModules` also declares a `ValidationException`. The example names Hardened's
-through an alias.
+The handler in `src/Todos/DraftController.cs` refuses the title `inbox`:
 
 ```csharp
 using Hardened.Web.Runtime.Attributes;
@@ -523,6 +655,8 @@ public class DraftController
 }
 ```
 
+A draft titled `Inbox` is refused:
+
 ```http
 POST /todos/drafts
 Content-Type: application/json
@@ -539,14 +673,13 @@ Content-Type: application/json
 body's `message` is then the exception's own message, such as
 `Validation failed: request.title reserved.`
 
-### Register a validator
+A class that implements `IValidatorFor<T>` for a body type, registered as a service, runs beside
+the generated check for `T`. Its errors join the same list. The generated check for `T` still runs.
+The registered validator runs first, so its errors come before the generated check's in `errors`.
+The context it receives is positioned at the body parameter, so `"title"` is reported as
+`request.title`.
 
-A class that implements `IValidatorFor<T>` for a body type, registered as a service, runs beside the
-generated check for `T`. Its errors join the same list. The context it receives is positioned at the
-body parameter. A field it reports as `"title"` appears as `request.title`.
-
-`IValidatorFor<T>`, `ValidationContext`, `ValidationFlow` and `ValidationSeverity` are in
-`ValidationModules`.
+The validator in `src/Todos/NoShoutingValidator.cs` checks `NewTodo`:
 
 ```csharp
 using DependencyModules.Runtime.Attributes;
@@ -577,7 +710,7 @@ public class NoShoutingValidator : IValidatorFor<NewTodo>
 }
 ```
 
-With the validator registered, the template's `POST /todos` answers:
+The template's `POST /todos` then answers:
 
 ```http
 POST /todos
@@ -591,12 +724,15 @@ Content-Type: application/json
 {"type":"ValidationError","message":"One or more validation errors occurred.","errors":[{"field":"request.title","code":"shouting","message":"title must not be all capitals."}]}
 ```
 
+`IValidatorFor<T>`, `ValidationContext`, `ValidationFlow` and `ValidationSeverity` are in
+`ValidationModules`.
+
 ## DataAnnotations attributes
 
 The generator also compiles the `System.ComponentModel.DataAnnotations` attributes. They report the
 same codes:
 
-| Attribute | `code` |
+| Attribute | Code |
 |---|---|
 | `[Required]` | `required` |
 | `[StringLength]` | `string_length` |
@@ -604,11 +740,8 @@ same codes:
 | `[RegularExpression]` | `pattern` |
 | `[EmailAddress]` | `email` |
 
-The OpenAPI document does not publish them. `ValidationModules_DataAnnotations` set to `Ignore` stops
-the generator compiling them. [Build properties](#build-properties) lists it.
-
-A `NoteController` under `[BasePath("/notes")]` has a `[Post("/")]` handler that takes
-`NewNote note`:
+A `NoteController` under `[BasePath("/notes")]` takes `NewNote note` in a `[Post("/")]` handler.
+The model in `src/Todos/NewNote.cs` uses three of the attributes:
 
 ```csharp
 using DataAnnotations = System.ComponentModel.DataAnnotations;
@@ -626,6 +759,8 @@ public class NewNote
 }
 ```
 
+This body fails two of them:
+
 ```http
 POST /todos/notes
 Content-Type: application/json
@@ -638,9 +773,13 @@ Content-Type: application/json
 {"type":"ValidationError","message":"One or more validation errors occurred.","errors":[{"field":"note.text","code":"string_length","message":"text must be between 3 and 200 characters."},{"field":"note.author","code":"email","message":"author is not a valid email address."}]}
 ```
 
+The DataAnnotations attributes do not reach the OpenAPI document. `ValidationModules_DataAnnotations`
+set to `Ignore` stops the generator compiling them, as [Build properties](#build-properties)
+describes.
+
 ## Build properties
 
-The generator reads these build properties:
+The generator takes three build properties:
 
 | Property | Values | Default | Effect |
 |---|---|---|---|
@@ -648,7 +787,7 @@ The generator reads these build properties:
 | `ValidationModules_DataAnnotations` | `Ignore` | The DataAnnotations attributes are compiled | `Ignore` stops compiling them |
 | `ValidationModules_PatternPolicy` | `Error`, `Warn`, `Allow` | `Error` when `PublishAot` or `IsAotCompatible` is `true`, `Allow` otherwise | How the build reports `[Pattern("...")]` with an inline expression: error or warning `VM1301`, or nothing |
 
-This excerpt of `src/Todos/Todos.csproj` sets `ValidationModules_FieldNaming`:
+This excerpt of `src/Todos/Todos.csproj` sets `SnakeCase`:
 
 ```xml
 <PropertyGroup>
@@ -658,7 +797,7 @@ This excerpt of `src/Todos/Todos.csproj` sets `ValidationModules_FieldNaming`:
 
 With `SnakeCase`, a `DueDate` member of a body parameter named `reminder` reports as
 `reminder.due_date`, with the message `due_date is required.` `PascalCase` and `AsDeclared` both
-write the member's name as it is declared, `DueDate`. The body parameter's name, and the names of
+write the member's name as it is declared: `DueDate`. The body parameter's name, and the names of
 path, query and header values, do not change.
 
 `[Pattern(typeof(T), nameof(T.Member))]` is not reported under any policy.
@@ -677,17 +816,30 @@ The build reports these diagnostics:
 | `VM1301` | Error or warning, by `ValidationModules_PatternPolicy` | `[Pattern("...")]` has an inline expression |
 | `VM1503` | Warning | `[ValidateNested]` is on a member whose type is not sealed |
 
-`[Required]` never fails on an `int` member, which reads as `0` when it is omitted.
-[JSON serialization](/guide/json) covers the `required` modifier and `[JsonRequired]`, which make the
-value's absence a refusal.
+An omitted `int` member reads as `0`, so `[Required]` on it never fails.
+[JSON serialization](/guide/json) covers the `required` modifier and `[JsonRequired]`, which make
+the value's absence a refusal.
 
 ## Limits
 
 An `IAsyncValidatorFor<T>` registered for a body type is not run.
 
-These constraints are checked and are not published in the OpenAPI document: `[DeniedValues]`,
-`[EmailAddress]`, `[Phone]`, `[Url]`, `[CreditCard]`, `[Base64String]`, `[FileExtensions]`,
-`[Pattern]` with a `[GeneratedRegex]`, and every DataAnnotations attribute.
+The OpenAPI document does not publish `[DeniedValues]`, `[EmailAddress]`, `[Phone]`, `[Url]`,
+`[CreditCard]`, `[Base64String]`, `[FileExtensions]`, `[Pattern]` with a `[GeneratedRegex]`, or any
+DataAnnotations attribute. Each of them is still checked.
+
+On a `[HardenedModule]` class, `[ValidationMode(ValidationStopMode.StopOnFirstError)]` fails the
+build with `CS1503` in the generated `<Module>.Module.g.cs`:
+
+```text
+Argument 1: cannot convert from 'int' to 'ValidationModules.ValidationStopMode'
+```
+
+It fails on the template's library module and on its application module. It also fails when
+written as `(ValidationStopMode)1` or as `stopMode: ValidationStopMode.StopOnFirstError`.
+
+`[ValidationMode(ValidationStopMode.CollectAll)]` compiles on a module class. It is the default, so
+it changes no refusal.
 
 ## Next
 

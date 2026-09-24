@@ -402,6 +402,11 @@ format. The generated document keeps the contract's `info`, `servers` and descri
 what a code-first document adds, such as the [validation 400](#the-400-and-404-the-build-adds). It
 is OpenAPI 3.2.0 whatever version the contract declares.
 
+An operation whose contract declares a validation mode publishes it as `x-hardened-validation`,
+spelled `stop-on-first-error` or `collect-all`. The mode comes from an OpenAPI document's own key
+or a Smithy model's `@validation`. An operation whose contract declares none publishes none, unless
+the module declares a mode, as [Operations](#operations) describes.
+
 `SourceUrl` serves the contract file as written, comments included. The file goes out as
 `application/yaml` for a `.yaml` or `.yml` file and `application/json` otherwise. For the
 template's `contracts/todos.yaml`, the two URLs answer:
@@ -529,12 +534,21 @@ Each field of an operation comes from the handler or its class:
 | `description` | The method's `<remarks>` | No `description` |
 | A parameter's `description` | The method's `<param name="...">` | No `description` |
 | `deprecated: true` | `[Obsolete]` on the method or its class | No `deprecated` |
+| `x-hardened-validation` | `[ValidationMode]` on the method or its class, written `stop-on-first-error` or `collect-all` | No `x-hardened-validation` |
 
 Two handlers without `[Operation]` whose method names match each get their tag in front. `List` on
 a controller tagged `Params` publishes `paramsList`, and on one tagged `Body` publishes `bodyList`.
 Two handlers that declare the same `[Operation]` id fail the build with `HRDOA004`.
 
 `Operation` and `Tag` are in the namespace `Hardened.Web.Runtime.Attributes`.
+
+`x-hardened-validation` is the operation's last field, after `responses`. It carries the nearest
+declaration's mode, so a method that declares `CollectAll` under a class that declares
+`StopOnFirstError` publishes `collect-all`. `[ValidationMode(ValidationStopMode.CollectAll)]` on the
+module that serves the document adds `"x-hardened-validation": "collect-all"` to every operation
+that declares no mode, including one that validates nothing, such as `GET /todos`. The same
+attribute on the template's application module adds nothing. `StopOnFirstError` on a module class
+fails the build, as [Validation](/guide/validation) describes.
 [Route links](/guide/route-links) names its link types after the same tag.
 
 ## Parameters and request bodies
@@ -850,6 +864,7 @@ The document and the service also disagree in these cases:
 | A GET handler that returns null, or returns nothing | Lists no 404 unless the handler declares one | Answers 404 |
 | `[AuthorizeGrants]` without `[Authorize<TScheme>]` | Lists a 403 and no 401 | Answers 401 to a caller with no credentials |
 | A filter attribute that declares its own 400 with `[AnswersStatus]` | Lists that 400 in place of the validation 400 | Answers `RequestValidationError` to a failed constraint on the operation |
+| A `[ValidationMode]` on the implementation of a contract operation that declares no mode | Lists no `x-hardened-validation`, or `collect-all` under a module's `[ValidationMode(ValidationStopMode.CollectAll)]` | Answers in the implementation's mode, such as with the first failure only |
 
 [Routing](/guide/routing) covers what a null return answers.
 

@@ -97,6 +97,7 @@ The enums that the constructors take are in these namespaces:
 | Attribute | Targets | Namespace and package | What it does | Page |
 |---|---|---|---|---|
 | `[Validate<TValidated>]`<br>`TValidated` is a reference type | Class, method | `Hardened.Requests.Runtime.Validation` in `Hardened.Requests.Runtime` | The build attaches it to a handler whose parameters declare constraints. It runs every registered `IValidatorFor<TValidated>` against the bound parameters | None |
+| `[ValidationMode(stopMode)]`<br>`ValidationStopMode stopMode`: `CollectAll` or `StopOnFirstError` | Class, method | `Hardened.Requests.Runtime.Validation` in `Hardened.Requests.Runtime` | Whether a request that fails validation is answered with every failure or with the first. A handler under no declaration gets every failure. The nearest declaration wins. `ValidationStopMode` is in the namespace `ValidationModules`. See [Limits](#limits) | [Validation](/guide/validation) |
 
 `TValidated` is an interface that the generated parameters class implements. With no `IValidatorFor<TValidated>` registered, the request fails with an `InvalidOperationException` that names the type.
 
@@ -136,6 +137,8 @@ The constraint attributes come from ValidationModules. Each one is in the namesp
 | `[Compress<TPredicate>(params args)]`<br>`object[] args`<br>`TPredicate` implements `ICompressionPredicate` | Class, method | `Hardened.Web.Runtime.Compression` in `Hardened.Web.Runtime` | As `[Compress]`, when `TPredicate` says so, given the value the handler returned<br>Property: `Favor` (as `[Compress]`) | [Compression](/guide/compression) |
 | `[ResponseCompression]` | Module attribute | `Hardened.Web.Runtime.Compression` in `Hardened.Web.Runtime` | Compresses every response in the application. It applies the module that `[Enable<ResponseCompression>]` applies | [Compression](/guide/compression) |
 | `[ConditionalGet]` | Class, method | `Hardened.Web.Runtime.Conditional` in `Hardened.Web.Runtime` | Gives a GET handler's response an `ETag`, and answers a request whose `If-None-Match` matches with 304 and no body | [Conditional requests](/guide/conditional-requests) |
+| `[Cors]` | Class, method | `Hardened.Web.Runtime.Cors` in `Hardened.Web.Runtime` | Limits CORS to the handlers it covers, which answer with the application's `CorsConfiguration`. Once a handler or a module declares it, a route without a declaration gets no CORS headers | [CORS](/guide/cors) |
+| `[Cors<TPolicy>]` | Class, method | `Hardened.Web.Runtime.Cors` in `Hardened.Web.Runtime` | As `[Cors]`, with the configuration that `AddCorsPolicy<TPolicy>` registered. `TPolicy` can be any type | [CORS](/guide/cors) |
 | `[AnswersStatus(status, body)]`, `[AnswersStatus(status)]`<br>`int status`, `Type body` | Class, interface; repeatable | `Hardened.Requests.Abstract.Responses` in `Hardened.Requests.Abstract` | On a filter attribute: every operation that carries the filter publishes the status, with that body, in the OpenAPI document<br>Properties: `Description`, `Methods` and `StatusFrom` (none), `NotWhenStreaming` (`false`) | [The execution pipeline](/guide/execution-pipeline) |
 | `[ReadsHeader(name)]`<br>`string name` | Class, method, interface; repeatable | `Hardened.Web.Runtime.Responses` in `Hardened.Web.Runtime` | On a filter attribute: every operation that carries the filter publishes the header as an optional parameter<br>Properties: `Description` and `Methods` (none), `NotWhenStreaming` (`false`) | [The execution pipeline](/guide/execution-pipeline) |
 
@@ -354,12 +357,13 @@ On a `[HardenedModule]` class, an attribute with an enum argument or enum proper
 |---|---|
 | `[ContentNegotiation(ContentNegotiationMode.Lenient)]` | `CS1503` |
 | `[ResponseModel(ResponseModel.Response)]` | `CS1503` |
+| `[ValidationMode(ValidationStopMode.StopOnFirstError)]` | `CS1503` |
 | `[RateLimit(Scope = RateLimitScope.Principal)]` | `CS0266` |
 | `[Compress(Favor = CompressionType.Br)]` | `CS0266` |
 | `[CacheControl(Type = CacheControlEnum.NoStore)]` | `CS0266` |
 | `[CacheResponse<VaryByRoute>(Scope = CacheScope.PerCaller)]` | `CS0266` |
 
-The four filter attributes in the table compile with the same values off the module. `[RateLimit]` compiles with its value on a controller class. `[Compress]`, `[CacheControl]` and `[CacheResponse<TProvider>]` compile with theirs on a handler method. `[RateLimit(Scope = RateLimitScope.Transport)]` sets the zero value and compiles on the module class.
+The filter attributes in the table compile with the same values off the module. `[RateLimit]` compiles with its value on a controller class. `[Compress]`, `[CacheControl]` and `[CacheResponse<TProvider>]` compile with theirs on a handler method. `[ValidationMode]` compiles with `StopOnFirstError` on either. `[RateLimit(Scope = RateLimitScope.Transport)]` sets the zero value and compiles on the module class.
 
 `[ContentNegotiation]` sets nothing in either placement it accepts. `Lenient` on a module class fails the build. On an assembly the attribute has no effect.
 

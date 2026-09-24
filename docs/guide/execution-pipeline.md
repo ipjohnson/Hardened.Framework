@@ -171,7 +171,7 @@ A filter attribute on the module class covers every handler compiled in the same
 An attribute on the host project's `Application` module reaches no handler in `src/Todos`. The build reports nothing. Put the attribute on the module that holds the routes, or register it with `AddGlobalFilter`.
 :::
 
-Any filter attribute works on a module, including one the application wrote, unless it sets an enum property to a value other than the enum's zero value. That fails the build with `CS0266` in the generated module code, and [Attributes](/reference/attributes) lists the attributes it reaches. A handler that carries the same attribute type on its method or class gets only its own. A generic attribute closed over two different types is two attribute types.
+Any filter attribute works on a module, including one the application wrote, unless it sets an enum property to a value other than the enum's zero value. That fails the build with `CS0266` in the generated module code, and [Attributes](/reference/attributes) lists the attributes it reaches. A handler that carries the same attribute type on its method or class gets only its own. A generic attribute closed over two different types is two attribute types. `[Cors]` and `[Cors<TPolicy>]` are an exception to these rules. Only the nearest declaration installs a filter, even when a class and one of its methods both declare one, or a module declares `[Cors]` and a handler declares `[Cors<TPolicy>]`. [CORS](/guide/cors) covers them.
 
 Here `[ServerTiming]` is on `TodosLibrary`, the template's module in `src/Todos/TodosLibrary.cs`:
 
@@ -299,6 +299,7 @@ These are the stages and the shipped filters that run at each:
 | Stage | Value | What runs there |
 |---|---|---|
 | `HandlerCreation` | -10000 | `InstanceFilter`, which resolves the handler's class from the request's services |
+| `Before + RateLimitTransport` | 500 | `CorsRouteFilter`, for `[Cors]` and `[Cors<TPolicy>]` |
 | `RateLimitTransport` | 1000 | `RateLimitFilter` for `[RateLimit]` with the default scope |
 | `Authentication` | 2000 | No shipped filter. Authentication runs before the filter chain |
 | `RateLimitPrincipal` | 3000 | `RateLimitFilter` for `[RateLimit(Scope = RateLimitScope.Principal)]` |

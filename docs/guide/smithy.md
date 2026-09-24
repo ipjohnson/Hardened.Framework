@@ -160,7 +160,7 @@ no CLI. `smithy ast --flatten` writes the AST to standard output:
 smithy ast --flatten contracts/todos.smithy > contracts/todos.json
 ```
 
-When the model uses `@timeout` or `@narrowed`, the command also takes `hardened.smithy`. Without it,
+When the model uses `@timeout`, `@validation` or `@narrowed`, the command also takes `hardened.smithy`. Without it,
 the CLI refuses the model with `Model.UnresolvedTrait`. The `Hardened.Smithy.SourceGenerator` package
 holds the file in its `build` folder. The package is in the NuGet packages folder, `~/.nuget/packages`
 unless `NUGET_PACKAGES` names another:
@@ -592,14 +592,16 @@ Content-Type: application/json
 
 ## Traits from Hardened
 
-`hardened.smithy` declares two traits:
+`hardened.smithy` declares three traits:
 
 | Trait | On | Effect |
 |---|---|---|
 | `hardened.api#timeout` | An operation | The operation's time budget: `milliseconds`, required, and `status` and `retryAfterSeconds` |
+| `hardened.api#validation` | An operation | `"stop-on-first-error"` answers a request that fails validation with its first failure only. `"collect-all"` answers with every failure |
 | `hardened.api#narrowed` | A member, or a simple shape | Stops warning `HSMT006` for a `BigDecimal` or `BigInteger` it covers |
 
-A model names them with `use hardened.api#timeout` and `use hardened.api#narrowed`:
+A model names them with `use hardened.api#timeout`, `use hardened.api#validation` and
+`use hardened.api#narrowed`:
 
 ```smithy
 use hardened.api#timeout
@@ -614,6 +616,33 @@ operation SearchTodos {
 `@timeout` reaches the handler as a `[Timeout]`. The served document repeats it as
 `x-hardened-timeout`. [Request timeouts](/guide/request-timeouts) covers budgets. `@timeout` with
 `milliseconds` of zero or less gives warning `HSMT006`. The operation then has no budget.
+
+`@validation("stop-on-first-error")` answers a request that fails validation with its first failure
+only. `@validation("collect-all")`, and an operation without the trait, answer with every failure.
+Here the template's `src/Todos/contracts/todos.smithy` sets it on `CreateTodo`:
+
+```smithy
+use hardened.api#validation
+
+@documentation("Creates a todo.")
+@http(method: "POST", uri: "/todos", code: 201)
+@validation("stop-on-first-error")
+operation CreateTodo {
+```
+
+`@validation` reaches the handler as a `[ValidationMode]`, and the served document repeats it as
+`x-hardened-validation`. [Validation](/guide/validation) covers the mode. The trait beats a
+`[ValidationMode]` on the module class. [Generating from OpenAPI](/guide/openapi) covers how it meets
+a `[ValidationMode]` on the implementation.
+
+The CLI refuses any other value, and the build stops with `HSMT012`:
+
+```text
+TraitValue on com.example.todos#CreateTodo: Error validating trait `hardened.api#validation`: String value provided for `hardened.api#validation` must be one of the following values: `collect-all`, `stop-on-first-error`
+```
+
+A committed AST is not checked by the CLI. Another value there gives warning `HSMT006`, and the
+operation answers with every failure.
 
 ## Constraints
 
@@ -679,7 +708,7 @@ A `HardenedSmithyServiceShapeId` that the model does not declare stops the build
 | `HSMT002` | Error | The model cannot be read, declares no service or no operation, uses a refused protocol, or lacks the service `HardenedSmithyServiceShapeId` names |
 | `HSMT003` | Error | A `.smithy` file is named by `HardenedSmithyAst` |
 | `HSMT004` | Error | A generated model or source file is missing |
-| `HSMT006` | Warning | A member narrows to `decimal` or `long`, a trait is not modeled, or an operation is skipped |
+| `HSMT006` | Warning | A member narrows to `decimal` or `long`, a trait is not modeled, an operation is skipped, or a committed AST gives `@validation` a value other than `stop-on-first-error` or `collect-all` |
 | `HSMT010` | Error | The Smithy CLI is not found |
 | `HSMT011` | Warning, or error when pinned | The CLI's version is not `HardenedSmithyCliVersion` |
 | `HSMT012` | Error | The CLI refuses the model |

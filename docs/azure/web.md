@@ -178,20 +178,22 @@ The Azure [Overview](/azure/) covers what a trigger's source does after a failed
 
 ::: warning
 The Azure Functions worker never runs the application's startup services. A deployed function app
-enforces no authorization attribute, asks no principal source and applies no CORS policy, so every
+enforces no authorization attribute, asks no principal source and answers no CORS preflight, so every
 route answers every caller. `[AzureFunctionsWebTesting]` runs the startup services before its first
 request. The tests see the authorization, CORS and registered routes that the deployed function does
 not have, so they pass while the deployed function is open.
 :::
 
-On every host, startup services install authentication, authorization, CORS and the routes
-registered at startup, so none of them is in place on Azure Functions:
+On every host, startup services install authentication, authorization, the CORS filter that answers
+preflights, and the routes registered at startup, so none of them is in place on Azure Functions.
+`[Cors]` installs a filter of its own on the routes it covers, and that filter does run:
 
 | Installed at startup on other hosts | On Azure Functions |
 |---|---|
 | Authentication: the application's principal sources | Never asked. Every request is anonymous |
 | Authorization: `[AuthorizeGrants]`, `[Authorize<TScheme>]`, `[RequireAuthorization]` and conventions | Not enforced. A guarded handler runs for a caller with no credentials |
-| CORS, with `CORS_ALLOWED_ORIGINS` set | No CORS headers. Without registered routes, a preflight `OPTIONS` request answers 405 |
+| CORS, with `CORS_ALLOWED_ORIGINS` set and no `[Cors]` | No CORS headers. Without registered routes, a preflight `OPTIONS` request answers 405 |
+| CORS on a route that declares `[Cors]` | An allowed origin gets `Access-Control-Allow-Origin`, `Access-Control-Expose-Headers` and `Vary: Origin` on the request itself. A preflight for the route answers 405 |
 | Routes registered with `IRouteRegistration` | Never registered. Every request that no attribute route answers gets 503 with `Retry-After: 1`, the preflight included |
 | Filters registered through `IGlobalFilterRegistry` in a startup service | Never added |
 | The application's own `IStartupService` classes | Never run |

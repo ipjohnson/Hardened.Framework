@@ -696,6 +696,7 @@ The build reads these `x-` keys:
 | `x-filters` | An operation | Filter attributes for the operation's handler | [Filters from the document](#filters-from-the-document) |
 | `x-filter-types` | The root | The filter attribute types that `x-filters` names | [Filters from the document](#filters-from-the-document) |
 | `x-hardened-timeout` | An operation | The operation's time budget, in milliseconds, or an object with `milliseconds`, `status` and `retryAfterSeconds` | [Request timeouts](/guide/request-timeouts) |
+| `x-hardened-validation` | An operation | `stop-on-first-error` answers a request that fails validation with its first failure only. `collect-all` answers with every failure | [Validation](/guide/validation) |
 | `x-hardened-raw-bytes` | An operation | `true` makes the method return `byte[]` for a response the document types as a string | This page |
 | `x-codegen-exclude` | A parameter | `true` leaves the parameter out of the signature, the binding and the served document | This page |
 | `x-enum-varnames`, `x-enumNames` | An `enum` schema | The C# member names, in the order of the values | [Types](#types) |
@@ -709,6 +710,31 @@ An `x-hardened-timeout` of zero or less stops the build with `HOAT002`. The key 
 as a `[Timeout]`. The served document repeats the key, with a 504 response.
 [Request timeouts](/guide/request-timeouts) covers budgets, and how the implementation reaches its
 `CancellationToken`.
+
+`x-hardened-validation: stop-on-first-error` answers a request that fails validation with its first
+failure only. `collect-all`, and an operation without the key, answer with every failure. Here the
+template's `src/Todos/contracts/todos.yaml` sets it on `createTodo`:
+
+```yaml
+paths:
+  /todos:
+    post:
+      tags:
+        - Todos
+      operationId: createTodo
+      summary: Creates a todo.
+      x-hardened-validation: stop-on-first-error
+```
+
+The key reaches the handler as a `[ValidationMode]`, and [Validation](/guide/validation) covers the
+mode. The key beats a `[ValidationMode]` on the module class and one on the implementation's method.
+On an operation whose document declares no mode, a `[ValidationMode]` on the implementation sets it.
+The served document repeats the key. Any other value stops the build with `HOAT002`, which names the
+operation and the value:
+
+```text
+'createTodo' declares an x-hardened-validation of "first-error". It has to be stop-on-first-error or collect-all.
+```
 
 `x-hardened-content-negotiation: lenient` and `x-hardened-error-bodies: json` register the same
 policies as the `[ContentNegotiation]` and `[JsonErrorBodies]` attributes.
@@ -820,7 +846,7 @@ The build and the generator report these codes:
 | Code | Severity | Reported when |
 |---|---|---|
 | `HOAT001` | Error | The item's file does not exist |
-| `HOAT002` | Error | The document cannot be read, or an `x-hardened-timeout` is zero or less |
+| `HOAT002` | Error | The document cannot be read, an `x-hardened-timeout` is zero or less, or an `x-hardened-validation` is not `stop-on-first-error` or `collect-all` |
 | `HOAT003` | Error | A `.yaml` is declared as `AdditionalFiles` |
 | `HOAT004` | Error | A generated model or source file is missing. Delete `obj/.../openapi/` and rebuild |
 | `HOAT006` | Warning | The reader reports a problem in a document it could read, or `security` names scopes it cannot read |
@@ -860,6 +886,8 @@ keys. [MessagePack](/guide/message-pack) covers them.
 - A `pattern` that .NET's regex engine cannot compile, such as `^[a-z\_]+$`, is not enforced. The
   build reports nothing.
 - A `readOnly` or `writeOnly` direction is not enforced, as [Types](#types) describes.
+- On the implementation of an operation whose document declares no validation mode, a
+  `[ValidationMode]` on the class beats one on the method. A code-first handler takes the method's.
 
 ## Next
 
