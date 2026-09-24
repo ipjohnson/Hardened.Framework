@@ -78,7 +78,7 @@ NDJSON and server-sent events write a stream this way:
 | Declared with | Nothing | `[ServerSentEvents]`, or `[Produces("text/event-stream")]` on the method or its class |
 | `Content-Type` | `application/x-ndjson` | `text/event-stream` |
 | One item | The item's JSON and a newline | `data: `, the item's JSON, and an empty line |
-| After the last item | One empty line | Nothing more |
+| After the last item | Nothing more | Nothing more |
 | A stream with no items | A body of one newline | The comment line `:` and an empty line |
 | A quiet spell | Nothing | The comment line `: keep-alive` and an empty line |
 | Headers added | None | `Cache-Control: no-cache`, `X-Accel-Buffering: no` |
