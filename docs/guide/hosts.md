@@ -119,6 +119,23 @@ the collection and a Kestrel server that uses it. The `configureKestrel` callbac
 Kestrel's `KestrelServerOptions`. Without the callback, the server listens on port 5000 on every
 interface.
 
+The callback also sets up HTTPS, with Kestrel's `UseHttps` on a listen address. In the Kestrel
+`Program.cs` above, this call serves HTTPS on port 5443 with the ASP.NET Core development
+certificate:
+
+```csharp
+using Microsoft.AspNetCore.Hosting;
+
+await using var app = HardenedKestrelApplication.Create(
+    services,
+    kestrel => kestrel.ListenAnyIP(5443, listen => listen.UseHttps())
+);
+```
+
+Without an argument, `UseHttps()` uses the development certificate that `dotnet dev-certs https`
+creates. Other overloads take a certificate, a certificate file or a certificate store. A relative
+certificate file path is resolved against the current directory.
+
 `StartAsync` runs the registered startup services, adds routing, and then starts listening. The
 startup services are the application's `IStartupService` registrations.
 [Modules](/guide/modules) covers them.

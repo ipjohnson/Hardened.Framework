@@ -46,8 +46,9 @@ public sealed class KestrelServerRunner : IAsyncDisposable
 
         var kestrelOptions = new KestrelServerOptions
         {
-            // Kestrel resolves its own internals through this — the HTTPS configuration and the
-            // connection middleware both read it. Left unset, binding an HTTPS endpoint throws.
+            // UseHttps resolves the HTTPS configuration, the host environment and Kestrel's metrics
+            // through this, and KestrelRuntime registers them. The connection middleware reads it
+            // too.
             ApplicationServices = provider,
         };
 

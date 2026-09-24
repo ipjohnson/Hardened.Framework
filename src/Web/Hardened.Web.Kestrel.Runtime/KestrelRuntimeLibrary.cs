@@ -1,5 +1,8 @@
 using DependencyModules.Runtime.Attributes;
+using DependencyModules.Runtime.Interfaces;
+using Hardened.Web.Kestrel.Runtime.Impl;
 using Hardened.Web.Runtime.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Hardened.Web.Kestrel.Runtime;
 
@@ -36,4 +39,12 @@ namespace Hardened.Web.Kestrel.Runtime;
 /// </summary>
 [DependencyModule]
 [HardenedWebModule]
-public partial class KestrelRuntime;
+public partial class KestrelRuntime : IServiceCollectionConfiguration
+{
+    /// <summary>
+    /// Registers the services <c>ListenOptions.UseHttps</c> resolves from the application's
+    /// provider, so a TLS endpoint can be configured in the callback
+    /// <see cref="HardenedKestrelApplication.Create"/> takes.
+    /// </summary>
+    public void ConfigureServices(IServiceCollection services) => HttpsServices.Add(services);
+}

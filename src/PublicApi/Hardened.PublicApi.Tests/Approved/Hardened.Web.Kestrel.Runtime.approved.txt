@@ -40,9 +40,10 @@ namespace Hardened.Web.Kestrel.Runtime
     [DependencyModules.Runtime.Attributes.DependencyModule]
     [Hardened.Web.Runtime.DependencyInjection.HardenedWebModule]
     [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-    public class KestrelRuntime : DependencyModules.Runtime.Interfaces.IDependencyModule
+    public class KestrelRuntime : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
     {
         public KestrelRuntime() { }
+        public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
         public override bool Equals(object? obj) { }
         public override int GetHashCode() { }
         public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
