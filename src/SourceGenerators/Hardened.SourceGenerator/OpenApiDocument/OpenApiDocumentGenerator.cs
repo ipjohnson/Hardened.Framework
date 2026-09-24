@@ -117,6 +117,11 @@ public static class OpenApiDocumentGenerator
         // a whole-service answer in a per-handler argument.
         handlers = WithJsonErrorBodies(appModel, handlers);
 
+        // And a module's [ValidationMode] reaches every operation that declares none, as the
+        // runtime merges it into each such handler's metadata.
+        handlers = WithValidationMode(appModel, handlers);
+        registered = WithValidationMode(appModel, registered);
+
         // And a handler that hands its response to an output publishes what the output writes,
         // before any of that is read either. Same reason as above: what an application's views
         // produce is declared once on a marker, not per handler.
@@ -425,6 +430,85 @@ public static class OpenApiDocumentGenerator
     }
 
     /// <summary>Whether the entry point carries <c>[JsonErrorBodies]</c>.</summary>
+    /// <summary>
+    /// Every handler that declares no validation mode, given the one its entry point declares.
+    /// </summary>
+    /// <remarks>
+    /// Copied rather than amended in place, for the reason <see cref="WithEntryPointRung"/> gives.
+    /// </remarks>
+    private static IReadOnlyList<RequestHandlerModel> WithValidationMode(
+        EntryPointSelector.Model appModel,
+        IReadOnlyList<RequestHandlerModel> handlers
+    )
+    {
+        if (DeclaredValidationMode(appModel) is not { } mode)
+        {
+            return handlers;
+        }
+
+        var folded = new List<RequestHandlerModel>(handlers.Count);
+
+        foreach (var handler in handlers)
+        {
+            if (handler.DeclaredValidationMode != null)
+            {
+                folded.Add(handler);
+
+                continue;
+            }
+
+            var copy = handler.WithFilters(handler.Filters);
+
+            copy.DeclaredValidationMode = mode;
+
+            folded.Add(copy);
+        }
+
+        return folded;
+    }
+
+    /// <summary>
+    /// The <c>ValidationStopMode</c> member the entry point's <c>[ValidationMode]</c> names, or null.
+    /// </summary>
+    /// <remarks>
+    /// Read off the argument as the qualified C# the attribute model carries, which ends in the
+    /// member it names.
+    /// </remarks>
+    private static string? DeclaredValidationMode(EntryPointSelector.Model appModel)
+    {
+        foreach (var attribute in appModel.AttributeModels)
+        {
+            if (
+                attribute.TypeDefinition.Namespace != "Hardened.Requests.Runtime.Validation"
+                || !attribute.TypeDefinition.Name.StartsWith(
+                    "ValidationMode",
+                    StringComparison.Ordinal
+                )
+            )
+            {
+                continue;
+            }
+
+            foreach (
+                var member in new[]
+                {
+                    ValidationModeNames.StopOnFirstError,
+                    ValidationModeNames.CollectAll,
+                }
+            )
+            {
+                if (attribute.Arguments.EndsWith("." + member, StringComparison.Ordinal))
+                {
+                    return member;
+                }
+            }
+
+            return null;
+        }
+
+        return null;
+    }
+
     private static bool DeclaresJsonErrorBodies(EntryPointSelector.Model appModel)
     {
         foreach (var attribute in appModel.AttributeModels)
@@ -693,6 +777,7 @@ public static class OpenApiDocumentGenerator
         WriteRequestBody(builder, handler, components, version, enums);
         WriteResponses(builder, handler, components, version);
         WriteTimeout(builder, handler);
+        WriteValidationMode(builder, handler);
 
         builder.Append('}');
     }
@@ -1450,6 +1535,28 @@ public static class OpenApiDocumentGenerator
     /// vocabulary can carry it.
     /// </para>
     /// </remarks>
+    /// <summary>
+    /// The validation mode this operation declares, as the extension the parser reads back.
+    /// </summary>
+    /// <remarks>
+    /// Written so the exported document round-trips, for the reason the deadline below is: a
+    /// service generated back out of it reports its failures the way the one that published it
+    /// does. An extension because OpenAPI has no field for how many of an input's failures a
+    /// refusal reports.
+    /// </remarks>
+    private static void WriteValidationMode(StringBuilder builder, RequestHandlerModel handler)
+    {
+        if (handler.DeclaredValidationMode is not { } mode)
+        {
+            return;
+        }
+
+        builder
+            .Append(",\"x-hardened-validation\":\"")
+            .Append(ValidationModeNames.ToWritten(mode))
+            .Append('"');
+    }
+
     private static void WriteTimeout(StringBuilder builder, RequestHandlerModel handler)
     {
         if (handler.DeclaredTimeout is not { } timeout)

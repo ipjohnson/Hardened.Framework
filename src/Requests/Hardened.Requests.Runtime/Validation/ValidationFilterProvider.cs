@@ -44,9 +44,10 @@ public sealed class ValidationFilterProvider<TValidated> : IRequestFilterProvide
     public IEnumerable<RequestFilterInfo> GetFilters(IExecutionRequestHandlerInfo handlerInfo)
     {
         ValidationFilter<TValidated>? filter = null;
+        var stopMode = ValidationModeAttribute.For(handlerInfo);
 
         yield return new RequestFilterInfo(
-            context => filter ??= new ValidationFilter<TValidated>(Resolve(context)),
+            context => filter ??= new ValidationFilter<TValidated>(Resolve(context), stopMode),
             FilterOrder.Validation,
             nameof(ValidationFilter<TValidated>)
         );

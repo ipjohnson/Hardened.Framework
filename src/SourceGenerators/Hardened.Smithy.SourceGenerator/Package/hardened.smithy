@@ -30,6 +30,25 @@ structure timeout {
     retryAfterSeconds: Integer
 }
 
+/// Whether the server stops validating this operation's input at the first failure.
+///
+/// The constraint traits say what is valid, and how many of an input's failures a refusal reports
+/// is a property of the server rather than of the contract. `collect-all` reports every failed
+/// rule, which is what an operation declaring nothing does. `stop-on-first-error` reports the first
+/// and skips the rest, nested members and list elements included. The refusal is the same body at
+/// the same status either way.
+///
+/// A mode stated here is the operation's own, and it beats a `[ValidationMode]` on the
+/// application's module.
+@trait(selector: "operation")
+enum validation {
+    /// Report every failed rule.
+    COLLECT_ALL = "collect-all"
+
+    /// Report the first failed rule and skip the rest.
+    STOP_ON_FIRST_ERROR = "stop-on-first-error"
+}
+
 /// States that a member's narrowing to a C# type is what the model intended, so the build stops
 /// reporting it.
 ///

@@ -69,6 +69,12 @@ All take `As` to narrow the service type, and `Using` to choose the registration
 | `[Retry]` | Module, class, method | Re-runs the handler after a failure. `Attempts` (3), `SleepTime` (500 ms), `TotalBudget` (10 s), `AllowNonIdempotent`. Declines client errors, and non-idempotent verbs unless told otherwise |
 | `[Timeout]` | Class, method, assembly | [Bounds how long the operation may take](/guide/request-timeouts). `Milliseconds` (30 s), `Status` (504), `RetryAfterSeconds`. The nearest declaration wins, and nothing is bounded until one is written |
 
+`Hardened.Requests.Runtime.Validation`
+
+| Attribute | Target | Purpose |
+|---|---|---|
+| `[ValidationMode(mode)]` | Module, class, method | Whether [validation](/guide/validation#stopping-at-the-first-failure) reports every failure or stops at the first. `ValidationStopMode.CollectAll` unless declared. The nearest declaration wins |
+
 `Hardened.Requests.Runtime.RateLimiting`
 
 | Attribute | Target | Purpose |

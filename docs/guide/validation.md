@@ -134,7 +134,8 @@ A failed constraint answers 400 with this body.
 }
 ```
 
-Every failing constraint is reported, not only the first.
+Every failing constraint is reported, not only the first. A route can
+[stop at the first failure](#stopping-at-the-first-failure) instead.
 
 | Code | Raised by |
 | --- | --- |
@@ -254,6 +255,36 @@ public sealed class AddressModel {
 Omitting it stops every constraint on the child type, and the build reports `HRDV004`. An absent
 optional nested member is not a failure.
 
+## Stopping at the first failure
+
+`[ValidationMode]` sets whether a route reports every failure or only the first.
+
+```csharp
+using Hardened.Requests.Runtime.Validation;
+using ValidationModules;
+
+[Post("/first-error")]
+[ValidationMode(ValidationStopMode.StopOnFirstError)]
+public string RegisterFirstError(RegistrationModel model) => model.Name ?? "";
+```
+
+`ValidationStopMode` is ValidationModules' own enum. `CollectAll` reports every failure, and a
+route that declares no mode gets it. `StopOnFirstError` reports one. The validator skips the
+remaining rules, nested members and collection elements rather than checking them. The refusal is
+the same envelope at the same status, with one entry under `errors`.
+
+The mode belongs to the route rather than to the model. One model can be validated both ways on
+two routes.
+
+The attribute goes on the method, on its class, or on a `[HardenedModule]` class, where it covers
+every handler compiled with it. The nearest declaration wins, so a method can declare `CollectAll`
+under a module that stops.
+
+A contract states the mode for each operation. An OpenAPI description writes
+[`x-hardened-validation`](/guide/openapi#a-validation-mode-from-the-description), and a Smithy
+model writes [`@validation`](/guide/smithy#stopping-validation-at-the-first-failure). The
+contract's mode beats a `[ValidationMode]` on the module.
+
 ## Contract-first constraints
 
 An OpenAPI document or a Smithy model declares the same constraints. The build task writes them onto
@@ -326,6 +357,10 @@ Facets are not written beside a `$ref`, because OpenAPI 3.0 readers ignore a `$r
 Exclusive bounds use the JSON Schema 2020-12 spelling, so the bound is the number under
 `exclusiveMinimum`. `[Pattern]` in its `typeof` form publishes no `pattern`, because the expression
 lives in an attribute on another type.
+
+An operation under a `[ValidationMode]` publishes `x-hardened-validation`, spelled as a contract
+writes it. A service generated from the document runs in the same mode. An operation under no
+declaration publishes none.
 
 ## Changing the status code
 
@@ -417,7 +452,8 @@ of response types is in [responses](/guide/responses).
 
 The filter resolves every `IValidatorFor<T>` registered for the validated type and runs them all
 into one collector. A hand-written validator adds to the generated checks. It cannot replace them or
-suppress them.
+suppress them. On a route that stops at the first failure, the filter runs no validator after the
+one that failed.
 
 An `IAsyncValidatorFor<T>` runs after the structural checks, and only when they passed. It is
 resolved per request, so it may be registered scoped.

@@ -86,6 +86,10 @@ public abstract class BaseRequestModelGenerator
         model.AdditionalBodyParameters = AdditionalBodyParameters(parameters);
 
         model.DeclaredTimeout = DeclaredTimeoutSelector.Read(context, methodDeclaration);
+        model.DeclaredValidationMode = DeclaredValidationModeSelector.Read(
+            context,
+            methodDeclaration
+        );
 
         // The headers a filter reads before the handler runs, which nothing in the signature
         // mentions and the document therefore published no parameter for.

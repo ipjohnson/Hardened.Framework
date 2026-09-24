@@ -55,6 +55,13 @@ public class RegistrationController
         string.Join(",", model.Values ?? new List<int>());
 
     /// <summary>
+    /// The same model, refused at the first rule it breaks rather than with every one.
+    /// </summary>
+    [Post("/first-error")]
+    [ValidationMode(ValidationStopMode.StopOnFirstError)]
+    public string RegisterFirstError(RegistrationModel model) => model.Name ?? "";
+
+    /// <summary>
     /// The same model on an operation that says what a validation refusal answers.
     /// </summary>
     /// <remarks>

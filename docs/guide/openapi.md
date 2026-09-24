@@ -307,6 +307,23 @@ generated interface binds no token unless `$(HardenedBindCancellationToken)` is 
 [Reaching a described handler](/guide/request-timeouts#reaching-a-described-handler) covers that
 and `IRequestDeadline`.
 
+### A validation mode from the description
+
+`x-hardened-validation` says whether the operation's validation stops at the first failure:
+
+```yaml
+paths:
+  /orders:
+    post:
+      operationId: placeOrder
+      x-hardened-validation: stop-on-first-error
+```
+
+The value is `stop-on-first-error` or `collect-all`, and any other value fails the build with
+`HOAT002`. It reaches the handler as the same
+[`[ValidationMode]`](/guide/validation#stopping-at-the-first-failure) a code-first handler
+carries. It beats one on the application's module.
+
 ## Security
 
 A `security` requirement becomes the grants the operation requires, read from the scopes and not

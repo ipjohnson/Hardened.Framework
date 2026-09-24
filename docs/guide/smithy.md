@@ -327,6 +327,23 @@ interface binds no token unless `$(HardenedBindCancellationToken)` is set;
 [Reaching a described handler](/guide/request-timeouts#reaching-a-described-handler) covers that
 and `IRequestDeadline`.
 
+## Stopping validation at the first failure
+
+`@validation` is another of Hardened's traits in `hardened.smithy`:
+
+```smithy
+use hardened.api#validation
+
+@http(method: "POST", uri: "/orders")
+@validation("stop-on-first-error")
+operation PlaceOrder { }
+```
+
+`stop-on-first-error` reports the first failed rule and no others. `collect-all` reports every one,
+which is also what an operation without the trait gets. The mode is the operation's own, and it
+beats a [`[ValidationMode]`](/guide/validation#stopping-at-the-first-failure) on the application's
+module.
+
 ## Authentication
 
 `@httpBearerAuth` on the service requires every operation to authenticate. `@auth([])` on an

@@ -4,8 +4,10 @@ using Hardened.Requests.Abstract.RequestFilter;
 using Hardened.Requests.Runtime.Execution;
 using Hardened.Requests.Runtime.Filters;
 using Hardened.Requests.Runtime.Tests.Support;
+using Hardened.Requests.Runtime.Validation;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
+using ValidationModules;
 using Xunit;
 
 namespace Hardened.Requests.Runtime.Tests.Execution;
@@ -238,6 +240,41 @@ public class ApplicationFilterRungTests
         Assert.Contains("own", ran);
         Assert.DoesNotContain("wide", ran);
         Assert.DoesNotContain(wide, composed.Metadata);
+    }
+
+    /// <summary>
+    /// A <c>[ValidationMode]</c> on the module reaches a handler that declares none, in the
+    /// metadata the validation filter reads it from.
+    /// </summary>
+    [Fact]
+    public async Task AModulesValidationModeReachesAHandlerThatDeclaresNone()
+    {
+        var log = new List<string>();
+
+        var (_, composed) = await Run(
+            log,
+            [new Declarations(new ValidationModeAttribute(ValidationStopMode.StopOnFirstError))]
+        );
+
+        Assert.Equal(ValidationStopMode.StopOnFirstError, ValidationModeAttribute.For(composed));
+    }
+
+    /// <summary>
+    /// And a handler's own declaration beats it, so one route can put every failure back under an
+    /// application that stops at the first.
+    /// </summary>
+    [Fact]
+    public async Task AHandlersOwnValidationModeBeatsTheModules()
+    {
+        var log = new List<string>();
+
+        var (_, composed) = await Run(
+            log,
+            [new Declarations(new ValidationModeAttribute(ValidationStopMode.StopOnFirstError))],
+            metadata: [new ValidationModeAttribute(ValidationStopMode.CollectAll)]
+        );
+
+        Assert.Equal(ValidationStopMode.CollectAll, ValidationModeAttribute.For(composed));
     }
 
     /// <summary>

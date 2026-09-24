@@ -37,6 +37,17 @@ internal static class SmithyTraits
     internal const string Timeout = "hardened.api#timeout";
 
     /// <summary>
+    /// Whether an operation's validation stops at its first failure. This framework's own, not the
+    /// prelude's.
+    /// </summary>
+    /// <remarks>
+    /// The constraint traits say what is valid, and how many of an input's failures a refusal
+    /// reports is a property of the server. Defined in <c>hardened.smithy</c> beside
+    /// <see cref="Timeout"/>.
+    /// </remarks>
+    internal const string Validation = "hardened.api#validation";
+
+    /// <summary>
     /// That a member's narrowing to a C# type is intended. This framework's own, not the prelude's.
     /// </summary>
     /// <remarks>
@@ -159,6 +170,7 @@ internal static class SmithyTraits
         Mixin,
         Trait,
         Timeout,
+        Validation,
         Narrowed,
         Streaming,
     };

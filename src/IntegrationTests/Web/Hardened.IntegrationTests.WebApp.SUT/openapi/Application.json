@@ -5090,6 +5090,59 @@
         "x-hardened-timeout": 300000
       }
     },
+    "/registration/first-error": {
+      "post": {
+        "tags": [
+          "Registration"
+        ],
+        "operationId": "registerFirstError",
+        "summary": "The same model, refused at the first rule it breaks rather than with every one.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrationModel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          }
+        },
+        "x-hardened-timeout": 300000,
+        "x-hardened-validation": "stop-on-first-error"
+      }
+    },
     "/registration/for/{tenant}": {
       "post": {
         "tags": [

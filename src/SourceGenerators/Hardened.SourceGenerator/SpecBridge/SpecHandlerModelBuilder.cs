@@ -231,6 +231,23 @@ internal static class SpecHandlerModelBuilder
             );
         }
 
+        // The validation mode the description declared, as the same attribute a code-first handler
+        // would carry, for the reason the deadline above is one: the runtime reads it from the
+        // metadata, where an application-wide declaration on the module is merged beside it.
+        if (operation.ValidationMode is { } validationMode)
+        {
+            filters.Add(
+                new AttributeModel(
+                    TypeDefinition.Get(
+                        "Hardened.Requests.Runtime.Validation",
+                        "ValidationModeAttribute"
+                    ),
+                    "global::ValidationModules.ValidationStopMode." + validationMode,
+                    ""
+                )
+            );
+        }
+
         // Wire in x-filters as typed attribute instances
         foreach (var filterInstance in operation.FilterInstances)
         {
@@ -269,6 +286,9 @@ internal static class SpecHandlerModelBuilder
             DeclaredTimeout = operation.Timeout is { } declared
                 ? (declared.Milliseconds, declared.Status, declared.RetryAfterSeconds)
                 : null,
+
+            // Republished for the same reason.
+            DeclaredValidationMode = operation.ValidationMode,
 
             // The payload shapes, from the model. JsonSchemaWriter cannot produce these here - it
             // walks a type symbol, and these types are written by the build task rather than
