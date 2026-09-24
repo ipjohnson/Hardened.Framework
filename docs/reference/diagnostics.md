@@ -192,7 +192,7 @@ at one status are two types either way. A model that used to be rejected now bui
 | Id | | Meaning |
 |---|---|---|
 | `HRDF001` | error | Handlers use a [trigger](/guide/triggers) and no referenced runtime declares a module for it. Names the build property to set. The two ways to reach this are a missing runtime package and a provider that has no source of that kind |
-| `HRDF002` | warning | Two sources produce the same [test façade](/guide/triggers#testing) method name, so only one can be reached. Rename one, or suppress to keep the collision |
+| `HRDF002` | warning | Two sources produce the same [test façade](/guide/testing-functions) method name, so only one can be reached. Rename one, or suppress to keep the collision |
 | `HRDF003` | info | An adapter is bound to serve a trigger nothing in the project declares, so it ships in the deployment bundle unreachable. Usually the [`Hardened.Aws.Lambda` meta package](/reference/packages#the-host) where individual adapters would do |
 
 ## Azure Functions

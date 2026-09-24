@@ -524,7 +524,7 @@ setting. In that mode, the invocation opens a Lambda response stream at the firs
 the items to it.
 
 The AWS Lambda Test Tool, which the template starts for a local run, cannot run the stream mode. The
-first streamed response fails. The process exits with a `FormatException`. The AWS
+AWS [Web applications](/aws/lambda-web) page covers what it does, and the AWS
 [Testing](/aws/testing) page covers testing the stream mode in process.
 
 ## Limits

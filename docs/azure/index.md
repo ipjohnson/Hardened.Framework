@@ -53,7 +53,7 @@ Functions has no direct invocation of a function: a caller reaches a function ap
 an HTTP route is a web application, which is what `hardened-web --host azure-functions` writes.
 A project that writes `[HardenedFunction]` and references only these packages fails the build with
 `HRDF001`, which names the gap. See
-[When nothing serves a trigger](/guide/triggers#when-nothing-serves-a-trigger).
+[When nothing serves a trigger](/guide/triggers#missing-and-unused-adapters).
 
 ## What the runtime gives you
 

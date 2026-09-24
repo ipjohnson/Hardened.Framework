@@ -87,7 +87,7 @@ Throwing answers 500, which Pub/Sub reads as a negative acknowledgement, so the 
 redelivered until it is acknowledged or the subscription's dead-letter policy moves it on. There is
 no other way to say "not handled", and no batch report: one message, one answer.
 
-That is `PerItem` in the framework's [vocabulary](/guide/triggers#batches-and-what-a-failure-means)
+That is `PerItem` in the framework's [vocabulary](/guide/triggers#batches-and-failed-items)
 with a batch of one, and there is no `ReportBatchItemFailures` to set, because Pub/Sub has nothing
 to report to. The module is never written out.
 

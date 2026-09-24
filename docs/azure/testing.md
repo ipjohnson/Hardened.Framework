@@ -41,7 +41,7 @@ using Hardened.Shared.Testing.Attributes;
 [assembly: HardenedTestEntryPoint(typeof(Application))]
 ```
 
-`[FunctionTesting]` makes the generated [trigger façades](/guide/triggers#testing) resolvable.
+`[FunctionTesting]` makes the generated [trigger façades](/guide/testing-functions) resolvable.
 `[AzureFunctionsTesting]` replaces the delivery behind them. Nothing in a test starts the
 Functions host, and the worker's own converter - the part that turns the host's bytes into the
 SDK's type - is exercised only in the container tier.

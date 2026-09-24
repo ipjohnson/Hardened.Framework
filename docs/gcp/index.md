@@ -51,7 +51,7 @@ sharded, checkpointed stream a `[Stream]` handler can be moved to; Pub/Sub order
 messages within a key but are not a shard a consumer replays from a position. A project that writes
 `[Stream]` and references only these packages fails the build with `HRDF001`, which names the gap,
 rather than deploying a handler nothing delivers to. See
-[When nothing serves a trigger](/guide/triggers#when-nothing-serves-a-trigger).
+[When nothing serves a trigger](/guide/triggers#missing-and-unused-adapters).
 
 ## What the runtime gives you
 

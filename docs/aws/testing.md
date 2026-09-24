@@ -32,7 +32,7 @@ using Hardened.Shared.Testing.Attributes;
 [assembly: HardenedTestEntryPoint(typeof(Application))]
 ```
 
-`[FunctionTesting]` makes the generated [trigger façades](/guide/triggers#testing) resolvable. The
+`[FunctionTesting]` makes the generated [trigger façades](/guide/testing-functions) resolvable. The
 delivery it registers builds a request and runs the pipeline, which covers routing, binding, the
 filters and the handler — and names no cloud.
 

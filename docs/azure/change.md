@@ -82,7 +82,7 @@ handler that has to see every change therefore needs a retry policy on Azure and
 path of its own; Microsoft's own page on the trigger lists a retry policy as its only retry.
 
 That is `Checkpoint` in the framework's
-[vocabulary](/guide/triggers#batches-and-what-a-failure-means) with nothing to report to, the
+[vocabulary](/guide/triggers#batches-and-failed-items) with nothing to report to, the
 same as [Streams](/azure/stream).
 
 ## Retrying a failed batch

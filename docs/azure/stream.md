@@ -72,7 +72,7 @@ handler that has to see every event therefore needs a retry policy on Azure and 
 path of its own, and Microsoft's own guidance for the Event Hubs trigger says the same.
 
 That is `Checkpoint` in the framework's
-[vocabulary](/guide/triggers#batches-and-what-a-failure-means) with nothing to report to: the
+[vocabulary](/guide/triggers#batches-and-failed-items) with nothing to report to: the
 host reads no batch report from an Event Hubs function, so `ReportsItemFailures` is false and
 cannot be turned on.
 

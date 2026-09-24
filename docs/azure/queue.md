@@ -86,7 +86,7 @@ returns normally has its message completed, and a thrown exception fails the inv
 abandons every message in the batch. The queue delivers them again, up to its
 `MaxDeliveryCount`, and then dead-letters them.
 
-That is `PerItem` in the framework's [vocabulary](/guide/triggers#batches-and-what-a-failure-means),
+That is `PerItem` in the framework's [vocabulary](/guide/triggers#batches-and-failed-items),
 and the whole batch is what a failure costs, as it is on SQS without item reporting. To settle
 message by message, turn the report on:
 

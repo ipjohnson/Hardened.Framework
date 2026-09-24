@@ -85,7 +85,6 @@ const guide = [
       { text: 'Routing', link: '/guide/routing' },
       { text: 'Route links', link: '/guide/route-links' },
       { text: 'Registered routes', link: '/guide/registered-routes' },
-      { text: 'Triggers', link: '/guide/triggers' },
       { text: 'Parameter binding', link: '/guide/parameter-binding' },
       { text: 'Forms and files', link: '/guide/forms' },
       { text: 'Declared responses', link: '/guide/responses' },
@@ -141,12 +140,17 @@ const guide = [
     ],
   },
   {
+    text: 'Functions',
+    items: [{ text: 'Triggers', link: '/guide/triggers' }],
+  },
+  {
     text: 'AWS',
     items: [
       { text: 'Overview', link: '/aws/' },
       { text: 'Web applications', link: '/aws/lambda-web' },
-      { text: 'Lambda functions', link: '/aws/lambda-function' },
-      { text: 'Queues and topics', link: '/aws/sqs' },
+      { text: 'Invocations', link: '/aws/invoke' },
+      { text: 'Queues', link: '/aws/queue' },
+      { text: 'Topics', link: '/aws/topic' },
       { text: 'Streams and change feeds', link: '/aws/ddb-streams' },
       { text: 'DynamoDB client', link: '/aws/dynamodb' },
       { text: 'Testing AWS handlers', link: '/aws/testing' },

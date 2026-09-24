@@ -46,7 +46,7 @@ using Hardened.Web.Testing;
 [assembly: HardenedTestEntryPoint(typeof(Application))]
 ```
 
-`[FunctionTesting]` makes the generated [trigger façades](/guide/triggers#testing) resolvable.
+`[FunctionTesting]` makes the generated [trigger façades](/guide/testing-functions) resolvable.
 `[CloudRunTesting]` replaces the delivery behind them, and needs `[WebTesting]` beside it, because
 that is what registers the host the envelope is posted to; the delivery says so if it is missing.
 `[KestrelTesting]` makes `[KestrelRuntime]` on a class mean "on a socket".
