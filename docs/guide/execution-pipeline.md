@@ -596,10 +596,6 @@ Content-Length: 0
 Api-Version: 2
 ```
 
-## Limits
-
-On Azure Functions, startup services never run. A filter that a startup service registers through `IGlobalFilterRegistry` is never installed there. Middleware that a startup service adds through `IMiddlewareService` is never installed there either. Filter attributes and `AddGlobalFilter` are unaffected. They are read when the chain is built.
-
 ## Next
 
 | Page | Covers |

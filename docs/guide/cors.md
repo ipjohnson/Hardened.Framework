@@ -524,12 +524,6 @@ decides whether routes declare CORS. An application whose only declarations are 
 keeps CORS on every request. The filter then answers every preflight with the application's
 configuration, including a preflight for the lambda's route.
 
-On Azure Functions, the worker never runs the startup services, so the filter is never installed. A
-preflight is routed like any other `OPTIONS` request. The template's routes answer it 405 with an
-`Allow` header. Without `[Cors]`, no response carries CORS headers. A route that declares `[Cors]`
-sends the CORS headers to an allowed origin. A preflight for it still answers 405. The Azure
-[Web applications](/azure/web) page covers what the worker skips.
-
 ## Next
 
 | Page | Covers |

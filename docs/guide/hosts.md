@@ -216,8 +216,8 @@ registered startup services and adds routing as the last step of the Hardened mi
 logged.
 
 `UseHardened` waits up to 15 seconds for the startup services, then continues. The Kestrel, Cloud
-Run, Lambda and Cloud Functions hosts wait for the startup services to finish before they take a
-request.
+Run, Lambda, Cloud Functions and Azure Functions hosts wait for the startup services to finish
+before they take a request.
 
 Each request that reaches the Hardened middleware has one of three outcomes:
 
@@ -430,7 +430,8 @@ host.Run();
 ```
 
 `UseHardened<TApplication>(environment)` adds the application's services to the worker's own
-service collection. It also registers the generated function with the worker.
+service collection. It also registers the generated function with the worker. The worker runs the
+startup services when it starts, before it connects to the Functions host.
 
 `[HttpModule]` makes `Hardened.Azure.Functions.SourceGenerator` write one HTTP function, named
 `Http`, for every method on every path. The function's authorization level is `Anonymous`. The

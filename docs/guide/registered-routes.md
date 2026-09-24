@@ -413,8 +413,6 @@ Do not register a route that an attribute route also matches. The registry accep
 
 The generated `Routes` and `Links` classes do not include registered routes. [Route links](/guide/route-links) covers those classes.
 
-On Azure Functions, the startup services never run, so registration never runs. An application that declares a registration class answers 503 with `Retry-After: 1` to every request that no attribute route answers. That includes the registered paths and `/health/live`. The attribute routes still answer.
-
 ## Next
 
 | Page | Covers |

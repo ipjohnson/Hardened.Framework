@@ -287,10 +287,6 @@ In a `[HardenedTest]`, the startup services run before the test method. [Hosts](
 when each host runs the startup services. A startup service can register a filter for every handler.
 [The execution pipeline](/guide/execution-pipeline) covers it.
 
-## Limits
-
-The Azure Functions host does not run the startup services.
-
 ## Next
 
 | Page | Covers |
