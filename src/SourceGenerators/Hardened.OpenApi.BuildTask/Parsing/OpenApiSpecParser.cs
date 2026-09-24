@@ -2935,6 +2935,18 @@ internal static class OpenApiSpecParser
                 opModel.Timeout = ParseTimeout(timeoutNode, opModel.OperationId);
             }
 
+            // x-hardened-validation says whether the operation's validation stops at its first
+            // failure. Not something OpenAPI can say either: a schema states what is valid, and how
+            // many of an input's failures a refusal reports is a property of the server.
+            if (
+                operation.Extensions != null
+                && operation.Extensions.TryGetValue("x-hardened-validation", out var validationExt)
+                && validationExt is JsonNodeExtension { Node: { } validationNode }
+            )
+            {
+                opModel.ValidationMode = ParseValidationMode(validationNode, opModel.OperationId);
+            }
+
             if (!operationsByTag.TryGetValue(tag, out var list))
             {
                 list = new List<OperationModel>();
@@ -2943,6 +2955,25 @@ internal static class OpenApiSpecParser
 
             list.Add(opModel);
         }
+    }
+
+    /// <summary>
+    /// The <c>ValidationStopMode</c> member an <c>x-hardened-validation</c> names.
+    /// </summary>
+    /// <remarks>
+    /// Refused here rather than carried into the generated code, for the reason a budget that
+    /// cannot mean anything is: the description is the one place that can say so before anything
+    /// is generated, and a misspelt mode would otherwise report every failure without a word.
+    /// </remarks>
+    private static string ParseValidationMode(JsonNode node, string operationId)
+    {
+        var written = node is JsonValue value ? value.ToJsonString().Trim('"') : null;
+
+        return ValidationModeNames.FromWritten(written)
+            ?? throw new InvalidOperationException(
+                $"'{operationId}' declares an x-hardened-validation of {node.ToJsonString()}. "
+                    + $"It has to be {ValidationModeNames.Accepted}."
+            );
     }
 
     /// <summary>

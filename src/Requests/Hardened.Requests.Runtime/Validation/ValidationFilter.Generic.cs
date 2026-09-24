@@ -27,9 +27,23 @@ public sealed class ValidationFilter<TValidated> : IExecutionFilter
 {
     private readonly IReadOnlyList<IValidatorFor<TValidated>> _validators;
 
+    private readonly ValidationStopMode _stopMode;
+
     public ValidationFilter(IReadOnlyList<IValidatorFor<TValidated>> validators)
+        : this(validators, ValidationStopMode.CollectAll) { }
+
+    /// <param name="validators">Every validator registered for the type.</param>
+    /// <param name="stopMode">
+    /// Whether the pass stops at its first failure, as the handler's
+    /// <see cref="ValidationModeAttribute"/> declares.
+    /// </param>
+    public ValidationFilter(
+        IReadOnlyList<IValidatorFor<TValidated>> validators,
+        ValidationStopMode stopMode
+    )
     {
         _validators = validators ?? throw new ArgumentNullException(nameof(validators));
+        _stopMode = stopMode;
     }
 
     public async Task Execute(IExecutionChain chain)
@@ -53,14 +67,20 @@ public sealed class ValidationFilter<TValidated> : IExecutionFilter
             );
         }
 
-        var collector = new ValidationErrorCollector();
+        var collector = new ValidationErrorCollector { StopMode = _stopMode };
 
         // Every validator for the type runs into one collector, so results merge rather than one
         // replacing another - plan §8. A hand-written validator adds to the structural checks; it
-        // cannot suppress them.
+        // cannot suppress them. Under StopOnFirstError the collector closes at its first error, and
+        // a validator after that would only have what it found dropped.
         foreach (var validator in _validators)
         {
             validator.ValidateInto(collector, target);
+
+            if (Stopped(collector))
+            {
+                break;
+            }
         }
 
         // Structural first, and async only if it passed: an async rule is there to ask a question of
@@ -71,7 +91,7 @@ public sealed class ValidationFilter<TValidated> : IExecutionFilter
             throw new ValidationException(collector.ToResult());
         }
 
-        await RunAsyncValidators(context, collector, target);
+        await RunAsyncValidators(context, collector, target, Stopped);
 
         if (collector.HasErrors)
         {
@@ -80,6 +100,19 @@ public sealed class ValidationFilter<TValidated> : IExecutionFilter
 
         await chain.Next();
     }
+
+    /// <summary>
+    /// Whether this pass has what it was asked for, and the next validator need not run.
+    /// </summary>
+    /// <remarks>
+    /// An error rather than any failure, because a warning does not stop a pass in ValidationModules
+    /// either, and stopping on one would skip a later validator's error. <c>HasErrors</c> counts
+    /// warnings as well, so the result is only built once something has failed.
+    /// </remarks>
+    private bool Stopped(ValidationErrorCollector collector) =>
+        _stopMode == ValidationStopMode.StopOnFirstError
+        && collector.HasErrors
+        && !collector.ToResult().IsValid;
 
     private static string Describe(IExecutionRequestParameters? parameters) =>
         parameters is null ? "null" : parameters.GetType().FullName ?? parameters.GetType().Name;
@@ -96,7 +129,8 @@ public sealed class ValidationFilter<TValidated> : IExecutionFilter
     private static async Task RunAsyncValidators(
         IExecutionContext context,
         ValidationErrorCollector collector,
-        TValidated target
+        TValidated target,
+        Func<ValidationErrorCollector, bool> stopped
     )
     {
         var validators = context.RequestServices.GetServices<IAsyncValidatorFor<TValidated>>();
@@ -106,6 +140,11 @@ public sealed class ValidationFilter<TValidated> : IExecutionFilter
             var validationContext = new ValidationContext(collector);
 
             await validator.ValidateAsync(validationContext, target, context.CancellationToken);
+
+            if (stopped(collector))
+            {
+                break;
+            }
         }
     }
 }

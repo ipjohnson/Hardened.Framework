@@ -980,6 +980,14 @@ namespace Hardened.Requests.Runtime.Validation
         where TValidated :  class
     {
         public ValidationFilter(System.Collections.Generic.IReadOnlyList<ValidationModules.IValidatorFor<TValidated>> validators) { }
+        public ValidationFilter(System.Collections.Generic.IReadOnlyList<ValidationModules.IValidatorFor<TValidated>> validators, ValidationModules.ValidationStopMode stopMode) { }
         public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Class | System.AttributeTargets.Method)]
+    public sealed class ValidationModeAttribute : System.Attribute, Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider
+    {
+        public ValidationModeAttribute(ValidationModules.ValidationStopMode stopMode) { }
+        public ValidationModules.ValidationStopMode StopMode { get; }
+        public System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.RequestFilter.RequestFilterInfo> GetFilters(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo) { }
     }
 }

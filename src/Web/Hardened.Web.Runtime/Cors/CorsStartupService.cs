@@ -1,5 +1,6 @@
 using Hardened.Requests.Abstract.Middleware;
 using Hardened.Shared.Runtime.Application;
+using Hardened.Web.Runtime.Handlers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -20,6 +21,11 @@ namespace Hardened.Web.Runtime.Cors;
 /// Registering always costs one dictionary lookup on requests with no <c>Origin</c> header, which
 /// is the price of the failure being visible.
 /// </para>
+/// <para>
+/// Where the build registered <see cref="CorsManifest"/>, routes declare their own CORS. The filter
+/// installed then answers only preflights, and every other request leaves it after one method
+/// comparison.
+/// </para>
 /// </remarks>
 internal class CorsStartupService : IStartupService
 {
@@ -27,11 +33,21 @@ internal class CorsStartupService : IStartupService
     {
         var config = rootProvider.GetRequiredService<CorsConfiguration>();
         var middleware = rootProvider.GetRequiredService<IMiddlewareService>();
-        var filter = rootProvider.GetRequiredService<CorsFilter>();
+        var routesDeclare = rootProvider.GetService<CorsManifest>() != null;
+
+        var filter = routesDeclare
+            ? new CorsFilter(
+                config,
+                rootProvider.GetService<IEnumerable<IWebExecutionRequestHandlerProvider>>(),
+                new RouteCorsPolicies(rootProvider)
+            )
+            : rootProvider.GetRequiredService<CorsFilter>();
 
         middleware.Use(_ => filter);
 
-        if (!config.IsConfigured)
+        // Only where the configuration covers the whole application. Once routes declare CORS, a
+        // route may name a policy of its own, and an empty default refuses nothing it is asked for.
+        if (!routesDeclare && !config.IsConfigured)
         {
             // Resolved rather than injected, and optional: a startup service that cannot be
             // constructed without a logging stack is one that breaks every minimal container for

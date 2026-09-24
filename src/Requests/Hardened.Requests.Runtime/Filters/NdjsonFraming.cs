@@ -42,21 +42,26 @@ public class NdjsonFraming : IStreamFraming
     }
 
     /// <summary>
-    /// A newline, so the body is never zero bytes.
+    /// A newline when the stream wrote nothing, so the body is never zero bytes.
     /// </summary>
     /// <remarks>
     /// Lambda Function URLs do not close the body stream promptly for a zero-byte response, and a
     /// downstream reader waiting on one hangs. It costs a byte on a stream that produced nothing
-    /// and it is what stops an empty result being indistinguishable from a hung one.
+    /// and it is what stops an empty result being indistinguishable from a hung one. After an item
+    /// it writes nothing: every item already ends its line, and a second newline would be a blank
+    /// line, which is not an item every reader skips.
     /// </remarks>
     public async ValueTask WriteCompletion(IExecutionContext context)
     {
-        await context.Response.Body.WriteAsync(
-            Newline,
-            0,
-            Newline.Length,
-            context.CancellationToken
-        );
+        if (StreamBody.NothingWritten(context))
+        {
+            await context.Response.Body.WriteAsync(
+                Newline,
+                0,
+                Newline.Length,
+                context.CancellationToken
+            );
+        }
     }
 
     /// <summary>

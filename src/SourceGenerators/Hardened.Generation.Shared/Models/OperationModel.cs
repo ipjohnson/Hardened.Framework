@@ -261,6 +261,17 @@ internal class OperationModel : IEquatable<OperationModel>
     /// </remarks>
     public TimeoutModel? Timeout { get; set; }
 
+    /// <summary>
+    /// Whether this operation's validation stops at its first failure, as the <c>ValidationStopMode</c>
+    /// member the description names, or null where it declares nothing.
+    /// </summary>
+    /// <remarks>
+    /// Reaches the handler as a <c>ValidationModeAttribute</c> in its metadata, the way
+    /// <see cref="Timeout"/> reaches it as a <c>TimeoutAttribute</c>, so a mode in a model and one on
+    /// the implementation resolve against each other by the runtime's nearest-wins rule.
+    /// </remarks>
+    public string? ValidationMode { get; set; }
+
     // x-filters: typed filter attribute instances applied to this operation
     public List<FilterInstanceModel> FilterInstances { get; set; } = new();
 
@@ -369,7 +380,8 @@ internal class OperationModel : IEquatable<OperationModel>
             && SecurityRequirements.SequenceEqual(other.SecurityRequirements)
             && RequestBodyProperties.SequenceEqual(other.RequestBodyProperties)
             && RequestBodyRequired.SequenceEqual(other.RequestBodyRequired)
-            && Equals(Timeout, other.Timeout);
+            && Equals(Timeout, other.Timeout)
+            && ValidationMode == other.ValidationMode;
     }
 
     public override bool Equals(object? obj) => Equals(obj as OperationModel);

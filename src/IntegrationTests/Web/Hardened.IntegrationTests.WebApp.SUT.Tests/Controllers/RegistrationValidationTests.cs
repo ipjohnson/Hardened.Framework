@@ -25,6 +25,28 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 public class RegistrationValidationTests
 {
     /// <summary>
+    /// A route declaring <c>[ValidationMode(StopOnFirstError)]</c> reports the first rule the body
+    /// breaks, where the same body at <c>/registration</c> reports both.
+    /// </summary>
+    [HardenedTest]
+    public async Task AFirstErrorRouteReportsOnlyTheFirstFailure(ITestWebApp testWebApp)
+    {
+        const string body = """{"name":"x","age":5}""";
+
+        var first = await testWebApp.Post(body, "/registration/first-error");
+        var every = await testWebApp.Post(body, "/registration");
+
+        first.Assert.BadRequest();
+        every.Assert.BadRequest();
+
+        Assert.Equal(
+            "model.name",
+            Assert.Single(first.Deserialize<RequestValidationError>().Errors!).Field
+        );
+        Assert.Equal(2, every.Deserialize<RequestValidationError>().Errors!.Count);
+    }
+
+    /// <summary>
     /// The trial's blocker: a member declared present by its nullable annotation and by nothing
     /// else. The document published <c>required: ["memberId"]</c> and the request answered 201 with
     /// a null in a domain whose C# type says it cannot be there.

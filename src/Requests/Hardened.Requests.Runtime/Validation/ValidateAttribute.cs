@@ -31,9 +31,10 @@ public sealed class ValidateAttribute<TValidated> : Attribute, IRequestFilterPro
         // Built on the first request rather than here: GetFilters runs in the handler's constructor,
         // which has no service provider. The filter it builds is kept, so this is once per handler.
         ValidationFilter<TValidated>? filter = null;
+        var stopMode = ValidationModeAttribute.For(handlerInfo);
 
         yield return new RequestFilterInfo(
-            context => filter ??= new ValidationFilter<TValidated>(Resolve(context)),
+            context => filter ??= new ValidationFilter<TValidated>(Resolve(context), stopMode),
             FilterOrder.Validation,
             nameof(ValidationFilter<TValidated>)
         );
