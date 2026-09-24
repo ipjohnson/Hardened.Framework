@@ -171,7 +171,7 @@ A filter attribute on the module class covers every handler compiled in the same
 An attribute on the host project's `Application` module reaches no handler in `src/Todos`. The build reports nothing. Put the attribute on the module that holds the routes, or register it with `AddGlobalFilter`.
 :::
 
-Any filter attribute works on a module, including one the application wrote. A handler that carries the same attribute type on its method or class gets only its own. A generic attribute closed over two different types is two attribute types.
+Any filter attribute works on a module, including one the application wrote, unless it sets an enum property to a value other than the enum's zero value. That fails the build with `CS0266` in the generated module code, and [Attributes](/reference/attributes) lists the attributes it reaches. A handler that carries the same attribute type on its method or class gets only its own. A generic attribute closed over two different types is two attribute types.
 
 Here `[ServerTiming]` is on `TodosLibrary`, the template's module in `src/Todos/TodosLibrary.cs`:
 

@@ -195,9 +195,8 @@ const guide = [
 export default defineConfig({
   title: 'Hardened',
   description:
-    'A compile-time .NET framework for web APIs, AWS Lambda, Google Cloud Run and Azure Functions. Routing, dependency injection, ' +
-    'configuration and parameter binding are generated during the build — nothing reflects, ' +
-    'nothing scans at startup.',
+    'Hardened is a .NET framework for HTTP APIs and serverless functions, with source generators that write ' +
+    'the routing table, the parameter binding and the service registration during the build.',
   base,
   lang: 'en-GB',
   cleanUrls: true,
@@ -230,7 +229,8 @@ export default defineConfig({
       'meta',
       {
         property: 'og:description',
-        content: 'A compile-time .NET framework for web APIs, AWS Lambda, Google Cloud Run and Azure Functions.',
+        content:
+          'A Hardened application runs on Kestrel, ASP.NET Core, AWS Lambda, Google Cloud Run, Google Cloud Functions and Azure Functions.',
       },
     ],
   ],
