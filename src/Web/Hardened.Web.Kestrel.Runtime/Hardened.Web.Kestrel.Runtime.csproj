@@ -24,6 +24,10 @@
     </ItemGroup>
 
     <ItemGroup>
+        <InternalsVisibleTo Include="Hardened.Web.Kestrel.Runtime.Tests"/>
+    </ItemGroup>
+
+    <ItemGroup>
         <ProjectReference Include="..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj"/>
         <ProjectReference Include="..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj"/>
         <ProjectReference Include="..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>

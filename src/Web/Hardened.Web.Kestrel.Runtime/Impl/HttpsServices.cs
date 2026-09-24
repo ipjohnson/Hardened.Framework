@@ -1,7 +1,6 @@
 using System.Reflection;
 using Hardened.Shared.Runtime.Application;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.FileProviders;
@@ -74,39 +73,5 @@ internal static class HttpsServices
             ContentRootPath = contentRoot,
             ContentRootFileProvider = new PhysicalFileProvider(contentRoot),
         };
-    }
-
-    /// <summary>
-    /// Applies <c>ConfigureServices</c> to a collection straight away, so an extension written for
-    /// a web host can register into it.
-    /// </summary>
-    private sealed class CollectingWebHostBuilder(IServiceCollection services) : IWebHostBuilder
-    {
-        public IWebHost Build() =>
-            throw new NotSupportedException("This builder only collects registrations.");
-
-        public IWebHostBuilder ConfigureAppConfiguration(
-            Action<WebHostBuilderContext, IConfigurationBuilder> configureDelegate
-        ) => this;
-
-        public IWebHostBuilder ConfigureServices(Action<IServiceCollection> configureServices)
-        {
-            configureServices(services);
-
-            return this;
-        }
-
-        public IWebHostBuilder ConfigureServices(
-            Action<WebHostBuilderContext, IServiceCollection> configureServices
-        )
-        {
-            configureServices(new WebHostBuilderContext(), services);
-
-            return this;
-        }
-
-        public string? GetSetting(string key) => null;
-
-        public IWebHostBuilder UseSetting(string key, string? value) => this;
     }
 }

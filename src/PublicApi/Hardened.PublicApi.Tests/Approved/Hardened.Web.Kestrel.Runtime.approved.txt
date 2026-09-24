@@ -1,3 +1,4 @@
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Hardened.Web.Kestrel.Runtime.Tests")]
 namespace Hardened.Web.Kestrel.Runtime
 {
     public sealed class HardenedKestrelApplication : System.IAsyncDisposable
