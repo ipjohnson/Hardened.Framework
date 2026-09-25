@@ -22,7 +22,7 @@ namespace Hardened.Requests.Runtime.Authorization;
 /// second mechanism.
 /// </para>
 /// <para>
-/// It reads <see cref="IExecutionRequestHandlerInfo.Requirements"/> rather than walking metadata
+/// It reads <see cref="IExecutionRequestHandlerInfo.Requirement"/> rather than walking metadata
 /// itself, so a requirement a convention added while the handler was built is honoured exactly like
 /// one an attribute declared.
 /// </para>

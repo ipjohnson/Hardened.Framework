@@ -47,6 +47,18 @@
         <PackageCSharpAuthorIncludeSource Condition="'$(UseLocalCSharpAuthor)' != 'true'">true</PackageCSharpAuthorIncludeSource>
     </PropertyGroup>
 
+    <!--
+        No XML documentation file, against Directory.Build.props, which turns it on for every
+        project that is not a test. Nothing that compiles CSharpAuthor in ships a library: a
+        generator packs an analyzer, and a build task runs inside MSBuild. With documentation on, the
+        compiler also binds every cref in CSharpAuthor's own source. One names a type it does not
+        compile (CS1574), and under EnforceExtendedAnalyzerRules another, naming
+        CultureInfo.CurrentCulture, is a banned-symbol reference (RS1035).
+    -->
+    <PropertyGroup>
+        <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    </PropertyGroup>
+
     <ItemGroup>
         <PackageReference Condition="'$(UseLocalCSharpAuthor)' != 'true'" Include="CSharpAuthor">
             <PrivateAssets>all</PrivateAssets>

@@ -84,6 +84,7 @@ public class ExceptionResponseSerializer : IExceptionResponseSerializer
     /// <c>text/event-stream</c>, makes the client fail the connection and stop, where
     /// <c>text/event-stream</c> around a JSON object would be parsed as garbage and reconnected to
     /// forever. <c>StreamingTests</c> pins it through a real refusal.
+    /// </para>
     /// </remarks>
     private IResponseSerializer FindErrorSerializer(IExecutionContext context)
     {

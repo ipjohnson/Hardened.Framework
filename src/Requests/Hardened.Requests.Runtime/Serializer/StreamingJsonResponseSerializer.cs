@@ -99,7 +99,7 @@ public class StreamingJsonResponseSerializer : IResponseSerializer
     /// <remarks>
     /// <para>
     /// <b>The committed type is the question, not <paramref name="mediaType"/>.</b>
-    /// <see cref="MediaType.Matches"/> answers true for <c>*/*</c> and for an absent <c>Accept</c>,
+    /// <see cref="MediaType.Matches(string, string)"/> answers true for <c>*/*</c> and for an absent <c>Accept</c>,
     /// on the reasoning that a client expressing no preference will take anything. Asking it about
     /// this serializer's media types therefore claims every indifferent request - which, at
     /// <c>Specialized</c>, is most of them, and is ahead of the JSON serializers. Written that way

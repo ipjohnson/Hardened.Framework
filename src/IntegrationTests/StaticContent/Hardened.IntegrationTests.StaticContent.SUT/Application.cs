@@ -22,7 +22,6 @@ namespace Hardened.IntegrationTests.StaticContent.SUT;
 /// run time rather than by the build task.
 /// </para>
 /// <para>
-/// <para>
 /// Everything but the fall back file is set through <c>ConfigureStaticContent</c>, which is where
 /// anything that is not a string has to be set: the generated module attribute unwraps
 /// <c>Nullable&lt;T&gt;</c>, so a value-typed property would be copied onto the module carrying

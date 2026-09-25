@@ -49,6 +49,43 @@
     </ItemGroup>
 
     <!--
+      A symbol package beside every package, so a consumer's debugger can step into Hardened code.
+      The PDB carries Source Link, which the SDK adds for a GitHub repository, so the debugger
+      fetches each source file at the commit the package was built from. The nuget.org push in
+      release.yaml uploads each .snupkg with its .nupkg. Every push to GitHub Packages passes
+      no-symbols, because that feed has no symbol server.
+
+      A package with no build output has no PDB to carry. Directory.Build.targets turns this off
+      for those projects, because this file is imported before a project sets IncludeBuildOutput.
+    -->
+    <PropertyGroup>
+        <IncludeSymbols>true</IncludeSymbols>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    </PropertyGroup>
+
+    <!--
+      Ship the XML documentation file. IntelliSense reads the .xml beside the .dll, so without it a
+      consumer sees none of the summaries written here.
+
+      CS1591, a public member with no comment, and CS1573, a parameter with no param tag beside one
+      that has one, are suppressed rather than fixed. Turning documentation generation on is what
+      makes them appear, and they fire per member and per parameter. Leaving them on means either a
+      permanently red build or placeholder text written to silence a compiler. Undocumented members
+      are no worse off, and the documented ones are now visible. The warnings that say a comment is
+      wrong, such as a cref that does not resolve or malformed XML, stay on.
+
+      CSharpAuthor.props turns it off again for every project that compiles CSharpAuthor in. None of
+      them ships a library.
+
+      It has to be set in a props file. The SDK resolves GenerateDocumentationFile in
+      Microsoft.NET.Sdk.BeforeCommon.targets, which runs before Directory.Build.targets is imported.
+    -->
+    <PropertyGroup Condition="!$(MSBuildProjectName.EndsWith('.Tests'))">
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
+    </PropertyGroup>
+
+    <!--
       The ValidationModules version, in one place, because two projects consume it in two
       different shapes - Hardened.Requests.Runtime binds against the runtime assembly, and the
       generators compile the source-only Impl package in. Those must be the same version: the

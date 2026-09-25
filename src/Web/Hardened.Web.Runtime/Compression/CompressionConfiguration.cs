@@ -97,7 +97,7 @@ public class CompressionConfiguration : ICompressionConfiguration
     /// Whether <paramref name="mediaType"/> falls under <paramref name="pattern"/>.
     /// </summary>
     /// <remarks>
-    /// Written here rather than through <see cref="MediaType.Matches"/>, which answers a different
+    /// Written here rather than through <see cref="Hardened.Requests.Abstract.Serializer.MediaType.Matches(string, string)"/>, which answers a different
     /// question - whether a client's <c>Accept</c> admits what a serializer produces - and knows
     /// nothing of structured suffixes. <c>application/*+json</c> is the whole reason for a rule
     /// rather than a list: it is what makes <c>application/vnd.api+json</c> compress without anyone

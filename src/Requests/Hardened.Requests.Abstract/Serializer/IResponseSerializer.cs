@@ -31,7 +31,7 @@ public interface IResponseSerializer
     /// </summary>
     /// <param name="mediaType">
     /// One entry from the client's <c>Accept</c> header, or a content type the response has already
-    /// committed to. May be a wildcard - use <see cref="MediaType.Matches"/> rather than comparing
+    /// committed to. May be a wildcard - use <see cref="MediaType.Matches(string, string)"/> rather than comparing
     /// it directly.
     /// </param>
     /// <remarks>

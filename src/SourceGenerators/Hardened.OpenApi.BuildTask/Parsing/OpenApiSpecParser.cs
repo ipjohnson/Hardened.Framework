@@ -363,7 +363,7 @@ internal static class OpenApiSpecParser
     /// A short, stable qualifier for a name that has to differ from another.
     /// </summary>
     /// <remarks>
-    /// FNV-1a, for the reason <c>PatternRegistry</c> gives: <see cref="string.GetHashCode"/> is
+    /// FNV-1a, for the reason <c>PatternRegistry</c> gives: <see cref="string.GetHashCode()"/> is
     /// randomised per process in .NET Core, and a generated type that renames itself on every build
     /// churns the file and recompiles every consumer. Derived from provenance rather than from the
     /// order things were parsed in, so reordering a document cannot rename a type.

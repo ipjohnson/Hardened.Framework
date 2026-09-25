@@ -124,7 +124,7 @@ internal sealed class PatternRegistry
     /// A stable, short name for a pattern.
     /// </summary>
     /// <remarks>
-    /// FNV-1a rather than <see cref="string.GetHashCode"/>, which is randomised per process in
+    /// FNV-1a rather than <see cref="string.GetHashCode()"/>, which is randomised per process in
     /// .NET Core - the member name has to be the same on every build or the emitted file churns and
     /// every consumer recompiles.
     /// </remarks>

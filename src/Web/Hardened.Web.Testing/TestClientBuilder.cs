@@ -127,7 +127,7 @@ internal static class TestClientBuilder
         TestCredential? credential
     ) => CreateContext(rootServiceProvider, credential, reuseContainer: false);
 
-    /// <param name="reuseContainer">As on <see cref="CreateHttpClient"/>.</param>
+    /// <param name="reuseContainer">As on <see cref="CreateHttpClient(IServiceProvider, TestCredential, bool)"/>.</param>
     public static TestClientContext CreateContext(
         IServiceProvider rootServiceProvider,
         TestCredential? credential,

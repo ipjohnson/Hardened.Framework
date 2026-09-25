@@ -13,7 +13,7 @@ namespace Hardened.Web.Runtime.Conditional;
 /// <para>
 /// Installed by <see cref="ConditionalGetAttribute"/> on an operation or a class, or on every GET
 /// handler by <c>[Enable&lt;ConditionalGet&gt;]</c>, at
-/// <see cref="Abstract.RequestFilter.FilterOrder.Conditional"/>: outside the response cache, so a
+/// <see cref="Hardened.Requests.Abstract.RequestFilter.FilterOrder.Conditional"/>: outside the response cache, so a
 /// hit is revalidated as well as a miss, and outside compression, so a 304 carries no coding for a
 /// body it does not have. Nothing installs it otherwise. A service whose responses are small and
 /// change on every read gets nothing from a 304, and under this arrangement pays nothing for it.

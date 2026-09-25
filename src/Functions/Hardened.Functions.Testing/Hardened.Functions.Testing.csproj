@@ -15,8 +15,6 @@
         <IsPackable>true</IsPackable>
         <PackageId>Hardened.Functions.Testing</PackageId>
         <PackageTags>Hardened;Hardened.Framework;serverless;functions;testing</PackageTags>
-        <GenerateDocumentationFile>true</GenerateDocumentationFile>
-        <NoWarn>$(NoWarn);CS1591</NoWarn>
     </PropertyGroup>
 
     <!--

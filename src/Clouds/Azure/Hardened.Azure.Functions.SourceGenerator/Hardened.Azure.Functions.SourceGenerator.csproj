@@ -13,17 +13,6 @@
         <PackageTags>Hardened;Hardened.Framework;azure;functions;serverless;source-generator</PackageTags>
         <IsRoslynComponent>true</IsRoslynComponent>
         <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
-
-        <!--
-          Off, against the Azure Directory.Build.props, which turns it on for every package here. A
-          generator packs an analyzer and no lib, so there is no assembly for an XML file to
-          document. It is also what keeps the linked sources compiling the way they do under
-          src/SourceGenerators: with documentation on, the compiler binds every cref, and
-          CSharpAuthor's own comment naming CultureInfo.CurrentCulture becomes a banned-symbol
-          reference (RS1035) under EnforceExtendedAnalyzerRules, before a single line of this
-          generator is reached.
-        -->
-        <GenerateDocumentationFile>false</GenerateDocumentationFile>
     </PropertyGroup>
 
     <!--

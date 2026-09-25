@@ -6,7 +6,7 @@ namespace Hardened.Requests.Abstract.Responses;
 /// <remarks>
 /// <para>
 /// Three readers ask a response type for its status, and each can only reach one of the three
-/// answers. The generator reads <see cref="HttpStatusAttribute"/> at compile time. The pipeline
+/// answers. The generator reads <c>HttpStatusAttribute</c> at compile time. The pipeline
 /// reads <see cref="IHttpStatusResponse.Status"/> off an instance. A test has neither: the client
 /// throws its own model or hands back an envelope, so there is no instance of this type to read and
 /// no compilation of the handler to inspect.
@@ -30,6 +30,6 @@ namespace Hardened.Requests.Abstract.Responses;
 /// </remarks>
 public interface IDeclaresStatus
 {
-    /// <summary>The status, the same one <see cref="HttpStatusAttribute"/> declares.</summary>
+    /// <summary>The status, the same one <c>HttpStatusAttribute</c> declares.</summary>
     static abstract int StatusCode { get; }
 }

@@ -8,7 +8,7 @@ namespace Hardened.Requests.Abstract.Authorization;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The constructor takes a non-null <paramref name="authenticationScheme"/> because an instance of
+/// The constructor takes a non-null <c>authenticationScheme</c> because an instance of
 /// this type is authenticated by construction - <see cref="AnonymousCallerPrincipal"/> is the other
 /// case, and there is no way to build a half-authenticated one of either.
 /// </para>

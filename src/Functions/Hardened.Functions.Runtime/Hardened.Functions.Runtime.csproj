@@ -9,8 +9,6 @@
         <IsPackable>true</IsPackable>
         <PackageId>Hardened.Functions.Runtime</PackageId>
         <PackageTags>Hardened;Hardened.Framework;serverless;functions</PackageTags>
-        <GenerateDocumentationFile>true</GenerateDocumentationFile>
-        <NoWarn>$(NoWarn);CS1591</NoWarn>
     </PropertyGroup>
 
     <!--

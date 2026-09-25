@@ -22,7 +22,7 @@ namespace Hardened.Web.Runtime.OpenApi;
 /// <para>
 /// <b>There is no inline script.</b> The document URL travels in a <c>data-</c> attribute, which is
 /// the form Scalar's standalone bundle reads, so every value substituted into this page is an HTML
-/// attribute value and <see cref="WebUtility.HtmlEncode"/> is the whole escaping story. Writing the
+/// attribute value and <see cref="WebUtility.HtmlEncode(string)"/> is the whole escaping story. Writing the
 /// URL into a JavaScript string literal instead would need JavaScript escaping on a value that comes
 /// from configuration, and getting that subtly wrong is how a docs page becomes an XSS.
 /// </para>
@@ -130,7 +130,7 @@ public sealed class OpenApiUiPage : IHardenedResponseOutput<OpenApiUiModel>
     /// </para>
     /// <para>
     /// The document URL goes through <see cref="JsonEncodedText"/>, which is the JavaScript half of
-    /// what <see cref="WebUtility.HtmlEncode"/> is above: a JSON string is a JavaScript string, so
+    /// what <see cref="WebUtility.HtmlEncode(string)"/> is above: a JSON string is a JavaScript string, so
     /// one function covers the whole of what a configured value can do to the syntax around it.
     /// Not <c>JsonSerializer</c>, which carries the trimming and AOT annotations this assembly is
     /// built to keep clear of, and would be reflection over a string.

@@ -64,7 +64,7 @@ public class RawResponseSerializer : IResponseSerializer
     /// <remarks>
     /// <para>
     /// <b>Decided rather than requested, which is the question this answers.</b>
-    /// <see cref="MediaType.Matches"/> is true for <c>*/*</c> and for an absent <c>Accept</c>, so
+    /// <see cref="MediaType.Matches(string, string)"/> is true for <c>*/*</c> and for an absent <c>Accept</c>, so
     /// asking it about <c>text/plain</c> alone would claim every indifferent request that returned a
     /// string. That is what this did when it was ordered behind JSON to suppress exactly that.
     /// </para>

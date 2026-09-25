@@ -45,13 +45,13 @@ public record RequestHandlerInfo(IExecutionRequestHandler? Handler, string? Allo
     public static RequestHandlerInfo MethodNotAllowed(string allow) => new(null, allow);
 }
 
-/// <param name="pathTokens">
-/// Where a provider that matched a route with tokens in it writes their values. Owned by the
-/// caller, which puts it on the request once it has decided which provider answered - a table is
-/// asked about a path it may not have, and one that declines must not have changed anything.
-/// </param>
 public interface IWebExecutionRequestHandlerProvider
 {
+    /// <param name="pathTokens">
+    /// Where a provider that matched a route with tokens in it writes their values. Owned by the
+    /// caller, which puts it on the request once it has decided which provider answered - a table
+    /// is asked about a path it may not have, and one that declines must not have changed anything.
+    /// </param>
     RequestHandlerInfo? GetExecutionRequestHandler(
         IExecutionContext context,
         ref PathTokenCollection pathTokens

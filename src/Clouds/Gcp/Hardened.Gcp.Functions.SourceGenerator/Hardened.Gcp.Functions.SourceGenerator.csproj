@@ -13,9 +13,6 @@
         <PackageTags>Hardened;Hardened.Framework;gcp;cloudfunctions;serverless;source-generator</PackageTags>
         <IsRoslynComponent>true</IsRoslynComponent>
         <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
-
-        <!-- Off, against the Gcp Directory.Build.props, for the reason the Azure generator gives. -->
-        <GenerateDocumentationFile>false</GenerateDocumentationFile>
     </PropertyGroup>
 
     <!--
