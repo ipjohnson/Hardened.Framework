@@ -187,16 +187,27 @@ internal static class XmlDocumentation
         return inner.Length > 0 ? inner : null;
     }
 
-    /// <summary>The prose inside an element, with any nested markup removed.</summary>
+    /// <summary>
+    /// The prose inside an element, with any nested markup removed and each self-closing
+    /// reference read the way <see cref="AppendReference"/> reads it.
+    /// </summary>
     private static string StripTags(string text)
     {
         var builder = new StringBuilder(text.Length);
         var depth = 0;
+        var tagStart = 0;
 
-        foreach (var character in text)
+        for (var index = 0; index < text.Length; index++)
         {
+            var character = text[index];
+
             if (character == '<')
             {
+                if (depth == 0)
+                {
+                    tagStart = index + 1;
+                }
+
                 depth++;
             }
             else if (character == '>')
@@ -204,6 +215,11 @@ internal static class XmlDocumentation
                 if (depth > 0)
                 {
                     depth--;
+
+                    if (depth == 0)
+                    {
+                        builder.Append(RawReference(text.Substring(tagStart, index - tagStart)));
+                    }
                 }
             }
             else if (depth == 0)
@@ -213,6 +229,44 @@ internal static class XmlDocumentation
         }
 
         return Collapse(DecodeEntities(builder.ToString()));
+    }
+
+    /// <summary>
+    /// What a self-closing tag's text reads as in prose, or nothing for any other tag.
+    /// </summary>
+    /// <param name="tag">The text between the tag's angle brackets.</param>
+    private static string RawReference(string tag)
+    {
+        if (!tag.EndsWith("/", System.StringComparison.Ordinal))
+        {
+            return "";
+        }
+
+        foreach (var attribute in new[] { "cref", "name", "langword" })
+        {
+            var marker = " " + attribute + "=\"";
+            var start = tag.IndexOf(marker, System.StringComparison.Ordinal);
+
+            if (start < 0)
+            {
+                continue;
+            }
+
+            start += marker.Length;
+
+            var end = tag.IndexOf('"', start);
+
+            if (end < 0)
+            {
+                return "";
+            }
+
+            var value = tag.Substring(start, end - start);
+
+            return attribute == "cref" ? SimpleName(value) : value;
+        }
+
+        return "";
     }
 
     /// <summary>
@@ -323,46 +377,109 @@ internal static class XmlDocumentation
     /// single spaces - a JSON string field is not the place for <c>///</c> and hanging indentation.
     /// </summary>
     /// <remarks>
-    /// A <c>&lt;see cref="Thing"/&gt;</c> contributes the name it points at, since dropping it
-    /// silently would turn "see <c>Thing</c> for the ordering" into "see for the ordering".
+    /// A <c>&lt;see cref="Thing"/&gt;</c> contributes the name it points at, where it stands, since
+    /// dropping it silently would turn "see <c>Thing</c> for the ordering" into "see for the
+    /// ordering". The names used to be appended after the prose, where "Thing" read as a stray
+    /// word at the end of the description.
     /// </remarks>
     private static string Flatten(XmlElementSyntax element)
     {
         var builder = new StringBuilder();
 
-        foreach (var token in element.Content.SelectMany(node => node.DescendantTokens()))
-        {
-            switch (token.Kind())
-            {
-                case SyntaxKind.XmlTextLiteralToken:
-                case SyntaxKind.XmlEntityLiteralToken:
-                    builder.Append(token.ValueText);
-                    break;
-
-                case SyntaxKind.XmlTextLiteralNewLineToken:
-                    builder.Append(' ');
-                    break;
-            }
-        }
-
-        foreach (
-            var reference in element
-                .Content.SelectMany(node => node.DescendantNodes())
-                .OfType<XmlCrefAttributeSyntax>()
-        )
-        {
-            builder.Append(' ').Append(SimpleName(reference.Cref.ToString()));
-        }
+        AppendContent(builder, element.Content);
 
         return Collapse(builder.ToString());
     }
 
-    /// <summary>The last segment of a cref, which is how the type reads in prose.</summary>
+    /// <summary>The prose of <paramref name="content"/>, in document order.</summary>
+    private static void AppendContent(StringBuilder builder, SyntaxList<XmlNodeSyntax> content)
+    {
+        foreach (var node in content)
+        {
+            switch (node)
+            {
+                case XmlElementSyntax nested:
+                    AppendContent(builder, nested.Content);
+                    break;
+
+                case XmlEmptyElementSyntax empty:
+                    AppendReference(builder, empty);
+                    break;
+
+                default:
+                    foreach (var token in node.DescendantTokens())
+                    {
+                        AppendToken(builder, token);
+                    }
+
+                    break;
+            }
+        }
+    }
+
+    /// <summary>
+    /// What a self-closing tag reads as in prose: the name a <c>cref</c> points at, the name a
+    /// <c>paramref</c> or <c>typeparamref</c> gives, or a <c>langword</c> as written.
+    /// </summary>
+    private static void AppendReference(StringBuilder builder, XmlEmptyElementSyntax element)
+    {
+        foreach (var attribute in element.Attributes)
+        {
+            switch (attribute)
+            {
+                case XmlCrefAttributeSyntax cref:
+                    builder.Append(SimpleName(cref.Cref.ToString()));
+                    return;
+
+                case XmlNameAttributeSyntax name:
+                    builder.Append(name.Identifier.Identifier.ValueText);
+                    return;
+
+                case XmlTextAttributeSyntax text when text.Name.LocalName.ValueText == "langword":
+                    foreach (var token in text.TextTokens)
+                    {
+                        AppendToken(builder, token);
+                    }
+
+                    return;
+            }
+        }
+    }
+
+    private static void AppendToken(StringBuilder builder, SyntaxToken token)
+    {
+        switch (token.Kind())
+        {
+            case SyntaxKind.XmlTextLiteralToken:
+            case SyntaxKind.XmlEntityLiteralToken:
+                builder.Append(token.ValueText);
+                break;
+
+            case SyntaxKind.XmlTextLiteralNewLineToken:
+                builder.Append(' ');
+                break;
+        }
+    }
+
+    /// <summary>
+    /// The last segment of a cref, which is how the type reads in prose: without the parameter
+    /// list a method cref carries, and with a generic's braces written as C# writes them.
+    /// </summary>
     private static string SimpleName(string cref)
     {
-        var lastDot = cref.LastIndexOf('.');
+        var parameters = cref.IndexOf('(');
+        var name = parameters >= 0 ? cref.Substring(0, parameters) : cref;
+        var typeArguments = name.IndexOf('{');
+        var lastDot = (typeArguments >= 0 ? name.Substring(0, typeArguments) : name).LastIndexOf(
+            '.'
+        );
 
-        return lastDot >= 0 && lastDot < cref.Length - 1 ? cref.Substring(lastDot + 1) : cref;
+        if (lastDot >= 0 && lastDot < name.Length - 1)
+        {
+            name = name.Substring(lastDot + 1);
+        }
+
+        return name.Replace('{', '<').Replace('}', '>');
     }
 
     private static string Collapse(string text)

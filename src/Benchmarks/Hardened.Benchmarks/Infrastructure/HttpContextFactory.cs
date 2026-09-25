@@ -44,7 +44,7 @@ public static class HttpContextFactory
     ///
     /// Shared by every ASP.NET-shaped pipeline here — the two ASP.NET flavors and Hardened behind
     /// its adapter get it wrapped in a <c>DefaultHttpContext</c>, while
-    /// <see cref="HardenedHttpApplication"/> consumes it directly. Building it in one place is
+    /// <see cref="Hardened.Web.Kestrel.Runtime.Impl.HardenedHttpApplication"/> consumes it directly. Building it in one place is
     /// what keeps that last comparison honest: the feature-based path must not be measured
     /// against cheaper inputs than the paths it is being compared to.
     /// </summary>

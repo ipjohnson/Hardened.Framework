@@ -10,7 +10,7 @@ namespace Hardened.Generation;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <see cref="SchemaEmitter"/> writes the record and <c>JsonTypeInfoEmitter</c> writes the metadata
+/// <c>SchemaEmitter</c> writes the record and <c>JsonTypeInfoEmitter</c> writes the metadata
 /// describing that same record to the AOT resolver, so the two have to agree on the split exactly.
 /// The resolver's <c>ObjectWithParameterizedConstructorCreator</c> casts a positional argument array
 /// and its <c>ConstructorParameterMetadataInitializer</c> assigns positions by index; if either

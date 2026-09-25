@@ -9,8 +9,6 @@
         <IsPackable>true</IsPackable>
         <PackageId>Hardened.CloudEvents</PackageId>
         <PackageTags>Hardened;Hardened.Framework;serverless;functions;cloudevents</PackageTags>
-        <GenerateDocumentationFile>true</GenerateDocumentationFile>
-        <NoWarn>$(NoWarn);CS1591</NoWarn>
     </PropertyGroup>
 
     <!--

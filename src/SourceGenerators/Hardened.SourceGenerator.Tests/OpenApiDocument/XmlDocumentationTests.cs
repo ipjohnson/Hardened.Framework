@@ -56,10 +56,18 @@ public class XmlDocumentationTests
     public void TheSummaryIsRead(DocumentationMode mode) =>
         Assert.Equal("Echoes a path token back.", XmlDocumentation.Read(Method(mode)).Summary);
 
+    /// <summary>
+    /// The cref reads as the name it points at, where it stands. It used to be dropped under
+    /// <c>None</c> and appended after the prose under <c>Parse</c>, so the same comment gave a
+    /// different description depending on whether the project emitted an XML file.
+    /// </summary>
     [Theory]
     [MemberData(nameof(Modes))]
     public void TheRemarksBecomeTheDescription(DocumentationMode mode) =>
-        Assert.StartsWith("Longer prose,", XmlDocumentation.Read(Method(mode)).Description);
+        Assert.Equal(
+            "Longer prose, String included.",
+            XmlDocumentation.Read(Method(mode)).Description
+        );
 
     [Theory]
     [MemberData(nameof(Modes))]
@@ -91,6 +99,40 @@ public class XmlDocumentationTests
         Assert.Null(summary);
         Assert.Null(description);
         Assert.Null(XmlDocumentation.ReadParameter(method, "id"));
+    }
+
+    private const string References = """
+        class C {
+            /// <summary>Reads <paramref name="id"/> as a <see cref="System.Collections.Generic.List{T}"/>.</summary>
+            /// <remarks>Compared by <see cref="System.String.Equals(string, string)"/>, and never <see langword="null"/>.</remarks>
+            public string Read(string id) => id;
+        }
+        """;
+
+    private static MethodDeclarationSyntax Reference(DocumentationMode mode) =>
+        CSharpSyntaxTree
+            .ParseText(
+                References,
+                new CSharpParseOptions(documentationMode: mode),
+                cancellationToken: TestContext.Current.CancellationToken
+            )
+            .GetRoot(TestContext.Current.CancellationToken)
+            .DescendantNodes()
+            .OfType<MethodDeclarationSyntax>()
+            .Single();
+
+    /// <summary>
+    /// A parameter reads as its name, a generic as C# writes it, a method without its parameter
+    /// list, and a keyword as the keyword.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(Modes))]
+    public void EachKindOfReferenceReadsAsItsName(DocumentationMode mode)
+    {
+        var (summary, description) = XmlDocumentation.Read(Reference(mode));
+
+        Assert.Equal("Reads id as a List<T>.", summary);
+        Assert.Equal("Compared by Equals, and never null.", description);
     }
 
     private const string Entities = """

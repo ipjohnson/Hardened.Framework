@@ -39,15 +39,12 @@ internal static class ConstraintAttributes
     /// generator answers that with <c>value.petId is null</c> against a <c>long</c> - CS0037, in a
     /// generated file, from a spec that is not wrong.
     /// </param>
-    /// <param name="allowedValues">
-    /// False where the C# type already admits only the permitted values. A parameter whose schema
-    /// is a <c>$ref</c> to an enum is typed as the generated enum, and <c>[AllowedValues]</c> then
-    /// compares that enum against string literals - CS0019, once per member.
-    /// </param>
-    /// <param name="itemCount">
-    /// False where the C# type has no count. An array whose element type cannot be named degrades
-    /// to <c>JsonElement</c>, and <c>[ItemCount]</c> then draws <c>value.X.Count</c> against a
-    /// struct that has no such member.
+    /// <param name="csType">
+    /// The type the parameter will have, which decides the constraints it can carry. A parameter
+    /// whose schema is a <c>$ref</c> to an enum is typed as the generated enum, and
+    /// <c>[AllowedValues]</c> would compare that enum against string literals - CS0019, once per
+    /// member. An array whose element type cannot be named degrades to <c>JsonElement</c>, and
+    /// <c>[ItemCount]</c> would draw <c>value.X.Count</c> against a struct that has no such member.
     /// </param>
     public static IReadOnlyList<Model> ForParameter(
         ParameterModel parameter,
@@ -67,9 +64,8 @@ internal static class ConstraintAttributes
     /// From the caller rather than the model: it also knows whether the C# type makes
     /// <c>[Required]</c> unfailable - see <c>TypeMapper.IsNonNullableValueType</c>.
     /// </param>
-    /// <param name="allowedValues">
-    /// False where the C# type already admits only the permitted values - see the same parameter on
-    /// <see cref="ForParameter"/>.
+    /// <param name="csType">
+    /// The type the property will have - see the same parameter on <see cref="ForParameter"/>.
     /// </param>
     public static IReadOnlyList<Model> ForProperty(
         PropertyModel property,

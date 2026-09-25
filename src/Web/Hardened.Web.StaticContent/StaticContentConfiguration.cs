@@ -52,7 +52,7 @@ public interface IStaticContentConfiguration
     /// either case.
     /// </para>
     /// <para>
-    /// Stated as a <see cref="Authorization.Requirement"/> rather than through an attribute because
+    /// Stated as a <see cref="Hardened.Requests.Abstract.Authorization.Requirement"/> rather than through an attribute because
     /// <c>IExecutionRequestHandlerInfo.Requirement</c> is first-class data, and documents this as
     /// the supported route for a handler registered by hand: "a handler registered by hand can state
     /// one without inventing an attribute to carry it".

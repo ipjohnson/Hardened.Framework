@@ -17,7 +17,7 @@ namespace Hardened.Web.Runtime.Responses;
 /// client generated from the document could make one.
 /// </para>
 /// <para>
-/// The counterpart of <see cref="AnswersHeaderAttribute"/>, read the same two ways - on a handler
+/// The counterpart of <see cref="Hardened.Requests.Abstract.Responses.AnswersHeaderAttribute"/>, read the same two ways - on a handler
 /// or its class, and on a declaration's own type - and dropped where the operation already binds a
 /// parameter of that name, because the handler's own is the more specific description.
 /// </para>

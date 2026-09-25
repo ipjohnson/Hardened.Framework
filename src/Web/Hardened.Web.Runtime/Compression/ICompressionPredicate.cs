@@ -22,7 +22,7 @@ namespace Hardened.Web.Runtime.Compression;
 /// </code>
 ///
 /// <para>
-/// The same shape as <see cref="Caching.ICacheKeyProvider"/>: a static factory the attribute's
+/// The same shape as <see cref="Hardened.Requests.Abstract.Caching.ICacheKeyProvider"/>: a static factory the attribute's
 /// generic constraint reaches without reflection, and an instance method the filter calls per
 /// request. The type argument on <c>[Compress&lt;T&gt;]</c> is checked by the compiler, so a
 /// predicate is a type rather than a name resolved at run time.

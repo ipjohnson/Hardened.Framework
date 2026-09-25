@@ -74,7 +74,7 @@ public class PipelineBenchmarks
     /// <summary>
     /// Hardened owning <c>IHttpApplication</c> directly — Kestrel's contract, without
     /// <c>HostingApplication</c>, <c>HttpContext</c> or the ASP.NET middleware pipeline. See
-    /// <see cref="HardenedHttpApplication"/>.
+    /// <see cref="Hardened.Web.Kestrel.Runtime.Impl.HardenedHttpApplication"/>.
     /// </summary>
     [Benchmark]
     public async Task<int> HardenedOnServerFeatures()

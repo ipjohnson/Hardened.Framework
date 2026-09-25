@@ -85,7 +85,7 @@ public class AotRequestDeserializer : IRequestDeserializer
     /// ends up reading bodies with its own deserializer rather than the reflection-based one.
     /// </summary>
     /// <remarks>
-    /// The counterpart to <see cref="AotResponseSerializer.Order"/>, and stated for the same reason.
+    /// The counterpart to <see cref="AotResponseSerializer.ContentType"/>, and stated for the same reason.
     /// This used to be arranged by <c>TryAddSingleton</c> on the reflection-based registration, which
     /// keys on the service type rather than on that class - so it fired for any
     /// <c>IRequestDeserializer</c> registered first, not only this one.

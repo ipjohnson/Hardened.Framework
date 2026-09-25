@@ -11,8 +11,6 @@
           when a consumer outside the repository wants to run its own function in a host image.
         -->
         <IsPackable>false</IsPackable>
-        <GenerateDocumentationFile>true</GenerateDocumentationFile>
-        <NoWarn>$(NoWarn);CS1591</NoWarn>
     </PropertyGroup>
 
     <!--

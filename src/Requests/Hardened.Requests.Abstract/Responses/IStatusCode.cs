@@ -9,7 +9,7 @@ namespace Hardened.Requests.Abstract.Responses;
 /// of them is ever complete - a description may declare any integer, and 529 is registered
 /// nowhere while several services answer with it. Without this the only answer for the tail is a
 /// generated type per operation and status, which is the cost the shipped records exist to remove.
-/// <see cref="Status{TCode, TBody}"/> closes it: two statuses are two closed types, so a response
+/// <c>Status&lt;TCode, TBody&gt;</c> closes it: two statuses are two closed types, so a response
 /// set holding both clears CS0457 without the framework knowing either number in advance.
 /// </para>
 /// <para>
@@ -18,10 +18,10 @@ namespace Hardened.Requests.Abstract.Responses;
 /// reflects and nothing is looked up per request.
 /// </para>
 /// <para>
-/// A marker also carries <see cref="HttpStatusAttribute"/>, which restates the number for the
+/// A marker also carries <c>HttpStatusAttribute</c>, which restates the number for the
 /// generator. That is not duplication for its own sake: the generator reads attributes out of
 /// metadata and cannot evaluate a property body, which is the same attribute-plus-interface
-/// duality <see cref="HttpStatusAttribute"/> already documents for the response types themselves.
+/// duality <c>HttpStatusAttribute</c> already documents for the response types themselves.
 /// </para>
 /// </remarks>
 public interface IStatusCode

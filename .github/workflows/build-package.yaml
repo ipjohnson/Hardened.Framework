@@ -731,9 +731,12 @@ jobs:
           fi
 
       # Same reason as above: the glob has to reach src/Clouds/Aws/Lambda/<area>/<project>/bin.
+      #
+      # no-symbols, because push also sends the .snupkg it finds beside a .nupkg, and GitHub
+      # Packages has no symbol server.
       - name: Push
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
           find src -path '*/bin/Release/*.nupkg' -print0 | xargs -0 -n1 \
             dotnet nuget push --api-key ${{secrets.GITHUB_TOKEN}} \
-              --source "https://nuget.pkg.github.com/ipjohnson/index.json" --skip-duplicate
+              --source "https://nuget.pkg.github.com/ipjohnson/index.json" --skip-duplicate --no-symbols

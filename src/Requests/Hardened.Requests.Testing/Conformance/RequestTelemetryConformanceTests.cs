@@ -28,7 +28,7 @@ namespace Hardened.Requests.Testing.Conformance;
 ///     protected override IRequestTelemetryConformanceAdapter Adapter { get; } = new MyAdapter();
 /// }
 /// </code>
-/// </summary>
+/// </remarks>
 public abstract class RequestTelemetryConformanceTests
 {
     private static int _discriminator;

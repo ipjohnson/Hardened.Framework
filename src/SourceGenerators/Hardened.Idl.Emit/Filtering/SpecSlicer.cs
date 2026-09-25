@@ -32,15 +32,15 @@ namespace Hardened.Idl.Filtering;
 /// </remarks>
 internal static class SpecSlicer
 {
-    /// <param name="IncludePaths">Path globs to keep. Empty keeps every path.</param>
-    /// <param name="ExcludePaths">Path globs to drop, applied after the include set.</param>
-    /// <param name="Tags">Tags to keep. Empty keeps every tag.</param>
     internal sealed class Filter
     {
+        /// <summary>Path globs to keep. Empty keeps every path.</summary>
         public IReadOnlyList<string> IncludePaths { get; set; } = System.Array.Empty<string>();
 
+        /// <summary>Path globs to drop, applied after the include set.</summary>
         public IReadOnlyList<string> ExcludePaths { get; set; } = System.Array.Empty<string>();
 
+        /// <summary>Tags to keep. Empty keeps every tag.</summary>
         public IReadOnlyList<string> Tags { get; set; } = System.Array.Empty<string>();
 
         public bool IsEmpty =>

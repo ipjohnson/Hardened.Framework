@@ -1,0 +1,15 @@
+<Project>
+
+    <!--
+      No symbol package from a project with no build output: a generator, a meta package or the
+      templates. There is no PDB for one to carry. dotnet pack fails with NU5017 for a generator and
+      the templates, and writes a symbol package with nothing in it for a meta package.
+
+      Set here rather than beside IncludeSymbols in Directory.Build.props, because that file is
+      imported before a project sets IncludeBuildOutput.
+    -->
+    <PropertyGroup Condition="'$(IncludeBuildOutput)' == 'false'">
+        <IncludeSymbols>false</IncludeSymbols>
+    </PropertyGroup>
+
+</Project>

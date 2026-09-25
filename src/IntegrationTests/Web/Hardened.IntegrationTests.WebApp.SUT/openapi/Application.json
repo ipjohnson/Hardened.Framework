@@ -5332,7 +5332,7 @@
         ],
         "operationId": "registerMember",
         "summary": "A body whose only declaration is the nullable annotation on its member.",
-        "description": "carries no constraint at all, so nothing generates a validator for it. What refuses an absent member here is the reader.",
+        "description": "MemberRequest carries no constraint at all, so nothing generates a validator for it. What refuses an absent member here is the reader.",
         "requestBody": {
           "required": true,
           "content": {
@@ -5713,7 +5713,7 @@
         ],
         "operationId": "ownedBySubject",
         "summary": "The shape three trial arms found one caller's data in: an authenticated read whose ownership check is the handler's own code, cached.",
-        "description": "Nothing on the handler distinguishes this from . A description can say \"the caller must be authenticated\" and cannot say \"and the row must be theirs\", so the check is here, answering 404 rather than 403 so the row's existence is not disclosed - and that is invisible to anything reading the requirement. CacheScope.PerCaller is the author saying what the metadata cannot.",
+        "description": "Nothing on the handler distinguishes this from Granted. A description can say \"the caller must be authenticated\" and cannot say \"and the row must be theirs\", so the check is here, answering 404 rather than 403 so the row's existence is not disclosed - and that is invisible to anything reading the requirement. CacheScope.PerCaller is the author saying what the metadata cannot.",
         "responses": {
           "200": {
             "description": "OK",
@@ -5840,7 +5840,7 @@
         ],
         "operationId": "responseCacheTagged",
         "summary": "A read whose entry outlives anything worth waiting for, invalidated by name when the thing it read changes.",
-        "description": "The pair is the whole feature. Without an application's only way to reach its own entries was to expire them, so a published change appeared within the cache lifetime and never sooner.",
+        "description": "The pair is the whole feature. Without Publish an application's only way to reach its own entries was to expire them, so a published change appeared within the cache lifetime and never sooner.",
         "responses": {
           "200": {
             "description": "OK",
@@ -6590,7 +6590,7 @@
           "Streaming"
         ],
         "operationId": "modelsGuarded",
-        "summary": "The newline-delimited twin of .",
+        "summary": "The newline-delimited twin of EventsGuarded.",
         "responses": {
           "200": {
             "description": "OK",
@@ -7194,7 +7194,7 @@
           "HttpMethod"
         ],
         "operationId": "getItem",
-        "summary": "Same path as , different verb. The route tree has to keep the two apart rather than matching on path alone.",
+        "summary": "Same path as DeleteItem, different verb. The route tree has to keep the two apart rather than matching on path alone.",
         "parameters": [
           {
             "name": "id",
@@ -7285,7 +7285,7 @@
           "HttpMethod"
         ],
         "operationId": "createLocated",
-        "summary": "A 201 that says where the thing now lives, as a case in a response set rather than a status on the attribute: carries the Location beside the body, so a client can be held to having received both. The 400 is what makes it a set - code-first, the return type alone decides, and a lone Created<T> is an ordinary body at 200.",
+        "summary": "A 201 that says where the thing now lives, as a case in a response set rather than a status on the attribute: Created<T> carries the Location beside the body, so a client can be held to having received both. The 400 is what makes it a set - code-first, the return type alone decides, and a lone Created<T> is an ordinary body at 200.",
         "requestBody": {
           "required": true,
           "content": {

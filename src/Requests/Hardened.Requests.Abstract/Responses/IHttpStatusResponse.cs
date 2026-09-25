@@ -5,7 +5,7 @@ namespace Hardened.Requests.Abstract.Responses;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The run-time half of <see cref="HttpStatusAttribute"/>. The pipeline needs a status from a value
+/// The run-time half of <c>HttpStatusAttribute</c>. The pipeline needs a status from a value
 /// it is holding, and reading it off an attribute means reflecting over a type in an application
 /// that may have been trimmed - so the built-in types answer through an interface instead. The
 /// attribute stays the declarative form, for the generator and for a user's own type that should

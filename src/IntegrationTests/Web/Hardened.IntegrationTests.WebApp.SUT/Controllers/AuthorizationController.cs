@@ -10,6 +10,7 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Controllers;
 /// refusing, and the refusal reaching the wire as a status and a challenge.
 /// </summary>
 /// <remarks>
+/// <para>
 /// Grants arrive via <c>X-Test-Grants</c>, which the test principal middleware turns into a
 /// principal. Nothing here validates a credential; that is a later phase.
 /// </para>
@@ -20,6 +21,7 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Controllers;
 /// challenge header, while <see cref="Unstated"/> requires the same grant at run time and
 /// publishes a 403 alone. Both are supported and only one is describable, and the suite covers
 /// each because the difference is invisible from the handler.
+/// </para>
 /// </remarks>
 [BasePath("/authorization")]
 public class AuthorizationController
