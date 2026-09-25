@@ -71,14 +71,14 @@ public record Todo(int Id, string Title, bool Done);
 /// </remarks>
 #if (messagePackKeyed)
 [MessagePackObject]
-public partial record NewTodo([property: StringLength(1, 64), Key(0)] string Title);
+public partial record NewTodo([property: StringLength(64, Min = 1), Key(0)] string Title);
 #endif
 #if (messagePackNamed)
 [MessagePackObject(true)]
-public partial record NewTodo([property: StringLength(1, 64), Key("title")] string Title);
+public partial record NewTodo([property: StringLength(64, Min = 1), Key("title")] string Title);
 #endif
 #if (!messagePack)
-public record NewTodo([property: StringLength(1, 64)] string Title);
+public record NewTodo([property: StringLength(64, Min = 1)] string Title);
 #endif
 
 #endif

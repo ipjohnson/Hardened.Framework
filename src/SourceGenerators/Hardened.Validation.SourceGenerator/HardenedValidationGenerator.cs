@@ -27,7 +27,7 @@ namespace Hardened.Validation.SourceGenerator;
 /// <para>
 /// <b>Both attribute vocabularies.</b> ValidationModules' own constraints and
 /// <c>System.ComponentModel.DataAnnotations</c> reach the same IR through the same front-end, so
-/// <c>[StringLength(1, 100)]</c> from either namespace produces the same validator.
+/// <c>[StringLength(100)]</c> from either namespace produces the same validator.
 /// </para>
 /// <para>
 /// <b>Why registration lands in the entry point.</b> DependencyModules keys registrations on the

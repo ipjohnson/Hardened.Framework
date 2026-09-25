@@ -101,15 +101,15 @@ The enums that the constructors take are in these namespaces:
 
 `TValidated` is an interface that the generated parameters class implements. With no `IValidatorFor<TValidated>` registered, the request fails with an `InvalidOperationException` that names the type.
 
-The constraint attributes come from ValidationModules. Each one is in the namespace `ValidationModules.Constraints`, in the package `ValidationModules.Runtime` 1.1.0. A project that references `Hardened.Requests.Runtime` needs no reference of its own to the package. [Validation](/guide/validation) covers each constraint. Every constraint also takes the properties `Code`, `Message`, `When` and `Unless`, all unset.
+The constraint attributes come from ValidationModules. Each one is in the namespace `ValidationModules.Constraints`, in the package `ValidationModules.Runtime` 1.2.0. A project that references `Hardened.Requests.Runtime` needs no reference of its own to the package. [Validation](/guide/validation) covers each constraint. Every constraint also takes the properties `Code`, `Message`, `When` and `Unless`, all unset.
 
 | Attribute | Targets | What it does |
 |---|---|---|
 | `[Required]` | Property, field, parameter; repeatable | The value is present<br>Property: `AllowEmptyStrings` (`false`) |
-| `[StringLength(min, max)]`<br>`int min = 0`, `int max = int.MaxValue`, or `Min` and `Max` | Property, field, parameter; repeatable | A string's length is within the bounds |
+| `[StringLength(max)]`<br>`int max`, or `Min` and `Max` | Property, field, parameter; repeatable | A string's length is within the bounds |
 | `[Range(min, max)]`<br>`min` and `max` as `int`, `long`, `double` or `string`, or `Min` and `Max` | Property, field, parameter; repeatable | The value is within the bounds<br>Properties: `ExclusiveMin` (`false`), `ExclusiveMax` (`false`) |
 | `[Pattern(pattern)]`, `[Pattern(regexProvider, regexMember)]`<br>`string pattern`, or `Type regexProvider` and `string regexMember` for a `[GeneratedRegex]` method | Property, field, parameter; repeatable | The string matches the regular expression<br>Properties: `Options` (`RegexOptions.None`), `MatchTimeoutMilliseconds` (0) |
-| `[ItemCount(min, max)]`<br>As `[StringLength]` | Property, field, parameter; repeatable | A collection's count is within the bounds |
+| `[ItemCount(min, max)]`<br>`int min = 0`, `int max = int.MaxValue`, or `Min` and `Max` | Property, field, parameter; repeatable | A collection's count is within the bounds |
 | `[AllowedValues(params values)]`<br>`object[] values` | Property, field, parameter; repeatable | The value is one of these<br>Property: `Comparison` (`StringComparison.Ordinal`) |
 | `[DeniedValues(params values)]`<br>`object[] values` | Property, field, parameter; repeatable | The value is none of these |
 | `[MultipleOf(divisor)]`<br>`divisor` as `int`, `long`, `double` or `string` | Property, field, parameter; repeatable | The number is a multiple of the divisor |

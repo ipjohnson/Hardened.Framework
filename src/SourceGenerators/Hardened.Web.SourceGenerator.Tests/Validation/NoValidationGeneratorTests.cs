@@ -58,7 +58,7 @@ public class NoValidationGeneratorTests
 
         public class Order {
             [Required]
-            [StringLength(3, 20)]
+            [StringLength(20, Min = 3)]
             public string? Reference { get; set; }
         }
 
@@ -148,7 +148,7 @@ public class NoValidationGeneratorTests
 
                     public class ItemController {
                         [Get("/items/{id}")]
-                        public string ItemById([StringLength(3, 3)] string id) => id;
+                        public string ItemById([StringLength(3, Min = 3)] string id) => id;
                     }
                     """
                 )
@@ -174,10 +174,10 @@ public class NoValidationGeneratorTests
 
                     public class ItemController {
                         [Get("/items/{id}")]
-                        public string ItemById([StringLength(3, 3)] string id) => id;
+                        public string ItemById([StringLength(3, Min = 3)] string id) => id;
 
                         [Get("/items/by-code/{code}")]
-                        public string ByCode([StringLength(4, 4)] string code) => code;
+                        public string ByCode([StringLength(4, Min = 4)] string code) => code;
                     }
                     """
                 )

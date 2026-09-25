@@ -113,8 +113,8 @@ internal static class ValidationEmitter
         );
 
     /// <summary>
-    /// How long one match may run before it throws <c>RegexMatchTimeoutException</c>, which answers
-    /// 500 and logs the pattern.
+    /// How long one match may run. Validation counts a match that runs past it as a failed one,
+    /// which answers 400 with the <c>pattern</c> code.
     /// </summary>
     /// <remarks>
     /// A contract's author writes its patterns, and one prone to catastrophic backtracking turns a

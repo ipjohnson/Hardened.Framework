@@ -61,7 +61,7 @@ public class OpenApiRoundTripTests
         public sealed class OrdersOAuth : Hardened.Requests.Abstract.Authorization.IAuthenticationScheme;
 
         public class Order {
-            [StringLength(3, 12)]
+            [StringLength(12, Min = 3)]
             [Pattern("^[A-Z0-9-]+$")]
             public string Sku { get; set; } = "";
 

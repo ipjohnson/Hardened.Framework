@@ -76,7 +76,7 @@ public class ValidationAttachmentTests
 
         public class Order {
             [Required]
-            [StringLength(3, 20)]
+            [StringLength(20, Min = 3)]
             public string? Reference { get; set; }
         }
 
@@ -302,7 +302,7 @@ public class ValidationAttachmentTests
 
                 public class ItemController {
                     [Get("/items/{id}")]
-                    public string ItemById([StringLength(3, 3)] string id) => id;
+                    public string ItemById([StringLength(3, Min = 3)] string id) => id;
                 }
                 """
             )
@@ -340,7 +340,7 @@ public class ValidationAttachmentTests
                     [Get("/rates")]
                     public string Read(
                         [FromQueryString("p")] [Range(Min = 2, Max = 8)] int precision,
-                        [FromHeader("X-Region")] [StringLength(2, 2)] string region) => region;
+                        [FromHeader("X-Region")] [StringLength(2, Min = 2)] string region) => region;
                 }
                 """
             )
@@ -365,7 +365,7 @@ public class ValidationAttachmentTests
                     + """
                     public class OrderController {
                         [Post("/orders/{id}")]
-                        public string Replace([StringLength(3, 3)] string id, Order order) => id;
+                        public string Replace([StringLength(3, Min = 3)] string id, Order order) => id;
                     }
                     """
             )
@@ -421,7 +421,7 @@ public class ValidationAttachmentTests
 
             public class ItemController {
                 [Get("/items/{id}")]
-                public string ItemById([StringLength(3, 3, When = "IsStrict")] string id) => id;
+                public string ItemById([StringLength(3, Min = 3, When = "IsStrict")] string id) => id;
             }
             """
         );
@@ -450,7 +450,7 @@ public class ValidationAttachmentTests
 
                 public class ItemController {
                     [Get("/items/{id}")]
-                    public string ItemById([StringLength(3, 3)] string id) => id;
+                    public string ItemById([StringLength(3, Min = 3)] string id) => id;
                 }
                 """
             )

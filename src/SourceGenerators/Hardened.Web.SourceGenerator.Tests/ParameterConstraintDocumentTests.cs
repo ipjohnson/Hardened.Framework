@@ -52,7 +52,8 @@ public class ParameterConstraintDocumentTests
             public string Read(
                 [Range(Min = 1, Max = 100)] int count,
                 [FromQueryString] [Range(Min = 2, Max = 8)] int precision,
-                [FromHeader("X-Region")] [StringLength(2, 2)] string region,
+                [FromHeader("X-Region")] [StringLength(2, Min = 2)] string region,
+                [FromHeader("X-Code")] [StringLength(8)] string code,
                 [FromQueryString] [Required] [Pattern("^[a-z]+$")] string? tag) => region;
         }
         """;
@@ -144,6 +145,19 @@ public class ParameterConstraintDocumentTests
         Assert.Equal("string", schema.GetProperty("type").GetString());
         Assert.Equal(2, schema.GetProperty("minLength").GetInt32());
         Assert.Equal(2, schema.GetProperty("maxLength").GetInt32());
+    }
+
+    /// <summary>
+    /// ValidationModules 1.2 reads one argument as the maximum, so the document has to as well.
+    /// Reading only the two-argument form left <c>maxLength</c> out.
+    /// </summary>
+    [Fact]
+    public void ALengthWithOnlyAMaximumIsPublishedAsMaxLength()
+    {
+        var schema = Parameter(Document(), "X-Code").GetProperty("schema");
+
+        Assert.Equal(8, schema.GetProperty("maxLength").GetInt32());
+        Assert.False(schema.TryGetProperty("minLength", out _));
     }
 
     /// <summary>

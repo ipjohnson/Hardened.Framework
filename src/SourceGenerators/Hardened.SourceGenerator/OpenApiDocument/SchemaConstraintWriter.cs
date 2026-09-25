@@ -20,7 +20,7 @@ namespace Hardened.SourceGenerator.OpenApiDocument;
 /// <para>
 /// Only the <c>ValidationModules.Constraints</c> vocabulary. <c>System.ComponentModel
 /// .DataAnnotations</c> declares constraints of the same names with different shapes -
-/// <c>[StringLength(max)]</c> with a <c>MinimumLength</c> property rather than two arguments,
+/// <c>[StringLength]</c> with a <c>MinimumLength</c> property rather than <c>Min</c>,
 /// <c>[RegularExpression]</c> rather than <c>[Pattern]</c> - and mapping a second vocabulary is a
 /// second set of decisions, not a longer switch. A DataAnnotations constraint is simply not
 /// reflected in the schema, which is what happened to every constraint before this existed.
@@ -230,10 +230,15 @@ internal static class SchemaConstraintWriter
     }
 
     /// <summary>
-    /// The shape <c>StringLength</c> and <c>ItemCount</c> share: two constructor arguments or two
-    /// named ones, with <c>Max</c> defaulting to <c>int.MaxValue</c> to mean "no upper bound".
-    /// Writing that default out would document a limit nobody set.
+    /// The shape <c>StringLength</c> and <c>ItemCount</c> share: constructor arguments or named
+    /// <c>Min</c> and <c>Max</c>, with <c>Max</c> defaulting to <c>int.MaxValue</c> to mean "no
+    /// upper bound". Writing that default out would document a limit nobody set.
     /// </summary>
+    /// <remarks>
+    /// One constructor argument is the maximum. That is <c>StringLength(max)</c>, its only
+    /// constructor from ValidationModules 1.2. <c>ItemCount</c>'s optional <c>(min, max)</c> always
+    /// arrives as two, because the compiler writes the defaults into the attribute.
+    /// </remarks>
     private static void Bounds(
         AttributeData attribute,
         List<string> facets,
@@ -248,6 +253,10 @@ internal static class SchemaConstraintWriter
         {
             min = attribute.ConstructorArguments[0].Value as int?;
             max = attribute.ConstructorArguments[1].Value as int?;
+        }
+        else if (attribute.ConstructorArguments.Length == 1)
+        {
+            max = attribute.ConstructorArguments[0].Value as int?;
         }
 
         foreach (var named in attribute.NamedArguments)

@@ -104,7 +104,7 @@ document publishes for it.
 | Attribute | Arguments | Code | In the OpenAPI document |
 |---|---|---|---|
 | `[Required]` | `AllowEmptyStrings` | `required` | The member is listed in the schema's `required` |
-| `[StringLength]` | `(min, max)`, or `Min` and `Max` | `string_length` | `minLength`, `maxLength` |
+| `[StringLength]` | `(max)`, or `Min` and `Max` | `string_length` | `minLength`, `maxLength` |
 | `[Range]` | `(min, max)`, or `Min` and `Max`. `ExclusiveMin` and `ExclusiveMax` | `range` | `minimum`, `maximum`, or `exclusiveMinimum`, `exclusiveMaximum` |
 | `[Pattern]` | `("regex")`, or `(typeof(T), nameof(T.Member))` for a `[GeneratedRegex]` method | `pattern` | `pattern`, for the string form only |
 | `[ItemCount]` | `(min, max)`, or `Min` and `Max` | `array_bounds` | `minItems`, `maxItems` |
@@ -128,7 +128,7 @@ Every constraint except `[Required]` passes a null value.
 
 ::: warning
 A member without `[Required]` accepts null, whatever else constrains it. The template's
-`record NewTodo([property: StringLength(1, 64)] string Title)` accepts `{"title":null}`.
+`record NewTodo([property: StringLength(64, Min = 1)] string Title)` accepts `{"title":null}`.
 `POST /todos` answers 201 with `{"id":3,"title":null,"done":false}`.
 :::
 
@@ -196,7 +196,8 @@ public static partial class TodoPatterns
 }
 ```
 
-A match that runs past its timeout throws `RegexMatchTimeoutException`, and the request answers 500.
+A match that runs past its timeout counts as a failed one, and the request answers 400 with the
+`pattern` code. A retry of the same value would time out again, so the answer is not a 500.
 A `pattern` from an OpenAPI document or a Smithy model gets a timeout of 2,000 milliseconds. That is
 also the default of .NET's `RegularExpressionAttribute`.
 
@@ -219,7 +220,7 @@ public class SearchController
         ITodoStore store,
         [FromQueryString("q")] [StringLength(Min = 2)] string text,
         [FromQueryString] [Range(1, 100)] int? limit,
-        [FromHeader("X-Region")] [StringLength(2, 2)] string? region
+        [FromHeader("X-Region")] [StringLength(2, Min = 2)] string? region
     )
     {
         var todos = await store.All();
@@ -280,7 +281,7 @@ namespace Todos;
 public sealed class ListItem
 {
     [Required]
-    [StringLength(1, 64)]
+    [StringLength(64, Min = 1)]
     public string? Title { get; set; }
 }
 
