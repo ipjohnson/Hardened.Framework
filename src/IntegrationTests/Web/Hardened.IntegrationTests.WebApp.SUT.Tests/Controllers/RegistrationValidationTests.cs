@@ -24,6 +24,32 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 /// </remarks>
 public class RegistrationValidationTests
 {
+    private const string BreaksBothRules = """{"name":"x","age":5}""";
+
+    /// <summary>
+    /// <c>[ValidateNever]</c> on the parameter binds the model and skips its constraints. The same
+    /// body at <c>/registration</c> is refused twice over.
+    /// </summary>
+    [HardenedTest]
+    public async Task AParameterMarkedValidateNeverIsBoundUnvalidated(ITestWebApp testWebApp)
+    {
+        var response = await testWebApp.Post(BreaksBothRules, "/registration/unvalidated");
+
+        response.Assert.Ok();
+        Assert.Equal("x:5", response.Deserialize<string>());
+
+        (await testWebApp.Post(BreaksBothRules, "/registration")).Assert.BadRequest();
+    }
+
+    [HardenedTest]
+    public async Task AHandlerMarkedValidateNeverValidatesNothing(ITestWebApp testWebApp)
+    {
+        var response = await testWebApp.Post(BreaksBothRules, "/registration/unvalidated-handler");
+
+        response.Assert.Ok();
+        Assert.Equal("x:5", response.Deserialize<string>());
+    }
+
     /// <summary>
     /// A pattern that backtracks catastrophically on the value throws at its timeout, and the
     /// request answers 500 rather than holding its thread.
@@ -45,6 +71,15 @@ public class RegistrationValidationTests
 
         response.Assert.Ok();
         Assert.Equal("aaaa", response.Deserialize<string>());
+    }
+
+    /// <summary>Binding still refuses a body that does not deserialize.</summary>
+    [HardenedTest]
+    public async Task AnUnvalidatedRouteStillRefusesAMalformedBody(ITestWebApp testWebApp)
+    {
+        var response = await testWebApp.Post("{\"name\":", "/registration/unvalidated");
+
+        response.Assert.BadRequest();
     }
 
     /// <summary>

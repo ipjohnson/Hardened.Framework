@@ -56,6 +56,19 @@ public class RegistrationController
         string.Join(",", model.Values ?? new List<int>());
 
     /// <summary>
+    /// The same model, bound and not validated, the way a route that echoes what it was sent binds it.
+    /// </summary>
+    [Post("/unvalidated")]
+    public string RegisterUnvalidated([ValidateNever] RegistrationModel model) =>
+        $"{model.Name}:{model.Age}";
+
+    /// <summary>The same, declared on the handler rather than on the parameter.</summary>
+    [Post("/unvalidated-handler")]
+    [ValidateNever]
+    public string RegisterUnvalidatedHandler(RegistrationModel model) =>
+        $"{model.Name}:{model.Age}";
+
+    /// <summary>
     /// A query value checked against a pattern that gives up after 50 milliseconds.
     /// </summary>
     [Get("/nested")]

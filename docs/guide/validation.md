@@ -539,6 +539,37 @@ registered validator that reports two failures has only its first reported.
 
 A `ValidationException` the handler throws is answered with every error it holds, in either mode.
 
+## Skip validation
+
+`[ValidateNever]` binds a parameter without checking its constraints. On a handler method, it
+covers every parameter the handler binds. `ValidateNeverAttribute` is in
+`Hardened.Requests.Runtime.Validation`.
+
+A route that stores a draft takes the same `NewList` without its constraints. The handler is in
+`src/Todos/DraftListController.cs`:
+
+```csharp
+using Hardened.Requests.Runtime.Validation;
+using Hardened.Web.Runtime.Attributes;
+
+namespace Todos;
+
+[BasePath("/drafts")]
+public class DraftListController
+{
+    [Post("/")]
+    public NewList Save([ValidateNever] NewList list) => list;
+}
+```
+
+`POST /todos/drafts` with the body `{"name":"ab","capacity":0}` answers 200 with the list as it was
+sent. `POST /todos/quick-lists/full` refuses the same body with two failures.
+
+A parameter beside a marked one is still checked. Binding still refuses a value that does not
+convert to its type, and a body that does not deserialize. The OpenAPI document still publishes the
+model's constraints, because the schema belongs to the type. A specification-first operation
+ignores `[ValidateNever]` and checks what its contract declares.
+
 ## Change the status to 422
 
 `[Throws<RequestValidationError>(422)]` on a handler answers every validation refusal of that
