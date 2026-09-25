@@ -695,7 +695,9 @@ On a controller class, `[CacheControl]` covers every handler in the class, a POS
 | `SizeLimit` | 104857600 bytes (100 MB) | The most the store holds |
 | `MaximumBodySize` | 67108864 bytes (64 MB) | The largest body it stores |
 
-An entry counts its body length against the limits. Headers do not count. A response larger than `MaximumBodySize` is sent and not stored.
+An entry counts against `SizeLimit` with its body, its content type, headers and tags at two bytes a character, the key it is stored under, and 512 bytes for the objects around them. `MaximumBodySize` counts the body alone. A response whose body is larger than `MaximumBodySize` is sent and not stored. An entry that `SizeLimit` has no room for is not stored either.
+
+A key carries the values that its strategies read. Under `VaryByQuery` or `VaryByHeader`, a caller who sends a new value on each request adds an entry on each. The limit bounds the memory those entries take. It does not stop them taking the room that other entries would use.
 
 `services.ConfigureMemoryResponseCache(...)`, in `Hardened.Requests.Caching.Memory`, sets the limits:
 

@@ -1,3 +1,4 @@
+using System.Globalization;
 using Hardened.Requests.Abstract.Caching;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
@@ -149,7 +150,7 @@ public class MemoryResponseCacheStoreTests
     [Fact]
     public async Task EveryEntryIsSizedAgainstTheLimit()
     {
-        using var store = Store(sizeLimit: 16);
+        using var store = Store(sizeLimit: 1024);
 
         await store.Set(
             "k",
@@ -162,14 +163,80 @@ public class MemoryResponseCacheStoreTests
     }
 
     /// <summary>
-    /// The bytes are what an entry costs. Header names and values are bounded and small beside a
-    /// body, and a size that walked them would be paid on every store for a correction below the
-    /// noise.
+    /// An entry costs its body, and its content type, headers and tags at two bytes a character:
+    /// 4 + (16 + 13 + 6) × 2 for <c>application/json</c> and <c>Cache-Control: public</c>.
     /// </summary>
     [Fact]
-    public void AnEntryCostsItsBody()
+    public void AnEntryCostsItsBodyAndItsStrings()
     {
-        Assert.Equal(4, Response(bodyLength: 4).Size);
+        Assert.Equal(74, Response(bodyLength: 4).Size);
+        Assert.Equal(84, Response(bodyLength: 4, tags: "rates").Size);
+    }
+
+    /// <summary>
+    /// The key counts too, because it carries the request's values. A 10,000-character key is
+    /// 20,000 bytes, which a 4,096-byte store has no room for.
+    /// </summary>
+    [Fact]
+    public async Task AKeyCountsAgainstTheLimit()
+    {
+        using var store = Store(sizeLimit: 4096);
+        var longKey = new string('q', 10_000);
+
+        await store.Set(
+            "k",
+            Response(),
+            TimeSpan.FromMinutes(1),
+            TestContext.Current.CancellationToken
+        );
+        await store.Set(
+            longKey,
+            Response(),
+            TimeSpan.FromMinutes(1),
+            TestContext.Current.CancellationToken
+        );
+
+        Assert.NotNull(await store.Get("k", TestContext.Current.CancellationToken));
+        Assert.Null(await store.Get(longKey, TestContext.Current.CancellationToken));
+    }
+
+    /// <summary>
+    /// A caller varying a query value on every request, with a two-byte body each time. Counted by
+    /// bodies alone, all 10,000 entries fit in 64 KB. Each entry also costs a 512-byte allowance, so
+    /// no more than 128 of them can.
+    /// </summary>
+    [Fact]
+    public async Task ManySmallEntriesStayInsideTheLimit()
+    {
+        using var store = Store(sizeLimit: 64 * 1024);
+        var keys = Enumerable
+            .Range(0, 10_000)
+            .Select(i =>
+                "GET /catalog\u001fculture=" + i.ToString("D40", CultureInfo.InvariantCulture) + "&"
+            )
+            .ToArray();
+
+        foreach (var key in keys)
+        {
+            await store.Set(
+                key,
+                Response(bodyLength: 2),
+                TimeSpan.FromMinutes(1),
+                TestContext.Current.CancellationToken
+            );
+        }
+
+        var stored = 0;
+
+        foreach (var key in keys)
+        {
+            if (await store.Get(key, TestContext.Current.CancellationToken) != null)
+            {
+                stored++;
+            }
+        }
+
+        Assert.InRange(stored, 1, 64 * 1024 / 512);
     }
 
     /// <summary>
