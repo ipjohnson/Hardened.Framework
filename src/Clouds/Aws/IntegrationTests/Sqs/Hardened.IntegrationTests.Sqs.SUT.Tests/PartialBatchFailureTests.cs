@@ -20,7 +20,7 @@ namespace Hardened.IntegrationTests.Sqs.SUT.Tests;
 /// failure policy - not the code, not the payload, not the route.
 /// </para>
 /// <para>
-/// <b>Built by hand rather than through [HardenedTest], and this is the case that shows why.</b>
+/// <b>Built by hand rather than through [ModuleTest], and this is the case that shows why.</b>
 /// The harness resolves one application per container, and a second entry point declared on a class
 /// is added to the assembly's rather than replacing it - so both applications' handler tables land
 /// in one container and dispatch becomes ambiguous. A test assembly comparing two deployments of

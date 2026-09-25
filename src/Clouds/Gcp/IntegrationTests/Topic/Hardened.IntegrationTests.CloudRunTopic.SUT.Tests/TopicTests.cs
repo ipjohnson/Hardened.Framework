@@ -1,7 +1,7 @@
 using DependencyModules.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Hardened.Functions.Testing;
 using Hardened.IntegrationTests.CloudRunTopic.SUT;
-using Hardened.Shared.Testing.Attributes;
 using Hardened.Web.Kestrel.Runtime;
 using NSubstitute;
 using Xunit;
@@ -15,7 +15,7 @@ namespace Hardened.IntegrationTests.CloudRunTopic.SUT.Tests;
 /// </summary>
 public class TopicTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task ANotificationReachesTheTopicHandler(
         CloudRunTopicApp.Topics topics,
         [Mock] IOrderStore store
@@ -26,7 +26,7 @@ public class TopicTests
         store.Received().Place(Arg.Is<Order>(order => order.Id == "t-1" && order.Quantity == 3));
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task EveryMessageIsHandledSeparately(
         CloudRunTopicApp.Topics topics,
         [Mock] IOrderStore store
@@ -43,7 +43,7 @@ public class TopicTests
     }
 
     /// <summary>Eventarc reads anything outside 2xx as a failed delivery and retries it; the message after a refused one still arrives.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AFailedMessageIsNotAcknowledged(
         CloudRunTopicApp.Topics topics,
         [Mock] IOrderStore store
@@ -69,7 +69,7 @@ public class TopicTests
 [KestrelRuntime]
 public class TopicOverASocketTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task ANotificationReachesTheTopicHandler(
         CloudRunTopicApp.Topics topics,
         [Mock] IOrderStore store
@@ -80,7 +80,7 @@ public class TopicOverASocketTests
         store.Received().Place(Arg.Is<Order>(order => order.Id == "s-1" && order.Quantity == 3));
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AFailedMessageIsNotAcknowledged(
         CloudRunTopicApp.Topics topics,
         [Mock] IOrderStore store
@@ -106,7 +106,7 @@ public class TopicOverASocketTests
 [PipelineDelivery]
 public class PipelineTopicTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task ANotificationReachesTheTopicHandlerThroughThePipeline(
         CloudRunTopicApp.Topics topics,
         [Mock] IOrderStore store

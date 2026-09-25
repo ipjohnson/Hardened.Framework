@@ -24,7 +24,7 @@ public class AuthorizationTests
     /// The default posture. Nothing has opted in, so a handler carrying no attribute is reachable
     /// exactly as it was before any of this existed.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AHandlerWithNoAttributeIsStillPublic(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/authorization/unguarded");
@@ -32,7 +32,7 @@ public class AuthorizationTests
         response.Assert.Ok();
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AllowAnonymousIsReachableWithoutACredential(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/authorization/open");
@@ -48,7 +48,7 @@ public class AuthorizationTests
     /// No credential at all is a 401, not a 403: the caller has not failed a permission check, it
     /// has not identified itself.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AGuardedRouteRefusesAnAnonymousCallerWith401(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/authorization/pets");
@@ -60,7 +60,7 @@ public class AuthorizationTests
     /// RFC 6750 asks for the challenge, and it is the whole reason a status alone was not enough -
     /// it tells the client how to authenticate rather than only that it must.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ARefusalCarriesAChallengeHeader(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/authorization/pets");
@@ -72,7 +72,7 @@ public class AuthorizationTests
     /// <summary>
     /// Authenticated but short of grants is a 403, and the challenge names what would have worked.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnAuthenticatedCallerShortOfGrantsIsForbidden(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/authorization/pets-manage", Holding("pets:read"));
@@ -88,7 +88,7 @@ public class AuthorizationTests
 
     #region admitted
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ACallerHoldingTheGrantIsAdmitted(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/authorization/pets", Holding("pets:read"));
@@ -99,7 +99,7 @@ public class AuthorizationTests
     /// <summary>
     /// Grants within one attribute are an and, so holding both admits the request.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ACallerHoldingBothGrantsIsAdmitted(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get(
@@ -113,7 +113,7 @@ public class AuthorizationTests
     /// <summary>
     /// Stacked attributes conjoin, so the caller needs everything all of them named.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task StackedAttributesAdmitOnlyTheCallerHoldingEverything(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/authorization/stacked", Holding("pets:read admin:*"));
@@ -125,7 +125,7 @@ public class AuthorizationTests
     /// Holding what one of them named is not enough, which is the whole point: writing the second
     /// attribute restricted the route rather than opening it.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task StackedAttributesRefuseACallerHoldingOnlyOne(ITestWebApp testWebApp)
     {
         var viaPets = await testWebApp.Get("/authorization/stacked", Holding("pets:read"));
@@ -138,7 +138,7 @@ public class AuthorizationTests
     /// <summary>
     /// An application's own attribute, deriving from <c>[AuthorizeGrants]</c>, guards its route.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ADerivedAttributeGuardsItsRoute(ITestWebApp testWebApp)
     {
         var holding = await testWebApp.Get(

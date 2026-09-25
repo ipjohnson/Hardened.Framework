@@ -192,14 +192,14 @@ Lambda's retries, the function's dead-letter queue and its on-failure destinatio
 For `--trigger topic`, the template writes this test. It sends a notification through the `Application.Topics` façade:
 
 ```csharp
-using Hardened.Shared.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Xunit;
 
 namespace Orders.Tests;
 
 public class OrderHandlerTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task ANotificationReachesTheHandler(Application.Topics topics, OrderLog log)
     {
         await topics.Orders(new Order { Id = "A-1", Quantity = 2 });

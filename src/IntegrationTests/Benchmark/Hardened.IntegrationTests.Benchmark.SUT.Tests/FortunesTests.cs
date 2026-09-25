@@ -23,7 +23,7 @@ namespace Hardened.IntegrationTests.Benchmark.SUT.Tests;
 /// </remarks>
 public class FortunesTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task Fortunes_RendersHtmlRatherThanSerializingTheModel(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/fortunes");
@@ -54,7 +54,7 @@ public class FortunesTests
     /// merely to be a 200.
     /// </para>
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task Fortunes_RendersForACallerAskingForSomethingElse(ITestWebApp testWebApp)
     {
         foreach (var accept in new[] { "application/json", "application/x-msgpack", "text/plain" })
@@ -75,7 +75,7 @@ public class FortunesTests
     /// The content type comes from the marker the module enabled, which is to say from the view's
     /// base class - rather than from the spec's media type or the file's extension.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task Fortunes_SetsTheHtmlContentType(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/fortunes");
@@ -87,7 +87,7 @@ public class FortunesTests
     /// The reason the test type exists. The eleventh seeded row is a script tag, and it has to
     /// arrive as text - if it renders as markup the benchmark entry is an XSS hole.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task Fortunes_EscapesTheScriptRow(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/fortunes");
@@ -105,7 +105,7 @@ public class FortunesTests
     /// One row is added per request and the whole set is sorted by message, so the added row lands
     /// between other fortunes rather than at either end.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task Fortunes_AddsTheRequestTimeRowAndSortsByMessage(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/fortunes");
@@ -132,7 +132,7 @@ public class FortunesTests
     }
 
     /// <summary>All thirteen rows are present: the twelve seeded plus the one added.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task Fortunes_RendersEveryRow(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/fortunes");
@@ -143,7 +143,7 @@ public class FortunesTests
     }
 
     /// <summary>Non-ASCII content survives the render and the UTF-8 write.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task Fortunes_PreservesNonAsciiContent(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/fortunes");
@@ -155,7 +155,7 @@ public class FortunesTests
     /// A byte order mark ahead of the doctype is what a StreamWriter built with the parameterless
     /// UTF8 encoding produces, and it is invisible in any assertion made on a decoded string.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task Fortunes_WritesNoByteOrderMark(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/fortunes");

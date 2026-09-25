@@ -16,7 +16,7 @@ namespace Hardened.IntegrationTests.OpenApi.ResponseModel.SUT.Tests;
 /// </remarks>
 public class DeclaredValidationStatusTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task AValidationFailureAnswersTheDeclaredStatus(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post(
@@ -33,7 +33,7 @@ public class DeclaredValidationStatusTests
         Assert.Contains(error.Errors, e => e.Field.Contains("name"));
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AValidRequestStillAnswersItsSuccess(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post(
@@ -49,7 +49,7 @@ public class DeclaredValidationStatusTests
     /// The document carries the declared 422 and no synthesized 400 beside it: validation no
     /// longer produces a 400 on this operation, so publishing one would be the next untruth.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheDocumentCarriesTheDeclaredStatusAlone(ITestWebApp app)
     {
         var response = await app.Get("/openapi.json");

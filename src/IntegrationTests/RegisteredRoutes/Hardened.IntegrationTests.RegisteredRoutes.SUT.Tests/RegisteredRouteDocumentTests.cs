@@ -23,7 +23,7 @@ public class RegisteredRouteDocumentTests
         return document.RootElement.GetProperty("paths").Clone();
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheDeclaredRoutesAreStillThere(ITestWebApp app)
     {
         var paths = await Paths(app);
@@ -34,7 +34,7 @@ public class RegisteredRouteDocumentTests
     /// <remarks>
     /// One entry per tenant, from a list that did not exist when the document was written.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ARegisteredControllerRouteIsDescribed(ITestWebApp app)
     {
         var paths = await Paths(app);
@@ -45,7 +45,7 @@ public class RegisteredRouteDocumentTests
         Assert.True(paths.TryGetProperty("/registered/globex/orders/{id}", out _));
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ARegisteredLambdaIsDescribed(ITestWebApp app)
     {
         var paths = await Paths(app);
@@ -58,7 +58,7 @@ public class RegisteredRouteDocumentTests
     /// The constraint is a routing concern the document has no way to express, so the path key is
     /// the token's name alone - which is what every client generator reads.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ThePathKeyCarriesNoConstraint(ITestWebApp app)
     {
         var paths = await Paths(app);
@@ -73,7 +73,7 @@ public class RegisteredRouteDocumentTests
     /// Two verbs at one path are one path item with two operations, which is what the grouping at
     /// registration is for.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TwoVerbsAtOnePathAreOnePathItem(ITestWebApp app)
     {
         var paths = await Paths(app);
@@ -95,7 +95,7 @@ public class RegisteredRouteDocumentTests
     /// document as a lone escape that <c>JsonDocument.Parse</c> refuses. Every test on this
     /// class would fail on the second of those; this one says which defect it is.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ADocCommentsQuoteAndBackslashSurviveTheSplice(ITestWebApp app)
     {
         var paths = await Paths(app);
@@ -120,7 +120,7 @@ public class RegisteredRouteDocumentTests
     /// in the 0.36 trial - and a declared handler registered at three paths published its own id
     /// three times.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task EveryOperationIdIsUnique(ITestWebApp app)
     {
         var paths = await Paths(app);
@@ -139,7 +139,7 @@ public class RegisteredRouteDocumentTests
     /// The path a route registered at is what names it, so the same handler at two paths is two
     /// operations a client can tell apart.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ARegisteredRouteIsNamedAfterThePathItRegisteredAt(ITestWebApp app)
     {
         var paths = await Paths(app);
@@ -159,7 +159,7 @@ public class RegisteredRouteDocumentTests
     /// <c>routes.Post(path, (Order body) =&gt; ...)</c> published nothing about the body it
     /// requires and a generated client had no parameter to send one with.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ALambdaPublishesTheBodyItReads(ITestWebApp app)
     {
         var paths = await Paths(app);
@@ -180,7 +180,7 @@ public class RegisteredRouteDocumentTests
     /// <c>components/schemas</c>, so every registered operation published a bare
     /// <c>"200": {"description": "OK"}</c> - exactly the half a client cannot be generated from.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ALambdaPublishesWhatItAnswersWith(ITestWebApp app)
     {
         var paths = await Paths(app);
@@ -202,7 +202,7 @@ public class RegisteredRouteDocumentTests
     /// the group a reader is looking for. The tag came from the handler's controller type, and a
     /// lambda's is its delegate type - so every one of them documented under <c>Func</c>.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ALambdaDocumentsUnderTheClassThatRegisteredIt(ITestWebApp app)
     {
         var paths = await Paths(app);
@@ -226,7 +226,7 @@ public class RegisteredRouteDocumentTests
     /// attribute. The build now states the constraint the token needs and the registry refuses a
     /// registration without it, so the operation is true of every path the route is served at.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ALambdaWithAConstrainedTokenPublishesThe404AndNotThe400(ITestWebApp app)
     {
         var paths = await Paths(app);
@@ -243,7 +243,7 @@ public class RegisteredRouteDocumentTests
     /// <summary>
     /// And the wire agrees. This is the answer the document used not to describe.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AValueThatFailsTheConstraintAnswers404(ITestWebApp app)
     {
         var response = await app.Get("/registered/acme/ping/abc");
@@ -255,7 +255,7 @@ public class RegisteredRouteDocumentTests
     /// A registered route's body model has to be in <c>components</c>, or its operation carries a
     /// <c>$ref</c> to nothing.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ARegisteredBodyResolvesToAComponent(ITestWebApp app)
     {
         var response = await app.Get("/openapi.json");
@@ -276,7 +276,7 @@ public class RegisteredRouteDocumentTests
     /// with - and a client generated from the document sent an <c>Accept</c> the route does not
     /// produce.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ARegisteredLambdaPublishesTheMediaTypeItDeclares(ITestWebApp app)
     {
         var paths = await Paths(app);
@@ -296,7 +296,7 @@ public class RegisteredRouteDocumentTests
     /// An operation whose response a view writes publishes what the view writes, not the model it
     /// was handed - the same rule the declared form follows.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ARegisteredLambdaNamingAViewPublishesWhatTheViewWrites(ITestWebApp app)
     {
         var paths = await Paths(app);

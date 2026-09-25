@@ -6,7 +6,7 @@ Kestrel server instead, on a loopback port that the kernel picks.
 
 ```csharp
 using DependencyModules.Testing.Attributes;
-using Hardened.Shared.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Hardened.Web.Kestrel.Runtime;
 using Hardened.Web.Testing;
 using NSubstitute;
@@ -17,7 +17,7 @@ namespace Todos.Tests;
 [KestrelRuntime]
 public class TodoSocketTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task ListTodos_OverTheSocket(ITestWebApp app)
     {
         var response = await app.Get("/todos");
@@ -26,7 +26,7 @@ public class TodoSocketTests
         Assert.True(response.Headers.ContainsKey("Date"), "a header only a server writes");
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task GetTodo_ReadsTheMockedStore(ITestWebApp app, [Mock] ITodoStore store)
     {
         store.Find(1).Returns(new Todo(1, "from the mock", false));
@@ -94,7 +94,7 @@ runs on the pipeline host, because `[PipelineHost]` on the method is narrower th
 `[KestrelRuntime]` on the class:
 
 ```csharp
-    [HardenedTest]
+    [ModuleTest]
     [PipelineHost]
     public async Task ListTodos_InProcess(ITestWebApp app)
     {
@@ -177,7 +177,7 @@ using Todos.Tests;
 Hardened route:
 
 ```csharp
-using Hardened.Shared.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Hardened.Web.AspNetCore.Runtime;
 using Hardened.Web.Testing;
 using Xunit;
@@ -187,7 +187,7 @@ namespace Todos.Tests;
 [AspNetCoreRuntime]
 public class HealthTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task Healthz_IsAnsweredByAspNetCore(ITestWebApp app)
     {
         var response = await app.Get("/healthz");
@@ -196,7 +196,7 @@ public class HealthTests
         Assert.Equal("Healthy", await response.ReadTextAsync());
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ListTodos_IsAnsweredByHardened(ITestWebApp app)
     {
         var response = await app.Get("/todos");
@@ -279,9 +279,9 @@ In the `--host aws-lambda` project, these lines add `Hardened.Aws.Lambda.Testing
 `tests/Todos.Tests/TodoLambdaTests.cs` then puts both attributes on its class:
 
 ```csharp
+using DependencyModules.xUnit.Attributes;
 using Hardened.Aws.Lambda.Http;
 using Hardened.Aws.Lambda.Testing;
-using Hardened.Shared.Testing.Attributes;
 using Hardened.Web.Testing;
 using Xunit;
 
@@ -291,7 +291,7 @@ namespace Todos.Tests;
 [LambdaHttpModule]
 public class TodoLambdaTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task ListTodos_ThroughTheInvocationHandler(ITestWebApp app)
     {
         var response = await app.Get("/todos");
@@ -300,7 +300,7 @@ public class TodoLambdaTests
         Assert.False(response.Headers.ContainsKey("Date"));
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task APathWithNoRoute_Is404(ITestWebApp app)
     {
         var response = await app.Get("/nothing-here");

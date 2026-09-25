@@ -38,7 +38,7 @@ public class ReadOnlyWriteOnlyTests
     /// such a property carries no constraints: <c>required</c> here means "always present in a
     /// response", and validating it against the request would reject every correct client.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task OmittingARequiredReadOnlyPropertyIsNotAValidationError(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post(new { email = "someone@example.com" }, "/accounts");
@@ -49,7 +49,7 @@ public class ReadOnlyWriteOnlyTests
     /// <summary>
     /// A write-only property is accepted, so the keyword does not simply drop the value everywhere.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AWriteOnlyValueReachesTheHandler(ITestWebApp testWebApp)
     {
         await testWebApp.Post(
@@ -84,7 +84,7 @@ public class ReadOnlyWriteOnlyTests
     /// behaviour is wrong.
     /// </para>
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheDirectionsAreNotEnforcedWithoutTheAotResolver(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post(

@@ -23,7 +23,7 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Transport;
 /// </remarks>
 public class GeneratedClientTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task APathParameterReachesTheHandler(WebAppClient client)
     {
         var answer = await client
@@ -33,7 +33,7 @@ public class GeneratedClientTests
         Assert.Equal("got:42", answer);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ABodyIsSerializedAndTheAnswerDeserialized(WebAppClient client)
     {
         var sum = await client.Int.Add.PostAsync(
@@ -45,7 +45,7 @@ public class GeneratedClientTests
     }
 
     /// <summary>One path, three verbs, and a query parameter on the fourth: each reaches its own handler.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task EachVerbReachesItsOwnHandler(WebAppClient client)
     {
         var token = TestContext.Current.CancellationToken;
@@ -70,7 +70,7 @@ public class GeneratedClientTests
     /// <summary>
     /// The client does not surface a success status; the transport keeps it for the test.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ADeclaredStatusIsReadFromLastResponse(WebAppClient client)
     {
         var created = await client.Verbs.Created.PostAsync(
@@ -87,7 +87,7 @@ public class GeneratedClientTests
         Assert.Equal(204, LastResponse.Status);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnEnumComesBackAsTheGeneratedMember(WebAppClient client)
     {
         var ticket = await client.EnumVocabulary.Ticket.GetAsync(
@@ -103,7 +103,7 @@ public class GeneratedClientTests
     /// document, so Kiota generated a typed exception for it, and the refusal arrives as that type
     /// carrying the errors the filter wrote.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ADeclaredRefusalIsTheTypedExceptionTheDocumentPromised(WebAppClient client)
     {
         var refusal = await Assert.ThrowsAsync<ClientModels.RequestValidationError>(() =>
@@ -121,7 +121,7 @@ public class GeneratedClientTests
     }
 
     /// <summary>The undeclared route answers the same body as a 400; the document says so, and the type follows.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheDefaultRefusalIsTypedToo(WebAppClient client)
     {
         var refusal = await Assert.ThrowsAsync<ClientModels.RequestValidationError>(() =>
@@ -146,7 +146,7 @@ public class GeneratedClientTests
     /// requires a grant and names no scheme, which the generator cannot describe, so the status
     /// the runtime answers is still undeclared and this is still what a client sees.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnUndeclaredRefusalIsABareApiException(WebAppClient client)
     {
         var refusal = await Assert.ThrowsAsync<ApiException>(() =>
@@ -162,7 +162,7 @@ public class GeneratedClientTests
     /// The other side of it: an operation naming a scheme publishes the 401 enforcing it, so the
     /// refusal arrives as the generated envelope rather than as a status with nothing on it.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnAuthenticationRefusalIsTypedWhereTheOperationNamesAScheme(
         [Anonymous] WebAppClient nobody
     )
@@ -176,7 +176,7 @@ public class GeneratedClientTests
         Assert.Equal(401, refusal.ResponseStatusCode);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     [Grants("pets:read")]
     public async Task TheCredentialInScopeReachesAGuardedHandler(WebAppClient client)
     {
@@ -195,7 +195,7 @@ public class GeneratedClientTests
     /// can answer 403 with that envelope, and the operation's security requirement says it can
     /// answer 401 with the same one. The 401 was bare until this operation named a scheme.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ThreeGeneratedClientsCarryThreeCredentials(
         [Grants("pets:read")] WebAppClient reader,
         [Anonymous] WebAppClient nobody,
@@ -223,7 +223,7 @@ public class GeneratedClientTests
     /// pipeline actually sends. Before a declared filter contributed its status to the document,
     /// this was Kiota's base exception carrying a number and nothing else.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     [Grants("pets:write")]
     public async Task ADeclaredRefusalIsATypedErrorInTheGeneratedClient(WebAppClient client)
     {
@@ -241,7 +241,7 @@ public class GeneratedClientTests
     /// The mock is registered into the graph the handler resolves from, so the generated client
     /// reaches it exactly as <c>app.Post</c> does.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AMockIsVisibleToAHandlerReachedThroughTheGeneratedClient(
         WebAppClient client,
         [Mock] IMathService<int> mathService
@@ -257,7 +257,7 @@ public class GeneratedClientTests
         Assert.Equal(100, sum);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheHarnessAndTheGeneratedClientDriveOnePipeline(
         ITestWebApp app,
         WebAppClient client

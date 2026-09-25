@@ -10,7 +10,7 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Transport;
 /// </summary>
 public class HttpClientTransportTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task MalformedJsonThroughAnHttpClientAnswersTheValidationStatus(ITestWebApp app)
     {
         using var client = app.CreateHttpClient();
@@ -32,7 +32,7 @@ public class HttpClientTransportTests
         );
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ARawBodyOnTheRequestAnswersTheValidationStatus(ITestWebApp app)
     {
         var response = await app.Post(
@@ -45,7 +45,7 @@ public class HttpClientTransportTests
         Assert.Equal("ValidationError", response.Deserialize<RequestValidationError>().Type);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ARawStringThroughRequestAnswersTheValidationStatus(ITestWebApp app)
     {
         var response = await app.Request("POST", "{\"name\":", "/registration");
@@ -58,7 +58,7 @@ public class HttpClientTransportTests
     /// <c>app.Get</c>: <c>EncodedPathTests</c> holds the harness to Kestrel's table, and this holds
     /// the handler to the harness on the same rows.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnEncodedPathAnswersTheSameThroughTheHandlerAndTheHarness(ITestWebApp app)
     {
         using var client = app.CreateHttpClient();

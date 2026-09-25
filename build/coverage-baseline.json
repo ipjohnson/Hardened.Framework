@@ -99,14 +99,6 @@
     "line": 96.2,
     "branch": 84.2
   },
-  "Hardened.Shared.Testing.NUnit": {
-    "line": 100.0,
-    "branch": 83.3
-  },
-  "Hardened.Shared.Testing.xUnit": {
-    "line": 100.0,
-    "branch": 100.0
-  },
   "Hardened.Smithy.BuildTask": {
     "line": 72.0,
     "branch": 50.7

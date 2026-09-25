@@ -34,7 +34,7 @@ public class ModuleDeclaredFilterTests
             also?.Invoke(request);
         };
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AHandlerCompiledWithTheModuleAnswersWithATag(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get(InTheLibrary, Plain());
@@ -46,7 +46,7 @@ public class ModuleDeclaredFilterTests
         );
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ACallerHoldingThatTagIsAnsweredNotModified(ITestWebApp testWebApp)
     {
         var first = await testWebApp.Get(InTheLibrary, Plain());
@@ -65,7 +65,7 @@ public class ModuleDeclaredFilterTests
     /// <summary>
     /// And the host's own reads are untouched, which is the seam a compile-time rung cannot cross.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AHandlerInTheHostIsLeftAlone(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get(InTheHost, Plain());

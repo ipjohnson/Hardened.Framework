@@ -14,7 +14,7 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 /// </remarks>
 public class CacheControlTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheDefaultAttributeSendsAPublicMaxAgeOfZero(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/cache/default");
@@ -24,7 +24,7 @@ public class CacheControlTests
         Assert.Equal("public, max-age=0", response.Headers[KnownHeaders.CacheControl]);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AMaxAgeReachesTheResponse(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/cache/long");
@@ -38,7 +38,7 @@ public class CacheControlTests
     /// The flags form, which is what could not even be written before the generator qualified
     /// attribute arguments — the natural spelling of the enum did not compile.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ANoStoreHandlerSendsNoStoreAndNoMaxAge(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/cache/none");
@@ -48,7 +48,7 @@ public class CacheControlTests
         Assert.Equal("no-store", response.Headers[KnownHeaders.CacheControl]);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task FlagsAndMaxAgeCombine(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/cache/private");
@@ -62,7 +62,7 @@ public class CacheControlTests
     /// A handler without the attribute is untouched, so the filter costs nothing where it was not
     /// asked for.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AHandlerWithoutTheAttributeSendsNoCacheControl(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/cache/unset");
@@ -75,7 +75,7 @@ public class CacheControlTests
     /// <summary>
     /// Declared on the controller, applied to every route on it.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AControllerLevelAttributeReachesEveryRouteOnIt(ITestWebApp testWebApp)
     {
         var one = await testWebApp.Get("/cache-all/one");

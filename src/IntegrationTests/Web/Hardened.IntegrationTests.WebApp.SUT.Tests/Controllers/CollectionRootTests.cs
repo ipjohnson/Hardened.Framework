@@ -14,7 +14,7 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 /// </remarks>
 public class CollectionRootTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheCollectionAnswersAtItsBasePath(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/collection");
@@ -23,7 +23,7 @@ public class CollectionRootTests
         Assert.Equal("collection", response.Deserialize<string>());
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheCollectionAnswersEveryVerbAtItsBasePath(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post("", "/collection");
@@ -36,7 +36,7 @@ public class CollectionRootTests
     /// The boundary slash is collapsed, not deleted — a token route under the same base still
     /// composes with its separator.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ASiblingTokenRouteIsUnaffected(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/collection/42");
@@ -56,7 +56,7 @@ public class CollectionRootTests
     /// had addressed a real endpoint incorrectly, about a URL that addresses no endpoint at all.
     /// A token names at least one character, so there is no match to bind and 404 is the answer.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheTrailingSlashSpellingIsADifferentUrl(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/collection/");

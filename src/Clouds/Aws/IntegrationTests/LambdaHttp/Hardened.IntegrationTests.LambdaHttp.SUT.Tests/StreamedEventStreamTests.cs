@@ -1,9 +1,9 @@
 using System.Net;
 using System.Text;
+using DependencyModules.xUnit.Attributes;
 using Hardened.Aws.Lambda.Runtime.Streaming;
 using Hardened.Aws.Lambda.Testing;
 using Hardened.Requests.Abstract.Headers;
-using Hardened.Shared.Testing.Attributes;
 using Hardened.Web.Testing;
 using Xunit;
 
@@ -40,7 +40,7 @@ public class StreamedEventStreamTests
     /// as it happens - so a test asserting only on the body would pass with the mode ignored. The
     /// stream having been opened, with a prelude, is what says which path ran.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheInvocationOpensALambdaResponseStream(
         ITestWebApp app,
         IResponseStreamFactory streams
@@ -55,7 +55,7 @@ public class StreamedEventStreamTests
         Assert.Equal(HttpStatusCode.OK, capture.Prelude!.StatusCode);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheEventsArriveAsFramesOnTheResponseStream(ITestWebApp app)
     {
         var response = await app.Get("/orders/live");
@@ -81,7 +81,7 @@ public class StreamedEventStreamTests
     /// one has committed to the wire by its first byte, so the status is decided when the stream
     /// opens and nothing after can change it.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AConstrainedTokenStreamsTheSameWay(ITestWebApp app)
     {
         var response = await app.Get("/orders/7/live");
@@ -99,7 +99,7 @@ public class StreamedEventStreamTests
     /// application runs under it - and one that returns a value rather than a sequence has to keep
     /// working, or the mode would be unusable for any application that has both.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ANonStreamingHandlerStillAnswersUnderStreamMode(ITestWebApp app)
     {
         var response = await app.Get("/orders/o-1");

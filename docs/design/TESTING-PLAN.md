@@ -399,7 +399,7 @@ one.
 - **Owns:** new `Hardened.Shared.Testing.Tests/`, `Hardened.Framework/src/Web/Hardened.Web.Testing.Tests/`
 - **Targets:** `Hardened.Shared.Testing` (49.2% line, 27.2% branch), `Hardened.Web.Testing` (76.6%)
 - **Must deliver:**
-  - `[HardenedTest]` parameter injection: services, `ITestContext`, `[Mock]`, mixed, unresolvable
+  - `[ModuleTest]` parameter injection: services, `ITestContext`, `[Mock]`, mixed, unresolvable
   - `[Mock]` registered last and actually winning over the application's registration
   - `[HardenedTestEntryPoint]` at assembly, class and method level; narrower wins
   - `[EnvironmentName]` / `[EnvironmentValue]` precedence across the three levels

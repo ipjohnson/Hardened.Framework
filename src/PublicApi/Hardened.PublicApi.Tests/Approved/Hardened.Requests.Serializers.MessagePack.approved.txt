@@ -24,19 +24,22 @@ namespace Hardened.Requests.Serializers.MessagePack
         public static MessagePack.IFormatterResolver[] AotResolvers { get; }
     }
     [DependencyModules.Runtime.Attributes.DependencyModule]
-    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     public class MessagePackSerializerLibrary : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
     {
         public MessagePackSerializerLibrary() { }
         public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         public override bool Equals(object? obj) { }
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         public override int GetHashCode() { }
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
     }
     [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter, AllowMultiple=true)]
     public class MessagePackSerializerLibraryAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
     {
         public MessagePackSerializerLibraryAttribute() { }
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
     }
 }

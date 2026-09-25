@@ -1,5 +1,5 @@
+using DependencyModules.xUnit.Attributes;
 using Hardened.IntegrationTests.CloudRunWeb.SUT;
-using Hardened.Shared.Testing.Attributes;
 using Hardened.Web.Kestrel.Runtime;
 using Hardened.Web.Testing;
 using Xunit;
@@ -12,7 +12,7 @@ namespace Hardened.IntegrationTests.CloudRunWeb.SUT.Tests;
 /// </summary>
 public class HttpServiceTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task AGetReachesItsHandlerWithThePathToken(ITestWebApp app)
     {
         var response = await app.Get("/orders/o-1");
@@ -25,7 +25,7 @@ public class HttpServiceTests
         Assert.Equal(7, order.Quantity);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task APostBindsItsBody(ITestWebApp app)
     {
         var response = await app.Post(new Order { Id = "o-2", Quantity = 3 }, "/orders");
@@ -36,7 +36,7 @@ public class HttpServiceTests
         Assert.Equal(3, order.Quantity);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ADeleteOnTheSamePathReachesADifferentHandler(ITestWebApp app)
     {
         var response = await app.Delete("/orders/o-1");
@@ -44,7 +44,7 @@ public class HttpServiceTests
         Assert.Equal(200, response.StatusCode);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnUnmatchedPathIsA404(ITestWebApp app)
     {
         var response = await app.Get("/nothing-here");
@@ -53,7 +53,7 @@ public class HttpServiceTests
     }
 
     /// <summary>A JSON POST to a web route is served as a web route; the front door has no envelope to unwrap it into.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AJsonPostToAWebRouteIsNotMistakenForAnEnvelope(ITestWebApp app)
     {
         var response = await app.Post(new Order { Id = "o-3", Quantity = 1 }, "/orders");
@@ -67,7 +67,7 @@ public class HttpServiceTests
 [KestrelRuntime]
 public class HttpServiceOverASocketTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task AGetReachesItsHandlerWithThePathToken(ITestWebApp app)
     {
         var response = await app.Get("/orders/o-1");
@@ -76,7 +76,7 @@ public class HttpServiceOverASocketTests
         Assert.Equal("o-1", response.Deserialize<Order>().Id);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task APostBindsItsBody(ITestWebApp app)
     {
         var response = await app.Post(new Order { Id = "o-2", Quantity = 3 }, "/orders");
@@ -84,7 +84,7 @@ public class HttpServiceOverASocketTests
         Assert.Equal(3, response.Deserialize<Order>().Quantity);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnUnmatchedPathIsA404(ITestWebApp app)
     {
         var response = await app.Get("/nothing-here");

@@ -1,4 +1,3 @@
-using Hardened.Shared.Testing.Attributes;
 using Hardened.Web.Runtime.Responses;
 using Hardened.Web.Testing;
 
@@ -26,7 +25,7 @@ public class BoundCancellationTokenTests
     /// The operation carries a <c>[Timeout]</c>, so the token bound to it is the budget's rather
     /// than <c>CancellationToken.None</c> - which compiles just as well and never fires.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ABoundedHandlerIsHandedATokenThatCanFire(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/labels/abc");
@@ -44,7 +43,7 @@ public class BoundCancellationTokenTests
     /// from a singleton registration so the handler's own lifetime does not decide whether it can
     /// ask.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ABoundedHandlerCanReadItsDeadline(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/labels/abc");
@@ -60,7 +59,7 @@ public class BoundCancellationTokenTests
     /// generated dispatch and the accessor is published by the filter, and both are meant to be the
     /// token the budget cancels.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheAccessorCarriesTheSameTokenThatWasBound(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/labels/abc");

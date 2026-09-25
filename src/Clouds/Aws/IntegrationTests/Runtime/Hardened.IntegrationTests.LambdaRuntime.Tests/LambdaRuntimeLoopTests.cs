@@ -1,9 +1,9 @@
 using System.Text.Json;
 using DependencyModules.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Hardened.Aws.Lambda.Runtime.Hosting;
 using Hardened.IntegrationTests.Sqs.SUT;
 using Hardened.Shared.Runtime.Application;
-using Hardened.Shared.Testing.Attributes;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
@@ -72,7 +72,7 @@ public class LambdaRuntimeLoopTests
     /// The whole path: poll, adapt, route, bind, handle, answer. Nothing here names an adapter, a
     /// filter or a handler - it speaks the protocol AWS speaks and checks what came back.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnInvocationOverTheRuntimeApiReachesTheHandler(
         IServiceProvider provider,
         [Mock] IOrderStore store
@@ -86,7 +86,7 @@ public class LambdaRuntimeLoopTests
     }
 
     /// <summary>The batch report is what goes back on the wire, not just what the adapter can produce.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheBatchReportIsWhatThePostContains(
         IServiceProvider provider,
         [Mock] IOrderStore store
@@ -104,7 +104,7 @@ public class LambdaRuntimeLoopTests
     /// to reach AWS as a posted invocation error - that is what returns the message to the queue.
     /// Answering with a 200 and a body describing the failure would tell SQS to delete it.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AFailedHandlerPostsAnInvocationError(
         IServiceProvider provider,
         [Mock] IOrderStore store

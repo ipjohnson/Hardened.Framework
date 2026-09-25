@@ -1,8 +1,8 @@
 using DependencyModules.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Hardened.Aws.Lambda.Invoke;
 using Hardened.Aws.Lambda.Runtime.Adapters;
 using Hardened.IntegrationTests.Invoke.SUT;
-using Hardened.Shared.Testing.Attributes;
 using Hardened.Web.Runtime.Responses;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
@@ -22,7 +22,7 @@ namespace Hardened.IntegrationTests.Invoke.SUT.Tests;
 /// </summary>
 public class DirectInvokeTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task ACallersPayloadReachesTheHandler(
         InvokeTestApp.Invocations invocations,
         [Mock] IOrderLog log
@@ -38,7 +38,7 @@ public class DirectInvokeTests
     /// The answer is the payload, and the façade hands it back typed - which is the whole reason
     /// invoke gets a façade shape of its own.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheHandlersReturnValueIsTheResponse(
         InvokeTestApp.Invocations invocations,
         [Mock] IOrderLog log
@@ -54,7 +54,7 @@ public class DirectInvokeTests
     /// The reason this family gets a function of its own. Every one of these would be claimed by an
     /// event adapter if one were registered here, and every one is legitimately the caller's.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     [InlineData("records")]
     [InlineData("requestContext")]
     public async Task APayloadShapedLikeAnAwsEventIsStillTheCallers(
@@ -86,7 +86,7 @@ public class DirectInvokeTests
     /// here: a caller may send anything, and asking would mean parsing something that need not be
     /// JSON.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public void TheInvokeAdapterIsTheOnlyOne(IServiceProvider provider)
     {
         Assert.IsType<InvokeAdapter>(Assert.Single(provider.GetServices<IPayloadAdapter>()));

@@ -21,13 +21,13 @@ namespace Hardened.IntegrationTests.OpenApi.SUT.Tests;
 /// </remarks>
 public class HandWrittenModelValidationTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public void AHandWrittenModelGetsARegisteredValidator(IValidatorFor<HandWrittenOrder> validator)
     {
         Assert.NotNull(validator);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public void ItReportsTheConstraintsThatFailed(IValidatorFor<HandWrittenOrder> validator)
     {
         var result = validator.Validate(new HandWrittenOrder { Reference = "ab", Quantity = 900 });
@@ -37,7 +37,7 @@ public class HandWrittenModelValidationTests
         Assert.Contains(result.Errors, e => e.Field == "quantity" && e.Code == "range");
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public void ItPassesWhatSatisfiesThem(IValidatorFor<HandWrittenOrder> validator)
     {
         Assert.True(
@@ -52,7 +52,7 @@ public class HandWrittenModelValidationTests
     /// The interesting case is that this alone is enough to produce a validator - not that it works
     /// once something else has already triggered one.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public void DataAnnotationsAloneProduceAValidator(IValidatorFor<DataAnnotatedOrder> validator)
     {
         var result = validator.Validate(
@@ -68,7 +68,7 @@ public class HandWrittenModelValidationTests
     /// Field names are wire names. A property called <c>Reference</c> reports as <c>reference</c>,
     /// which is what a caller sent and what they can act on.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public void ErrorsCarryWireNamesRatherThanClrNames(IValidatorFor<HandWrittenOrder> validator)
     {
         var result = validator.Validate(new HandWrittenOrder { Reference = "", Quantity = 5 });

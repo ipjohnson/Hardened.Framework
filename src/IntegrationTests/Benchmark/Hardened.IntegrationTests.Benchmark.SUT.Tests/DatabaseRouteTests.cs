@@ -13,7 +13,7 @@ namespace Hardened.IntegrationTests.Benchmark.SUT.Tests;
 /// </remarks>
 public class DatabaseRouteTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task Db_ReturnsOneWorldRow(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/db");
@@ -27,7 +27,7 @@ public class DatabaseRouteTests
         Assert.InRange(world.RandomNumber, 1, 10_000);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task Queries_ReturnsTheRequestedCount(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/queries?queries=7");
@@ -41,7 +41,7 @@ public class DatabaseRouteTests
     }
 
     /// <summary>A missing parameter means one row, not zero and not an error.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task Queries_WithNoParameterReturnsOneRow(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/queries");
@@ -55,7 +55,7 @@ public class DatabaseRouteTests
     /// The benchmark is explicit that a non-integer value is treated as 1. Binding a string is what
     /// makes this reachable - an int parameter would have failed to bind and returned an error.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task Queries_WithANonNumericParameterReturnsOneRow(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/queries?queries=foo");
@@ -65,7 +65,7 @@ public class DatabaseRouteTests
         Assert.Single(response.Deserialize<List<World>>()!);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task Queries_ClampsBelowOneToOne(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/queries?queries=0");
@@ -75,7 +75,7 @@ public class DatabaseRouteTests
         Assert.Single(response.Deserialize<List<World>>()!);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task Queries_ClampsAboveFiveHundredToFiveHundred(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/queries?queries=1000");
@@ -85,7 +85,7 @@ public class DatabaseRouteTests
         Assert.Equal(500, response.Deserialize<List<World>>()!.Count);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task Updates_ReturnsTheRequestedCount(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/updates?queries=5");
@@ -104,7 +104,7 @@ public class DatabaseRouteTests
     /// /db is not possible, so this checks the store directly through a second /updates call
     /// returning rows that are still within range and addressable.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task Updates_ReturnsRowsThatRemainAddressable(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/updates?queries=3");

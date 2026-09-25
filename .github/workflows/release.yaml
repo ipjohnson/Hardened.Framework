@@ -307,8 +307,6 @@ jobs:
             src/Requests/Serializers/Hardened.Requests.Serializers.Newtonsoft/Hardened.Requests.Serializers.Newtonsoft.csproj \
             src/Shared/Hardened.Shared.Runtime/Hardened.Shared.Runtime.csproj \
             src/Shared/Hardened.Shared.Testing/Hardened.Shared.Testing.csproj \
-            src/Shared/Hardened.Shared.Testing.NUnit/Hardened.Shared.Testing.NUnit.csproj \
-            src/Shared/Hardened.Shared.Testing.xUnit/Hardened.Shared.Testing.xUnit.csproj \
             src/SourceGenerators/Hardened.SourceGenerator/Hardened.SourceGenerator.csproj \
             src/SourceGenerators/Hardened.SourceGeneration.Testing/Hardened.SourceGeneration.Testing.csproj \
             src/SourceGenerators/Hardened.Function.SourceGenerator/Hardened.Function.SourceGenerator.csproj \
@@ -433,7 +431,10 @@ jobs:
           # 68 with the Cloud Functions host: Hardened.Gcp.Functions.Runtime and the generator that
           # writes its FUNCTION_TARGET entry type. A second Google host rather than two more Cloud
           # Run adapters, which is why they carry the Gcp.Functions prefix.
-          EXPECTED=68
+          # 66 without Hardened.Shared.Testing.xUnit and Hardened.Shared.Testing.NUnit. [ModuleTest]
+          # comes from DependencyModules.xUnit, DependencyModules.xUnit4 or DependencyModules.NUnit,
+          # and the running-test seam from DependencyModules.Testing.
+          EXPECTED=66
           ACTUAL=$(ls -1 ./artifacts/*.nupkg 2>/dev/null | wc -l | tr -d ' ')
 
           if [ "$ACTUAL" != "$EXPECTED" ]; then

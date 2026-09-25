@@ -1,7 +1,7 @@
 using DependencyModules.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Hardened.Gcp.CloudRun.Runtime.Dispatch;
 using Hardened.Requests.Abstract.Execution;
-using Hardened.Shared.Testing.Attributes;
 using Hardened.Web.Kestrel.Runtime;
 using Hardened.Web.Runtime.Handlers;
 using Hardened.Web.Testing;
@@ -23,7 +23,7 @@ namespace Hardened.Gcp.CloudRun.Runtime.Tests.Dispatch;
 /// </remarks>
 public class MixedApplicationTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task AWebRouteIsServedBesideAQueue(ITestWebApp app)
     {
         var response = await app.Get("/ping");
@@ -32,7 +32,7 @@ public class MixedApplicationTests
         Assert.Equal("pong", response.Deserialize<Pong>().Answer);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AQueueMessageIsServedBesideAWebRoute(
         MixedApp.Queues queues,
         [Mock] IOrderStore store
@@ -48,7 +48,7 @@ public class MixedApplicationTests
     /// Lambda loop count <see cref="IHandlerDispatch"/> registrations, and Kestrel resolves
     /// <see cref="IWebExecutionHandlerService"/> without asking for the other.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public void TheContainerHoldsOneDispatchUnderBothNames(IServiceProvider provider)
     {
         var dispatch = Assert.Single(provider.GetServices<IHandlerDispatch>());
@@ -64,7 +64,7 @@ public class MixedApplicationTests
 [KestrelRuntime]
 public class MixedApplicationOverASocketTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task AWebRouteIsServedBesideAQueue(ITestWebApp app)
     {
         var response = await app.Get("/ping");
@@ -73,7 +73,7 @@ public class MixedApplicationOverASocketTests
         Assert.Equal("pong", response.Deserialize<Pong>().Answer);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AQueueMessageIsServedBesideAWebRoute(
         MixedApp.Queues queues,
         [Mock] IOrderStore store

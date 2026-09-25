@@ -38,7 +38,7 @@ public class SmithyTimeoutTraitTests
             .Clone();
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public void TheModelsDeadlineIsPublished(ITestWebApp app)
     {
         var operation = Operation(app, "/pets/{petId}", "get");
@@ -50,7 +50,7 @@ public class SmithyTimeoutTraitTests
     /// The scalar form, because the trait stated no status and no retry-after. An object with one
     /// member would say the same thing and read worse.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public void ADeadlineStatingNothingElseIsPublishedAsANumber(ITestWebApp app)
     {
         var operation = Operation(app, "/pets/{petId}", "get");
@@ -62,7 +62,7 @@ public class SmithyTimeoutTraitTests
     /// An operation the model says nothing about is bounded by nothing, so the document says
     /// nothing either. This is the same rule the code-first front end follows.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public void AnOperationDeclaringNoDeadlinePublishesNone(ITestWebApp app)
     {
         var operation = Operation(app, "/pets", "get");
@@ -75,7 +75,7 @@ public class SmithyTimeoutTraitTests
     /// OpenAPI reader parses, so a service regenerated from this document is bounded the way this
     /// one is.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public void ThePublishedDeadlineIsTheExtensionTheReaderParses(ITestWebApp app)
     {
         var operation = Operation(app, "/pets/{petId}", "get");
@@ -93,7 +93,7 @@ public class SmithyTimeoutTraitTests
     /// runtime answered it. A code-first handler had this from <c>TimeoutAttribute</c>'s
     /// <c>[AnswersStatus]</c> all along.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public void ThePublishedDeadlineDeclaresTheStatusItAnswers(ITestWebApp app)
     {
         var responses = Operation(app, "/pets/{petId}", "get").GetProperty("responses");
@@ -115,7 +115,7 @@ public class SmithyTimeoutTraitTests
     }
 
     /// <summary>An unbounded operation declares no gateway timeout either.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public void AnOperationDeclaringNoDeadlineDeclaresNoGatewayTimeout(ITestWebApp app) =>
         Assert.False(
             Operation(app, "/pets", "get").GetProperty("responses").TryGetProperty("504", out _)

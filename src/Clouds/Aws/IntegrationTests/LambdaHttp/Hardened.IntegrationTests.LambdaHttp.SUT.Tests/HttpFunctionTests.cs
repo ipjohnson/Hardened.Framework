@@ -1,4 +1,4 @@
-using Hardened.Shared.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Hardened.Web.Testing;
 using Xunit;
 
@@ -16,7 +16,7 @@ namespace Hardened.IntegrationTests.LambdaHttp.SUT.Tests;
 /// </summary>
 public class HttpFunctionTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task AGetReachesItsHandlerWithThePathToken(ITestWebApp app)
     {
         var response = await app.Get("/orders/o-1");
@@ -39,7 +39,7 @@ public class HttpFunctionTests
     /// existing resource, and until this route existed no test said which way the generated table
     /// resolved it.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ALiteralSegmentBeatsTheWildcardBesideIt(ITestWebApp app)
     {
         var response = await app.Get("/orders/live");
@@ -49,7 +49,7 @@ public class HttpFunctionTests
         Assert.Contains("live-1", await response.ReadTextAsync());
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task APostBindsItsBody(ITestWebApp app)
     {
         var response = await app.Post(new Order { Id = "o-2", Quantity = 3 }, "/orders");
@@ -64,7 +64,7 @@ public class HttpFunctionTests
     /// The verb is part of the route, so the same path under a different method is a different
     /// handler - and a void one answers without a body.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ADeleteOnTheSamePathReachesADifferentHandler(ITestWebApp app)
     {
         var response = await app.Delete("/orders/o-1");
@@ -77,7 +77,7 @@ public class HttpFunctionTests
     /// non-nullable int starting at zero, so the not-found handler never found it unset and every
     /// unmatched path came back as an empty 200.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnUnmatchedPathIsA404(ITestWebApp app)
     {
         var response = await app.Get("/nothing-here");

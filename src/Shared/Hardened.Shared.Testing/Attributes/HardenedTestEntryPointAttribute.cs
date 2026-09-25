@@ -1,9 +1,11 @@
 using System.Reflection;
 using DependencyModules.Runtime.Interfaces;
 using DependencyModules.Testing.Attributes.Interfaces;
+using DependencyModules.Testing.Impl;
 using Hardened.Shared.Runtime.Application;
 using Hardened.Shared.Runtime.Configuration;
 using Hardened.Shared.Testing.Impl;
+using Hardened.Shared.Testing.Logging;
 using Hardened.Shared.Testing.Utilties;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -43,7 +45,7 @@ public class HardenedTestEntryPointAttribute
     /// </para>
     /// <para>
     /// <b>What is deliberately not here.</b> <c>ILoggerProvider</c> is per container and harmless,
-    /// because every container writes to the same runner sink through <see cref="CurrentTest"/>.
+    /// because every container writes to the same test output through <see cref="CurrentTest"/>.
     /// <c>IApplicationRoot</c> has to be per container: <c>ServiceProviderApplicationRoot</c> wraps
     /// whichever provider built it, so a shared one would hand every container the first
     /// container's services and quietly undo the isolation around it.
@@ -148,12 +150,14 @@ public class HardenedTestEntryPointAttribute
 
         serviceCollection.RemoveAll<ILoggerProvider>();
 
-        // The runner package's provider, which writes where the runner shows a test's output. A
-        // container built with no runner package loaded - this attribute driven directly from a
-        // test of its own - keeps no provider, rather than a console one nobody reads.
-        if (CurrentTest.Provider is { } runner)
+        // Writes where the test package shows a test's output, through CurrentTest. A container
+        // built with no test package loaded - this attribute driven directly from a test of its
+        // own - keeps no provider, rather than a console one nobody reads.
+        if (CurrentTest.Provider != null)
         {
-            serviceCollection.AddSingleton<ILoggerProvider>(_ => runner.CreateLoggerProvider());
+            serviceCollection.AddSingleton<ILoggerProvider>(
+                _ => new JsonTestOutputLoggerProvider()
+            );
         }
     }
 

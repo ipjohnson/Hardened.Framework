@@ -182,19 +182,19 @@ and only to raise your own assembly's floor.
 
 ## 12. xunit version, and the runner packages
 
-New test projects use **xunit.v3**, and reference `Hardened.Shared.Testing.xUnit` for
-`[HardenedTest]`.
+New test projects use **xunit.v3**, and reference `DependencyModules.xUnit` for
+`[ModuleTest]`.
 
-Not a style preference. `Hardened.Shared.Testing.xUnit` depends on `DependencyModules.xUnit`,
-which brings xunit.v3; referencing it alongside xunit 2.9 makes every `Fact` and `Assert`
-ambiguous (CS0433). Two older `Hardened.Amz` projects still use 2.9 and are fine as long as they
-never touch the runner package.
+Not a style preference. `DependencyModules.xUnit` brings xunit.v3; referencing it alongside xunit
+2.9 makes every `Fact` and `Assert` ambiguous (CS0433).
 
 `Hardened.Shared.Testing` itself names no runner, and neither do `Hardened.Web.Testing`,
 `Hardened.Kiota.Testing` and `Hardened.Refit.Testing`: they read the running test through
-`CurrentTest`, which the runner package installs when it loads. An NUnit project references
-`Hardened.Shared.Testing.NUnit` instead, and its `[HardenedTest]` is the same name in the same
-namespace over `DependencyModules.NUnit`. `Hardened.Shared.Testing.NUnit.Tests` and
+DependencyModules' `CurrentTest`, which the runner package installs when it loads. An NUnit project
+references `DependencyModules.NUnit` instead, and its `[ModuleTest]` has the same name, in
+`DependencyModules.NUnit.Attributes`. A test project that drives the harness directly and declares
+no `[ModuleTest]` installs the xUnit provider itself; `RunnerSeam.cs` in
+`Hardened.Web.Testing.Tests` shows how. `Hardened.Shared.Testing.NUnit.Tests` and
 `Hardened.IntegrationTests.WebApp.SUT.NUnitTests` are the two NUnit projects in this repository,
 and the only ones: they exist to hold the harness to reading the same under both runners, not as a
 second place to put tests. `Hardened.Requests.Testing` still carries xunit for its conformance

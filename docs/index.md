@@ -153,7 +153,7 @@ The environment is `development` when the environment variable `HARDENED_ENVIRON
 
 ```csharp
 using DependencyModules.Testing.Attributes;
-using Hardened.Shared.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Hardened.Web.Runtime.Responses;
 using Hardened.Web.Testing;
 using NSubstitute;
@@ -164,7 +164,7 @@ namespace Todos.Tests;
 
 public class TodoStoreMockTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task GetTodo_ReadsTheMockedStore(TodosClient client, [Mock] ITodoStore store)
     {
         store.Find(1).Returns(new Todo(1, "from the mock", false));
@@ -185,7 +185,7 @@ client sends its requests into the application in process, with no socket.
 
 | Declaration | Effect |
 |---|---|
-| `[HardenedTest]` | Builds the application for the test and passes the method's parameters from it |
+| `[ModuleTest]` | Builds the application for the test and passes the method's parameters from it |
 | `[assembly: HardenedTestEntryPoint(typeof(TodosLibrary))]` | Names the module under test, the library module |
 | `[assembly: KiotaTesting]` | Makes the client a test parameter |
 | `[Mock]` | Replaces the application's `ITodoStore` with an NSubstitute double. The handler reads the todo the test set up |

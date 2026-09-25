@@ -6,7 +6,7 @@ the application's code resolves.
 
 ```csharp
 using DependencyModules.Testing.Attributes;
-using Hardened.Shared.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Hardened.Web.Testing;
 using NSubstitute;
 using Xunit;
@@ -15,7 +15,7 @@ namespace Todos.Tests;
 
 public class TodoMockTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task GetTodo_ReadsTheMock(ITestWebApp app, [Mock] ITodoStore store)
     {
         store.Find(1).Returns(new Todo(1, "from the mock", false));
@@ -70,7 +70,7 @@ Under `[MoqSupport]`, a parameter typed `Mock<ITodoStore>` receives the Moq mock
 resolves `ITodoStore` to the mock's `Object`. The parameter needs no `[Mock]`.
 
 ```csharp
-using Hardened.Shared.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Hardened.Web.Testing;
 using Moq;
 using Xunit;
@@ -79,7 +79,7 @@ namespace Todos.Tests;
 
 public class TodoMoqTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task GetTodo_ReadsTheMock(ITestWebApp app, Mock<ITodoStore> store)
     {
         store.Setup(s => s.Find(1)).ReturnsAsync(new Todo(1, "from the mock", false));
@@ -105,7 +105,7 @@ including the container each request runs in on the pipeline host.
 A second method of `TodoMockTests` sends two requests to one mock:
 
 ```csharp
-    [HardenedTest]
+    [ModuleTest]
     public async Task EveryRequestReachesTheSameMock(ITestWebApp app, [Mock] ITodoStore store)
     {
         store.Find(1).Returns(new Todo(1, "from the mock", false));
@@ -151,7 +151,7 @@ public sealed class EmptyTodoStore : ITodoStore
 
 ```csharp
 using DependencyModules.Testing.Attributes;
-using Hardened.Shared.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Hardened.Web.Testing;
 using Xunit;
 
@@ -160,7 +160,7 @@ namespace Todos.Tests;
 [TestExport(typeof(ITodoStore), Implementation = typeof(EmptyTodoStore))]
 public class EmptyStoreTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task ListsNothing(ITestWebApp app)
     {
         var todos = (await app.Get("/todos")).Deserialize<List<Todo>>();
@@ -209,7 +209,7 @@ public sealed class EmptyStoreAttribute : Attribute, IHardenedTestDependencyRegi
 With `[EmptyStore]` on a test, `GET /todos` lists nothing:
 
 ```csharp
-    [HardenedTest]
+    [ModuleTest]
     [EmptyStore]
     public async Task ListsNothing(ITestWebApp app)
     {
@@ -334,8 +334,8 @@ holds the seeded todo twice after one request.
 The tests in `TestAttributeTests` carry the four attributes:
 
 ```csharp
+using DependencyModules.xUnit.Attributes;
 using Hardened.Shared.Runtime.Application;
-using Hardened.Shared.Testing.Attributes;
 using Hardened.Web.Testing;
 using Xunit;
 
@@ -343,7 +343,7 @@ namespace Todos.Tests;
 
 public class TestAttributeTests
 {
-    [HardenedTest]
+    [ModuleTest]
     [EmptyStore]
     public async Task ListsNothing(ITestWebApp app)
     {
@@ -352,7 +352,7 @@ public class TestAttributeTests
         Assert.Empty(todos);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     [ExtraTodo("Write a test")]
     public async Task EveryRequestSeesTheSeededTodo(ITestWebApp app)
     {
@@ -361,7 +361,7 @@ public class TestAttributeTests
         Assert.Equal([1, 2, 3], todos.Select(todo => todo.Id));
     }
 
-    [HardenedTest]
+    [ModuleTest]
     [PageSize(1)]
     public async Task ListsOneTodo(ITestWebApp app)
     {
@@ -370,7 +370,7 @@ public class TestAttributeTests
         Assert.Single(todos);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     [FeatureFlags]
     public void TurnsOnBothFlags(IHardenedEnvironment environment)
     {

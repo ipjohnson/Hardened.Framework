@@ -24,7 +24,7 @@ public class ContainerIsolationTests
 
     private record NewTodoRequest(string Title);
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ATodoOneRequestCreatesIsGoneByTheNext(ITestWebApp app)
     {
         (await app.Post(new NewTodoRequest("Write a test"), "/todos")).Assert.Ok();
@@ -47,7 +47,7 @@ public class ContainerIsolationTests
     /// host decides that. Reach for it for a cache serving a second read or one budget across
     /// several attempts, and not to make an ordinary test pass.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task SharedSendsEveryRequestToOneContainer([Shared] ITestWebApp app)
     {
         (await app.Post(new NewTodoRequest("Write a test"), "/todos")).Assert.Ok();

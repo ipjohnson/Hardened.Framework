@@ -69,7 +69,6 @@ namespace Hardened.Aws.Lambda.DynamoDb
     }
     [DependencyModules.Runtime.Attributes.DependencyModule]
     [Hardened.Aws.Lambda.Runtime.Modules.LambdaRuntimeModule]
-    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     public class DynamoDbStreamsModule : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
     {
         public DynamoDbStreamsModule() { }
@@ -77,13 +76,16 @@ namespace Hardened.Aws.Lambda.DynamoDb
         public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
         public override bool Equals(object? obj) { }
         public override int GetHashCode() { }
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
     }
     [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter, AllowMultiple=true)]
     public class DynamoDbStreamsModuleAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
     {
         public DynamoDbStreamsModuleAttribute() { }
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         public bool ReportBatchItemFailures { get; set; }
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
     }
     [System.AttributeUsage(System.AttributeTargets.Parameter)]

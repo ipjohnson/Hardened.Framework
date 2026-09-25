@@ -180,12 +180,11 @@
     </ItemGroup>
 
     <!--
-      xunit.v3, never xunit 2.x. Hardened.Shared.Testing depends on DependencyModules.xUnit, which
-      brings v3, and referencing it alongside 2.x makes every Fact and Assert ambiguous.
+      xunit.v3, never xunit 2.x. A test project's DependencyModules.xUnit brings v3, and
+      referencing it alongside 2.x makes every Fact and Assert ambiguous.
 
-      NUnit is a range because Hardened.Shared.Testing.NUnit ships it as a dependency and the
-      runner reads NUnit's own attributes: a consumer on any 4.x works, a 5.0 has not been checked.
-      It resolves to 4.2.2 for the two test projects that used to name that version directly.
+      NUnit is the range DependencyModules.NUnit declares. It resolves to 4.2.2 for the two NUnit
+      test projects.
 
       Testcontainers.DynamoDb is pinned, was "4.*". Same reproducibility argument as AWSSDK.
     -->

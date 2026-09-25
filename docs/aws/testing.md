@@ -38,14 +38,14 @@ using Orders;
 The first test in `tests/Orders.Tests/OrderHandlerTests.cs` sends one order:
 
 ```csharp
-using Hardened.Shared.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Xunit;
 
 namespace Orders.Tests;
 
 public class OrderHandlerTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task AMessageReachesTheHandler(Application.Queues queues, OrderLog log)
     {
         await queues.Orders(new Order { Id = "A-1", Quantity = 2 });
@@ -164,8 +164,8 @@ second:
 using System.Text;
 using System.Text.Json;
 using Amazon.Lambda.Core;
+using DependencyModules.xUnit.Attributes;
 using Hardened.Aws.Lambda.Runtime.Hosting;
-using Hardened.Shared.Testing.Attributes;
 using NSubstitute;
 using Xunit;
 
@@ -182,7 +182,7 @@ public class BatchReportTests
         ]}
         """;
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheReportNamesTheRefusedMessage(LambdaInvocationHandler handler, OrderLog log)
     {
         var context = Substitute.For<ILambdaContext>();
@@ -352,10 +352,10 @@ This test, in `tests/Todos.Tests/TodoStreamTests.cs`, runs in `stream` mode and 
 
 ```csharp
 using System.Net;
+using DependencyModules.xUnit.Attributes;
 using Hardened.Aws.Lambda.Http;
 using Hardened.Aws.Lambda.Runtime.Streaming;
 using Hardened.Aws.Lambda.Testing;
-using Hardened.Shared.Testing.Attributes;
 using Hardened.Web.Testing;
 using Xunit;
 
@@ -365,7 +365,7 @@ namespace Todos.Tests;
 [LambdaHttpModule]
 public class TodoStreamTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheEventsLeaveOnALambdaResponseStream(
         ITestWebApp app,
         IResponseStreamFactory streams

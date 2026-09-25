@@ -241,8 +241,8 @@ A test sends the EventBridge event itself through `LambdaInvocationHandler`, fro
 ```csharp
 using System.Text;
 using Amazon.Lambda.Core;
+using DependencyModules.xUnit.Attributes;
 using Hardened.Aws.Lambda.Runtime.Hosting;
-using Hardened.Shared.Testing.Attributes;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -250,7 +250,7 @@ namespace Orders.Tests;
 
 public class OrderHandlerTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnEventReachesTheHandler(IServiceProvider provider, OrderLog log)
     {
         var json = """

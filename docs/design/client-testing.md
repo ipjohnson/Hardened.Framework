@@ -16,7 +16,7 @@ Written 2026-09-05, with `Hardened.Kiota.Testing` and `Hardened.Refit.Testing`.
 
 public class TodoTests {
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task CreateTodo_AnswersCreated(TodosClient client) {
         var created = await client.Todos.PostAsync(new NewTodo { Title = "ship it" })
             .Returns<Created<Todo>>();
@@ -24,7 +24,7 @@ public class TodoTests {
         Assert.Equal($"/todos/{created.Value.Id}", created.Location);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task UnknownTodo_IsNotFound(TodosClient client) {
         var missing = await client.Todos[9999].GetAsync().Returns<NotFound<Problem>>();
 

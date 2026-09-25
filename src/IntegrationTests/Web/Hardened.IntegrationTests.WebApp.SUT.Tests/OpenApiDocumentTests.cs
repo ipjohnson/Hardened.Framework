@@ -31,7 +31,7 @@ public class OpenApiDocumentTests
     /// request. <c>TestWebApp</c> sends <c>Accept-Encoding: gzip</c> on every request, so this is
     /// that path.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheDocumentIsServedCompressed(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/openapi.json");
@@ -48,7 +48,7 @@ public class OpenApiDocumentTests
     /// <summary>
     /// A client that does not take gzip gets the document inflated rather than unreadable.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AClientThatDoesNotAcceptGZipGetsPlainJson(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get(
@@ -68,7 +68,7 @@ public class OpenApiDocumentTests
         Assert.Equal("3.2.0", document.RootElement.GetProperty("openapi").GetString());
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheDocumentIsServedAsJson(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/openapi.json");
@@ -84,7 +84,7 @@ public class OpenApiDocumentTests
     /// what is asserted here is the default reaching the document rather than a value being
     /// honoured - <c>OpenApiVersionTests</c> covers that.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheDocumentIsValidOpenApi(ITestWebApp testWebApp)
     {
         using var document = await Fetch(testWebApp);
@@ -94,7 +94,7 @@ public class OpenApiDocumentTests
     }
 
     /// <summary>Routes declared with attributes appear, at the paths they are served from.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task DeclaredRoutesAppearInTheDocument(ITestWebApp testWebApp)
     {
         using var document = await Fetch(testWebApp);
@@ -112,7 +112,7 @@ public class OpenApiDocumentTests
     }
 
     /// <summary>A path token is described as a path parameter, not a query one.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ParametersCarryTheirLocation(ITestWebApp testWebApp)
     {
         using var document = await Fetch(testWebApp);
@@ -139,7 +139,7 @@ public class OpenApiDocumentTests
     /// A request body is described by a schema referencing a real component, which is the part that
     /// needed the type walked while its symbol still existed.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ABodyIsDescribedByAGeneratedSchema(ITestWebApp testWebApp)
     {
         using var document = await Fetch(testWebApp);
@@ -186,7 +186,7 @@ public class OpenApiDocumentTests
     /// disagreed with the name in <c>parameters</c>, which is a <c>path-params</c> error to a
     /// linter and a request for <c>/boards/%7BboardId:guid%7D</c> from a generated client.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task PathTemplatesCarryNoRoutingSyntax(ITestWebApp testWebApp)
     {
         using var document = await Fetch(testWebApp);
@@ -220,7 +220,7 @@ public class OpenApiDocumentTests
     /// <c>ConstrainedPathToken(int count)</c> as taking a string — and a typed client had no reason
     /// to reject <c>/path-constrained/abc</c> before sending it.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ParametersCarryTheirDeclaredType(ITestWebApp testWebApp)
     {
         using var document = await Fetch(testWebApp);
@@ -244,7 +244,7 @@ public class OpenApiDocumentTests
     /// list is where a tag's order is set, so a reader and a generated SDK grouped by whatever the
     /// names sorted to rather than by what the application declared.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheDocumentDeclaresItsTags(ITestWebApp testWebApp)
     {
         using var document = await Fetch(testWebApp);
@@ -289,7 +289,7 @@ public class OpenApiDocumentTests
     /// <c>RegistrationController</c> is the handler set that gets validators.
     /// </para>
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AValidatedHandlerStillDescribesItsBodyAndResponse(ITestWebApp testWebApp)
     {
         using var document = await Fetch(testWebApp);
@@ -346,7 +346,7 @@ public class OpenApiDocumentTests
     /// type, whose fall-through is <c>string</c>, so a <c>List</c> published as a string - the
     /// binder filling it from every value the request carried while the document described one.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ACollectionQueryParameterIsAnArray(ITestWebApp testWebApp)
     {
         var schema = await ParameterSchema(testWebApp, "/binding/query-list", "symbols");
@@ -356,7 +356,7 @@ public class OpenApiDocumentTests
     }
 
     /// <summary>The item type is the one the handler declared, not a default.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ACollectionParametersItemsCarryTheirOwnType(ITestWebApp testWebApp)
     {
         var schema = await ParameterSchema(testWebApp, "/binding/query-list-typed", "ids");
@@ -366,7 +366,7 @@ public class OpenApiDocumentTests
         Assert.Equal("int32", schema.GetProperty("items").GetProperty("format").GetString());
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnArrayParameterIsAnArray(ITestWebApp testWebApp)
     {
         var schema = await ParameterSchema(testWebApp, "/binding/query-array", "tags");
@@ -375,7 +375,7 @@ public class OpenApiDocumentTests
         Assert.Equal("string", schema.GetProperty("items").GetProperty("type").GetString());
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ACollectionHeaderParameterIsAnArray(ITestWebApp testWebApp)
     {
         var schema = await ParameterSchema(testWebApp, "/binding/header-list", "X-Tag");
@@ -384,7 +384,7 @@ public class OpenApiDocumentTests
     }
 
     /// <summary>And a scalar parameter is still a scalar.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AScalarQueryParameterIsNotAnArray(ITestWebApp testWebApp)
     {
         var schema = await ParameterSchema(testWebApp, "/binding/query-typed", "page");
@@ -416,7 +416,7 @@ public class OpenApiDocumentTests
     /// declared 422 by hand and the document carried the synthesized 400 beside it - a status the
     /// operation could no longer produce.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnOperationDeclaring422PublishesItAndNoSynthesized400(ITestWebApp testWebApp)
     {
         var statuses = await Statuses(testWebApp, "/registration/declared-422");
@@ -429,7 +429,7 @@ public class OpenApiDocumentTests
     /// And an operation that declares nothing still publishes the 400 it answers, which is what the
     /// synthesis is for.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnOperationDeclaringNothingStillPublishesThe400(ITestWebApp testWebApp)
     {
         Assert.Contains("400", await Statuses(testWebApp, "/registration/for/{tenant}"));
@@ -445,7 +445,7 @@ public class OpenApiDocumentTests
     /// registers <c>PetsOAuth</c> or lists it; the four operations naming it are the whole of what
     /// puts it here.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ASchemeAnOperationNamesIsPublished(ITestWebApp testWebApp)
     {
         using var document = await Fetch(testWebApp);
@@ -474,7 +474,7 @@ public class OpenApiDocumentTests
     /// names them; under an HTTP scheme the same operation would publish the scheme and nothing
     /// more, which is the rule the OpenAPI reader applies coming the other way.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task GrantsRequiredBesideAnOAuth2SchemeArePublishedAsScopes(ITestWebApp testWebApp)
     {
         using var document = await Fetch(testWebApp);
@@ -505,7 +505,7 @@ public class OpenApiDocumentTests
     /// handler says 401 and the document has to derive it from the requirement.
     /// <c>AuthorizationTests</c> asserts the same refusal on the wire.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnOperationWithARequirementPublishesItsChallenge(ITestWebApp testWebApp)
     {
         using var document = await Fetch(testWebApp);
@@ -532,7 +532,7 @@ public class OpenApiDocumentTests
     /// operation is guarded at run time exactly as its neighbour is; what separates them in the
     /// document is that one of them said which scheme establishes its caller.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AGrantWithNoSchemePublishesNoRequirement(ITestWebApp testWebApp)
     {
         using var document = await Fetch(testWebApp);

@@ -305,14 +305,14 @@ The template writes this test in `tests/Orders.Tests/OrderHandlerTests.cs`. The 
 through the `Application.Streams` façade:
 
 ```csharp
-using Hardened.Shared.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Xunit;
 
 namespace Orders.Tests;
 
 public class OrderHandlerTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task ARecordReachesTheHandler(Application.Streams streams, OrderLog log)
     {
         await streams.Orders(new Order { Id = "A-1", Quantity = 2 });

@@ -27,7 +27,10 @@
         <ProjectReference Include="..\Hardened.IntegrationTests.AzureBlob.SUT\Hardened.IntegrationTests.AzureBlob.SUT.csproj"/>
         <ProjectReference Include="..\..\..\..\..\Functions\Hardened.Functions.Testing\Hardened.Functions.Testing.csproj"/>
         <ProjectReference Include="..\..\..\Hardened.Azure.Functions.Testing\Hardened.Azure.Functions.Testing.csproj"/>
-        <ProjectReference Include="..\..\..\..\..\Shared\Hardened.Shared.Testing.xUnit\Hardened.Shared.Testing.xUnit.csproj"/>
+        <ProjectReference Include="..\..\..\..\..\..\..\DependencyModules\src\DependencyModules.xUnit\DependencyModules.xUnit.csproj"
+                          Condition="Exists('..\..\..\..\..\..\..\DependencyModules\src\DependencyModules.xUnit\DependencyModules.xUnit.csproj')"/>
+        <PackageReference Include="DependencyModules.xUnit"
+                          Condition="!Exists('..\..\..\..\..\..\..\DependencyModules\src\DependencyModules.xUnit\DependencyModules.xUnit.csproj')"/>
     </ItemGroup>
 
 </Project>

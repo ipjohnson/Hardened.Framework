@@ -17,7 +17,7 @@ namespace Hardened.Functions.Testing;
 /// [assembly: FunctionTesting]
 /// [assembly: HardenedTestEntryPoint(typeof(OrdersApp))]
 ///
-/// [HardenedTest]
+/// [ModuleTest]
 /// public async Task AnOrderIsPlaced(OrdersApp.Queues queues, [Mock] IOrderStore store) {
 ///     await queues.OrdersNew(new Order { Id = "a-1" });
 ///

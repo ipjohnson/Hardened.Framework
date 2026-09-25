@@ -25,13 +25,13 @@ namespace Hardened.IntegrationTests.Validation.SUT.Tests;
 /// </remarks>
 public class EntryPointRegistrationTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public void AModelWithConstraintsGetsARegisteredValidator(IValidatorFor<Order> validator)
     {
         Assert.NotNull(validator);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public void ItReportsTheConstraintsThatFailed(IValidatorFor<Order> validator)
     {
         var result = validator.Validate(new Order { Reference = "ab", Quantity = 900 });
@@ -41,13 +41,13 @@ public class EntryPointRegistrationTests
         Assert.Contains(result.Errors, e => e.Field == "quantity" && e.Code == "range");
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public void ItPassesWhatSatisfiesThem(IValidatorFor<Order> validator)
     {
         Assert.True(validator.Validate(new Order { Reference = "abc", Quantity = 5 }).IsValid);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public void DataAnnotationsAloneProduceARegisteredValidator(IValidatorFor<Delivery> validator)
     {
         var result = validator.Validate(new Delivery { Address = "ab" });
@@ -59,7 +59,7 @@ public class EntryPointRegistrationTests
     /// <summary>
     /// A rules class, which <c>Hardened.Validation.SourceGenerator</c> never read.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public void ARulesClassProducesARegisteredValidator(IValidatorFor<Shipment> validator)
     {
         var result = validator.Validate(new Shipment { Carrier = null, Weight = 500 });
@@ -72,7 +72,7 @@ public class EntryPointRegistrationTests
     /// <summary>
     /// The runner, so the registration is the whole extension rather than the validators alone.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public void TheValidationRunnerIsRegisteredToo(ValidationRunner<Order> runner)
     {
         Assert.True(runner.Validate(new Order { Reference = "abc", Quantity = 5 }).IsValid);

@@ -178,19 +178,22 @@ namespace Hardened.Requests.Runtime.DependencyInjection
 {
     [DependencyModules.Runtime.Attributes.DependencyModule]
     [Hardened.Shared.Runtime.DependencyInjection.HardenedCoreModule]
-    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     public class HardenedRequestModule : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
     {
         public HardenedRequestModule() { }
         public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         public override bool Equals(object? obj) { }
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         public override int GetHashCode() { }
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
     }
     [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter, AllowMultiple=true)]
     public class HardenedRequestModuleAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
     {
         public HardenedRequestModuleAttribute() { }
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
     }
 }
@@ -488,7 +491,6 @@ namespace Hardened.Requests.Runtime.Filters
         public System.Threading.Tasks.ValueTask WriteItem(Hardened.Requests.Abstract.Execution.IExecutionContext context, System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task> serialize) { }
     }
     [DependencyModules.Runtime.Attributes.DependencyModule]
-    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     public class RequestTimeouts : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
     {
         public RequestTimeouts() { }
@@ -497,12 +499,15 @@ namespace Hardened.Requests.Runtime.Filters
         public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
         public override bool Equals(object? obj) { }
         public override int GetHashCode() { }
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
     }
     [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter, AllowMultiple=true)]
     public class RequestTimeoutsAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
     {
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         public RequestTimeoutsAttribute(int milliseconds) { }
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
     }
     [System.AttributeUsage(System.AttributeTargets.Class | System.AttributeTargets.Method, AllowMultiple=false)]

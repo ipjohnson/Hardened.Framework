@@ -27,7 +27,7 @@ namespace Hardened.IntegrationTests.OpenApi.SUT.Tests;
 /// </remarks>
 public class PublishedFromTheProjectFileTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheDocumentIsServedWherePublishUrlSaid(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/openapi.yaml");
@@ -38,7 +38,7 @@ public class PublishedFromTheProjectFileTests
         Assert.Contains("openapi:", await response.ReadTextAsync());
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheReferencePageIsServedWhereUiUrlSaid(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/docs");
@@ -57,7 +57,7 @@ public class PublishedFromTheProjectFileTests
     /// renders operations, and the source is whatever the author wrote - for a Smithy model that is
     /// an AST, which is what the page used to be handed and why it rendered nothing.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ThePageReadsTheDocumentThatWasPublished(ITestWebApp testWebApp)
     {
         var page = await (await testWebApp.Get("/docs")).ReadTextAsync();
@@ -77,7 +77,7 @@ public class PublishedFromTheProjectFileTests
     /// This item names <c>/openapi.json</c>, <c>/openapi.yaml</c> and <c>/docs</c>, so the paths
     /// worth asserting on are the conventional ones it did not name.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task NothingIsServedAtTheDefaultPaths(ITestWebApp testWebApp)
     {
         Assert.Equal(404, (await testWebApp.Get("/openapi")).StatusCode);

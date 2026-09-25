@@ -70,7 +70,7 @@ public class DocumentStatusTests
         new("DELETE /todos/{id}", 404, app => app.Delete("/todos/9999")),
     ];
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheDocumentDeclaresExactlyWhatTheApplicationAnswers(ITestWebApp app)
     {
         var faults = new List<string>();

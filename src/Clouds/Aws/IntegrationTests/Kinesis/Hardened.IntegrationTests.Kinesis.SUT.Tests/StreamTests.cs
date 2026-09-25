@@ -1,6 +1,6 @@
 using DependencyModules.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Hardened.IntegrationTests.Kinesis.SUT;
-using Hardened.Shared.Testing.Attributes;
 using NSubstitute;
 using Xunit;
 
@@ -16,7 +16,7 @@ public class StreamTests
     /// The claim the adapter rests on: a handler that names a stream and binds a plain type is
     /// reached with the record the publisher wrote.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ARecordReachesTheHandler(
         StreamTestApp.Streams streams,
         [Mock] IClickSink sink
@@ -30,7 +30,7 @@ public class StreamTests
     /// <summary>
     /// One invocation, one handler call per record, in the order the shard delivered them.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task EveryRecordInABatchIsHandledSeparately(
         StreamTestApp.Streams streams,
         [Mock] IClickSink sink
@@ -49,7 +49,7 @@ public class StreamTests
     /// <summary>
     /// Each fork binds its own record's data rather than the batch it arrived in.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task EachRecordBindsItsOwnData(
         StreamTestApp.Streams streams,
         [Mock] IClickSink sink
@@ -68,7 +68,7 @@ public class StreamTests
     /// Failing the invocation is what replays the shard. With ReportBatchItemFailures off - the
     /// default - a failed record has to take the whole batch with it.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AFailedRecordFailsTheInvocation(
         StreamTestApp.Streams streams,
         [Mock] IClickSink sink

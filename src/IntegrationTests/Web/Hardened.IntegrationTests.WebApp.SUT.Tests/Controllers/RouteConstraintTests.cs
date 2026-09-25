@@ -14,7 +14,7 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 /// </remarks>
 public class RouteConstraintTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task AConstrainedTokenMatchesAValueThatPasses(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/binding/path-constrained/21");
@@ -23,7 +23,7 @@ public class RouteConstraintTests
         Assert.Equal(42, response.Deserialize<int>());
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AConstrainedTokenIs404ForAValueThatFails(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/binding/path-constrained/abc");
@@ -36,7 +36,7 @@ public class RouteConstraintTests
     /// documented rule turns on: use the constraint when a wrong value means "no such URL", leave
     /// it off when the value is input being validated.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheUnconstrainedShapeStillAnswers400(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/binding/path-typed/abc");
@@ -44,7 +44,7 @@ public class RouteConstraintTests
         response.Assert.BadRequest();
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ADeclaredConstraintMatchesAValueThatPasses(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/binding/path-code/ABC");
@@ -53,7 +53,7 @@ public class RouteConstraintTests
         Assert.Equal("ABC", response.Deserialize<string>());
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ADeclaredConstraintIs404ForAValueThatFails(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/binding/path-code/abc");
@@ -71,7 +71,7 @@ public class RouteConstraintTests
     /// body, from a route that matched perfectly. Found by adding the first constrained route to
     /// this fixture.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ACatchAllTokenBindsFromThePath(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/binding/files/a/b/c.txt");

@@ -60,7 +60,7 @@ public class DeclaredHeaderDocumentTests
     /// carries the header. A handler returning a plain value carries nothing, and the trial's
     /// throws-mode arm found no way to say it.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AHandlerDeclaresTheHeaderItWrites(ITestWebApp app)
     {
         var created = (await Operation(app, "/declared-header/notes", "post"))
@@ -88,7 +88,7 @@ public class DeclaredHeaderDocumentTests
     }
 
     /// <summary>And the value reaches the wire, so the document is describing something real.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheDeclaredHeaderIsTheOneTheHandlerSends(ITestWebApp app)
     {
         var response = await app.Post(new { }, "/declared-header/notes");
@@ -101,7 +101,7 @@ public class DeclaredHeaderDocumentTests
     /// <c>[ConditionalGet]</c> publishes the 304 it answers, the <c>ETag</c> it writes and the
     /// conditional headers it reads.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AConditionalGetPublishesWhatItAnswersAndReads(ITestWebApp app)
     {
         var read = await Operation(app, "/declared-header/notes", "get");
@@ -136,7 +136,7 @@ public class DeclaredHeaderDocumentTests
     /// class-level <c>[ConditionalGet]</c> would publish a 304 it cannot answer and a header
     /// nothing reads - which is the same defect as publishing nothing, with the sign flipped.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AWriteUnderTheSameClassPublishesNoConditionalRequest(ITestWebApp app)
     {
         var write = await Operation(app, "/declared-header/notes", "post");
@@ -155,7 +155,7 @@ public class DeclaredHeaderDocumentTests
     /// 200, 304 and 504 published <c>200, 504, 304</c>. The declared half has always been sorted;
     /// this is the other half agreeing with it.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ResponsesAreInStatusOrder(ITestWebApp app)
     {
         var response = await app.Get("/openapi.json");

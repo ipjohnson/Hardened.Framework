@@ -1,5 +1,5 @@
+using DependencyModules.xUnit.Attributes;
 using Hardened.IntegrationTests.AzureHttp.SUT;
-using Hardened.Shared.Testing.Attributes;
 using Hardened.Web.Testing;
 using Xunit;
 
@@ -18,7 +18,7 @@ namespace Hardened.IntegrationTests.AzureHttp.SUT.Tests;
 /// </summary>
 public class HttpFunctionTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task AGetReachesItsHandlerWithThePathToken(ITestWebApp app)
     {
         var response = await app.Get("/orders/o-1");
@@ -31,7 +31,7 @@ public class HttpFunctionTests
         Assert.Equal(7, order.Quantity);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task APostBindsItsBody(ITestWebApp app)
     {
         var response = await app.Post(new Order { Id = "o-2", Quantity = 3 }, "/orders");
@@ -46,7 +46,7 @@ public class HttpFunctionTests
     /// The verb is part of the route, so the same path under a different method is a different
     /// handler - and a void one answers without a body.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ADeleteOnTheSamePathReachesADifferentHandler(ITestWebApp app)
     {
         var response = await app.Delete("/orders/o-1");
@@ -58,7 +58,7 @@ public class HttpFunctionTests
     /// The 404 an unmatched path has to be. The response's status is null until something sets
     /// it, so the not-found handler can tell an unmatched route from an answered one.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnUnmatchedPathIsA404(ITestWebApp app)
     {
         var response = await app.Get("/nothing-here");

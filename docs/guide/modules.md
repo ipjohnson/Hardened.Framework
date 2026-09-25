@@ -283,7 +283,7 @@ When a startup service throws, the call that runs the startup services throws. O
 `StartAsync` throws the exception. On ASP.NET Core, `UseHardened` throws an `AggregateException`
 that wraps it.
 
-In a `[HardenedTest]`, the startup services run before the test method. [Hosts](/guide/hosts) covers
+In a `[ModuleTest]`, the startup services run before the test method. [Hosts](/guide/hosts) covers
 when each host runs the startup services. A startup service can register a filter for every handler.
 [The execution pipeline](/guide/execution-pipeline) covers it.
 

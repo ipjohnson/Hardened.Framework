@@ -215,7 +215,7 @@ the testing package report the other as a warning.
 | Id | Severity | Reported when | Reported by | Page |
 |---|---|---|---|---|
 | `HRDT001` | Error | `[Throws<T>]` names a type without `[HttpStatus]` and states no status | Generator | [Declared responses](/guide/responses) |
-| `HRDT001` | Warning | A test project references `Hardened.Shared.Testing` and neither `Hardened.Shared.Testing.xUnit` nor `Hardened.Shared.Testing.NUnit` | Package targets | [Writing a test](/guide/testing) |
+| `HRDT001` | Warning | A test project references `Hardened.Shared.Testing` and none of `DependencyModules.xUnit`, `DependencyModules.xUnit4` and `DependencyModules.NUnit` | Package targets | [Writing a test](/guide/testing) |
 
 ## HRDSC
 

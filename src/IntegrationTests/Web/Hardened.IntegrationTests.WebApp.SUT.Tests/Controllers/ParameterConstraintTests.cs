@@ -33,7 +33,7 @@ public class ParameterConstraintTests
 
     // ---------------------------------------------------------------- query
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ABoundOnAQueryValueIsEnforced(ITestWebApp testWebApp)
     {
         var refused = Refusal(await testWebApp.Get("/constraints/precision?precision=9"));
@@ -50,7 +50,7 @@ public class ParameterConstraintTests
     // ---------------------------------------------------------------- header
 
     /// <summary>Pathed under the header's own name, which is what the caller sent.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ALengthOnAHeaderIsPathedUnderTheHeaderName(ITestWebApp testWebApp)
     {
         var refused = Refusal(
@@ -73,7 +73,7 @@ public class ParameterConstraintTests
     /// not an integer reaches no route, which is a 404; an integer outside the bound reaches the
     /// route and is refused, which is a 400.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ABoundOnAPathTokenSitsBehindItsRouteConstraint(ITestWebApp testWebApp)
     {
         var noRoute = await testWebApp.Get("/constraints/page/abc");
@@ -93,7 +93,7 @@ public class ParameterConstraintTests
 
     // ---------------------------------------------------------------- required and pattern
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AQueryValueTheCallerMustSendIsReportedWhenAbsent(ITestWebApp testWebApp)
     {
         var absent = Refusal(await testWebApp.Get("/constraints/tagged"));
@@ -117,7 +117,7 @@ public class ParameterConstraintTests
     /// The other half of the same declaration: the document repeats the constraint as the facet it
     /// came from, so a generated client and a reader are told what the server enforces.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheDocumentPublishesTheConstraintsAsFacets(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/openapi.json");

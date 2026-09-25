@@ -6,7 +6,7 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 
 public class MathControllerTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task MathIntAdd(ITestWebApp testWebApp)
     {
         var model = new MathAddModel
@@ -22,7 +22,7 @@ public class MathControllerTests
         Assert.Equal(60, value);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task MathIntAddMock(ITestWebApp testWebApp, [Mock] IMathService<int> mockService)
     {
         mockService.Add(Arg.Any<int[]>()).Returns(100);

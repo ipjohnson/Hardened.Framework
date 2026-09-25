@@ -11,7 +11,7 @@ namespace Hardened.IntegrationTests.RegisteredRoutes.SUT.Tests;
 /// </remarks>
 public class RegisteredRouteTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheAttributeRouteStillAnswers(ITestWebApp app)
     {
         var response = await app.Get("/registered/orders/7");
@@ -20,7 +20,7 @@ public class RegisteredRouteTests
         Assert.Equal(7, response.Deserialize<Order>().Id);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ARegisteredPathReachesTheSameHandler(ITestWebApp app)
     {
         var response = await app.Get("/registered/acme/orders/7");
@@ -29,7 +29,7 @@ public class RegisteredRouteTests
         Assert.Equal(7, response.Deserialize<Order>().Id);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task EveryRegisteredPathAnswers(ITestWebApp app)
     {
         Assert.Equal(200, (await app.Get("/registered/acme/orders/1")).StatusCode);
@@ -40,7 +40,7 @@ public class RegisteredRouteTests
     /// The token is bound by name rather than by position, which is what lets a handler compiled
     /// for <c>/orders/{id}</c> answer at <c>/acme/orders/{id}</c> without being told.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheTokenBindsFromTheRegisteredTemplate(ITestWebApp app)
     {
         var response = await app.Get("/registered/globex/orders/42");
@@ -48,7 +48,7 @@ public class RegisteredRouteTests
         Assert.Equal(42, response.Deserialize<Order>().Id);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AConstraintOnARegisteredPathStillGuards(ITestWebApp app)
     {
         var response = await app.Get("/registered/acme/orders/not-a-number");
@@ -56,7 +56,7 @@ public class RegisteredRouteTests
         Assert.Equal(404, response.StatusCode);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ARegisteredCatchAllTakesTheRestOfThePath(ITestWebApp app)
     {
         var response = await app.Get("/registered/acme/files/css/site.css");
@@ -65,7 +65,7 @@ public class RegisteredRouteTests
         Assert.Contains("css/site.css", await response.ReadTextAsync());
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ARegisteredRouteAnswers405LikeAnyOther(ITestWebApp app)
     {
         var response = await app.Delete("/registered/acme/orders");
@@ -74,7 +74,7 @@ public class RegisteredRouteTests
         Assert.Contains("POST", response.Headers["Allow"].ToString());
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ARegisteredBodyRouteDeserializesItsBody(ITestWebApp app)
     {
         var response = await app.Post(new Order(3, "acme"), "/registered/acme/orders");
@@ -83,7 +83,7 @@ public class RegisteredRouteTests
         Assert.Equal(3, response.Deserialize<Order>().Id);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task APathNobodyRegisteredIsStillANotFound(ITestWebApp app)
     {
         var response = await app.Get("/registered/nowhere/orders/1");
@@ -95,7 +95,7 @@ public class RegisteredRouteTests
     /// The lambda closes over the tenant, which is the whole reason the closure has to survive into
     /// the handler. Nothing resolves it and nothing could have replaced it with a call to a method.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ALambdaRegistrationAnswers(ITestWebApp app)
     {
         var response = await app.Get("/registered/acme/ping/7");
@@ -111,7 +111,7 @@ public class RegisteredRouteTests
     /// <remarks>
     /// One lambda, registered once per tenant, closing over a different value each time.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task EachRegistrationKeepsItsOwnClosure(ITestWebApp app)
     {
         Assert.Equal(
@@ -128,7 +128,7 @@ public class RegisteredRouteTests
     /// The token is bound by name from the registered template, the same way the controller form
     /// binds - which is what the type-first classification has to agree with.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ALambdaParameterBindsFromThePath(ITestWebApp app)
     {
         Assert.Equal(42, (await app.Get("/registered/acme/ping/42")).Deserialize<Order>().Id);
@@ -138,7 +138,7 @@ public class RegisteredRouteTests
     /// A service parameter and a body parameter, classified by type because there is no template to
     /// classify them against. Neither is a path token, and both arrive.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ALambdaTakesAServiceAndABody(ITestWebApp app)
     {
         var response = await app.Post(new Order(9, "ignored"), "/registered/acme/echo");
@@ -155,13 +155,13 @@ public class RegisteredRouteTests
     /// Map names its verb in the call, which has to be a constant: the verb is written into the
     /// handler's own information and into the table the route joins.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task MapRegistersTheVerbItNames(ITestWebApp app)
     {
         Assert.Equal(200, (await app.Delete("/registered/acme/orders/3")).StatusCode);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AConstraintGuardsALambdaRouteToo(ITestWebApp app)
     {
         Assert.Equal(404, (await app.Get("/registered/acme/ping/not-a-number")).StatusCode);
@@ -172,7 +172,7 @@ public class RegisteredRouteTests
     /// its own. Nothing puts an entry point in the container, so this only answers because the
     /// generator registers every implementer it finds.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheEntryPointCanRegisterRoutesItself(ITestWebApp app)
     {
         var response = await app.Get("/registered/module/orders/5");
@@ -185,7 +185,7 @@ public class RegisteredRouteTests
     /// <c>TenantRoutes</c> carries no <c>[SingletonService]</c>. Implementing the interface is the
     /// whole declaration.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnUnattributedRegistrationStillRuns(ITestWebApp app)
     {
         Assert.Equal(200, (await app.Get("/registered/acme/orders/1")).StatusCode);
@@ -196,7 +196,7 @@ public class RegisteredRouteTests
     /// declared with. Everything that reads <c>IExecutionRequestHandlerInfo.Path</c> - a filter, an
     /// authorization convention, a log line - depends on that.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheHandlerReportsThePathItAnsweredAt(ITestWebApp app)
     {
         var response = await app.Get("/registered/acme/orders/1");
@@ -208,7 +208,7 @@ public class RegisteredRouteTests
     /// The media type the lambda declares is what it answers under. Without it a string is a JSON
     /// string, quotes included, which is what this route answered while the attribute went unread.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AMediaTypeDeclaredOnALambdaReachesTheWire(ITestWebApp app)
     {
         var response = await app.Get("/registered/acme/label/7");
@@ -225,7 +225,7 @@ public class RegisteredRouteTests
     /// <c>OrderCard</c> writes the id alone. The tenant is in the model and not on the page, so a
     /// response carrying it is the serializer answering in the view's place.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AViewNamedOnALambdaWritesTheResponse(ITestWebApp app)
     {
         var response = await app.Get("/registered/acme/card/7");
@@ -242,7 +242,7 @@ public class RegisteredRouteTests
     /// An output takes the response out of negotiation: a client asking for JSON is answered the
     /// page rather than the model, because falling back to the model is what would disclose it.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AViewAnswersACallerAskingForJson(ITestWebApp app)
     {
         var response = await app.Get(

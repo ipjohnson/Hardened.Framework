@@ -1,6 +1,6 @@
 using DependencyModules.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Hardened.IntegrationTests.S3.SUT;
-using Hardened.Shared.Testing.Attributes;
 using NSubstitute;
 using Xunit;
 
@@ -12,7 +12,7 @@ namespace Hardened.IntegrationTests.S3.SUT.Tests;
 /// </summary>
 public class BlobTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task ANotificationReachesTheHandler(
         BlobTestApp.Blobs blobs,
         [Mock] IUploadSink sink
@@ -31,7 +31,7 @@ public class BlobTests
     /// The delivery encodes the key the way S3 does, so a space is a plus on the wire. A handler
     /// seeing the plus would fetch an object that does not exist.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AKeyWithASpaceArrivesDecoded(BlobTestApp.Blobs blobs, [Mock] IUploadSink sink)
     {
         await blobs.Uploads(new Upload { Key = "my report.pdf" });
@@ -42,7 +42,7 @@ public class BlobTests
     /// <summary>
     /// The bucket the notification names reaches the handler, not the one the attribute declared.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheBucketComesFromTheNotification(
         BlobTestApp.Blobs blobs,
         [Mock] IUploadSink sink
@@ -53,7 +53,7 @@ public class BlobTests
         sink.Received().Arrived(Arg.Is<Upload>(upload => upload.Bucket == "uploads"));
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task EveryNotificationInABatchIsHandledSeparately(
         BlobTestApp.Blobs blobs,
         [Mock] IUploadSink sink
@@ -72,7 +72,7 @@ public class BlobTests
     /// <summary>
     /// S3 reads no response, so a failed notification has to fail the invocation.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AFailedNotificationFailsTheInvocation(
         BlobTestApp.Blobs blobs,
         [Mock] IUploadSink sink

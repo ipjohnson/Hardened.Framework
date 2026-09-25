@@ -22,7 +22,7 @@ namespace Hardened.IntegrationTests.OpenApi.ResponseModel.SUT.Tests;
 /// </remarks>
 public class ScalarSuccessBodyTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task AScalarSuccessCarriesItsBody(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/labels/7");
@@ -38,7 +38,7 @@ public class ScalarSuccessBodyTests
     /// travelling the returned path: the error representation is in the declared set, so the JSON
     /// body resolves a serializer on an operation whose success is text.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AReturnedNotFoundCaseAnswersAsJson(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/labels/missing");
@@ -60,7 +60,7 @@ public class ScalarSuccessBodyTests
     /// A client asking for the text specifically still gets it, so the error entry appended to
     /// the declared set did not take the success over.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AskingForTextStillAnswersText(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get(
@@ -77,7 +77,7 @@ public class ScalarSuccessBodyTests
     /// The bodyless case stays bodyless. hasBody keyed on more than the schema must not start
     /// serializing into a 204.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ANoContentCaseStillSerializesNothing(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post("", "/labels/7/archive");
@@ -86,7 +86,7 @@ public class ScalarSuccessBodyTests
         Assert.Equal("", await Body(response));
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ANoContentOperationStillAnswersItsReturnedNotFound(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post("", "/labels/missing/archive");

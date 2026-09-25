@@ -17,7 +17,7 @@ public class HeadRequestTests
 {
     private const string Path = "/binding/path/42";
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task Head_ReachesTheGetHandler(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Request("HEAD", null, Path);
@@ -25,7 +25,7 @@ public class HeadRequestTests
         response.Assert.Ok();
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task Head_WritesNoBody(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Request("HEAD", null, Path);
@@ -33,7 +33,7 @@ public class HeadRequestTests
         Assert.Equal(0, response.Body.Length);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task Head_ReportsTheLengthTheGetWouldHaveWritten(ITestWebApp testWebApp)
     {
         var get = await testWebApp.Get(Path);
@@ -42,7 +42,7 @@ public class HeadRequestTests
         Assert.Equal(get.Body.Length.ToString(), head.Headers["Content-Length"].ToString());
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task Head_CarriesTheContentTypeOfTheGet(ITestWebApp testWebApp)
     {
         var get = await testWebApp.Get(Path);
@@ -59,7 +59,7 @@ public class HeadRequestTests
     /// table - a switch inside the wildcard match method rather than the leaf switch - so the
     /// fall-through has to be emitted in both.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task Head_ReachesAHandlerBehindAWildcardNode(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Request("HEAD", null, "/verbs/item/abc123");

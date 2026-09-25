@@ -36,7 +36,7 @@ public class ContentNegotiationTests
     /// <summary>
     /// No <c>Accept</c> means "whatever you have", and what this operation has is text.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task NoAcceptHeaderAnswersTheFirstDeclaredType(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/pets/plain");
@@ -48,7 +48,7 @@ public class ContentNegotiationTests
     }
 
     /// <summary>And <c>*/*</c> says the same thing explicitly.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnyMediaTypeAnswersTheFirstDeclaredType(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/pets/plain", Accepting("*/*"));
@@ -58,7 +58,7 @@ public class ContentNegotiationTests
         Assert.Equal("text/plain", response.Headers["Content-Type"]);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnExplicitMatchIsHonoured(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/pets/plain", Accepting("text/plain"));
@@ -76,7 +76,7 @@ public class ContentNegotiationTests
     /// prefers JSON and will take text. It gets text, because that is the overlap - a 406 here would
     /// refuse a client that said outright it could read the answer.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AClientListingSeveralGetsTheOneOnOffer(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get(
@@ -97,7 +97,7 @@ public class ContentNegotiationTests
     /// strict. 406 is the transport telling a client its <c>Accept</c> named nothing that exists -
     /// nothing about it is the document's to declare, which is why it is not derived from one.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AClientAskingOnlyForSomethingElseGets406(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/pets/plain", Accepting("application/json"));
@@ -112,7 +112,7 @@ public class ContentNegotiationTests
     /// The client already knows what it asked for, so naming the alternatives tells it nothing it
     /// could not read in the document - and saves it a round trip through the document to find out.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task The406NamesWhatTheOperationProduces(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/pets/plain", Accepting("application/json"));
@@ -126,7 +126,7 @@ public class ContentNegotiationTests
     /// <summary>
     /// An operation declaring JSON still answers JSON, which is most of them.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AJsonOperationIsUnaffected(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/pets", Accepting("application/json"));
@@ -139,7 +139,7 @@ public class ContentNegotiationTests
     /// <summary>
     /// And so does one asked with no preference at all.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AJsonOperationWithNoAcceptHeaderIsUnaffected(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/pets");

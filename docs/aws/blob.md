@@ -325,14 +325,14 @@ The template writes this test in `tests/Orders.Tests/OrderHandlerTests.cs`. It s
 through the `Application.Blobs` façade.
 
 ```csharp
-using Hardened.Shared.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Xunit;
 
 namespace Orders.Tests;
 
 public class OrderHandlerTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task ANotificationReachesTheHandler(Application.Blobs blobs, OrderLog log)
     {
         await blobs.Uploads(new Upload { Key = "report.pdf", Size = 1024 });

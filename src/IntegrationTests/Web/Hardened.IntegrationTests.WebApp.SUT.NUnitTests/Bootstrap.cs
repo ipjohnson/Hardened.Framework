@@ -7,8 +7,8 @@ using Hardened.Web.AspNetCore.Testing;
 using Hardened.Web.Kestrel.Testing;
 using Hardened.Web.Testing;
 
-// The same four lines the xUnit project declares. Nothing here names a runner; [HardenedTest]
-// does, and here it is Hardened.Shared.Testing.NUnit's.
+// The same four lines the xUnit project declares. Nothing here names a runner; [ModuleTest]
+// does, and here it is DependencyModules.NUnit's.
 [assembly: WebTesting]
 [assembly: HardenedTestEntryPoint(typeof(Application))]
 

@@ -20,7 +20,7 @@ namespace Hardened.IntegrationTests.Smithy.SUT.Tests;
 /// </remarks>
 public class SmithyResponseHeaderTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task CreatePet_SendsTheHeaderTheModelBinds(ITestWebApp app)
     {
         var response = await app.Post(new { name = "Whiskers", kind = "cat" }, "/pets");
@@ -38,7 +38,7 @@ public class SmithyResponseHeaderTests
     /// collecting the header while leaving the member in the schema would send the value twice and
     /// pass the assertion above.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task CreatePet_DoesNotAlsoSendTheHeaderInTheBody(ITestWebApp app)
     {
         var response = await app.Post(new { name = "Whiskers", kind = "cat" }, "/pets");
@@ -54,7 +54,7 @@ public class SmithyResponseHeaderTests
     /// <summary>
     /// An operation binding no header is untouched.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task GetPet_SendsNoLocation(ITestWebApp app)
     {
         var response = await app.Get("/pets/1");

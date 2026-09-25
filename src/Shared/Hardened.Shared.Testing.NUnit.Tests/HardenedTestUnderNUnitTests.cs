@@ -1,29 +1,31 @@
 using System.Reflection;
+using DependencyModules.NUnit.Attributes;
 using DependencyModules.Testing.Attributes;
+using DependencyModules.Testing.Impl;
 using Hardened.Shared.Runtime.Application;
 using Hardened.Shared.Testing.Attributes;
-using Hardened.Shared.Testing.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 using NUnit.Framework;
+using NUnit.Framework.Internal;
 
 namespace Hardened.Shared.Testing.NUnit.Tests;
 
 /// <summary>
-/// A <c>[HardenedTest]</c> reads the same under NUnit: the container is the entry point's, a
-/// parameter is resolved from it, a <c>[Mock]</c> beats the application's registration, and the
-/// runner seam names the running test.
+/// A <c>[ModuleTest]</c> reads the same under NUnit: the container is the entry point's, a
+/// parameter is resolved from it, a <c>[Mock]</c> beats the application's registration, and
+/// <see cref="CurrentTest"/> names the running test.
 /// </summary>
 public class HardenedTestUnderNUnitTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public void AParameterIsResolvedFromTheEntryPointsContainer(IGreetingService greeting)
     {
         Assert.That(greeting.Greet("world"), Is.EqualTo("real hello world"));
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public void AMockBeatsTheApplicationsRegistration(
         [Mock] IGreetingService greeting,
         IServiceProvider provider
@@ -35,7 +37,7 @@ public class HardenedTestUnderNUnitTests
         Assert.That(greeting.Greet("world"), Is.EqualTo("substitute hello world"));
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public void TheEnvironmentIsTheOneTheAssemblyDeclares(
         IHardenedEnvironment environment,
         ITestContext context
@@ -45,10 +47,14 @@ public class HardenedTestUnderNUnitTests
         Assert.That(context.Logger, Is.Not.Null);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public void TheRunningTestIsKeyedAndNamed()
     {
-        Assert.That(CurrentTest.Provider, Is.TypeOf<NUnitCurrentTestProvider>());
+        Assert.That(
+            CurrentTest.Provider?.GetType().Assembly,
+            Is.SameAs(typeof(ModuleTestAttribute).Assembly),
+            "the provider is DependencyModules.NUnit's"
+        );
         Assert.That(CurrentTest.Key, Is.Not.Null);
         Assert.That(
             CurrentTest.Key,
@@ -60,7 +66,7 @@ public class HardenedTestUnderNUnitTests
     }
 
     /// <summary>The key flows through async code, as an assertion after an await needs it to.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheKeySurvivesAnAwait()
     {
         var before = CurrentTest.Key;
@@ -70,10 +76,18 @@ public class HardenedTestUnderNUnitTests
         Assert.That(CurrentTest.Key, Is.SameAs(before));
     }
 
-    [HardenedTest]
-    public void TheLoggerProviderIsNUnits(IEnumerable<ILoggerProvider> providers)
+    /// <summary>The application's log reaches NUnit's output for the test, as JSON.</summary>
+    [ModuleTest]
+    public void TheApplicationsLogIsWrittenToTheTestOutput(
+        ILogger<HardenedTestUnderNUnitTests> logger
+    )
     {
-        Assert.That(providers.Single(), Is.TypeOf<NUnitLoggerProvider>());
+        logger.LogInformation("Order {OrderId} accepted", 42);
+
+        Assert.That(
+            TestExecutionContext.CurrentContext.CurrentResult.Output,
+            Does.Contain("\"message\": \"Order 42 accepted\"")
+        );
     }
 
     /// <summary>
@@ -96,8 +110,8 @@ public class HardenedTestUnderNUnitTests
 }
 
 /// <summary>
-/// Two tests see two containers, and the first's is disposed by the time the second runs: NUnit's
-/// runner disposes the provider in its own <c>finally</c> around the test.
+/// Two tests see two containers, and the first's is disposed by the time the second runs:
+/// DependencyModules.NUnit disposes the provider in its own <c>finally</c> around the test.
 /// </summary>
 public class ContainerPerTestTests
 {
@@ -107,11 +121,11 @@ public class ContainerPerTestTests
 
     private static readonly List<TrackedDisposable> EarlierDisposables = [];
 
-    [HardenedTest]
+    [ModuleTest]
     [TrackedDisposable]
     public void TheFirstOfTwo(TrackedDisposable tracked) => Check(tracked);
 
-    [HardenedTest]
+    [ModuleTest]
     [TrackedDisposable]
     public void TheSecondOfTwo(TrackedDisposable tracked) => Check(tracked);
 

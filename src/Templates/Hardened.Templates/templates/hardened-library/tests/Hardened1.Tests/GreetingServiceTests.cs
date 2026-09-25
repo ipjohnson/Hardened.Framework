@@ -11,12 +11,12 @@ using FakeItEasy;
 namespace Hardened1.Tests;
 
 /// <summary>
-/// [HardenedTest] boots the module and resolves the test's parameters from its container, so what
+/// [ModuleTest] boots the module and resolves the test's parameters from its container, so what
 /// runs is the registration a consuming application would get rather than a fresh `new`.
 /// </summary>
 public class GreetingServiceTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public void GreetsByName(IGreetingService greeting)
     {
 #if (xunit)
@@ -39,7 +39,7 @@ public class GreetingServiceTests
     /// substitute, because the substitution happened in the container rather than in this test.
     /// That is what makes it worth writing: the wiring under test is the application's.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
 #if (moq)
     public void ASubstitutedDependencyIsUsedByTheRealService(
         IGreetingService greeting,

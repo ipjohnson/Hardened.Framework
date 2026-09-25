@@ -602,13 +602,14 @@ itself, because the Sdk is a build-time package the application has to own.
 
 ### HRDT001 — a test project references no runner package
 
-Raised by `Hardened.Shared.Testing`'s targets rather than by a generator. `[HardenedTest]` ships in
-`Hardened.Shared.Testing.xUnit` and `Hardened.Shared.Testing.NUnit`; the neutral package holds the
-entry point attribute, `ITestContext` and the seam a runner fills. A project on the layout that
-predates the split gets one `CS0246` per test method — forty across four projects in one migration,
-all saying the same thing and none of them saying which package to add.
+Raised by `Hardened.Shared.Testing`'s targets rather than by a generator. `[ModuleTest]` ships in
+the DependencyModules runner packages, `DependencyModules.xUnit`, `DependencyModules.xUnit4` and
+`DependencyModules.NUnit`; the neutral package holds the entry point attribute, `ITestContext` and
+the logger that writes to the test's output. A project without a runner package gets one `CS0246`
+per test method — forty across four projects in the migration that split the runner out, all
+saying the same thing and none of them saying which package to add.
 
-A warning, because referencing the neutral package without writing a `[HardenedTest]` is
+A warning, because referencing the neutral package without writing a `[ModuleTest]` is
 legitimate.
 
 ## Description build tasks (HOAT, HSMT)

@@ -1,6 +1,6 @@
 using DependencyModules.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Hardened.IntegrationTests.DynamoDb.SUT;
-using Hardened.Shared.Testing.Attributes;
 using NSubstitute;
 using Xunit;
 
@@ -22,7 +22,7 @@ public class ChangeTests
     /// The claim the adapter rests on: a handler that names a table and binds a plain type is
     /// reached with the row, and never sees an AttributeValue.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AChangeReachesTheHandlerAsThePlainRow(
         ChangeTestApp.Changes changes,
         [Mock] IOrderProjection projection
@@ -50,7 +50,7 @@ public class ChangeTests
     /// One invocation, one handler call per change. The route was chosen once from the table the
     /// batch arrived against; the fan-out is the filter.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task EveryChangeInABatchIsHandledSeparately(
         ChangeTestApp.Changes changes,
         [Mock] IOrderProjection projection
@@ -70,7 +70,7 @@ public class ChangeTests
     /// Each fork binds its own record's image, so a handler sees the row that changed rather than
     /// the batch it arrived in.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task EachChangeBindsItsOwnImage(
         ChangeTestApp.Changes changes,
         [Mock] IOrderProjection projection
@@ -92,7 +92,7 @@ public class ChangeTests
     /// The half of the record the bound parameter cannot express. It arrives off the request rather
     /// than off a singleton holding "the record being handled", which is what Hardened.Amz did.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheRawImageIsReachableThroughNewImage(
         ChangeTestApp.Changes changes,
         [Mock] IOrderProjection projection
@@ -114,7 +114,7 @@ public class ChangeTests
     /// default, because a report sent to a mapping that did not ask for one is discarded - a failed
     /// change has to take the whole batch with it.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AFailedChangeFailsTheInvocation(
         ChangeTestApp.Changes changes,
         [Mock] IOrderProjection projection

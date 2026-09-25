@@ -21,7 +21,7 @@ public class PlainTextErrorResponseTests
     /// The ordering half of the fix: the success representation still leads the declared set, so
     /// a client with no preference gets the text, not the JSON the errors added.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheSuccessStillLeadsTheDeclaredSet(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/pets/7/label");
@@ -32,7 +32,7 @@ public class PlainTextErrorResponseTests
         Assert.Equal("Pet 7", await Body(response));
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheDeclaredNotFoundAnswersAsJson(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/pets/missing/label");
@@ -52,7 +52,7 @@ public class PlainTextErrorResponseTests
     /// does not parse answers the standard 400 envelope, in JSON, on an operation that produces
     /// text.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ABindingFailureAnswersTheValidationEnvelopeAsJson(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/pets/7/label?copies=abc");

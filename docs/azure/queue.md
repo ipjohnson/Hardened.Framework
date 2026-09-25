@@ -443,14 +443,14 @@ covers it. The template's test project declares `[assembly: AzureFunctionsTestin
 for `--trigger queue`:
 
 ```csharp
-using Hardened.Shared.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Xunit;
 
 namespace Orders.Tests;
 
 public class OrderHandlerTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task AMessageReachesTheHandler(Application.Queues queues, OrderLog log)
     {
         await queues.Orders(new Order { Id = "A-1", Quantity = 2 });
@@ -458,7 +458,7 @@ public class OrderHandlerTests
         Assert.Equal("A-1", Assert.Single(log.Orders).Id);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task EveryMessageInABatchIsHandled(Application.Queues queues, OrderLog log)
     {
         await queues.Orders(

@@ -1,6 +1,6 @@
 using DependencyModules.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Hardened.IntegrationTests.AzureChange.SUT;
-using Hardened.Shared.Testing.Attributes;
 using NSubstitute;
 using Xunit;
 
@@ -24,7 +24,7 @@ public class ChangeTests
     /// The claim the adapter rests on: a handler that names a container and binds a plain type is
     /// reached with the document, and never sees the feed.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AChangeReachesTheHandlerAsThePlainDocument(
         AzureChangeTestApp.Changes changes,
         [Mock] IOrderProjection projection
@@ -52,7 +52,7 @@ public class ChangeTests
     /// One invocation, one handler call per change. The route was chosen once from the container
     /// the batch arrived against; the fan-out is the filter.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task EveryChangeInABatchIsHandledSeparately(
         AzureChangeTestApp.Changes changes,
         [Mock] IOrderProjection projection
@@ -72,7 +72,7 @@ public class ChangeTests
     /// Each fork binds its own document, so a handler sees the document that changed rather than
     /// the batch it arrived in.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task EachChangeBindsItsOwnDocument(
         AzureChangeTestApp.Changes changes,
         [Mock] IOrderProjection projection
@@ -91,7 +91,7 @@ public class ChangeTests
     /// One container is one route: a change on the audit container reaches its own handler and
     /// not the orders one.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AChangeOnAnotherContainerReachesItsOwnHandler(
         AzureChangeTestApp.Changes changes,
         [Mock] IOrderProjection projection
@@ -108,7 +108,7 @@ public class ChangeTests
     /// app retries. Nothing reports individual changes, so a failed change has to take the whole
     /// batch with it.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AFailedChangeFailsTheInvocation(
         AzureChangeTestApp.Changes changes,
         [Mock] IOrderProjection projection

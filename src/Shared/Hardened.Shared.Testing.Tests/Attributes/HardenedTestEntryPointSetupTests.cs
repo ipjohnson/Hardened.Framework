@@ -1,9 +1,10 @@
+using System.Runtime.CompilerServices;
 using DependencyModules.Runtime.Interfaces;
+using DependencyModules.xUnit.Attributes;
 using Hardened.Shared.Runtime.Application;
 using Hardened.Shared.Runtime.Configuration;
 using Hardened.Shared.Testing.Attributes;
 using Hardened.Shared.Testing.Impl;
-using Hardened.Shared.Testing.Logging;
 using Hardened.Shared.Testing.Tests.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -18,7 +19,7 @@ namespace Hardened.Shared.Testing.Tests.Attributes;
 /// for the test's parameters to be resolved from.
 /// </summary>
 /// <remarks>
-/// Driven directly rather than through <c>[HardenedTest]</c>. The attribute's whole job is to decide
+/// Driven directly rather than through <c>[ModuleTest]</c>. The attribute's whole job is to decide
 /// what a test can see, so a test that could only observe it from inside the container it built
 /// would be reporting on itself — a hook that silently never ran would leave the assertion looking
 /// at exactly the same container as one that did.
@@ -34,9 +35,10 @@ public class HardenedTestEntryPointSetupTests
         collection.AddSingleton(new StartupLog());
         beforeSetup?.Invoke(collection);
 
-        // Driven directly, so nothing has loaded the runner package for this test; the attribute
-        // registers the logger provider of whatever runner is installed.
-        XunitCurrentTestProvider.Install();
+        // The attribute registers a logger provider only when a running-test provider is
+        // installed. DependencyModules.xUnit installs one from this static constructor, and a test
+        // that drives the attribute directly cannot rely on xUnit having run it first.
+        RuntimeHelpers.RunClassConstructor(typeof(ModuleTestAttribute).TypeHandle);
 
         new HardenedTestEntryPointAttribute(
             typeof(AssemblyEntryPointModule)
@@ -427,7 +429,7 @@ public class HardenedTestEntryPointSetupTests
     }
 
     /// <summary>
-    /// Logging is redirected to xUnit's output, and any provider the application registered is
+    /// Logging is redirected to the test's output, and any provider the application registered is
     /// removed rather than added to — otherwise a test run writes to the application's real sinks.
     /// </summary>
     [Fact]
@@ -438,7 +440,9 @@ public class HardenedTestEntryPointSetupTests
             collection => collection.AddSingleton<ILoggerProvider, UnwantedLoggerProvider>()
         );
 
-        Assert.IsType<XunitLoggerProvider>(Assert.Single(provider.GetServices<ILoggerProvider>()));
+        Assert.IsNotType<UnwantedLoggerProvider>(
+            Assert.Single(provider.GetServices<ILoggerProvider>())
+        );
     }
 
     [Fact]

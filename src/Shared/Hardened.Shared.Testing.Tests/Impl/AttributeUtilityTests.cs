@@ -7,7 +7,7 @@ using Xunit;
 namespace Hardened.Shared.Testing.Tests.Impl;
 
 /// <summary>
-/// The reflection walk that feeds the attribute stack behind <c>[HardenedTest]</c>.
+/// The reflection walk that feeds the attribute stack behind <c>[ModuleTest]</c>.
 /// </summary>
 /// <remarks>
 /// <para>

@@ -27,7 +27,7 @@ public class CorsTests
             );
         };
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ADeclaringRouteAnswersAnAllowedOrigin(ITestWebApp app)
     {
         var response = await app.Get("/cors/greeting", From(Allowed));
@@ -44,7 +44,7 @@ public class CorsTests
     /// What <c>cors.scoped</c> in RequestBench asks: an origin allowed on the declaring routes gets
     /// nothing from a route outside them.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ARouteThatDeclaresNoneAnswersWithNoCorsHeaders(ITestWebApp app)
     {
         var response = await app.Get("/", From(Allowed));
@@ -53,7 +53,7 @@ public class CorsTests
         Assert.False(response.Headers.ContainsKey(KnownHeaders.Cors.AccessControlAllowOrigin));
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task APreflightForADeclaringRouteIsAnswered(ITestWebApp app)
     {
         var response = await app.Request("OPTIONS", null, "/cors/greeting", PreflightFor("GET"));
@@ -69,7 +69,7 @@ public class CorsTests
         );
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task APreflightForARouteThatDeclaresNoneIsRefused(ITestWebApp app)
     {
         var response = await app.Request("OPTIONS", null, "/", PreflightFor("GET"));
@@ -81,7 +81,7 @@ public class CorsTests
     /// <summary>
     /// The filter runs ahead of validation, so a browser can read the 400 it is sent.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ARefusalOnADeclaringRouteCarriesTheAllowHeader(ITestWebApp app)
     {
         var response = await app.Post("""{"name":"x","age":5}""", "/cors/sign-up", From(Allowed));

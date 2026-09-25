@@ -24,7 +24,7 @@ public class ExportedDocumentTests
     private static string Exported() =>
         File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "openapi", "SmithyTestApp.json"));
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheExportedFileIsTheServedDocument(ITestWebApp app)
     {
         var response = await app.Get("/openapi.json");
@@ -37,7 +37,7 @@ public class ExportedDocumentTests
     }
 
     /// <summary>The file is what a reviewer and a generator read: indented, not the compact literal.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheExportedFileIsIndented(ITestWebApp app)
     {
         var response = await app.Get("/openapi.json");

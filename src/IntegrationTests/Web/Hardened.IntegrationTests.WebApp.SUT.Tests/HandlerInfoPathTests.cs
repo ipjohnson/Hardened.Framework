@@ -37,7 +37,7 @@ public class HandlerInfoPathTests
     /// handler reached through a module base path had it, and a test naming a single path would go
     /// on passing if a second library were added with the same fault.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task EveryHandlerReportsThePathItIsServedAt(
         ITestWebApp testWebApp,
         IGlobalFilterRegistry registry
@@ -54,7 +54,7 @@ public class HandlerInfoPathTests
     /// <summary>
     /// The documented pattern, run as written: a filter that gates on a path prefix.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task APathPrefixFilterMatchesRoutesUnderAModuleBasePath(
         ITestWebApp testWebApp,
         IGlobalFilterRegistry registry
@@ -78,7 +78,7 @@ public class HandlerInfoPathTests
     /// A handler with no module base path is unchanged — it already reported the right path, and
     /// composing an empty prefix must not give it a different one.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AHandlerOutsideAnyModuleBasePathIsUnaffected(
         ITestWebApp testWebApp,
         IGlobalFilterRegistry registry

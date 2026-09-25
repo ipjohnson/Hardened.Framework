@@ -1,15 +1,17 @@
 using System.Runtime.CompilerServices;
-using Hardened.Shared.Testing;
+using DependencyModules.xUnit.Attributes;
 
 namespace Hardened.Refit.Testing.Tests;
 
 /// <summary>
-/// Installs the xUnit running-test seam for this assembly's tests. A test project that declares a
-/// <c>[HardenedTest]</c> gets it from that attribute's assembly; this one drives the harness
-/// directly, so nothing else would load the runner package.
+/// Installs the xUnit running-test seam for this assembly's tests. DependencyModules.xUnit
+/// installs its provider from the static constructor of <see cref="ModuleTestAttribute"/>, which
+/// xUnit runs when it reads a <c>[ModuleTest]</c>. This assembly drives the harness directly and
+/// declares none, so it runs that constructor itself.
 /// </summary>
 internal static class RunnerSeam
 {
     [ModuleInitializer]
-    internal static void Install() => XunitCurrentTestProvider.Install();
+    internal static void Install() =>
+        RuntimeHelpers.RunClassConstructor(typeof(ModuleTestAttribute).TypeHandle);
 }

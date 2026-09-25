@@ -68,7 +68,7 @@ public class ConditionalGetTests
     /// Weak, because the test client accepts gzip and the compression filter weakens the strong
     /// tag the cache wrote as it encodes. A hit carries the same one.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ACachedReadCarriesAValidatorOnTheMissAndTheHit(ITestWebApp testWebApp)
     {
         var miss = await testWebApp.Get(Catalog);
@@ -82,7 +82,7 @@ public class ConditionalGetTests
     /// The comparison the report asked for: <c>[OutputCache]</c> answers a revalidating client
     /// from the entry, and so does this - without the body, and without the handler.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AClientHoldingTheTagIsAnswered304FromTheCache(ITestWebApp testWebApp)
     {
         var miss = await testWebApp.Get(Catalog);
@@ -98,7 +98,7 @@ public class ConditionalGetTests
         Assert.Equal("en-GB-1", again.Deserialize<string>());
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AClientHoldingAStaleTagIsAnsweredInFull(ITestWebApp testWebApp)
     {
         await testWebApp.Get(Catalog);
@@ -114,7 +114,7 @@ public class ConditionalGetTests
     /// A HEAD is revalidated like the GET it stands for, and a 304 reports no length: the count
     /// would be of bytes the filter discarded, not of the body a 200 carries.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AHeadHoldingTheTagIs304WithoutALength(ITestWebApp testWebApp)
     {
         var miss = await testWebApp.Get(Catalog);
@@ -132,7 +132,7 @@ public class ConditionalGetTests
     /// it sends. Strong, because the filter tagged the bytes after the encoder wrote them, so
     /// nothing re-encoded them afterwards.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AHandlerWithNoTagOfItsOwnIsTaggedOverTheBytesItSends(ITestWebApp testWebApp)
     {
         var first = await testWebApp.Get(Generated);
@@ -152,7 +152,7 @@ public class ConditionalGetTests
     /// The tag covers the bytes as sent, so a client that takes the body plain holds a different
     /// tag from one that takes it compressed, and neither is told the other's has not changed.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task EachRepresentationIsRevalidatedAgainstItsOwnTag(ITestWebApp testWebApp)
     {
         var compressed = await testWebApp.Get(Generated);
@@ -168,7 +168,7 @@ public class ConditionalGetTests
         Assert.Equal("generated-en", crossed.Deserialize<string>());
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ADifferentBodyIsADifferentTag(ITestWebApp testWebApp)
     {
         var en = await testWebApp.Get(Generated);
@@ -179,7 +179,7 @@ public class ConditionalGetTests
 
     // ---------------------------------------------------------------- a handler's own validator
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AHandlerThatWritesItsOwnTagIsRevalidatedAgainstIt(ITestWebApp testWebApp)
     {
         var first = await testWebApp.Get(Document);
@@ -200,7 +200,7 @@ public class ConditionalGetTests
         );
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AHandlerThatWritesLastModifiedIsRevalidatedAgainstTheDate(
         ITestWebApp testWebApp
     )
@@ -221,7 +221,7 @@ public class ConditionalGetTests
     /// <summary>
     /// RFC 9110 §13.2.1: the validator outranks the date, including when it does not match.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AStaleTagOutranksASatisfiedDate(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get(
@@ -237,7 +237,7 @@ public class ConditionalGetTests
     /// write it. Skipping the work needs the validator before the handler runs, which is a
     /// different feature.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task A304FromAHandlersOwnTagStillRanTheHandler([Shared] ITestWebApp testWebApp)
     {
         await testWebApp.Get(Document, IfNoneMatch(ConditionalController.Version));
@@ -253,7 +253,7 @@ public class ConditionalGetTests
     /// A handler that declares nothing carries none of this: no tag, and the body whatever the
     /// caller claims to hold.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AHandlerWithoutTheAttributeIsNeitherTaggedNorRevalidated(
         ITestWebApp testWebApp
     )
@@ -271,7 +271,7 @@ public class ConditionalGetTests
     /// is recorded ahead of the conditional stage and written behind it, and the stage reads what
     /// was recorded rather than the tag.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ARefusedCallerHoldingTheTagIsStillRefused(ITestWebApp testWebApp)
     {
         var warm = await testWebApp.Get("/response-cache/granted", Grants("pets:read"));

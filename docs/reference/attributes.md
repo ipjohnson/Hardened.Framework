@@ -24,7 +24,7 @@ The build reads `[FromEnvironmentVariable]` and `[HideConfigurationField]` on a 
 
 ## Services
 
-The service attributes come from DependencyModules. Each one is in the namespace `DependencyModules.Runtime.Attributes`, in the package `DependencyModules.Runtime` 1.5.0. A project that references `Hardened.Shared.Runtime` needs no reference of its own to the package. [Registering services](/guide/services) covers each attribute.
+The service attributes come from DependencyModules. Each one is in the namespace `DependencyModules.Runtime.Attributes`, in the package `DependencyModules.Runtime` 1.7.0. A project that references `Hardened.Shared.Runtime` needs no reference of its own to the package. [Registering services](/guide/services) covers each attribute.
 
 | Attribute | Targets | What it does |
 |---|---|---|
@@ -230,8 +230,8 @@ The build reads `[Enable<TFeature>]` on the module class. `[assembly: Enable<TFe
 
 | Attribute | Targets | Namespace and package | What it does | Page |
 |---|---|---|---|---|
-| `[HardenedTest]` | Method | `Hardened.Shared.Testing.Attributes` in `Hardened.Shared.Testing.xUnit` | Builds the application for the test method and supplies its parameters, under xUnit v3<br>xUnit's `FactAttribute` properties: `DisplayName`, `Skip`, `SkipExceptions`, `SkipType`, `SkipUnless`, `SkipWhen` (none), `Explicit` (`false`), `Timeout` (0) | [Writing a test](/guide/testing) |
-| `[HardenedTest]` | Method | `Hardened.Shared.Testing.Attributes` in `Hardened.Shared.Testing.NUnit` | The same, under NUnit | [Writing a test](/guide/testing) |
+| `[ModuleTest]` | Method | `DependencyModules.xUnit.Attributes` in `DependencyModules.xUnit`, or in `DependencyModules.xUnit4` for `xunit.v3` 4.x | Builds the application for the test method and supplies its parameters, under xUnit v3<br>xUnit's `FactAttribute` properties: `DisplayName`, `Skip`, `SkipExceptions`, `SkipType`, `SkipUnless`, `SkipWhen` (none), `Explicit` (`false`), `Timeout` (0) | [Writing a test](/guide/testing) |
+| `[ModuleTest]` | Method | `DependencyModules.NUnit.Attributes` in `DependencyModules.NUnit` | The same, under NUnit | [Writing a test](/guide/testing) |
 | `[HardenedTestEntryPoint(entryPoint)]`<br>`Type entryPoint` | Class, method, assembly | `Hardened.Shared.Testing.Attributes` in `Hardened.Shared.Testing` | Names the module each test builds | [Writing a test](/guide/testing) |
 | `[EnvironmentName(name)]`<br>`string name` | Any | `Hardened.Shared.Testing.Attributes` in `Hardened.Shared.Testing` | On a test method, its class or the assembly: the name of the test's environment. Without it, `test` | [Writing a test](/guide/testing) |
 | `[EnvironmentValue(variable, value)]`<br>`string variable`, `string value` | Any | `Hardened.Shared.Testing.Attributes` in `Hardened.Shared.Testing` | On a test method, its class or the assembly: a variable in the test's environment. It is not repeatable | [Writing a test](/guide/testing) |
@@ -249,11 +249,11 @@ The build reads `[Enable<TFeature>]` on the module class. `[assembly: Enable<TFe
 | `[TestHost]`<br>No public constructor | Class, method, assembly; abstract | `Hardened.Web.Testing` in `Hardened.Web.Testing` | The base class of an attribute that names a test's host, such as `[PipelineHost]` | None |
 | `[TestHostProvider]`<br>No public constructor | Assembly; repeatable; abstract | `Hardened.Web.Testing` in `Hardened.Web.Testing` | The base class of an attribute that names the host a runtime attribute on a test stands for, such as `[KestrelTesting]` | None |
 
-Both `[HardenedTest]` attributes have the same name and namespace. A test project references one runner package. The xUnit attribute derives from xUnit's `FactAttribute`. The NUnit attribute derives from DependencyModules' `ModuleTestAttribute`. It has no settable property.
+The `[ModuleTest]` attributes come from DependencyModules. A test project references one runner package. The xUnit attribute derives from xUnit's `FactAttribute`. The NUnit attribute is an NUnit test builder. It has no settable property.
 
 `[KiotaTesting]` and `[RefitTesting]` take their targets from `TestClientRouteAttribute`. `[KestrelTesting]` and `[AspNetCoreTesting]` take theirs from `TestHostProviderAttribute`. `IAspNetCoreTestComposition` is in `Hardened.Web.AspNetCore.Testing`. `ITestClientRoute` is in `Hardened.Web.Testing`.
 
-The attributes in the next table come from DependencyModules. `Hardened.Shared.Testing` depends on `DependencyModules.Testing` 1.5.0. A test project references one of the three mock library packages itself. The `hardened-web` template's test project references `DependencyModules.NSubstitute`.
+The attributes in the next table come from DependencyModules. `Hardened.Shared.Testing` depends on `DependencyModules.Testing` 1.7.0. A test project references one of the three mock library packages itself. The `hardened-web` template's test project references `DependencyModules.NSubstitute`.
 
 | Attribute | Targets | Namespace and package | What it does | Page |
 |---|---|---|---|---|

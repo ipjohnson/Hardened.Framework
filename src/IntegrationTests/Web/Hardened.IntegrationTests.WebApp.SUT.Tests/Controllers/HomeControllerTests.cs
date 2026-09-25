@@ -4,7 +4,7 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 
 public class HomeControllerTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task GetTestReturnsSomeValue(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/test");

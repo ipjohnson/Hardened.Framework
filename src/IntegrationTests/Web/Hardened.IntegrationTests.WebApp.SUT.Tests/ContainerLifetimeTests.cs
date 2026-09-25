@@ -33,11 +33,11 @@ public class ContainerLifetimeTests
 {
     private static readonly ConcurrentBag<IServiceProvider> Earlier = new();
 
-    [HardenedTest]
+    [ModuleTest]
     public void TheContainerOfATestThatHasRunIsDisposed(IServiceProvider provider) =>
         Check(provider);
 
-    [HardenedTest]
+    [ModuleTest]
     public void WhicheverOfTheTwoRanFirst(IServiceProvider provider) => Check(provider);
 
     private static void Check(IServiceProvider current)
@@ -59,10 +59,10 @@ public class SocketLifetimeTests
 {
     private static readonly ConcurrentBag<int> EarlierPorts = new();
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ThePortOfATestThatHasRunIsClosed(ITestWebApp app) => await Check(app);
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task WhicheverOfTheTwoRanFirst(ITestWebApp app) => await Check(app);
 
     private static async Task Check(ITestWebApp app)

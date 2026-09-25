@@ -10,7 +10,7 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 /// </summary>
 public class ErrorHandlingTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task BadRequestExceptionBecomes400(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/errors/bad-request");
@@ -22,7 +22,7 @@ public class ErrorHandlingTests
     /// A consumer-defined exception is a client error because of what it derives from, not
     /// what it is called.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ExceptionDerivedFromBadRequestBecomes400(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/errors/derived-client-error");
@@ -34,7 +34,7 @@ public class ErrorHandlingTests
     /// A handler's own parsing failed. That is a server fault, and the message, which can quote
     /// the value it could not parse, is not sent.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AFormatExceptionFromAHandlerBecomes500(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/errors/format");
@@ -51,7 +51,7 @@ public class ErrorHandlingTests
     /// A <c>FormatException</c> thrown while the request is bound is the caller's mistake, and
     /// the caller is told what it was.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AFormatExceptionWhileBindingBecomes400(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get(
@@ -67,7 +67,7 @@ public class ErrorHandlingTests
         Assert.Contains("'ten'", error.Message);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AValueTheCustomBinderCanParseBinds(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get(
@@ -83,7 +83,7 @@ public class ErrorHandlingTests
     /// A 415 with the codings the server accepts, as RFC 9110 specifies. This was a 400 while the
     /// JSON deserializers did the decoding; the request decompression filter changed both.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task UnsupportedContentEncodingBecomes415NamingWhatIsAccepted(
         ITestWebApp testWebApp
     )
@@ -94,7 +94,7 @@ public class ErrorHandlingTests
         Assert.Equal("gzip, br", response.Headers["Accept-Encoding"].ToString());
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task UnrecognisedExceptionBecomes500(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/errors/server");
@@ -107,7 +107,7 @@ public class ErrorHandlingTests
     /// name, so BadgeNotFoundException was served as a 400 purely because its name contains
     /// "Bad". It derives from Exception, so it must be a 500.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ExceptionMerelyNamedLikeAClientErrorBecomes500(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/errors/badge-missing");
@@ -121,7 +121,7 @@ public class ErrorHandlingTests
     /// <c>FilterOrder.HandlerCreation</c>, ahead of the filter that writes a response, and the
     /// container's exception unwound past it.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AHandlerThatCannotBeConstructedAnswersTheErrorEnvelope(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/errors/unsatisfiable");
@@ -136,7 +136,7 @@ public class ErrorHandlingTests
     /// <summary>
     /// The response body carries a serialized ErrorModel, not just a status code.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ErrorResponseCarriesASerialisedModel(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/errors/server");
@@ -155,7 +155,7 @@ public class ErrorHandlingTests
     /// type nor the message reaches the caller, because neither was written for one. The exception
     /// is still logged in full through <c>IRequestLogger.RequestFailed</c>.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AServerErrorRevealsNothingAboutTheException(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/errors/server");
@@ -174,7 +174,7 @@ public class ErrorHandlingTests
     /// Driven as raw text rather than an object, because the point is a payload the deserializer
     /// refuses. This answered 500 and echoed the parser's message before.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnUnreadableRequestBodyBecomes400(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post(
@@ -192,7 +192,7 @@ public class ErrorHandlingTests
     /// deserializer and the validators disagreed about the same member's path on any handler
     /// that named its parameter something else - this one calls it <c>model</c>.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnUnreadableRequestBodyCarriesAFieldLevelError(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post(
@@ -219,7 +219,7 @@ public class ErrorHandlingTests
     /// 500, so a specification declaring a 404 with its own payload could not be honoured whatever
     /// the handler did.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AStatusCodeExceptionCarriesItsOwnStatus(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/errors/declared-status");
@@ -228,7 +228,7 @@ public class ErrorHandlingTests
     }
 
     /// <summary>And the body the specification declared for it, rather than the generic model.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AStatusCodeExceptionCarriesItsDeclaredBody(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/errors/declared-body");
@@ -250,7 +250,7 @@ public class ErrorHandlingTests
     /// response when the handler throws - and the raw writer cannot carry an error model. The
     /// error is recommitted to JSON instead of the locator's refusal escaping as an empty 500.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ARawResponseHandlerThatThrowsStillAnswersItsDeclaredStatus(
         ITestWebApp testWebApp
     )
@@ -266,7 +266,7 @@ public class ErrorHandlingTests
     }
 
     /// <summary>The same rescue for an unclassified fault: a 500 with a body, in JSON.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ARawResponseHandlerThatFaultsAnswersAJsonServerError(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/errors/raw-server-error");
@@ -289,7 +289,7 @@ public class ErrorHandlingTests
     /// host caught nothing, so it unwound out of <c>app.Get</c> and failed the test with the raw
     /// exception. Both socket hosts have always answered 500 here.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AResponseThatCannotBeSerializedIsAServerError(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/errors/unwritable");
@@ -301,7 +301,7 @@ public class ErrorHandlingTests
     /// And the cause is on the response, which is what <c>testing-responses.md</c> promises of a
     /// failure and what a test asserting which one it was has to read.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheSerializerFailureIsRecordedOnTheResponse(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/errors/unwritable");
@@ -314,7 +314,7 @@ public class ErrorHandlingTests
     /// A handler that threw keeps its own exception as the cause. The envelope is written after
     /// it, and a failure there would be a consequence rather than the thing to name.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AHandlerFailureIsStillTheRecordedCause(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/errors/server");

@@ -1,6 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using Hardened.Shared.Testing;
+using DependencyModules.Testing.Impl;
 using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Kiota.Testing;

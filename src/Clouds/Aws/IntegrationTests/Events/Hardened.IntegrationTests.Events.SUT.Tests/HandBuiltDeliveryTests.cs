@@ -1,8 +1,8 @@
 using DependencyModules.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Hardened.Aws.Lambda.Runtime.Hosting;
 using Hardened.Aws.Lambda.Testing;
 using Hardened.IntegrationTests.Events.SUT;
-using Hardened.Shared.Testing.Attributes;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using Xunit;
@@ -27,7 +27,7 @@ namespace Hardened.IntegrationTests.Events.SUT.Tests;
 /// </remarks>
 public class HandBuiltDeliveryTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task ADeliveryOverAHandlerReachesTheHandler(
         IServiceProvider provider,
         [Mock] ITriggerLog log
@@ -45,7 +45,7 @@ public class HandBuiltDeliveryTests
     /// <summary>
     /// One handler for every send, which is what makes this the warm arrangement.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task EverySendReachesTheSameHandler(
         IServiceProvider provider,
         [Mock] ITriggerLog log

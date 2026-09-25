@@ -51,7 +51,7 @@ public class StaticContentTests
 
     #region serving at all
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AFileIsServed(ITestWebApp app)
     {
         var response = await app.Get("/index.html");
@@ -65,7 +65,7 @@ public class StaticContentTests
     /// anything at the site root was the single-page fall back, which then answered every unknown
     /// path too - so a plain static site was not expressible.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     [InlineData("/")]
     [InlineData("/assets")]
     [InlineData("/assets/")]
@@ -81,7 +81,7 @@ public class StaticContentTests
     /// An unknown path serves the application shell. Every one of them shares the single entry the
     /// source read, which is the shape that used to grow the cache without bound.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     [InlineData("/app/deep/route")]
     [InlineData("/some-other-spa-path")]
     public async Task AnUnknownPathServesTheShell(string path, ITestWebApp app)
@@ -98,7 +98,7 @@ public class StaticContentTests
     /// <c>IFallbackRequestHandlerProvider</c> exists to guarantee independently of the order the
     /// application listed its modules in.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ADeclaredRouteWinsOverAFileAtTheSamePath(ITestWebApp app)
     {
         var response = await app.Get("/app.js");
@@ -120,7 +120,7 @@ public class StaticContentTests
     /// <c>If-None-Match</c>, so the conditional path was unreachable from a browser however correct
     /// the comparison was - and no unit test that supplies its own tag can see that.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AServedFileCarriesAQuotedETag(ITestWebApp app)
     {
         var etag = Header(await app.Get("/index.html"), KnownHeaders.ETag);
@@ -135,7 +135,7 @@ public class StaticContentTests
     /// back, get a 304 with no body. Nothing in the unit tests can prove this, because they supply
     /// the tag themselves.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheValidatorTheServerSentComesBackAsA304(ITestWebApp app)
     {
         var first = await app.Get("/index.html");
@@ -151,7 +151,7 @@ public class StaticContentTests
     /// And the 304 repeats the freshness the 200 carried. Dropping it meant an asset was
     /// revalidated on every request after the first, whatever its max age said.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task A304RepeatsTheCacheHeaders(ITestWebApp app)
     {
         var first = await app.Get("/index.html");
@@ -171,7 +171,7 @@ public class StaticContentTests
     /// The date validator, and the same round trip through it. It did not exist at all, so a cache
     /// with no entity-tag had nothing to revalidate against.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheLastModifiedTheServerSentComesBackAsA304(ITestWebApp app)
     {
         var lastModified = Header(await app.Get("/index.html"), KnownHeaders.LastModified);
@@ -191,7 +191,7 @@ public class StaticContentTests
     /// expressed before, so <c>private</c> - which is what an authorized mount needs, since
     /// <c>public</c> invites a shared cache to keep it - was unreachable.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheConfiguredCacheControlReachesTheWire(ITestWebApp app)
     {
         var response = await app.Get("/index.html");
@@ -208,7 +208,7 @@ public class StaticContentTests
     /// match used to ask whether the header <em>equalled</em> the coding - so no browser ever
     /// received a pre-compressed asset, and every one took the inflate-per-request path instead.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ABrowserGetsThePreCompressedAsset(ITestWebApp app)
     {
         var response = await app.Get(
@@ -239,7 +239,7 @@ public class StaticContentTests
     /// none, so a request that says nothing is not the request this is about.
     /// </para>
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     [InlineData("identity")]
     [InlineData("br")]
     public async Task AClientThatDoesNotTakeTheStoredCodingGetsItInflated(
@@ -262,7 +262,7 @@ public class StaticContentTests
     /// A resource served one way does not vary, and says so by omission. Declaring it anyway has a
     /// CDN store a copy per coding of a file that is byte-identical for all of them.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnUncompressedResourceDoesNotSayItVaries(ITestWebApp app)
     {
         var response = await app.Get(
@@ -278,7 +278,7 @@ public class StaticContentTests
 
     #region ranges
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AServedFileAdvertisesThatRangesWork(ITestWebApp app)
     {
         Assert.Equal("bytes", Header(await app.Get("/clip.bin"), KnownHeaders.AcceptRanges));
@@ -289,7 +289,7 @@ public class StaticContentTests
     /// to resume. Neither worked at all: there was no <c>Accept-Ranges</c>, so a client had to
     /// assume seeking was unavailable.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ARangeIsAnsweredWith206AndOnlyThoseBytes(ITestWebApp app)
     {
         var response = await app.Get("/clip.bin", With((KnownHeaders.Range, "bytes=0-9")));
@@ -299,7 +299,7 @@ public class StaticContentTests
         Assert.Equal("0123456789", Encoding.UTF8.GetString(await BytesOf(response)));
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ARangePastTheEndIs416WithTheLength(ITestWebApp app)
     {
         var response = await app.Get("/clip.bin", With((KnownHeaders.Range, "bytes=500-600")));
@@ -316,7 +316,7 @@ public class StaticContentTests
     /// A HEAD produces the headers its GET would and no body. Static content never reached
     /// <c>Dispatch</c>, which is what drops the body, because it was not a handler.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AHeadCarriesTheHeadersOfItsGetAndNoBody(ITestWebApp app)
     {
         var get = await app.Get("/index.html");
@@ -336,7 +336,7 @@ public class StaticContentTests
     /// A verb a file does not answer is a 405 naming what it does, not a 404: the resource is
     /// there and the verb is the problem, which a client and a CDN both read differently.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     [InlineData("POST")]
     [InlineData("PUT")]
     [InlineData("DELETE")]
@@ -353,7 +353,7 @@ public class StaticContentTests
     /// is a 404. Answering 405 there would tell a client that <c>POST /api/typo</c> reached
     /// something.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AWriteToAPathOnlyTheFallbackAnswersIsNotFound(ITestWebApp app)
     {
         var response = await app.Request("POST", null, "/api/typo");
@@ -369,7 +369,7 @@ public class StaticContentTests
     /// A hidden file is refused. The application has one in its content directory on purpose,
     /// because the common case is a build step that copied a directory wholesale and nobody looked.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AHiddenFileIsNotServed(ITestWebApp app)
     {
         var response = await app.Get("/.env");
@@ -383,7 +383,7 @@ public class StaticContentTests
     /// <c>.well-known</c> is the exception, and not a small one: ACME challenges live under it, so
     /// refusing every hidden path without it breaks certificate renewal.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task WellKnownIsServedDespiteBeingHidden(ITestWebApp app)
     {
         var response = await app.Get("/.well-known/security.txt");
@@ -396,7 +396,7 @@ public class StaticContentTests
     /// A traversal does not escape the content root. The transport under test does not normalise
     /// the path, which is the position a source is left in on API Gateway.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     [InlineData("/../Application.cs")]
     [InlineData("/assets/../../Program.cs")]
     public async Task ATraversalDoesNotEscapeTheRoot(string path, ITestWebApp app)

@@ -1,6 +1,6 @@
 using DependencyModules.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Hardened.IntegrationTests.CloudRunQueue.SUT;
-using Hardened.Shared.Testing.Attributes;
 using NSubstitute;
 using Xunit;
 
@@ -24,7 +24,7 @@ public class QueueTests
     /// The claim the whole design rests on: a handler that names a queue and nothing else is
     /// reached by a message from that queue.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AQueueMessageReachesTheHandler(
         CloudRunQueueApp.Queues queues,
         [Mock] IOrderStore store
@@ -39,7 +39,7 @@ public class QueueTests
     /// One push per message, one handler call per push. Pub/Sub never batches, so a batch a test
     /// sends is several deliveries, each acknowledged on its own.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task EveryMessageIsHandledSeparately(
         CloudRunQueueApp.Queues queues,
         [Mock] IOrderStore store
@@ -59,7 +59,7 @@ public class QueueTests
     /// Each push decodes its own data, so a handler sees what was published rather than the
     /// envelope it arrived in.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task EachMessageBindsItsOwnBody(
         CloudRunQueueApp.Queues queues,
         [Mock] IOrderStore store
@@ -79,7 +79,7 @@ public class QueueTests
     /// Pub/Sub redeliver. The message after the refused one is still delivered and handled,
     /// because each push is acknowledged on its own.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AFailedMessageIsNotAcknowledged(
         CloudRunQueueApp.Queues queues,
         [Mock] IOrderStore store

@@ -58,7 +58,7 @@ public sealed class LambdaWebTestingAttribute : TestHostAttribute
     /// <code>
     /// [LambdaWebTesting(ResponseMode = LambdaResponseMode.Stream)]
     /// public class OrderStreamTests {
-    ///     [HardenedTest]
+    ///     [ModuleTest]
     ///     public async Task TheEventsArriveAsFrames(ITestWebApp app) {
     ///         var response = await app.Get("/orders/live");
     ///

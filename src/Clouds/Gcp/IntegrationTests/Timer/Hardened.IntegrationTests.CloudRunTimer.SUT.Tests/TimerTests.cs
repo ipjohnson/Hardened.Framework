@@ -1,7 +1,7 @@
 using DependencyModules.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Hardened.Functions.Testing;
 using Hardened.IntegrationTests.CloudRunTimer.SUT;
-using Hardened.Shared.Testing.Attributes;
 using Hardened.Web.Kestrel.Runtime;
 using Hardened.Web.Testing;
 using NSubstitute;
@@ -20,7 +20,7 @@ public class TimerTests
     /// A schedule routes on the name in the job's target URL, and it carries no payload, so the
     /// handler takes none.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AScheduledInvocationReachesTheTimerHandler(
         CloudRunTimerApp.Timers timers,
         [Mock] ITriggerLog log
@@ -32,7 +32,7 @@ public class TimerTests
     }
 
     /// <summary>A job posting to another timer's URL is refused: the wiring is wrong, and Scheduler sees the failure.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AJobPostingToAnotherTimersUrlIsRefused(
         ITestWebApp app,
         [Mock] ITriggerLog log
@@ -54,7 +54,7 @@ public class TimerTests
 [KestrelRuntime]
 public class TimerOverASocketTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task AScheduledInvocationReachesTheTimerHandler(
         CloudRunTimerApp.Timers timers,
         [Mock] ITriggerLog log
@@ -70,7 +70,7 @@ public class TimerOverASocketTests
 [PipelineDelivery]
 public class PipelineTimerTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task AScheduledInvocationReachesTheTimerHandlerThroughThePipeline(
         CloudRunTimerApp.Timers timers,
         [Mock] ITriggerLog log

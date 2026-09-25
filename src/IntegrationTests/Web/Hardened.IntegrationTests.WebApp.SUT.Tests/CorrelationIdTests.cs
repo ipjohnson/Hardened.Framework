@@ -12,7 +12,7 @@ public class CorrelationIdTests
 {
     private const string Header = "X-Correlation-Id";
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task EveryResponseCarriesACorrelationId(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Request("GET", null, "/binding/path/42");
@@ -24,7 +24,7 @@ public class CorrelationIdTests
     /// Thirteen base64 characters, since this application has no collector attached and so no trace
     /// id to borrow. A traced deployment returns the 32-character trace id here instead.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheIdIsThirteenBase64Characters(ITestWebApp testWebApp)
     {
         const string digits = "-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz";
@@ -38,7 +38,7 @@ public class CorrelationIdTests
     }
 
     /// <summary>Two requests are two ids, or it would group unrelated work together.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TwoRequestsGetTwoIds(ITestWebApp testWebApp)
     {
         var first = await testWebApp.Request("GET", null, "/binding/path/42");
@@ -51,7 +51,7 @@ public class CorrelationIdTests
     /// A request nothing routed still gets one. A 404 is a thing people ask about, and an id that
     /// only appears on successful responses is missing from every interesting case.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnUnroutedRequestStillCarriesAnId(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Request("GET", null, "/nothing/is/here");
@@ -64,7 +64,7 @@ public class CorrelationIdTests
     /// So does a refused verb. The header is set on the way in precisely so that a response
     /// produced without reaching a handler still carries it.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task A405StillCarriesAnId(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Request("PUT", null, "/binding/path/42");

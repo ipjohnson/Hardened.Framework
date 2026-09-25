@@ -10,7 +10,7 @@
     <!--
         The web harness under NUnit. The xUnit project next door holds the application to its
         behaviour; this holds the harness to reading the same under the other runner - a
-        [HardenedTest] with ITestWebApp, a mock behind a route, a generated client as a parameter,
+        [ModuleTest] with ITestWebApp, a mock behind a route, a generated client as a parameter,
         Returns<T>(), LastResponse and the credential attributes - and nothing else. A test of the
         application goes next door.
     -->
@@ -21,7 +21,10 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\..\Shared\Hardened.Shared.Testing.NUnit\Hardened.Shared.Testing.NUnit.csproj" />
+      <ProjectReference Include="..\..\..\..\..\DependencyModules\src\DependencyModules.NUnit\DependencyModules.NUnit.csproj"
+                        Condition="Exists('..\..\..\..\..\DependencyModules\src\DependencyModules.NUnit\DependencyModules.NUnit.csproj')"/>
+      <PackageReference Include="DependencyModules.NUnit"
+                        Condition="!Exists('..\..\..\..\..\DependencyModules\src\DependencyModules.NUnit\DependencyModules.NUnit.csproj')"/>
       <!-- The mock library behind [Mock]: [NSubstituteSupport] in Bootstrap.cs, and NSubstitute with it. -->
       <ProjectReference Include="..\..\..\..\..\DependencyModules\src\DependencyModules.NSubstitute\DependencyModules.NSubstitute.csproj"
                         Condition="Exists('..\..\..\..\..\DependencyModules\src\DependencyModules.NSubstitute\DependencyModules.NSubstitute.csproj')"/>

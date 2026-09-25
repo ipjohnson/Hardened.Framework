@@ -1,5 +1,5 @@
+using DependencyModules.xUnit.Attributes;
 using Hardened.Requests.Abstract.Serializer;
-using Hardened.Shared.Testing.Attributes;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -17,7 +17,7 @@ namespace Hardened.IntegrationTests.LambdaHttp.SUT.Tests;
 /// </remarks>
 public class ServerSentEventManifestTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public void TheEventStreamHandlerIsInTheManifest(IServiceProvider provider)
     {
         var handlers = provider
@@ -34,7 +34,7 @@ public class ServerSentEventManifestTests
     /// constraint a contract declared is named after a hash of its pattern -
     /// <c>{deviceId:spec_p_588343bc}</c> - which appears in nobody's source.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public void AConstrainedRouteIsListedWithoutItsConstraint(IServiceProvider provider)
     {
         var handlers = provider
@@ -50,7 +50,7 @@ public class ServerSentEventManifestTests
     /// The three ordinary routes are not listed. Only a handler framed as events belongs here, and
     /// a manifest naming every route would have the host warn about all of them.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public void OrdinaryHandlersAreNotListed(IServiceProvider provider)
     {
         var handlers = provider

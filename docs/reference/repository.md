@@ -41,7 +41,7 @@ The site's build leaves out `docs/design/`.
 
 | Folder | Holds |
 |---|---|
-| `src/Shared` | `Hardened.Shared.Runtime`, and the test packages `Hardened.Shared.Testing`, `Hardened.Shared.Testing.xUnit` and `Hardened.Shared.Testing.NUnit` |
+| `src/Shared` | `Hardened.Shared.Runtime`, and the test package `Hardened.Shared.Testing` |
 | `src/Requests` | The request pipeline, the response cache store and the serializers |
 | `src/Web` | Routing, the Kestrel and ASP.NET Core hosts, static content and the web test packages |
 | `src/Functions` | The trigger attributes, the function test package and `Hardened.CloudEvents` |

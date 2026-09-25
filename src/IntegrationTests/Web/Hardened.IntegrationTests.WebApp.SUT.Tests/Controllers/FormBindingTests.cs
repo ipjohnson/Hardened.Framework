@@ -19,7 +19,7 @@ public class FormBindingTests
         request =>
             request.Headers[KnownHeaders.ContentType] = KnownContentType.FormUrlEncodedStringValues;
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task FieldsBindToParameters(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post(
@@ -40,7 +40,7 @@ public class FormBindingTests
     /// with the query string would bind <c>"Ada+Lovelace"</c> for a field every browser on earth
     /// sends as <c>Ada Lovelace</c>. Silently, on every form post.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task APlusIsASpace(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post(
@@ -60,7 +60,7 @@ public class FormBindingTests
     /// The decode replaces <c>+</c> before unescaping. The other order would turn <c>%2B</c> into a
     /// space, which is the one case escaping it exists to prevent.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnEscapedPlusStaysAPlus(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post("username=a%2Bb&password=x", "/form/sign-in", AsForm);
@@ -69,7 +69,7 @@ public class FormBindingTests
         Assert.Equal("a+b:x", response.Deserialize<string>());
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task PercentEncodingIsDecoded(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post(
@@ -83,7 +83,7 @@ public class FormBindingTests
     }
 
     /// <summary>A field is converted the same way a query value is.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AFieldConvertsToTheParameterType(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post("count=21", "/form/quantity", AsForm);
@@ -93,7 +93,7 @@ public class FormBindingTests
     }
 
     /// <summary>The wire name and the parameter name can differ.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AFieldCanBeRenamed(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post("user_name=ada", "/form/renamed", AsForm);
@@ -102,7 +102,7 @@ public class FormBindingTests
         Assert.Equal("ada", response.Deserialize<string>());
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnAbsentFieldTakesItsDefault(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post("present=here", "/form/optional", AsForm);
@@ -118,7 +118,7 @@ public class FormBindingTests
     /// It used to bind an empty form, so the caller was told a field it may well have sent was
     /// missing.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AJsonBodyOnAFormHandlerIsA415(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post(new { present = "ignored" }, "/form/optional");
@@ -131,7 +131,7 @@ public class FormBindingTests
     }
 
     /// <summary>The SUT caps a form body at 100,000 bytes, url-encoded or multipart.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AUrlEncodedBodyPastTheCapIsTooLarge(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post(
@@ -143,7 +143,7 @@ public class FormBindingTests
         Assert.Equal(413, response.StatusCode);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AUrlEncodedBodyWithTooManyFieldsIsInvalid(ITestWebApp testWebApp)
     {
         var fields = string.Join("&", Enumerable.Range(0, 1025).Select(i => "f" + i + "=1"));
@@ -170,7 +170,7 @@ public class FormBindingTests
     /// RequestBench's <c>forms.urlencoded</c> body bound to one model, and echoed with the numbers
     /// as numbers.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AFormBindsToAModel(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post(SearchBody, "/form/search", AsForm);
@@ -180,7 +180,7 @@ public class FormBindingTests
     }
 
     /// <summary>A missing member is refused by the field the client should have sent.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AMissingMemberIsRefusedByItsFieldName(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post(
@@ -198,7 +198,7 @@ public class FormBindingTests
     }
 
     /// <summary>A member renamed for JSON is renamed on the form too.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ARenamedMemberBindsFromItsJsonName(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post(
@@ -212,7 +212,7 @@ public class FormBindingTests
     }
 
     /// <summary>An absent field leaves the member's initializer in place.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnAbsentMemberKeepsItsInitializer(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post("display_name=Ada&age=36", "/form/profile", AsForm);
@@ -222,7 +222,7 @@ public class FormBindingTests
     }
 
     /// <summary>A field sent more than once fills a collection member.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ARepeatedFieldFillsACollectionMember(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post(
@@ -238,7 +238,7 @@ public class FormBindingTests
     /// <summary>
     /// The model's own constraints are enforced once it is bound, the way a body model's are.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AMembersConstraintIsEnforced(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post("display_name=Ada&age=12", "/form/profile", AsForm);
@@ -251,7 +251,7 @@ public class FormBindingTests
     }
 
     /// <summary>The same model binds from the query string.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AQueryStringBindsToAModel(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/binding/query-model?" + SearchBody);
@@ -267,7 +267,7 @@ public class FormBindingTests
 [KestrelRuntime]
 public class FormRefusalsOverSocketTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task AUrlEncodedBodyPastTheCapIsTooLarge(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post(
@@ -281,7 +281,7 @@ public class FormRefusalsOverSocketTests
         Assert.Equal(413, response.StatusCode);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AJsonBodyOnAFormHandlerIsA415(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post(new { present = "ignored" }, "/form/optional");

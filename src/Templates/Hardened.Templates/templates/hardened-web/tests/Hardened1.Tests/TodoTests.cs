@@ -18,7 +18,7 @@ namespace Hardened1.Tests;
 /// </remarks>
 public class TodoTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task ListTodos_ReturnsEveryTodo(TemplateModuleNameClient client)
     {
         var todos = await client.Todos.GetAsync().Returns<Ok<List<ClientModels.Todo>>>();
@@ -30,7 +30,7 @@ public class TodoTests
 #endif
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task GetTodo_ReturnsTheTodo(TemplateModuleNameClient client)
     {
         var todo = await client.Todos[1].GetAsync().Returns<Ok<ClientModels.Todo>>();
@@ -55,7 +55,7 @@ public class TodoTests
     /// for it - named after the case, NotFound, and carrying the body the server answered.
     /// </summary>
 #endif
-    [HardenedTest]
+    [ModuleTest]
     public async Task GetTodo_UnknownId_IsATypedNotFound(TemplateModuleNameClient client)
     {
         var missing = await client
@@ -70,7 +70,7 @@ public class TodoTests
 #endif
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task RemoveTodo_UnknownId_IsATypedNotFound(TemplateModuleNameClient client)
     {
         var missing = await client
@@ -86,7 +86,7 @@ public class TodoTests
     }
 
     /// <summary>Titles are unique, which is what gives the sample a real 409 - typed, like the 404.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task CreateTodo_DuplicateTitle_IsATypedConflict(TemplateModuleNameClient client)
     {
         var taken = await client
@@ -105,7 +105,7 @@ public class TodoTests
     /// The contract declares the 404 with its Problem body, whichever response model the service
     /// implements it in, so the client throws the typed exception either way.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task GetTodo_UnknownId_IsATypedProblem(TemplateModuleNameClient client)
     {
 #if (declaredMode)
@@ -124,7 +124,7 @@ public class TodoTests
     }
 
     /// <summary>The remove says why in every mode, because it throws or returns a case rather than null.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task RemoveTodo_UnknownId_IsATypedProblem(TemplateModuleNameClient client)
     {
         var missing = await client
@@ -140,7 +140,7 @@ public class TodoTests
     }
 
     /// <summary>Titles are unique, which is what gives the sample a real 409, carrying the same Problem.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task CreateTodo_DuplicateTitle_IsATypedProblem(TemplateModuleNameClient client)
     {
         var taken = await client
@@ -168,14 +168,14 @@ public class TodoTests
     /// new TodoNotFound("...").AsException() instead.
     /// </remarks>
 #endif
-    [HardenedTest]
+    [ModuleTest]
     public async Task GetTodo_UnknownId_IsATypedError(TemplateModuleNameClient client)
     {
         await client.Todos[9999].GetAsync().Returns<NotFound<ClientModels.TodoNotFound>>();
     }
 
     /// <summary>The remove says why in every mode, because it throws or returns a case rather than null.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task RemoveTodo_UnknownId_IsATypedError(TemplateModuleNameClient client)
     {
         var missing = await client
@@ -191,7 +191,7 @@ public class TodoTests
     }
 
     /// <summary>Titles are unique, which is what gives the sample a real 409, as the shape the model names for it.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task CreateTodo_DuplicateTitle_IsATypedError(TemplateModuleNameClient client)
     {
         var taken = await client
@@ -216,7 +216,7 @@ public class TodoTests
     /// and the same route answers 201 with a Location header, because the status moved into the
     /// signature. This test is what makes that difference visible rather than a claim in a comment.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task CreateTodo_AnswersTwoHundred(TemplateModuleNameClient client)
     {
         var answer = await client
@@ -231,7 +231,7 @@ public class TodoTests
     }
 
     /// <summary>200 with the removed todo, for the same reason.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task RemoveTodo_AnswersTwoHundred(TemplateModuleNameClient client)
     {
         var removed = await client.Todos[2].DeleteAsync().Returns<Ok<ClientModels.Todo>>();
@@ -248,7 +248,7 @@ public class TodoTests
     /// 201, as the operation declares. The Smithy contract puts no Location on it, so the status
     /// is what is asserted.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task CreateTodo_AnswersCreated(TemplateModuleNameClient client)
     {
         await client
@@ -261,7 +261,7 @@ public class TodoTests
     /// alone; the status it did not throw on and the header that came with it are read from what
     /// the client received, and Created carries all three.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task CreateTodo_AnswersCreatedWithALocation(TemplateModuleNameClient client)
     {
         var created = await client
@@ -286,7 +286,7 @@ public class TodoTests
     /// is an empty body rather than the four characters "null". NoContent is the expectation that
     /// says so.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task RemoveTodo_AnswersNoContent(TemplateModuleNameClient client)
     {
         await client.Todos[2].DeleteAsync().Returns<NoContent>();
@@ -302,7 +302,7 @@ public class TodoTests
     /// document declares the 400 it answers with, so the client has a typed branch for it that
     /// names the field.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task CreateTodo_TitleOverItsLimit_IsBadRequest(TemplateModuleNameClient client)
     {
         var refused = await client
@@ -326,13 +326,13 @@ public class TodoTests
     /// The id's minimum is enforced the same way the title's length is - and the published
     /// document says so, which DocumentStatusTests holds it to.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task GetTodo_IdBelowItsMinimum_IsBadRequest(TemplateModuleNameClient client)
     {
         await client.Todos[0].GetAsync().Returns<BadRequest<ClientModels.RequestValidationError>>();
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task RemoveTodo_IdBelowItsMinimum_IsBadRequest(TemplateModuleNameClient client)
     {
         await client
@@ -350,13 +350,13 @@ public class TodoTests
     /// The one request here the generated client cannot make: its path parameter is an int, which
     /// is the point. ITestWebApp sends the raw request through the same pipeline.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task GetTodo_MalformedId_IsBadRequest(ITestWebApp app)
     {
         (await app.Get("/todos/not-a-number")).Assert.BadRequest();
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task RemoveTodo_MalformedId_IsBadRequest(ITestWebApp app)
     {
         (await app.Delete("/todos/not-a-number")).Assert.BadRequest();

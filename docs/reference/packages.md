@@ -1,6 +1,6 @@
 # Packages
 
-The Hardened release publishes 68 packages. The tables on this page list every one of them.
+The Hardened release publishes 66 packages. The tables on this page list every one of them.
 
 A Kestrel application references these packages, including three source generators:
 
@@ -15,7 +15,7 @@ A Kestrel application references these packages, including three source generato
 </ItemGroup>
 ```
 
-Every package is on nuget.org. A release publishes all 68 packages at one version.
+Every package is on nuget.org. A release publishes all 66 packages at one version.
 [Project templates](/guide/project-templates) reference the packages that each project needs.
 
 ## Referencing a source generator
@@ -56,9 +56,7 @@ fails with `HRDR008`. The build also reports `CS0102` and `CS0111` on the genera
 | Package | Serves | Attribute | Page |
 |---|---|---|---|
 | `Hardened.Shared.Runtime` | `[HardenedModule]`, `[Enable<T>]`, configuration models and the environment | `[HardenedModule]` | [Modules](/guide/modules) |
-| `Hardened.Shared.Testing` | `[HardenedTestEntryPoint]` and `ITestContext`, for a test project. A runner package goes beside it | `[HardenedTestEntryPoint]` | [Writing a test](/guide/testing) |
-| `Hardened.Shared.Testing.xUnit` | `[HardenedTest]` for xUnit v3 | `[HardenedTest]` | [Writing a test](/guide/testing) |
-| `Hardened.Shared.Testing.NUnit` | `[HardenedTest]` for NUnit | `[HardenedTest]` | [Writing a test](/guide/testing) |
+| `Hardened.Shared.Testing` | `[HardenedTestEntryPoint]` and `ITestContext`, for a test project. A runner package goes beside it: `DependencyModules.xUnit`, `DependencyModules.xUnit4` or `DependencyModules.NUnit`, which holds `[ModuleTest]` | `[HardenedTestEntryPoint]` | [Writing a test](/guide/testing) |
 
 ## Request pipeline
 
@@ -185,8 +183,8 @@ Streams adapter.
 
 ## Retired packages
 
-Besides the 68 packages above, nuget.org holds 21 retired package ids. The release does not publish
-them. The table lists all 21.
+Besides the 66 packages above, nuget.org holds 23 retired package ids. The release does not publish
+them. The table lists all 23.
 
 | Package | Last version | Current package |
 |---|---|---|
@@ -211,6 +209,8 @@ them. The table lists all 21.
 | `Hardened.Commands` | 0.4.0-rc1000 | None |
 | `Hardened.Console.SourceGenerator` | 0.4.0-rc1000 | None |
 | `Hardened.DependencyModules.SourceGenerator` | 0.1.0-rc1 | `Hardened.Library.SourceGenerator`, which holds this generator |
+| `Hardened.Shared.Testing.xUnit` | 0.39.0-rc1000 | `DependencyModules.xUnit`, or `DependencyModules.xUnit4` for `xunit.v3` 4.x. `[ModuleTest]` replaces `[HardenedTest]` |
+| `Hardened.Shared.Testing.NUnit` | 0.39.0-rc1000 | `DependencyModules.NUnit`. `[ModuleTest]` replaces `[HardenedTest]` |
 
 Moving from a `Hardened.Amz` Lambda adapter to its current package takes more than a new id. The
 module attributes differ. For example, `Hardened.Amz.Function.Sqs.Runtime` has `[SqsLambda]`, and

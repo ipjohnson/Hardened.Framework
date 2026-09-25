@@ -1,6 +1,6 @@
 using DependencyModules.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Hardened.IntegrationTests.AzureBlob.SUT;
-using Hardened.Shared.Testing.Attributes;
 using NSubstitute;
 using Xunit;
 
@@ -18,7 +18,7 @@ namespace Hardened.IntegrationTests.AzureBlob.SUT.Tests;
 /// </summary>
 public class BlobTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task ANotificationReachesTheHandler(
         AzureBlobTestApp.Blobs blobs,
         [Mock] IUploadSink sink
@@ -50,7 +50,7 @@ public class BlobTests
     /// <c>BlobsAdapterTests.TheBodyAlsoCarriesThePortableNames</c>.
     /// </para>
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ANotificationSpelledThePortableWayArrives(
         AzureBlobTestApp.Blobs blobs,
         [Mock] IUploadSink sink
@@ -66,7 +66,7 @@ public class BlobTests
     /// The name arrives decoded. The worker rung carries it through a blob URI, where a space is
     /// percent-encoded, and a handler seeing the encoding would fetch a blob that does not exist.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ANameWithASpaceArrivesDecoded(
         AzureBlobTestApp.Blobs blobs,
         [Mock] IUploadSink sink
@@ -82,7 +82,7 @@ public class BlobTests
     /// notification is the message as written; through the worker it is what the adapter reads
     /// off the blob client, which is bound to the container the trigger declared.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheContainerComesFromTheNotification(
         AzureBlobTestApp.Blobs blobs,
         [Mock] IUploadSink sink
@@ -97,7 +97,7 @@ public class BlobTests
     /// Every blob is handled on its own: through the pipeline as one batch forked per message,
     /// through the worker as one invocation per blob, which is how the trigger fires.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task EveryNotificationInABatchIsHandledSeparately(
         AzureBlobTestApp.Blobs blobs,
         [Mock] IUploadSink sink
@@ -116,7 +116,7 @@ public class BlobTests
     /// <summary>
     /// Storage reads no response, so a failed notification has to fail the invocation.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AFailedNotificationFailsTheInvocation(
         AzureBlobTestApp.Blobs blobs,
         [Mock] IUploadSink sink

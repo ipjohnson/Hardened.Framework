@@ -11,7 +11,7 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Transport;
 /// </summary>
 public class TypedClientTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task AClientWithAnHttpClientConstructorIsInjectedWithNoFactory(ProbeClient client)
     {
         using var response = await client.Pets(TestContext.Current.CancellationToken);
@@ -20,7 +20,7 @@ public class TypedClientTests
         Assert.Equal("http://harness/", client.Http.BaseAddress!.ToString());
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AClientWithAnotherConstructorIsInjectedThroughItsFactory(AdaptedClient client)
     {
         using var response = await client.Pets(TestContext.Current.CancellationToken);
@@ -32,7 +32,7 @@ public class TypedClientTests
     /// The factory, the two routes this assembly names and the constructor convention: a client
     /// none of them can build fails naming all of them, so the message says what to add.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public void AClientWithNoRouteFailsNamingAllOfThem(ITestWebApp app)
     {
         var failure = Assert.Throws<InvalidOperationException>(() =>
@@ -48,7 +48,7 @@ public class TypedClientTests
     /// The mock is registered into the same graph the handler resolves from, so a client reaching
     /// the handler sees it, exactly as <c>app.Post</c> does.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AMockIsVisibleToAHandlerReachedThroughAClient(
         ProbeClient client,
         [Mock] IMathService<int> mathService
@@ -67,7 +67,7 @@ public class TypedClientTests
         Assert.Equal(100, sum);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheHarnessAndAClientDriveOnePipeline(ITestWebApp app, ProbeClient client)
     {
         var direct = await app.Post(

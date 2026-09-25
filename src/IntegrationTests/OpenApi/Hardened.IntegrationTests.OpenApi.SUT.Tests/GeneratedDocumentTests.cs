@@ -41,7 +41,7 @@ public class GeneratedDocumentTests
     private static JsonElement CreatePet(JsonElement document) =>
         document.GetProperty("paths").GetProperty("/pets").GetProperty("post");
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheOperationCarriesTheSummaryAndDescriptionSeparately(ITestWebApp app)
     {
         var post = CreatePet(await Document(app));
@@ -56,7 +56,7 @@ public class GeneratedDocumentTests
         );
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheOperationCarriesItsRequestBodySchema(ITestWebApp app)
     {
         var schema = CreatePet(await Document(app))
@@ -74,7 +74,7 @@ public class GeneratedDocumentTests
     /// <summary>
     /// The declared status, with the payload declared for it - not a bare 200.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheOperationCarriesItsDeclaredResponse(ITestWebApp app)
     {
         var created = CreatePet(await Document(app)).GetProperty("responses").GetProperty("201");
@@ -92,7 +92,7 @@ public class GeneratedDocumentTests
         );
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheComponentsCarryTheSchemasTheContractDeclared(ITestWebApp app)
     {
         var schemas = (await Document(app)).GetProperty("components").GetProperty("schemas");
@@ -123,7 +123,7 @@ public class GeneratedDocumentTests
     /// parameter constraint published, every body constraint dropped. These assertions are that
     /// matrix, over the schemas this contract already declares.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheSchemasCarryTheConstraintsTheContractDeclared(ITestWebApp app)
     {
         var schemas = (await Document(app)).GetProperty("components").GetProperty("schemas");
@@ -150,7 +150,7 @@ public class GeneratedDocumentTests
     /// The description the contract's top-level tag declaration carries reaches the published
     /// tags list, which used to carry the name alone.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheTagCarriesItsDeclaredDescription(ITestWebApp app)
     {
         var tags = (await Document(app)).GetProperty("tags");
@@ -167,7 +167,7 @@ public class GeneratedDocumentTests
     /// A property the contract marks nullable publishes the 2020-12 type array, the way the
     /// code-first writer already does. The framework's own 404 body sends <c>detail</c> as null.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ANullablePropertyPublishesTheTypeArray(ITestWebApp app)
     {
         var detail = (await Document(app))
@@ -198,7 +198,7 @@ public class GeneratedDocumentTests
     /// serve. Nothing failed: the document parsed, the route worked, and only a client reading the
     /// description was wrong about the API.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task EveryVerbAtOnePathReachesTheDocument(ITestWebApp app)
     {
         var item = (await Document(app)).GetProperty("paths").GetProperty("/pets/{petId}");
@@ -212,7 +212,7 @@ public class GeneratedDocumentTests
         }
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AParameterCarriesItsDescription(ITestWebApp app)
     {
         var parameter = (await Document(app))
@@ -234,7 +234,7 @@ public class GeneratedDocumentTests
     /// The contract's own info block, not the module class name and "1.0.0" the generator used to
     /// substitute for it.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheContractsInfoBlockIsServed(ITestWebApp app)
     {
         var info = (await Document(app)).GetProperty("info");
@@ -248,7 +248,7 @@ public class GeneratedDocumentTests
     /// the operation that names it. Nothing was published, so a generated client sent every
     /// request anonymous and had no token URL to go to.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheDeclaredSchemeAndScopesAreServed(ITestWebApp app)
     {
         var document = await Document(app);
@@ -280,7 +280,7 @@ public class GeneratedDocumentTests
     }
 
     /// <summary>The Location the 201 declares and the service sends, as a headers block.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheDeclaredResponseHeaderIsServed(ITestWebApp app)
     {
         var created = CreatePet(await Document(app)).GetProperty("responses").GetProperty("201");
@@ -294,7 +294,7 @@ public class GeneratedDocumentTests
     /// The 400 the generated validator answers, declared with its body's schema. Every constraint
     /// failure was a status the document never mentioned.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheValidationResponseIsDeclared(ITestWebApp app)
     {
         var document = await Document(app);
@@ -326,7 +326,7 @@ public class GeneratedDocumentTests
     /// guarded and undocumented, so a generated client had no branch for the refusal it would
     /// meet.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnAttributeGuardedOperationDeclaresItsRefusal(ITestWebApp app) =>
         Assert.Contains(
             "does not hold",
@@ -339,7 +339,7 @@ public class GeneratedDocumentTests
     /// <summary>
     /// The 403 a described scope produces, beside the 401 that was already there.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AScopedRequirementDeclaresBothRefusals(ITestWebApp app)
     {
         var responses = Responses(await Document(app), "/secured/scoped");
@@ -357,7 +357,7 @@ public class GeneratedDocumentTests
     /// put a status here that the operation cannot answer, which is the defect this closes with
     /// the sign flipped.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnUnscopedAlternativeDeclaresNoForbidden(ITestWebApp app)
     {
         var responses = Responses(await Document(app), "/secured/either");

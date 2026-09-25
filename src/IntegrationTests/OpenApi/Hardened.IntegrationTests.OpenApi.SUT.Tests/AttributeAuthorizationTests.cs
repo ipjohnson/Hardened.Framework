@@ -31,7 +31,7 @@ public class AttributeAuthorizationTests
     /// <summary>
     /// The attribute guards the route, even though the description declares it public.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnAttributeOnTheHandlerGuardsADescribedPublicRoute(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/guarded/by-attribute");
@@ -47,7 +47,7 @@ public class AttributeAuthorizationTests
     /// The control. Without it a test above would pass just as well if this application had turned
     /// default-deny on, which would make it a test of the posture rather than of the attribute.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ADescribedPublicRouteWithNoAttributeStillAnswers(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/stores");

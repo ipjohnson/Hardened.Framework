@@ -1,9 +1,9 @@
+using DependencyModules.xUnit.Attributes;
 using Hardened.Azure.Functions.Http;
 using Hardened.Azure.Functions.Runtime.Adapters;
 using Hardened.Azure.Functions.Testing;
 using Hardened.IntegrationTests.AzureHttp.SUT.Generated;
 using Hardened.Requests.Abstract.Execution;
-using Hardened.Shared.Testing.Attributes;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -25,7 +25,7 @@ public class AdapterRegistrationTests
     /// <summary>
     /// Verbs bound the adapter. Nothing in the application mentions the HTTP trigger or Azure.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public void TheVerbsRegisteredTheHttpAdapter(IServiceProvider provider)
     {
         Assert.IsType<HttpAdapter>(Assert.Single(provider.GetServices<ITriggerAdapter>()));
@@ -36,7 +36,7 @@ public class AdapterRegistrationTests
     /// connection, and a failed invocation would give them the host's 500 with nothing the
     /// application chose in it.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public void TheHttpAdapterAnswersFailuresRatherThanRethrowing(IServiceProvider provider)
     {
         var adapter = Assert.Single(provider.GetServices<ITriggerAdapter>());

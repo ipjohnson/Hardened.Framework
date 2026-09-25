@@ -1,10 +1,10 @@
 using DependencyModules.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Hardened.Azure.Functions.EventGrid;
 using Hardened.Azure.Functions.Runtime.Adapters;
 using Hardened.Azure.Functions.ServiceBus;
 using Hardened.Azure.Functions.Timer;
 using Hardened.IntegrationTests.AzureEvents.SUT;
-using Hardened.Shared.Testing.Attributes;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using Xunit;
@@ -23,7 +23,7 @@ namespace Hardened.IntegrationTests.AzureEvents.SUT.Tests;
 /// </summary>
 public class EventFamilyTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task ANotificationReachesTheTopicHandler(
         AzureEventsTestApp.Topics topics,
         [Mock] ITriggerLog log
@@ -37,7 +37,7 @@ public class EventFamilyTests
     /// <summary>
     /// A schedule routes on its name, and carries no payload, so the handler takes none.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AScheduledInvocationReachesTheTimerHandler(
         AzureEventsTestApp.Timers timers,
         [Mock] ITriggerLog log
@@ -48,7 +48,7 @@ public class EventFamilyTests
         log.Received().Record("timer:nightly-rollup");
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AQueueMessageReachesTheQueueHandler(
         AzureEventsTestApp.Queues queues,
         [Mock] ITriggerLog log
@@ -62,7 +62,7 @@ public class EventFamilyTests
     /// <summary>
     /// Three sources, three different handlers, one application, each delivery reaching its own.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task EverySourceReachesItsOwnHandlerInOneFunctionApp(
         AzureEventsTestApp.Queues queues,
         AzureEventsTestApp.Topics topics,
@@ -86,7 +86,7 @@ public class EventFamilyTests
     /// Four triggers, three adapters: Service Bus serves both the queue and the topic, and
     /// registering it twice would put two adapters in front of every Service Bus batch.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public void FourTriggersRegisterThreeAdapters(IServiceProvider provider)
     {
         var adapters = provider.GetServices<ITriggerAdapter>().ToArray();

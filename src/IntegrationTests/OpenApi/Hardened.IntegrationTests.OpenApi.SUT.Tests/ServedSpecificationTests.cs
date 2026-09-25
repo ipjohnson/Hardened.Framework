@@ -47,7 +47,7 @@ public class ServedSpecificationTests
         }
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheServedDocumentIsTheSourceSpecification(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/openapi.yaml");
@@ -61,7 +61,7 @@ public class ServedSpecificationTests
     /// And it carries the type it is actually written in. A YAML document served as
     /// <c>application/json</c> is one a client cannot read.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheContentTypeMatchesTheSourceFormat(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/openapi.yaml");
@@ -77,7 +77,7 @@ public class ServedSpecificationTests
     /// anything that re-serialised the document. It is the one assertion here that a
     /// re-emitted-but-faithful document could not also pass.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AYamlCommentReachesTheWire(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/openapi.yaml");

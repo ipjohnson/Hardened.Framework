@@ -2,7 +2,7 @@
 
 public class PetControllerTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task ListPets_ReturnsListOfPets(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/pets");
@@ -16,7 +16,7 @@ public class PetControllerTests
         Assert.Contains(pets, p => p.Name == "Luna");
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ListPets_WithQueryParameter_ReturnsOk(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/pets?limit=1");
@@ -40,7 +40,7 @@ public class PetControllerTests
     /// The signatures are asserted by this project compiling at all - <c>PetServiceImpl</c>
     /// implements the generated interface, and a widened one would not match.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ListPets_WhenThrottled_AnswersTheDeclaredStatus(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/pets?tags=throttled");
@@ -53,7 +53,7 @@ public class PetControllerTests
     /// throwing, so the generated exception is what has to carry it - which is what the widening
     /// was standing in for, at the cost of every signature that mentioned the error.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ListPets_WhenThrottled_SendsTheDeclaredHeader(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/pets?tags=throttled");
@@ -70,7 +70,7 @@ public class PetControllerTests
     /// <c>List</c>. Nothing could fill one: the query parser overwrote a repeated key, and the
     /// binder handed whatever survived to a scalar <c>Parse</c> that threw for a list.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ListPets_WithARepeatedArrayParameter_FiltersByEveryValue(
         ITestWebApp testWebApp
     )
@@ -86,7 +86,7 @@ public class PetControllerTests
     }
 
     /// <summary>The same parameter written as <c>explode: false</c>.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ListPets_WithACommaJoinedArrayParameter_FiltersByEveryValue(
         ITestWebApp testWebApp
     )
@@ -101,7 +101,7 @@ public class PetControllerTests
         Assert.Equal("Luna", Assert.Single(pets).Name);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ListPets_WithNoArrayParameter_FiltersNothing(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/pets");
@@ -112,7 +112,7 @@ public class PetControllerTests
     }
 
     /// <summary>Both parameters on one operation, neither disturbing the other's binding.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ListPets_WithBothParameters_BindsBoth(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/pets?tags=dog&tags=cat&limit=1");
@@ -127,7 +127,7 @@ public class PetControllerTests
     /// is compiled into the same validator, so a change to it could have taken the other's bounds
     /// with it.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ListPets_WithAnArrayParameterAndAnOutOfRangeLimit_IsRefused(
         ITestWebApp testWebApp
     )
@@ -139,7 +139,7 @@ public class PetControllerTests
 
     #endregion
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task CreatePet_WithBody_ReturnsPet(ITestWebApp testWebApp)
     {
         var request = new CreatePetRequest("Whiskers", "cat");
@@ -153,7 +153,7 @@ public class PetControllerTests
         Assert.Equal("cat", pet.Tag);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task GetPet_WithPathParameter_ReturnsPet(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/pets/42");
@@ -166,7 +166,7 @@ public class PetControllerTests
         Assert.Equal("TestPet", pet.Name);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task DeletePet_ReturnsOk(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Delete("/pets/42");
@@ -185,7 +185,7 @@ public class PetControllerTests
     /// name, and cannot ask for the rest of the path.
     /// </para>
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task GetPet_WithADeeperPath_IsNotFound(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/pets/42/anything/at/all");

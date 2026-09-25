@@ -215,19 +215,20 @@ namespace Hardened.Web.Runtime.Compression
         public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
     }
     [DependencyModules.Runtime.Attributes.DependencyModule]
-    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     public class ResponseCompression : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
     {
         public ResponseCompression() { }
         public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
         public override bool Equals(object? obj) { }
         public override int GetHashCode() { }
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
     }
     [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter, AllowMultiple=true)]
     public class ResponseCompressionAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
     {
         public ResponseCompressionAttribute() { }
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
     }
     public sealed class ResponseCompressionFilter : Hardened.Requests.Abstract.Execution.IExecutionFilter
@@ -240,13 +241,13 @@ namespace Hardened.Web.Runtime.Compression
 namespace Hardened.Web.Runtime.Conditional
 {
     [DependencyModules.Runtime.Attributes.DependencyModule(GenerateAttribute=false)]
-    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     public class ConditionalGet : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
     {
         public ConditionalGet() { }
         public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
         public override bool Equals(object? obj) { }
         public override int GetHashCode() { }
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
     }
     [Hardened.Requests.Abstract.Responses.AnswersHeader(200, "ETag", Description="A tag for this response, to send back in If-None-Match.", Methods="GET,HEAD", NotWhenStreaming=true)]
@@ -348,19 +349,22 @@ namespace Hardened.Web.Runtime.DependencyInjection
     }
     [DependencyModules.Runtime.Attributes.DependencyModule]
     [Hardened.Requests.Runtime.DependencyInjection.HardenedRequestModule]
-    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     public class HardenedWebModule : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
     {
         public HardenedWebModule() { }
         public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         public override bool Equals(object? obj) { }
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         public override int GetHashCode() { }
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
     }
     [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter, AllowMultiple=true)]
     public class HardenedWebModuleAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
     {
         public HardenedWebModuleAttribute() { }
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
     }
 }
@@ -514,7 +518,6 @@ namespace Hardened.Web.Runtime.Links
 namespace Hardened.Web.Runtime.OpenApi
 {
     [DependencyModules.Runtime.Attributes.DependencyModule]
-    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     public class HardenedOpenApiUi : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IEnvironmentServiceCollectionConfiguration
     {
         public const string DefaultDocumentPath = "/openapi.json";
@@ -537,20 +540,30 @@ namespace Hardened.Web.Runtime.OpenApi
         public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services, DependencyModules.Runtime.Interfaces.IModuleEnvironment environment) { }
         public override bool Equals(object? obj) { }
         public override int GetHashCode() { }
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
     }
     [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter, AllowMultiple=true)]
     public class HardenedOpenApiUiAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
     {
         public HardenedOpenApiUiAttribute() { }
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         public bool DecodeMessagePack { get; set; }
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         public string DocumentPath { get; set; }
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         public string Environments { get; set; }
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         public string MessagePackScriptUrl { get; set; }
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         public string Path { get; set; }
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         public string ScriptIntegrity { get; set; }
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         public string ScriptUrl { get; set; }
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         public string Title { get; set; }
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
     }
     public interface IOpenApiUiConfiguration

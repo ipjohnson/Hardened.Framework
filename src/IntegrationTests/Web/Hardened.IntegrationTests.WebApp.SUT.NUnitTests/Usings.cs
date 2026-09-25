@@ -1,3 +1,4 @@
+global using DependencyModules.NUnit.Attributes;
 global using DependencyModules.Testing.Attributes;
 global using Hardened.Shared.Testing.Attributes;
 global using Hardened.Web.Testing;

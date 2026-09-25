@@ -23,7 +23,7 @@ public class DeclaredResponseTests
 
     private record ApiErrorBody(string Code, string Message);
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheSuccessCaseSendsThePayloadRatherThanTheContainer(ITestWebApp app)
     {
         var response = await app.Get("/responses/1");
@@ -34,7 +34,7 @@ public class DeclaredResponseTests
         Assert.Equal(1, response.Deserialize<TodoBody>().Id);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnErrorCaseAnswersItsOwnStatus(ITestWebApp app)
     {
         (await app.Get("/responses/404")).Assert.NotFound();
@@ -43,7 +43,7 @@ public class DeclaredResponseTests
     /// <summary>
     /// 201 from the case, not 200 from the handler having returned successfully.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task CreatedAnswersTwoHundredAndOneWithItsLocation(ITestWebApp app)
     {
         var response = await app.Post(new { Title = "fresh" }, "/responses");
@@ -56,7 +56,7 @@ public class DeclaredResponseTests
     /// Created&lt;T&gt; carries the payload; sending the wrapper would nest it under Value and ship
     /// the Location beside it.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task CreatedSendsTheBodyItCarries(ITestWebApp app)
     {
         var response = await app.Post(new { Title = "fresh" }, "/responses");
@@ -64,7 +64,7 @@ public class DeclaredResponseTests
         Assert.Equal("fresh", response.Deserialize<TodoBody>().Title);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ADeclaredConflictAnswersFourHundredAndNine(ITestWebApp app)
     {
         var response = await app.Post(new { Title = "taken" }, "/responses");
@@ -79,7 +79,7 @@ public class DeclaredResponseTests
     /// The bodyless case is the one a response set had no way to express at all until the success
     /// branch existed, and the one whose failure mode is a 200 carrying "null".
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task NoContentAnswersTwoHundredAndFourWithAnEmptyBody(ITestWebApp app)
     {
         var response = await app.Delete("/responses/1");
@@ -88,7 +88,7 @@ public class DeclaredResponseTests
         Assert.Equal(string.Empty, await response.ReadTextAsync());
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task RemoveStillAnswersItsDeclaredNotFound(ITestWebApp app)
     {
         (await app.Delete("/responses/404")).Assert.NotFound();
@@ -97,7 +97,7 @@ public class DeclaredResponseTests
     /// <summary>
     /// A typed error body puts the T on the wire, not the wrapper that named the status.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ATypedErrorSendsItsBodyRatherThanTheWrapper(ITestWebApp app)
     {
         var response = await app.Get("/responses/typed/404");

@@ -29,7 +29,7 @@ public class JsonAndPlainTextTests
     private static Action<TestWebRequest> Accepting(string accept) =>
         request => request.Headers["Accept"] = new StringValues(accept);
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task Json_ReturnsTheMessageObject(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/json", Accepting(JsonAccept));
@@ -45,7 +45,7 @@ public class JsonAndPlainTextTests
     /// <summary>
     /// The benchmark specifies the body exactly, and camelCase is what makes it match.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task Json_SerializesTheBodyTheBenchmarkSpecifies(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/json", Accepting(JsonAccept));
@@ -53,7 +53,7 @@ public class JsonAndPlainTextTests
         Assert.Equal("{\"message\":\"Hello, World!\"}", await Body.Read(response));
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task Json_SetsTheJsonContentType(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/json", Accepting(JsonAccept));
@@ -65,7 +65,7 @@ public class JsonAndPlainTextTests
     /// The whole content-type chain in one assertion: no quotes, because the string went through
     /// the raw writer rather than the JSON serializer.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task PlainText_WritesTheBodyRaw(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/plaintext", Accepting(PlainTextAccept));
@@ -92,7 +92,7 @@ public class JsonAndPlainTextTests
     /// declared string wrapped in quotes, which is a valid JSON document and the wrong response.
     /// </para>
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task PlainText_WithNoAcceptHeaderAnswersTheOneDeclaredType(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/plaintext");
@@ -126,7 +126,7 @@ public class JsonAndPlainTextTests
     /// that ends up applied unevenly, and the operation that quietly differs is invisible.
     /// </para>
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task PlainText_UnderLenientAnswersWhatItDeclaresRatherThanRefusing(
         ITestWebApp testWebApp
     )
@@ -139,7 +139,7 @@ public class JsonAndPlainTextTests
         Assert.Equal("Hello, World!", await Body.Read(response));
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task PlainText_SetsTheTextContentType(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/plaintext", Accepting(PlainTextAccept));

@@ -1,7 +1,7 @@
 using DependencyModules.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Hardened.Functions.Testing;
 using Hardened.IntegrationTests.CloudRunQueue.SUT;
-using Hardened.Shared.Testing.Attributes;
 using NSubstitute;
 using Xunit;
 
@@ -21,7 +21,7 @@ namespace Hardened.IntegrationTests.CloudRunQueue.SUT.Tests;
 [PipelineDelivery]
 public class PipelineQueueTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task AQueueMessageReachesTheHandlerThroughThePipeline(
         CloudRunQueueApp.Queues queues,
         [Mock] IOrderStore store
@@ -36,7 +36,7 @@ public class PipelineQueueTests
     /// Through the pipeline a batch is one delivery, so a refused message fails it, the way every
     /// trigger family does when nothing reports item failures.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AFailedMessageFailsTheDelivery(
         CloudRunQueueApp.Queues queues,
         [Mock] IOrderStore store

@@ -1,6 +1,6 @@
 using DependencyModules.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Hardened.IntegrationTests.Events.SUT;
-using Hardened.Shared.Testing.Attributes;
 using NSubstitute;
 using Xunit;
 
@@ -33,7 +33,7 @@ public class ContainerIsolationTests
     /// the ones the sends ran on. The mock is pinned, so what every container did is visible here,
     /// and that is the arrangement <c>[Mock]</c> declaring itself shared exists to give.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task EachInvocationRunsOnItsOwnContainer(
         EventsTestApp.Queues queues,
         [Mock] ITriggerLog log
@@ -52,7 +52,7 @@ public class ContainerIsolationTests
     /// <summary>
     /// Two queues are two functions, so nothing one leaves behind is there for the other.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TwoSourcesDoNotShareAContainer(
         EventsTestApp.Queues queues,
         EventsTestApp.Topics topics,
@@ -79,7 +79,7 @@ public class ContainerIsolationTests
     /// batch filter's work inside that single invocation. Three separate calls would be three
     /// invocations and three containers.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ABatchIsOneInvocationAndOneContainer(
         EventsTestApp.Queues queues,
         [Mock] ITriggerLog log

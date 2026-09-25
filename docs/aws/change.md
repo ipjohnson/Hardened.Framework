@@ -392,14 +392,14 @@ Deploying the function itself is the same for every trigger. The AWS [Overview](
 The template writes this test in `tests/Orders.Tests/OrderHandlerTests.cs`. It sends a change through the `Application.Changes` façade:
 
 ```csharp
-using Hardened.Shared.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Xunit;
 
 namespace Orders.Tests;
 
 public class OrderHandlerTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task AChangedRowReachesTheHandler(Application.Changes changes, OrderLog log)
     {
         await changes.Orders(new Order { Id = "A-1", Quantity = 2 });

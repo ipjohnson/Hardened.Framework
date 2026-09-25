@@ -20,14 +20,14 @@ public class OrderHandler(OrderLog log)
 The first test in `tests/Orders.Tests/OrderHandlerTests.cs` sends it one message:
 
 ```csharp
-using Hardened.Shared.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Xunit;
 
 namespace Orders.Tests;
 
 public class OrderHandlerTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task AMessageReachesTheHandler(Application.Queues queues, OrderLog log)
     {
         await queues.Orders(new Order { Id = "A-1", Quantity = 2 });
@@ -110,7 +110,7 @@ same call. The call writes each message as JSON with camelCase property names be
 it. The second test in `OrderHandlerTests` sends three messages:
 
 ```csharp
-    [HardenedTest]
+    [ModuleTest]
     public async Task EveryMessageInABatchIsHandled(Application.Queues queues, OrderLog log)
     {
         await queues.Orders(
@@ -128,14 +128,14 @@ template's handler is `[Timer("nightly")] public void OnNightly() => log.Sweep()
 test calls `timers.Nightly()`:
 
 ```csharp
-using Hardened.Shared.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Xunit;
 
 namespace Orders.Tests;
 
 public class OrderHandlerTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheScheduleReachesTheHandler(Application.Timers timers, OrderLog log)
     {
         await timers.Nightly();
@@ -204,14 +204,14 @@ public record OrderAccepted(string Id, int Received);
 Its test in `tests/Orders.Tests/OrderHandlerTests.cs` takes the façade:
 
 ```csharp
-using Hardened.Shared.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Xunit;
 
 namespace Orders.Tests;
 
 public class OrderHandlerTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task ThePayloadReachesTheHandler(Application.Invocations invocations, OrderLog log)
     {
         var accepted = await invocations.Process(new Order { Id = "A-1", Quantity = 2 });
@@ -281,15 +281,15 @@ public class PlacedHandler(OrderLog log)
 `tests/Orders.Tests/OrderEventTests.cs` sends it an event:
 
 ```csharp
+using DependencyModules.xUnit.Attributes;
 using Hardened.Functions.Testing;
-using Hardened.Shared.Testing.Attributes;
 using Xunit;
 
 namespace Orders.Tests;
 
 public class OrderEventTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnEventReachesItsHandler(ITriggerDelivery delivery, OrderLog log)
     {
         await delivery.Deliver([new Order { Id = "A-1" }], "EVENT", "/com.acme.orders/OrderPlaced");
@@ -371,8 +371,8 @@ No test envelope is built for the EVENT scheme yet. Queues, topics, timers, chan
 attribute on its class:
 
 ```csharp
+using DependencyModules.xUnit.Attributes;
 using Hardened.Functions.Testing;
-using Hardened.Shared.Testing.Attributes;
 using Xunit;
 
 namespace Orders.Tests;
@@ -380,7 +380,7 @@ namespace Orders.Tests;
 [PipelineDelivery]
 public class OrderEventTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnEventReachesItsHandler(ITriggerDelivery delivery, OrderLog log)
     {
         await delivery.Deliver([new Order { Id = "A-1" }], "EVENT", "/com.acme.orders/OrderPlaced");
@@ -445,7 +445,7 @@ The first test in `tests/Orders.Tests/PlacementTests.cs` takes the store as a `[
 
 ```csharp
 using DependencyModules.Testing.Attributes;
-using Hardened.Shared.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using NSubstitute;
 using Xunit;
 
@@ -453,7 +453,7 @@ namespace Orders.Tests;
 
 public class PlacementTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnOrderIsPlaced(Application.Queues queues, [Mock] IOrderStore store)
     {
         await queues.OrdersNew(new Order { Id = "A-1" });
@@ -471,7 +471,7 @@ failed one do not run. The second test in `PlacementTests` makes the store throw
 three orders:
 
 ```csharp
-    [HardenedTest]
+    [ModuleTest]
     public async Task AFailedMessageFailsTheCall(Application.Queues queues, [Mock] IOrderStore store)
     {
         store
@@ -514,7 +514,7 @@ The call does not return the failure report. A test asserts on what the handler 
 
 ```csharp
 using DependencyModules.Testing.Attributes;
-using Hardened.Shared.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using NSubstitute;
 using Xunit;
 
@@ -522,7 +522,7 @@ namespace Orders.Tests;
 
 public class ReportingTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task EveryMessageRunsAfterOneFails(Application.Queues queues, [Mock] IOrderStore store)
     {
         store

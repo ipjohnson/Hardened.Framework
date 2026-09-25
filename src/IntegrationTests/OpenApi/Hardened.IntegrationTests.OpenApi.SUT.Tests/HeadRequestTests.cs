@@ -15,7 +15,7 @@ namespace Hardened.IntegrationTests.OpenApi.SUT.Tests;
 /// </summary>
 public class HeadRequestTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task Head_ReachesTheGetHandlerBehindAPathParameter(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Request("HEAD", null, "/pets/42");
@@ -23,7 +23,7 @@ public class HeadRequestTests
         response.Assert.Ok();
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task Head_ReachesTheGetHandlerOnATokenlessRoute(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Request("HEAD", null, "/pets");
@@ -31,7 +31,7 @@ public class HeadRequestTests
         response.Assert.Ok();
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task Head_WritesNoBody(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Request("HEAD", null, "/pets");
@@ -39,7 +39,7 @@ public class HeadRequestTests
         Assert.Equal(0, response.Body.Length);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task Head_ReportsTheLengthTheGetWouldHaveWritten(ITestWebApp testWebApp)
     {
         var get = await testWebApp.Get("/pets");

@@ -13,7 +13,7 @@ namespace Hardened.IntegrationTests.WebApp.SUT.NUnitTests;
 [AspNetCoreRuntime]
 public class AspNetCoreHostUnderNUnitTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task ARequestAnswersThroughTheAspNetPipeline(ITestWebApp app)
     {
         var response = await app.Get("/verbs/item/42");
@@ -23,7 +23,7 @@ public class AspNetCoreHostUnderNUnitTests
         Assert.That(response.Headers.ContainsKey("Date"), Is.True, "a header only a server writes");
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AMockBehindARouteIsTheOneTheHandlerSees(
         ITestWebApp app,
         [Mock] IMathService<int> math
@@ -37,7 +37,7 @@ public class AspNetCoreHostUnderNUnitTests
         Assert.That(response.Deserialize<int>(), Is.EqualTo(100));
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnUnmatchedPathIsAspNetsOwn404(ITestWebApp app)
     {
         var response = await app.Get("/no/such/route");

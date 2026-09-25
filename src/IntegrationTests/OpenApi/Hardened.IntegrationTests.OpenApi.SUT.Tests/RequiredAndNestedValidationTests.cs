@@ -43,7 +43,7 @@ public class RequiredAndNestedValidationTests
     /// A well-formed order is accepted, so every rejection below fails for the reason it names
     /// rather than because the route never worked.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AWellFormedOrderIsAccepted(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post(Valid, "/orders");
@@ -57,7 +57,7 @@ public class RequiredAndNestedValidationTests
     /// The one that invented data. Nothing rejects an enum's first declared member, so an omitted
     /// <c>species</c> was stored as <c>dog</c> and answered 200.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AMissingRequiredEnumIsRejected(ITestWebApp testWebApp)
     {
         var error = await Rejected(
@@ -75,7 +75,7 @@ public class RequiredAndNestedValidationTests
     /// unbounded in the contract: a <c>minimum</c> would have caught the absence by accident, which
     /// is how this stayed hidden on fields that happened to have one.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AMissingRequiredIntegerIsRejected(ITestWebApp testWebApp)
     {
         var error = await Rejected(
@@ -92,7 +92,7 @@ public class RequiredAndNestedValidationTests
     /// Both, in one answer. The caller fixes their request in one pass rather than one round trip
     /// per field.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task EveryMissingRequiredMemberIsNamedAtOnce(ITestWebApp testWebApp)
     {
         var error = await Rejected(testWebApp, """{"lines":[{"sku":"TLS-0001"}]}""");
@@ -105,7 +105,7 @@ public class RequiredAndNestedValidationTests
     /// A constraint on an array's items runs. The exact D2 repro: <c>quantity</c> declares
     /// <c>minimum: 1</c> and a zero was accepted and the order placed.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AConstraintOnAnArrayItemIsEnforced(ITestWebApp testWebApp)
     {
         var error = await Rejected(
@@ -122,7 +122,7 @@ public class RequiredAndNestedValidationTests
     /// maximum with the decimal extreme - so the caller was told the value must be between 1 and
     /// 7.92281625142643E+28, an upper bound nobody declared.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ASingleBoundNamesNoInventedExtreme(ITestWebApp testWebApp)
     {
         var error = await Rejected(
@@ -140,7 +140,7 @@ public class RequiredAndNestedValidationTests
     /// The failing element is identified, not merely the array. An error naming <c>lines</c> alone
     /// tells a caller with fifty lines nothing.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheFailingArrayElementIsIdentifiedByItsIndex(ITestWebApp testWebApp)
     {
         var error = await Rejected(
@@ -162,7 +162,7 @@ public class RequiredAndNestedValidationTests
     /// tells a caller with fifty lines nothing, which is the same reason the index is asserted
     /// above.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ARequiredMemberOfAnArrayItemIsEnforced(ITestWebApp testWebApp)
     {
         var error = await Rejected(
@@ -184,7 +184,7 @@ public class RequiredAndNestedValidationTests
     /// so the null reached the handler and the first dereference was a 500. The contract says the
     /// body is required, which makes this the one refusal the document had already promised.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ANullBodyIsRefusedRatherThanDereferenced(ITestWebApp testWebApp)
     {
         var error = await Rejected(testWebApp, "null");
@@ -204,7 +204,7 @@ public class RequiredAndNestedValidationTests
     /// a caller was told about <c>weightGrams</c> and learned about <c>lines</c> one round trip
     /// later. The reader aggregates missing members, so asking it once answers both.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AMissingValueMemberDoesNotHideAMissingReferenceMember(ITestWebApp testWebApp)
     {
         var error = await Rejected(testWebApp, """{"species":"cat"}""");
