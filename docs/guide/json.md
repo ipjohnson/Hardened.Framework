@@ -228,7 +228,7 @@ using ValidationModules.Constraints;
 
 namespace Todos;
 
-public record NewTodo([property: StringLength(1, 64), JsonRequired] string Title);
+public record NewTodo([property: StringLength(64, Min = 1), JsonRequired] string Title);
 ```
 
 A body that leaves out a required member answers 400 with the code `required`. The `field` is the

@@ -51,17 +51,23 @@ public class RegistrationValidationTests
     }
 
     /// <summary>
-    /// A pattern that backtracks catastrophically on the value throws at its timeout, and the
-    /// request answers 500 rather than holding its thread.
+    /// A pattern that backtracks catastrophically on the value gives up at its timeout rather than
+    /// holding the request's thread, and the value is refused as not matching. From ValidationModules
+    /// 1.2.0 a timed-out match counts as a failed one, so a crafted value answers 400 rather than a
+    /// 500 that a client would retry into the same timeout.
     /// </summary>
     [ModuleTest]
-    public async Task APatternPastItsTimeoutAnswers500(ITestWebApp testWebApp)
+    public async Task APatternPastItsTimeoutRefusesTheValue(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get(
             "/registration/nested?value=" + new string('a', 32) + "!"
         );
 
-        Assert.Equal(500, response.StatusCode);
+        response.Assert.BadRequest();
+        Assert.Contains(
+            response.Deserialize<RequestValidationError>().Errors,
+            error => error.Field == "value" && error.Code == "pattern"
+        );
     }
 
     [ModuleTest]

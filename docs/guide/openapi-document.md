@@ -682,7 +682,7 @@ namespace Todos;
 /// <summary>
 /// What a client sends to create one.
 /// </summary>
-public record NewTodo([property: StringLength(1, 64)] string Title);
+public record NewTodo([property: StringLength(64, Min = 1)] string Title);
 ```
 
 It publishes this schema:

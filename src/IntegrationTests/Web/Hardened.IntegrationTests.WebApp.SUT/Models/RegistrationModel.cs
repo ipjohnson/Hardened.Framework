@@ -49,6 +49,6 @@ public sealed class AddressModel
     [Required]
     public string? City { get; set; }
 
-    [StringLength(2, 2)]
+    [StringLength(2, Min = 2)]
     public string? Country { get; set; }
 }

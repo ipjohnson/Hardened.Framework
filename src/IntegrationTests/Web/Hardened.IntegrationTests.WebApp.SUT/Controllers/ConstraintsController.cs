@@ -22,7 +22,8 @@ public class ConstraintsController
 
     /// <summary>A length on a header, pathed under the header's own name.</summary>
     [Get("/region")]
-    public string Region([FromHeader("X-Region")] [StringLength(2, 2)] string region) => region;
+    public string Region([FromHeader("X-Region")] [StringLength(2, Min = 2)] string region) =>
+        region;
 
     /// <summary>
     /// A bound behind a route constraint. The route decides whether the URL exists, so
