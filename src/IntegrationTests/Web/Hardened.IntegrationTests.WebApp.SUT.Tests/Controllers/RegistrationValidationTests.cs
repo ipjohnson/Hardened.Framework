@@ -30,7 +30,7 @@ public class RegistrationValidationTests
     /// <c>[ValidateNever]</c> on the parameter binds the model and skips its constraints. The same
     /// body at <c>/registration</c> is refused twice over.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AParameterMarkedValidateNeverIsBoundUnvalidated(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post(BreaksBothRules, "/registration/unvalidated");
@@ -41,7 +41,7 @@ public class RegistrationValidationTests
         (await testWebApp.Post(BreaksBothRules, "/registration")).Assert.BadRequest();
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AHandlerMarkedValidateNeverValidatesNothing(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post(BreaksBothRules, "/registration/unvalidated-handler");
@@ -54,7 +54,7 @@ public class RegistrationValidationTests
     /// A pattern that backtracks catastrophically on the value throws at its timeout, and the
     /// request answers 500 rather than holding its thread.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task APatternPastItsTimeoutAnswers500(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get(
@@ -64,7 +64,7 @@ public class RegistrationValidationTests
         Assert.Equal(500, response.StatusCode);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AValueThePatternMatchesIsAccepted(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/registration/nested?value=aaaa");
@@ -74,7 +74,7 @@ public class RegistrationValidationTests
     }
 
     /// <summary>Binding still refuses a body that does not deserialize.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnUnvalidatedRouteStillRefusesAMalformedBody(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post("{\"name\":", "/registration/unvalidated");
