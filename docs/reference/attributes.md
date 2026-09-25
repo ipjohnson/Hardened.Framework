@@ -192,12 +192,14 @@ The types that the table names are in these namespaces:
 | `[Operation(id)]`<br>`string id` | Method | `Hardened.Web.Runtime.Attributes` in `Hardened.Web.Runtime` | The `operationId` the handler publishes. Without it, the method name with its first letter lower-cased | [The OpenAPI document](/guide/openapi-document) |
 | `[OpenApiDocumentPath(path)]`<br>`string path` | Class | `Hardened.Web.Runtime.OpenApi` in `Hardened.Web.Runtime` | On a feature marker class: `[Enable<>]` of the class serves the document at the path in place of `/openapi.json` | [The OpenAPI document](/guide/openapi-document) |
 | `[HardenedOpenApiUi]` | Module attribute | `Hardened.Web.Runtime.OpenApi` in `Hardened.Web.Runtime` | Serves a reference page for the OpenAPI document<br>Properties: `Path` (`/docs`), `Title` (`API Reference`), `DocumentPath` (`/openapi.json`), `ScriptUrl` (`@scalar/api-reference` 1.65.1 from jsDelivr), `ScriptIntegrity` (that script's SHA-384 hash), `DecodeMessagePack` (`false`), `MessagePackScriptUrl` (`@msgpack/msgpack` 3.1.3 from jsDelivr), `Environments` (unset, which serves the page in every environment) | [The OpenAPI document](/guide/openapi-document) |
-| `[HardenedStaticContent]` | Module attribute | `Hardened.Web.StaticContent` in `Hardened.Web.StaticContent` | Serves a directory of files<br>Properties: `Path` (`wwwroot`), `FallBackFile` (none) | None |
+| `[HardenedStaticContent]` | Module attribute | `Hardened.Web.StaticContent` in `Hardened.Web.StaticContent` | Serves a directory of files<br>Properties: `Path` (`wwwroot`), `FallBackFile` (none), `RoutePrefix` (`/`) | None |
 | `[WebLibrary]` | Any | `Hardened.Web.Runtime.Attributes` in `Hardened.Web.Runtime` | Nothing in the build or at run time reads it | None |
 
 `[LambdaHttpModule]`, `[CloudRunRuntime]` and `[HttpModule]` are the web hosts of the three clouds. Their rows are under [AWS](#aws), [Google Cloud](#google-cloud) and [Azure](#azure).
 
 The string properties of `[HardenedOpenApiUi]` keep the module's defaults when the attribute leaves them unset. The full `ScriptUrl` default is `https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.65.1/dist/browser/standalone.js`. The full `MessagePackScriptUrl` default is `https://cdn.jsdelivr.net/npm/@msgpack/msgpack@3.1.3/dist.umd/msgpack.min.js`. `Environments` is a comma-separated list of environment names.
+
+`RoutePrefix` on `[HardenedStaticContent]` is the path the directory is served under, such as `/static`. It applies to a directory read at run time. A build that declares `HardenedStaticContent` items serves their manifest, and each item's own `RoutePrefix` sets where its files are served.
 
 The build's `HRDR004` message says to move shared handlers `into a [WebLibrary] project`.
 
