@@ -67,7 +67,7 @@ public class FormFileGeneratorTests
 
         var source = Compact(result.SourceContaining("Upload_"));
 
-        Assert.Equal(1, source.Split("FormReader.ReadForm").Length - 1);
+        Assert.Equal(1, source.Split("FormBinding.Read(").Length - 1);
         Assert.Contains(
             $"parameters.file={Binding}.Required(form.GetFile(\"file\"),\"file\");",
             source

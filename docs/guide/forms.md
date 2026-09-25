@@ -65,10 +65,10 @@ The request's `Content-Type` decides how the body is read:
 | `application/x-www-form-urlencoded`, with or without parameters such as `; charset=UTF-8` | Url-encoded fields |
 | None | Url-encoded fields |
 | `multipart/form-data` | Fields and files |
-| Any other | A form with no fields |
+| Any other | Not read. The request answers 415 |
 
-A request with any other `Content-Type` answers 400, with a `required` error for each required
-field:
+A request with any other `Content-Type` answers 415. The `Accept` header names the two types a form
+handler reads:
 
 ```http
 POST /todos/form
@@ -76,10 +76,11 @@ Content-Type: application/json
 
 {"title":"Buy milk"}
 
-HTTP/1.1 400 Bad Request
+HTTP/1.1 415 Unsupported Media Type
+Accept: application/x-www-form-urlencoded, multipart/form-data
 Content-Type: application/json
 
-{"type":"ValidationError","message":"One or more validation errors occurred.","errors":[{"field":"title","code":"required","message":"title is required."}]}
+{"type":"UnsupportedContentTypeException","message":"This route does not read application/json. It reads application/x-www-form-urlencoded, multipart/form-data.","details":""}
 ```
 
 ## Files
@@ -268,9 +269,8 @@ a stream from `OpenReadStream` must not be kept past the response.
 
 ## Body size
 
-`FormConfiguration.MaxBodyBytes` caps a multipart body. It is 30,000,000 bytes unless the
-application sets it. The cap applies to multipart bodies only. A url-encoded body has no cap of its
-own.
+`FormConfiguration.MaxBodyBytes` caps a form body, url-encoded or multipart. It is 30,000,000
+bytes unless the application sets it.
 
 `services.ConfigureForms` in a module's `ConfigureServices` sets the cap. `ConfigureForms` and
 `FormConfiguration` are in the namespace `Hardened.Requests.Runtime.Forms`. In the template's
@@ -305,8 +305,8 @@ public partial class TodosLibrary : IServiceCollectionConfiguration
 }
 ```
 
-A multipart body longer than the cap answers 413. A body exactly as long as the cap is read. With
-the cap above, a 5,000,001-byte multipart body sent to `POST /todos/form/import` gets this response:
+A form body longer than the cap answers 413. A body exactly as long as the cap is read. With the
+cap above, a 5,000,001-byte multipart body sent to `POST /todos/form/import` gets this response:
 
 ```http
 HTTP/1.1 413 Payload Too Large
@@ -319,9 +319,9 @@ The host's own request body limit applies first. On the Kestrel and ASP.NET Core
 30,000,000 bytes by default. A body over it answers 500, whatever the cap is.
 [Parameter binding](/guide/parameter-binding) covers raising it.
 
-## Unreadable multipart bodies
+## Unreadable bodies
 
-A multipart body that cannot be read answers 400. The error has the code `invalid` and the field
+A form body that cannot be read answers 400. The error has the code `invalid` and the field
 `body`. Its message gives the reason. The import example's body, sent with
 `Content-Type: multipart/form-data` and no boundary, gets this response:
 
@@ -342,6 +342,7 @@ These bodies cannot be read:
 | A part's headers never end, or run past 16,384 bytes | `A part's headers do not end, or run past 16384 bytes.` |
 | A part's `Content-Disposition` has no `name` | `A part has no Content-Disposition name.` |
 | More than 1,024 parts | `The body has more than 1024 parts.` |
+| A url-encoded body with more than 1,024 fields. Each repeat of a name counts | `The body has more than 1024 fields.` |
 
 A boundary can be quoted. `boundary="----todos"` reads the same as `boundary=----todos`.
 
@@ -388,8 +389,9 @@ The collection has these members:
 | `GetFile(name)` | The first file sent under the name, or `null` |
 | `GetFiles(name)` | Every file sent under the name, in the order they arrived |
 
-`ReadForm` returns an empty collection for a request with no form body. The form is read once per
-request. A second read in the same request returns the same collection.
+`ReadForm` returns an empty collection for a request with no form body, whatever its
+`Content-Type`. It does not answer 415. Only a handler with `[FromForm]` parameters does. The form
+is read once per request. A second read in the same request returns the same collection.
 
 A parameter typed `IFormCollection` binds from the container. The container has none registered, so
 every request to the handler answers 500. The log says
@@ -434,9 +436,6 @@ using IFormFile = Hardened.Requests.Abstract.Forms.IFormFile;
 ```
 
 ## Limits
-
-No request is answered 415 for its `Content-Type`. A body that is not a form reads as an empty form,
-as the table under [Fields](#fields) shows.
 
 In a contract-first project, a request body that the contract declares as
 `application/x-www-form-urlencoded` is read as JSON. The build reports nothing. A form sent to the

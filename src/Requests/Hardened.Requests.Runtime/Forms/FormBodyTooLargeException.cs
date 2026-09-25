@@ -4,8 +4,7 @@ using Hardened.Requests.Abstract.Errors;
 namespace Hardened.Requests.Runtime.Forms;
 
 /// <summary>
-/// A <c>multipart/form-data</c> body longer than
-/// <see cref="IFormConfiguration.MaxBodyBytes"/> - 413.
+/// A form body longer than <see cref="IFormConfiguration.MaxBodyBytes"/> - 413.
 /// </summary>
 /// <remarks>
 /// Thrown from inside the bind, where the body is read, so it reaches the caller the way any other

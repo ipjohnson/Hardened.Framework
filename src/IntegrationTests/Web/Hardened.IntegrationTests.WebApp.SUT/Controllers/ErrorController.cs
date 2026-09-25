@@ -1,3 +1,4 @@
+using Hardened.IntegrationTests.WebApp.SUT.Filters;
 using Hardened.Requests.Abstract.Attributes;
 using Hardened.Requests.Runtime.Errors;
 using Hardened.Web.Runtime.Attributes;
@@ -20,8 +21,16 @@ public class ErrorController
     [Get("/derived-client-error")]
     public string DerivedClientError() => throw new TenantMismatchException();
 
+    /// <summary>A handler's own parsing failed, which is a server fault.</summary>
     [Get("/format")]
     public string Format() => throw new FormatException("'abc' is not a number");
+
+    /// <summary>
+    /// A custom binding attribute could not parse a header. The <c>FormatException</c> is thrown
+    /// while the request is bound, so it is the caller's mistake.
+    /// </summary>
+    [Get("/format-while-binding")]
+    public int FormatWhileBinding([CountHeader] int count) => count;
 
     /// <summary>Anything else is a server error.</summary>
     [Get("/server")]

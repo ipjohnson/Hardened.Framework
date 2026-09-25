@@ -3516,6 +3516,7 @@
           "Error"
         ],
         "operationId": "format",
+        "summary": "A handler's own parsing failed, which is a server fault.",
         "responses": {
           "200": {
             "description": "OK",
@@ -3523,6 +3524,39 @@
               "application/json": {
                 "schema": {
                   "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          }
+        },
+        "x-hardened-timeout": 300000
+      }
+    },
+    "/errors/format-while-binding": {
+      "get": {
+        "tags": [
+          "Error"
+        ],
+        "operationId": "formatWhileBinding",
+        "summary": "A custom binding attribute could not parse a header. The FormatException is thrown while the request is bound, so it is the caller's mistake.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
                 }
               }
             }

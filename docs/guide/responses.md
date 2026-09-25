@@ -578,7 +578,7 @@ A handler that throws a generic form declares the body type and the status. A ha
 | A problem type or a generic form, through `AsException()` | Its status | Its body, with its headers |
 | `ValidationException` | 400 | The validation failure body, which [Validation](/guide/validation) covers |
 | `StatusCodeException` | Its status code | `{"type":"StatusCodeException","message":"The todo is locked.","details":""}` for `new StatusCodeException(409, message: "The todo is locked.")` |
-| `BadRequestException`, a type derived from it, or `FormatException` | 400 | The exception's type name and its message: `{"type":"BadRequestException","message":"The filter is malformed.","details":""}` for `new BadRequestException("The filter is malformed.")` |
+| `BadRequestException`, or a type derived from it | 400 | The exception's type name and its message: `{"type":"BadRequestException","message":"The filter is malformed.","details":""}` for `new BadRequestException("The filter is malformed.")` |
 | Any other exception | 500 | `{"type":"ServerError","message":"The server could not complete this request.","details":""}` |
 
 `StatusCodeException` is in `Hardened.Requests.Abstract.Errors`. `BadRequestException` is in
@@ -586,11 +586,13 @@ A handler that throws a generic form declares the body type and the status. A ha
 
 The message of an exception that answers 500 is not sent.
 
-A `FormatException` from `int.Parse("ten")` in a handler answers 400 with its own type name and
+A `FormatException` from `int.Parse("ten")` in a handler answers 500, like any other exception. A
+`FormatException` thrown while the request is bound answers 400. A custom binding attribute or a
+JSON converter of your own can throw one. The response names `BadRequestException` and keeps the
 message:
 
 ```json
-{"type":"FormatException","message":"The input string \u0027ten\u0027 was not in a correct format.","details":""}
+{"type":"BadRequestException","message":"The input string \u0027ten\u0027 was not in a correct format.","details":""}
 ```
 
 An exception that answers a 4xx status is logged at `Warning` as a refusal:

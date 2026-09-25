@@ -165,10 +165,57 @@ public class IoFilterTests
             )
             .Next();
 
-        Assert.Same(failure, context.Response.ExceptionValue);
+        // A FormatException while binding is about the request, so it is recorded as a client
+        // error. The log line keeps the original.
+        var recorded = Assert.IsType<BadRequestException>(context.Response.ExceptionValue);
+
+        Assert.Same(failure, recorded.InnerException);
+        Assert.Equal(failure.Message, recorded.Message);
         Assert.False(handlerRan);
 
         logger.Received(1).RequestParameterBindFailed(context, failure);
+    }
+
+    /// <summary>Any other binding failure is recorded as it was thrown.</summary>
+    [Fact]
+    public async Task AnotherFailureBindingParametersIsRecordedAsItIs()
+    {
+        var context = Pipeline.Context(configureServices: services =>
+            services.AddSingleton(Substitute.For<IRequestLogger>())
+        );
+
+        var failure = new InvalidOperationException("the binder could not run");
+
+        await Pipeline
+            .Chain(
+                context,
+                Filter(deserialize: _ => Task.FromException<IExecutionRequestParameters>(failure))
+            )
+            .Next();
+
+        Assert.Same(failure, context.Response.ExceptionValue);
+    }
+
+    /// <summary>
+    /// A <c>FormatException</c> from the handler is the handler's own parsing, so it stays what it
+    /// is and answers 500.
+    /// </summary>
+    [Fact]
+    public async Task AFormatExceptionFromTheHandlerIsNotABindFailure()
+    {
+        var context = Pipeline.Context(configureServices: services =>
+            services.AddSingleton(Substitute.For<IRequestLogger>())
+        );
+
+        var failure = new FormatException(
+            "The input string 'internal-7' was not in a correct format."
+        );
+
+        await Pipeline
+            .Chain(context, Filter(), new Pipeline.Inline(_ => Task.FromException(failure)))
+            .Next();
+
+        Assert.Same(failure, context.Response.ExceptionValue);
     }
 
     /// <summary>

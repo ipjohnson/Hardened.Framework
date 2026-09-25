@@ -17,6 +17,8 @@ public class FormReaderTests
 {
     private const string Multipart = "multipart/form-data; boundary=" + Boundary;
 
+    private const string UrlEncoded = "application/x-www-form-urlencoded";
+
     /// <summary>
     /// A context over <paramref name="body"/>, with a request scope holding the per-request cache
     /// unless <paramref name="cached"/> says otherwise.
@@ -187,6 +189,79 @@ public class FormReaderTests
         await Assert.ThrowsAsync<FormBodyTooLargeException>(async () =>
             await Read(Context(Multipart, new MemoryStream(RequestBench()), 100, cached: false))
         );
+    }
+
+    [Fact]
+    public async Task AUrlEncodedBodyPastTheCapIsA413()
+    {
+        var body = new ForwardOnlyStream(Encoding.UTF8.GetBytes("a=" + new string('x', 200)));
+
+        var exception = await Assert.ThrowsAsync<FormBodyTooLargeException>(async () =>
+            await Read(Context(UrlEncoded, body, maxBodyBytes: 100))
+        );
+
+        Assert.Equal(413, exception.StatusCode);
+        Assert.Equal(100, exception.Limit);
+    }
+
+    /// <summary>A body with no content type reads as url-encoded, so the cap holds for it too.</summary>
+    [Fact]
+    public async Task ABodyWithNoContentTypePastTheCapIsA413()
+    {
+        await Assert.ThrowsAsync<FormBodyTooLargeException>(async () =>
+            await Read(Context(null, new MemoryStream(new byte[101]), maxBodyBytes: 100))
+        );
+    }
+
+    [Fact]
+    public async Task AUrlEncodedBodyExactlyAtTheCapIsRead()
+    {
+        var body = new ForwardOnlyStream(Encoding.UTF8.GetBytes("a=" + new string('x', 98)));
+
+        var form = await Read(Context(UrlEncoded, body, maxBodyBytes: 100));
+
+        Assert.Equal(new string('x', 98), form.Get("a").ToString());
+    }
+
+    [Fact]
+    public async Task AUrlEncodedBodyWithTooManyFieldsIsAnInvalidBody()
+    {
+        var fields = string.Join("&", Enumerable.Range(0, 1025).Select(i => "f" + i + "=1"));
+
+        var exception = await Assert.ThrowsAsync<ValidationException>(async () =>
+            await Read(Context(UrlEncoded, new MemoryStream(Encoding.UTF8.GetBytes(fields))))
+        );
+
+        var error = Assert.Single(exception.ValidationResult.Errors);
+
+        Assert.Equal("body", error.Field);
+        Assert.Equal("invalid", error.Code);
+        Assert.Equal("The body has more than 1024 fields.", error.Message);
+        Assert.IsType<FormatException>(exception.InnerException);
+    }
+
+    [Fact]
+    public async Task AByteOrderMarkIsNotPartOfTheFirstName()
+    {
+        var body = Encoding.UTF8.Preamble.ToArray().Concat("a=1"u8.ToArray()).ToArray();
+
+        var form = await Read(Context(UrlEncoded, new MemoryStream(body)));
+
+        Assert.Equal("1", form.Get("a").ToString());
+    }
+
+    /// <summary>
+    /// Read from the start, and put back there for a filter that reads the body after the binder.
+    /// </summary>
+    [Fact]
+    public async Task ASeekableUrlEncodedBodyIsReadFromTheStartAndPutBack()
+    {
+        var body = new MemoryStream("a=1"u8.ToArray()) { Position = 3 };
+
+        var form = await Read(Context(UrlEncoded, body));
+
+        Assert.Equal("1", form.Get("a").ToString());
+        Assert.Equal(0, body.Position);
     }
 
     /// <summary>

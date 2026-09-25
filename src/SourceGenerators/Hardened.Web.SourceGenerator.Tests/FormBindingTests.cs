@@ -75,7 +75,7 @@ public class FormBindingTests
         result.AssertNoErrors();
 
         var source = result.SourceContaining("SignIn");
-        var reads = source.Split("FormReader.ReadForm").Length - 1;
+        var reads = source.Split("FormBinding.Read(").Length - 1;
 
         Assert.Equal(1, reads);
         Assert.Contains("form.Get(\"username\")", source);
@@ -96,7 +96,7 @@ public class FormBindingTests
 
         result.AssertNoErrors();
 
-        Assert.DoesNotContain("ReadForm", result.SourceContaining("WhoAmI"));
+        Assert.DoesNotContain("FormBinding.Read(", result.SourceContaining("WhoAmI"));
     }
 
     /// <summary>The wire name comes from the attribute when it carries one.</summary>
@@ -181,7 +181,7 @@ public class FormBindingTests
 
         var source = Compact(result.SourceContaining("Find"));
 
-        Assert.Equal(1, source.Split("FormReader.ReadForm").Length - 1);
+        Assert.Equal(1, source.Split("FormBinding.Read(").Length - 1);
         Assert.Contains("varsearchModel=newglobal::TestApp.Search(", source);
         Assert.Contains("ParseRequired<int>(form.Get(\"page\")!,\"page\")", source);
         Assert.Contains("ParseRequired<string>(form.Get(\"q\")!,\"q\")", source);
@@ -322,7 +322,7 @@ public class FormBindingTests
             "ParseRequired<int>(context.Request.QueryString.Get(\"page\")!,\"page\")",
             source
         );
-        Assert.DoesNotContain("ReadForm", source);
+        Assert.DoesNotContain("FormBinding.Read(", source);
     }
 
     /// <summary>

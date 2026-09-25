@@ -19,6 +19,11 @@ public static class BindRequestParametersMethodGenerator
         "FormFileBinding"
     );
 
+    private static readonly ITypeDefinition FormBindingType = TypeDefinition.Get(
+        "Hardened.Requests.Runtime.Forms",
+        "FormBinding"
+    );
+
     public static void Implement(
         RequestHandlerModel requestHandlerModel,
         ClassDefinition classDefinition
@@ -83,6 +88,9 @@ public static class BindRequestParametersMethodGenerator
         // form parameters on one handler must not read the stream twice, and the local is what
         // makes that structural rather than something FormReader has to cache against a request it
         // is not scoped to.
+        //
+        // Through FormBinding rather than the reader, because a handler with form parameters
+        // answers 415 for a body that is not a form, and the reader reads one as an empty form.
         InstanceDefinition? formVar = null;
 
         if (
@@ -92,14 +100,7 @@ public static class BindRequestParametersMethodGenerator
         )
         {
             formVar = invokeMethod
-                .Assign(
-                    Await(
-                        context
-                            .Property("KnownServices")
-                            .Property("FormReader")
-                            .Invoke("ReadForm", context)
-                    )
-                )
+                .Assign(Await(Invoke(FormBindingType, "Read", context)))
                 .ToVar("form");
         }
 

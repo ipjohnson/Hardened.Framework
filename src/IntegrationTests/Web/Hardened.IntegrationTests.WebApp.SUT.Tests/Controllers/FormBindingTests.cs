@@ -1,5 +1,6 @@
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Runtime.Validation;
+using Hardened.Web.Kestrel.Runtime;
 using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
@@ -111,20 +112,51 @@ public class FormBindingTests
     }
 
     /// <summary>
-    /// A request that sends no form at all binds an empty one rather than failing.
+    /// A body that is not a form answers 415, with the types a form handler reads.
     /// </summary>
     /// <remarks>
-    /// The reader answers for the content type, so a JSON body posted to a form handler is not a
-    /// parse error - it is a form with no fields, and the fields come back missing the way an
-    /// absent query parameter does. Never null, which is the point of returning
-    /// <c>EmptyFormCollection</c> rather than a null collection.
+    /// It used to bind an empty form, so the caller was told a field it may well have sent was
+    /// missing.
     /// </remarks>
     [HardenedTest]
-    public async Task AJsonBodyOnAFormHandlerBindsAnEmptyForm(ITestWebApp testWebApp)
+    public async Task AJsonBodyOnAFormHandlerIsA415(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post(new { present = "ignored" }, "/form/optional");
 
+        Assert.Equal(415, response.StatusCode);
+        Assert.Equal(
+            "application/x-www-form-urlencoded, multipart/form-data",
+            response.Headers[KnownHeaders.Accept].ToString()
+        );
+    }
+
+    /// <summary>The SUT caps a form body at 100,000 bytes, url-encoded or multipart.</summary>
+    [HardenedTest]
+    public async Task AUrlEncodedBodyPastTheCapIsTooLarge(ITestWebApp testWebApp)
+    {
+        var response = await testWebApp.Post(
+            "present=" + new string('x', 100_000),
+            "/form/optional",
+            AsForm
+        );
+
+        Assert.Equal(413, response.StatusCode);
+    }
+
+    [HardenedTest]
+    public async Task AUrlEncodedBodyWithTooManyFieldsIsInvalid(ITestWebApp testWebApp)
+    {
+        var fields = string.Join("&", Enumerable.Range(0, 1025).Select(i => "f" + i + "=1"));
+
+        var response = await testWebApp.Post(fields, "/form/optional", AsForm);
+
         response.Assert.BadRequest();
+
+        var error = Assert.Single(response.Deserialize<RequestValidationError>()!.Errors!);
+
+        Assert.Equal("body", error.Field);
+        Assert.Equal("invalid", error.Code);
+        Assert.Equal("The body has more than 1024 fields.", error.Message);
     }
 
     private const string SearchBody =
@@ -226,5 +258,38 @@ public class FormBindingTests
 
         response.Assert.Ok();
         Assert.Equal(SearchEcho, await response.ReadTextAsync());
+    }
+}
+
+/// <summary>
+/// The form refusals on a real socket, where the body is Kestrel's and cannot seek.
+/// </summary>
+[KestrelRuntime]
+public class FormRefusalsOverSocketTests
+{
+    [HardenedTest]
+    public async Task AUrlEncodedBodyPastTheCapIsTooLarge(ITestWebApp testWebApp)
+    {
+        var response = await testWebApp.Post(
+            "present=" + new string('x', 100_000),
+            "/form/optional",
+            request =>
+                request.Headers[KnownHeaders.ContentType] =
+                    KnownContentType.FormUrlEncodedStringValues
+        );
+
+        Assert.Equal(413, response.StatusCode);
+    }
+
+    [HardenedTest]
+    public async Task AJsonBodyOnAFormHandlerIsA415(ITestWebApp testWebApp)
+    {
+        var response = await testWebApp.Post(new { present = "ignored" }, "/form/optional");
+
+        Assert.Equal(415, response.StatusCode);
+        Assert.Equal(
+            "application/x-www-form-urlencoded, multipart/form-data",
+            response.Headers[KnownHeaders.Accept].ToString()
+        );
     }
 }

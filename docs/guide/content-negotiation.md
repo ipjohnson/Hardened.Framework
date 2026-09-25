@@ -550,8 +550,8 @@ Content-Type: application/json
 {"type":"ValidationError","message":"One or more validation errors occurred.","errors":[{"field":"request","code":"invalid","message":"'<' is an invalid start of a value."}]}
 ```
 
-No request gets a 415 for its `Content-Type`. The JSON deserializer reads a JSON body sent as
-`text/plain`:
+A handler with a body parameter gets no 415 for its `Content-Type`. The JSON deserializer reads a
+JSON body sent as `text/plain`:
 
 ```http
 POST /todos
@@ -567,8 +567,8 @@ Location: /todos/3
 ```
 
 The MessagePack package adds a deserializer for `application/x-msgpack`.
-[MessagePack](/guide/message-pack) covers it. A `[FromForm]` parameter is read as a form.
-[Forms and files](/guide/forms) covers it. A body parameter declared as `byte[]` or `Stream`
+[MessagePack](/guide/message-pack) covers it. A `[FromForm]` parameter is read as a form, and a
+body that is not a form answers 415. [Forms and files](/guide/forms) covers it. A body parameter declared as `byte[]` or `Stream`
 receives the body as sent. [Parameter binding](/guide/parameter-binding) covers it.
 
 A deserializer implements `IRequestDeserializer`, from `Hardened.Requests.Abstract.Serializer`.

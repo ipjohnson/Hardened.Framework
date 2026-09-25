@@ -153,7 +153,12 @@ public class ExceptionToModelConverter : IExceptionToModelConverter
         //
         // To have an exception treated as a client error, derive it from
         // BadRequestException.
-        if (exp is BadRequestException or FormatException)
+        //
+        // A FormatException is not one by itself. int.Parse, Guid.Parse and Convert throw it about
+        // any value a handler parses, wherever that value came from, and its message can quote it.
+        // One thrown while the request is bound arrives here as a BadRequestException, because the
+        // binding filters wrap it.
+        if (exp is BadRequestException)
         {
             // The message is kept here and dropped below, which is the whole distinction: these are
             // raised about the caller's own request, by code that chose the wording for them.
