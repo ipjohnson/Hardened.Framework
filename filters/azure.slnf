@@ -50,8 +50,7 @@
       "src\\SourceGenerators\\Hardened.Generation.Shared\\Hardened.Generation.Shared.csproj",
       "src\\SourceGenerators\\Hardened.Library.SourceGenerator\\Hardened.Library.SourceGenerator.csproj",
       "src\\SourceGenerators\\Hardened.SourceGeneration.Testing\\Hardened.SourceGeneration.Testing.csproj",
-      "src\\SourceGenerators\\Hardened.SourceGenerator\\Hardened.SourceGenerator.csproj",
-      "src\\SourceGenerators\\Hardened.Validation.SourceGenerator\\Hardened.Validation.SourceGenerator.csproj"
+      "src\\SourceGenerators\\Hardened.SourceGenerator\\Hardened.SourceGenerator.csproj"
     ]
   }
 }

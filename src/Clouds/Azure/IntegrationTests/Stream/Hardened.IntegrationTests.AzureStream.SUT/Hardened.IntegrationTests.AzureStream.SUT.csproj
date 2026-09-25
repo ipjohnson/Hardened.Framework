@@ -29,7 +29,6 @@
         <ProjectReference Include="..\..\..\Hardened.Azure.Functions.EventHubs\Hardened.Azure.Functions.EventHubs.csproj"/>
         <ProjectReference Include="..\..\..\..\..\SourceGenerators\Hardened.Library.SourceGenerator\Hardened.Library.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
         <ProjectReference Include="..\..\..\..\..\SourceGenerators\Hardened.Function.SourceGenerator\Hardened.Function.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
-        <ProjectReference Include="..\..\..\..\..\SourceGenerators\Hardened.Validation.SourceGenerator\Hardened.Validation.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
         <ProjectReference Include="..\..\..\..\..\SourceGenerators\Hardened.DependencyModules.SourceGenerator\Hardened.DependencyModules.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
         <ProjectReference Include="..\..\..\Hardened.Azure.Functions.SourceGenerator\Hardened.Azure.Functions.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
     </ItemGroup>
@@ -38,5 +37,7 @@
     <Import Project="..\..\..\..\..\Functions\Hardened.Functions.Runtime\Package\Hardened.Functions.Runtime.targets"/>
     <Import Project="..\..\..\Hardened.Azure.Functions.EventHubs\Package\Hardened.Azure.Functions.EventHubs.targets"/>
     <Import Project="..\..\..\Hardened.Azure.Functions.Runtime\Package\Hardened.Azure.Functions.Runtime.targets"/>
+
+    <Import Project="..\..\..\..\..\SourceGenerators\ValidationModulesGenerator.props"/>
 
 </Project>

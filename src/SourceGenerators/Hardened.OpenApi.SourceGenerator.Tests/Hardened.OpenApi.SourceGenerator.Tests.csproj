@@ -63,7 +63,7 @@
             now.
 
             No ValidationModules sources here. The task writes plain attributes and stops - the IR
-            and the emitters live behind Hardened.Validation.SourceGenerator, which reads those
+            and the emitters live behind ValidationModules.SourceGenerator, which reads those
             attributes back out of the compilation like any other. Compiling Impl in here bound this
             project to a Roslyn-free/Roslyn-coupled split it does not need and cannot police.
         -->

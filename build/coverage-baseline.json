@@ -115,10 +115,6 @@
     "line": 100.0,
     "branch": 100.0
   },
-  "Hardened.Validation.SourceGenerator": {
-    "line": 30.7,
-    "branch": 24.2
-  },
   "Hardened.Web.AspNetCore.Runtime": {
     "line": 98.8,
     "branch": 88.8

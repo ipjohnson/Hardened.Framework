@@ -9,6 +9,7 @@ using Hardened.SourceGenerator.Shared;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using ValidationModules.SourceGenerator.Impl;
 using ValidationModules.SourceGenerator.Impl.Emitters;
 using ValidationModules.SourceGenerator.Impl.Models;
 
@@ -39,26 +40,36 @@ public static class HandlerValidationGenerator
         Func<SyntaxNode, CancellationToken, bool> selector
     )
     {
-        // Selected down to a bool before it reaches the pipeline, so an edit anywhere in the
-        // project does not invalidate every handler along with the compilation.
-        var validationAvailable = initializationContext.CompilationProvider.Select(
-            static (compilation, _) =>
-                compilation.GetTypeByMetadataName(ValidationGeneratorOptions.MarkerTypeName)
-                    is not null
+        var options = initializationContext.AnalyzerConfigOptionsProvider.Select(
+            static (provider, _) => ValidationGeneratorOptions.Read(provider)
         );
 
-        var options = initializationContext
-            .AnalyzerConfigOptionsProvider.Select(
-                static (provider, _) => ValidationGeneratorOptions.Read(provider)
+        // Ordered and deduplicated into an equatable array, so an edit that reshuffles the syntax
+        // provider does not re-run every handler. A partial rules class reports its targets once
+        // per declaration, which the distinct folds.
+        var rulesTargets = initializationContext
+            .SyntaxProvider.CreateSyntaxProvider(
+                static (node, _) => node is TypeDeclarationSyntax { BaseList: not null },
+                static (context, token) => RulesTargets.Of(context, token)
             )
-            .Combine(validationAvailable);
+            .SelectMany(static (targets, _) => targets)
+            .Collect()
+            .Select(
+                static (targets, _) =>
+                    new EquatableArray<string>(
+                        targets
+                            .Distinct(StringComparer.Ordinal)
+                            .OrderBy(static target => target, StringComparer.Ordinal)
+                            .ToImmutableArray()
+                    )
+            );
 
         var resolved = initializationContext
             .SyntaxProvider.CreateSyntaxProvider(
                 (node, token) => selector(node, token),
                 (context, token) => Analyze(modelGenerator, context, token)
             )
-            .Combine(options)
+            .Combine(options.Combine(rulesTargets))
             .Select(
                 static (pair, token) => Resolve(pair.Left, pair.Right.Left, pair.Right.Right, token)
             )
@@ -148,7 +159,7 @@ public static class HandlerValidationGenerator
     private static Resolved Resolve(
         Candidate candidate,
         ValidationGeneratorOptions options,
-        bool validationAvailable,
+        EquatableArray<string> rulesTargets,
         CancellationToken cancellationToken
     )
     {
@@ -157,6 +168,7 @@ public static class HandlerValidationGenerator
             candidate.Parameters,
             candidate.Compilation,
             options,
+            rulesTargets,
             cancellationToken
         );
 
@@ -167,7 +179,7 @@ public static class HandlerValidationGenerator
         //
         // Its diagnostics are dropped here. They are about how a constraint is written, and the
         // answer to all of them is that nothing is compiling any of them - which HRDV006 says once.
-        if (!validationAvailable)
+        if (!options.GeneratorReferenced)
         {
             return new Resolved(
                 candidate.Handler,

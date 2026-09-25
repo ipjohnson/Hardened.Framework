@@ -1,8 +1,8 @@
 # Validation
 
 Constraint attributes on the members of a request body's type, or on a handler's parameters, are
-checked after the request is bound and before the handler runs. `Hardened.Validation.SourceGenerator`
-compiles the attributes into that check.
+checked after the request is bound and before the handler runs. So are the rules in a rules class
+for a body's type. `ValidationModules.SourceGenerator` compiles both into that check.
 
 The body type goes in `src/Todos/NewList.cs`:
 
@@ -77,24 +77,24 @@ The handler declares no filter and registers nothing.
 The constraint attributes are in `ValidationModules.Constraints`. That namespace is in the
 `ValidationModules.Runtime` package, which `Hardened.Web.Runtime` brings.
 
-`Hardened.Validation.SourceGenerator` goes in the project that holds the constrained handlers. The
-`hardened-web` template references it in `src/Todos`. A project that sets versions in its project
-file references it with this line:
+`ValidationModules.SourceGenerator` goes in the project that holds the constrained handlers. The
+`hardened-web` template references it in `src/Todos`. It generates a validator for each constrained
+type and each type a rules class describes. It registers them into the project's `[HardenedModule]`
+class.
+
+Its version is the `ValidationModules.Runtime` version that Hardened brings, which is 1.2.0 for this
+release. A generator newer than that runtime fails the build with `VM5001`. A project that sets
+versions in its project file references it with this line:
 
 ```xml
-<PackageReference Include="Hardened.Validation.SourceGenerator" Version="0.0.0-HARDENED-VERSION" />
+<PackageReference Include="ValidationModules.SourceGenerator" Version="1.2.0" />
 ```
 
-The generator reads constraint attributes only. A ValidationModules rules class, an
-`IValidationRulesFor<T>`, produces no check and no warning.
+Without it, no constraint is checked. The build reports warning `HRDV006` once for the project,
+naming one handler.
 
-Other generator references have these results:
-
-| Validation generator in the project | Result |
-|---|---|
-| None | No constraint is checked. The build reports warning `HRDV006` once for the project, naming one handler |
-| `ValidationModules.SourceGenerator` in place of `Hardened.Validation.SourceGenerator` | It generates validators and registers them. No handler runs them. The build reports `HRDV006` |
-| Both | The build fails with `CS0111` and `CS0102` in the generated validators |
+A project with two `[HardenedModule]` classes has each validator registered into both. The build
+reports warning `VM6001`.
 
 ## Constraint attributes
 
@@ -314,9 +314,8 @@ Content-Type: application/json
 {"type":"ValidationError","message":"One or more validation errors occurred.","errors":[{"field":"list.items[1].title","code":"required","message":"title is required."}]}
 ```
 
-Without `[ValidateNested]`, the member type's constraints are not checked. The build reports
-warning `HRDV004` for such a member when its parent declares a constraint of its own and the
-member's type is declared in the same project. A member that is null is not checked.
+Without `[ValidateNested]`, the member type's constraints are not checked. A member that is null is
+not checked.
 
 `[ValidateNested]` on a member whose type is not sealed reports warning `VM1503`. Seal the type, or
 write `[ValidateNested(Polymorphism.DeclaredOnly)]`, which checks the declared type's constraints
@@ -674,6 +673,59 @@ OpenAPI document still describes the 400 with the `RequestValidationError` schem
 The interface is in `Hardened.Requests.Abstract.Errors`. The default is in
 `Hardened.Requests.Runtime.Errors`. `RegistrationType` is in `DependencyModules.Runtime.Attributes`.
 
+## Rules classes
+
+A rules class declares a type's rules in C# instead of in attributes on its members. It implements
+`IValidationRulesFor<T>` with a static `Describe` method. The generator compiles the rules into the
+type's validator, and a handler that binds the type runs it. The type itself carries no attribute.
+
+This `src/Todos/NewList.cs` replaces the first one and moves its rules into a rules class:
+
+```csharp
+using ValidationModules;
+
+namespace Todos;
+
+public class NewList
+{
+    public string? Name { get; set; }
+
+    public int Capacity { get; set; }
+}
+
+public class NewListRules : IValidationRulesFor<NewList>
+{
+    public static void Describe(ValidationRules<NewList> rules, NewList x)
+    {
+        rules.Require(x.Name);
+        rules.Length(x.Name, 3, 40);
+        rules.Range(x.Capacity, 1, 50);
+    }
+}
+```
+
+`POST /todos/lists` answers as it did with the attributes:
+
+```http
+POST /todos/lists
+Content-Type: application/json
+
+{"name":"ab","capacity":0}
+
+HTTP/1.1 400 Bad Request
+Content-Type: application/json
+
+{"type":"ValidationError","message":"One or more validation errors occurred.","errors":[{"field":"list.name","code":"string_length","message":"name must be between 3 and 40 characters."},{"field":"list.capacity","code":"range","message":"capacity must be between 1 and 50."}]}
+```
+
+A rules class can also compare two members, apply a rule only in some states of the object, and
+describe a type declared in another assembly. The ValidationModules guide to
+[rules classes](https://ipjohnson.github.io/ValidationModules/guide/rule-classes) covers what
+`ValidationRules<T>` can state. `IValidationRulesFor<T>` and `ValidationRules<T>` are in
+`ValidationModules`.
+
+The OpenAPI document does not publish the rules in a rules class.
+
 ## Rules the attributes cannot state
 
 A handler can throw `ValidationException`, from `Hardened.Requests.Runtime.Validation`, with a
@@ -863,11 +915,9 @@ The build reports these diagnostics:
 
 | Code | Severity | Reported when |
 |---|---|---|
-| `HRDV002` | Error | Two validators claim one generated file. The message asks for a defect report |
-| `HRDV003` | Warning | `[Required]` is on a non-nullable value type, such as `int`, which is never null. ValidationModules reports `VM1201` beside it |
-| `HRDV004` | Warning | A member's type declares constraints and the member has no `[ValidateNested]` |
 | `HRDV005` | Error | A parameter's constraint sets `When` or `Unless` |
-| `HRDV006` | Warning | The project declares constraints on a handler and does not reference `Hardened.Validation.SourceGenerator` |
+| `HRDV006` | Warning | The project declares constraints on a handler and does not reference `ValidationModules.SourceGenerator` |
+| `VM1201` | Warning | `[Required]` is on a non-nullable value type, such as `int`, which is never null |
 | `VM1301` | Error or warning, by `ValidationModules_PatternPolicy` | `[Pattern("...")]` has an inline expression |
 | `VM1503` | Warning | `[ValidateNested]` is on a member whose type is not sealed |
 
@@ -880,8 +930,8 @@ the value's absence a refusal.
 An `IAsyncValidatorFor<T>` registered for a body type is not run.
 
 The OpenAPI document does not publish `[DeniedValues]`, `[EmailAddress]`, `[Phone]`, `[Url]`,
-`[CreditCard]`, `[Base64String]`, `[FileExtensions]`, `[Pattern]` with a `[GeneratedRegex]`, or any
-DataAnnotations attribute. Each of them is still checked.
+`[CreditCard]`, `[Base64String]`, `[FileExtensions]`, `[Pattern]` with a `[GeneratedRegex]`, any
+DataAnnotations attribute, or the rules in a rules class. Each of them is still checked.
 
 On a `[HardenedModule]` class, `[ValidationMode(ValidationStopMode.StopOnFirstError)]` fails the
 build with `CS1503` in the generated `<Module>.Module.g.cs`:

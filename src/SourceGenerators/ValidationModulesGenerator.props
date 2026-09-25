@@ -1,0 +1,33 @@
+<Project>
+
+    <!--
+        ValidationModules' own generator, as an analyzer on a project that declares handlers. It
+        emits a validator for every constrained type and every type a rules class describes, and
+        registers them into the [HardenedModule] entry point. The handler generators emit the calls
+        to those validators.
+
+        The sibling checkout when there is one, the package otherwise, which is the switch
+        ValidationModulesImpl.props uses. A project reference skips the package's build targets, and
+        those targets make ValidationModules_Registration visible to the compiler. The handler
+        generators read that key to learn that validators are being emitted, so the checkout route
+        imports the targets itself.
+    -->
+    <PropertyGroup>
+        <!-- This file sits in src/SourceGenerators, so three levels up is beside this repository. -->
+        <ValidationModulesRoot Condition="'$(ValidationModulesRoot)' == ''">$(MSBuildThisFileDirectory)..\..\..\ValidationModules</ValidationModulesRoot>
+        <ValidationModulesGeneratorProject>$(ValidationModulesRoot)\src\ValidationModules.SourceGenerator\ValidationModules.SourceGenerator.csproj</ValidationModulesGeneratorProject>
+        <UseLocalValidationModules Condition="'$(UseLocalValidationModules)' == '' And Exists('$(ValidationModulesGeneratorProject)')">true</UseLocalValidationModules>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Condition="'$(UseLocalValidationModules)' == 'true'"
+                          Include="$(ValidationModulesGeneratorProject)"
+                          OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <PackageReference Condition="'$(UseLocalValidationModules)' != 'true'"
+                          Include="ValidationModules.SourceGenerator" PrivateAssets="all"/>
+    </ItemGroup>
+
+    <Import Condition="'$(UseLocalValidationModules)' == 'true'"
+            Project="$(ValidationModulesRoot)\src\ValidationModules.SourceGenerator\Package\ValidationModules.SourceGenerator.targets"/>
+
+</Project>

@@ -17,13 +17,13 @@ namespace Hardened.SourceGenerator.Validation;
 /// <para>
 /// <b>Why this exists at all.</b> Constraints on a body model are read, a validator is emitted for
 /// it and registered - all of that already works, for a hand-written controller exactly as for a
-/// spec-driven one, because <c>Hardened.Validation.SourceGenerator</c> scans every type in the
-/// compilation. What was missing was the last step: nothing attached a filter, so the validator was
-/// generated, registered, and never invoked. A request carrying a body that violated its own
-/// declared constraints was answered normally.
+/// spec-driven one, because <c>ValidationModules.SourceGenerator</c> scans every type in the
+/// compilation and every rules class. What was missing was the last step: nothing attached a
+/// filter, so the validator was generated, registered, and never invoked. A request carrying a body
+/// that violated its own declared constraints was answered normally.
 /// </para>
 /// <para>
-/// <b>Why it cannot be done in the validation generator.</b> The value that gets validated at run
+/// <b>Why it cannot be done by ValidationModules' generator.</b> The value that gets validated at run
 /// time is reached through the handler's nested <c>Parameters</c> class, and that class is emitted
 /// by this generator. Roslyn generators do not see each other's regular output, so the validation
 /// generator cannot emit a validator for a type it cannot observe. Moving <c>Parameters</c> into
@@ -33,8 +33,8 @@ namespace Hardened.SourceGenerator.Validation;
 /// </para>
 /// <para>
 /// So the validator for <c>Parameters</c> is emitted here, where the type is known, and it does two
-/// things. It descends into the parameters that carry structure, calling the validators the
-/// validation generator emitted for their types - named by convention rather than observed, which
+/// things. It descends into the parameters that carry structure, calling the validators
+/// ValidationModules emitted for their types - named by convention rather than observed, which
 /// is safe only because naming one that does not exist fails to compile. And it checks the
 /// constraints written on the parameters themselves: <c>[Range]</c> on a query value,
 /// <c>[StringLength]</c> on a header, <c>[Required]</c> on a path token. Those are read and
@@ -71,6 +71,7 @@ public static class HandlerValidationFrontEnd
         ImmutableArray<IParameterSymbol?> parameters,
         Compilation compilation,
         ValidationGeneratorOptions options,
+        EquatableArray<string> rulesTargets,
         CancellationToken cancellationToken
     )
     {
@@ -103,6 +104,9 @@ public static class HandlerValidationFrontEnd
 
         var diagnostics = ImmutableArray.CreateBuilder<Diagnostic>();
         var properties = ImmutableArray.CreateBuilder<ValidatedPropertyModel>();
+        var described = new HashSet<string>(rulesTargets, StringComparer.Ordinal);
+
+        bool HasRulesClass(INamedTypeSymbol type) => described.Contains(RulesTargets.Key(type));
 
         for (var i = 0; i < handler.RequestParameterInformationList.Count; i++)
         {
@@ -121,7 +125,15 @@ public static class HandlerValidationFrontEnd
             }
 
             if (
-                BuildProperty(symbol, parameter, compilation, options, frontEnd, diagnostics) is
+                BuildProperty(
+                    symbol,
+                    parameter,
+                    compilation,
+                    options,
+                    frontEnd,
+                    HasRulesClass,
+                    diagnostics
+                ) is
                 { } property
             )
             {
@@ -222,6 +234,7 @@ public static class HandlerValidationFrontEnd
         Compilation compilation,
         ValidationGeneratorOptions options,
         AttributeFrontEnd frontEnd,
+        Func<INamedTypeSymbol, bool> hasRulesClass,
         ImmutableArray<Diagnostic>.Builder diagnostics
     )
     {
@@ -233,13 +246,19 @@ public static class HandlerValidationFrontEnd
         var dictionary = TypeFacts.DictionaryTypesOf(type);
         var elementType = TypeFacts.ElementTypeOf(type);
 
-        if (dictionary is { } entry && HasValidator(entry.Value, compilation, options))
+        if (
+            dictionary is { } entry
+            && HasValidator(entry.Value, compilation, options, hasRulesClass)
+        )
         {
             shape = PropertyShape.Dictionary;
             elementTypeName = Qualified(entry.Value);
             elementValidatorName = QualifiedValidator((INamedTypeSymbol)entry.Value);
         }
-        else if (elementType is not null && HasValidator(elementType, compilation, options))
+        else if (
+            elementType is not null
+            && HasValidator(elementType, compilation, options, hasRulesClass)
+        )
         {
             shape = PropertyShape.Collection;
             elementTypeName = Qualified(elementType);
@@ -248,7 +267,7 @@ public static class HandlerValidationFrontEnd
         else if (
             dictionary is null
             && elementType is null
-            && HasValidator(type, compilation, options)
+            && HasValidator(type, compilation, options, hasRulesClass)
         )
         {
             shape = PropertyShape.Object;
@@ -350,15 +369,19 @@ public static class HandlerValidationFrontEnd
     }
 
     /// <summary>
-    /// Whether <c>Hardened.Validation.SourceGenerator</c> will emit a validator for this type.
+    /// Whether <c>ValidationModules.SourceGenerator</c> will emit a validator for this type.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Answered by running ValidationModules' own front-end and looking at whether it produced a
-    /// model, rather than by looking for constraint attributes ourselves. Anything short of that is
-    /// an approximation of a decision another generator is making, and the two failures it produces
-    /// are a compilation that names a validator nobody emitted, or a body whose constraints are
-    /// silently never checked.
+    /// A type a rules class describes always gets one, and a type from a library that was built
+    /// with its validator already has one. Otherwise the answer comes from running
+    /// ValidationModules' own attribute front end and looking at whether it produced a model, told
+    /// which types have rules classes the way ValidationModules' generator tells it, so a member
+    /// that descends into a rules-described type counts. Anything short of that is an approximation
+    /// of a decision another generator is making, and the two failures it produces are a
+    /// compilation that names a validator nobody emitted, or a body whose constraints are silently
+    /// never checked. Attributes alone were that approximation, and a model whose rules lived in a
+    /// rules class was bound and never validated.
     /// </para>
     /// <para>
     /// Its diagnostics are discarded here. This is a question, not a reading - the validation
@@ -369,12 +392,18 @@ public static class HandlerValidationFrontEnd
     private static bool HasValidator(
         ITypeSymbol type,
         Compilation compilation,
-        ValidationGeneratorOptions options
+        ValidationGeneratorOptions options,
+        Func<INamedTypeSymbol, bool> hasRulesClass
     )
     {
         if (type is not INamedTypeSymbol named || named.SpecialType != SpecialType.None)
         {
             return false;
+        }
+
+        if (hasRulesClass(named) || ArrivesWithAValidator(named, compilation))
+        {
+            return true;
         }
 
         var frontEnd = new AttributeFrontEnd(
@@ -384,7 +413,57 @@ public static class HandlerValidationFrontEnd
             options.ResolvedPatternPolicy
         );
 
-        return frontEnd.Build(named, ValidationGeneratorOptions.ValidatorNameFor) is not null;
+        return frontEnd.Build(
+            named,
+            ValidationGeneratorOptions.ValidatorNameFor,
+            hasRulesClass: hasRulesClass
+        )
+            is not null;
+    }
+
+    /// <summary>
+    /// Whether a type from a referenced assembly was compiled with a ValidationModules validator
+    /// beside it.
+    /// </summary>
+    /// <remarks>
+    /// The rules classes this compilation can see are its own. A library that keeps a model's rules
+    /// class next to the model ran ValidationModules' generator when it built, and the validator it
+    /// emitted is the only trace of that rules class left here. The interface is checked as well as
+    /// the name, because a FluentValidation <c>PetValidator</c> beside a <c>Pet</c> is a common
+    /// shape and naming it as an <c>IValidatorFor&lt;Pet&gt;</c> would not compile.
+    /// </remarks>
+    private static bool ArrivesWithAValidator(INamedTypeSymbol type, Compilation compilation)
+    {
+        if (SymbolEqualityComparer.Default.Equals(type.ContainingAssembly, compilation.Assembly))
+        {
+            return false;
+        }
+
+        var name = ValidationGeneratorOptions.ValidatorNameFor(type);
+        var metadataName = type.ContainingNamespace.IsGlobalNamespace
+            ? name
+            : $"{type.ContainingNamespace.ToDisplayString()}.{name}";
+
+        if (
+            type.ContainingAssembly.GetTypeByMetadataName(metadataName) is not { } validator
+            || !compilation.IsSymbolAccessibleWithin(validator, compilation.Assembly)
+        )
+        {
+            return false;
+        }
+
+        foreach (var contract in validator.AllInterfaces)
+        {
+            if (
+                contract.ConstructedFrom.ToDisplayString() == KnownTypes.ValidatorForInterface
+                && SymbolEqualityComparer.Default.Equals(contract.TypeArguments[0], type)
+            )
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -403,12 +482,6 @@ public static class HandlerValidationFrontEnd
     private static string Qualified(ITypeSymbol type) =>
         type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
 
-    private static string QualifiedValidator(INamedTypeSymbol type)
-    {
-        var name = ValidationGeneratorOptions.ValidatorNameFor(type);
-
-        return type.ContainingNamespace.IsGlobalNamespace
-            ? $"global::{name}"
-            : $"global::{type.ContainingNamespace.ToDisplayString()}.{name}";
-    }
+    private static string QualifiedValidator(INamedTypeSymbol type) =>
+        GeneratedNames.QualifiedValidator(type);
 }

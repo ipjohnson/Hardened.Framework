@@ -210,7 +210,7 @@ public class GeneratedCodeCompilesTests
     /// </summary>
     /// <remarks>
     /// The task writes attributes and nothing else - no validator, no ValidationModules IR. The
-    /// validator comes from Hardened.Validation.SourceGenerator reading these out of the
+    /// validator comes from ValidationModules.SourceGenerator reading these out of the
     /// compilation, which is the same scan that picks up [Required] on a hand-written class. That
     /// generator is not in this harness, so what is asserted here is the input it will read.
     /// </remarks>

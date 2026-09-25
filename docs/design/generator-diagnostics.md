@@ -308,8 +308,8 @@ is compiling this assembly.
 
 ```
 'OrderController.Create' declares constraints and nothing in this project compiles them into a
-validator, so none of them is enforced. Reference Hardened.Validation.SourceGenerator as an
-analyzer, or remove the constraint attributes if this assembly is not meant to enforce them.
+validator, so none of them is enforced. Reference the ValidationModules.SourceGenerator package,
+or remove the constraint attributes if this assembly is not meant to enforce them.
 ```
 
 The constraint attributes come from a package the application already references. Compiling them
@@ -345,33 +345,14 @@ An error, because a condition that is ignored is a constraint that runs when its
 should not. The other constraints on the same parameter are not compiled either while it stands;
 the message is the whole fix.
 
-### HRDV004 — nested constraints are never reached
+### HRDV002, HRDV003 and HRDV004 — retired
 
-A generated validator descends into a member only where `[ValidateNested]` says to, so omitting it
-switches off every constraint on the child type. Nothing said so at build time or at run time: the
-trial's price tiers stored as 201 with an empty code and a negative price, from a model whose
-constraints were all declared and all correct.
-
-```
-'CreateEvent.PriceTiers' does not declare [ValidateNested] and its element type 'PriceTier'
-declares constraints, so none of them run and an invalid 'PriceTier' is accepted with no
-error. Add [ValidateNested] to the property, or set <NoWarn>$(NoWarn);HRDV004</NoWarn> if the
-skip is intended.
-```
-
-A warning rather than an error, because not descending is sometimes what was meant — a member
-validated by a later step, a shared type whose constraints belong to another operation. The
-`NoWarn` is what makes that choice deliberate rather than silent.
-
-Reported on a property of a type that constrains something itself, whose member, array element,
-collection element or dictionary value is a type declared in the same compilation carrying
-constraints in either vocabulary. A type that constrains nothing is not a model this generator
-validates — a data seed holding a list of records, a response case wrapping a body — and its
-validator was never going to descend anywhere.
-
-Descending by default is the better answer and is on the table for 1.0. It cannot be the answer in
-a 0.x release: it changes what an existing application answers, from 201 to 400, on payloads it
-accepts today.
+`Hardened.Validation.SourceGenerator` reported them, and it is gone. Validators come from
+`ValidationModules.SourceGenerator`, which reads rules classes as well as constraint attributes.
+`HRDV002` reported two validators claiming one generated file. `HRDV003` reported `[Required]` on a
+non-nullable value type, which ValidationModules reports as `VM1201`. `HRDV004` reported a member
+whose type declares constraints and which has no `[ValidateNested]`, and ValidationModules has no
+equivalent. The ids are not reused.
 
 ## Forms
 

@@ -16,7 +16,7 @@ the routing table and the request validation.
     <PackageReference Include="Hardened.Shared.Runtime" />
     <PackageReference Include="Hardened.Web.Runtime" />
     <PackageReference Include="Hardened.Library.SourceGenerator" />
-    <PackageReference Include="Hardened.Validation.SourceGenerator" />
+    <PackageReference Include="ValidationModules.SourceGenerator" />
     <PackageReference Include="Hardened.OpenApi.SourceGenerator" PrivateAssets="all" />
   </ItemGroup>
 
@@ -176,7 +176,7 @@ The project that holds the document references five packages and leaves out a si
 | `Hardened.Shared.Runtime` | Yes |
 | `Hardened.Web.Runtime` | Yes |
 | `Hardened.Library.SourceGenerator` | Yes |
-| `Hardened.Validation.SourceGenerator` | Yes |
+| `ValidationModules.SourceGenerator` | Yes |
 | `Hardened.OpenApi.SourceGenerator` | Yes, with `PrivateAssets="all"` |
 | `Hardened.Web.SourceGenerator` | No |
 
@@ -189,7 +189,7 @@ fails with `HRDR008` and `CS0102` in the generated files. `PrivateAssets="all"` 
 generator out of the projects that reference this one. Without it, a host project that references
 `Hardened.Web.SourceGenerator` fails with `HRDR008`.
 
-Without `Hardened.Validation.SourceGenerator`, every request to an operation with a constraint
+Without `ValidationModules.SourceGenerator`, every request to an operation with a constraint
 answers 500. The build reports nothing.
 
 The module class carries `[HardenedModule]` and `[HardenedWebModule]`:

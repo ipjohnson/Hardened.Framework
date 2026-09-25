@@ -6,7 +6,7 @@ namespace Hardened.IntegrationTests.OpenApi.SUT;
 /// <remarks>
 /// These exist to prove the claim the whole arrangement rests on: that a model a developer wrote and
 /// a model the OpenAPI task emitted are the same thing to
-/// <c>Hardened.Validation.SourceGenerator</c>. It scans the compilation for constraint attributes;
+/// <c>ValidationModules.SourceGenerator</c>. It scans the compilation for constraint attributes;
 /// nothing about these types is special, and nothing had to be wired for them.
 /// </remarks>
 public class HandWrittenOrder

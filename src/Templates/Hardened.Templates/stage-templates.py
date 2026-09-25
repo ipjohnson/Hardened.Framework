@@ -5,7 +5,8 @@ A template pins the Hardened version its generated projects restore, and a hardc
 stale exactly the way the RazorBlade install snippet did - four release lines behind, with
 nothing to notice. The version therefore comes from the build rather than the file. The
 DependencyModules version the test project's mock package pins is stamped the same way, from
-the same property the framework builds against.
+the same property the framework builds against, and so is the ValidationModules version the
+validation generator pins.
 
 Staged into obj/ rather than rewritten in place: pack must not leave the working tree dirty,
 and the token has to survive in source so the next pack can substitute it again.
@@ -17,6 +18,7 @@ import sys
 TOKENS = {
     "0.0.0-DEV": sys.argv[3],
     "0.0.0-DEPENDENCYMODULES-VERSION": sys.argv[4],
+    "0.0.0-VALIDATIONMODULES-VERSION": sys.argv[5],
 }
 
 # A scaffold pinning a preview cannot restore from nuget.org, because a preview is published to

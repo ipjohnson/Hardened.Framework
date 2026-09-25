@@ -36,7 +36,6 @@
       <ProjectReference Include="..\..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj" />
       <ProjectReference Include="..\..\..\SourceGenerators\Hardened.Library.SourceGenerator\Hardened.Library.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
       <ProjectReference Include="..\..\..\SourceGenerators\Hardened.Web.SourceGenerator\Hardened.Web.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
-      <ProjectReference Include="..\..\..\SourceGenerators\Hardened.Validation.SourceGenerator\Hardened.Validation.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
       <ProjectReference Include="..\..\..\Web\Hardened.Web.AspNetCore.Runtime\Hardened.Web.AspNetCore.Runtime.csproj" />
       <ProjectReference Include="..\..\..\Web\Hardened.Web.Runtime\Hardened.Web.Runtime.csproj" />
       <ProjectReference Include="..\Hardened.IntegrationTests.Web.SUT\Hardened.IntegrationTests.Web.SUT.csproj" />
@@ -71,5 +70,7 @@
     <!-- The package carries this in build/, which a ProjectReference to the generator does not
          import; the fixture imports it from the task's own project instead. -->
     <Import Project="..\..\..\SourceGenerators\Hardened.OpenApiDocument.BuildTask\Package\Hardened.OpenApiDocument.targets"/>
+
+    <Import Project="..\..\..\SourceGenerators\ValidationModulesGenerator.props"/>
 
 </Project>

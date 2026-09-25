@@ -167,7 +167,7 @@ internal static class SpecHandlerModelBuilder
 
             // No validator argument: the attribute resolves every IValidatorFor<T> registered for
             // the interface, which is what lets a hand-written one run alongside the generated one.
-            // Registration is emitted by Hardened.Validation.SourceGenerator into this application's
+            // Registration is emitted by ValidationModules.SourceGenerator into this application's
             // entry point, so nothing has to be wired by hand.
             filters.Add(
                 new AttributeModel(

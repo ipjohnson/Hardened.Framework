@@ -12,7 +12,7 @@ namespace Hardened.Idl.Validation;
 /// <remarks>
 /// <para>
 /// No validators are emitted here, and no ValidationModules IR is built. The task writes attributes;
-/// <c>Hardened.Validation.SourceGenerator</c> reads them out of the compilation and emits the
+/// <c>ValidationModules.SourceGenerator</c> reads them out of the compilation and emits the
 /// validators - the same scan that picks up <c>[Required]</c> on a class a developer wrote. One
 /// front-end rather than two that meet in the middle.
 /// </para>

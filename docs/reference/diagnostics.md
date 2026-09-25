@@ -72,8 +72,8 @@ code table below names the kind.
 | `<MSBuildTreatWarningsAsErrors>true</MSBuildTreatWarningsAsErrors>` | Makes every warning an error | Makes every warning an error | Makes every warning an error |
 | `<ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>` | No effect | No effect | No effect, except `HSMT011` |
 
-The generator diagnostics at a source position are `HOAG031`, `HOAG032`, `HRDR014`, `HRDV003`,
-`HRDV004`, `HRDV005`, and the `DM` and `VM` codes. Each points at a position in a source file of the
+The generator diagnostics at a source position are `HOAG031`, `HOAG032`, `HRDR014`, `HRDV005`,
+and the `DM` and `VM` codes. Each points at a position in a source file of the
 project. `HAUTH001` and `HRDR013` print a file and line. Neither `#pragma` nor `.editorconfig`
 reaches them.
 
@@ -121,7 +121,7 @@ The prefix of a code names what reports it.
 | `HRDRM` | The web generator, for response cases | `Hardened.Web.SourceGenerator` |
 | `HRDT` | The web generator, for `[Throws<T>]`, and the testing package's targets | `Hardened.Web.SourceGenerator`, `Hardened.Shared.Testing` |
 | `HRDSC` | The web generator, for authentication scheme attributes | `Hardened.Web.SourceGenerator` |
-| `HRDV` | The validation generator, and the web generator for handler parameters | `Hardened.Validation.SourceGenerator`, `Hardened.Web.SourceGenerator` |
+| `HRDV` | The web and function generators, for handler validation | `Hardened.Web.SourceGenerator`, `Hardened.Function.SourceGenerator` |
 | `HRDOA` | The web generator, for the OpenAPI document, and the build task that writes it to a file | `Hardened.Web.SourceGenerator` |
 | `HRDF` | The library generator, for trigger adapters, and the function generator, for test façades | `Hardened.Library.SourceGenerator`, `Hardened.Function.SourceGenerator` |
 | `HRDAZ` | The Azure Functions generator, and the Azure runtime's targets | `Hardened.Azure.Functions.SourceGenerator`, `Hardened.Azure.Functions.Runtime` |
@@ -133,7 +133,7 @@ The prefix of a code names what reports it.
 | `HARDENED` | The source package's version check | `Hardened.SourceGenerator` |
 | `HardenedException` | Any Hardened generator that throws. The id has no number | Every generator package |
 | `DM` | DependencyModules, inside the library generator | `Hardened.Library.SourceGenerator` |
-| `VM` | ValidationModules, inside the validation generator | `Hardened.Validation.SourceGenerator` |
+| `VM` | ValidationModules' generator, and the web and function generators for constraints on handler parameters | `ValidationModules.SourceGenerator`, `Hardened.Web.SourceGenerator`, `Hardened.Function.SourceGenerator` |
 
 `HOAT` and `HSMT` share one numbering. `HRDOA` shares it for the codes of the build task that
 writes the served document to a file. [HOAT and HSMT](#hoat-and-hsmt) lists these codes by number.
@@ -228,11 +228,8 @@ the testing package report the other as a warning.
 
 | Id | Severity | Reported when | Reported by | Page |
 |---|---|---|---|---|
-| `HRDV002` | Error | Two validators claim one generated file. The message asks for a defect report | Generator | [Validation](/guide/validation) |
-| `HRDV003` | Warning | `[Required]` sits on a member of a non-nullable value type, such as `int` | Generator | [Validation](/guide/validation) |
-| `HRDV004` | Warning | A member's type declares constraints, and the member has no `[ValidateNested]` | Generator | [Validation](/guide/validation) |
 | `HRDV005` | Error | A constraint on a handler parameter sets `When` or `Unless` | Generator | [Validation](/guide/validation) |
-| `HRDV006` | Warning | A project declares constraints on a handler and does not reference `Hardened.Validation.SourceGenerator` | Generator | [Validation](/guide/validation) |
+| `HRDV006` | Warning | A project declares constraints on a handler and does not reference `ValidationModules.SourceGenerator` | Generator | [Validation](/guide/validation) |
 
 ## HRDOA
 

@@ -41,7 +41,7 @@ The project references three runtime packages and three source generator package
   <PackageReference Include="Hardened.Web.Kestrel.Runtime" Version="0.0.0-HARDENED-VERSION" />
   <PackageReference Include="Hardened.Library.SourceGenerator" Version="0.0.0-HARDENED-VERSION" />
   <PackageReference Include="Hardened.Web.SourceGenerator" Version="0.0.0-HARDENED-VERSION" />
-  <PackageReference Include="Hardened.Validation.SourceGenerator" Version="0.0.0-HARDENED-VERSION" />
+  <PackageReference Include="ValidationModules.SourceGenerator" Version="1.2.0" />
 </ItemGroup>
 ```
 
@@ -52,10 +52,11 @@ The project references three runtime packages and three source generator package
 | `Hardened.Web.Kestrel.Runtime` | `[KestrelRuntime]` and `HardenedKestrelApplication` |
 | `Hardened.Library.SourceGenerator` | Generates each module's half: `PopulateServiceCollection`, the module's attribute, service registration and configuration |
 | `Hardened.Web.SourceGenerator` | Generates the routing table and a handler class for each route |
-| `Hardened.Validation.SourceGenerator` | Generates validators from constraint attributes |
+| `ValidationModules.SourceGenerator` | Generates validators from constraint attributes and rules classes |
 
-`Hardened.Validation.SourceGenerator` turns constraint attributes, such as `[Range]`, into checks
-that run before the handler. [Validation](/guide/validation) covers these checks.
+`ValidationModules.SourceGenerator` turns constraint attributes, such as `[Range]`, into checks
+that run before the handler. It comes from ValidationModules rather than Hardened, so its version
+is ValidationModules' own. [Validation](/guide/validation) covers these checks and the version.
 
 Every Hardened package is released at one version. Reference the same version of each. Every
 version is a prerelease version. `dotnet add package` without `--prerelease` fails with "There are

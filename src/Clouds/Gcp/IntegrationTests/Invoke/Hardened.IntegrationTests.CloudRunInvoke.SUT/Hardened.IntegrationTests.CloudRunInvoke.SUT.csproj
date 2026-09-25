@@ -16,7 +16,6 @@
         <ProjectReference Include="..\..\..\Hardened.Gcp.CloudRun.Invoke\Hardened.Gcp.CloudRun.Invoke.csproj"/>
         <ProjectReference Include="..\..\..\..\..\SourceGenerators\Hardened.Library.SourceGenerator\Hardened.Library.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
         <ProjectReference Include="..\..\..\..\..\SourceGenerators\Hardened.Function.SourceGenerator\Hardened.Function.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
-        <ProjectReference Include="..\..\..\..\..\SourceGenerators\Hardened.Validation.SourceGenerator\Hardened.Validation.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
         <ProjectReference Include="..\..\..\..\..\SourceGenerators\Hardened.DependencyModules.SourceGenerator\Hardened.DependencyModules.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
     </ItemGroup>
 
@@ -32,5 +31,7 @@
     <Import Project="..\..\..\..\..\Requests\Hardened.Requests.Abstract\Package\Hardened.Requests.Abstract.targets"/>
     <Import Project="..\..\..\..\..\Functions\Hardened.Functions.Runtime\Package\Hardened.Functions.Runtime.targets"/>
     <Import Project="..\..\..\Hardened.Gcp.CloudRun.Invoke\Package\Hardened.Gcp.CloudRun.Invoke.targets"/>
+
+    <Import Project="..\..\..\..\..\SourceGenerators\ValidationModulesGenerator.props"/>
 
 </Project>

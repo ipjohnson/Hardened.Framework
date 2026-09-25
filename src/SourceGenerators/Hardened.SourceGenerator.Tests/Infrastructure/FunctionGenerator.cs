@@ -97,8 +97,16 @@ public static class FunctionGeneratorHarness
         GeneratorTestHarness.Run(source, new FunctionGenerator(), Anchors);
 
     /// <summary>Runs the generator over several source files.</summary>
-    public static GeneratorResult Generate(IReadOnlyDictionary<string, string> sources) =>
-        GeneratorTestHarness.Run(sources, [new FunctionGenerator()], Anchors);
+    public static GeneratorResult Generate(
+        IReadOnlyDictionary<string, string> sources,
+        IReadOnlyDictionary<string, string>? buildProperties = null
+    ) =>
+        GeneratorTestHarness.Run(
+            sources,
+            [new FunctionGenerator()],
+            Anchors,
+            buildProperties: buildProperties
+        );
 
     /// <summary>
     /// An application entry point beside a handler class holding <paramref name="body"/>.

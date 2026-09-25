@@ -5115,6 +5115,58 @@
         "x-hardened-timeout": 300000
       }
     },
+    "/registration/consignment": {
+      "post": {
+        "tags": [
+          "Registration"
+        ],
+        "operationId": "registerConsignment",
+        "summary": "A body that descends into a model whose rules are in a rules class.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConsignmentModel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          }
+        },
+        "x-hardened-timeout": 300000
+      }
+    },
     "/registration/declared-422": {
       "post": {
         "tags": [
@@ -5385,6 +5437,58 @@
             }
           }
         ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          }
+        },
+        "x-hardened-timeout": 300000
+      }
+    },
+    "/registration/shipment": {
+      "post": {
+        "tags": [
+          "Registration"
+        ],
+        "operationId": "registerShipment",
+        "summary": "A body whose rules are declared in a rules class rather than on its members.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ShipmentModel"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "OK",
@@ -7390,6 +7494,31 @@
           }
         }
       },
+      "ConsignmentModel": {
+        "type": "object",
+        "description": "An attributed model that descends into ShipmentModel, whose validator comes from a rules class.",
+        "required": [
+          "reference"
+        ],
+        "properties": {
+          "reference": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "shipment": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ShipmentModel"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
       "CreatedNote": {
         "type": "object",
         "required": [
@@ -7761,6 +7890,25 @@
             "format": "int32"
           },
           "maxPrice": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ShipmentModel": {
+        "type": "object",
+        "description": "A body model with no constraint attribute on it. Its rules are in ShipmentRules.",
+        "required": [
+          "weight"
+        ],
+        "properties": {
+          "carrier": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "weight": {
             "type": "integer",
             "format": "int32"
           }

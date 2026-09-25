@@ -82,7 +82,7 @@ The return type declares two outcomes. The method returns a `Todo` for a 200 or 
 404, and the OpenAPI document describes both. [Responses](#responses) describes the other ways to
 declare them.
 
-`[Range(Min = 1)]` is a constraint attribute. `Hardened.Validation.SourceGenerator` turns it into a
+`[Range(Min = 1)]` is a constraint attribute. `ValidationModules.SourceGenerator` turns it into a
 check that runs before the handler. A request that fails the check gets a 400 that names the field
 and the rule:
 
@@ -531,7 +531,7 @@ A code-first Kestrel application references these packages:
 | `Hardened.Web.Kestrel.Runtime` | `[KestrelRuntime]` and `HardenedKestrelApplication` |
 | `Hardened.Library.SourceGenerator` | The generator for modules, service registration and configuration |
 | `Hardened.Web.SourceGenerator` | The generator for route tables and handlers |
-| `Hardened.Validation.SourceGenerator` | The generator for validators from constraint attributes |
+| `ValidationModules.SourceGenerator` | ValidationModules' generator for validators from constraint attributes and rules classes |
 
 The [package reference](https://ipjohnson.github.io/Hardened.Framework/reference/packages) lists
 every package.

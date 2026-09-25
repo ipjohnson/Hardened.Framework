@@ -5,7 +5,6 @@ using Hardened.Requests.Abstract.Attributes;
 using Hardened.Requests.Runtime.Validation;
 using Hardened.Shared.Runtime.Attributes;
 using Hardened.SourceGeneration.Testing;
-using Hardened.Validation.SourceGenerator;
 using Hardened.Web.Runtime.Attributes;
 using Hardened.Web.Runtime.OpenApi;
 using Microsoft.CodeAnalysis;
@@ -59,9 +58,10 @@ public class ValidationModeDocumentTests
                 new IIncrementalGenerator[]
                 {
                     new WebLibrarySourceGenerator(),
-                    new HardenedValidationGenerator(),
+                    ValidationModulesPackage.Generator(),
                 },
-                Anchors
+                Anchors,
+                buildProperties: ValidationModulesPackage.BuildProperties
             )
             .AssertNoErrors();
 

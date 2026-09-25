@@ -249,8 +249,8 @@ Content-Type: application/json
 
 A member that is not required and is not sent reads as its default, such as `null` for a reference
 type, `0` for an `int`, the first member of an enum or `0001-01-01` for a `DateOnly`. `required` or
-`[JsonRequired]` makes the absence of a value-type member a refusal. `HRDV003` on
-[Validation](/guide/validation) points to this section.
+`[JsonRequired]` makes the absence of a value-type member a refusal. `[Required]` on a
+non-nullable value type never fails, and the build reports warning `VM1201`.
 
 A sent `null` is not an absence. `{"title":null}` passes the deserializer.
 [Validation](/guide/validation) covers `[Required]`, which refuses it.

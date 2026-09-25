@@ -10,7 +10,6 @@
         <ProjectReference Include="..\..\..\Web\Hardened.Web.Runtime\Hardened.Web.Runtime.csproj"/>
         <ProjectReference Include="..\..\..\SourceGenerators\Hardened.Library.SourceGenerator\Hardened.Library.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
         <ProjectReference Include="..\..\..\SourceGenerators\Hardened.Idl.SourceGenerator\Hardened.Idl.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
-        <ProjectReference Include="..\..\..\SourceGenerators\Hardened.Validation.SourceGenerator\Hardened.Validation.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
         <ProjectReference Include="..\..\..\SourceGenerators\Hardened.DependencyModules.SourceGenerator\Hardened.DependencyModules.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
     </ItemGroup>
 
@@ -51,5 +50,7 @@
         so an import above @(HardenedOpenApiSpec) reads it as empty and contributes nothing.
     -->
     <Import Project="..\..\..\SourceGenerators\Hardened.OpenApi.SourceGenerator\Package\Hardened.OpenApi.SourceGenerator.targets"/>
+
+    <Import Project="..\..\..\SourceGenerators\ValidationModulesGenerator.props"/>
 
 </Project>
