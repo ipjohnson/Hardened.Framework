@@ -13,7 +13,7 @@
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="xunit.v3"/>
+        <PackageReference Include="xunit.v3.mtp-off"/>
         <PackageReference Include="DependencyModules.NSubstitute"/>
         <PackageReference Include="NSubstitute"/>
     </ItemGroup>
@@ -22,10 +22,10 @@
         <ProjectReference Include="..\Hardened.IntegrationTests.Sqs.SUT\Hardened.IntegrationTests.Sqs.SUT.csproj"/>
         <ProjectReference Include="..\..\..\..\..\Functions\Hardened.Functions.Testing\Hardened.Functions.Testing.csproj"/>
         <ProjectReference Include="..\..\..\Hardened.Aws.Lambda.Testing\Hardened.Aws.Lambda.Testing.csproj"/>
-        <ProjectReference Include="..\..\..\..\..\..\..\DependencyModules\src\DependencyModules.xUnit\DependencyModules.xUnit.csproj"
-                          Condition="Exists('..\..\..\..\..\..\..\DependencyModules\src\DependencyModules.xUnit\DependencyModules.xUnit.csproj')"/>
-        <PackageReference Include="DependencyModules.xUnit"
-                          Condition="!Exists('..\..\..\..\..\..\..\DependencyModules\src\DependencyModules.xUnit\DependencyModules.xUnit.csproj')"/>
+        <ProjectReference Include="..\..\..\..\..\..\..\DependencyModules\src\DependencyModules.xUnit4\DependencyModules.xUnit4.csproj"
+                          Condition="Exists('..\..\..\..\..\..\..\DependencyModules\src\DependencyModules.xUnit4\DependencyModules.xUnit4.csproj')"/>
+        <PackageReference Include="DependencyModules.xUnit4"
+                          Condition="!Exists('..\..\..\..\..\..\..\DependencyModules\src\DependencyModules.xUnit4\DependencyModules.xUnit4.csproj')"/>
     </ItemGroup>
 
 </Project>

@@ -30,7 +30,7 @@
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="xunit.v3"/>
+        <PackageReference Include="xunit.v3.mtp-off"/>
 
         <!--
             The reader the specification-first build task parses with, so a YAML export can be

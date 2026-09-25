@@ -49,7 +49,7 @@ reference `Hardened.Web.Testing`.
 
 | Runner | Runner package | The runner's own packages in the template |
 |---|---|---|
-| xUnit v3, the template's default | `DependencyModules.xUnit` | `xunit.v3`, `xunit.runner.visualstudio`, `Microsoft.NET.Test.Sdk` |
+| xUnit v3 4.x, the template's default | `DependencyModules.xUnit4` | `xunit.v3`, `xunit.runner.visualstudio`, `Microsoft.NET.Test.Sdk` |
 | NUnit 4 | `DependencyModules.NUnit` | `NUnit`, `NUnit3TestAdapter`, `Microsoft.NET.Test.Sdk` |
 
 Each runner package defines a `[ModuleTest]`. The xUnit attribute is in
@@ -57,6 +57,11 @@ Each runner package defines a `[ModuleTest]`. The xUnit attribute is in
 `DependencyModules.NUnit.Attributes`. The xUnit `[ModuleTest]` is an xUnit v3 `FactAttribute`. A
 project that references `xunit` 2.x in place of `xunit.v3` fails to compile with `CS0433` on
 `Assert`.
+
+On the .NET 10 SDK and later, `dotnet test` does not run a project on `xunit.v3` 4.x, because the
+Microsoft.Testing.Platform v2 that it brings refuses the VSTest mode of `dotnet test`. Reference
+`xunit.v3.mtp-off` in place of `xunit.v3` there. The template does this for
+`--response-model union`, which builds with the .NET 11 SDK.
 
 A test project that references `Hardened.Shared.Testing` and no runner package builds with the
 warning `HRDT001`, then fails with `CS0246` on each `[ModuleTest]`. For a project named
@@ -78,7 +83,7 @@ The template writes `tests/Todos.Tests/Todos.Tests.csproj`, shown here without i
 
   <ItemGroup>
     <PackageReference Include="Hardened.Shared.Testing" />
-    <PackageReference Include="DependencyModules.xUnit" />
+    <PackageReference Include="DependencyModules.xUnit4" />
     <PackageReference Include="DependencyModules.NSubstitute" />
     <PackageReference Include="Hardened.Web.Testing" />
     <PackageReference Include="Hardened.Web.Kestrel.Testing" />
