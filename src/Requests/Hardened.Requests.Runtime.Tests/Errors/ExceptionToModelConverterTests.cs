@@ -130,17 +130,40 @@ public class ExceptionToModelConverterTests
         Assert.Equal("pattern", fieldError.Code);
     }
 
+    /// <summary>
+    /// A <c>FormatException</c> that reaches the converter came from a handler's own parsing, and
+    /// its message can quote the value it could not parse.
+    /// </summary>
+    /// <remarks>
+    /// One thrown while the request is bound arrives as a <c>BadRequestException</c> instead,
+    /// which the binding filters' tests cover.
+    /// </remarks>
     [Fact]
-    public void FormatExceptionMapsTo400()
+    public void AFormatExceptionIsAServerError()
     {
         var (status, model) = Converter.ConvertExceptionToModel(
             Context(),
-            new FormatException("not a number")
+            new FormatException("The input string 'internal-7' was not in a correct format.")
+        );
+
+        Assert.Equal(500, status);
+        var error = Assert.IsType<ErrorModel>(model);
+        Assert.Equal("ServerError", error.Type);
+        Assert.DoesNotContain("internal-7", error.Message);
+    }
+
+    /// <summary>What the binding filters make of a <c>FormatException</c> keeps its message.</summary>
+    [Fact]
+    public void AFormatExceptionFromBindingKeepsItsMessage()
+    {
+        var (status, model) = Converter.ConvertExceptionToModel(
+            Context(),
+            new BadRequestException("not a number", new FormatException("not a number"))
         );
 
         Assert.Equal(400, status);
         var error = Assert.IsType<ErrorModel>(model);
-        Assert.Equal(nameof(FormatException), error.Type);
+        Assert.Equal(nameof(BadRequestException), error.Type);
         Assert.Equal("not a number", error.Message);
     }
 

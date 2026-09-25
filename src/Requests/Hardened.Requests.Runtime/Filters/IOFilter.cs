@@ -1,6 +1,7 @@
 ﻿using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Logging;
 using Hardened.Requests.Abstract.Metrics;
+using Hardened.Requests.Runtime.Errors;
 using Hardened.Shared.Runtime.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -55,7 +56,7 @@ public class IoFilter : IExecutionFilter
                     .Context.RequestServices.GetRequiredService<IRequestLogger>()
                     .RequestParameterBindFailed(chain.Context, exp);
 
-                chain.Context.Response.ExceptionValue = exp;
+                chain.Context.Response.ExceptionValue = BindFailure.For(exp);
             }
             finally
             {

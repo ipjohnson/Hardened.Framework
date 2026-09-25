@@ -30,12 +30,53 @@ public class ErrorHandlingTests
         response.Assert.BadRequest();
     }
 
+    /// <summary>
+    /// A handler's own parsing failed. That is a server fault, and the message, which can quote
+    /// the value it could not parse, is not sent.
+    /// </summary>
     [HardenedTest]
-    public async Task FormatExceptionBecomes400(ITestWebApp testWebApp)
+    public async Task AFormatExceptionFromAHandlerBecomes500(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/errors/format");
 
+        Assert.Equal(500, response.StatusCode);
+
+        var error = response.Deserialize<ErrorModel>();
+
+        Assert.Equal("ServerError", error.Type);
+        Assert.DoesNotContain("abc", error.Message);
+    }
+
+    /// <summary>
+    /// A <c>FormatException</c> thrown while the request is bound is the caller's mistake, and
+    /// the caller is told what it was.
+    /// </summary>
+    [HardenedTest]
+    public async Task AFormatExceptionWhileBindingBecomes400(ITestWebApp testWebApp)
+    {
+        var response = await testWebApp.Get(
+            "/errors/format-while-binding",
+            request => request.Headers["X-Count"] = "ten"
+        );
+
         response.Assert.BadRequest();
+
+        var error = response.Deserialize<ErrorModel>();
+
+        Assert.Equal("BadRequestException", error.Type);
+        Assert.Contains("'ten'", error.Message);
+    }
+
+    [HardenedTest]
+    public async Task AValueTheCustomBinderCanParseBinds(ITestWebApp testWebApp)
+    {
+        var response = await testWebApp.Get(
+            "/errors/format-while-binding",
+            request => request.Headers["X-Count"] = "3"
+        );
+
+        response.Assert.Ok();
+        Assert.Equal(3, response.Deserialize<int>());
     }
 
     /// <summary>

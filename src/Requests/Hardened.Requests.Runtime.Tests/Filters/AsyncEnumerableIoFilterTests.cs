@@ -4,6 +4,7 @@ using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.Logging;
 using Hardened.Requests.Abstract.Metrics;
 using Hardened.Requests.Abstract.Serializer;
+using Hardened.Requests.Runtime.Errors;
 using Hardened.Requests.Runtime.Execution;
 using Hardened.Requests.Runtime.Filters;
 using Hardened.Requests.Runtime.Tests.Support;
@@ -271,7 +272,9 @@ public class AsyncEnumerableIoFilterTests
             )
             .Next();
 
-        Assert.Same(failure, context.Response.ExceptionValue);
+        var recorded = Assert.IsType<BadRequestException>(context.Response.ExceptionValue);
+
+        Assert.Same(failure, recorded.InnerException);
         Assert.False(handlerRan);
 
         logger.Received(1).RequestParameterBindFailed(context, failure);
