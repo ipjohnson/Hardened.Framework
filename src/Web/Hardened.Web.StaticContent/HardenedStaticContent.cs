@@ -72,6 +72,17 @@ public partial class HardenedStaticContent : IServiceCollectionConfiguration
     /// </summary>
     public string? FallBackFile { get; set; }
 
+    /// <summary>
+    /// The path the directory is served under, such as <c>/static</c>. The application's root when
+    /// unset.
+    /// </summary>
+    /// <remarks>
+    /// Applies to a directory read at run time. When the build declares
+    /// <c>&lt;HardenedStaticContent&gt;</c> items, each item's own <c>RoutePrefix</c> sets where its
+    /// files are served and this one is not read.
+    /// </remarks>
+    public string? RoutePrefix { get; set; }
+
     // Everything else - the max age, the directives, whether validators, compression, caching or
     // ranges are on - is set with services.ConfigureStaticContent. It cannot live here: the
     // generated attribute unwraps Nullable<T>, so a value-typed property is copied onto the module
@@ -96,6 +107,7 @@ public partial class HardenedStaticContent : IServiceCollectionConfiguration
                         {
                             configuration.Path = Path ?? DefaultPath;
                             configuration.FallBackFile = FallBackFile;
+                            configuration.RoutePrefix = RoutePrefix ?? "/";
 
                             // Defaulted from the environment rather than fixed, so the inner loop
                             // needs no configuration and a deployed build needs no thought.

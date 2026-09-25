@@ -70,6 +70,7 @@ public class FileSystemContentSource : IStaticContentSource
     private readonly ConcurrentDictionary<string, Lazy<Task<StaticContentEntry?>>> _entries = new();
 
     private readonly string _rootPath;
+    private readonly string _routePrefix;
     private readonly string? _fallBackFile;
 
     public FileSystemContentSource(
@@ -110,13 +111,72 @@ public class FileSystemContentSource : IStaticContentSource
 
         WarnIfRootIsSuspicious();
 
+        _routePrefix = NormaliseRoutePrefix(_configuration.RoutePrefix);
         _fallBackFile = ResolveFallBackFile();
     }
 
     public bool Enabled { get; }
 
-    public StaticContentLocation? Locate(string requestPath) =>
-        Enabled ? Locate(requestPath, viaFallback: false) : null;
+    public StaticContentLocation? Locate(string requestPath)
+    {
+        if (!Enabled)
+        {
+            return null;
+        }
+
+        var withinPrefix = WithinPrefix(requestPath);
+
+        return withinPrefix == null ? null : Locate(withinPrefix, viaFallback: false);
+    }
+
+    /// <summary>
+    /// <see cref="IStaticContentConfiguration.RoutePrefix"/> with a leading and a trailing slash,
+    /// by the rules the build task applies to an item's prefix.
+    /// </summary>
+    internal static string NormaliseRoutePrefix(string? routePrefix)
+    {
+        if (string.IsNullOrWhiteSpace(routePrefix) || routePrefix == "/")
+        {
+            return "/";
+        }
+
+        var prefix = routePrefix.Trim();
+
+        if (!prefix.StartsWith('/'))
+        {
+            prefix = "/" + prefix;
+        }
+
+        return prefix.EndsWith('/') ? prefix : prefix + "/";
+    }
+
+    /// <summary>
+    /// <paramref name="requestPath"/> with the route prefix removed, or null when the path is
+    /// outside it.
+    /// </summary>
+    /// <remarks>
+    /// Compared ordinally, as the manifest's lookup is, because a URL path is case sensitive. The
+    /// prefix without its trailing slash names the directory itself, so it answers as <c>/</c>.
+    /// </remarks>
+    private string? WithinPrefix(string requestPath)
+    {
+        if (_routePrefix == "/")
+        {
+            return requestPath;
+        }
+
+        if (requestPath.StartsWith(_routePrefix, StringComparison.Ordinal))
+        {
+            // From the prefix's trailing slash, which becomes the remainder's leading one.
+            return requestPath.Substring(_routePrefix.Length - 1);
+        }
+
+        return
+            requestPath.Length == _routePrefix.Length - 1
+            && _routePrefix.StartsWith(requestPath, StringComparison.Ordinal)
+            ? "/"
+            : null;
+    }
 
     public async ValueTask<StaticContentEntry?> Load(StaticContentLocation location)
     {
