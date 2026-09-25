@@ -710,10 +710,11 @@ jobs:
           echo "Packing ${{ steps.version.outputs.version }}"
           dotnet pack Hardened.slnx --configuration Release --no-build /p:PackageVersion=${{ steps.version.outputs.version }}
 
-      # Packing the solution takes whatever is not marked IsPackable=false, which is how
+      # Packing the solution once took whatever was not marked IsPackable=false, which is how
       # Hardened.IntegrationTests.Console.SUT and .OpenApi.SUT reached the feed as packages -
       # a public ID claimed by a test fixture, and on nuget.org that would be permanent.
-      # IsPackable=false was added to those projects; this is what notices the next one.
+      # IsPackable now defaults to false in src/Directory.Build.props; this notices a fixture that
+      # says true.
       #
       # find rather than src/**/bin, which without shopt -s globstar is one directory level and
       # matched nothing here even before src/Clouds/Aws put the AWS packages three levels down.
@@ -725,7 +726,7 @@ jobs:
             | grep -Ei '^(Hardened\.IntegrationTests|.*\.Tests\.)' || true)
 
           if [ -n "$LEAKED" ]; then
-            echo "::error::Test fixtures were packed. Mark them IsPackable=false."
+            echo "::error::Test fixtures were packed. Remove IsPackable true from them."
             echo "$LEAKED"
             exit 1
           fi

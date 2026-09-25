@@ -1,18 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <Import Project="../../../SourceGenerators/CSharpAuthor.props"/>
+    <Import Project="../../../SourceGenerators/SourceGenerator.props"/>
 
     <PropertyGroup>
-        <TargetFramework>netstandard2.0</TargetFramework>
         <Description>Source generator for Hardened applications hosted in the Azure Functions isolated worker: writes a [Function] shim per trigger handler, and the metadata provider and executor the worker indexes and invokes them through.</Description>
-        <LangVersion>10</LangVersion>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
         <IsPackable>True</IsPackable>
-        <PackageId>Hardened.Azure.Functions.SourceGenerator</PackageId>
         <PackageTags>Hardened;Hardened.Framework;azure;functions;serverless;source-generator</PackageTags>
         <IsRoslynComponent>true</IsRoslynComponent>
-        <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
     </PropertyGroup>
 
     <!--
@@ -22,19 +17,9 @@
     <ItemGroup>
         <PackageReference Include="Microsoft.Extensions.Primitives" PrivateAssets="all"/>
         <PackageReference Include="System.Memory" PrivateAssets="all"/>
-        <PackageReference Include="Microsoft.CodeAnalysis.Analyzers">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
-        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all"/>
-    </ItemGroup>
-
-    <ItemGroup>
-        <None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false"/>
     </ItemGroup>
 
     <PropertyGroup>
-        <IncludeBuildOutput>false</IncludeBuildOutput>
         <DevelopmentDependency>true</DevelopmentDependency>
     </PropertyGroup>
 

@@ -12,7 +12,7 @@
       4.5.5 against 4.6.0. A single list is the only arrangement where that cannot happen quietly.
 
       Where a project genuinely needs a different version it says so with VersionOverride, in the
-      csproj, where the reason can be written next to it. Four do.
+      csproj, where the reason can be written next to it. Three do.
 
       Nothing here floats. Central package management rejects floating versions by default (NU1011)
       and that default is left in place: a float that stops matching anything new does not fail, it

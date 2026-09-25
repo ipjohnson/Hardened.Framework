@@ -15,9 +15,7 @@
     package names a generator holds.
   -->
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <RootNamespace>Hardened.IntegrationTests.WebApp.SUT.Client</RootNamespace>
-    <IsPackable>false</IsPackable>
+    <TargetFramework>$(HardenedTargetFramework)</TargetFramework>
 
     <!--
       The Kiota runtime the generated client compiles against. Pinned beside the tool that

@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <Import Project="../CSharpAuthor.props"/>
+    <Import Project="../SourceGenerator.props"/>
 
     <PropertyGroup>
         <_DependencyModulesRoot>$(MSBuildThisFileDirectory)../../../../DependencyModules</_DependencyModulesRoot>
@@ -9,12 +10,8 @@
     </PropertyGroup>
 
     <PropertyGroup>
-        <TargetFramework>netstandard2.0</TargetFramework>
         <Description>Source generator for Hardened module wiring: processes [HardenedModule] and emits PopulateServiceCollection.</Description>
-        <LangVersion>10</LangVersion>
-        <ImplicitUsings>enable</ImplicitUsings>
         <IsRoslynComponent>true</IsRoslynComponent>
-        <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
         <!--
           RS2008 asks for analyzer release tracking files declaring every diagnostic ID the
           project defines. The IDs it flags here - DM0001 to DM0003 - are declared in
@@ -23,7 +20,6 @@
           project's diagnostics, so the rule is suppressed rather than satisfied.
         -->
         <NoWarn>$(NoWarn);RS2008</NoWarn>
-        <Nullable>enable</Nullable>
         <!--
           Not packable, deliberately.
 
@@ -40,7 +36,6 @@
           question the other way.
         -->
         <IsPackable>False</IsPackable>
-        <IncludeBuildOutput>false</IncludeBuildOutput>
 
         <!--
           Build-only. This does not stop the package flowing to consumers on its own - only
@@ -61,11 +56,6 @@
     <ItemGroup>
         <PackageReference Include="Microsoft.Extensions.Primitives" PrivateAssets="all"/>
         <PackageReference Include="System.Memory" PrivateAssets="all"/>
-        <PackageReference Include="Microsoft.CodeAnalysis.Analyzers">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
-        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all"/>
     </ItemGroup>
 
     <!-- DependencyModules source: NuGet package or local linked files -->
@@ -94,10 +84,6 @@
             <Link>Conventions\%(RecursiveDir)/%(FileName)%(Extension)</Link>
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Compile>
-    </ItemGroup>
-
-    <ItemGroup>
-        <None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false"/>
     </ItemGroup>
 
 </Project>

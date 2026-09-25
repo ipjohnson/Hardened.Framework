@@ -12,10 +12,7 @@
       stop being a baseline.
     -->
     <PropertyGroup>
-        <IsPackable>false</IsPackable>
-        <TargetFramework>net8.0</TargetFramework>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
+        <TargetFramework>$(HardenedTargetFramework)</TargetFramework>
 
         <!-- The generated routing table and per-handler classes are worth reading when a
              benchmark result is surprising. -->

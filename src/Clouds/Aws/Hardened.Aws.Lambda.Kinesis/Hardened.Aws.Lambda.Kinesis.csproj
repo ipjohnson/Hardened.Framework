@@ -1,12 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>$(HardenedTargetFramework)</TargetFramework>
         <Description>Serves [Stream] handlers on AWS Lambda from Kinesis Data Streams: an ordered batch of records off one shard, with each record's data bound as the publisher wrote it.</Description>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
         <IsPackable>true</IsPackable>
-        <PackageId>Hardened.Aws.Lambda.Kinesis</PackageId>
         <PackageTags>Hardened;Hardened.Framework;aws;lambda;serverless;kinesis;streams</PackageTags>
 
         <!--

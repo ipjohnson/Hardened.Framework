@@ -1,12 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>$(HardenedTargetFramework)</TargetFramework>
         <Description>Serves HTTP routes on AWS Lambda: the payload format 2.0 adapter for [Get], [Post] and the rest, behind an API Gateway HTTP API or a function URL.</Description>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
         <IsPackable>true</IsPackable>
-        <PackageId>Hardened.Aws.Lambda.Http</PackageId>
         <PackageTags>Hardened;Hardened.Framework;aws;lambda;serverless;http;apigateway;functionurl</PackageTags>
 
         <!--

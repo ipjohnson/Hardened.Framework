@@ -1,12 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>$(HardenedTargetFramework)</TargetFramework>
         <Description>Serves [HardenedFunction] handlers on Google Cloud Run as direct invocations over HTTP: a POST to /_triggers/invoke/{operation} carries the caller's payload to the operation, and the handler's return value is the response body.</Description>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
         <IsPackable>true</IsPackable>
-        <PackageId>Hardened.Gcp.CloudRun.Invoke</PackageId>
         <PackageTags>Hardened;Hardened.Framework;gcp;cloudrun;serverless;invoke</PackageTags>
         <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
         <IsAotCompatible>true</IsAotCompatible>

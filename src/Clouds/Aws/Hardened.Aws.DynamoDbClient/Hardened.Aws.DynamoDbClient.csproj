@@ -1,13 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>$(HardenedTargetFramework)</TargetFramework>
         <Description>A DynamoDB client provider for Hardened applications: named clients that bring their own credentials, built on first use and cached for the process.</Description>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
         <IsAotCompatible>true</IsAotCompatible>
         <IsPackable>true</IsPackable>
-        <PackageId>Hardened.Aws.DynamoDbClient</PackageId>
     </PropertyGroup>
 
     <ItemGroup>

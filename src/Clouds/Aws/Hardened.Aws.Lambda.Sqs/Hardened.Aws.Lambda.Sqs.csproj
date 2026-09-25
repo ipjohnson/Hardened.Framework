@@ -1,12 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>$(HardenedTargetFramework)</TargetFramework>
         <Description>Serves [Queue] handlers on AWS Lambda from Amazon SQS, delivered as a batch against one queue, with optional partial batch failure reporting.</Description>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
         <IsPackable>true</IsPackable>
-        <PackageId>Hardened.Aws.Lambda.Sqs</PackageId>
         <PackageTags>Hardened;Hardened.Framework;aws;lambda;serverless;sqs;queue</PackageTags>
 
         <!--

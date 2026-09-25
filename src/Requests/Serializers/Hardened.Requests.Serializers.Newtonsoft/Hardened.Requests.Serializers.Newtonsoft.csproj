@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>$(HardenedTargetFramework)</TargetFramework>
 
         <!--
           The one shipped runtime package with no IsAotCompatible, and it will never have one.
@@ -11,9 +11,6 @@
           decision.
         -->
         <Description>Newtonsoft.Json request and response serializer for the Hardened execution pipeline.</Description>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
-        <PackageId>Hardened.Requests.Serializers.Newtonsoft</PackageId>
         <IsPackable>true</IsPackable>
     </PropertyGroup>
 

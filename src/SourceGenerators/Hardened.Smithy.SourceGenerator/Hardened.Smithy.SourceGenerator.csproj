@@ -4,12 +4,9 @@
         <TargetFramework>netstandard2.0</TargetFramework>
         <Description>Generates Hardened models, service interfaces, handlers and routing from a Smithy JSON AST at build time.</Description>
         <LangVersion>10</LangVersion>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
         <IsPackable>True</IsPackable>
 
         <!-- NuGet only auto-imports build/$(PackageId).targets, so these two names are one decision. -->
-        <PackageId>Hardened.Smithy.SourceGenerator</PackageId>
         <IncludeBuildOutput>false</IncludeBuildOutput>
 
         <!--

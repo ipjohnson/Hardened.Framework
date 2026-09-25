@@ -1,12 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>$(HardenedTargetFramework)</TargetFramework>
         <Description>The AWS Lambda host for Hardened applications: the invocation loop, the payload adapter seam, and the ambient services the environment expects. Reference an adapter package alongside it for the triggers a function serves.</Description>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
         <IsPackable>true</IsPackable>
-        <PackageId>Hardened.Aws.Lambda.Runtime</PackageId>
         <PackageTags>Hardened;Hardened.Framework;aws;lambda;serverless</PackageTags>
 
         <!--

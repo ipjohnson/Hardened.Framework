@@ -1,12 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>$(HardenedTargetFramework)</TargetFramework>
         <Description>Serves [HardenedFunction] handlers on AWS Lambda invoked directly by an SDK caller, Step Functions or a test, with the payload passed through as the request body.</Description>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
         <IsPackable>true</IsPackable>
-        <PackageId>Hardened.Aws.Lambda.Invoke</PackageId>
         <PackageTags>Hardened;Hardened.Framework;aws;lambda;serverless;invoke;rpc</PackageTags>
 
         <!--

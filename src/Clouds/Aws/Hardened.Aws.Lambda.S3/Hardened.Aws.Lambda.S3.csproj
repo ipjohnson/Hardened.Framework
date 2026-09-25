@@ -1,12 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>$(HardenedTargetFramework)</TargetFramework>
         <Description>Serves [Blob] handlers on AWS Lambda from S3 object notifications: bucket, key, size and event name bound as a plain record, with the key already URL-decoded.</Description>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
         <IsPackable>true</IsPackable>
-        <PackageId>Hardened.Aws.Lambda.S3</PackageId>
         <PackageTags>Hardened;Hardened.Framework;aws;lambda;serverless;s3;storage;blob</PackageTags>
 
         <!--

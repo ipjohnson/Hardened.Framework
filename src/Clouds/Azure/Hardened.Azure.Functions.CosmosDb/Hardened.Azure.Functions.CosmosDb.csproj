@@ -1,12 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>$(HardenedTargetFramework)</TargetFramework>
         <Description>Serves [Change] handlers on Azure Functions from the Cosmos DB change feed, delivered as an ordered batch of the current documents.</Description>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
         <IsPackable>true</IsPackable>
-        <PackageId>Hardened.Azure.Functions.CosmosDb</PackageId>
         <PackageTags>Hardened;Hardened.Framework;azure;functions;serverless;cosmosdb;change-feed</PackageTags>
         <IsAotCompatible>true</IsAotCompatible>
     </PropertyGroup>

@@ -1,12 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>$(HardenedTargetFramework)</TargetFramework>
         <Description>The Google Cloud Run host for Hardened applications: Kestrel on PORT with a SIGTERM drain, and a trigger front door that turns the envelope a Pub/Sub push, an Eventarc CloudEvent or a Cloud Scheduler request arrives in into the trigger route a handler declared. Reference an adapter package alongside it for the triggers a service serves.</Description>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
         <IsPackable>true</IsPackable>
-        <PackageId>Hardened.Gcp.CloudRun.Runtime</PackageId>
         <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
 
         <!--

@@ -1,12 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>$(HardenedTargetFramework)</TargetFramework>
         <Description>Serves [Blob] handlers on Google Cloud Run from Cloud Storage, in both forms an object change arrives in: the Eventarc CloudEvent and the Pub/Sub notification. The bucket is the route and the handler binds the object's metadata.</Description>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
         <IsPackable>true</IsPackable>
-        <PackageId>Hardened.Gcp.CloudRun.Storage</PackageId>
         <PackageTags>Hardened;Hardened.Framework;gcp;cloudrun;serverless;storage;blob</PackageTags>
         <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
         <IsAotCompatible>true</IsAotCompatible>

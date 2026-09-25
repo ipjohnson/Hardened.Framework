@@ -1,0 +1,32 @@
+<Project>
+
+    <!--
+        What every MSBuild task project here shares. Imported at the top of each project file, so a
+        setting the project states after it wins.
+
+        Two frameworks because MSBuild has two hosts: Visual Studio runs on .NET Framework, and the
+        dotnet CLI and Rider run on .NET. Each task's targets file picks between them on
+        $(MSBuildRuntimeType). A single netstandard2.0 assembly would load in both but bind against
+        whichever Microsoft.Build.* the host supplies, which fails with "could not load file or
+        assembly" at task execution rather than at build.
+
+        Microsoft.Build.* is pinned in Directory.Packages.props to the 17.8 line, the MSBuild that
+        ships with the .NET 8 SDK, because the reference version is the oldest host a task loads
+        into. The patch level matters separately: 17.8.3 carries GHSA-w3q9-fxm7-j8fq, and NuGet
+        audit fails the CI build over it.
+
+        ExcludeAssets=runtime because MSBuild supplies these assemblies itself. A task that ships
+        its own copies shadows the host's, and the type-identity failures that follow read as a
+        missing method on ITaskItem.
+    -->
+    <PropertyGroup>
+        <TargetFrameworks>net472;net8.0</TargetFrameworks>
+        <LangVersion>10</LangVersion>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Build.Framework" ExcludeAssets="runtime" PrivateAssets="all"/>
+        <PackageReference Include="Microsoft.Build.Utilities.Core" ExcludeAssets="runtime" PrivateAssets="all"/>
+    </ItemGroup>
+
+</Project>

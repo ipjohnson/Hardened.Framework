@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>$(HardenedTargetFramework)</TargetFramework>
 
         <!--
           MessagePack generates its formatters at build with a Roslyn source generator, which is
@@ -11,9 +11,6 @@
         -->
         <IsAotCompatible>true</IsAotCompatible>
         <Description>MessagePack request and response serializer for the Hardened execution pipeline.</Description>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
-        <PackageId>Hardened.Requests.Serializers.MessagePack</PackageId>
         <IsPackable>true</IsPackable>
     </PropertyGroup>
 

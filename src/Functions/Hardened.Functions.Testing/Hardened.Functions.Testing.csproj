@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>$(HardenedTargetFramework)</TargetFramework>
         <!--
           Deliberately not IsAotCompatible. A test harness serializes whatever type a test hands it
           and builds clients over types it learns at run time, so the reflection is the feature
@@ -10,10 +10,7 @@
           consumer will ever trim. See Hardened.Shared.Testing.csproj for the whole of it.
         -->
         <Description>Test-time access to the triggers a Hardened function declares: send to a queue, publish to a topic or fire a timer by name, with the payload type the handler binds.</Description>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
         <IsPackable>true</IsPackable>
-        <PackageId>Hardened.Functions.Testing</PackageId>
         <PackageTags>Hardened;Hardened.Framework;serverless;functions;testing</PackageTags>
     </PropertyGroup>
 

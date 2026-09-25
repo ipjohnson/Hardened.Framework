@@ -1,11 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <PackageId>Hardened.Templates</PackageId>
         <PackageType>Template</PackageType>
         <Description>dotnet new templates for Hardened: hardened-web, hardened-function and hardened-library.</Description>
         <TargetFramework>netstandard2.0</TargetFramework>
         <IsPackable>True</IsPackable>
+
+        <!-- netstandard2.0 compiles at C# 7.3, which has neither setting. -->
+        <Nullable>disable</Nullable>
+        <ImplicitUsings>disable</ImplicitUsings>
 
         <!-- A template package carries content, not an assembly. -->
         <IncludeBuildOutput>false</IncludeBuildOutput>

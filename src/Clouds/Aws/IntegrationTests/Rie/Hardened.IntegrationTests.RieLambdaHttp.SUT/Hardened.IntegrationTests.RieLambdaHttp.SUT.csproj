@@ -9,16 +9,11 @@
     <PropertyGroup>
         <OutputType>Exe</OutputType>
         <UseAppHost>false</UseAppHost>
-        <IsPackable>false</IsPackable>
-        <TargetFramework>net8.0</TargetFramework>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
+        <TargetFramework>$(HardenedTargetFramework)</TargetFramework>
     </PropertyGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\..\LambdaHttp\Hardened.IntegrationTests.LambdaHttp.SUT\Hardened.IntegrationTests.LambdaHttp.SUT.csproj"/>
-        <ProjectReference Include="..\..\..\Hardened.Aws.Lambda.Runtime\Hardened.Aws.Lambda.Runtime.csproj"/>
-        <ProjectReference Include="..\..\..\..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>
     </ItemGroup>
 
     <ItemGroup>

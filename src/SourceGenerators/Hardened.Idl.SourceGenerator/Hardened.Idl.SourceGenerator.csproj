@@ -1,18 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <Import Project="../CSharpAuthor.props"/>
+    <Import Project="../SourceGenerator.props"/>
 
     <PropertyGroup>
-        <TargetFramework>netstandard2.0</TargetFramework>
         <Description>Roslyn generator that turns a normalised service model into Hardened handlers and a routing table. Shared by every description language front end; reference a front end package rather than this one directly.</Description>
-        <LangVersion>10</LangVersion>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
         <IsRoslynComponent>true</IsRoslynComponent>
-        <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
         <IsPackable>True</IsPackable>
-        <PackageId>Hardened.Idl.SourceGenerator</PackageId>
-        <IncludeBuildOutput>false</IncludeBuildOutput>
 
         <!--
             Deliberately NOT a DevelopmentDependency, unlike the front-end packages that depend on
@@ -38,11 +32,6 @@
         into the package puts Roslyn in the build output of every application that uses it.
     -->
     <ItemGroup>
-        <PackageReference Include="Microsoft.CodeAnalysis.Analyzers">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
-        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all"/>
         <PackageReference Include="Microsoft.Extensions.Primitives" PrivateAssets="all"/>
         <PackageReference Include="System.Memory" PrivateAssets="all"/>
     </ItemGroup>
@@ -53,9 +42,6 @@
         resolve co-located analyzer dependencies, which is what an AppDomain.AssemblyResolve hook
         used to work around here.
     -->
-    <ItemGroup>
-        <None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false"/>
-    </ItemGroup>
 
     <!-- Shared with every build task. See Hardened.Generation.Shared for why this is source and not a reference. -->
     <!-- Link shared code from Hardened.SourceGenerator -->

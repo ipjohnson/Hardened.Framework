@@ -1,12 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>$(HardenedTargetFramework)</TargetFramework>
         <Description>Serves [Change] handlers on AWS Lambda from DynamoDB Streams: an ordered batch of row changes against one table, with the changed item bound as plain JSON.</Description>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
         <IsPackable>true</IsPackable>
-        <PackageId>Hardened.Aws.Lambda.DynamoDb</PackageId>
         <PackageTags>Hardened;Hardened.Framework;aws;lambda;serverless;dynamodb;streams;changefeed</PackageTags>
 
         <!--

@@ -1,10 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
-        <IsPackable>false</IsPackable>
+        <TargetFramework>$(HardenedTargetFramework)</TargetFramework>
     </PropertyGroup>
 
     <!--
@@ -20,12 +17,6 @@
 
     <ItemGroup>
         <PackageReference Include="PublicApiGenerator"/>
-        <PackageReference Include="Microsoft.NET.Test.Sdk"/>
-        <PackageReference Include="xunit.runner.visualstudio">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
-        <PackageReference Include="xunit.v3.mtp-off"/>
     </ItemGroup>
 
     <!--
@@ -38,49 +29,19 @@
     -->
     <ItemGroup>
         <ProjectReference Include="..\..\Clients\Hardened.Kiota.Testing\Hardened.Kiota.Testing.csproj"/>
-        <ProjectReference Include="..\..\Clouds\Azure\Hardened.Azure.Functions.Blobs\Hardened.Azure.Functions.Blobs.csproj"/>
-        <ProjectReference Include="..\..\Clouds\Azure\Hardened.Azure.Functions.CosmosDb\Hardened.Azure.Functions.CosmosDb.csproj"/>
-        <ProjectReference Include="..\..\Clouds\Azure\Hardened.Azure.Functions.EventGrid\Hardened.Azure.Functions.EventGrid.csproj"/>
-        <ProjectReference Include="..\..\Clouds\Azure\Hardened.Azure.Functions.EventHubs\Hardened.Azure.Functions.EventHubs.csproj"/>
-        <ProjectReference Include="..\..\Clouds\Azure\Hardened.Azure.Functions.Http\Hardened.Azure.Functions.Http.csproj"/>
-        <ProjectReference Include="..\..\Clouds\Azure\Hardened.Azure.Functions.Runtime\Hardened.Azure.Functions.Runtime.csproj"/>
-        <ProjectReference Include="..\..\Clouds\Azure\Hardened.Azure.Functions.ServiceBus\Hardened.Azure.Functions.ServiceBus.csproj"/>
         <ProjectReference Include="..\..\Clouds\Azure\Hardened.Azure.Functions.Testing\Hardened.Azure.Functions.Testing.csproj"/>
-        <ProjectReference Include="..\..\Clouds\Azure\Hardened.Azure.Functions.Timer\Hardened.Azure.Functions.Timer.csproj"/>
-        <ProjectReference Include="..\..\Clouds\Gcp\Hardened.Gcp.CloudRun.Eventarc\Hardened.Gcp.CloudRun.Eventarc.csproj"/>
-        <ProjectReference Include="..\..\Clouds\Gcp\Hardened.Gcp.CloudRun.Firestore\Hardened.Gcp.CloudRun.Firestore.csproj"/>
-        <ProjectReference Include="..\..\Clouds\Gcp\Hardened.Gcp.CloudRun.Invoke\Hardened.Gcp.CloudRun.Invoke.csproj"/>
-        <ProjectReference Include="..\..\Clouds\Gcp\Hardened.Gcp.CloudRun.PubSub\Hardened.Gcp.CloudRun.PubSub.csproj"/>
-        <ProjectReference Include="..\..\Clouds\Gcp\Hardened.Gcp.CloudRun.Scheduler\Hardened.Gcp.CloudRun.Scheduler.csproj"/>
-        <ProjectReference Include="..\..\Clouds\Gcp\Hardened.Gcp.CloudRun.Storage\Hardened.Gcp.CloudRun.Storage.csproj"/>
-        <ProjectReference Include="..\..\Clouds\Gcp\Hardened.Gcp.CloudRun.Runtime\Hardened.Gcp.CloudRun.Runtime.csproj"/>
         <ProjectReference Include="..\..\Clouds\Gcp\Hardened.Gcp.CloudRun.Testing\Hardened.Gcp.CloudRun.Testing.csproj"/>
-        <ProjectReference Include="..\..\Functions\Hardened.CloudEvents\Hardened.CloudEvents.csproj"/>
-        <ProjectReference Include="..\..\Functions\Hardened.Functions.Runtime\Hardened.Functions.Runtime.csproj"/>
-        <ProjectReference Include="..\..\Functions\Hardened.Functions.Testing\Hardened.Functions.Testing.csproj"/>
-        <ProjectReference Include="..\..\Clouds\Aws\Hardened.Aws.DynamoDbClient\Hardened.Aws.DynamoDbClient.csproj"/>
         <ProjectReference Include="..\..\Clouds\Aws\Hardened.Aws.DynamoDbClient.Testing\Hardened.Aws.DynamoDbClient.Testing.csproj"/>
         <ProjectReference Include="..\..\Clouds\Aws\Hardened.Aws.Lambda.Testing\Hardened.Aws.Lambda.Testing.csproj"/>
-        <ProjectReference Include="..\..\Clouds\Aws\Hardened.Aws.Lambda\Hardened.Aws.Lambda.csproj"/>
         <ProjectReference Include="..\..\Clients\Hardened.Refit.Testing\Hardened.Refit.Testing.csproj"/>
-        <ProjectReference Include="..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj"/>
         <ProjectReference Include="..\..\Requests\Hardened.Requests.Caching.Memory\Hardened.Requests.Caching.Memory.csproj"/>
-        <ProjectReference Include="..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj"/>
-        <ProjectReference Include="..\..\Requests\Hardened.Requests.Testing\Hardened.Requests.Testing.csproj"/>
         <ProjectReference Include="..\..\Requests\Serializers\Hardened.Requests.Serializers.MessagePack\Hardened.Requests.Serializers.MessagePack.csproj"/>
         <ProjectReference Include="..\..\Requests\Serializers\Hardened.Requests.Serializers.Newtonsoft\Hardened.Requests.Serializers.Newtonsoft.csproj"/>
-        <ProjectReference Include="..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>
-        <ProjectReference Include="..\..\Shared\Hardened.Shared.Testing\Hardened.Shared.Testing.csproj"/>
         <ProjectReference Include="..\..\SourceGenerators\Hardened.SourceGeneration.Testing\Hardened.SourceGeneration.Testing.csproj"/>
         <ProjectReference Include="..\..\Templates\Hardened.Templates.RazorBlade\Hardened.Templates.RazorBlade.csproj"/>
-        <ProjectReference Include="..\..\Web\Hardened.Web.AspNetCore.Runtime\Hardened.Web.AspNetCore.Runtime.csproj"/>
         <ProjectReference Include="..\..\Web\Hardened.Web.AspNetCore.Testing\Hardened.Web.AspNetCore.Testing.csproj"/>
-        <ProjectReference Include="..\..\Web\Hardened.Web.Kestrel.Runtime\Hardened.Web.Kestrel.Runtime.csproj"/>
         <ProjectReference Include="..\..\Web\Hardened.Web.Kestrel.Testing\Hardened.Web.Kestrel.Testing.csproj"/>
-        <ProjectReference Include="..\..\Web\Hardened.Web.Runtime\Hardened.Web.Runtime.csproj"/>
         <ProjectReference Include="..\..\Web\Hardened.Web.StaticContent\Hardened.Web.StaticContent.csproj"/>
-        <ProjectReference Include="..\..\Web\Hardened.Web.Testing\Hardened.Web.Testing.csproj"/>
     </ItemGroup>
-
 
 </Project>

@@ -1,12 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>$(HardenedTargetFramework)</TargetFramework>
         <Description>Serves [Stream] handlers on Azure Functions from Event Hubs, delivered as an ordered batch off one partition.</Description>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
         <IsPackable>true</IsPackable>
-        <PackageId>Hardened.Azure.Functions.EventHubs</PackageId>
         <PackageTags>Hardened;Hardened.Framework;azure;functions;serverless;eventhubs;stream</PackageTags>
         <IsAotCompatible>true</IsAotCompatible>
     </PropertyGroup>

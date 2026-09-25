@@ -1,18 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <Import Project="../CSharpAuthor.props"/>
+    <Import Project="../BuildTask.props"/>
 
     <PropertyGroup>
-        <!--
-            The same two TFMs as the front ends that link this, because it becomes part of their
-            assemblies rather than being referenced by them. A file that compiled here but not there
-            would be found by the front end's build, which is later and noisier.
-        -->
-        <TargetFrameworks>net472;net8.0</TargetFrameworks>
-        <LangVersion>10</LangVersion>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
-
         <!--
             Nothing binds against this assembly's output. It exists so the shared task shell compiles
             standalone, which is what catches a dependency creeping in that a front end would then
@@ -22,12 +13,6 @@
 
         <ExcludeAssets>runtime</ExcludeAssets>
     </PropertyGroup>
-
-    <ItemGroup>
-        <!-- See Hardened.OpenApi.BuildTask for why these are pinned and why runtime is excluded. -->
-        <PackageReference Include="Microsoft.Build.Framework" ExcludeAssets="runtime" PrivateAssets="all"/>
-        <PackageReference Include="Microsoft.Build.Utilities.Core" ExcludeAssets="runtime" PrivateAssets="all"/>
-    </ItemGroup>
 
     <ItemGroup>
         <Compile Remove="IsExternalInit.cs"/>

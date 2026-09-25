@@ -213,161 +213,14 @@ jobs:
           cat coverage-report/SummaryGithub.md >> "$GITHUB_STEP_SUMMARY"
           python3 scripts/coverage-gate.py --summary coverage-report/Summary.json
 
-      # An explicit list rather than packing the solution. Packing the solution sweeps in whatever
-      # is not marked IsPackable=false, which is how Hardened.IntegrationTests.Console.SUT and
-      # .OpenApi.SUT ended up on the GitHub feed as packages. On nuget.org a mistake like that
-      # claims a public ID permanently.
-      #
-      # Hardened.DependencyModules.SourceGenerator is deliberately absent. Its generator ships
-      # embedded in Hardened.Library.SourceGenerator's analyzers/dotnet/cs, because both projects
-      # compile CSharpAuthor in from source and an assembly reference between them collides on
-      # CSharpAuthor.TypeExtensions - so a nuspec dependency is not available and embedding is the
-      # only mechanism that works. Publishing it standalone as well, as v0.1.0-rc1 did, put the
-      # same generator in two packages: a consumer referencing both loaded it twice and both
-      # copies emitted the module onto the same partial class, failing with CS0111/CS8646. One
-      # publishable supplier is what keeps that impossible.
-      # The count check below catches a package removed from the list. It cannot catch one that was
-      # never added: it compares against a literal, so a package nobody listed is a package nobody
-      # misses. That is how Hardened.Idl.SourceGenerator and Hardened.Smithy.SourceGenerator sat
-      # unpublished from #133, and Hardened.Web.StaticContent from #146, while every release since
-      # reported success.
-      #
-      # This asks the other question - is anything packable absent from the list - which is the one
-      # that finds a new project rather than a deleted line.
-      - name: Verify the pack list covers every packable project
-        run: |
-          set -euo pipefail
-
-          # Hardened.DependencyModules.SourceGenerator is packable and deliberately unlisted: its
-          # generator ships inside Hardened.Library.SourceGenerator's analyzers/dotnet/cs, and
-          # publishing it standalone as well - which v0.1.0-rc1 did - puts the same generator in two
-          # packages, so a consumer referencing both fails with CS0111/CS8646.
-          EXEMPT="Hardened.DependencyModules.SourceGenerator"
-
-          # Two kinds of path are not this repository's packages and must not be searched for
-          # here.
-          #
-          # A project under templates/ is scaffolded into somebody else's repository, where they
-          # may well pack it - Hardened1.Client is packable because a consumer's client project
-          # should be. It is content, not a package this repository ships, and treating it as one
-          # failed the 0.20.0-rc1000 release at this step.
-          #
-          # obj/ is build output. The template staging step copies templates/ into
-          # obj/staged-templates/, so every template project appears twice on a machine that has
-          # built, and the second copy exists or not depending on what ran before this.
-          MISSING=""
-          while IFS= read -r project; do
-            name=$(basename "$project" .csproj)
-            case " $EXEMPT " in *" $name "*) continue ;; esac
-            grep -qF "$project" .github/workflows/release.yaml || MISSING="$MISSING $name"
-          done < <(grep -rl "<IsPackable>[Tt]rue</IsPackable>" --include='*.csproj' src \
-                     | grep -v '/obj/' \
-                     | grep -v '/Hardened.Templates/templates/' \
-                     | sort)
-
-          if [ -n "$MISSING" ]; then
-            echo "::error::These projects are packable but absent from the pack list:$MISSING"
-            exit 1
-          fi
-          echo "The pack list covers every packable project."
-
-          # The blind spot in the check above: it reads the XML rather than asking MSBuild, so it
-          # sees a project that says IsPackable and not one that is packable because the SDK's
-          # default says so. A library project that simply omits the property is packable, absent
-          # from the list, and invisible to every check here - the one remaining way this list can
-          # drift silently, after six times that it has.
-          #
-          # Closed by requiring the answer to be written down. A test project inherits
-          # IsPackable=false from Microsoft.NET.Test.Sdk and is exempt; everything else under src
-          # says true or false in its own file, and then the grep above is exhaustive.
-          UNDECLARED=""
-          while IFS= read -r project; do
-            grep -q "IsPackable" "$project" && continue
-            grep -q "Microsoft.NET.Test.Sdk" "$project" && continue
-            UNDECLARED="$UNDECLARED $(basename "$project" .csproj)"
-          done < <(find src -name '*.csproj' \
-                     -not -path '*/obj/*' \
-                     -not -path '*/Hardened.Templates/templates/*' \
-                     | sort)
-
-          if [ -n "$UNDECLARED" ]; then
-            echo "::error::These projects declare no <IsPackable>, so the check above cannot see whether they ship:$UNDECLARED"
-            exit 1
-          fi
-          echo "Every project under src declares whether it packs."
-
+      # The solution, packed as build-package.yaml packs it. IsPackable defaults to false in
+      # src/Directory.Build.props, so only a project that states true is packed. A test fixture
+      # cannot reach the feed by omission, and a new package needs its project to say true and
+      # EXPECTED below to move.
       - name: Pack
         run: |
-          for project in \
-            src/Requests/Hardened.Requests.Abstract/Hardened.Requests.Abstract.csproj \
-            src/Requests/Hardened.Requests.Caching.Memory/Hardened.Requests.Caching.Memory.csproj \
-            src/Requests/Hardened.Requests.Runtime/Hardened.Requests.Runtime.csproj \
-            src/Requests/Hardened.Requests.Testing/Hardened.Requests.Testing.csproj \
-            src/Requests/Serializers/Hardened.Requests.Serializers.MessagePack/Hardened.Requests.Serializers.MessagePack.csproj \
-            src/Requests/Serializers/Hardened.Requests.Serializers.Newtonsoft/Hardened.Requests.Serializers.Newtonsoft.csproj \
-            src/Shared/Hardened.Shared.Runtime/Hardened.Shared.Runtime.csproj \
-            src/Shared/Hardened.Shared.Testing/Hardened.Shared.Testing.csproj \
-            src/SourceGenerators/Hardened.SourceGenerator/Hardened.SourceGenerator.csproj \
-            src/SourceGenerators/Hardened.SourceGeneration.Testing/Hardened.SourceGeneration.Testing.csproj \
-            src/SourceGenerators/Hardened.Function.SourceGenerator/Hardened.Function.SourceGenerator.csproj \
-            src/SourceGenerators/Hardened.Library.SourceGenerator/Hardened.Library.SourceGenerator.csproj \
-            src/SourceGenerators/Hardened.Idl.SourceGenerator/Hardened.Idl.SourceGenerator.csproj \
-            src/SourceGenerators/Hardened.OpenApi.SourceGenerator/Hardened.OpenApi.SourceGenerator.csproj \
-            src/SourceGenerators/Hardened.Smithy.SourceGenerator/Hardened.Smithy.SourceGenerator.csproj \
-            src/SourceGenerators/Hardened.Validation.SourceGenerator/Hardened.Validation.SourceGenerator.csproj \
-            src/SourceGenerators/Hardened.Web.SourceGenerator/Hardened.Web.SourceGenerator.csproj \
-            src/Web/Hardened.Web.Runtime/Hardened.Web.Runtime.csproj \
-            src/Web/Hardened.Web.AspNetCore.Runtime/Hardened.Web.AspNetCore.Runtime.csproj \
-            src/Web/Hardened.Web.AspNetCore.Testing/Hardened.Web.AspNetCore.Testing.csproj \
-            src/Web/Hardened.Web.Kestrel.Runtime/Hardened.Web.Kestrel.Runtime.csproj \
-            src/Web/Hardened.Web.Kestrel.Testing/Hardened.Web.Kestrel.Testing.csproj \
-            src/Web/Hardened.Web.StaticContent/Hardened.Web.StaticContent.csproj \
-            src/Web/Hardened.Web.Testing/Hardened.Web.Testing.csproj \
-            src/Functions/Hardened.CloudEvents/Hardened.CloudEvents.csproj \
-            src/Clouds/Azure/Hardened.Azure.Functions.Runtime/Hardened.Azure.Functions.Runtime.csproj \
-            src/Clouds/Azure/Hardened.Azure.Functions.ServiceBus/Hardened.Azure.Functions.ServiceBus.csproj \
-            src/Clouds/Azure/Hardened.Azure.Functions.SourceGenerator/Hardened.Azure.Functions.SourceGenerator.csproj \
-            src/Clouds/Azure/Hardened.Azure.Functions.Testing/Hardened.Azure.Functions.Testing.csproj \
-            src/Clouds/Azure/Hardened.Azure.Functions/Hardened.Azure.Functions.csproj \
-            src/Clouds/Azure/Hardened.Azure.Functions.Blobs/Hardened.Azure.Functions.Blobs.csproj \
-            src/Clouds/Azure/Hardened.Azure.Functions.CosmosDb/Hardened.Azure.Functions.CosmosDb.csproj \
-            src/Clouds/Azure/Hardened.Azure.Functions.EventGrid/Hardened.Azure.Functions.EventGrid.csproj \
-            src/Clouds/Azure/Hardened.Azure.Functions.EventHubs/Hardened.Azure.Functions.EventHubs.csproj \
-            src/Clouds/Azure/Hardened.Azure.Functions.Http/Hardened.Azure.Functions.Http.csproj \
-            src/Clouds/Azure/Hardened.Azure.Functions.Timer/Hardened.Azure.Functions.Timer.csproj \
-            src/Clouds/Gcp/Hardened.Gcp.CloudRun.PubSub/Hardened.Gcp.CloudRun.PubSub.csproj \
-            src/Clouds/Gcp/Hardened.Gcp.CloudRun.Runtime/Hardened.Gcp.CloudRun.Runtime.csproj \
-            src/Clouds/Gcp/Hardened.Gcp.CloudRun.Testing/Hardened.Gcp.CloudRun.Testing.csproj \
-            src/Clouds/Gcp/Hardened.Gcp.CloudRun/Hardened.Gcp.CloudRun.csproj \
-            src/Clouds/Gcp/Hardened.Gcp.CloudRun.Eventarc/Hardened.Gcp.CloudRun.Eventarc.csproj \
-            src/Clouds/Gcp/Hardened.Gcp.CloudRun.Firestore/Hardened.Gcp.CloudRun.Firestore.csproj \
-            src/Clouds/Gcp/Hardened.Gcp.CloudRun.Invoke/Hardened.Gcp.CloudRun.Invoke.csproj \
-            src/Clouds/Gcp/Hardened.Gcp.CloudRun.Scheduler/Hardened.Gcp.CloudRun.Scheduler.csproj \
-            src/Clouds/Gcp/Hardened.Gcp.CloudRun.Storage/Hardened.Gcp.CloudRun.Storage.csproj \
-            src/Clouds/Gcp/Hardened.Gcp.Functions.Runtime/Hardened.Gcp.Functions.Runtime.csproj \
-            src/Clouds/Gcp/Hardened.Gcp.Functions.SourceGenerator/Hardened.Gcp.Functions.SourceGenerator.csproj \
-            src/Functions/Hardened.Functions.Runtime/Hardened.Functions.Runtime.csproj \
-            src/Functions/Hardened.Functions.Testing/Hardened.Functions.Testing.csproj \
-            src/Clouds/Aws/Hardened.Aws.Lambda/Hardened.Aws.Lambda.csproj \
-            src/Clouds/Aws/Hardened.Aws.Lambda.Runtime/Hardened.Aws.Lambda.Runtime.csproj \
-            src/Clouds/Aws/Hardened.Aws.Lambda.Http/Hardened.Aws.Lambda.Http.csproj \
-            src/Clouds/Aws/Hardened.Aws.Lambda.DynamoDb/Hardened.Aws.Lambda.DynamoDb.csproj \
-            src/Clouds/Aws/Hardened.Aws.Lambda.EventBridge/Hardened.Aws.Lambda.EventBridge.csproj \
-            src/Clouds/Aws/Hardened.Aws.Lambda.Invoke/Hardened.Aws.Lambda.Invoke.csproj \
-            src/Clouds/Aws/Hardened.Aws.Lambda.Kinesis/Hardened.Aws.Lambda.Kinesis.csproj \
-            src/Clouds/Aws/Hardened.Aws.Lambda.S3/Hardened.Aws.Lambda.S3.csproj \
-            src/Clouds/Aws/Hardened.Aws.Lambda.Sns/Hardened.Aws.Lambda.Sns.csproj \
-            src/Clouds/Aws/Hardened.Aws.Lambda.Sqs/Hardened.Aws.Lambda.Sqs.csproj \
-            src/Clouds/Aws/Hardened.Aws.Lambda.Testing/Hardened.Aws.Lambda.Testing.csproj \
-            src/Clouds/Aws/Hardened.Aws.DynamoDbClient/Hardened.Aws.DynamoDbClient.csproj \
-            src/Clouds/Aws/Hardened.Aws.DynamoDbClient.Testing/Hardened.Aws.DynamoDbClient.Testing.csproj \
-            src/Clients/Hardened.Kiota.Testing/Hardened.Kiota.Testing.csproj \
-            src/Clients/Hardened.Refit.Testing/Hardened.Refit.Testing.csproj \
-            src/Templates/Hardened.Templates.RazorBlade/Hardened.Templates.RazorBlade.csproj \
-            src/Templates/Hardened.Templates/Hardened.Templates.csproj; do
-            dotnet pack "$project" --configuration Release --no-build --output ./artifacts \
-              "/p:PackageVersion=${{ steps.version.outputs.version }}"
-          done
+          dotnet pack Hardened.slnx --configuration Release --no-build --output ./artifacts \
+            "/p:PackageVersion=${{ steps.version.outputs.version }}"
           ls -la ./artifacts
 
       # Checked rather than assumed: a project silently dropped from the list above would
@@ -375,15 +228,15 @@ jobs:
       # consumer failed to restore it.
       - name: Verify every expected package was produced
         run: |
-          # Deliberately a literal rather than derived from the list above. Counting the list
+          # Deliberately a literal rather than derived from what was packed. Counting the packages
           # would make this agree with itself and check nothing; a number someone has to change
           # is what makes adding a package a two-line edit instead of a silent one.
           #
           # 19 when the list was written. #108 added Hardened.Templates.RazorBlade and
           # Hardened.Validation.SourceGenerator to the pack list and did not update this, which is
           # what this step is for - it failed the v0.1.0-rc1 release before anything was pushed.
-          # 20 after Hardened.DependencyModules.SourceGenerator was removed from the list; see the
-          # note above the pack step for why it is not published on its own.
+          # 20 after Hardened.DependencyModules.SourceGenerator was removed from the list; its
+          # project file says why it is not published on its own.
           # 18 after Hardened.Commands and Hardened.Console.SourceGenerator were removed - command
           # line parsing shares nothing with the request pipeline and was dropped to shrink the
           # surface area. The 0.4.0-rc1000 packages of both remain on nuget.org and are
@@ -434,15 +287,30 @@ jobs:
           # 66 without Hardened.Shared.Testing.xUnit and Hardened.Shared.Testing.NUnit. [ModuleTest]
           # comes from DependencyModules.xUnit, DependencyModules.xUnit4 or DependencyModules.NUnit,
           # and the running-test seam from DependencyModules.Testing.
+          # Still 66 when the hand-kept list gave way to packing the solution (#417).
           EXPECTED=66
           ACTUAL=$(ls -1 ./artifacts/*.nupkg 2>/dev/null | wc -l | tr -d ' ')
 
           if [ "$ACTUAL" != "$EXPECTED" ]; then
-            echo "::error::Packed $ACTUAL packages, expected $EXPECTED. Update the list in this workflow if a package was added or removed."
+            echo "::error::Packed $ACTUAL packages, expected $EXPECTED. Update EXPECTED if a package was added or removed, or give a project that should not ship IsPackable false."
             ls -1 ./artifacts/*.nupkg || true
             exit 1
           fi
           echo "All $EXPECTED packages present."
+
+      # The count above passes a fixture that took a package's place. This names one, the check
+      # build-package.yaml runs before it pushes a preview.
+      - name: Verify no test fixture was packed
+        run: |
+          LEAKED=$(ls -1 ./artifacts/*.nupkg \
+            | xargs -n1 basename \
+            | grep -Ei '^(Hardened\.IntegrationTests|.*\.Tests\.)' || true)
+
+          if [ -n "$LEAKED" ]; then
+            echo "::error::Test fixtures were packed. Remove IsPackable true from them."
+            echo "$LEAKED"
+            exit 1
+          fi
 
       # The compiler supplies Roslyn to a generator, so an application needs none of a generator
       # package's dependencies. It gets them anyway, with their runtime assets in its build output:

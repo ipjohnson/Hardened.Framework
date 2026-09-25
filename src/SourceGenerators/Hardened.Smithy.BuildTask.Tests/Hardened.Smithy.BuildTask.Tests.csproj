@@ -1,10 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
-        <IsPackable>false</IsPackable>
+        <TargetFramework>$(HardenedTargetFramework)</TargetFramework>
     </PropertyGroup>
 
     <ItemGroup>
@@ -20,12 +17,6 @@
     <ItemGroup>
         <PackageReference Include="Microsoft.Build.Framework"/>
         <PackageReference Include="Microsoft.Build.Utilities.Core"/>
-        <PackageReference Include="Microsoft.NET.Test.Sdk"/>
-        <PackageReference Include="xunit.runner.visualstudio">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
-        <PackageReference Include="xunit.v3.mtp-off"/>
     </ItemGroup>
 
     <ItemGroup>
@@ -52,7 +43,6 @@
               Link="Targets\Hardened.OpenApi.SourceGenerator.targets"
               CopyToOutputDirectory="PreserveNewest"/>
     </ItemGroup>
-
 
     <!--
       The shared emitters are compiled into this assembly too, and a test over the OpenAPI build

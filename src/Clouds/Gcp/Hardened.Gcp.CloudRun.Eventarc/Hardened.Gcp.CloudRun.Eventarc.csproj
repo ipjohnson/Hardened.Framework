@@ -1,12 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>$(HardenedTargetFramework)</TargetFramework>
         <Description>Serves [Event] handlers on Google Cloud Run from Eventarc: any CloudEvent, binary or structured, routes on its source and type through Hardened.CloudEvents, with the event's data as the handler's body and its attributes as headers.</Description>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
         <IsPackable>true</IsPackable>
-        <PackageId>Hardened.Gcp.CloudRun.Eventarc</PackageId>
         <PackageTags>Hardened;Hardened.Framework;gcp;cloudrun;serverless;eventarc;cloudevents</PackageTags>
         <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
         <IsAotCompatible>true</IsAotCompatible>

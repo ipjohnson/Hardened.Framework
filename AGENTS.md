@@ -23,6 +23,13 @@ are found by walking up from each project, so they sit beside the projects they 
 `coverage.runsettings`, `coverage-baseline.json`, `allocation-baseline.json` and `spectral.yaml`,
 each named on the command line by the workflow or gate script that reads it.
 
+**What a project gets without asking.** `src/Directory.Build.props` sets `ImplicitUsings`,
+`Nullable` and `IsPackable=false` for every project, and gives each project named `.Tests` the xUnit
+references; a test project on NUnit sets `HardenedTestRunner` to `NUnit`. A project names
+`$(HardenedTargetFramework)` rather than a framework. A generator imports
+`src/SourceGenerators/SourceGenerator.props` after `CSharpAuthor.props`, and an MSBuild task imports
+`src/SourceGenerators/BuildTask.props`. A project file states only what is its own.
+
 | Path | Contents |
 |---|---|
 | `src/Shared` | Module entry points, configuration, environment, metrics, the test framework |
@@ -303,9 +310,9 @@ and every citation is inside one. `docs.yaml` fails a pull request that spells a
 and the `Hardened.Amz.*` pins are the one exemption: that line stopped at `0.22.0-rc1000` and does
 not move.
 
-**The pack list in `release.yaml` is hand-maintained and has drifted six times.** A new packable
-project has to be added to it *and* to `EXPECTED`, which is a literal on purpose. Adding it to the
-solution alone ships a release missing that package.
+**A project packs only when it says `<IsPackable>true</IsPackable>`.** `src/Directory.Build.props`
+defaults it to false, and `release.yaml` packs the solution. A new package is that line and a new
+`EXPECTED`, which is a literal on purpose. The hand-kept list this replaced drifted six times.
 
 `0.8.0-rc1000` was a bad release — three unusable packages, superseded by `0.9.0-rc1000`. Never
 recommend it.
@@ -349,7 +356,7 @@ generated project against it, with `NUGET_PACKAGES` redirected so the global cac
 --solution-folder` silently drops projects and exits 0, and `dotnet sln add` given many projects at
 once flattens them into one folder and then refuses on the first name collision. `Hardened.slnx` is
 short and readable; edit it directly and check the diff. A project added there has to be added to
-its filter too, and to the pack list in `release.yaml` if it ships.
+its filter too.
 
 **An optional `CancellationToken` on a shared test helper.** Every call site that omits it trips
 `xUnit1051`, which is a warning locally and an error under `ContinuousIntegrationBuild` — so the
@@ -376,7 +383,7 @@ restoring the package, which is what makes a break in it fail the same build.
 
 **Every package version is in `src/Directory.Packages.props`.** A `Version` on a `PackageReference` is
 `NU1008`. A project that genuinely needs a different version says so with `VersionOverride` and a
-comment giving the reason; four do. Adding a package means adding a `PackageVersion` there first.
+comment giving the reason; three do. Adding a package means adding a `PackageVersion` there first.
 
 **Placement between `Abstract` and `Runtime`.** The contract stays in `Hardened.Requests.Abstract`;
 behaviour moves. A type a function handler needs cannot move to `Hardened.Web.Runtime` — the Lambda

@@ -1,12 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>$(HardenedTargetFramework)</TargetFramework>
         <Description>Serves [Timer] handlers on Google Cloud Run from Cloud Scheduler: a job whose HTTP target is the service's /_triggers/timer/{name} route reaches the handler that declared the name, cross-checked against the headers Scheduler sends.</Description>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
         <IsPackable>true</IsPackable>
-        <PackageId>Hardened.Gcp.CloudRun.Scheduler</PackageId>
         <PackageTags>Hardened;Hardened.Framework;gcp;cloudrun;serverless;scheduler;timer</PackageTags>
         <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
         <IsAotCompatible>true</IsAotCompatible>

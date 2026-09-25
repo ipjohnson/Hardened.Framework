@@ -1,12 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>$(HardenedTargetFramework)</TargetFramework>
         <Description>Serves [Change] handlers on Google Cloud Run from Firestore through Eventarc: a document event's new value is the handler's body as plain JSON, the collection is the route, and [OldValue] binds the previous document.</Description>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
         <IsPackable>true</IsPackable>
-        <PackageId>Hardened.Gcp.CloudRun.Firestore</PackageId>
         <PackageTags>Hardened;Hardened.Framework;gcp;cloudrun;serverless;firestore;change</PackageTags>
         <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
         <IsAotCompatible>true</IsAotCompatible>

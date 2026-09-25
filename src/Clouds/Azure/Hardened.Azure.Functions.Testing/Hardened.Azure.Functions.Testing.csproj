@@ -1,17 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>$(HardenedTargetFramework)</TargetFramework>
         <!--
           Deliberately not IsAotCompatible, for the reason Hardened.Aws.Lambda.Testing gives: a test
           harness serializes whatever type a test hands it, and a testing package is referenced by
           test projects, which are never published ahead of time.
         -->
         <Description>Raises the fidelity of a Hardened function test on Azure: delivers the trigger data the isolated worker would bind - Service Bus messages, Event Hubs events, change feed documents, blobs, timers, CloudEvents and HTTP requests - through the real invocation handler, so the adapter and the batch fan-out are exercised too.</Description>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
         <IsPackable>true</IsPackable>
-        <PackageId>Hardened.Azure.Functions.Testing</PackageId>
         <PackageTags>Hardened;Hardened.Framework;azure;functions;serverless;testing</PackageTags>
     </PropertyGroup>
 

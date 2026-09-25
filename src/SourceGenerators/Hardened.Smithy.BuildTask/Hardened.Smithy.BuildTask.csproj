@@ -1,19 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <Import Project="../CSharpAuthor.props"/>
+    <Import Project="../BuildTask.props"/>
 
     <PropertyGroup>
-        <!--
-            Two TFMs for the same reason the OpenAPI task has them: MSBuild runs on .NET Framework
-            under Visual Studio and on .NET everywhere else, and the targets file picks between them
-            on $(MSBuildRuntimeType).
-        -->
-        <TargetFrameworks>net472;net8.0</TargetFrameworks>
-        <LangVersion>10</LangVersion>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
-        <IsPackable>false</IsPackable>
-
         <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
         <AppendTargetFrameworkToOutputPath>true</AppendTargetFrameworkToOutputPath>
 
@@ -22,12 +12,6 @@
 
     <ItemGroup>
         <InternalsVisibleTo Include="Hardened.Smithy.BuildTask.Tests"/>
-    </ItemGroup>
-
-    <ItemGroup>
-        <!-- See Hardened.OpenApi.BuildTask for why these are pinned and why runtime is excluded. -->
-        <PackageReference Include="Microsoft.Build.Framework" ExcludeAssets="runtime" PrivateAssets="all"/>
-        <PackageReference Include="Microsoft.Build.Utilities.Core" ExcludeAssets="runtime" PrivateAssets="all"/>
     </ItemGroup>
 
     <!--

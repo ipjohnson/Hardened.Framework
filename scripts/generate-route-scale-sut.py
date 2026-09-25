@@ -134,10 +134,7 @@ def csproj_source(scale):
       emit a table containing every route.
     -->
     <PropertyGroup>
-        <IsPackable>false</IsPackable>
-        <TargetFramework>net8.0</TargetFramework>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
+        <TargetFramework>$(HardenedTargetFramework)</TargetFramework>
         <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     </PropertyGroup>
 

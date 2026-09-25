@@ -1,20 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+    <Import Project="../BuildTask.props"/>
+
     <PropertyGroup>
         <!--
-            Two TFMs for the same reason the OpenAPI and Smithy tasks have them: MSBuild runs on
-            .NET Framework under Visual Studio and on .NET everywhere else, and the targets file
-            picks between them on $(MSBuildRuntimeType).
-        -->
-        <TargetFrameworks>net472;net8.0</TargetFrameworks>
-        <LangVersion>10</LangVersion>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
-
-        <!--
             Packed by the three generator packages into tasks/, beside whatever task they already
-            carry; this project ships nothing itself. Not packable, so release.yaml's pack-list
-            check does not ask for a row.
+            carry; this project ships nothing itself.
         -->
         <IsPackable>false</IsPackable>
         <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
@@ -24,12 +15,6 @@
 
     <ItemGroup>
         <InternalsVisibleTo Include="Hardened.OpenApiDocument.BuildTask.Tests"/>
-    </ItemGroup>
-
-    <ItemGroup>
-        <!-- See Hardened.OpenApi.BuildTask for why these are pinned and why runtime is excluded. -->
-        <PackageReference Include="Microsoft.Build.Framework" ExcludeAssets="runtime" PrivateAssets="all"/>
-        <PackageReference Include="Microsoft.Build.Utilities.Core" ExcludeAssets="runtime" PrivateAssets="all"/>
     </ItemGroup>
 
     <!--
