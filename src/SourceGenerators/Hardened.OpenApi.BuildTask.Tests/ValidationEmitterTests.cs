@@ -262,9 +262,27 @@ public class ValidationEmitterTests
         patterns.AttributeArguments("^[a-z]+$");
 
         Assert.Contains(
-            "[global::System.Text.RegularExpressions.GeneratedRegex(\"^[a-z]+$\")]",
+            "[global::System.Text.RegularExpressions.GeneratedRegex(\"^[a-z]+$\", "
+                + "global::System.Text.RegularExpressions.RegexOptions.None, 2000)]",
             EmitPatterns(patterns)
         );
+    }
+
+    /// <summary>
+    /// Two seconds a match, so a pattern that backtracks catastrophically on a crafted value throws
+    /// instead of holding the request thread.
+    /// </summary>
+    [Fact]
+    public void EveryMemberCarriesAMatchTimeout()
+    {
+        var patterns = Patterns();
+
+        patterns.AttributeArguments("^[a-z]+$");
+        patterns.AttributeArguments("^(a+)+$");
+
+        var output = EmitPatterns(patterns);
+
+        Assert.Equal(2, output.Split("RegexOptions.None, 2000)]").Length - 1);
     }
 
     /// <summary>
@@ -278,7 +296,7 @@ public class ValidationEmitterTests
 
         patterns.AttributeArguments(@"^\d{3}$");
 
-        Assert.Contains(@"GeneratedRegex(""^\\d{3}$"")", EmitPatterns(patterns));
+        Assert.Contains(@"GeneratedRegex(""^\\d{3}$"",", EmitPatterns(patterns));
     }
 
     [Fact]
@@ -288,7 +306,7 @@ public class ValidationEmitterTests
 
         patterns.AttributeArguments("^\"[a-z]+\"$");
 
-        Assert.Contains(@"GeneratedRegex(""^\""[a-z]+\""$"")", EmitPatterns(patterns));
+        Assert.Contains(@"GeneratedRegex(""^\""[a-z]+\""$"",", EmitPatterns(patterns));
     }
 
     [Fact]

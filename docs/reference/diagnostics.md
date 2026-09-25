@@ -160,6 +160,7 @@ ValidationModules lists the `VM` codes in its
 | Id | Severity | Reported when | Reported by | Page |
 |---|---|---|---|---|
 | `HAUTH001` | Warning | The project's module class carries `[RequireAuthorization]`, and a handler compiled in the project carries no authorization attribute and no `[AllowAnonymous]`, on its method or its class | Generator | [Authorization](/guide/authorization) |
+| `HAUTH002` | Warning | A handler's method carries an authorization attribute, and `[AllowAnonymous]` is on the same method or on its class, so the attribute has no effect | Generator | [Authorization](/guide/authorization) |
 
 `[AllowAnonymous]` on the handler's method or on its class clears `HAUTH001`. So does an attribute
 that implements `IAuthorizeAttribute`.
