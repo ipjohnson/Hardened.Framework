@@ -108,6 +108,97 @@ public class ValidationAttachmentTests
         Assert.Contains(".Parameters>", handler);
     }
 
+    private static string? Validator(GeneratorResult result, string name) =>
+        result
+            .GeneratedSources.Where(pair =>
+                pair.Key.Contains(name) && pair.Key.Contains("ParametersValidator")
+            )
+            .Select(pair => pair.Value)
+            .SingleOrDefault();
+
+    /// <summary>
+    /// <c>[ValidateNever]</c> on the parameter binds the constrained model with no filter and no
+    /// validator.
+    /// </summary>
+    [Fact]
+    public void AParameterMarkedValidateNeverAttachesNothing()
+    {
+        var result = Generate(
+                ConstrainedModel
+                    + """
+                    public class OrderController {
+                        [Post("/orders/echo")]
+                        public string Echo(
+                            [Hardened.Requests.Runtime.Validation.ValidateNever] Order order) =>
+                            order.Reference ?? "";
+                    }
+                    """
+            )
+            .AssertNoErrors();
+
+        var handler = Handler(result, "OrderController_Echo");
+
+        Assert.DoesNotContain("ValidationFilterProvider<", handler);
+        Assert.Null(Validator(result, "OrderController_Echo"));
+
+        // Bound from the body, as it would be without the attribute. An attribute the binder does
+        // not recognise would make it a custom binder, which answers 500 at run time.
+        Assert.DoesNotContain("CustomAttributeData", handler);
+    }
+
+    /// <summary><c>[ValidateNever]</c> on the handler covers every parameter it binds.</summary>
+    [Fact]
+    public void AHandlerMarkedValidateNeverAttachesNothing()
+    {
+        var result = Generate(
+                ConstrainedModel
+                    + """
+                    public class OrderController {
+                        [Post("/orders/echo")]
+                        [Hardened.Requests.Runtime.Validation.ValidateNever]
+                        public string Echo(Order order, [FromQueryString, Range(1, 10)] int count) =>
+                            order.Reference ?? "";
+                    }
+                    """
+            )
+            .AssertNoErrors();
+
+        Assert.DoesNotContain("ValidationFilterProvider<", Handler(result, "OrderController_Echo"));
+        Assert.Null(Validator(result, "OrderController_Echo"));
+    }
+
+    /// <summary>
+    /// Only the marked parameter is left out. A constrained parameter beside it is still validated.
+    /// </summary>
+    [Fact]
+    public void AParameterBesideAMarkedOneIsStillValidated()
+    {
+        var result = Generate(
+                ConstrainedModel
+                    + """
+                    public class OrderController {
+                        [Post("/orders/echo")]
+                        public string Echo(
+                            [Hardened.Requests.Runtime.Validation.ValidateNever] Order order,
+                            [FromQueryString, Range(1, 10)] int count) =>
+                            order.Reference ?? "";
+                    }
+                    """
+            )
+            .AssertNoErrors();
+
+        Assert.Contains(
+            "ValidationFilterProvider<global::",
+            Handler(result, "OrderController_Echo")
+        );
+
+        var validator = Validator(result, "OrderController_Echo");
+
+        Assert.NotNull(validator);
+        Assert.Contains("count", validator);
+        Assert.DoesNotContain("order", validator);
+    }
+
     /// <summary>
     /// The parameters validator descends rather than checking anything itself: the constraints stay
     /// on the model, and its validator is the one that evaluates them.

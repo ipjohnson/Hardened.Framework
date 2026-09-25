@@ -177,6 +177,29 @@ first example's `NewList`:
 `capacity` is in `required` because its type is `int`.
 [The OpenAPI document](/guide/openapi-document) covers the rest of the schema.
 
+### A timeout on a pattern
+
+`[Pattern(typeof(T), nameof(T.Member))]` uses the `[GeneratedRegex]` method you declare, with the
+timeout you give it. Without a timeout, a pattern that backtracks catastrophically, such as
+`^(a+)+$`, runs on the request's thread for as long as a crafted value makes it. Give the method a
+timeout:
+
+```csharp
+using System.Text.RegularExpressions;
+
+namespace Todos;
+
+public static partial class TodoPatterns
+{
+    [GeneratedRegex("^[a-z0-9-]+$", RegexOptions.None, matchTimeoutMilliseconds: 2000)]
+    public static partial Regex Slug();
+}
+```
+
+A match that runs past its timeout throws `RegexMatchTimeoutException`, and the request answers 500.
+A `pattern` from an OpenAPI document or a Smithy model gets a timeout of 2,000 milliseconds. That is
+also the default of .NET's `RegularExpressionAttribute`.
+
 ## Constraints on parameters
 
 A constraint on a path, query or header parameter is checked like one on a model's member. The
@@ -515,6 +538,37 @@ A validator registered for the body type runs before the generated check for tha
 registered validator that reports two failures has only its first reported.
 
 A `ValidationException` the handler throws is answered with every error it holds, in either mode.
+
+## Skip validation
+
+`[ValidateNever]` binds a parameter without checking its constraints. On a handler method, it
+covers every parameter the handler binds. `ValidateNeverAttribute` is in
+`Hardened.Requests.Runtime.Validation`.
+
+A route that stores a draft takes the same `NewList` without its constraints. The handler is in
+`src/Todos/DraftListController.cs`:
+
+```csharp
+using Hardened.Requests.Runtime.Validation;
+using Hardened.Web.Runtime.Attributes;
+
+namespace Todos;
+
+[BasePath("/drafts")]
+public class DraftListController
+{
+    [Post("/")]
+    public NewList Save([ValidateNever] NewList list) => list;
+}
+```
+
+`POST /todos/drafts` with the body `{"name":"ab","capacity":0}` answers 200 with the list as it was
+sent. `POST /todos/quick-lists/full` refuses the same body with two failures.
+
+A parameter beside a marked one is still checked. Binding still refuses a value that does not
+convert to its type, and a body that does not deserialize. The OpenAPI document still publishes the
+model's constraints, because the schema belongs to the type. A specification-first operation
+ignores `[ValidateNever]` and checks what its contract declares.
 
 ## Change the status to 422
 

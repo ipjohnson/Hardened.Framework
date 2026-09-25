@@ -82,6 +82,16 @@ public static class HandlerValidationFrontEnd
             return new Built(null, ImmutableArray<Diagnostic>.Empty);
         }
 
+        // [ValidateNever] on the handler leaves every parameter unvalidated, so no validator.
+        if (
+            parameters.FirstOrDefault(symbol => symbol != null)?.ContainingSymbol
+                is IMethodSymbol method
+            && ValidatesNever(method)
+        )
+        {
+            return new Built(null, ImmutableArray<Diagnostic>.Empty);
+        }
+
         // One front end for the handler, and kept: what it reports about a constraint written on a
         // parameter is reported nowhere else. HasValidator's is thrown away for the opposite reason.
         var frontEnd = new AttributeFrontEnd(
@@ -105,7 +115,7 @@ public static class HandlerValidationFrontEnd
                 continue;
             }
 
-            if (parameters[i] is not { } symbol)
+            if (parameters[i] is not { } symbol || ValidatesNever(symbol))
             {
                 continue;
             }
@@ -147,6 +157,26 @@ public static class HandlerValidationFrontEnd
     /// </remarks>
     public static string ValidatorNameFor(RequestHandlerModel handler) =>
         handler.InvokeHandlerType.Name + "ParametersValidator";
+
+    /// <summary>
+    /// Whether <paramref name="symbol"/> carries <c>[ValidateNever]</c>.
+    /// </summary>
+    private static bool ValidatesNever(ISymbol symbol)
+    {
+        foreach (var attribute in symbol.GetAttributes())
+        {
+            if (
+                attribute.AttributeClass is { Name: "ValidateNeverAttribute" } type
+                && type.ContainingNamespace?.ToDisplayString()
+                    == "Hardened.Requests.Runtime.Validation"
+            )
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     /// <summary>
     /// Whether a parameter holds something the caller sent, as opposed to something the container

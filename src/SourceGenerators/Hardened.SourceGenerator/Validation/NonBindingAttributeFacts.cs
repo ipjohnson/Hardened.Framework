@@ -31,6 +31,9 @@ public static class NonBindingAttributeFacts
     private const string EnumeratorCancellation =
         "System.Runtime.CompilerServices.EnumeratorCancellationAttribute";
 
+    private const string ValidateNever =
+        "Hardened.Requests.Runtime.Validation.ValidateNeverAttribute";
+
     /// <summary>
     /// Whether <paramref name="attribute"/> should be left alone by the binding path.
     /// </summary>
@@ -48,6 +51,9 @@ public static class NonBindingAttributeFacts
     /// which now binds by type.
     /// </para>
     /// <para>
+    /// <b><c>[ValidateNever]</c></b> says whether the value is checked, not where it comes from.
+    /// </para>
+    /// <para>
     /// Resolved through the semantic model rather than by name, for the reason
     /// <see cref="ConstraintAttributeFacts"/> gives: a name is not proof, and treating it as proof
     /// takes someone's unrelated attribute out of the binding path it was written for.
@@ -62,6 +68,8 @@ public static class NonBindingAttributeFacts
 
         var symbol = context.SemanticModel.GetSymbolInfo(attribute).Symbol;
 
-        return symbol?.ContainingType?.ToDisplayString() == EnumeratorCancellation;
+        var type = symbol?.ContainingType?.ToDisplayString();
+
+        return type is EnumeratorCancellation or ValidateNever;
     }
 }

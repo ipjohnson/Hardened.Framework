@@ -659,6 +659,8 @@ The constraint traits map to these attributes:
 A constraint trait can sit on the member or on the shape it targets. The member's trait wins where
 both declare one.
 
+A `@pattern` member has a match timeout of 2,000 milliseconds, as an OpenAPI `pattern` does.
+
 The checks run before the handler, as for an OpenAPI document.
 [Generating from OpenAPI](/guide/openapi) covers the parameter interfaces and the 422.
 [Validation](/guide/validation) covers the 400 body.

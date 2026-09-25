@@ -147,6 +147,14 @@ which serves `[Queue]`, and a CloudEvent of any type, which serves `[Event]`. A 
 reaches `[Blob]` when `Hardened.Gcp.CloudRun.Storage` is referenced, and an `[Event]` handler for
 its source and type when it is not. [Events](/gcp/event) covers `[Event]` routes.
 
+::: warning
+A request reaches a trigger handler because of its shape, not because of who sent it. A body shaped
+like a Pub/Sub push reaches the `[Queue]` handler whether Pub/Sub sent it or not. A service with
+trigger handlers must keep Cloud Run's invoker check, with `--no-allow-unauthenticated`, as
+[Deploying](#deploying) shows. Deployed with `--allow-unauthenticated`, it lets anyone call its
+trigger handlers. Serve public web routes from a service of their own.
+:::
+
 | Case | What happens |
 |---|---|
 | Any mix of trigger handlers, `[HardenedFunction]` operations and web routes | Each request reaches its handler |
