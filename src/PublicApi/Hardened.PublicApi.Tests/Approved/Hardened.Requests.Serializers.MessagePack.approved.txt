@@ -45,6 +45,7 @@ namespace Hardened.Requests.Serializers.MessagePack.Impl
     public interface ISharedMessagePackOptions
     {
         MessagePack.MessagePackSerializerOptions Options { get; }
+        MessagePack.MessagePackSerializerOptions ReadOptions { get; }
     }
     [DependencyModules.Runtime.Attributes.TransientService]
     public class MessagePackRequestDeserializer : Hardened.Requests.Abstract.Serializer.IRequestDeserializer
@@ -68,5 +69,6 @@ namespace Hardened.Requests.Serializers.MessagePack.Impl
     {
         public SharedMessagePackOptions(System.IServiceProvider serviceProvider, Microsoft.Extensions.Options.IOptions<Hardened.Requests.Serializers.MessagePack.IMessagePackSerializerConfiguration> configuration, System.Collections.Generic.IEnumerable<MessagePack.IFormatterResolver> resolvers) { }
         public MessagePack.MessagePackSerializerOptions Options { get; }
+        public MessagePack.MessagePackSerializerOptions ReadOptions { get; }
     }
 }

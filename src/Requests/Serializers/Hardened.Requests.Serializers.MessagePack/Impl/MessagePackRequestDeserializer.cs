@@ -70,9 +70,11 @@ public class MessagePackRequestDeserializer : IRequestDeserializer
 
         buffer.Item.Position = 0;
 
+        // ReadOptions, not Options: an inbound body is untrusted, so it is read with a bounded
+        // object-graph depth. See SharedMessagePackOptions.
         return MessagePackSerializer.Deserialize<T>(
             buffer.Item,
-            _options.Options,
+            _options.ReadOptions,
             context.CancellationToken
         );
     }
