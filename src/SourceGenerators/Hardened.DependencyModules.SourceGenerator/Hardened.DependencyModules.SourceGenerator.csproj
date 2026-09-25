@@ -54,14 +54,18 @@
         <PackageDependencyModuleIncludeSource Condition="'$(UseLocalDependencyModules)' != 'true'">true</PackageDependencyModuleIncludeSource>
     </PropertyGroup>
 
+    <!--
+        PrivateAssets, as in the packed generators, because the compiler supplies Roslyn to a
+        generator. Nothing that references this project needs these as packages.
+    -->
     <ItemGroup>
-        <PackageReference Include="Microsoft.Extensions.Primitives"/>
-        <PackageReference Include="System.Memory"/>
+        <PackageReference Include="Microsoft.Extensions.Primitives" PrivateAssets="all"/>
+        <PackageReference Include="System.Memory" PrivateAssets="all"/>
         <PackageReference Include="Microsoft.CodeAnalysis.Analyzers">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Microsoft.CodeAnalysis.CSharp"/>
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all"/>
     </ItemGroup>
 
     <!-- DependencyModules source: NuGet package or local linked files -->

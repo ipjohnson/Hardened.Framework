@@ -436,6 +436,54 @@ jobs:
           fi
           echo "All $EXPECTED packages present."
 
+      # The compiler supplies Roslyn to a generator, so an application needs none of a generator
+      # package's dependencies. It gets them anyway, with their runtime assets in its build output:
+      # 0.39.0-rc1000's generator packages put 15.4 MB of Roslyn into every application that used
+      # them. The one dependency allowed is another generator package, which is how the OpenAPI and
+      # Smithy front ends bring the generator they drive.
+      - name: Verify no generator package declares a dependency
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+
+          # Hardened.SourceGenerator is not an analyzer. It ships source that another generator
+          # compiles, and that source needs the Roslyn it declares. No application references it.
+          EXEMPT="Hardened.SourceGenerator"
+          VERSION="${{ steps.version.outputs.version }}"
+          CHECKED=0
+          FOUND=""
+
+          for package in ./artifacts/Hardened.*SourceGenerator."$VERSION".nupkg; do
+            id=$(basename "$package" ".$VERSION.nupkg")
+            case " $EXEMPT " in *" $id "*) continue ;; esac
+
+            # An assignment, so a nuspec that cannot be read fails the step. Inside the loop's
+            # input below, the failure would read as a package with no dependencies.
+            nuspec=$(unzip -p "$package" "$id.nuspec")
+            CHECKED=$((CHECKED + 1))
+
+            while read -r dependency; do
+              # An exempt package is not an allowed dependency. Its own dependencies would come with it.
+              case " $EXEMPT " in *" $dependency "*) FOUND="$FOUND $id:$dependency"; continue ;; esac
+
+              case "$dependency" in
+                Hardened.*SourceGenerator) ;;
+                *) FOUND="$FOUND $id:$dependency" ;;
+              esac
+            done < <(grep -o '<dependency id="[^"]*"' <<< "$nuspec" | sed 's/.*id="//; s/"$//')
+          done
+
+          if [ "$CHECKED" = 0 ]; then
+            echo "::error::No generator package was found to check."
+            exit 1
+          fi
+
+          if [ -n "$FOUND" ]; then
+            echo "::error::Generator packages declare dependencies an application would inherit. Mark the references PrivateAssets=\"all\":$FOUND"
+            exit 1
+          fi
+          echo "None of the $CHECKED generator packages declares a dependency outside the generators."
+
       - uses: actions/upload-artifact@v4
         with:
           name: packages
