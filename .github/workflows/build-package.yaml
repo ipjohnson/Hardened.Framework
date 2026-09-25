@@ -104,6 +104,52 @@ jobs:
       - name: Check formatting
         run: dotnet csharpier check .
 
+      # The version this run stamps into every assembly and every package, resolved before anything
+      # is built.
+      #
+      # The continuous feed's version has to sort BELOW the released one, or a consumer
+      # configured with both feeds silently gets a preview instead of the release.
+      #
+      # It did. nuget.org carried 0.1.0-rc1 while this pushed 1.0.0-preview10193, and 1.0.0
+      # is the higher version whatever the label says - so adding the GitHub feed to a project
+      # quietly downgraded it onto an unreleased build.
+      #
+      # Two rules keep that from recurring:
+      #
+      #   1. The prefix tracks the release line, not 1.0.0. Under the same prefix, "preview"
+      #      sorts below "rc" and below a stable release, so previews stay underneath.
+      #      RELEASE_LINE must be bumped when a release line opens - which release.yaml's
+      #      package-count check is the precedent for: a number someone has to change is what
+      #      makes it a deliberate edit rather than a silent one.
+      #
+      #   2. Zero-padded to a fixed width. NuGet compares alphanumeric prerelease labels
+      #      lexically, so preview9999 sorts above preview10000. The old scheme dodged this by
+      #      starting the counter above 9999; padding fixes it rather than deferring it to
+      #      run 100000.
+      - name: Resolve version
+        id: version
+        env:
+          # The open line, which is the one previews belong under - not the last one released.
+          # The line has released through v0.39.0-rc1000; there was no 0.7.0, and 0.23.0 through
+          # 0.29.0 were skipped so the consolidation got a number of its own.
+          #
+          # This sat at 0.23.0 for the whole of v0.30.0-rc1000, so every preview that release
+          # opened was stamped below it and the feed had nothing that could supersede the release.
+          # It now moves in the same pull request as the tag it opens the line after.
+          RELEASE_LINE: 0.40.0
+        run: |
+          VERSION="$RELEASE_LINE-preview$(printf '%06d' "$GITHUB_RUN_NUMBER")"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+          # For every step after this one. MSBuild reads an environment variable as a property, so
+          # each build stamps this version into the assemblies, where the pack's PackageVersion
+          # reaches only the package. A -p:Version on the build's command line would not be enough.
+          # The Native AOT publishes below build the framework's projects again, in Release, through
+          # the applications they publish. Without the version they recompile them at the SDK's
+          # 1.0.0 before the pack.
+          echo "Version=$VERSION" >> "$GITHUB_ENV"
+          echo "Building $VERSION"
+
       - run: dotnet restore Hardened.slnx
       - run: dotnet restore Hardened.Simulators.slnx
 
@@ -656,40 +702,13 @@ jobs:
           name: coverage-report
           path: coverage-report
 
-      # The continuous feed's version has to sort BELOW the released one, or a consumer
-      # configured with both feeds silently gets a preview instead of the release.
-      #
-      # It did. nuget.org carried 0.1.0-rc1 while this pushed 1.0.0-preview10193, and 1.0.0
-      # is the higher version whatever the label says - so adding the GitHub feed to a project
-      # quietly downgraded it onto an unreleased build.
-      #
-      # Two rules keep that from recurring:
-      #
-      #   1. The prefix tracks the release line, not 1.0.0. Under the same prefix, "preview"
-      #      sorts below "rc" and below a stable release, so previews stay underneath.
-      #      RELEASE_LINE must be bumped when a release line opens - which release.yaml's
-      #      package-count check is the precedent for: a number someone has to change is what
-      #      makes it a deliberate edit rather than a silent one.
-      #
-      #   2. Zero-padded to a fixed width. NuGet compares alphanumeric prerelease labels
-      #      lexically, so preview9999 sorts above preview10000. The old scheme dodged this by
-      #      starting the counter above 9999; padding fixes it rather than deferring it to
-      #      run 100000.
+      # The version comes from the step before the build, so each package matches the assemblies
+      # it carries.
       - name: Pack
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        env:
-          # The open line, which is the one previews belong under - not the last one released.
-          # The line has released through v0.39.0-rc1000; there was no 0.7.0, and 0.23.0 through
-          # 0.29.0 were skipped so the consolidation got a number of its own.
-          #
-          # This sat at 0.23.0 for the whole of v0.30.0-rc1000, so every preview that release
-          # opened was stamped below it and the feed had nothing that could supersede the release.
-          # It now moves in the same pull request as the tag it opens the line after.
-          RELEASE_LINE: 0.40.0
         run: |
-          BUILD=$(printf '%06d' "$GITHUB_RUN_NUMBER")
-          echo "Packing $RELEASE_LINE-preview$BUILD"
-          dotnet pack Hardened.slnx --configuration Release --no-build /p:PackageVersion=$RELEASE_LINE-preview$BUILD
+          echo "Packing ${{ steps.version.outputs.version }}"
+          dotnet pack Hardened.slnx --configuration Release --no-build /p:PackageVersion=${{ steps.version.outputs.version }}
 
       # Packing the solution takes whatever is not marked IsPackable=false, which is how
       # Hardened.IntegrationTests.Console.SUT and .OpenApi.SUT reached the feed as packages -

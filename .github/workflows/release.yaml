@@ -6,7 +6,7 @@
 # The tag is the single source of truth for the published version. Requires a NUGET_API_KEY
 # repository secret with push rights for the Hardened.* package IDs on nuget.org.
 #
-# This is separate from build-package.yaml, which keeps publishing 1.0.0-preview{10000+run} to
+# This is separate from build-package.yaml, which keeps publishing {line}-preview{run} to
 # GitHub Packages on every merge to main. That remains the continuous feed; this is the
 # deliberate one, and a version pushed to nuget.org can be unlisted but never removed.
 
@@ -81,6 +81,13 @@ jobs:
           fi
 
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+          # For every step after this one. MSBuild reads an environment variable as a property, so
+          # each build stamps this version into the assemblies, where the pack's PackageVersion
+          # reaches only the package. It is set for the job rather than on the build's command line.
+          # A later build without it recompiles every project it reaches at the SDK's 1.0.0, and
+          # build-package.yaml's Native AOT publishes do exactly that before its pack.
+          echo "Version=$VERSION" >> "$GITHUB_ENV"
           echo "Releasing $VERSION"
 
       # Above the build rather than below the push, which is where this used to sit.
