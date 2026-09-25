@@ -28,6 +28,7 @@ namespace Hardened.Web.StaticContent
         public HardenedStaticContent() { }
         public string? FallBackFile { get; set; }
         public string? Path { get; set; }
+        public string? RoutePrefix { get; set; }
         public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
         public override bool Equals(object? obj) { }
         public override int GetHashCode() { }
@@ -39,6 +40,7 @@ namespace Hardened.Web.StaticContent
         public HardenedStaticContentAttribute() { }
         public string FallBackFile { get; set; }
         public string Path { get; set; }
+        public string RoutePrefix { get; set; }
         public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
     }
     public interface IETagProvider
@@ -62,6 +64,7 @@ namespace Hardened.Web.StaticContent
         System.Action<Hardened.Requests.Abstract.Execution.IExecutionContext>? OnPrepareResponse { get; }
         string Path { get; }
         Hardened.Requests.Abstract.Authorization.Requirement? Requirement { get; }
+        string RoutePrefix { get; }
         bool ServeHiddenFiles { get; }
     }
     public interface IStaticContentManifest
@@ -96,6 +99,7 @@ namespace Hardened.Web.StaticContent
         public System.Action<Hardened.Requests.Abstract.Execution.IExecutionContext>? OnPrepareResponse { get; set; }
         public string Path { get; set; }
         public Hardened.Requests.Abstract.Authorization.Requirement? Requirement { get; set; }
+        public string RoutePrefix { get; set; }
         public bool ServeHiddenFiles { get; set; }
     }
     public class StaticContentController

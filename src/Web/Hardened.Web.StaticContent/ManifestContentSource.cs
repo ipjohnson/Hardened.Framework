@@ -70,6 +70,18 @@ public class ManifestContentSource : IStaticContentSource
                 _rootPath = Path.GetFullPath(Path.Combine(baseDirectory, _configuration.Path));
             }
         }
+
+        // The build fixed every route, each item's own prefix included, so the configured one has
+        // nothing to apply to. Logged because the attribute that set it gives no other sign.
+        if (FileSystemContentSource.NormaliseRoutePrefix(_configuration.RoutePrefix) != "/")
+        {
+            _logger.LogWarning(
+                "Static content is configured with route prefix {RoutePrefix}, which is ignored. "
+                    + "The build declared <HardenedStaticContent> items, and each item's own "
+                    + "RoutePrefix sets where its files are served",
+                _configuration.RoutePrefix
+            );
+        }
     }
 
     /// <summary>

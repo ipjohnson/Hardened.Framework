@@ -8,6 +8,25 @@ public interface IStaticContentConfiguration
 {
     string Path { get; }
 
+    /// <summary>
+    /// The path the files are served under, such as <c>/static</c>. <c>/</c>, the default, serves
+    /// them at the application's root.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Removed from a request path before the path is looked up in <see cref="Path"/>, so
+    /// <c>/static/app.js</c> is served from <c>app.js</c>. A path outside the prefix is declined, and
+    /// <see cref="FallBackFile"/> does not answer it. <c>/static</c> and <c>/static/</c> both serve
+    /// the directory's default document.
+    /// </para>
+    /// <para>
+    /// Read only for a directory served at run time. A build that declares
+    /// <c>&lt;HardenedStaticContent&gt;</c> items serves their manifest instead, and each item carries
+    /// its own <c>RoutePrefix</c>.
+    /// </para>
+    /// </remarks>
+    string RoutePrefix { get; }
+
     CacheControlEnum CacheControlType { get; }
 
     int? CacheMaxAge { get; }
@@ -104,6 +123,9 @@ public interface IStaticContentConfiguration
 public class StaticContentConfiguration : IStaticContentConfiguration
 {
     public string Path { get; set; } = "wwwroot";
+
+    /// <inheritdoc />
+    public string RoutePrefix { get; set; } = "/";
 
     public CacheControlEnum CacheControlType { get; set; } =
         CacheControlEnum.MaxAge | CacheControlEnum.Public;

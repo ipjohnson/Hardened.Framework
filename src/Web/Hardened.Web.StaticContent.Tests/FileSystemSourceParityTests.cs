@@ -116,26 +116,8 @@ public class FileSystemSourceParityTests : IDisposable
             mimeHelper,
             new GZipStaticContentCompressor(new MemoryStreamPool()),
             new ETagProvider(new TestHashPool()),
-            new CollectingLogger(messages)
+            new CollectingLogger<FileSystemContentSource>(messages)
         );
-    }
-
-    /// <summary>Keeps what was logged, for behaviour whose only output is a warning.</summary>
-    private sealed class CollectingLogger(List<string> messages)
-        : Microsoft.Extensions.Logging.ILogger<FileSystemContentSource>
-    {
-        public IDisposable? BeginScope<TState>(TState state)
-            where TState : notnull => null;
-
-        public bool IsEnabled(Microsoft.Extensions.Logging.LogLevel logLevel) => true;
-
-        public void Log<TState>(
-            Microsoft.Extensions.Logging.LogLevel logLevel,
-            Microsoft.Extensions.Logging.EventId eventId,
-            TState state,
-            Exception? exception,
-            Func<TState, Exception?, string> formatter
-        ) => messages.Add(formatter(state, exception));
     }
 
     #region symlinks
@@ -206,7 +188,9 @@ public class FileSystemSourceParityTests : IDisposable
     /// <summary>
     /// A traversal is refused by the containment check rather than by the file simply not being
     /// there. The transport under test does not normalise the path, which is the position a source
-    /// is left in on API Gateway.
+    /// is left in on API Gateway. Hidden files are served here because <c>..</c> is a hidden
+    /// segment, and the hidden-file check would otherwise refuse the path before containment is
+    /// checked.
     /// </summary>
     [Theory]
     [InlineData("/../secret.txt")]
@@ -215,7 +199,7 @@ public class FileSystemSourceParityTests : IDisposable
     {
         File.WriteAllText(Path.Combine(_tempRoot, "secret.txt"), "SECRET");
 
-        Assert.Null(Key(Source(), path));
+        Assert.Null(Key(Source(c => c.ServeHiddenFiles.Returns(true)), path));
     }
 
     /// <summary>

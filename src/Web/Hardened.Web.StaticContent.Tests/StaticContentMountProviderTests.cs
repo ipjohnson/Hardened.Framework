@@ -404,6 +404,30 @@ public class StaticContentMountProviderTests : IDisposable
     }
 
     /// <summary>
+    /// A mount under a prefix serves at the prefixed path. A write to the same file without the
+    /// prefix declines rather than answering 405, because the mount does not own that path.
+    /// </summary>
+    [Fact]
+    public async Task APrefixedMountAnswersOnlyUnderItsPrefix()
+    {
+        using var application = Application(configuration =>
+            configuration.RoutePrefix.Returns("/static")
+        );
+
+        var (context, body, _, _) = Context(application, "/static/app.js");
+
+        await Serve(application, context);
+
+        Assert.Equal("console.log('hi');", Served(body));
+
+        var (read, _, _, _) = Context(application, "/app.js");
+        var (write, _, _, _) = Context(application, "/app.js", "POST");
+
+        Assert.Null(Mount(application).Match(read));
+        Assert.Null(Mount(application).Match(write));
+    }
+
+    /// <summary>
     /// The handler is built once and shared. Conventions are asked as a handler is constructed, so
     /// building one per request would ask them per request and make an authorization decision that
     /// is meant to be settled at startup a per-request cost.

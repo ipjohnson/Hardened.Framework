@@ -23,6 +23,12 @@ public class StaticContentConfigurationTests
     }
 
     [Fact]
+    public void FilesAreServedAtTheRootByDefault()
+    {
+        Assert.Equal("/", new StaticContentConfiguration().RoutePrefix);
+    }
+
+    [Fact]
     public void TextContentIsCompressedByDefault()
     {
         Assert.True(new StaticContentConfiguration().CompressTextContent);
@@ -89,6 +95,7 @@ public class StaticContentConfigurationTests
         IStaticContentConfiguration configuration = new StaticContentConfiguration
         {
             Path = "public",
+            RoutePrefix = "/static",
             CacheControlType = CacheControlEnum.NoStore,
             CacheMaxAge = 3600,
             Immutable = true,
@@ -99,6 +106,7 @@ public class StaticContentConfigurationTests
         };
 
         Assert.Equal("public", configuration.Path);
+        Assert.Equal("/static", configuration.RoutePrefix);
         Assert.Equal(CacheControlEnum.NoStore, configuration.CacheControlType);
         Assert.Equal(3600, configuration.CacheMaxAge);
         Assert.True(configuration.Immutable);
