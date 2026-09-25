@@ -18,14 +18,18 @@
         <GenerateDocumentationFile>false</GenerateDocumentationFile>
     </PropertyGroup>
 
+    <!--
+        PrivateAssets, because the compiler supplies Roslyn to a generator. A reference that flows
+        into the package puts Roslyn in the build output of every application that uses it.
+    -->
     <ItemGroup>
-        <PackageReference Include="Microsoft.Extensions.Primitives"/>
-        <PackageReference Include="System.Memory"/>
+        <PackageReference Include="Microsoft.Extensions.Primitives" PrivateAssets="all"/>
+        <PackageReference Include="System.Memory" PrivateAssets="all"/>
         <PackageReference Include="Microsoft.CodeAnalysis.Analyzers">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Microsoft.CodeAnalysis.CSharp"/>
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all"/>
     </ItemGroup>
 
     <ItemGroup>

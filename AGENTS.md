@@ -339,7 +339,8 @@ changed, on purpose.** It generates a Kiota client from the tracked `openapi/App
 pipeline. Nothing generated is committed. When the template's `src/Hardened1.Client` project
 changes, change this one the same way.
 
-Dry-run a release before tagging: pack at the real version into a local folder feed and restore a
+Dry-run a release before tagging: build with the `Version` environment variable set to the real
+version, as `release.yaml` does, then pack at that version into a local folder feed and restore a
 generated project against it, with `NUGET_PACKAGES` redirected so the global cache is not poisoned.
 
 ## Things that will catch you out
