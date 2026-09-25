@@ -5,8 +5,7 @@
     <PropertyGroup>
         <!--
             Packed by the three generator packages into tasks/, beside whatever task they already
-            carry; this project ships nothing itself. Not packable, so release.yaml's pack-list
-            check does not ask for a row.
+            carry; this project ships nothing itself.
         -->
         <IsPackable>false</IsPackable>
         <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
