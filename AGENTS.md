@@ -23,6 +23,13 @@ are found by walking up from each project, so they sit beside the projects they 
 `coverage.runsettings`, `coverage-baseline.json`, `allocation-baseline.json` and `spectral.yaml`,
 each named on the command line by the workflow or gate script that reads it.
 
+**What a project gets without asking.** `src/Directory.Build.props` sets `ImplicitUsings`,
+`Nullable` and `IsPackable=false` for every project, and gives each project named `.Tests` the xUnit
+references; a test project on NUnit sets `HardenedTestRunner` to `NUnit`. A project names
+`$(HardenedTargetFramework)` rather than a framework. A generator imports
+`src/SourceGenerators/SourceGenerator.props` after `CSharpAuthor.props`, and an MSBuild task imports
+`src/SourceGenerators/BuildTask.props`. A project file states only what is its own.
+
 | Path | Contents |
 |---|---|
 | `src/Shared` | Module entry points, configuration, environment, metrics, the test framework |
