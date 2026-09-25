@@ -21,6 +21,7 @@ jobs:
     env:
       # Must equal $(HardenedSmithyCliVersion), the same pin build-package enforces.
       SMITHY_VERSION: 1.73.0
+      CORE_TOOLS_VERSION: 4.15.1
 
     steps:
       - uses: actions/checkout@v4
@@ -79,12 +80,40 @@ jobs:
       # The Azure rows run their generated application under the Functions host, which is Azure
       # Functions Core Tools rather than `dotnet run`. The script skips that probe with a printed
       # note when `func` is absent rather than failing, the way it skips the smithy rows; installing
-      # the tools here is what keeps the matrix whole. The npm package downloads the host for the
-      # runner's platform on install.
+      # the tools here is what keeps the matrix whole.
+      #
+      # The tools are cached and checksum-verified, the same steps as the Smithy CLI. The npm
+      # package fetches the same zip in a single request with no retry. Its install script reports
+      # a failed request as `chalk.red is not a function`.
+      - name: Cache Azure Functions Core Tools
+        id: core-tools
+        uses: actions/cache@v4
+        with:
+          path: ~/.azure-functions-core-tools
+          key: azure-functions-core-tools-${{ env.CORE_TOOLS_VERSION }}-linux-x64
+
       - name: Install Azure Functions Core Tools
+        if: steps.core-tools.outputs.cache-hit != 'true'
         run: |
           set -euo pipefail
-          npm install -g azure-functions-core-tools@4 --unsafe-perm true
+          cd "$RUNNER_TEMP"
+          ASSET=Azure.Functions.Cli.linux-x64.$CORE_TOOLS_VERSION.zip
+          BASE=https://github.com/Azure/azure-functions-core-tools/releases/download/$CORE_TOOLS_VERSION
+          curl -sSLf --retry 5 --retry-all-errors -o "$ASSET" "$BASE/$ASSET"
+          curl -sSLf --retry 5 --retry-all-errors -o "$ASSET.sha2" "$BASE/$ASSET.sha2"
+          echo "$(cat "$ASSET.sha2")  $ASSET" | sha256sum -c -
+          unzip -q "$ASSET" -d ~/.azure-functions-core-tools
+          rm "$ASSET"
+          chmod +x ~/.azure-functions-core-tools/func \
+            ~/.azure-functions-core-tools/in-proc6/func ~/.azure-functions-core-tools/in-proc8/func
+
+      - name: Put Azure Functions Core Tools on PATH
+        run: echo "$HOME/.azure-functions-core-tools" >> "$GITHUB_PATH"
+
+      - name: Check the Azure Functions Core Tools version
+        run: |
+          set -euo pipefail
+          test "$(func --version)" = "$CORE_TOOLS_VERSION"
           func --version
 
       # The generated local.settings.json points the host's own storage at the development
