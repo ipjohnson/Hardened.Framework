@@ -113,6 +113,19 @@ internal static class ValidationEmitter
         );
 
     /// <summary>
+    /// How long one match may run before it throws <c>RegexMatchTimeoutException</c>, which answers
+    /// 500 and logs the pattern.
+    /// </summary>
+    /// <remarks>
+    /// A contract's author writes its patterns, and one prone to catastrophic backtracking turns a
+    /// crafted value into unbounded CPU on the request thread. .NET's
+    /// <c>RegularExpressionAttribute</c> defaults to the same two seconds. The route constraints
+    /// <see cref="RouteConstraintEmitter"/> builds from a path parameter's pattern call these members
+    /// too, so the bound covers routing as well as validation.
+    /// </remarks>
+    internal const int MatchTimeoutMilliseconds = 2000;
+
+    /// <summary>
     /// The <c>[GeneratedRegex]</c> members, one per distinct pattern in the spec.
     /// </summary>
     /// <remarks>
@@ -137,7 +150,9 @@ internal static class ValidationEmitter
         foreach (var pair in patterns.Members)
         {
             builder.AppendLine(
-                $"    [global::System.Text.RegularExpressions.GeneratedRegex({Quote(pair.Key)})]"
+                $"    [global::System.Text.RegularExpressions.GeneratedRegex({Quote(pair.Key)}, "
+                    + "global::System.Text.RegularExpressions.RegexOptions.None, "
+                    + $"{MatchTimeoutMilliseconds})]"
             );
             builder.AppendLine(
                 $"    public static partial global::System.Text.RegularExpressions.Regex {pair.Value}();"

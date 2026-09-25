@@ -976,6 +976,11 @@ namespace Hardened.Requests.Runtime.Validation
         public ValidateAttribute() { }
         public System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.RequestFilter.RequestFilterInfo> GetFilters(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo) { }
     }
+    [System.AttributeUsage(System.AttributeTargets.Method | System.AttributeTargets.Parameter)]
+    public sealed class ValidateNeverAttribute : System.Attribute
+    {
+        public ValidateNeverAttribute() { }
+    }
     public class ValidationException : Hardened.Requests.Runtime.Errors.BadRequestException
     {
         public ValidationException(ValidationModules.ValidationResult validationResult) { }
