@@ -11,7 +11,6 @@
 
     <ItemGroup>
         <ProjectReference Include="..\Hardened.IntegrationTests.S3.SUT\Hardened.IntegrationTests.S3.SUT.csproj"/>
-        <ProjectReference Include="..\..\..\..\..\Functions\Hardened.Functions.Testing\Hardened.Functions.Testing.csproj"/>
         <ProjectReference Include="..\..\..\Hardened.Aws.Lambda.Testing\Hardened.Aws.Lambda.Testing.csproj"/>
         <ProjectReference Include="..\..\..\..\..\..\..\DependencyModules\src\DependencyModules.xUnit4\DependencyModules.xUnit4.csproj"
                           Condition="Exists('..\..\..\..\..\..\..\DependencyModules\src\DependencyModules.xUnit4\DependencyModules.xUnit4.csproj')"/>

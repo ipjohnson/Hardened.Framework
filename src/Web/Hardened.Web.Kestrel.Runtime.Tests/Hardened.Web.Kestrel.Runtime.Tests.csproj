@@ -9,18 +9,12 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection"/>
-        <PackageReference Include="Microsoft.Extensions.Primitives"/>
         <PackageReference Include="NSubstitute"/>
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj"/>
-        <ProjectReference Include="..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj"/>
         <ProjectReference Include="..\..\Requests\Hardened.Requests.Testing\Hardened.Requests.Testing.csproj"/>
-        <ProjectReference Include="..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>
         <ProjectReference Include="..\Hardened.Web.Kestrel.Runtime\Hardened.Web.Kestrel.Runtime.csproj"/>
-        <ProjectReference Include="..\Hardened.Web.Runtime\Hardened.Web.Runtime.csproj"/>
     </ItemGroup>
 
 </Project>

@@ -49,13 +49,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj"/>
-        <ProjectReference Include="..\..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj"/>
-        <ProjectReference Include="..\..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>
-        <ProjectReference Include="..\..\..\Functions\Hardened.Functions.Runtime\Hardened.Functions.Runtime.csproj"/>
-        <ProjectReference Include="..\..\..\Web\Hardened.Web.Runtime\Hardened.Web.Runtime.csproj"/>
-        <ProjectReference Include="..\..\..\Web\Hardened.Web.Kestrel.Runtime\Hardened.Web.Kestrel.Runtime.csproj"/>
-        <ProjectReference Include="..\..\..\Clouds\Gcp\Hardened.Gcp.CloudRun.Runtime\Hardened.Gcp.CloudRun.Runtime.csproj"/>
         <ProjectReference Include="..\..\..\Clouds\Gcp\Hardened.Gcp.CloudRun.PubSub\Hardened.Gcp.CloudRun.PubSub.csproj"/>
         <ProjectReference Include="..\..\..\Clouds\Gcp\Hardened.Gcp.CloudRun.Firestore\Hardened.Gcp.CloudRun.Firestore.csproj"/>
     </ItemGroup>

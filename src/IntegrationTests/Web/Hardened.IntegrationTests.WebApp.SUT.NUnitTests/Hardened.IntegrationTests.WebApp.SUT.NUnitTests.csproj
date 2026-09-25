@@ -27,7 +27,6 @@
                         Condition="Exists('..\..\..\..\..\DependencyModules\src\DependencyModules.NSubstitute\DependencyModules.NSubstitute.csproj')"/>
       <PackageReference Include="DependencyModules.NSubstitute"
                         Condition="!Exists('..\..\..\..\..\DependencyModules\src\DependencyModules.NSubstitute\DependencyModules.NSubstitute.csproj')"/>
-      <ProjectReference Include="..\..\..\Web\Hardened.Web.Testing\Hardened.Web.Testing.csproj" />
       <ProjectReference Include="..\Hardened.IntegrationTests.WebApp.SUT\Hardened.IntegrationTests.WebApp.SUT.csproj" />
       <ProjectReference Include="..\Hardened.IntegrationTests.WebApp.SUT.Client\Hardened.IntegrationTests.WebApp.SUT.Client.csproj" />
       <ProjectReference Include="..\..\..\Clients\Hardened.Kiota.Testing\Hardened.Kiota.Testing.csproj" />

@@ -5,10 +5,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.CodeAnalysis.CSharp"/>
-    </ItemGroup>
-
-    <ItemGroup>
         <!--
             Referenced as a normal assembly rather than an analyzer so a GeneratorDriver can drive
             it directly.

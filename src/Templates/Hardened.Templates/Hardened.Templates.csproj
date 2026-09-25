@@ -6,6 +6,10 @@
         <TargetFramework>netstandard2.0</TargetFramework>
         <IsPackable>True</IsPackable>
 
+        <!-- netstandard2.0 compiles at C# 7.3, which has neither setting. -->
+        <Nullable>disable</Nullable>
+        <ImplicitUsings>disable</ImplicitUsings>
+
         <!-- A template package carries content, not an assembly. -->
         <IncludeBuildOutput>false</IncludeBuildOutput>
         <IncludeContentInPack>true</IncludeContentInPack>

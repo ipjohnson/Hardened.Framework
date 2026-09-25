@@ -10,9 +10,7 @@
       function context and request data a test can build outside the worker.
     -->
     <ItemGroup>
-        <ProjectReference Include="..\Hardened.Azure.Functions\Hardened.Azure.Functions.csproj"/>
         <ProjectReference Include="..\Hardened.Azure.Functions.Testing\Hardened.Azure.Functions.Testing.csproj"/>
-        <ProjectReference Include="..\..\..\Requests\Hardened.Requests.Testing\Hardened.Requests.Testing.csproj"/>
     </ItemGroup>
 
 </Project>

@@ -6,10 +6,7 @@
 
     <ItemGroup>
         <!-- To compile what the emitter writes, which is the only way to know it compiles. -->
-        <!-- Ahead of the 4.10.0 every generator in the repository compiles against. Left where it was
-             rather than moved either way: what the generators emit depends on the Roslyn they are
-             built with, and this is a test project rather than one of them. -->
-        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" VersionOverride="4.11.0"/>
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp"/>
         <!-- To stand a task up with a recording build engine, which is the only way to see what it
              logs. ExcludeAssets="runtime" is what the task project does; here the assemblies are
              wanted at run time too. -->

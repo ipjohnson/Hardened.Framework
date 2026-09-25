@@ -5,8 +5,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.CodeAnalysis.CSharp"/>
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection"/>
         <PackageReference Include="Microsoft.OpenApi"/>
         <PackageReference Include="Microsoft.OpenApi.YamlReader"/>
     </ItemGroup>
@@ -70,9 +68,6 @@
             project to a Roslyn-free/Roslyn-coupled split it does not need and cannot police.
         -->
         <ProjectReference Include="..\Hardened.SourceGeneration.Testing\Hardened.SourceGeneration.Testing.csproj" />
-        <ProjectReference Include="..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj" />
-        <ProjectReference Include="..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj" />
-        <ProjectReference Include="..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj" />
         <ProjectReference Include="..\..\Web\Hardened.Web.Runtime\Hardened.Web.Runtime.csproj" />
     </ItemGroup>
 

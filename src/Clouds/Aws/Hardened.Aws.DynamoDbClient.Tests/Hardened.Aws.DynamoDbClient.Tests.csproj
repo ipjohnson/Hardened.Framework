@@ -10,7 +10,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\Hardened.Aws.DynamoDbClient\Hardened.Aws.DynamoDbClient.csproj" />
         <ProjectReference Include="..\Hardened.Aws.DynamoDbClient.Testing\Hardened.Aws.DynamoDbClient.Testing.csproj" />
     </ItemGroup>
 

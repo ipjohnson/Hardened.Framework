@@ -15,7 +15,6 @@
                           Condition="Exists('..\..\..\..\..\..\..\DependencyModules\src\DependencyModules.xUnit4\DependencyModules.xUnit4.csproj')"/>
         <PackageReference Include="DependencyModules.xUnit4"
                           Condition="!Exists('..\..\..\..\..\..\..\DependencyModules\src\DependencyModules.xUnit4\DependencyModules.xUnit4.csproj')"/>
-        <ProjectReference Include="..\..\..\..\..\Functions\Hardened.Functions.Testing\Hardened.Functions.Testing.csproj"/>
         <ProjectReference Include="..\..\..\Hardened.Aws.Lambda.Testing\Hardened.Aws.Lambda.Testing.csproj"/>
     </ItemGroup>
 

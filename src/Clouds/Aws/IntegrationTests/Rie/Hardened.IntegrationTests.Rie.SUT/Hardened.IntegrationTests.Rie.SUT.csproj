@@ -19,8 +19,6 @@
 
     <ItemGroup>
         <ProjectReference Include="..\..\Sqs\Hardened.IntegrationTests.Sqs.SUT\Hardened.IntegrationTests.Sqs.SUT.csproj"/>
-        <ProjectReference Include="..\..\..\Hardened.Aws.Lambda.Runtime\Hardened.Aws.Lambda.Runtime.csproj"/>
-        <ProjectReference Include="..\..\..\..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>
     </ItemGroup>
 
     <ItemGroup>

@@ -376,7 +376,7 @@ restoring the package, which is what makes a break in it fail the same build.
 
 **Every package version is in `src/Directory.Packages.props`.** A `Version` on a `PackageReference` is
 `NU1008`. A project that genuinely needs a different version says so with `VersionOverride` and a
-comment giving the reason; four do. Adding a package means adding a `PackageVersion` there first.
+comment giving the reason; three do. Adding a package means adding a `PackageVersion` there first.
 
 **Placement between `Abstract` and `Runtime`.** The contract stays in `Hardened.Requests.Abstract`;
 behaviour moves. A type a function handler needs cannot move to `Hardened.Web.Runtime` — the Lambda

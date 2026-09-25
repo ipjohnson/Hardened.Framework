@@ -20,7 +20,6 @@
 
     <ItemGroup>
         <ProjectReference Include="..\Hardened.IntegrationTests.AzureBlob.SUT\Hardened.IntegrationTests.AzureBlob.SUT.csproj"/>
-        <ProjectReference Include="..\..\..\..\..\Functions\Hardened.Functions.Testing\Hardened.Functions.Testing.csproj"/>
         <ProjectReference Include="..\..\..\Hardened.Azure.Functions.Testing\Hardened.Azure.Functions.Testing.csproj"/>
         <ProjectReference Include="..\..\..\..\..\..\..\DependencyModules\src\DependencyModules.xUnit4\DependencyModules.xUnit4.csproj"
                           Condition="Exists('..\..\..\..\..\..\..\DependencyModules\src\DependencyModules.xUnit4\DependencyModules.xUnit4.csproj')"/>

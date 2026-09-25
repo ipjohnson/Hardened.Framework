@@ -11,9 +11,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\Hardened.IntegrationTests.CloudRunQueue.SUT\Hardened.IntegrationTests.CloudRunQueue.SUT.csproj"/>
-        <ProjectReference Include="..\..\..\..\..\Functions\Hardened.Functions.Testing\Hardened.Functions.Testing.csproj"/>
         <ProjectReference Include="..\..\..\Hardened.Gcp.CloudRun.Testing\Hardened.Gcp.CloudRun.Testing.csproj"/>
-        <ProjectReference Include="..\..\..\..\..\Web\Hardened.Web.Testing\Hardened.Web.Testing.csproj"/>
         <ProjectReference Include="..\..\..\..\..\Web\Hardened.Web.Kestrel.Testing\Hardened.Web.Kestrel.Testing.csproj"/>
         <ProjectReference Include="..\..\..\..\..\..\..\DependencyModules\src\DependencyModules.xUnit4\DependencyModules.xUnit4.csproj"
                           Condition="Exists('..\..\..\..\..\..\..\DependencyModules\src\DependencyModules.xUnit4\DependencyModules.xUnit4.csproj')"/>

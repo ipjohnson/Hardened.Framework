@@ -45,11 +45,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj"/>
-        <ProjectReference Include="..\..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj"/>
-        <ProjectReference Include="..\..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>
-        <ProjectReference Include="..\..\..\Functions\Hardened.Functions.Runtime\Hardened.Functions.Runtime.csproj"/>
-        <ProjectReference Include="..\..\..\Clouds\Aws\Hardened.Aws.Lambda.Runtime\Hardened.Aws.Lambda.Runtime.csproj"/>
         <ProjectReference Include="..\..\..\Clouds\Aws\Hardened.Aws.Lambda.Sqs\Hardened.Aws.Lambda.Sqs.csproj"/>
     </ItemGroup>
 

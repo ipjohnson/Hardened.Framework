@@ -5,10 +5,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.CodeAnalysis.CSharp"/>
-    </ItemGroup>
-
-    <ItemGroup>
         <ProjectReference Include="..\Hardened.SourceGeneration.Testing\Hardened.SourceGeneration.Testing.csproj"/>
     </ItemGroup>
 
