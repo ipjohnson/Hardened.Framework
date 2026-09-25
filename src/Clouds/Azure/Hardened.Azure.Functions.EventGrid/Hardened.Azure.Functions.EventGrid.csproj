@@ -1,12 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>$(HardenedTargetFramework)</TargetFramework>
         <Description>Serves [Event] handlers on Azure Functions from Event Grid, delivered in the CloudEvents schema and routed by source and type.</Description>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
         <IsPackable>true</IsPackable>
-        <PackageId>Hardened.Azure.Functions.EventGrid</PackageId>
         <PackageTags>Hardened;Hardened.Framework;azure;functions;serverless;eventgrid;cloudevents</PackageTags>
         <IsAotCompatible>true</IsAotCompatible>
     </PropertyGroup>

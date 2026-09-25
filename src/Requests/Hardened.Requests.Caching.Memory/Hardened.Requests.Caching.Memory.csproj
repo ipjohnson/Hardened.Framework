@@ -1,14 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>$(HardenedTargetFramework)</TargetFramework>
         <IsAotCompatible>true</IsAotCompatible>
         <Description>In-process response caching for Hardened. Stores what a handler answered and serves it again without running the handler. Opt in by referencing this package and writing [HardenedMemoryResponseCache].</Description>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
         <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
         <IsPackable>true</IsPackable>
-        <PackageId>Hardened.Requests.Caching.Memory</PackageId>
     </PropertyGroup>
 
     <!--

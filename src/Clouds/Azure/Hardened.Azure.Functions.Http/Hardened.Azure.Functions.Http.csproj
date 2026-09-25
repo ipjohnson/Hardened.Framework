@@ -1,12 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>$(HardenedTargetFramework)</TargetFramework>
         <Description>Serves a Hardened web application on Azure Functions from one anonymous HTTP trigger catching every method under every path, with Hardened's routing table doing the routing.</Description>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
         <IsPackable>true</IsPackable>
-        <PackageId>Hardened.Azure.Functions.Http</PackageId>
         <PackageTags>Hardened;Hardened.Framework;azure;functions;serverless;http;web</PackageTags>
         <IsAotCompatible>true</IsAotCompatible>
     </PropertyGroup>

@@ -49,6 +49,39 @@
     </ItemGroup>
 
     <!--
+      Settings every project here would otherwise repeat. A project that differs says so in its own
+      file, which is read after this one and wins.
+
+      HardenedTargetFramework rather than a default TargetFramework. The SDK treats a project as
+      multi-targeting only when TargetFramework is empty, so a default here would quietly build the
+      net472;net8.0 build tasks for one framework. Each project names the property instead, and a
+      new target framework is an edit to this line.
+
+      IsPackable is false unless a project says otherwise, and each package states true. A new
+      project is not published by accident, and release.yaml can pack the solution.
+    -->
+    <PropertyGroup>
+        <HardenedTargetFramework>net8.0</HardenedTargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+
+    <!--
+      The test runner, for every project named .Tests. An item condition is evaluated after every
+      property, the project's own included, so a test project on NUnit sets HardenedTestRunner to
+      NUnit and brings its own references.
+    -->
+    <ItemGroup Condition="$(MSBuildProjectName.EndsWith('.Tests')) And '$(HardenedTestRunner)' != 'NUnit'">
+        <PackageReference Include="Microsoft.NET.Test.Sdk"/>
+        <PackageReference Include="xunit.runner.visualstudio">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="xunit.v3.mtp-off"/>
+    </ItemGroup>
+
+    <!--
       A symbol package beside every package, so a consumer's debugger can step into Hardened code.
       The PDB carries Source Link, which the SDK adds for a GitHub repository, so the debugger
       fetches each source file at the commit the package was built from. The nuget.org push in

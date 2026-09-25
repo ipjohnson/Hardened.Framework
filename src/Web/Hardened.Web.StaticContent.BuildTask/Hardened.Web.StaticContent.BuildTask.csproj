@@ -7,9 +7,6 @@
     <PropertyGroup>
         <TargetFrameworks>net472;net8.0</TargetFrameworks>
         <LangVersion>latest</LangVersion>
-        <Nullable>enable</Nullable>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <IsPackable>false</IsPackable>
         <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
         <AppendTargetFrameworkToOutputPath>true</AppendTargetFrameworkToOutputPath>
         <!-- A task assembly is loaded into MSBuild, which supplies its own copies of these. -->

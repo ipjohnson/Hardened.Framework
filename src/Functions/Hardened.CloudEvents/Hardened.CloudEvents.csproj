@@ -1,13 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>$(HardenedTargetFramework)</TargetFramework>
         <IsAotCompatible>true</IsAotCompatible>
         <Description>CloudEvents 1.0 for Hardened function adapters: the structured JSON form and the binary HTTP form read into one CloudEvent, with a source-generated serializer context and the route helpers an adapter maps source, type and subject through. No dependency on the CloudNative SDK.</Description>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
         <IsPackable>true</IsPackable>
-        <PackageId>Hardened.CloudEvents</PackageId>
         <PackageTags>Hardened;Hardened.Framework;serverless;functions;cloudevents</PackageTags>
     </PropertyGroup>
 

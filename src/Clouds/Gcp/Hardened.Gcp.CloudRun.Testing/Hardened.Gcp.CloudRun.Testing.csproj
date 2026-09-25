@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>$(HardenedTargetFramework)</TargetFramework>
         <!--
           Deliberately not IsAotCompatible. A test harness serializes whatever type a test hands it
           and builds clients over types it learns at run time, so the reflection is the feature
@@ -10,10 +10,7 @@
           consumer will ever trim. See Hardened.Shared.Testing.csproj for the whole of it.
         -->
         <Description>Raises the fidelity of a Hardened function test on Google Cloud Run: delivers through the envelope each source actually sends - a Pub/Sub push, an Eventarc CloudEvent, a Cloud Scheduler request, a direct invocation - in through the front door and the same dispatch a deployed service runs, on the pipeline host or over a Kestrel socket.</Description>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
         <IsPackable>true</IsPackable>
-        <PackageId>Hardened.Gcp.CloudRun.Testing</PackageId>
         <PackageTags>Hardened;Hardened.Framework;gcp;cloudrun;serverless;testing</PackageTags>
     </PropertyGroup>
 

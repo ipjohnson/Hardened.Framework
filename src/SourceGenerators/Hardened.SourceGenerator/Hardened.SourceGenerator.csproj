@@ -6,8 +6,6 @@
         <TargetFramework>netstandard2.0</TargetFramework>
         <Description>Shared source library compiled into the Hardened source generators. Not referenced directly by application projects.</Description>
         <LangVersion>10</LangVersion>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
         <IsPackable>True</IsPackable>
         <IncludeBuildOutput>false</IncludeBuildOutput>
 
@@ -19,8 +17,6 @@
         <DevelopmentDependency>true</DevelopmentDependency>
     </PropertyGroup>
 
-    
-    
     <!--
         A diagnostic descriptor is built per call rather than held in a static field, because RS2008
         looks for the field and these projects set EnforceExtendedAnalyzerRules - so a test that

@@ -1,7 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <PackageId>Hardened.Templates</PackageId>
         <PackageType>Template</PackageType>
         <Description>dotnet new templates for Hardened: hardened-web, hardened-function and hardened-library.</Description>
         <TargetFramework>netstandard2.0</TargetFramework>

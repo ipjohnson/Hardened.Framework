@@ -1,10 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>$(HardenedTargetFramework)</TargetFramework>
         <Description>Every AWS Lambda adapter in one reference: API Gateway, SQS, SNS, EventBridge, DynamoDB Streams, Kinesis, S3 and direct invoke. Reference the individual packages instead to keep out of the deployment bundle what the function is not triggered by.</Description>
         <IsPackable>true</IsPackable>
-        <PackageId>Hardened.Aws.Lambda</PackageId>
         <PackageTags>Hardened;Hardened.Framework;aws;lambda;serverless</PackageTags>
 
         <!--

@@ -6,12 +6,9 @@
         <TargetFramework>netstandard2.0</TargetFramework>
         <Description>Roslyn generator that turns a normalised service model into Hardened handlers and a routing table. Shared by every description language front end; reference a front end package rather than this one directly.</Description>
         <LangVersion>10</LangVersion>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
         <IsRoslynComponent>true</IsRoslynComponent>
         <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
         <IsPackable>True</IsPackable>
-        <PackageId>Hardened.Idl.SourceGenerator</PackageId>
         <IncludeBuildOutput>false</IncludeBuildOutput>
 
         <!--

@@ -12,7 +12,6 @@
         <TargetFramework>netstandard2.0</TargetFramework>
         <Description>Source generator for Hardened module wiring: processes [HardenedModule] and emits PopulateServiceCollection.</Description>
         <LangVersion>10</LangVersion>
-        <ImplicitUsings>enable</ImplicitUsings>
         <IsRoslynComponent>true</IsRoslynComponent>
         <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
         <!--
@@ -23,7 +22,6 @@
           project's diagnostics, so the rule is suppressed rather than satisfied.
         -->
         <NoWarn>$(NoWarn);RS2008</NoWarn>
-        <Nullable>enable</Nullable>
         <!--
           Not packable, deliberately.
 

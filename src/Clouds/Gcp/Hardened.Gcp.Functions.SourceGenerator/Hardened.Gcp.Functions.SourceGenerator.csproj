@@ -6,10 +6,7 @@
         <TargetFramework>netstandard2.0</TargetFramework>
         <Description>Source generator for Hardened applications deployed as Google Cloud Functions 2nd gen: writes the FUNCTION_TARGET entry type into the application's own assembly, with the startup attribute that populates the application into the Functions Framework's container.</Description>
         <LangVersion>10</LangVersion>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
         <IsPackable>True</IsPackable>
-        <PackageId>Hardened.Gcp.Functions.SourceGenerator</PackageId>
         <PackageTags>Hardened;Hardened.Framework;gcp;cloudfunctions;serverless;source-generator</PackageTags>
         <IsRoslynComponent>true</IsRoslynComponent>
         <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>

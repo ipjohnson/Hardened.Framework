@@ -12,10 +12,7 @@
     -->
     <PropertyGroup>
         <OutputType>Exe</OutputType>
-        <IsPackable>false</IsPackable>
-        <TargetFramework>net8.0</TargetFramework>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
+        <TargetFramework>$(HardenedTargetFramework)</TargetFramework>
 
         <!-- BenchmarkDotNet refuses to run a non-optimized build, and warns on a debugger being
              attached. Both are what you want; this just makes Release explicit. -->

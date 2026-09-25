@@ -1,14 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>$(HardenedTargetFramework)</TargetFramework>
         <IsAotCompatible>true</IsAotCompatible>
         <Description>Static file serving for Hardened. Serves a content directory as a route, so authorization, conventions, HEAD and 405 apply to a file the same way they apply to a handler. Opt in by referencing this package and writing [HardenedStaticContent].</Description>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
         <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
         <IsPackable>true</IsPackable>
-        <PackageId>Hardened.Web.StaticContent</PackageId>
     </PropertyGroup>
 
     <!--

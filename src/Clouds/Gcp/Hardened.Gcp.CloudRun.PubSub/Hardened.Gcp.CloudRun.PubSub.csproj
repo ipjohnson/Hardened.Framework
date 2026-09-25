@@ -1,12 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>$(HardenedTargetFramework)</TargetFramework>
         <Description>Serves [Queue] and [Topic] handlers on Google Cloud Run from Pub/Sub: a push subscription's envelope, wrapped or unwrapped, routes on the subscription's name, and an Eventarc trigger on a topic routes on the topic's; the message is the handler's body and its attributes are headers either way.</Description>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
         <IsPackable>true</IsPackable>
-        <PackageId>Hardened.Gcp.CloudRun.PubSub</PackageId>
         <PackageTags>Hardened;Hardened.Framework;gcp;cloudrun;serverless;pubsub;queue</PackageTags>
         <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
 

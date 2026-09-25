@@ -1,10 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>$(HardenedTargetFramework)</TargetFramework>
         <Description>Every Azure Functions adapter in one reference: HTTP, Service Bus, Timer, Event Hubs, Cosmos DB, Blob Storage and Event Grid. Reference the individual packages instead to keep out of the deployment what the function is not triggered by.</Description>
         <IsPackable>true</IsPackable>
-        <PackageId>Hardened.Azure.Functions</PackageId>
         <PackageTags>Hardened;Hardened.Framework;azure;functions;serverless</PackageTags>
 
         <!--

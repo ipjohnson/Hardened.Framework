@@ -11,10 +11,7 @@
       It therefore has no dependencies, and must keep it that way.
     -->
     <PropertyGroup>
-        <IsPackable>false</IsPackable>
-        <TargetFramework>net8.0</TargetFramework>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
+        <TargetFramework>$(HardenedTargetFramework)</TargetFramework>
     </PropertyGroup>
 
 </Project>

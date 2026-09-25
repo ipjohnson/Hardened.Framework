@@ -13,11 +13,8 @@
         the packages target and what the Lambda runtime runs.
     -->
     <PropertyGroup>
-        <IsPackable>false</IsPackable>
         <TargetFramework>net11.0</TargetFramework>
         <LangVersion>preview</LangVersion>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
         <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
 
         <!-- A preview SDK says so once per project; it is not news here. -->

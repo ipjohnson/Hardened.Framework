@@ -13,10 +13,7 @@
     -->
     <PropertyGroup>
         <OutputType>Exe</OutputType>
-        <IsPackable>false</IsPackable>
-        <TargetFramework>net8.0</TargetFramework>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
+        <TargetFramework>$(HardenedTargetFramework)</TargetFramework>
         <DependencyModules_AutoGenerateModule>false</DependencyModules_AutoGenerateModule>
 
         <!--

@@ -8,11 +8,7 @@
     <PropertyGroup>
         <OutputType>Exe</OutputType>
         <UseAppHost>false</UseAppHost>
-        <IsPackable>false</IsPackable>
-        <TargetFramework>net8.0</TargetFramework>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
-        <RootNamespace>Hardened.IntegrationTests.CloudRunEvent.SUT</RootNamespace>
+        <TargetFramework>$(HardenedTargetFramework)</TargetFramework>
         <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     </PropertyGroup>
 

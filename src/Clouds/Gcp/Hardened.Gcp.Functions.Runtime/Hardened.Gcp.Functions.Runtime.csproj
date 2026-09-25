@@ -1,12 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>$(HardenedTargetFramework)</TargetFramework>
         <Description>Runs a Hardened application as a Google Cloud Functions 2nd gen function: a FunctionsStartup that populates the application into the Functions Framework's own container, and the host that runs a request through the Hardened chain from the features the framework's HttpContext carries. The triggers, the front door and the routing are Hardened.Gcp.CloudRun.Runtime's, unchanged - only the entry point differs.</Description>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
         <IsPackable>true</IsPackable>
-        <PackageId>Hardened.Gcp.Functions.Runtime</PackageId>
         <PackageTags>Hardened;Hardened.Framework;gcp;cloudfunctions;serverless</PackageTags>
     </PropertyGroup>
 

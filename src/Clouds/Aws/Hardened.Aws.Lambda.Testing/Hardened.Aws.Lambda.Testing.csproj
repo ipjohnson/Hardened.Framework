@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>$(HardenedTargetFramework)</TargetFramework>
         <!--
           Deliberately not IsAotCompatible. A test harness serializes whatever type a test hands it
           and builds clients over types it learns at run time, so the reflection is the feature
@@ -10,10 +10,7 @@
           consumer will ever trim. See Hardened.Shared.Testing.csproj for the whole of it.
         -->
         <Description>Raises the fidelity of a Hardened function test on AWS: delivers through the envelope the source actually sends - SQS, SNS, EventBridge, DynamoDB Streams, Kinesis or S3 - and the real invocation loop, so the adapter and the payload peek are exercised too.</Description>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
         <IsPackable>true</IsPackable>
-        <PackageId>Hardened.Aws.Lambda.Testing</PackageId>
         <PackageTags>Hardened;Hardened.Framework;aws;lambda;serverless;testing</PackageTags>
     </PropertyGroup>
 

@@ -1,13 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <!-- A test fixture, not a shipped package. Without this it packs and
-             publishes to the feed on every main build. -->
-        <IsPackable>false</IsPackable>
-        <TargetFramework>net8.0</TargetFramework>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
-        <RootNamespace>Hardened.IntegrationTests.OpenApi.SUT</RootNamespace>
+        <TargetFramework>$(HardenedTargetFramework)</TargetFramework>
         <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     </PropertyGroup>
 

@@ -8,8 +8,6 @@
         -->
         <TargetFrameworks>net472;net8.0</TargetFrameworks>
         <LangVersion>10</LangVersion>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
 
         <!--
             Packed by the three generator packages into tasks/, beside whatever task they already

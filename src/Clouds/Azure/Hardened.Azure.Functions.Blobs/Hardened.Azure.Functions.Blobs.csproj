@@ -1,12 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>$(HardenedTargetFramework)</TargetFramework>
         <Description>Serves [Blob] handlers on Azure Functions from a blob trigger fed by Event Grid, delivering what Storage says about the blob rather than the blob.</Description>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
         <IsPackable>true</IsPackable>
-        <PackageId>Hardened.Azure.Functions.Blobs</PackageId>
         <PackageTags>Hardened;Hardened.Framework;azure;functions;serverless;blob;storage</PackageTags>
         <IsAotCompatible>true</IsAotCompatible>
     </PropertyGroup>

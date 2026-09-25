@@ -1,12 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>$(HardenedTargetFramework)</TargetFramework>
         <Description>Serves [Topic] handlers on AWS Lambda from Amazon SNS, delivered as a batch of notifications against one topic.</Description>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
         <IsPackable>true</IsPackable>
-        <PackageId>Hardened.Aws.Lambda.Sns</PackageId>
         <PackageTags>Hardened;Hardened.Framework;aws;lambda;serverless;sns;topic</PackageTags>
 
         <!--

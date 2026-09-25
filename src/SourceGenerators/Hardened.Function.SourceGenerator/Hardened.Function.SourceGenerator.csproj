@@ -6,10 +6,7 @@
         <TargetFramework>netstandard2.0</TargetFramework>
         <Description>Source generator for Hardened function handlers marked with [HardenedFunction].</Description>
         <LangVersion>10</LangVersion>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
         <IsPackable>True</IsPackable>
-        <PackageId>Hardened.Function.SourceGenerator</PackageId>
         <IsRoslynComponent>true</IsRoslynComponent>
         <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
     </PropertyGroup>

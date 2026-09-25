@@ -1,13 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>$(HardenedTargetFramework)</TargetFramework>
         <IsAotCompatible>true</IsAotCompatible>
         <Description>HTTP routing for Hardened: [Get], [Post], [Put], [Delete], [Patch] and [BasePath], plus static content serving and CORS.</Description>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
         <IsPackable>True</IsPackable>
-        <PackageId>Hardened.Web.Runtime</PackageId>
     </PropertyGroup>
 
     <ItemGroup>

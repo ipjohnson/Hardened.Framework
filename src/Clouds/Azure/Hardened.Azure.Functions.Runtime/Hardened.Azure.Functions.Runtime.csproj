@@ -1,12 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>$(HardenedTargetFramework)</TargetFramework>
         <Description>The Azure Functions isolated worker host for Hardened applications: the invocation handler, the trigger adapter seam, and the worker registration of the generated function shims. Reference an adapter package alongside it for the triggers a function serves, and Hardened.Azure.Functions.SourceGenerator to write the shims.</Description>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
         <IsPackable>true</IsPackable>
-        <PackageId>Hardened.Azure.Functions.Runtime</PackageId>
         <PackageTags>Hardened;Hardened.Framework;azure;functions;serverless</PackageTags>
 
         <!--

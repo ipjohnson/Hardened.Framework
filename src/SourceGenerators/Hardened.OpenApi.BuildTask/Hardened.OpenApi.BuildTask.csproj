@@ -12,9 +12,6 @@
         -->
         <TargetFrameworks>net472;net8.0</TargetFrameworks>
         <LangVersion>10</LangVersion>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
-        <IsPackable>false</IsPackable>
 
         <!-- Packed by Hardened.OpenApi.SourceGenerator into tasks/; this project ships nothing itself. -->
         <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>

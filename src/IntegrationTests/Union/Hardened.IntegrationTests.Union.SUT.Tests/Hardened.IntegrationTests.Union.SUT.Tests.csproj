@@ -4,20 +4,10 @@
          net8.0 and resolve here the ordinary way. -->
     <PropertyGroup>
         <TargetFramework>net11.0</TargetFramework>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
-        <IsPackable>false</IsPackable>
         <NoWarn>$(NoWarn);NETSDK1057</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.NET.Test.Sdk"/>
-        <PackageReference Include="xunit.runner.visualstudio">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
-        <PackageReference Include="xunit.v3.mtp-off"/>
-
         <!-- This suite runs on the .NET 11 runtime for C# 15 unions, so it takes the matching
              Microsoft.Extensions release rather than the 8.0.x every net8.0 project takes. -->
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" VersionOverride="10.0.0"/>

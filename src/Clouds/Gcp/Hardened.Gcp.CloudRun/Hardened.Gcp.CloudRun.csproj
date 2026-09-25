@@ -1,10 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>$(HardenedTargetFramework)</TargetFramework>
         <Description>Every Google Cloud Run adapter in one reference: Pub/Sub, Cloud Scheduler, direct invocation, Cloud Storage, Firestore and Eventarc. Reference the individual packages instead to keep out of the image what the service is not triggered by.</Description>
         <IsPackable>true</IsPackable>
-        <PackageId>Hardened.Gcp.CloudRun</PackageId>
         <PackageTags>Hardened;Hardened.Framework;gcp;cloudrun;serverless</PackageTags>
 
         <!--
