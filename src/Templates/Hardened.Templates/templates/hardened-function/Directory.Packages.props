@@ -94,11 +94,12 @@
 
   <ItemGroup Label="Testing">
 <!--#if (xunit) -->
-    <!-- xUnit v3. DependencyModules.xUnit builds on xunit.v3.extensibility.core, so a test
-         project on xunit 2.x fails with CS0433 on Assert. -->
-    <PackageVersion Include="DependencyModules.xUnit" Version="$(DependencyModulesVersion)" />
-    <PackageVersion Include="xunit.v3" Version="3.2.2" />
-    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
+    <!-- xUnit v3, version 4. DependencyModules.xUnit4 builds on xunit.v3.extensibility.core 4.x,
+         so a test project on xunit 2.x fails with CS0433 on Assert. DependencyModules.xUnit is the
+         runner for xunit.v3 3.x. -->
+    <PackageVersion Include="DependencyModules.xUnit4" Version="$(DependencyModulesVersion)" />
+    <PackageVersion Include="xunit.v3" Version="4.0.1" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.0" />
 <!--#endif -->
 <!--#if (nunit) -->
     <!-- NUnit 4. DependencyModules.NUnit takes NUnit as [4.2.2, 5.0.0): the runner reads

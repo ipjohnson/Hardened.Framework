@@ -13,7 +13,7 @@
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="xunit.v3"/>
+        <PackageReference Include="xunit.v3.mtp-off"/>
         <!-- To compile what the emitter writes, which is the only way to know it compiles. -->
         <!-- Ahead of the 4.10.0 every generator in the repository compiles against. Left where it was
              rather than moved either way: what the generators emit depends on the Roslyn they are

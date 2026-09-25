@@ -394,8 +394,8 @@ public class TodoTests
   a class or the assembly.
 
 A Refit client works the same way with `Hardened.Refit.Testing` and `[assembly: RefitTesting]`.
-`[ModuleTest]` is in `DependencyModules.xUnit` for xUnit v3 and in `DependencyModules.NUnit` for
-NUnit.
+`[ModuleTest]` is in `DependencyModules.xUnit4` for xunit.v3 4.x, in `DependencyModules.xUnit`
+for xunit.v3 3.x, and in `DependencyModules.NUnit` for NUnit.
 
 Function tests use `[assembly: FunctionTesting]`, which delivers straight into the pipeline. The
 testing package of each cloud delivers through that provider's real event envelope instead:

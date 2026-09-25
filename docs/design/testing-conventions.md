@@ -182,11 +182,18 @@ and only to raise your own assembly's floor.
 
 ## 12. xunit version, and the runner packages
 
-New test projects use **xunit.v3**, and reference `DependencyModules.xUnit` for
+New test projects use **xunit.v3.mtp-off** 4.x, and reference `DependencyModules.xUnit4` for
 `[ModuleTest]`.
 
-Not a style preference. `DependencyModules.xUnit` brings xunit.v3; referencing it alongside xunit
-2.9 makes every `Fact` and `Assert` ambiguous (CS0433).
+Not a style preference. `DependencyModules.xUnit4` brings xunit.v3; referencing it alongside xunit
+2.9 makes every `Fact` and `Assert` ambiguous (CS0433). mtp-off, because xunit.v3 4.x brings
+Microsoft.Testing.Platform v2, which refuses the VSTest `dotnet test` on the .NET 10 SDK and later,
+and this repository builds with the .NET 11 SDK. mtp-off keeps VSTest, so the runsettings, the Code
+Coverage collector and the coverage gate stay as they are.
+
+`Hardened.Requests.Testing` and `Hardened.SourceGeneration.Testing` ship, and compile against
+xunit.v3.assert and xunit.v3.extensibility.core 3.2.2. The tests here run them on 4.x. That floor
+lets a consumer stay on xunit.v3 3.x with `DependencyModules.xUnit`.
 
 `Hardened.Shared.Testing` itself names no runner, and neither do `Hardened.Web.Testing`,
 `Hardened.Kiota.Testing` and `Hardened.Refit.Testing`: they read the running test through

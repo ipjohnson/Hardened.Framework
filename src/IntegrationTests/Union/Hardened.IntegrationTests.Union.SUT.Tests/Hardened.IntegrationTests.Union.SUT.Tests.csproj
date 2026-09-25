@@ -16,7 +16,7 @@
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="xunit.v3"/>
+        <PackageReference Include="xunit.v3.mtp-off"/>
 
         <!-- This suite runs on the .NET 11 runtime for C# 15 unions, so it takes the matching
              Microsoft.Extensions release rather than the 8.0.x every net8.0 project takes. -->
@@ -26,11 +26,11 @@
     <ItemGroup>
         <ProjectReference Include="..\..\..\Web\Hardened.Web.Testing\Hardened.Web.Testing.csproj" />
         <ProjectReference Include="..\Hardened.IntegrationTests.Union.SUT\Hardened.IntegrationTests.Union.SUT.csproj" />
-          <!-- [ModuleTest] and the running-test seam, for xUnit v3. -->
-      <ProjectReference Include="..\..\..\..\..\DependencyModules\src\DependencyModules.xUnit\DependencyModules.xUnit.csproj"
-                        Condition="Exists('..\..\..\..\..\DependencyModules\src\DependencyModules.xUnit\DependencyModules.xUnit.csproj')"/>
-      <PackageReference Include="DependencyModules.xUnit"
-                        Condition="!Exists('..\..\..\..\..\DependencyModules\src\DependencyModules.xUnit\DependencyModules.xUnit.csproj')"/>
+          <!-- [ModuleTest] and the running-test seam, for xunit.v3 4.x. -->
+      <ProjectReference Include="..\..\..\..\..\DependencyModules\src\DependencyModules.xUnit4\DependencyModules.xUnit4.csproj"
+                        Condition="Exists('..\..\..\..\..\DependencyModules\src\DependencyModules.xUnit4\DependencyModules.xUnit4.csproj')"/>
+      <PackageReference Include="DependencyModules.xUnit4"
+                        Condition="!Exists('..\..\..\..\..\DependencyModules\src\DependencyModules.xUnit4\DependencyModules.xUnit4.csproj')"/>
     </ItemGroup>
 
 </Project>

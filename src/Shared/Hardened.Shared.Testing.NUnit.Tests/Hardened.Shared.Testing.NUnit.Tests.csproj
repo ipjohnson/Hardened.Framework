@@ -9,7 +9,7 @@
 
     <!--
         An NUnit test project: what Hardened.Shared.Testing promises is that a [ModuleTest] from
-        DependencyModules.NUnit reads the same as one from DependencyModules.xUnit, and only NUnit
+        DependencyModules.NUnit reads the same as one from DependencyModules.xUnit4, and only NUnit
         can hold it to that. xUnit's analyzers are not here because xUnit is not.
     -->
     <ItemGroup>

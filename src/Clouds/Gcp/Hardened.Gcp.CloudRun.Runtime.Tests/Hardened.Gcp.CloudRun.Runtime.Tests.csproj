@@ -18,7 +18,7 @@
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="xunit.v3"/>
+        <PackageReference Include="xunit.v3.mtp-off"/>
         <PackageReference Include="DependencyModules.NSubstitute"/>
         <PackageReference Include="NSubstitute"/>
         <PackageReference Include="Microsoft.Extensions.DependencyInjection"/>
@@ -46,10 +46,10 @@
         <ProjectReference Include="..\..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj"/>
         <ProjectReference Include="..\..\..\Requests\Hardened.Requests.Testing\Hardened.Requests.Testing.csproj"/>
         <ProjectReference Include="..\..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>
-        <ProjectReference Include="..\..\..\..\..\DependencyModules\src\DependencyModules.xUnit\DependencyModules.xUnit.csproj"
-                          Condition="Exists('..\..\..\..\..\DependencyModules\src\DependencyModules.xUnit\DependencyModules.xUnit.csproj')"/>
-        <PackageReference Include="DependencyModules.xUnit"
-                          Condition="!Exists('..\..\..\..\..\DependencyModules\src\DependencyModules.xUnit\DependencyModules.xUnit.csproj')"/>
+        <ProjectReference Include="..\..\..\..\..\DependencyModules\src\DependencyModules.xUnit4\DependencyModules.xUnit4.csproj"
+                          Condition="Exists('..\..\..\..\..\DependencyModules\src\DependencyModules.xUnit4\DependencyModules.xUnit4.csproj')"/>
+        <PackageReference Include="DependencyModules.xUnit4"
+                          Condition="!Exists('..\..\..\..\..\DependencyModules\src\DependencyModules.xUnit4\DependencyModules.xUnit4.csproj')"/>
         <ProjectReference Include="..\..\..\Web\Hardened.Web.Runtime\Hardened.Web.Runtime.csproj"/>
         <ProjectReference Include="..\..\..\Web\Hardened.Web.Testing\Hardened.Web.Testing.csproj"/>
         <ProjectReference Include="..\..\..\Web\Hardened.Web.Kestrel.Runtime\Hardened.Web.Kestrel.Runtime.csproj"/>

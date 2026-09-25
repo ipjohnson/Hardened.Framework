@@ -13,17 +13,17 @@
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="xunit.v3"/>
+        <PackageReference Include="xunit.v3.mtp-off"/>
     </ItemGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\Hardened.IntegrationTests.CloudRunWeb.SUT\Hardened.IntegrationTests.CloudRunWeb.SUT.csproj"/>
         <ProjectReference Include="..\..\..\..\..\Web\Hardened.Web.Testing\Hardened.Web.Testing.csproj"/>
         <ProjectReference Include="..\..\..\..\..\Web\Hardened.Web.Kestrel.Testing\Hardened.Web.Kestrel.Testing.csproj"/>
-        <ProjectReference Include="..\..\..\..\..\..\..\DependencyModules\src\DependencyModules.xUnit\DependencyModules.xUnit.csproj"
-                          Condition="Exists('..\..\..\..\..\..\..\DependencyModules\src\DependencyModules.xUnit\DependencyModules.xUnit.csproj')"/>
-        <PackageReference Include="DependencyModules.xUnit"
-                          Condition="!Exists('..\..\..\..\..\..\..\DependencyModules\src\DependencyModules.xUnit\DependencyModules.xUnit.csproj')"/>
+        <ProjectReference Include="..\..\..\..\..\..\..\DependencyModules\src\DependencyModules.xUnit4\DependencyModules.xUnit4.csproj"
+                          Condition="Exists('..\..\..\..\..\..\..\DependencyModules\src\DependencyModules.xUnit4\DependencyModules.xUnit4.csproj')"/>
+        <PackageReference Include="DependencyModules.xUnit4"
+                          Condition="!Exists('..\..\..\..\..\..\..\DependencyModules\src\DependencyModules.xUnit4\DependencyModules.xUnit4.csproj')"/>
     </ItemGroup>
 
 </Project>

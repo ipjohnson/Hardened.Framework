@@ -36,15 +36,16 @@ adding one is the mistake, not the fix.
 lose the attribute entirely. Versions are pinned in one place, `Directory.Packages.props`.
 
 #if (xunit)
-**Tests are xUnit v3.** `DependencyModules.xUnit` builds on `xunit.v3.extensibility.core`; a
-test project on xunit 2.x fails with `CS0433` on `Assert`. v3 test projects are also self-executing,
-hence `<OutputType>Exe</OutputType>`. `DependencyModules.NUnit` is the other runner, and
-`--test-framework nunit` scaffolds for it.
+**Tests are xUnit v3, version 4.** `DependencyModules.xUnit4` builds on
+`xunit.v3.extensibility.core` 4.x; a test project on xunit 2.x fails with `CS0433` on `Assert`, and
+a project on xunit.v3 3.x takes `DependencyModules.xUnit` in its place. v3 test projects are also
+self-executing, hence `<OutputType>Exe</OutputType>`. `DependencyModules.NUnit` is the other runner,
+and `--test-framework nunit` scaffolds for it.
 #endif
 #if (nunit)
 **Tests are NUnit 4.** `DependencyModules.NUnit` takes NUnit as `[4.2.2, 5.0.0)`, and
 `[ModuleTest]` is an NUnit test builder, so the adapter discovers it with no `[Test]` beside it.
-`DependencyModules.xUnit` is the other runner, and `--test-framework xunit` scaffolds for it.
+`DependencyModules.xUnit4` is the other runner, and `--test-framework xunit` scaffolds for it.
 #endif
 
 #if (nsubstitute)

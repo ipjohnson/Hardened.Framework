@@ -234,13 +234,13 @@ check_test_options() {
     # needs and NUnit must not have, and the global usings - each present for the chosen framework
     # and absent for the other. Matched on package references and using lines, because the
     # comments in either project are free to name the other runner.
-    local xunit_refs='Include="\(xunit.v3\|xunit.runner.visualstudio\|DependencyModules.xUnit\)"'
+    local xunit_refs='Include="\(xunit.v3\|xunit.v3.mtp-off\|xunit.runner.visualstudio\|DependencyModules.xUnit\|DependencyModules.xUnit4\)"'
     local nunit_refs='Include="\(NUnit\|NUnit3TestAdapter\|DependencyModules.NUnit\)"'
     local runner_ok=1
     case "$tests" in
         xunit)
-            grep -q 'Include="DependencyModules.xUnit"' "$csproj" || runner_ok=0
-            grep -q 'Include="xunit.v3"' "$csproj" || runner_ok=0
+            grep -q 'Include="DependencyModules.xUnit4"' "$csproj" || runner_ok=0
+            grep -q 'Include="xunit.v3"\|Include="xunit.v3.mtp-off"' "$csproj" || runner_ok=0
             grep -q '<OutputType>Exe</OutputType>' "$csproj" || runner_ok=0
             grep -q "$nunit_refs" "$csproj" && runner_ok=0
             grep -q '^global using Xunit;' "$usings" || runner_ok=0
