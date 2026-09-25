@@ -437,6 +437,10 @@ using IFormFile = Hardened.Requests.Abstract.Forms.IFormFile;
 
 ## Limits
 
+A form handler has no anti-forgery check. A page on another site can post a form to it.
+[Authentication](/guide/authentication#cookies-and-cross-site-requests) covers what an application
+that authenticates by cookie needs.
+
 In a contract-first project, a request body that the contract declares as
 `application/x-www-form-urlencoded` is read as JSON. The build reports nothing. A form sent to the
 operation answers 400 `invalid`. A contract body declared as `multipart/form-data` is read the same

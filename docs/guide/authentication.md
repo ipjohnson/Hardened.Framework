@@ -526,6 +526,29 @@ Placed after `app.UseHardened()`, `app.UseAuthentication()` has not run when the
 user. The caller is then anonymous. The application configures ASP.NET Core authentication with
 `AddAuthentication`, as in any ASP.NET Core application.
 
+## Cookies and cross-site requests
+
+A browser sends a site's cookies with requests that pages on other sites make, as far as each
+cookie's `SameSite` attribute allows. A credential that travels in a cookie, such as an API key
+declared with `ApiKeyLocation.Cookie`, therefore reaches a handler in a request that another site's
+page started. That is cross-site request forgery. A page on another site can send a `POST` with a
+url-encoded, multipart or plain-text body without a CORS preflight. CORS then stops the page from
+reading the answer, not the request from reaching the handler.
+
+Hardened ships no anti-forgery check. An application that authenticates by cookie, and has handlers
+that change state, needs one of these:
+
+- `SameSite=Strict` or `SameSite=Lax` on the credential's cookie. `Lax` still sends the cookie
+  with a top-level `GET` from another site, so a `GET` handler must not change state.
+- A request header such as `X-Requested-With`, required on every handler that changes state. A
+  browser sends it from another site only after a preflight, and [CORS](/guide/cors) passes a
+  preflight only for the origins it allows.
+- An `Origin` header that names the application's own site, required on every handler that changes
+  state.
+
+A credential in the `Authorization` header, such as a bearer token or an API key sent as a header,
+is not sent by the browser on its own, and none of this applies to it.
+
 ## Limits
 
 Hardened ships no principal source for production credentials: no JWT, cookie or API-key reader. The
