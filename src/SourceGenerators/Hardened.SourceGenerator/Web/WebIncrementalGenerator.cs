@@ -84,7 +84,10 @@ public static class WebIncrementalGenerator
             handlerAuthorization.Combine(authorizationRequired),
             SourceGeneratorWrapper.Wrap<(HandlerAuthorizationModel Left, bool Right)>(
                 (context, pair) =>
-                    RequireAuthorizationDiagnostics.Report(context, pair.Left, pair.Right)
+                {
+                    RequireAuthorizationDiagnostics.Report(context, pair.Left, pair.Right);
+                    AllowAnonymousOverrideDiagnostics.Report(context, pair.Left);
+                }
             )
         );
 

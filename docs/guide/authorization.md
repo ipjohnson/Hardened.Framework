@@ -524,6 +524,13 @@ Content-Type: application/json
 
 On a class, `[AllowAnonymous]` covers every handler in the class.
 
+When `[AllowAnonymous]` cancels an authorization attribute written on the method itself, the build
+warns with `HAUTH002`. That is the first and the third row: both on the method, or
+`[AllowAnonymous]` on the class and the attribute on the method. The attribute then has no effect,
+so one of the two is not meant. The example above, with `[AllowAnonymous]` on the method and the
+requirement on the class, is not reported. `<NoWarn>$(NoWarn);HAUTH002</NoWarn>` in the project
+silences the warning. `#pragma warning disable HAUTH002` does not.
+
 Without `[RequireAuthorization]`, a handler that carries no authorization attribute, and that no
 convention guards, is already public.
 

@@ -204,6 +204,10 @@ The flag gives the
 [Cloud Run Invoker role](https://docs.cloud.google.com/run/docs/authenticating/public) to
 `allUsers`. Without the flag, Cloud Run's invoker check stays on. A caller then needs the role.
 
+Deploy a service this way only when it has no trigger handlers. Anyone can then call a trigger
+handler with a body shaped like its source's delivery.
+[Handlers in one service](/gcp/#handlers-in-one-service) covers why.
+
 A Cloud Functions 2nd gen function deploys with
 [`gcloud functions deploy`](https://docs.cloud.google.com/sdk/gcloud/reference/functions/deploy).
 The template's solution holds several projects. The deployment runs in the solution directory:

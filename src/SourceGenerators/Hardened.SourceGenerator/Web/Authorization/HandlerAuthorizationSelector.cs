@@ -8,7 +8,8 @@ namespace Hardened.SourceGenerator.Web.Authorization;
 
 /// <summary>
 /// The least a diagnostic needs to know about a handler: who it is, whether it said anything about
-/// authorization, and where it was written.
+/// authorization, whether <c>[AllowAnonymous]</c> overrides a requirement written on its method, and
+/// where it was written.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -26,7 +27,8 @@ public record HandlerAuthorizationModel(
     string ControllerName,
     string MethodName,
     bool SaysSomethingAboutAuthorization,
-    LocationInfo? DeclaredAt
+    LocationInfo? DeclaredAt,
+    bool AnonymousOverridesItsMethod = false
 )
 {
     public string Handler => ControllerName + "." + MethodName;
@@ -56,24 +58,28 @@ public static class HandlerAuthorizationSelector
         var method = (MethodDeclarationSyntax)context.Node;
         var controller = method.Ancestors().OfType<ClassDeclarationSyntax>().FirstOrDefault();
 
-        var declared =
-            Speaks(context, method.AttributeLists, cancellationToken)
-            || (
-                controller != null && Speaks(context, controller.AttributeLists, cancellationToken)
-            );
+        var onMethod = Speech(context, method.AttributeLists, cancellationToken);
+        var onClass =
+            controller != null
+                ? Speech(context, controller.AttributeLists, cancellationToken)
+                : default;
 
         return new HandlerAuthorizationModel(
             controller?.Identifier.Text ?? "",
             method.Identifier.Text,
-            declared,
+            onMethod.Anonymous || onMethod.Authorizes || onClass.Anonymous || onClass.Authorizes,
             // The identifier rather than the whole declaration, so the squiggle lands on the name
             // instead of underlining the entire method body.
-            LocationInfo.From(method.Identifier)
+            LocationInfo.From(method.Identifier),
+            // Only a requirement written on the method. [AllowAnonymous] on a method under a class's
+            // requirement is how one route in a guarded class is made public on purpose.
+            onMethod.Authorizes && (onMethod.Anonymous || onClass.Anonymous)
         );
     }
 
     /// <summary>
-    /// Whether any of these attributes is one the authorization pipeline honours.
+    /// Whether these attributes include <c>[AllowAnonymous]</c>, and whether they include one the
+    /// authorization pipeline honours as a requirement.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -96,12 +102,15 @@ public static class HandlerAuthorizationSelector
     /// the warning on a handler that is genuinely unguarded.
     /// </para>
     /// </remarks>
-    private static bool Speaks(
+    private static (bool Anonymous, bool Authorizes) Speech(
         GeneratorSyntaxContext context,
         SyntaxList<AttributeListSyntax> attributeLists,
         CancellationToken cancellationToken
     )
     {
+        var anonymous = false;
+        var authorizes = false;
+
         foreach (var attributeList in attributeLists)
         {
             foreach (var attribute in attributeList.Attributes)
@@ -117,7 +126,9 @@ public static class HandlerAuthorizationSelector
 
                 if (type.ToDisplayString() == AllowAnonymous)
                 {
-                    return true;
+                    anonymous = true;
+
+                    continue;
                 }
 
                 // AllInterfaces rather than Interfaces, so an attribute that derives from one
@@ -127,12 +138,12 @@ public static class HandlerAuthorizationSelector
                 {
                     if (contract.ToDisplayString() == AuthorizeInterface)
                     {
-                        return true;
+                        authorizes = true;
                     }
                 }
             }
         }
 
-        return false;
+        return (anonymous, authorizes);
     }
 }
