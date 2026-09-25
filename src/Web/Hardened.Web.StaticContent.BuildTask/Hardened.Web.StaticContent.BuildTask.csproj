@@ -1,22 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-    <!--
-      Two frameworks because MSBuild runs on two runtimes: .NET for `dotnet build`, .NET Framework
-      for Visual Studio on Windows. A task that ships only net8.0 silently does nothing in the IDE.
-    -->
+    <Import Project="../../SourceGenerators/BuildTask.props"/>
+
     <PropertyGroup>
-        <TargetFrameworks>net472;net8.0</TargetFrameworks>
         <LangVersion>latest</LangVersion>
         <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
         <AppendTargetFrameworkToOutputPath>true</AppendTargetFrameworkToOutputPath>
         <!-- A task assembly is loaded into MSBuild, which supplies its own copies of these. -->
         <NoWarn>$(NoWarn);NU1701</NoWarn>
     </PropertyGroup>
-
-    <ItemGroup>
-        <PackageReference Include="Microsoft.Build.Framework" ExcludeAssets="runtime" PrivateAssets="all"/>
-        <PackageReference Include="Microsoft.Build.Utilities.Core" ExcludeAssets="runtime" PrivateAssets="all"/>
-    </ItemGroup>
 
     <!-- init-only properties on records need this on the older framework, and only there. -->
     <ItemGroup Condition="'$(TargetFramework)' != 'net472'">

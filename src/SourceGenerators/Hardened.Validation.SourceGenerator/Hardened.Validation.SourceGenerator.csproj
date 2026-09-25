@@ -1,15 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <Import Project="../CSharpAuthor.props"/>
+    <Import Project="../SourceGenerator.props"/>
 
     <PropertyGroup>
-        <TargetFramework>netstandard2.0</TargetFramework>
         <Description>Source generator that turns constraint attributes - ValidationModules' own and System.ComponentModel.DataAnnotations - into straight-line validators, and registers them into the Hardened entry point.</Description>
-        <LangVersion>10</LangVersion>
         <IsRoslynComponent>true</IsRoslynComponent>
-        <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
         <IsPackable>True</IsPackable>
-        <IncludeBuildOutput>false</IncludeBuildOutput>
         <DevelopmentDependency>true</DevelopmentDependency>
 
         <!--
@@ -24,25 +21,12 @@
         <InternalsVisibleTo Include="Hardened.Validation.SourceGenerator.Tests"/>
     </ItemGroup>
 
-    <!--
-        PrivateAssets, because the compiler supplies Roslyn to a generator. A reference that flows
-        into the package puts Roslyn in the build output of every application that uses it.
-    -->
-    <ItemGroup>
-        <PackageReference Include="Microsoft.CodeAnalysis.Analyzers">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
-        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all"/>
-    </ItemGroup>
-
     <ItemGroup>
         <Content Include="Package\Hardened.Validation.SourceGenerator.*">
             <Pack>true</Pack>
             <PackagePath>build/</PackagePath>
             <PackageCopyToOutput>true</PackageCopyToOutput>
         </Content>
-        <None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false"/>
     </ItemGroup>
 
     <Import Project="../ValidationModulesImpl.props"/>

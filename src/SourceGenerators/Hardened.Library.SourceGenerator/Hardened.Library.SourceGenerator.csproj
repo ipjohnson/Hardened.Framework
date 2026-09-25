@@ -1,13 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <Import Project="../CSharpAuthor.props"/>
+    <Import Project="../SourceGenerator.props"/>
 
     <PropertyGroup>
-        <TargetFramework>netstandard2.0</TargetFramework>
         <Description>Source generator for Hardened library and module projects: dependency injection registrations and configuration implementations.</Description>
-        <LangVersion>10</LangVersion>
         <IsRoslynComponent>true</IsRoslynComponent>
-        <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
         <IsPackable>True</IsPackable>
     </PropertyGroup>
 
@@ -18,11 +16,6 @@
     <ItemGroup>
         <PackageReference Include="Microsoft.Extensions.Primitives" PrivateAssets="all"/>
         <PackageReference Include="System.Memory" PrivateAssets="all"/>
-        <PackageReference Include="Microsoft.CodeAnalysis.Analyzers">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
-        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all"/>
     </ItemGroup>
 
     <ItemGroup>
@@ -30,7 +23,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false"/>
         <None Include="../Hardened.DependencyModules.SourceGenerator/bin/$(Configuration)/$(TargetFramework)/Hardened.DependencyModules.SourceGenerator.dll"
               Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false"/>
     </ItemGroup>
@@ -42,8 +34,6 @@
     </ItemGroup>
 
     <PropertyGroup>
-        <IncludeBuildOutput>false</IncludeBuildOutput>
-
         <!--
           Build-only. This does not stop the package flowing to consumers on its own - only
           PrivateAssets on the reference does that - but it is what makes `dotnet add package`

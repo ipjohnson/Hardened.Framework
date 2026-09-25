@@ -1,0 +1,33 @@
+<Project>
+
+    <!--
+        What every analyzer project here shares. Imported at the top of each generator's project
+        file, after CSharpAuthor.props, so a setting the project states after it wins.
+
+        IncludeBuildOutput is false and the assembly is packed into analyzers/dotnet/cs instead, so
+        an application runs the generator and never binds against it.
+
+        The Roslyn references are PrivateAssets, because the compiler supplies Roslyn to a generator.
+        A reference that flows into the package puts Roslyn in the build output of every application
+        that uses it. A reference a generator adds for itself follows the same rule.
+    -->
+    <PropertyGroup>
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <LangVersion>10</LangVersion>
+        <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+        <IncludeBuildOutput>false</IncludeBuildOutput>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.CodeAnalysis.Analyzers">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false"/>
+    </ItemGroup>
+
+</Project>
