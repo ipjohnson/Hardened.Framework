@@ -22,7 +22,7 @@ public class BareResponseTests
 {
     private record TodoBody(int Id, string Title);
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AReturnedResponseAnswersItsOwnStatus(ITestWebApp app)
     {
         var response = await app.Post(new NewTodo("bare"), "/responses/bare");
@@ -30,7 +30,7 @@ public class BareResponseTests
         Assert.Equal(201, response.StatusCode);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AReturnedResponseAppliesItsOwnHeaders(ITestWebApp app)
     {
         var response = await app.Post(new NewTodo("bare"), "/responses/bare");
@@ -42,7 +42,7 @@ public class BareResponseTests
     /// The payload, not the wrapper that named the status. The wrapper has a public
     /// <c>Value</c>, so if it were serialized <c>Id</c> would read 0.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AReturnedResponseSendsItsBodyRatherThanTheContainer(ITestWebApp app)
     {
         var response = await app.Post(new NewTodo("bare"), "/responses/bare");
@@ -57,7 +57,7 @@ public class BareResponseTests
     /// <summary>
     /// The whole point: returned and thrown are the same value, so they are the same response.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ReturningAndThrowingTheSameValueAnswerIdentically(ITestWebApp app)
     {
         var returned = await app.Post(new NewTodo("bare"), "/responses/bare");
@@ -75,7 +75,7 @@ public class BareResponseTests
     /// A bodyless type writes nothing, which is what distinguishes a 204 from a 200 carrying the
     /// four characters "null".
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AReturnedBodylessResponseWritesNoBody(ITestWebApp app)
     {
         var response = await app.Delete("/responses/bare/1");
@@ -93,7 +93,7 @@ public class BareResponseTests
     /// spellings are one behaviour. A set has always resolved this contradiction in favour of the
     /// case; the bare return now does the same rather than differently.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ADeclaredStatusWinsOverOneTheHandlerWrote(ITestWebApp app)
     {
         var bare = await app.Post(new NewTodo("bare"), "/responses/bare-overridden");

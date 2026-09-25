@@ -16,11 +16,11 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests;
 /// <see cref="IHardenedEnvironment"/> - but every test of that fix drives the setup pipeline by
 /// hand, and the ordering between environment registration and module application inside the
 /// xunit extension model was exactly the part a hand-driven test cannot see. These two run through
-/// <c>[HardenedTest]</c> itself, against the SUT's own generated module, which is what the arm did.
+/// <c>[ModuleTest]</c> itself, against the SUT's own generated module, which is what the arm did.
 /// </remarks>
 public class EnvironmentGatedRegistrationTests
 {
-    [HardenedTest]
+    [ModuleTest]
     [EnvironmentName("environment-gated")]
     public void ARegistrationGatedOnTheTestsEnvironmentResolves(IApplicationRoot application)
     {
@@ -34,7 +34,7 @@ public class EnvironmentGatedRegistrationTests
     /// The gate has to hold in the other direction, or the test above passes because the
     /// registration is unconditional and the condition was never compiled in.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public void TheSameRegistrationIsAbsentUnderTheDefaultEnvironment(IApplicationRoot application)
     {
         Assert.Null(application.Provider.GetService<IEnvironmentGatedService>());

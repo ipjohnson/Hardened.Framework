@@ -29,7 +29,7 @@ public class TemplateModuleNameSocketTests
 {
 #if (kiotaClient)
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ListTodos_OverTheSocket(TemplateModuleNameClient client)
     {
         var todos = await client.Todos.GetAsync().Returns<Ok<List<ClientModels.Todo>>>();
@@ -45,7 +45,7 @@ public class TemplateModuleNameSocketTests
 #endif
 #if (refitClient)
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ListTodos_OverTheSocket(ITemplateModuleNameClient client)
     {
         var todos = await client.ListTodos().Returns<Ok<ICollection<ClientModels.Todo>>>();
@@ -61,7 +61,7 @@ public class TemplateModuleNameSocketTests
 #endif
 #if (!hasClient)
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ListTodos_OverTheSocket(ITestWebApp app)
     {
         var response = await app.Get("/todos");

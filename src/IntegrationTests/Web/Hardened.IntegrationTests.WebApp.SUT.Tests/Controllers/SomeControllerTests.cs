@@ -4,7 +4,7 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 
 public class SomeControllerTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task ConcatStringMethodJoinsPathTokens(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/web-library/string-methods/concat/hello/world");

@@ -16,7 +16,7 @@
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="xunit.v3"/>
+        <PackageReference Include="xunit.v3.mtp-off"/>
     </ItemGroup>
 
     <ItemGroup>
@@ -24,8 +24,11 @@
         <ProjectReference Include="..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj"/>
         <ProjectReference Include="..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>
         <ProjectReference Include="..\..\Shared\Hardened.Shared.Testing\Hardened.Shared.Testing.csproj"/>
-        <!-- The runner seam, installed by RunnerSeam.cs: these tests drive the host directly and declare no [HardenedTest]. -->
-        <ProjectReference Include="..\..\Shared\Hardened.Shared.Testing.xUnit\Hardened.Shared.Testing.xUnit.csproj"/>
+        <!-- The running-test seam, installed by RunnerSeam.cs: these tests drive the host directly and declare no [ModuleTest]. -->
+        <ProjectReference Include="..\..\..\..\DependencyModules\src\DependencyModules.xUnit4\DependencyModules.xUnit4.csproj"
+                          Condition="Exists('..\..\..\..\DependencyModules\src\DependencyModules.xUnit4\DependencyModules.xUnit4.csproj')"/>
+        <PackageReference Include="DependencyModules.xUnit4"
+                          Condition="!Exists('..\..\..\..\DependencyModules\src\DependencyModules.xUnit4\DependencyModules.xUnit4.csproj')"/>
         <ProjectReference Include="..\Hardened.Web.AspNetCore.Runtime\Hardened.Web.AspNetCore.Runtime.csproj"/>
         <ProjectReference Include="..\Hardened.Web.AspNetCore.Testing\Hardened.Web.AspNetCore.Testing.csproj"/>
         <ProjectReference Include="..\Hardened.Web.Runtime\Hardened.Web.Runtime.csproj"/>

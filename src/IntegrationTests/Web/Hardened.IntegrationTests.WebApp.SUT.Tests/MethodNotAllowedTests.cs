@@ -13,7 +13,7 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests;
 /// </remarks>
 public class MethodNotAllowedTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task AVerbWithNoRouteOnAKnownPathIs405(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Request("PUT", null, "/binding/path/42");
@@ -25,7 +25,7 @@ public class MethodNotAllowedTests
     /// With <c>Allow</c>. RFC 9110 requires it, and it is the only thing that makes the response
     /// actionable rather than merely correct.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task The405CarriesTheVerbsThePathDoesAnswer(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Request("PUT", null, "/verbs/item/abc123");
@@ -41,7 +41,7 @@ public class MethodNotAllowedTests
     /// <summary>
     /// HEAD is in it, because the fall-through means a client may call it.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheAllowHeaderIncludesHead(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Request("PUT", null, "/binding/path/42");
@@ -53,7 +53,7 @@ public class MethodNotAllowedTests
     /// A path nobody declared is still 404. The distinction between "no such URL" and "not with
     /// that verb" is the whole point of the change.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnUndeclaredPathIsStill404(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Request("PUT", null, "/nothing/here/at/all");
@@ -66,7 +66,7 @@ public class MethodNotAllowedTests
     /// the leaf switch answers both cases and the 405 arm runs after every other verb has been
     /// tested.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AVerbThatDoesHaveARouteStillReachesIt(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Delete("/verbs/item/abc123");
@@ -79,7 +79,7 @@ public class MethodNotAllowedTests
     /// Nothing is written. A 405 is a status and a header; serializing a null response value would
     /// answer with whatever the client's Accept happened to match.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task The405WritesNoBody(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Request("PUT", null, "/binding/path/42");

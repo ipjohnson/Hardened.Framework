@@ -39,7 +39,7 @@ public class TodoStoreMockTests
     private record TodoResponse(int Id, string Title, bool Done);
 #endif
 
-    [HardenedTest]
+    [ModuleTest]
 #if (moq)
 #if (kiotaClient)
     public async Task GetTodo_ReadsTheMockedStore(TemplateModuleNameClient client, Mock<ITodoStore> store)

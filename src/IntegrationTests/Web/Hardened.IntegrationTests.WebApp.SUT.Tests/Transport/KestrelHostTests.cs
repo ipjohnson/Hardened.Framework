@@ -28,7 +28,7 @@ public class KestrelHostTests
 {
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ARequestAnswersWithWhatKestrelWrote(ITestWebApp app)
     {
         var response = await app.Get("/verbs/item/42");
@@ -48,7 +48,7 @@ public class KestrelHostTests
     /// The harness asks for gzip, and over a socket the body arrives as Kestrel sent it: encoded,
     /// with the coding named, and <c>Deserialize</c> undoes it the way it does in-process.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ACompressedBodyArrivesEncodedAndReadsDecoded(ITestWebApp app)
     {
         var response = await app.Get("/compression/readings");
@@ -58,7 +58,7 @@ public class KestrelHostTests
         Assert.Equal(20, response.Deserialize<JsonElement>().GetArrayLength());
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AMockBehindARouteIsTheOneTheHandlerSees(
         ITestWebApp app,
         [Mock] IMathService<int> math
@@ -72,7 +72,7 @@ public class KestrelHostTests
         Assert.Equal(100, response.Deserialize<int>());
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AGeneratedClientSendsToTheSocketAndReturnsReadsIt(WebAppClient client)
     {
         var created = await client
@@ -86,7 +86,7 @@ public class KestrelHostTests
         Assert.Equal("/verbs/item/3", created.Location);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ARefitInterfaceSendsToTheSocketAndReturnsReadsIt(IWebAppApi api)
     {
         var created = await api.CreateLocated(new MathAddModel { Values = [1, 2, 3] })
@@ -95,7 +95,7 @@ public class KestrelHostTests
         Assert.Equal("/verbs/item/3", created.Location);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task LastResponseIsWhatCameBackOverTheWire(WebAppClient client)
     {
         await client.Verbs.Emptied.DeleteAsync(cancellationToken: Token);
@@ -104,7 +104,7 @@ public class KestrelHostTests
         Assert.True(LastResponse.Headers.ContainsKey("Date"));
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ThreeParametersCarryThreeCredentialsOverTheWire(
         [Grants("pets:read")] WebAppClient reader,
         [Anonymous] WebAppClient nobody,
@@ -124,7 +124,7 @@ public class KestrelHostTests
         Assert.Equal(403, forbidden.ResponseStatusCode);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnUnmatchedPathIs404(ITestWebApp app)
     {
         var response = await app.Get("/no/such/route");
@@ -136,7 +136,7 @@ public class KestrelHostTests
     /// The half a socket takes away: the handler's exception does not cross the wire, so the
     /// envelope is all there is.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task OverTheSocketAHandlersExceptionDoesNotCross(ITestWebApp app)
     {
         var response = await app.Get("/errors/server");
@@ -149,7 +149,7 @@ public class KestrelHostTests
     /// A method opts back to the pipeline inside a socket class, and gets the half only the
     /// pipeline has.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     [PipelineHost]
     public async Task InProcessTheExceptionIsReported(ITestWebApp app)
     {

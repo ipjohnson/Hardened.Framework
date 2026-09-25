@@ -26,7 +26,7 @@ public class AspNetCoreHostTests
 {
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ARequestAnswersThroughTheAspNetPipeline(ITestWebApp app)
     {
         var response = await app.Get("/verbs/item/42");
@@ -37,7 +37,7 @@ public class AspNetCoreHostTests
         Assert.Null(response.Failure);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AMockBehindARouteIsTheOneTheHandlerSees(
         ITestWebApp app,
         [Mock] IMathService<int> math
@@ -51,7 +51,7 @@ public class AspNetCoreHostTests
         Assert.Equal(100, response.Deserialize<int>());
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AGeneratedClientSendsToTheSocketAndReturnsReadsIt(WebAppClient client)
     {
         var created = await client
@@ -64,7 +64,7 @@ public class AspNetCoreHostTests
         Assert.Equal("/verbs/item/3", created.Location);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task LastResponseIsWhatCameBackOverTheWire(WebAppClient client)
     {
         await client.Verbs.Emptied.DeleteAsync(cancellationToken: Token);
@@ -72,7 +72,7 @@ public class AspNetCoreHostTests
         Assert.Equal(204, LastResponse.Status);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ThreeParametersCarryThreeCredentialsOverTheWire(
         [Grants("pets:read")] WebAppClient reader,
         [Anonymous] WebAppClient nobody,
@@ -97,7 +97,7 @@ public class AspNetCoreHostTests
     /// the status unset so the request falls through, and nothing is behind Hardened in the
     /// default composition, so ASP.NET's own 404 answers: no envelope, no body.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnUnmatchedPathIsAspNetsOwn404(ITestWebApp app)
     {
         var response = await app.Get("/no/such/route");
@@ -106,7 +106,7 @@ public class AspNetCoreHostTests
         Assert.Equal(string.Empty, await response.ReadTextAsync());
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task OverTheSocketAHandlersExceptionDoesNotCross(ITestWebApp app)
     {
         var response = await app.Get("/errors/server");
@@ -115,7 +115,7 @@ public class AspNetCoreHostTests
         Assert.Null(response.Failure);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     [PipelineHost]
     public async Task InProcessTheExceptionIsReported(ITestWebApp app)
     {

@@ -1,7 +1,7 @@
 using DependencyModules.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Hardened.Functions.Testing;
 using Hardened.IntegrationTests.CloudRunInvoke.SUT;
-using Hardened.Shared.Testing.Attributes;
 using Hardened.Web.Kestrel.Runtime;
 using NSubstitute;
 using Xunit;
@@ -14,7 +14,7 @@ namespace Hardened.IntegrationTests.CloudRunInvoke.SUT.Tests;
 /// </summary>
 public class DirectInvokeTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task ACallersPayloadReachesTheHandler(
         CloudRunInvokeApp.Invocations invocations,
         [Mock] IOrderLog log
@@ -27,7 +27,7 @@ public class DirectInvokeTests
     }
 
     /// <summary>The answer is the response body, and the façade hands it back typed.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheHandlersReturnValueIsTheResponse(
         CloudRunInvokeApp.Invocations invocations,
         [Mock] IOrderLog log
@@ -40,7 +40,7 @@ public class DirectInvokeTests
     }
 
     /// <summary>Nothing inspects a caller's payload on Cloud Run: fields named like an event's are the caller's.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task APayloadShapedLikeAnEventIsStillTheCallers(
         CloudRunInvokeApp.Invocations invocations,
         [Mock] IOrderLog log
@@ -62,7 +62,7 @@ public class DirectInvokeTests
     }
 
     /// <summary>A handler that throws is a failure the caller reads as the status, not a receipt.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AFailedInvocationIsAnError(
         CloudRunInvokeApp.Invocations invocations,
         [Mock] IOrderLog log
@@ -81,7 +81,7 @@ public class DirectInvokeTests
 [KestrelRuntime]
 public class DirectInvokeOverASocketTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheHandlersReturnValueIsTheResponse(
         CloudRunInvokeApp.Invocations invocations,
         [Mock] IOrderLog log
@@ -95,7 +95,7 @@ public class DirectInvokeOverASocketTests
         log.Received().Placed(Arg.Is<OrderRequest>(request => request.Id == "s-1"));
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AFailedInvocationIsAnError(
         CloudRunInvokeApp.Invocations invocations,
         [Mock] IOrderLog log
@@ -114,7 +114,7 @@ public class DirectInvokeOverASocketTests
 [PipelineDelivery]
 public class PipelineInvokeTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheHandlersReturnValueIsTheResponseThroughThePipeline(
         CloudRunInvokeApp.Invocations invocations,
         [Mock] IOrderLog log

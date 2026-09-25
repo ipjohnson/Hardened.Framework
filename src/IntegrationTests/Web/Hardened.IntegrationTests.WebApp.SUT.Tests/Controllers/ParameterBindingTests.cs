@@ -15,7 +15,7 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 /// </summary>
 public class ParameterBindingTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task PathTokenBinds(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/binding/path/abc123");
@@ -24,7 +24,7 @@ public class ParameterBindingTests
         Assert.Equal("abc123", response.Deserialize<string>());
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task MultiplePathTokensBindInOrder(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/binding/pair/first/second");
@@ -34,7 +34,7 @@ public class ParameterBindingTests
     }
 
     /// <summary>Path tokens arrive as strings and are converted to the declared type.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task PathTokenConvertsToDeclaredType(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/binding/path-typed/21");
@@ -43,7 +43,7 @@ public class ParameterBindingTests
         Assert.Equal(42, response.Deserialize<int>());
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task QueryStringBindsByParameterName(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/binding/query?name=hardened");
@@ -55,7 +55,7 @@ public class ParameterBindingTests
     /// <summary>
     /// The named form. This is what emitted a double-quoted literal before the generator fix.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task QueryStringBindsByAttributeName(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/binding/query-named?q=searchterm");
@@ -64,7 +64,7 @@ public class ParameterBindingTests
         Assert.Equal("searchterm", response.Deserialize<string>());
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task QueryStringConvertsToDeclaredType(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/binding/query-typed?page=7");
@@ -82,7 +82,7 @@ public class ParameterBindingTests
     /// parsing it answered 400 - while the identical request over a socket answered 200. Both hosts
     /// read <c>QueryStringParser</c> now, which is what keeps them from drifting again.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task QueryStringArrivesPercentDecoded(ITestWebApp testWebApp)
     {
         var encoded = Uri.EscapeDataString("2026-09-10T09:00:00+00:00");
@@ -96,7 +96,7 @@ public class ParameterBindingTests
     /// <summary>
     /// Base64 pads with <c>'='</c>, which the harness's own parser dropped the whole pair over.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task QueryStringKeepsAValueContainingAnEqualsSign(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/binding/query?name=YWJjZA==");
@@ -117,7 +117,7 @@ public class ParameterBindingTests
     /// included, against the token <c>base</c>. It never matched, so the parameter went to the body
     /// and the build failed with HRDR005.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task APathTokenNamedAfterAKeywordBinds(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/binding/keyword/one/two");
@@ -130,7 +130,7 @@ public class ParameterBindingTests
     /// And the wire name is the token, not the escape - a caller sends <c>event</c>, and a
     /// validation error names <c>event</c>.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AQueryParameterNamedAfterAKeywordBindsByItsUnescapedName(
         ITestWebApp testWebApp
     )
@@ -141,7 +141,7 @@ public class ParameterBindingTests
         Assert.Equal("started", response.Deserialize<string>());
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AQueryParameterNamedAfterAKeywordIsStillOptional(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/binding/keyword-query");
@@ -159,7 +159,7 @@ public class ParameterBindingTests
     /// to overwrite on a repeat, so this arrived as <c>GBP</c> alone and then failed to convert to
     /// a list at all.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ARepeatedQueryKeyBindsAsAList(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get(
@@ -171,7 +171,7 @@ public class ParameterBindingTests
     }
 
     /// <summary>The same parameter written with <c>explode: false</c>.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ACommaJoinedQueryValueBindsAsAList(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/binding/query-list?symbols=EUR,GBP,JPY");
@@ -180,7 +180,7 @@ public class ParameterBindingTests
         Assert.Equal("EUR|GBP|JPY", response.Deserialize<string>());
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task OneValueBindsAsAListOfOne(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/binding/query-list?symbols=EUR");
@@ -193,7 +193,7 @@ public class ParameterBindingTests
     /// Absent is null, not an empty list. A handler that has to tell "sent nothing" from "sent an
     /// empty list" can, which is the distinction ParseOptional draws for every other type.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnAbsentListParameterIsNull(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/binding/query-list");
@@ -202,7 +202,7 @@ public class ParameterBindingTests
         Assert.Equal("none", response.Deserialize<string>());
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task EachItemConvertsToTheDeclaredItemType(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/binding/query-list-typed?ids=1&ids=2,3");
@@ -212,7 +212,7 @@ public class ParameterBindingTests
     }
 
     /// <summary>An item that will not convert fails the request, as a scalar one does.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnItemThatWillNotConvertIsRejected(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/binding/query-list-typed?ids=1,abc");
@@ -220,7 +220,7 @@ public class ParameterBindingTests
         response.Assert.BadRequest();
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnArrayParameterBinds(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/binding/query-array?tags=red&tags=green");
@@ -229,7 +229,7 @@ public class ParameterBindingTests
         Assert.Equal("red|green", response.Deserialize<string>());
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnAbsentArrayParameterIsNull(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/binding/query-array");
@@ -238,7 +238,7 @@ public class ParameterBindingTests
         Assert.Equal("none", response.Deserialize<string>());
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ARequiredListParameterIsRefusedWhenAbsent(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/binding/query-list-required");
@@ -246,7 +246,7 @@ public class ParameterBindingTests
         response.Assert.BadRequest();
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ARequiredListParameterBindsWhenPresent(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/binding/query-list-required?symbols=EUR");
@@ -258,7 +258,7 @@ public class ParameterBindingTests
     /// <summary>
     /// A repeated header line, which is what a client sends when it does not join them itself.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ARepeatedHeaderBindsAsAList(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get(
@@ -273,7 +273,7 @@ public class ParameterBindingTests
     /// <summary>
     /// And the joined spelling, which RFC 9110 says a recipient may produce from the repeated one.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ACommaJoinedHeaderBindsAsAList(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get(
@@ -287,7 +287,7 @@ public class ParameterBindingTests
 
     #endregion
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task HeaderBinds(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get(
@@ -307,7 +307,7 @@ public class ParameterBindingTests
     /// A cookie, which had no binding attribute at all before <c>[FromCookie]</c> — the only way
     /// to read one was to take <c>IExecutionRequest</c> and parse the raw strings by hand.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task CookieBinds(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get(
@@ -320,7 +320,7 @@ public class ParameterBindingTests
     }
 
     /// <summary>The attribute's name wins over the parameter's, as it does for header and query.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task CookieBindsByAttributeName(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get(
@@ -332,7 +332,7 @@ public class ParameterBindingTests
         Assert.Equal("dark", response.Deserialize<string>());
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AllBindingSourcesCombineInASingleHandler(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get(
@@ -344,7 +344,7 @@ public class ParameterBindingTests
         Assert.Equal("id-9|active|acme|3", response.Deserialize<string>());
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task BodyAndPathTokenCoexist(ITestWebApp testWebApp)
     {
         var model = new MathAddModel

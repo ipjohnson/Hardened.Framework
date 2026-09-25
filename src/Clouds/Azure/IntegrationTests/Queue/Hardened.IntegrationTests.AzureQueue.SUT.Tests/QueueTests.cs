@@ -1,6 +1,6 @@
 using DependencyModules.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Hardened.IntegrationTests.AzureQueue.SUT;
-using Hardened.Shared.Testing.Attributes;
 using NSubstitute;
 using Xunit;
 
@@ -24,7 +24,7 @@ public class QueueTests
     /// The claim the whole design rests on: a handler that names a queue and nothing else is
     /// reached by a message from that queue.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AQueueMessageReachesTheHandler(
         AzureQueueTestApp.Queues queues,
         [Mock] IOrderStore store
@@ -39,7 +39,7 @@ public class QueueTests
     /// One invocation, one handler call per message. The route was chosen once from the queue the
     /// batch arrived against; the fan-out is the filter.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task EveryMessageInABatchIsHandledSeparately(
         AzureQueueTestApp.Queues queues,
         [Mock] IOrderStore store
@@ -59,7 +59,7 @@ public class QueueTests
     /// Each fork binds its own message's body, so a handler sees what was published rather than
     /// the batch it arrived in.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task EachMessageBindsItsOwnBody(
         AzureQueueTestApp.Queues queues,
         [Mock] IOrderStore store
@@ -79,7 +79,7 @@ public class QueueTests
     /// settlement off - the default until Phase 2 - a failed message has to take the whole batch
     /// with it.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AFailedMessageFailsTheInvocation(
         AzureQueueTestApp.Queues queues,
         [Mock] IOrderStore store

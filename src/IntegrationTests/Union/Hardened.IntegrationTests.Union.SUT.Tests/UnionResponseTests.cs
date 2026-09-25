@@ -23,7 +23,7 @@ public class UnionResponseTests
 {
     private record TodoBody(int Id, string Title);
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheSuccessCaseSendsThePayloadRatherThanTheUnion(ITestWebApp app)
     {
         var response = await app.Get("/union/1");
@@ -33,13 +33,13 @@ public class UnionResponseTests
         Assert.Equal(1, response.Deserialize<TodoBody>().Id);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnErrorCaseAnswersItsOwnStatus(ITestWebApp app)
     {
         (await app.Get("/union/404")).Assert.NotFound();
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task CreatedAnswersTwoHundredAndOneWithItsLocation(ITestWebApp app)
     {
         var response = await app.Post(new { Title = "fresh" }, "/union");
@@ -48,7 +48,7 @@ public class UnionResponseTests
         Assert.Equal("/union/7", response.Headers["Location"].ToString());
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ADeclaredConflictAnswersFourHundredAndNine(ITestWebApp app)
     {
         var response = await app.Post(new { Title = "taken" }, "/union");
@@ -56,7 +56,7 @@ public class UnionResponseTests
         Assert.Equal(409, response.StatusCode);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task NoContentAnswersTwoHundredAndFourWithAnEmptyBody(ITestWebApp app)
     {
         var response = await app.Delete("/union/1");
@@ -65,7 +65,7 @@ public class UnionResponseTests
         Assert.Equal(string.Empty, await response.ReadTextAsync());
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task RemoveStillAnswersItsDeclaredNotFound(ITestWebApp app)
     {
         (await app.Delete("/union/404")).Assert.NotFound();

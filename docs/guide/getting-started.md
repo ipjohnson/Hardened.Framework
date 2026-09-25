@@ -166,7 +166,7 @@ dotnet test
 The tests pass. This test is from `tests/Todos.Tests/TodoTests.cs`:
 
 ```csharp
-[HardenedTest]
+[ModuleTest]
 public async Task GetTodo_ReturnsTheTodo(TodosClient client)
 {
     var todo = await client.Todos[1].GetAsync().Returns<Ok<ClientModels.Todo>>();
@@ -175,7 +175,7 @@ public async Task GetTodo_ReturnsTheTodo(TodosClient client)
 }
 ```
 
-`[HardenedTest]` builds the application for the test and supplies its parameters. `TodosClient` is
+`[ModuleTest]` builds the application for the test and supplies its parameters. `TodosClient` is
 the client that `src/Todos.Client` generates from the OpenAPI document.
 `tests/Todos.Tests/Bootstrap.cs` holds the assembly attributes that set up the tests.
 `[assembly: KiotaTesting]` among them makes the client a test parameter. In a test, the client sends

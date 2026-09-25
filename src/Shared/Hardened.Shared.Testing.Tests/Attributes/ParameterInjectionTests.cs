@@ -11,12 +11,12 @@ using HardenedTestContext = Hardened.Shared.Testing.Impl.TestContext;
 namespace Hardened.Shared.Testing.Tests.Attributes;
 
 /// <summary>
-/// What a <c>[HardenedTest]</c> method's parameters are filled with, and where each value comes
+/// What a <c>[ModuleTest]</c> method's parameters are filled with, and where each value comes
 /// from.
 /// </summary>
 /// <remarks>
 /// <para>
-/// These drive the resolution pipeline by hand rather than by declaring <c>[HardenedTest]</c>
+/// These drive the resolution pipeline by hand rather than by declaring <c>[ModuleTest]</c>
 /// methods and inspecting their own arguments. A test that receives its arguments from the
 /// machinery it is testing cannot fail usefully: if injection silently supplied the wrong thing, the
 /// assertion inside it is reading the wrong thing too; and the one case that matters most — a

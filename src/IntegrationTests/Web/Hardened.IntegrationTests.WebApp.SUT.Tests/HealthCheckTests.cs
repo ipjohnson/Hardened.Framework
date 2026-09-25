@@ -13,7 +13,7 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests;
 /// </remarks>
 public class HealthCheckTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task LivenessAnswers200(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Request("GET", null, "/health/live");
@@ -25,7 +25,7 @@ public class HealthCheckTests
     /// This application registers no checks, which is ready rather than unhealthy - it has said it
     /// has nothing to verify, not that something is wrong.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ReadinessAnswers200WithNoChecksRegistered(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Request("GET", null, "/health/ready");
@@ -33,7 +33,7 @@ public class HealthCheckTests
         Assert.Equal(200, response.StatusCode);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheBodyIsJsonNamingTheStatus(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Request("GET", null, "/health/ready");
@@ -52,7 +52,7 @@ public class HealthCheckTests
     /// A cached readiness answer reports the instance's state at some earlier moment to a load
     /// balancer deciding now, which is worse than no answer.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheResponseIsNotCacheable(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Request("GET", null, "/health/ready");
@@ -63,7 +63,7 @@ public class HealthCheckTests
     /// <summary>
     /// Health is not a write endpoint, and declining rather than answering leaves the path free.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AWriteVerbIsNotAHealthProbe(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Request("POST", null, "/health/live");

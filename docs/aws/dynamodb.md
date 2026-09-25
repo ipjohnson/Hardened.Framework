@@ -303,15 +303,15 @@ handler wrote through its own provider parameter:
 
 ```csharp
 using Amazon.DynamoDBv2.Model;
+using DependencyModules.xUnit.Attributes;
 using Hardened.Aws.DynamoDbClient;
-using Hardened.Shared.Testing.Attributes;
 using Xunit;
 
 namespace Orders.Tests;
 
 public class OrderStoreTests
 {
-    [HardenedTest]
+    [ModuleTest]
     [OrdersTable]
     public async Task AnOrderIsSaved(Application.Queues queues, IDynamoDbClientProvider clients)
     {

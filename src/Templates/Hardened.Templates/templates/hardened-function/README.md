@@ -370,14 +370,14 @@ same handler compiles against all of them.
 
 ## Testing
 
-`[HardenedTest]` boots the real application — the module graph, configuration and startup services —
+`[ModuleTest]` boots the real application — the module graph, configuration and startup services —
 and injects what the test asks for. The façade it takes is generated from the handler's own
 attribute, so a renamed source or a changed payload is a compile error here rather than a test that
 passes against nothing:
 
 ```csharp
 #if (queue)
-[HardenedTest]
+[ModuleTest]
 public async Task AMessageReachesTheHandler(Application.Queues queues, OrderLog log) {
     await queues.Orders(new Order { Id = "A-1", Quantity = 2 });
 
@@ -389,7 +389,7 @@ public async Task AMessageReachesTheHandler(Application.Queues queues, OrderLog 
 }
 #endif
 #if (invoke)
-[HardenedTest]
+[ModuleTest]
 public async Task ThePayloadReachesTheHandler(Application.Invocations invocations, OrderLog log) {
     var accepted = await invocations.Process(new Order { Id = "A-1", Quantity = 2 });
 
@@ -401,7 +401,7 @@ public async Task ThePayloadReachesTheHandler(Application.Invocations invocation
 }
 #endif
 #if (topic)
-[HardenedTest]
+[ModuleTest]
 public async Task ANotificationReachesTheHandler(Application.Topics topics, OrderLog log) {
     await topics.Orders(new Order { Id = "A-1", Quantity = 2 });
 
@@ -413,7 +413,7 @@ public async Task ANotificationReachesTheHandler(Application.Topics topics, Orde
 }
 #endif
 #if (timer)
-[HardenedTest]
+[ModuleTest]
 public async Task TheScheduleReachesTheHandler(Application.Timers timers, OrderLog log) {
     await timers.Nightly();
 
@@ -425,7 +425,7 @@ public async Task TheScheduleReachesTheHandler(Application.Timers timers, OrderL
 }
 #endif
 #if (change)
-[HardenedTest]
+[ModuleTest]
 public async Task AChangedRowReachesTheHandler(Application.Changes changes, OrderLog log) {
     await changes.Orders(new Order { Id = "A-1", Quantity = 2 });
 
@@ -437,7 +437,7 @@ public async Task AChangedRowReachesTheHandler(Application.Changes changes, Orde
 }
 #endif
 #if (stream)
-[HardenedTest]
+[ModuleTest]
 public async Task ARecordReachesTheHandler(Application.Streams streams, OrderLog log) {
     await streams.Orders(new Order { Id = "A-1", Quantity = 2 });
 
@@ -449,7 +449,7 @@ public async Task ARecordReachesTheHandler(Application.Streams streams, OrderLog
 }
 #endif
 #if (blob)
-[HardenedTest]
+[ModuleTest]
 public async Task ANotificationReachesTheHandler(Application.Blobs blobs, OrderLog log) {
     await blobs.Uploads(new Upload { Key = "report.pdf", Size = 1024 });
 

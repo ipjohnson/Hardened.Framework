@@ -13,7 +13,7 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 /// </remarks>
 public class ResponseCookieTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task ACookieSetByAHandlerReachesTheClient(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/cookies/set");
@@ -31,7 +31,7 @@ public class ResponseCookieTests
     /// The attributes are the security-relevant half. A harness that carried the name and value and
     /// dropped <c>HttpOnly</c> would let a test pass on a cookie the browser treats differently.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task CookieAttributesReachTheClient(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/cookies/set-with-options");

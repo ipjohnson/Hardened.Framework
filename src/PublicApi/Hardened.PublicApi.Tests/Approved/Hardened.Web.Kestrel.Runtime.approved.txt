@@ -40,19 +40,22 @@ namespace Hardened.Web.Kestrel.Runtime
     }
     [DependencyModules.Runtime.Attributes.DependencyModule]
     [Hardened.Web.Runtime.DependencyInjection.HardenedWebModule]
-    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     public class KestrelRuntime : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
     {
         public KestrelRuntime() { }
         public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         public override bool Equals(object? obj) { }
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         public override int GetHashCode() { }
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
     }
     [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter, AllowMultiple=true)]
     public class KestrelRuntimeAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
     {
         public KestrelRuntimeAttribute() { }
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
     }
 }

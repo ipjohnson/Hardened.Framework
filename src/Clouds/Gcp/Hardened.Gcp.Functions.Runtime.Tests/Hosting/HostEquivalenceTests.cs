@@ -1,5 +1,5 @@
 using DependencyModules.Testing.Attributes;
-using Hardened.Shared.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Hardened.Web.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
@@ -26,7 +26,7 @@ namespace Hardened.Gcp.Functions.Runtime.Tests.Hosting;
 /// </remarks>
 public class HostEquivalenceTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task AWebRouteAnswersTheSameOnBothHosts(ITestWebApp app)
     {
         var pipeline = await app.Get("/ping");
@@ -47,7 +47,7 @@ public class HostEquivalenceTests
     /// the envelope, the front door and the dispatch all run before the same handler is reached
     /// with the same order.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AQueueMessageReachesTheSameHandlerOnBothHosts(
         FunctionsApp.Queues queues,
         [Mock] IOrderStore pipelineStore

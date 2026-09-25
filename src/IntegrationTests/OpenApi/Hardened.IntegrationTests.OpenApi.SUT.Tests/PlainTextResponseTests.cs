@@ -21,7 +21,7 @@ namespace Hardened.IntegrationTests.OpenApi.SUT.Tests;
 /// </remarks>
 public class PlainTextResponseTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task PlainTextOperation_SetsTheDeclaredContentType(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get(
@@ -34,7 +34,7 @@ public class PlainTextResponseTests
         Assert.Equal("text/plain", response.Headers["Content-Type"]);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task PlainTextOperation_WritesTheStringRatherThanJsonEncodingIt(
         ITestWebApp testWebApp
     )

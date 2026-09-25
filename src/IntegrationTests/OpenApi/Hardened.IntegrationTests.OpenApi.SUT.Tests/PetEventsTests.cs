@@ -23,7 +23,7 @@ public class PetEventsTests
     /// Each event is <c>data:</c> and a blank line under <c>text/event-stream</c>, exactly as a
     /// code-first <c>[ServerSentEvents]</c> handler answers.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheStreamIsFramedAsServerSentEvents(ITestWebApp app)
     {
         var response = await app.Get("/pets/1/events");
@@ -51,7 +51,7 @@ public class PetEventsTests
     /// A refusal thrown before the first event is a 404 with its JSON body, not a stream that
     /// starts and breaks. The contract does not declare it; <c>events.yaml</c> says why.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ARefusalBeforeTheFirstEventIsANotFound(ITestWebApp app)
     {
         var response = await app.Get("/pets/missing/events");
@@ -69,7 +69,7 @@ public class PetEventsTests
     /// <c>itemSchema</c>, the complete content as an array of it under <c>schema</c>, the
     /// contract's own description.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheDocumentDescribesTheStream(ITestWebApp app)
     {
         var response = await app.Get("/openapi.json");

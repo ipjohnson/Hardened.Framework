@@ -1,7 +1,7 @@
 using DependencyModules.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Hardened.Functions.Testing;
 using Hardened.IntegrationTests.CloudRunBlob.SUT;
-using Hardened.Shared.Testing.Attributes;
 using Hardened.Web.Kestrel.Runtime;
 using NSubstitute;
 using Xunit;
@@ -15,7 +15,7 @@ namespace Hardened.IntegrationTests.CloudRunBlob.SUT.Tests;
 /// </summary>
 public class BlobTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task ANotificationReachesTheHandler(
         CloudRunBlobApp.Blobs blobs,
         [Mock] IUploadSink sink
@@ -28,7 +28,7 @@ public class BlobTests
     }
 
     /// <summary>Storage writes the object's name as it is, so a space arrives as a space with nothing to decode.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ANameWithASpaceArrivesAsWritten(
         CloudRunBlobApp.Blobs blobs,
         [Mock] IUploadSink sink
@@ -40,7 +40,7 @@ public class BlobTests
     }
 
     /// <summary>The bucket the delivery names reaches the handler, and the event is named the notification's way.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheBucketAndTheEventComeFromTheDelivery(
         CloudRunBlobApp.Blobs blobs,
         [Mock] IUploadSink sink
@@ -56,7 +56,7 @@ public class BlobTests
             );
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task EveryNotificationIsHandledSeparately(
         CloudRunBlobApp.Blobs blobs,
         [Mock] IUploadSink sink
@@ -72,7 +72,7 @@ public class BlobTests
         sink.Received().Arrived(Arg.Is<Upload>(upload => upload.Name == "b.txt"));
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AFailedNotificationIsNotAcknowledged(
         CloudRunBlobApp.Blobs blobs,
         [Mock] IUploadSink sink
@@ -91,7 +91,7 @@ public class BlobTests
 [KestrelRuntime]
 public class BlobOverASocketTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task ANotificationReachesTheHandler(
         CloudRunBlobApp.Blobs blobs,
         [Mock] IUploadSink sink
@@ -107,7 +107,7 @@ public class BlobOverASocketTests
             );
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AFailedNotificationIsNotAcknowledged(
         CloudRunBlobApp.Blobs blobs,
         [Mock] IUploadSink sink
@@ -126,7 +126,7 @@ public class BlobOverASocketTests
 [PipelineDelivery]
 public class PipelineBlobTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task ANotificationReachesTheHandlerThroughThePipeline(
         CloudRunBlobApp.Blobs blobs,
         [Mock] IUploadSink sink

@@ -19,7 +19,7 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests;
 /// </remarks>
 public class StartupServicesRunOnceTests
 {
-    [HardenedTest]
+    [ModuleTest]
     [CountingStartupService]
     public void AStartupServiceRunsOncePerContainer(CountingStartupService service)
     {
@@ -34,7 +34,7 @@ public class StartupServicesRunOnceTests
     /// correct - true, and useless as a guard, because it stops telling "once each in two
     /// containers" apart from the regression this exists to catch, which is twice in one.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     [CountingStartupService]
     public async Task TheChainAnswersAfterTheOneRun(
         CountingStartupService service,

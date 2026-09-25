@@ -1,7 +1,7 @@
 using DependencyModules.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Hardened.Functions.Testing;
 using Hardened.IntegrationTests.Sqs.SUT;
-using Hardened.Shared.Testing.Attributes;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using Xunit;
@@ -20,13 +20,13 @@ namespace Hardened.IntegrationTests.Sqs.SUT.Tests;
 [PipelineDelivery]
 public class PipelineDeliveryTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public void TheClassAttributeWinsOverTheAssemblyAttribute(IServiceProvider provider)
     {
         Assert.IsType<PipelineDelivery>(provider.GetRequiredService<ITriggerDelivery>());
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AQueueMessageReachesTheHandlerThroughThePipelineAlone(
         SqsTestApp.Queues queues,
         [Mock] IOrderStore store

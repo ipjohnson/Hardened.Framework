@@ -1,6 +1,6 @@
 using DependencyModules.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Hardened.IntegrationTests.AzureStream.SUT;
-using Hardened.Shared.Testing.Attributes;
 using NSubstitute;
 using Xunit;
 
@@ -22,7 +22,7 @@ public class StreamTests
     /// The claim the adapter rests on: a handler that names a stream and binds a plain type is
     /// reached with the event the publisher wrote.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ARecordReachesTheHandler(
         AzureStreamTestApp.Streams streams,
         [Mock] IClickSink sink
@@ -36,7 +36,7 @@ public class StreamTests
     /// <summary>
     /// One invocation, one handler call per event, in the order the partition delivered them.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task EveryRecordInABatchIsHandledSeparately(
         AzureStreamTestApp.Streams streams,
         [Mock] IClickSink sink
@@ -55,7 +55,7 @@ public class StreamTests
     /// <summary>
     /// Each fork binds its own event's body rather than the batch it arrived in.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task EachRecordBindsItsOwnData(
         AzureStreamTestApp.Streams streams,
         [Mock] IClickSink sink
@@ -75,7 +75,7 @@ public class StreamTests
     /// app retries. Nothing reports individual events, so a failed event has to take the whole
     /// batch with it.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AFailedRecordFailsTheInvocation(
         AzureStreamTestApp.Streams streams,
         [Mock] IClickSink sink

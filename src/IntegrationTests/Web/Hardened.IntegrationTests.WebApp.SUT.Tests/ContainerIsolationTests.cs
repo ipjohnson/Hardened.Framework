@@ -23,7 +23,7 @@ public class ContainerIsolationTests
     /// <summary>
     /// Two requests, two containers, so the singleton behind the second has never been used.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ARequestKeepsNothingFromTheOneBefore(ITestWebApp testWebApp)
     {
         var first = await testWebApp.Get("/response-cache/uncached");
@@ -42,7 +42,7 @@ public class ContainerIsolationTests
     /// connection held open are all this shape, and all of them are asking to model one warm
     /// environment rather than two cold ones.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task SharedPutsEveryRequestOnOneContainer([Shared] ITestWebApp testWebApp)
     {
         var first = await testWebApp.Get("/response-cache/uncached");
@@ -56,7 +56,7 @@ public class ContainerIsolationTests
     /// A client is a caller, so two of them marked shared are two callers on one environment rather
     /// than two environments.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TwoSharedClientsReachTheSameContainer(
         [Shared] ITestWebApp first,
         [Shared] ITestWebApp second

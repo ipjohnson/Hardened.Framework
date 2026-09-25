@@ -1,11 +1,11 @@
 # Writing a test
 
-`[HardenedTest]` on a test method builds the application for that one test, then calls the method
+`[ModuleTest]` on a test method builds the application for that one test, then calls the method
 with its parameters. A parameter can be any service the application registers, or something the
 testing packages supply, such as `ITestWebApp`.
 
 ```csharp
-using Hardened.Shared.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Hardened.Web.Testing;
 using Xunit;
 
@@ -13,7 +13,7 @@ namespace Todos.Tests;
 
 public class TodoStoreTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task DeleteRemovesTheTodo(ITestWebApp app, ITodoStore store)
     {
         var response = await app.Delete("/todos/1");
@@ -35,32 +35,40 @@ holds the package versions. [Project templates](/guide/project-templates) covers
 that file.
 
 A test project references `Hardened.Shared.Testing`, one runner package, and the runner's own
-packages. The tests of a web application also reference `Hardened.Web.Testing`.
+packages. The runner packages are DependencyModules packages. The tests of a web application also
+reference `Hardened.Web.Testing`.
 
 | Package | Brings |
 |---|---|
-| `Hardened.Shared.Testing` | `[HardenedTestEntryPoint]`, `ITestContext`, `[EnvironmentName]`, `[EnvironmentValue]` and the test attribute interfaces. It brings `DependencyModules.Testing`, which holds `[Mock]` and `[Shared]` |
-| `Hardened.Shared.Testing.xUnit` | `[HardenedTest]` for xUnit v3 |
-| `Hardened.Shared.Testing.NUnit` | `[HardenedTest]` for NUnit 4 |
+| `Hardened.Shared.Testing` | `[HardenedTestEntryPoint]`, `ITestContext`, `[EnvironmentName]`, `[EnvironmentValue]`, the test attribute interfaces, and the logger that writes the application's log to the test's output. It brings `DependencyModules.Testing`, which holds `[Mock]`, `[Shared]` and `CurrentTest` |
+| `DependencyModules.xUnit` | `[ModuleTest]` for `xunit.v3` 3.x |
+| `DependencyModules.xUnit4` | `[ModuleTest]` for `xunit.v3` 4.x |
+| `DependencyModules.NUnit` | `[ModuleTest]` for NUnit 4 |
 | `Hardened.Web.Testing` | `[WebTesting]` and `ITestWebApp` |
 | `DependencyModules.NSubstitute`, `DependencyModules.Moq` or `DependencyModules.FakeItEasy` | The mock library behind `[Mock]` |
 
 | Runner | Runner package | The runner's own packages in the template |
 |---|---|---|
-| xUnit v3, the template's default | `Hardened.Shared.Testing.xUnit` | `xunit.v3`, `xunit.runner.visualstudio`, `Microsoft.NET.Test.Sdk` |
-| NUnit 4 | `Hardened.Shared.Testing.NUnit` | `NUnit`, `NUnit3TestAdapter`, `Microsoft.NET.Test.Sdk` |
+| xUnit v3 4.x, the template's default | `DependencyModules.xUnit4` | `xunit.v3`, `xunit.runner.visualstudio`, `Microsoft.NET.Test.Sdk` |
+| NUnit 4 | `DependencyModules.NUnit` | `NUnit`, `NUnit3TestAdapter`, `Microsoft.NET.Test.Sdk` |
 
-Both runner packages define `[HardenedTest]` with the same name and namespace,
-`Hardened.Shared.Testing.Attributes`. The xUnit `[HardenedTest]` is an xUnit v3 `FactAttribute`. A
+Each runner package defines a `[ModuleTest]`. The xUnit attribute is in
+`DependencyModules.xUnit.Attributes`, and the NUnit attribute is in
+`DependencyModules.NUnit.Attributes`. The xUnit `[ModuleTest]` is an xUnit v3 `FactAttribute`. A
 project that references `xunit` 2.x in place of `xunit.v3` fails to compile with `CS0433` on
 `Assert`.
 
+On the .NET 10 SDK and later, `dotnet test` does not run a project on `xunit.v3` 4.x, because the
+Microsoft.Testing.Platform v2 that it brings refuses the VSTest mode of `dotnet test`. Reference
+`xunit.v3.mtp-off` in place of `xunit.v3` there. The template does this for
+`--response-model union`, which builds with the .NET 11 SDK.
+
 A test project that references `Hardened.Shared.Testing` and no runner package builds with the
-warning `HRDT001`, then fails with `CS0246` on each `[HardenedTest]`. For a project named
+warning `HRDT001`, then fails with `CS0246` on each `[ModuleTest]`. For a project named
 `NoRunner.Tests`, the warning reads:
 
 ```text
-NoRunner.Tests references Hardened.Shared.Testing and no runner package, so [HardenedTest] is not defined and every test method carrying it is CS0246. Add a PackageReference to Hardened.Shared.Testing.xUnit or Hardened.Shared.Testing.NUnit.
+NoRunner.Tests references Hardened.Shared.Testing and no DependencyModules test package, so [ModuleTest] is not defined and every test method carrying it is CS0246. Add a PackageReference to DependencyModules.xUnit for xunit.v3 3.x, DependencyModules.xUnit4 for xunit.v3 4.x, or DependencyModules.NUnit.
 ```
 
 The template writes `tests/Todos.Tests/Todos.Tests.csproj`, shown here without its comments:
@@ -75,7 +83,7 @@ The template writes `tests/Todos.Tests/Todos.Tests.csproj`, shown here without i
 
   <ItemGroup>
     <PackageReference Include="Hardened.Shared.Testing" />
-    <PackageReference Include="Hardened.Shared.Testing.xUnit" />
+    <PackageReference Include="DependencyModules.xUnit4" />
     <PackageReference Include="DependencyModules.NSubstitute" />
     <PackageReference Include="Hardened.Web.Testing" />
     <PackageReference Include="Hardened.Web.Kestrel.Testing" />
@@ -158,7 +166,7 @@ begins:
 Todos.Tests.INothingRegistersThis cannot be built for a test parameter. None of the three routes applies:
 ```
 
-In xUnit, `[InlineData]` beside `[HardenedTest]` fills the leading parameters. The runner resolves
+In xUnit, `[InlineData]` beside `[ModuleTest]` fills the leading parameters. The runner resolves
 the rest. Each row is a test of its own, with a container of its own.
 
 ## What each test builds
@@ -199,7 +207,7 @@ created is gone by the GET:
 
 ```csharp
 using DependencyModules.Testing.Attributes;
-using Hardened.Shared.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Hardened.Web.Testing;
 using Xunit;
 
@@ -207,7 +215,7 @@ namespace Todos.Tests;
 
 public class RequestContainerTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task ATodoOneRequestCreatesIsGoneByTheNext(ITestWebApp app)
     {
         await app.Post(new NewTodo("Write a test"), "/todos");
@@ -217,7 +225,7 @@ public class RequestContainerTests
         Assert.Equal([1, 2], todos.Select(todo => todo.Id));
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task SharedSendsEveryRequestToOneContainer([Shared] ITestWebApp app)
     {
         await app.Post(new NewTodo("Write a test"), "/todos");
@@ -295,6 +303,7 @@ the environment therefore follows the test's environment name. With the `IEmailS
 `test` gets `ConsoleEmailSender`.
 
 ```csharp
+using DependencyModules.xUnit.Attributes;
 using Hardened.Shared.Runtime.Application;
 using Hardened.Shared.Testing.Attributes;
 using Xunit;
@@ -303,7 +312,7 @@ namespace Todos.Tests;
 
 public class EnvironmentTests
 {
-    [HardenedTest]
+    [ModuleTest]
     [EnvironmentName("production")]
     [EnvironmentValue("TODOS_PAGE_SIZE", "5")]
     public void ReadsTheDeclaredEnvironment(IHardenedEnvironment environment)
@@ -312,7 +321,7 @@ public class EnvironmentTests
         Assert.Equal(5, environment.Value<int>("TODOS_PAGE_SIZE"));
     }
 
-    [HardenedTest]
+    [ModuleTest]
     [EnvironmentName("production")]
     public void UsesTheProductionSender(IEmailSender sender)
     {
@@ -339,7 +348,7 @@ implements.
 and retries on that parameter:
 
 ```csharp
-using Hardened.Shared.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Hardened.Web.Testing;
 using Xunit;
 
@@ -347,7 +356,7 @@ namespace Todos.Tests;
 
 public class StepTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task CreatesATodo(ITestWebApp app, ITodoStore store)
     {
         await app.Step(() => app.Post(new NewTodo("Write a test"), "/todos"), "Create a todo");
@@ -368,7 +377,7 @@ public class StepTests
 | `Step(step, description, parameters)` | Runs `step`, logs whether it passed and how long it took, and returns what `step` returned. The four overloads take an `Action`, a `Func<T>`, a `Func<Task>` and a `Func<Task<T>>` |
 | `Retry` | The retry methods in the next table |
 | `Logger` | An `ILogger` that writes to the test's output. Its category is the test class's full name |
-| `CancellationRequest` | A `CancellationToken` that is never cancelled in a `[HardenedTest]` |
+| `CancellationRequest` | A `CancellationToken` that is never cancelled in a `[ModuleTest]` |
 
 A step that passes logs `pass - <description> - <milliseconds>ms` at Information. When the delegate
 throws, the step logs `fail` at Error. The exception then propagates to the test.
@@ -396,7 +405,7 @@ ambiguous reference between 'Hardened.Shared.Testing.ITestContext' and 'Xunit.IT
 template's `Usings.cs` has `global using Xunit;`. A `using` alias resolves the name:
 
 ```csharp
-using Hardened.Shared.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Xunit;
 using ITestContext = Hardened.Shared.Testing.ITestContext;
 
@@ -404,7 +413,7 @@ namespace Todos.Tests;
 
 public class StoreStepTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task AddsATodo(ITestContext context, ITodoStore store)
     {
         var todo = await context.Step(() => store.Add("Write a test"), "Add a todo");
@@ -464,7 +473,7 @@ leading space.
 `Retry.Delay` is not read. Setting it does not change the interval between attempts.
 
 The retry methods have no limit on attempts. `CancellationRequest` is never cancelled in a
-`[HardenedTest]`. A condition that never holds keeps the test running until the runner stops it. Under xUnit, `[HardenedTest(Timeout = 3000)]` fails such a test after 3 seconds with `Test execution timed out after 3000 milliseconds`.
+`[ModuleTest]`. A condition that never holds keeps the test running until the runner stops it. Under xUnit, `[ModuleTest(Timeout = 3000)]` fails such a test after 3 seconds with `Test execution timed out after 3000 milliseconds`.
 
 ## Next
 

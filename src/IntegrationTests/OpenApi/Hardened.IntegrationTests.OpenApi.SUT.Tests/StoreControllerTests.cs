@@ -12,7 +12,7 @@ namespace Hardened.IntegrationTests.OpenApi.SUT.Tests;
 /// </summary>
 public class StoreControllerTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task ListStores_ReturnsListOfStores(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/stores");
@@ -35,7 +35,7 @@ public class StoreControllerTests
     /// The route above would have caught it, but only by failing at request time with an error about
     /// a missing service - which is a long way from the cause. This says the cause.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public void TheHandlerIsRegisteredAgainstItsServiceInterfaceNotItsBaseClass(
         ITestWebApp testWebApp
     )

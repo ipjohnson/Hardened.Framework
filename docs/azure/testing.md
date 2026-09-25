@@ -38,14 +38,14 @@ using Orders;
 The template's first test is in `tests/Orders.Tests/OrderHandlerTests.cs`:
 
 ```csharp
-using Hardened.Shared.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Xunit;
 
 namespace Orders.Tests;
 
 public class OrderHandlerTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task AMessageReachesTheHandler(Application.Queues queues, OrderLog log)
     {
         await queues.Orders(new Order { Id = "A-1", Quantity = 2 });
@@ -168,8 +168,8 @@ The `[TestExport]` on this test class registers a `RecordingMessageActions` for 
 
 ```csharp
 using DependencyModules.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Hardened.Azure.Functions.Testing;
-using Hardened.Shared.Testing.Attributes;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -183,7 +183,7 @@ namespace Orders.Tests;
 )]
 public class SettlementTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task OnlyTheRefusedMessageIsAbandoned(
         Application.Queues queues,
         ServiceBusMessageActions actions,
@@ -236,18 +236,18 @@ This test uses the application and the handler from
 
 ```csharp
 using Azure.Messaging.ServiceBus;
+using DependencyModules.xUnit.Attributes;
 using Hardened.Azure.Functions.Runtime.Execution;
 using Hardened.Azure.Functions.Runtime.Hosting;
 using Hardened.Azure.Functions.ServiceBus;
 using Hardened.Azure.Functions.Testing;
-using Hardened.Shared.Testing.Attributes;
 using Xunit;
 
 namespace Orders.Tests;
 
 public class ByHandTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task AMessageBuiltByHandIsSettled(
         FunctionsInvocationHandler handler,
         IServiceProvider services,
@@ -342,7 +342,7 @@ Every request of a test runs in the test's own container, so what one request st
 reads:
 
 ```csharp
-using Hardened.Shared.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Hardened.Web.Testing;
 using Xunit;
 
@@ -354,7 +354,7 @@ public class TodoFunctionTests
 
     private record TodoResponse(int Id, string Title, bool Done);
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task EveryRequestOfATestSharesItsContainer(ITestWebApp app)
     {
         (await app.Post(new NewTodoRequest("Write a test"), "/todos")).Assert.Ok();

@@ -7,8 +7,8 @@ namespace Hardened.Shared.Testing.Tests.Infrastructure;
 /// The smallest thing the harness will accept where xUnit would hand it a test method.
 /// </summary>
 /// <remarks>
-/// Standing this up by hand is the point. The alternative — asserting on <c>[HardenedTest]</c>
-/// parameter injection from inside a <c>[HardenedTest]</c> — cannot distinguish "injection worked"
+/// Standing this up by hand is the point. The alternative — asserting on <c>[ModuleTest]</c>
+/// parameter injection from inside a <c>[ModuleTest]</c> — cannot distinguish "injection worked"
 /// from "the test never ran the way I thought it did", because the same machinery both supplies the
 /// arguments and decides whether the assertion is reached at all. Driving the mechanism with a
 /// context built here means the assertion is on the outside of it.

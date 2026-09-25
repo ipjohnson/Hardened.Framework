@@ -390,14 +390,14 @@ and
 through `Application.Changes`.
 
 ```csharp
-using Hardened.Shared.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Xunit;
 
 namespace Orders.Tests;
 
 public class OrderHandlerTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task AChangedRowReachesTheHandler(Application.Changes changes, OrderLog log)
     {
         await changes.Orders(new Order { Id = "A-1", Quantity = 2 });

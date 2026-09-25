@@ -16,7 +16,7 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Transport;
 [Grants("pets:read")]
 public class CredentialTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheClassGrantReachesAGuardedHandlerThroughTheHarness(ITestWebApp app)
     {
         var response = await app.Get("/authorization/pets");
@@ -24,7 +24,7 @@ public class CredentialTests
         response.Assert.Ok();
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheClassGrantReachesAGuardedHandlerThroughAClient(ProbeClient client)
     {
         using var response = await client.Pets(TestContext.Current.CancellationToken);
@@ -32,7 +32,7 @@ public class CredentialTests
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheClassGrantReachesAGuardedHandlerThroughAnHttpClient(ITestWebApp app)
     {
         using var client = app.CreateHttpClient();
@@ -45,7 +45,7 @@ public class CredentialTests
     }
 
     /// <summary>The method's grant replaces the class's, so the class's route is refused.</summary>
-    [HardenedTest]
+    [ModuleTest]
     [Grants("pets:write")]
     public async Task TheMethodGrantBeatsTheClassGrant(ITestWebApp app)
     {
@@ -54,7 +54,7 @@ public class CredentialTests
         response.Assert.Forbidden();
     }
 
-    [HardenedTest]
+    [ModuleTest]
     [Anonymous]
     public async Task AnonymousOnTheMethodCancelsTheClassGrant(ITestWebApp app)
     {
@@ -66,7 +66,7 @@ public class CredentialTests
     /// <summary>
     /// Two parameters of one client type with two credentials: two instances, two answers.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TwoParametersCarryTwoCredentials(
         ProbeClient reader,
         [Anonymous] ProbeClient nobody,
@@ -84,7 +84,7 @@ public class CredentialTests
     }
 
     /// <summary>A grant on the harness parameter itself, for the one request that needs it.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AGrantOnTheHarnessParameterAppliesToItsRequests(
         [Grants("pets:read", "pets:write")] ITestWebApp manager
     )
@@ -95,7 +95,7 @@ public class CredentialTests
     }
 
     /// <summary>A header the test set in the configure callback is the test's, not the attribute's.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AHeaderSetByTheTestBeatsTheAttribute(ITestWebApp app)
     {
         var response = await app.Get(
@@ -107,7 +107,7 @@ public class CredentialTests
     }
 
     /// <summary>The credential decided inside the test, on a client built inside it.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ACredentialComputedInTheTestBuildsAClientWithIt(ITestWebApp app)
     {
         var writer = app.CreateClient<ProbeClient>(
@@ -129,7 +129,7 @@ public class CredentialTests
 /// </summary>
 public class AnonymousCredentialTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task NoAttributeSendsNoCredential(ITestWebApp app)
     {
         var response = await app.Get("/authorization/pets");
@@ -137,7 +137,7 @@ public class AnonymousCredentialTests
         response.Assert.Unauthorized();
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheApplicationsOwnSourceStillReadsAHeaderTheTestSets(ITestWebApp app)
     {
         var response = await app.Get(
@@ -148,7 +148,7 @@ public class AnonymousCredentialTests
         response.Assert.Ok();
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task NoAttributeSendsNoCredentialThroughAClient(ProbeClient client)
     {
         using var response = await client.Pets(TestContext.Current.CancellationToken);
@@ -156,7 +156,7 @@ public class AnonymousCredentialTests
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     [Grants("pets:read")]
     public async Task AMethodGrantAppliesWithNoClassGrant(ProbeClient client)
     {
@@ -165,7 +165,7 @@ public class AnonymousCredentialTests
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     [Subject("pia")]
     public async Task ASubjectAloneIsAKnownCallerHoldingNothing(ITestWebApp app)
     {

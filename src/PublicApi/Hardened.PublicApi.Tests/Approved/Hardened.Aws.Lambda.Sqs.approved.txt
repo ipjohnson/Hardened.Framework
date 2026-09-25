@@ -13,7 +13,6 @@ namespace Hardened.Aws.Lambda.Sqs
     }
     [DependencyModules.Runtime.Attributes.DependencyModule]
     [Hardened.Aws.Lambda.Runtime.Modules.LambdaRuntimeModule]
-    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     public class SqsModule : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
     {
         public SqsModule() { }
@@ -21,13 +20,16 @@ namespace Hardened.Aws.Lambda.Sqs
         public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
         public override bool Equals(object? obj) { }
         public override int GetHashCode() { }
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
     }
     [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter, AllowMultiple=true)]
     public class SqsModuleAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
     {
         public SqsModuleAttribute() { }
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         public bool ReportBatchItemFailures { get; set; }
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
     }
     public class SqsRequest : Hardened.Aws.Lambda.Runtime.Execution.LambdaPayloadRequest, Hardened.Requests.Abstract.Execution.IBatchRequest

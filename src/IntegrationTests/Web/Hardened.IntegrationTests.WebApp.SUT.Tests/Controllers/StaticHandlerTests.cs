@@ -14,7 +14,7 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 /// </remarks>
 public class StaticHandlerTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task AStaticHandlerAnswers(ITestWebApp app)
     {
         var response = await app.Get("/static/echo/hello");
@@ -24,7 +24,7 @@ public class StaticHandlerTests
         Assert.Equal("hello", response.Deserialize<string>());
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AStaticHandlerResolvesItsServiceParameters(ITestWebApp app)
     {
         var model = new MathAddModel
@@ -43,7 +43,7 @@ public class StaticHandlerTests
     /// And resolves them per request, out of the same scope an instance handler's constructor
     /// would have been built from.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AStaticHandlersServiceParameterIsTheRegisteredOne(
         ITestWebApp app,
         [Mock] IMathService<int> mockService
@@ -63,7 +63,7 @@ public class StaticHandlerTests
         Assert.Equal(100, response.Deserialize<int>());
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnAsyncStaticHandlerAnswers(ITestWebApp app)
     {
         var response = await app.Get("/static/async/waited");
@@ -73,7 +73,7 @@ public class StaticHandlerTests
         Assert.Equal("waited", response.Deserialize<string>());
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AControllerHoldingBothKindsServesBoth(ITestWebApp app)
     {
         var stat = await app.Get("/mixed/static/value");

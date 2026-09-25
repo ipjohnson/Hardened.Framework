@@ -12,7 +12,7 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 /// </summary>
 public class HttpMethodTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task DeleteBindsAPathToken(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Delete("/verbs/item/abc123");
@@ -21,7 +21,7 @@ public class HttpMethodTests
         Assert.Equal("deleted:abc123", response.Deserialize<string>());
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task DeleteBindsAQueryString(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Delete("/verbs/item?name=widget");
@@ -30,7 +30,7 @@ public class HttpMethodTests
         Assert.Equal("deleted:widget", response.Deserialize<string>());
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task PatchBindsABodyAndAPathToken(ITestWebApp testWebApp)
     {
         var model = new MathAddModel
@@ -48,7 +48,7 @@ public class HttpMethodTests
     /// The same path under a different verb has to reach a different handler. Routing on path alone
     /// would make whichever registered first answer both.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task VerbsOnTheSamePathStayApart(ITestWebApp testWebApp)
     {
         var get = await testWebApp.Get("/verbs/item/abc123");
@@ -69,7 +69,7 @@ public class HttpMethodTests
     /// land on <c>ResponseInformationModel.DefaultStatusCode</c>, and this is here so a change that
     /// wires only the described side cannot pass.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ADeclaredSuccessStatusIsAnswered(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post(null!, "/verbs/created");
@@ -80,7 +80,7 @@ public class HttpMethodTests
     /// <summary>
     /// A declared 204 answers 204 and writes nothing, whatever the handler returned.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ADeclaredNoContentStatusWritesNoBody(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Delete("/verbs/emptied");
@@ -95,7 +95,7 @@ public class HttpMethodTests
     }
 
     /// <summary>A handler declaring nothing still answers 200.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AHandlerDeclaringNoStatusStillAnswers200(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/verbs/item/abc123");

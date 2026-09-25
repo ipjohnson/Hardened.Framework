@@ -1,6 +1,6 @@
 using DependencyModules.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Hardened.IntegrationTests.Sqs.SUT;
-using Hardened.Shared.Testing.Attributes;
 using NSubstitute;
 using Xunit;
 
@@ -23,7 +23,7 @@ public class QueueTests
     /// The claim the whole design rests on: a handler that names a queue and nothing else is
     /// reached by a message from that queue.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AQueueMessageReachesTheHandler(
         SqsTestApp.Queues queues,
         [Mock] IOrderStore store
@@ -38,7 +38,7 @@ public class QueueTests
     /// One invocation, one handler call per message. The route was chosen once from the queue the
     /// batch arrived against; the fan-out is the filter.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task EveryMessageInABatchIsHandledSeparately(
         SqsTestApp.Queues queues,
         [Mock] IOrderStore store
@@ -58,7 +58,7 @@ public class QueueTests
     /// Each fork binds its own record's body, so a handler sees what was published rather than the
     /// batch it arrived in.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task EachMessageBindsItsOwnBody(SqsTestApp.Queues queues, [Mock] IOrderStore store)
     {
         await queues.OrdersNew(
@@ -75,7 +75,7 @@ public class QueueTests
     /// off - the default, because a report sent to a mapping that did not ask for one is discarded -
     /// a failed message has to take the whole batch with it.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AFailedMessageFailsTheInvocation(
         SqsTestApp.Queues queues,
         [Mock] IOrderStore store

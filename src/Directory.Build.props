@@ -75,12 +75,13 @@
     <!--
       The DependencyModules version, in one place, for the same reason as above: the runtimes bind
       against DependencyModules.Runtime, the generator project compiles the source-only Impl
-      package in, and Hardened.Shared.Testing takes DependencyModules.xUnit. The generator emits
-      calls against contracts the runtime supplies, so all of them move together or generated code
-      breaks. Same no-float rationale as ValidationModulesVersion.
+      package in, Hardened.Shared.Testing takes DependencyModules.Testing, and the test projects
+      take DependencyModules.xUnit or DependencyModules.NUnit. The generator emits calls against
+      contracts the runtime supplies, so all of them move together or generated code breaks. Same
+      no-float rationale as ValidationModulesVersion.
     -->
     <PropertyGroup>
-        <DependencyModulesVersion Condition="'$(DependencyModulesVersion)' == ''">1.5.0</DependencyModulesVersion>
+        <DependencyModulesVersion Condition="'$(DependencyModulesVersion)' == ''">1.7.0</DependencyModulesVersion>
     </PropertyGroup>
 
     <!--

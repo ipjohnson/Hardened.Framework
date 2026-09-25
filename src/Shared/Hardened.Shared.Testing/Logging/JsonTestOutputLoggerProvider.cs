@@ -1,32 +1,32 @@
 using System.Collections.Concurrent;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using DependencyModules.Testing.Impl;
 using Microsoft.Extensions.Logging;
-using NUnitTestContext = NUnit.Framework.TestContext;
 
 namespace Hardened.Shared.Testing.Logging;
 
 /// <summary>
-/// Writes a test's log lines to NUnit's <see cref="NUnitTestContext.Out"/>, which the runner
-/// captures into the running test's output.
+/// Writes each log entry to the running test's output, as an indented JSON record.
 /// </summary>
-public class NUnitLoggerProvider : ILoggerProvider
+/// <remarks>
+/// One logger for every test framework. It writes through <see cref="CurrentTest"/>, whose
+/// provider the test package installs - DependencyModules.xUnit, DependencyModules.xUnit4 or
+/// DependencyModules.NUnit - and which knows where its framework shows a test's output. An entry
+/// logged while no test is running is dropped, which includes a background task that outlives its
+/// test.
+/// </remarks>
+internal sealed class JsonTestOutputLoggerProvider : ILoggerProvider
 {
-    private readonly ConcurrentDictionary<string, NUnitLogger> _loggers = new();
+    private readonly ConcurrentDictionary<string, JsonTestOutputLogger> _loggers = new();
+
+    public ILogger CreateLogger(string categoryName) =>
+        _loggers.GetOrAdd(categoryName, name => new JsonTestOutputLogger(name));
 
     public void Dispose() { }
-
-    public ILogger CreateLogger(string categoryName)
-    {
-        return _loggers.GetOrAdd(categoryName, name => new NUnitLogger(name));
-    }
 }
 
-/// <summary>
-/// One structured JSON record per line, the shape the xUnit logger writes, so a log line reads
-/// the same under either runner.
-/// </summary>
-public class NUnitLogger : ILogger
+internal sealed class JsonTestOutputLogger(string loggerName) : ILogger
 {
     private static readonly JsonSerializerOptions LogSerializerOptions = new()
     {
@@ -34,13 +34,6 @@ public class NUnitLogger : ILogger
         WriteIndented = true,
         Converters = { new JsonStringEnumConverter() },
     };
-
-    private readonly string _loggerName;
-
-    public NUnitLogger(string loggerName)
-    {
-        _loggerName = loggerName;
-    }
 
     public void Log<TState>(
         LogLevel logLevel,
@@ -63,7 +56,7 @@ public class NUnitLogger : ILogger
 
         var record = new StructuredLogEntry<TState>(
             DateTime.Now,
-            _loggerName,
+            loggerName,
             logLevel,
             eventId,
             formatter(state, exception),
@@ -71,13 +64,13 @@ public class NUnitLogger : ILogger
             exceptionRecord
         );
 
-        NUnitTestContext.Out.WriteLine(JsonSerializer.Serialize(record, LogSerializerOptions));
+        CurrentTest.TryWriteLine(JsonSerializer.Serialize(record, LogSerializerOptions));
     }
 
     public bool IsEnabled(LogLevel logLevel) => true;
 
     public IDisposable? BeginScope<TState>(TState state)
-        where TState : notnull => default;
+        where TState : notnull => null;
 
     public record StructuredLogEntry<TState>(
         DateTime Timestamp,

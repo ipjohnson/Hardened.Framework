@@ -13,19 +13,22 @@ namespace Hardened.Aws.Lambda.Http
     }
     [DependencyModules.Runtime.Attributes.DependencyModule]
     [Hardened.Aws.Lambda.Runtime.Modules.LambdaRuntimeModule]
-    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     public class LambdaHttpModule : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
     {
         public LambdaHttpModule() { }
         public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         public override bool Equals(object? obj) { }
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         public override int GetHashCode() { }
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
     }
     [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter, AllowMultiple=true)]
     public class LambdaHttpModuleAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
     {
         public LambdaHttpModuleAttribute() { }
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
     }
     public class LambdaHttpRequest : Hardened.Requests.Abstract.Execution.IExecutionRequest

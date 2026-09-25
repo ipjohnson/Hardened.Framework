@@ -19,7 +19,7 @@ namespace Hardened.IntegrationTests.OpenApi.SUT.Tests;
 /// </remarks>
 public class DeclaredStatusTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task CreatePet_AnswersTheDeclaredCreatedStatus(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post(
@@ -32,7 +32,7 @@ public class DeclaredStatusTests
     }
 
     /// <summary>An operation declaring nothing but 200 still answers 200.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ListPets_AnswersTheUndeclaredDefault(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/pets");
@@ -47,7 +47,7 @@ public class DeclaredStatusTests
     /// The body suppression is the half that is easy to miss. Serializing into a 204 produces a
     /// response no conforming client reads the body of and some intermediaries reject outright.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task DeletePet_AnswersTheDeclaredNoContentStatusWithNoBody(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Delete("/pets/1");
@@ -61,7 +61,7 @@ public class DeclaredStatusTests
         Assert.Equal("", await reader.ReadToEndAsync());
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task GetPet_AnswersTheDeclaredNotFoundWhenTheHandlerReturnsNull(
         ITestWebApp testWebApp
     )
@@ -80,7 +80,7 @@ public class DeclaredStatusTests
     /// the same URI a code-first handler's <c>NotFound</c> sends. Nothing else is filled, because
     /// nothing else could be without inventing a domain value.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task GetPet_CarriesTheDeclaredProblemBodyOnTheNotFound(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/pets/missing");
@@ -98,7 +98,7 @@ public class DeclaredStatusTests
     /// exists, who owns it, or what rule refused it - a handler with something to say throws the
     /// generated exception type, which carries a body it wrote.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task GetPet_TheNotFoundBodySaysNothingAboutTheRequest(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/pets/missing");
@@ -109,7 +109,7 @@ public class DeclaredStatusTests
     }
 
     /// <summary>The same operation still answers normally for an id that resolves.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task GetPet_AnswersTheResourceWhenThereIsOne(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/pets/7");

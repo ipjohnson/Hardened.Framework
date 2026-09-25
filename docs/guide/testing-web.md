@@ -3,14 +3,14 @@
 `ITestWebApp` is a test parameter that sends a request through the application's pipeline and returns a `TestWebResponse`. Routing, the filters, parameter binding, the handler and serialization run. No socket is opened and no host is started.
 
 ```csharp
-using Hardened.Shared.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Hardened.Web.Testing;
 
 namespace Todos.Tests;
 
 public class TodoRequestTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task GetTodo_ReturnsTheTodo(ITestWebApp app)
     {
         var response = await app.Get("/todos/1");
@@ -19,7 +19,7 @@ public class TodoRequestTests
         Assert.Equal("Read the generated code", response.Deserialize<Todo>().Title);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task CreateTodo_AnswersCreated(ITestWebApp app)
     {
         var response = await app.Post(new NewTodo("Write a test"), "/todos");
@@ -91,14 +91,14 @@ The callback receives a `TestWebRequest`:
 The request carries `Accept-Encoding: gzip` by default. A value that the callback sets for `Accept-Encoding` is sent instead. In this example, `TodoController.All` carries `[Compress]`, as on the [Compression](/guide/compression) page:
 
 ```csharp
-using Hardened.Shared.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Hardened.Web.Testing;
 
 namespace Todos.Tests;
 
 public class TodoHeaderTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task ListTodos_Uncompressed(ITestWebApp app)
     {
         var response = await app.Get(
@@ -116,14 +116,14 @@ A `Cookie` header is split into the request's cookies, which `[FromCookie]` bind
 A raw body replaces the value that the method was called with. This test sends a malformed JSON body:
 
 ```csharp
-using Hardened.Shared.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Hardened.Web.Testing;
 
 namespace Todos.Tests;
 
 public class TodoBodyTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task CreateTodo_MalformedJson_IsBadRequest(ITestWebApp app)
     {
         var response = await app.Request(
@@ -168,14 +168,14 @@ On the pipeline host, the call returns when the handler has finished, so every i
 In this example, `TodoController.All` carries `[Compress]`. `TodoFeedController`, from the first example of [Streaming responses](/guide/streaming), answers `GET /todos/feed`.
 
 ```csharp
-using Hardened.Shared.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Hardened.Web.Testing;
 
 namespace Todos.Tests;
 
 public class TodoResponseTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task ListTodos_IsCompressed(ITestWebApp app)
     {
         var response = await app.Get("/todos");
@@ -184,7 +184,7 @@ public class TodoResponseTests
         Assert.Equal(2, response.Deserialize<List<Todo>>().Count);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheDocumentNamesGetTodo(ITestWebApp app)
     {
         var document = await (await app.Get("/openapi.json")).ReadTextAsync();
@@ -192,7 +192,7 @@ public class TodoResponseTests
         Assert.Contains("\"getTodo\"", document);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task Feed_StreamsEveryTodo(ITestWebApp app)
     {
         var response = await app.Get("/todos/feed");
@@ -243,7 +243,7 @@ A test asserts any other status on `StatusCode`, as the first example does for t
 In this example, `TodoController.ById` carries `[AuthorizeGrants("todos:read")]`, as in the first example of [Authorization](/guide/authorization):
 
 ```csharp
-using Hardened.Shared.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Hardened.Web.Testing;
 
 namespace Todos.Tests;
@@ -251,20 +251,20 @@ namespace Todos.Tests;
 [Grants("todos:read")]
 public class TodoReaderTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task AReaderGetsTheTodo(ITestWebApp app)
     {
         (await app.Get("/todos/1")).Assert.Ok();
     }
 
-    [HardenedTest]
+    [ModuleTest]
     [Anonymous]
     public async Task NobodyIsUnauthorized(ITestWebApp app)
     {
         (await app.Get("/todos/1")).Assert.Unauthorized();
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AWriterIsForbidden([Grants("todos:write")] ITestWebApp writer)
     {
         (await writer.Get("/todos/1")).Assert.Forbidden();
@@ -315,7 +315,7 @@ The attributes resolve to a `TestCredential`, declared as `TestCredential(IReadO
 `ById` carries the same `[AuthorizeGrants("todos:read")]` in this example:
 
 ```csharp
-using Hardened.Shared.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Hardened.Web.Runtime.Responses;
 using Hardened.Web.Testing;
 using Todos.Client;
@@ -324,7 +324,7 @@ namespace Todos.Tests;
 
 public class TodoCallerTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task ReadingATodoNeedsTheGrant(
         [Grants("todos:read")] TodosClient reader,
         [Anonymous] TodosClient nobody,
@@ -336,7 +336,7 @@ public class TodoCallerTests
         await writer.Todos[1].GetAsync().ReturnsStatus<Forbidden>();
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AHeaderSetInTheTestIsSentAsIs(ITestWebApp app)
     {
         var response = await app.Get(
@@ -347,7 +347,7 @@ public class TodoCallerTests
         response.Assert.Ok();
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ACredentialBuiltInTheTest(ITestWebApp app)
     {
         var reader = app.CreateClient<TodosClient>(new TestCredential(["todos:read"], "pia"));
@@ -364,7 +364,7 @@ public class TodoCallerTests
 `LastResponse` holds the most recent response that the pipeline answered in the running test. It is a static class in `Hardened.Web.Testing`. It records the response to a request sent through `ITestWebApp`, through an `HttpClient` or through a client built for a parameter. It also records a response that the client threw on. It holds what a client does not hand back, such as the status and the `Location` of a 201 that the client returned as a body:
 
 ```csharp
-using Hardened.Shared.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Hardened.Web.Testing;
 using Todos.Client;
 
@@ -372,7 +372,7 @@ namespace Todos.Tests;
 
 public class TodoLastResponseTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task CreateTodo_AnswersCreated(TodosClient client)
     {
         var todo = await client.Todos.PostAsync(new ClientModels.NewTodo { Title = "ship it" });
@@ -400,7 +400,7 @@ On a socket host, `LastResponse` holds what came back over the wire, with the se
 The response's `Failure` is the exception that the pipeline recorded when it failed or refused the request, or null. In this example, `[Mock]` makes the store throw. [Substituting services](/guide/testing-mocks) covers `[Mock]`.
 
 ```csharp
-using Hardened.Shared.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Hardened.Web.Testing;
 using NSubstitute;
 
@@ -408,7 +408,7 @@ namespace Todos.Tests;
 
 public class TodoFailureTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task GetTodo_StoreFails_IsAServerError(ITestWebApp app, [Mock] ITodoStore store)
     {
         var offline = new InvalidOperationException("The store is offline.");

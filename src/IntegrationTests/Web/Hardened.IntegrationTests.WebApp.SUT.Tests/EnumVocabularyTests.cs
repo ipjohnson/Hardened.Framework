@@ -24,7 +24,7 @@ public class EnumVocabularyTests
     /// <summary>
     /// No attribute anywhere: the default an application gets for saying nothing.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task WriteUsesCamelCaseByDefault(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/enum-vocabulary/ticket");
@@ -40,7 +40,7 @@ public class EnumVocabularyTests
     /// <summary>
     /// Reading has to accept what writing produces, or the application refuses its own output.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ReadAcceptsTheValueWriteProduces(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post(
@@ -57,7 +57,7 @@ public class EnumVocabularyTests
     /// answered 500 with an empty body once the converter was registered, because the converter
     /// read and wrote values and System.Text.Json wants the property-name pair for a key.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ADictionaryKeyIsWrittenInTheVocabulary(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/enum-vocabulary/by-priority/counts");
@@ -70,7 +70,7 @@ public class EnumVocabularyTests
         Assert.Contains("\"inProgress\":2", body);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ADictionaryKeyIsReadInTheVocabulary(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post(
@@ -86,7 +86,7 @@ public class EnumVocabularyTests
     /// <summary>
     /// A value the application does not declare is refused rather than guessed at.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ReadRefusesAnUndeclaredValue(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post(
@@ -102,7 +102,7 @@ public class EnumVocabularyTests
     /// The per-enum override, in both directions: one enum opting out of naming entirely and one
     /// choosing a vocabulary that is not a C# identifier at all.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ADeclaredNamingOverridesTheDefault(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/enum-vocabulary/order");
@@ -124,7 +124,7 @@ public class EnumVocabularyTests
     /// answers 400 to it in a query string. <c>next-day</c> is the case that cannot work by
     /// accident: it is not a valid C# identifier, so nothing reaches it through <c>Enum.Parse</c>.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AQueryParameterBindsTheSameVocabulary(ITestWebApp testWebApp)
     {
         var byDefault = await testWebApp.Get("/enum-vocabulary/by-priority?priority=inProgress");
@@ -146,7 +146,7 @@ public class EnumVocabularyTests
     /// generate clients from it rather than reading the C# - so a vocabulary it does not share with
     /// the wire is a contract that cannot be honoured.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheDocumentDeclaresTheValuesTheWireCarries(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/openapi.json");

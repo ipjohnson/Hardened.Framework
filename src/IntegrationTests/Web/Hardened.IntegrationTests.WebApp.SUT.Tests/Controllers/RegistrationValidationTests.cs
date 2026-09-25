@@ -30,7 +30,7 @@ public class RegistrationValidationTests
     /// <c>[ValidateNever]</c> on the parameter binds the model and skips its constraints. The same
     /// body at <c>/registration</c> is refused twice over.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AParameterMarkedValidateNeverIsBoundUnvalidated(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post(BreaksBothRules, "/registration/unvalidated");
@@ -41,7 +41,7 @@ public class RegistrationValidationTests
         (await testWebApp.Post(BreaksBothRules, "/registration")).Assert.BadRequest();
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AHandlerMarkedValidateNeverValidatesNothing(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post(BreaksBothRules, "/registration/unvalidated-handler");
@@ -54,7 +54,7 @@ public class RegistrationValidationTests
     /// A pattern that backtracks catastrophically on the value throws at its timeout, and the
     /// request answers 500 rather than holding its thread.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task APatternPastItsTimeoutAnswers500(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get(
@@ -64,7 +64,7 @@ public class RegistrationValidationTests
         Assert.Equal(500, response.StatusCode);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AValueThePatternMatchesIsAccepted(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/registration/nested?value=aaaa");
@@ -74,7 +74,7 @@ public class RegistrationValidationTests
     }
 
     /// <summary>Binding still refuses a body that does not deserialize.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnUnvalidatedRouteStillRefusesAMalformedBody(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post("{\"name\":", "/registration/unvalidated");
@@ -86,7 +86,7 @@ public class RegistrationValidationTests
     /// A route declaring <c>[ValidationMode(StopOnFirstError)]</c> reports the first rule the body
     /// breaks, where the same body at <c>/registration</c> reports both.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AFirstErrorRouteReportsOnlyTheFirstFailure(ITestWebApp testWebApp)
     {
         const string body = """{"name":"x","age":5}""";
@@ -114,7 +114,7 @@ public class RegistrationValidationTests
     /// object has no way to leave one out. The field is reported under the handler's own parameter
     /// name, which is what every other error in this file does.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnAbsentMemberDeclaredPresentByItsTypeIsRefused(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post("{}", "/registration/member");
@@ -140,7 +140,7 @@ public class RegistrationValidationTests
     /// payload of the set that was not a 400, where <c>5</c>, <c>"text"</c>, <c>[]</c>, a truncated
     /// object and an absent body were all refused properly.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ANullBodyIsRefusedRatherThanDereferenced(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post("null", "/registration/member");
@@ -164,7 +164,7 @@ public class RegistrationValidationTests
     /// JSON tokens. Expected the input to start with a valid JSON token, when isFinalBlock is
     /// true."</c> - which describes the framework's parser rather than the caller's mistake.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnEmptyBodyIsRefusedTheSameWay(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post("", "/registration/member");
@@ -185,7 +185,7 @@ public class RegistrationValidationTests
     /// reader had reached when the text ran out - <c>request.memberId</c> here, a member that is
     /// present and correct as far as it goes.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AMalformedBodyIsRefusedAgainstTheBody(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post("""{"memberId":""", "/registration/member");
@@ -199,7 +199,7 @@ public class RegistrationValidationTests
     }
 
     /// <summary>Sent is sent, whatever else is wrong with it.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheSameMemberSentIsAccepted(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post("""{"memberId":"M-0001"}""", "/registration/member");
@@ -209,7 +209,7 @@ public class RegistrationValidationTests
         Assert.Equal("M-0001", response.Deserialize<string>());
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task MissingRequiredField_Returns400(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post(new { Name = "", Age = 30 }, "/registration");
@@ -227,7 +227,7 @@ public class RegistrationValidationTests
     /// A DataAnnotations constraint and a ValidationModules one on the same model, failing in the
     /// same request. Neither the response nor the field path says which vocabulary declared it.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task BothConstraintVocabulariesReportTheSameWay(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post(new { Name = "ab", Age = 7 }, "/registration");
@@ -244,7 +244,7 @@ public class RegistrationValidationTests
     /// Nesting, which is what the parameters validator does rather than checks itself: it descends
     /// into the body and calls the validator emitted for that model, which descends again.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task NestedModelFailuresCarryTheirPath(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post(
@@ -272,7 +272,7 @@ public class RegistrationValidationTests
     /// The body is pathed under the parameter it arrived as, so a body field and a route token that
     /// share a name stay distinguishable - the same reason the spec path reports <c>body.name</c>.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task BodyErrorsArePathedUnderTheParameterName(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post(new { Name = "", Age = 30 }, "/registration/for/acme");
@@ -288,7 +288,7 @@ public class RegistrationValidationTests
     /// The other half of the contract. A filter that rejected everything would pass every test
     /// above.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ValidRequestStillSucceeds(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post(
@@ -308,7 +308,7 @@ public class RegistrationValidationTests
     /// Absent optional structure is not a failure: <c>Address</c> is unconstrained on its own, and
     /// the constraints inside it apply to an address that was sent.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task OmittingAnOptionalNestedModelIsFine(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post(new { Name = "Whiskers", Age = 30 }, "/registration");
@@ -321,7 +321,7 @@ public class RegistrationValidationTests
     /// is per-handler rather than blanket - a filter on every handler would put validation's cost
     /// on requests with nothing to validate.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnUnconstrainedHandlerIsUnaffected(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post(
@@ -339,7 +339,7 @@ public class RegistrationValidationTests
     /// was serialized - so a body that is not text at all could only be exercised against a live
     /// socket. Bytes go as themselves now.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ABodySentAsBytesGoesOnTheWireAsItself(ITestWebApp testWebApp)
     {
         var body = System.Text.Encoding.UTF8.GetBytes(
@@ -356,7 +356,7 @@ public class RegistrationValidationTests
     /// And a malformed one is refused rather than serialized into something well formed, which is
     /// what makes the JSON-reader refusal testable in process.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task MalformedBytesReachTheDeserializerAsMalformed(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post(
@@ -383,7 +383,7 @@ public class RegistrationValidationTests
     /// The handler has already put that status in the document; reading the same declaration for
     /// the runtime is what closes the gap without a second source of truth on a verb attribute.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AConstraintFailureAnswersTheDeclaredStatus(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post(
@@ -399,7 +399,7 @@ public class RegistrationValidationTests
     }
 
     /// <summary>A handler validating by hand reaches the same status.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AThrownValidationExceptionAnswersTheDeclaredStatus(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post(
@@ -414,7 +414,7 @@ public class RegistrationValidationTests
     /// And so does a body the deserializer refuses, which is the half that split the status in two
     /// on every spec-first operation declaring 422 until the converter looked it up.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ABodyTheDeserializerRefusesAnswersTheDeclaredStatus(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post(
@@ -430,7 +430,7 @@ public class RegistrationValidationTests
     /// The control. An operation that declares nothing still answers the stock 400, so the
     /// derivation reaches the operation that asked for it and no other.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnOperationDeclaringNothingStillAnswers400(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post(new { Name = "", Age = 30 }, "/registration");

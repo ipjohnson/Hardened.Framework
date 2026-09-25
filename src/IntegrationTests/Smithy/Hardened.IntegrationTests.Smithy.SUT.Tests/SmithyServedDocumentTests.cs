@@ -35,7 +35,7 @@ public class SmithyServedDocumentTests
         return JsonDocument.Parse(await new StreamReader(gzip).ReadToEndAsync()).RootElement;
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheServedDocumentIsOpenApiAndNotASmithyAst(ITestWebApp app)
     {
         var document = await Document(app);
@@ -48,7 +48,7 @@ public class SmithyServedDocumentTests
         Assert.False(document.TryGetProperty("shapes", out _));
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheServedDocumentCarriesTheRoutesTheModelDeclares(ITestWebApp app)
     {
         var paths = (await Document(app)).GetProperty("paths");
@@ -66,7 +66,7 @@ public class SmithyServedDocumentTests
     /// spec front ends share the writer that dropped every body constraint, so this is the Smithy
     /// half of the same fix the OpenAPI SUT asserts.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheBodySchemasCarryTheConstraintsTheModelDeclares(ITestWebApp app)
     {
         var document = await Document(app);
@@ -98,7 +98,7 @@ public class SmithyServedDocumentTests
     /// Smithy's <c>Describe()</c> returns the shape's reference and nothing else, and the builder
     /// never resolved it, so the writer fell back to the C# type.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnEnumQueryParameterPublishesItsVocabulary(ITestWebApp app)
     {
         var parameters = (await Document(app))
@@ -124,7 +124,7 @@ public class SmithyServedDocumentTests
     /// A member that is neither <c>@required</c> nor defaulted is nullable under Smithy's rules,
     /// and the published schema says so with the 2020-12 type array.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnOptionalMemberPublishesTheNullableTypeArray(ITestWebApp app)
     {
         var document = await Document(app);
@@ -160,7 +160,7 @@ public class SmithyServedDocumentTests
     /// <summary>
     /// And the status the model declares, rather than a guess.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheServedDocumentCarriesTheDeclaredStatus(ITestWebApp app)
     {
         var responses = (await Document(app))
@@ -176,7 +176,7 @@ public class SmithyServedDocumentTests
     /// The model's own identity: @title and the service version, not the module class name and
     /// "1.0.0" the generator used to substitute.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheServedDocumentCarriesTheModelsIdentity(ITestWebApp app)
     {
         var info = (await Document(app)).GetProperty("info");
@@ -190,7 +190,7 @@ public class SmithyServedDocumentTests
     /// splits them: the secured operation names its requirement, an @auth([]) one declares none.
     /// A generated client used to be told nothing and sent every request anonymous.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheServedDocumentDeclaresTheEnforcedScheme(ITestWebApp app)
     {
         var document = await Document(app);
@@ -217,7 +217,7 @@ public class SmithyServedDocumentTests
     /// The declared bounds and pattern the validators enforce, on the parameters that declare
     /// them. Every query and header parameter was published as a bare string.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheServedDocumentCarriesParameterFacts(ITestWebApp app)
     {
         var document = await Document(app);
@@ -256,7 +256,7 @@ public class SmithyServedDocumentTests
     /// string while the generated record was a <c>Dictionary</c> and the wire carried an object.
     /// Refitter generated a string and threw reading it; Kiota generated one and read null.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AMapMemberIsPublishedAsAMap(ITestWebApp app)
     {
         var tags = (await Document(app))

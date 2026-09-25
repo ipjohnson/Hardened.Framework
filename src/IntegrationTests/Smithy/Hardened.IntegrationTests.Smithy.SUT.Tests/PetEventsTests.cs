@@ -16,7 +16,7 @@ namespace Hardened.IntegrationTests.Smithy.SUT.Tests;
 /// </remarks>
 public class PetEventsTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task EachMemberIsAnEventNamedForIt(ITestWebApp app)
     {
         var response = await app.Get("/pets/1/events");
@@ -42,7 +42,7 @@ public class PetEventsTests
         );
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ARefusalBeforeTheFirstEventIsANotFound(ITestWebApp app)
     {
         var response = await app.Get("/pets/missing/events");
@@ -59,7 +59,7 @@ public class PetEventsTests
     /// The document says what the wire does: the item is the union, published as the choice of
     /// its members, under <c>itemSchema</c> and as an array under <c>schema</c>.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheDocumentDescribesTheStreamAsTheChoiceOfItsMembers(ITestWebApp app)
     {
         var response = await app.Get("/openapi.json");

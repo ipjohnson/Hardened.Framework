@@ -456,14 +456,14 @@ The `hardened-function` template writes this test for `--host gcp --trigger blob
 through `Application.Blobs`:
 
 ```csharp
-using Hardened.Shared.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Xunit;
 
 namespace Orders.Tests;
 
 public class OrderHandlerTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task ANotificationReachesTheHandler(Application.Blobs blobs, OrderLog log)
     {
         await blobs.Uploads(new Upload { Key = "report.pdf", Size = 1024 });
@@ -499,7 +499,7 @@ To test another event type, a test posts the event through `ITestWebApp`, which
 delivery. This test posts a delete. It needs `[assembly: WebTesting]`:
 
 ```csharp
-using Hardened.Shared.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Hardened.Web.Testing;
 using Xunit;
 
@@ -511,7 +511,7 @@ public class DeleteTests
         {"bucket":"uploads","name":"reports/2026-08.pdf","generation":"1755000000000001","size":"1024"}
         """;
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ADeleteIsNotRecorded(ITestWebApp app, OrderLog log)
     {
         var response = await app.Post(

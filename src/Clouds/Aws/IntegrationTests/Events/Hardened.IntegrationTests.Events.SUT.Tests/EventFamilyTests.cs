@@ -1,10 +1,10 @@
 using DependencyModules.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Hardened.Aws.Lambda.EventBridge;
 using Hardened.Aws.Lambda.Runtime.Adapters;
 using Hardened.Aws.Lambda.Sns;
 using Hardened.Aws.Lambda.Sqs;
 using Hardened.IntegrationTests.Events.SUT;
-using Hardened.Shared.Testing.Attributes;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using Xunit;
@@ -24,7 +24,7 @@ namespace Hardened.IntegrationTests.Events.SUT.Tests;
 /// </summary>
 public class EventFamilyTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task ANotificationReachesTheTopicHandler(
         EventsTestApp.Topics topics,
         [Mock] ITriggerLog log
@@ -39,7 +39,7 @@ public class EventFamilyTests
     /// A schedule routes on its rule rather than on aws.events/Scheduled Event, which every
     /// schedule in the account would share - and it carries no payload, so the handler takes none.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AScheduledInvocationReachesTheTimerHandler(
         EventsTestApp.Timers timers,
         [Mock] ITriggerLog log
@@ -50,7 +50,7 @@ public class EventFamilyTests
         log.Received().Record("timer:nightly-rollup");
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AQueueMessageReachesTheQueueHandler(
         EventsTestApp.Queues queues,
         [Mock] ITriggerLog log
@@ -65,7 +65,7 @@ public class EventFamilyTests
     /// The assertion the family split rests on, run through a real application: three sources,
     /// three different handlers, one function, and the peek choosing between them.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task EverySourceReachesItsOwnHandlerInOneFunction(
         EventsTestApp.Queues queues,
         EventsTestApp.Topics topics,
@@ -89,7 +89,7 @@ public class EventFamilyTests
     /// Four triggers, three adapters: EventBridge serves both the schedule and the bus event, and
     /// registering it twice would put two adapters in front of every EventBridge payload.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public void FourTriggersRegisterThreeAdapters(IServiceProvider provider)
     {
         var adapters = provider.GetServices<IPayloadAdapter>().ToArray();

@@ -22,7 +22,7 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 /// </summary>
 public class OverlappingRouteTokenNamesTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task OverlappingRoutesBindTheirOwnTokenNames(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/binding/path/alpha/beta");
@@ -43,7 +43,7 @@ public class OverlappingRouteTokenNamesTests
     /// path that was never declared.
     /// </para>
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task APathDeeperThanAnyRouteIsNotFound(ITestWebApp testWebApp)
     {
         (await testWebApp.Get("/binding/path/a/b/c")).Assert.NotFound();
@@ -54,7 +54,7 @@ public class OverlappingRouteTokenNamesTests
     /// The shorter route keeps working. It always did, which is why the defect went
     /// unnoticed: whichever route registered first behaved correctly.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheFirstRegisteredOverlappingRouteStillBinds(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/binding/path/only-one");
@@ -67,7 +67,7 @@ public class OverlappingRouteTokenNamesTests
     /// The deeper route's second token is unambiguous - only one route reaches that position
     /// - so it was never affected. Asserted so a future change cannot regress it silently.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task DeeperUnsharedTokenStillBinds(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/binding/pair/one/two");

@@ -263,7 +263,7 @@ Then take the harness and your own services as parameters:
 
 ```csharp
 public class SqsFunctionHandlerTests {
-    [HardenedTest]
+    [ModuleTest]
     public async Task SingleSend(TestSqsApp app, CountingService countingService) {
         var response = await app.SendMessage(new DataModel { Value = "Hello World" });
 

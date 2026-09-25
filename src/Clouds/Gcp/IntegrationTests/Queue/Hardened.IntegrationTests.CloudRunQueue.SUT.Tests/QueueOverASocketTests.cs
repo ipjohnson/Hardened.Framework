@@ -1,6 +1,6 @@
 using DependencyModules.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Hardened.IntegrationTests.CloudRunQueue.SUT;
-using Hardened.Shared.Testing.Attributes;
 using Hardened.Web.Kestrel.Runtime;
 using NSubstitute;
 using Xunit;
@@ -21,7 +21,7 @@ namespace Hardened.IntegrationTests.CloudRunQueue.SUT.Tests;
 [KestrelRuntime]
 public class QueueOverASocketTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task AQueueMessageReachesTheHandler(
         CloudRunQueueApp.Queues queues,
         [Mock] IOrderStore store
@@ -32,7 +32,7 @@ public class QueueOverASocketTests
         store.Received().Place(Arg.Is<Order>(order => order.Id == "s-1" && order.Quantity == 2));
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task EveryMessageIsHandledSeparately(
         CloudRunQueueApp.Queues queues,
         [Mock] IOrderStore store
@@ -48,7 +48,7 @@ public class QueueOverASocketTests
         store.Received().Place(Arg.Is<Order>(order => order.Id == "s-2"));
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task EachMessageBindsItsOwnBody(
         CloudRunQueueApp.Queues queues,
         [Mock] IOrderStore store
@@ -63,7 +63,7 @@ public class QueueOverASocketTests
         store.Received().Place(Arg.Is<Order>(order => order.Id == "s-2" && order.Quantity == 20));
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AFailedMessageIsNotAcknowledged(
         CloudRunQueueApp.Queues queues,
         [Mock] IOrderStore store

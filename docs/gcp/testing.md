@@ -39,14 +39,14 @@ using Orders;
 The first test in `tests/Orders.Tests/OrderHandlerTests.cs` sends one message:
 
 ```csharp
-using Hardened.Shared.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Xunit;
 
 namespace Orders.Tests;
 
 public class OrderHandlerTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task AMessageReachesTheHandler(Application.Queues queues, OrderLog log)
     {
         await queues.Orders(new Order { Id = "A-1", Quantity = 2 });
@@ -153,7 +153,7 @@ using Hardened.Web.Kestrel.Testing;
 `tests/Orders.Tests/OrderSocketTests.cs` sends the same message over a socket:
 
 ```csharp
-using Hardened.Shared.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Hardened.Web.Kestrel.Runtime;
 using Xunit;
 
@@ -162,7 +162,7 @@ namespace Orders.Tests;
 [KestrelRuntime]
 public class OrderSocketTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task AMessageReachesTheHandlerOverASocket(Application.Queues queues, OrderLog log)
     {
         await queues.Orders(new Order { Id = "A-1", Quantity = 2 });
@@ -200,8 +200,8 @@ a delivery attempt:
 
 ```csharp
 using System.Text;
+using DependencyModules.xUnit.Attributes;
 using Hardened.Gcp.CloudRun.Testing;
-using Hardened.Shared.Testing.Attributes;
 using Hardened.Web.Testing;
 using Xunit;
 
@@ -209,7 +209,7 @@ namespace Orders.Tests;
 
 public class HandPostedPushTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task APushWithAnAttributeReachesTheHandler(ITestWebApp app, OrderLog log)
     {
         var push = PubSubPush.Body(

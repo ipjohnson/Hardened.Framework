@@ -24,7 +24,7 @@ public class KiotaReturnsTests
     /// The case that needs the recording: the client returns the body and drops the 201 and its
     /// Location, and both come back on the response type.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ACreatedResponseCarriesItsBodyAndItsLocation(WebAppClient client)
     {
         var created = await client
@@ -42,7 +42,7 @@ public class KiotaReturnsTests
     /// The other case of the same set. Its body is the framework's own problem shape, which the
     /// document declares and Kiota types; the status alone is what this asserts.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheOtherCaseOfTheSetAnswersItsStatus(WebAppClient client)
     {
         await client
@@ -53,13 +53,13 @@ public class KiotaReturnsTests
             .ReturnsStatus<BadRequest>();
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ADeclared204IsNoContent(WebAppClient client)
     {
         await client.Verbs.Emptied.DeleteAsync(cancellationToken: Token).Returns<NoContent>();
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ATwoHundredCarriesTheBodyAndEveryHeader(WebAppClient client)
     {
         var answer = await client
@@ -72,7 +72,7 @@ public class KiotaReturnsTests
     }
 
     /// <summary>A declared refusal is the model Kiota threw, at the status the case declares.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ADeclaredRefusalIsTheTypedModelAtItsStatus(WebAppClient client)
     {
         var refused = await client
@@ -88,7 +88,7 @@ public class KiotaReturnsTests
         );
     }
 
-    [HardenedTest]
+    [ModuleTest]
     [Grants("pets:write")]
     public async Task AGuardsRefusalIsTheErrorModelAt403(WebAppClient client)
     {
@@ -100,7 +100,7 @@ public class KiotaReturnsTests
     }
 
     /// <summary>An undeclared refusal has no body type to be, so only its status can be named.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnUndeclaredRefusalAnswersItsStatus(WebAppClient client)
     {
         await client
@@ -109,7 +109,7 @@ public class KiotaReturnsTests
     }
 
     /// <summary>The wrong expectation fails naming both statuses in the contract's words.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheWrongExpectationNamesBothStatuses(WebAppClient client)
     {
         var failure = await Assert.ThrowsAsync<InvalidOperationException>(() =>
@@ -121,7 +121,7 @@ public class KiotaReturnsTests
     }
 
     /// <summary>Two clients with two credentials in one test, each asserted on its own answer.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TwoClientsInOneTestEachAnswerForTheirOwnCall(
         [Grants("pets:read")] WebAppClient reader,
         [Anonymous] WebAppClient nobody
@@ -142,7 +142,7 @@ public class KiotaReturnsTests
     /// The harness's other door still works beside the route: a client asked for inside the test
     /// is the same construction as a parameter.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AClientCreatedInsideTheTestIsBuiltByTheSameRoute(ITestWebApp app)
     {
         var client = app.CreateClient<WebAppClient>(new TestCredential(["pets:read"]));

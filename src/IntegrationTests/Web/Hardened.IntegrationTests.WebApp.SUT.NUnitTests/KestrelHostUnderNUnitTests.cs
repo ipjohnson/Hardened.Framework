@@ -18,7 +18,7 @@ public class KestrelHostUnderNUnitTests
 {
     private static CancellationToken Token => TestContext.CurrentContext.CancellationToken;
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ARequestAnswersWithWhatKestrelWrote(ITestWebApp app)
     {
         var response = await app.Get("/verbs/item/42");
@@ -29,7 +29,7 @@ public class KestrelHostUnderNUnitTests
         Assert.That(response.Failure, Is.Null);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AMockBehindARouteIsTheOneTheHandlerSees(
         ITestWebApp app,
         [Mock] IMathService<int> math
@@ -43,7 +43,7 @@ public class KestrelHostUnderNUnitTests
         Assert.That(response.Deserialize<int>(), Is.EqualTo(100));
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AGeneratedClientSendsToTheSocketAndReturnsReadsIt(WebAppClient client)
     {
         var created = await client
@@ -56,7 +56,7 @@ public class KestrelHostUnderNUnitTests
         Assert.That(created.Location, Is.EqualTo("/verbs/item/3"));
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task LastResponseIsWhatCameBackOverTheWire(WebAppClient client)
     {
         await client.Verbs.Emptied.DeleteAsync(cancellationToken: Token);
@@ -65,7 +65,7 @@ public class KestrelHostUnderNUnitTests
         Assert.That(LastResponse.Headers.ContainsKey("Date"), Is.True);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     [PipelineHost]
     public async Task AMethodOptsBackToThePipeline(ITestWebApp app)
     {

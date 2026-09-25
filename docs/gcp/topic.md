@@ -284,14 +284,14 @@ The `hardened-function` template writes this test as `tests/Orders.Tests/OrderHa
 sends a message through `Application.Topics`.
 
 ```csharp
-using Hardened.Shared.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Xunit;
 
 namespace Orders.Tests;
 
 public class OrderHandlerTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task ANotificationReachesTheHandler(Application.Topics topics, OrderLog log)
     {
         await topics.Orders(new Order { Id = "A-1", Quantity = 2 });

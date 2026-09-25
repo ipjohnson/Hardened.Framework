@@ -12,7 +12,7 @@ namespace Hardened.IntegrationTests.OpenApi.SUT.Tests;
 /// </remarks>
 public class ArrayResponseTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnArrayOfPrimitivesIsTypedByItsElement(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/pets/names");
@@ -26,7 +26,7 @@ public class ArrayResponseTests
     }
 
     /// <summary>And it is a JSON array of strings on the wire, not a wrapped scalar.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnArrayOfPrimitivesSerialisesAsAnArray(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/pets/names");
@@ -41,7 +41,7 @@ public class ArrayResponseTests
     }
 
     /// <summary>The case that always worked, kept beside it so the pair stays honest.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnArrayOfRefsIsStillTypedByItsElement(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/pets");
@@ -67,7 +67,7 @@ public class ArrayResponseTests
     /// consumer changed generators.
     /// </para>
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnOptionalMemberWithNoValueIsAbsentRatherThanNull(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/pets");

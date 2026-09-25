@@ -41,7 +41,7 @@
       "type": "parameter",
       "datatype": "choice",
       "defaultValue": "xunit",
-      "description": "The test framework the test project runs on. [HardenedTest] reads the same on either; the runner package and the assertion style are what change.",
+      "description": "The test framework the test project runs on. [ModuleTest] reads the same on either; the runner package and the assertion style are what change.",
       "choices": [
         {
           "choice": "xunit",

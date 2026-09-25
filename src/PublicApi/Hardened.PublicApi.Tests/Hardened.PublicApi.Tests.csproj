@@ -25,7 +25,7 @@
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="xunit.v3"/>
+        <PackageReference Include="xunit.v3.mtp-off"/>
     </ItemGroup>
 
     <!--
@@ -71,8 +71,6 @@
         <ProjectReference Include="..\..\Requests\Serializers\Hardened.Requests.Serializers.Newtonsoft\Hardened.Requests.Serializers.Newtonsoft.csproj"/>
         <ProjectReference Include="..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>
         <ProjectReference Include="..\..\Shared\Hardened.Shared.Testing\Hardened.Shared.Testing.csproj"/>
-        <ProjectReference Include="..\..\Shared\Hardened.Shared.Testing.NUnit\Hardened.Shared.Testing.NUnit.csproj"/>
-        <ProjectReference Include="..\..\Shared\Hardened.Shared.Testing.xUnit\Hardened.Shared.Testing.xUnit.csproj"/>
         <ProjectReference Include="..\..\SourceGenerators\Hardened.SourceGeneration.Testing\Hardened.SourceGeneration.Testing.csproj"/>
         <ProjectReference Include="..\..\Templates\Hardened.Templates.RazorBlade\Hardened.Templates.RazorBlade.csproj"/>
         <ProjectReference Include="..\..\Web\Hardened.Web.AspNetCore.Runtime\Hardened.Web.AspNetCore.Runtime.csproj"/>

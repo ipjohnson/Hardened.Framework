@@ -1,6 +1,6 @@
 using System.Runtime.CompilerServices;
+using DependencyModules.Testing.Impl;
 using Hardened.Requests.Abstract.Execution;
-using Hardened.Shared.Testing;
 using Hardened.Web.Runtime.Responses;
 using Microsoft.Extensions.Primitives;
 

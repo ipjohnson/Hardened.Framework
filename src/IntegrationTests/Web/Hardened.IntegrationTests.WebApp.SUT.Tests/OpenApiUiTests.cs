@@ -22,7 +22,7 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests;
 /// </remarks>
 public class OpenApiUiTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheUiIsServedAsHtml(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/docs");
@@ -36,7 +36,7 @@ public class OpenApiUiTests
     /// The title set on the module attribute reaches the page, which is the only evidence that the
     /// property survived the generated attribute at all - a non-nullable one would have arrived null.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheConfiguredTitleReachesThePage(ITestWebApp testWebApp)
     {
         var page = await (await testWebApp.Get("/docs")).ReadTextAsync();
@@ -47,7 +47,7 @@ public class OpenApiUiTests
     /// <summary>
     /// And the defaults it did not set reach it too, rather than being blanked by the attribute.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheUnsetDefaultsReachThePage(ITestWebApp testWebApp)
     {
         var page = await (await testWebApp.Get("/docs")).ReadTextAsync();
@@ -62,7 +62,7 @@ public class OpenApiUiTests
     /// The page points at a document that is actually served. A reference page rendering against a
     /// 404 is the failure this pairing exists to avoid, and nothing in the type system prevents it.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ThePageReferencesADocumentThisApplicationServes(ITestWebApp testWebApp)
     {
         var page = await (await testWebApp.Get("/docs")).ReadTextAsync();
@@ -88,7 +88,7 @@ public class OpenApiUiTests
     /// The library ships its own table as one more provider, and this application's document
     /// describes this application.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ThePageDoesNotAppearInTheDocument(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/openapi.json");
@@ -101,7 +101,7 @@ public class OpenApiUiTests
     /// <summary>
     /// A verb the page does not answer is a 405 rather than a 404: the resource exists.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AWriteToThePageIsMethodNotAllowed(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post(new { }, "/docs");
@@ -118,7 +118,7 @@ public class OpenApiUiTests
     /// default - would have collapsed these two into one and the second page would not exist. A
     /// service publishing several specifications wants one page for each.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ASecondPageIsServedAtItsOwnPath(ITestWebApp testWebApp)
     {
         var page = await (await testWebApp.Get("/docs/internal")).ReadTextAsync();
@@ -131,7 +131,7 @@ public class OpenApiUiTests
     /// And the two do not bleed into each other. Each provider holds its own configuration, because
     /// one registered in the container would be whichever module ran last.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task EachPageRendersItsOwnConfiguration(ITestWebApp testWebApp)
     {
         var first = await (await testWebApp.Get("/docs")).ReadTextAsync();
@@ -148,7 +148,7 @@ public class OpenApiUiTests
     /// The page that installs the MessagePack plugin renders the other form, because a plugin is a
     /// function and cannot travel in a <c>data-</c> attribute.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ThePluginPageInitialisesInScript(ITestWebApp testWebApp)
     {
         var page = await (await testWebApp.Get("/docs/msgpack")).ReadTextAsync();
@@ -163,7 +163,7 @@ public class OpenApiUiTests
     /// And the pages beside it are unchanged, which is what makes the plugin opt-in rather than a
     /// change to every reference page an application serves.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheOtherPagesKeepTheAttributeForm(ITestWebApp testWebApp)
     {
         foreach (var path in new[] { "/docs", "/docs/internal" })

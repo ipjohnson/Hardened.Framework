@@ -20,7 +20,7 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 /// </remarks>
 public class TimeoutTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task AHandlerThatOutlivesItsBudgetIs504(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/timeout/slow");
@@ -33,7 +33,7 @@ public class TimeoutTests
     /// The deadline is a bound rather than a delay: an operation that finishes inside it answers
     /// normally, and the handler ran once.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AHandlerThatFinishesInsideItsBudgetAnswersNormally(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/timeout/fast");
@@ -47,7 +47,7 @@ public class TimeoutTests
     /// that can: the application-wide default has no handler metadata for the converter to read
     /// and always answers 504.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ADeclaredStatusAndRetryAfterReachTheCaller(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/timeout/shed");
@@ -58,7 +58,7 @@ public class TimeoutTests
     }
 
     /// <summary>A 504 knows nothing about when the dependency recovers, so it sends no number.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task A504SendsNoRetryAfter(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/timeout/slow");
@@ -70,7 +70,7 @@ public class TimeoutTests
     /// An operation that declares nothing still answers normally: the cascade found this
     /// assembly's declaration, which is a bound rather than a delay.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnOperationThatDeclaresNothingStillAnswers(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/timeout/unbounded");
@@ -89,7 +89,7 @@ public class TimeoutTests
     /// Read back off the handler rather than waited for, which is what making the budget
     /// first-class buys: the filter enforcing it and the handler reporting it are the same value.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnOperationDeclaringNothingInheritsItsAssembly(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/timeout/budget");
@@ -98,7 +98,7 @@ public class TimeoutTests
     }
 
     /// <summary>A class-level declaration is nearer than the assembly, so it wins.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AClassBeatsItsAssembly(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/timeout/classed/budget");
@@ -110,7 +110,7 @@ public class TimeoutTests
     /// A method beats its class, upwards. This is the case a tightest-wins rule cannot express, and
     /// the reason resolution takes the first declaration in metadata rather than the smallest.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AMethodBeatsItsClassEvenWhenItLoosens(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/timeout/classed/slower");
@@ -119,7 +119,7 @@ public class TimeoutTests
     }
 
     /// <summary>An operation's own declaration is the nearest rung of all.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnOperationBeatsEverythingAboveIt(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/timeout/slow");
@@ -132,7 +132,7 @@ public class TimeoutTests
     /// <c>FilterOrder.Retry</c>, so the retry loop runs inside the deadline and stops when it
     /// fires; five attempts at fifty milliseconds each cannot fit in a hundred and fifty.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task OneBudgetCoversEveryRetryAttempt([Shared] ITestWebApp testWebApp)
     {
         await testWebApp.Get("/timeout/retried");

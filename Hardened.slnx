@@ -247,9 +247,7 @@
     <Project Path="src/Shared/Hardened.Shared.Runtime.Tests/Hardened.Shared.Runtime.Tests.csproj" />
     <Project Path="src/Shared/Hardened.Shared.Runtime/Hardened.Shared.Runtime.csproj" />
     <Project Path="src/Shared/Hardened.Shared.Testing.NUnit.Tests/Hardened.Shared.Testing.NUnit.Tests.csproj" />
-    <Project Path="src/Shared/Hardened.Shared.Testing.NUnit/Hardened.Shared.Testing.NUnit.csproj" />
     <Project Path="src/Shared/Hardened.Shared.Testing.Tests/Hardened.Shared.Testing.Tests.csproj" />
-    <Project Path="src/Shared/Hardened.Shared.Testing.xUnit/Hardened.Shared.Testing.xUnit.csproj" />
     <Project Path="src/Shared/Hardened.Shared.Testing/Hardened.Shared.Testing.csproj" />
   </Folder>
   <Folder Name="/SourceGenerators/">

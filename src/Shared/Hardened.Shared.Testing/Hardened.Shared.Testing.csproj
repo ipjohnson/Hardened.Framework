@@ -16,7 +16,7 @@
           code so that a consumer publishing native gets a truthful signal, and a testing package is
           never in that graph. Marking these would trade a true statement for 156 suppressions.
         -->
-        <Description>Test support for Hardened applications: the entry point attribute that builds a test's container from the real module graph, ITestContext, and the running-test seam a runner package fills. Reference Hardened.Shared.Testing.xUnit or Hardened.Shared.Testing.NUnit beside it for [HardenedTest], and DependencyModules.NSubstitute, DependencyModules.Moq or DependencyModules.FakeItEasy for [Mock].</Description>
+        <Description>Test support for Hardened applications: the entry point attribute that builds a test's container from the real module graph, ITestContext, and the logger that writes to a test's output. Reference DependencyModules.xUnit, DependencyModules.xUnit4 or DependencyModules.NUnit beside it for [ModuleTest], and DependencyModules.NSubstitute, DependencyModules.Moq or DependencyModules.FakeItEasy for [Mock].</Description>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <IsPackable>True</IsPackable>
@@ -24,9 +24,10 @@
     </PropertyGroup>
 
     <!--
-      Raises HRDT001 on a test project that takes this package and neither runner package. The
-      attribute a runner discovers lives in those, and its absence used to arrive as one CS0246 per
-      test method. buildTransitive/ and Package\, for the reason Hardened.Requests.Abstract gives.
+      Raises HRDT001 on a test project that takes this package and no DependencyModules test
+      package. [ModuleTest], the attribute a test framework discovers, lives in those, and its
+      absence arrives as one CS0246 per test method. buildTransitive/ and Package\, for the reason
+      Hardened.Requests.Abstract gives.
     -->
     <ItemGroup>
         <Content Include="Package\Hardened.Shared.Testing.targets">
@@ -46,10 +47,11 @@
     <ItemGroup>
         <ProjectReference Include="..\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>
         <!--
-             No runner here. The attributes talk to DependencyModules.Testing's interfaces, which
-             both of its runner integrations call the same way; the runner arrives with
-             Hardened.Shared.Testing.xUnit or Hardened.Shared.Testing.NUnit, which is what carries
-             [HardenedTest].
+             No test framework here. The attributes talk to DependencyModules.Testing's interfaces,
+             which every DependencyModules test package calls the same way, and the running test
+             comes from DependencyModules.Testing's CurrentTest. The test project chooses
+             DependencyModules.xUnit, DependencyModules.xUnit4 or DependencyModules.NUnit, which is
+             what carries [ModuleTest].
 
              No mock library either. [Mock] is DependencyModules.Testing's, and it asks the
              IMockSupportAttribute in scope for the double - [NSubstituteSupport], [MoqSupport] or

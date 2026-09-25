@@ -57,7 +57,7 @@ public class CompressionTests
 
     // ---------------------------------------------------------------- responses
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AJsonResponseIsGzippedForAClientThatAcceptsIt(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/compression/readings");
@@ -70,7 +70,7 @@ public class CompressionTests
         Assert.Equal(20, response.Deserialize<List<CompressionController.Sample>>().Count);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AClientAcceptingNothingIsServedPlain(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get(
@@ -85,7 +85,7 @@ public class CompressionTests
         Assert.Equal(20, response.Deserialize<List<CompressionController.Sample>>().Count);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnOperationFavouringBrotliAnswersBrotliWhenAccepted(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get(
@@ -99,7 +99,7 @@ public class CompressionTests
         Assert.Equal(20, response.Deserialize<List<CompressionController.Sample>>().Count);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task APredicateDecidesFromTheHandlersValue(ITestWebApp testWebApp)
     {
         var small = await testWebApp.Get("/compression/sized/2");
@@ -114,7 +114,7 @@ public class CompressionTests
         Assert.Equal(5, large.Deserialize<List<CompressionController.Sample>>().Count);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnOperationCanOptOutOfTheDefault(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/compression/never");
@@ -125,7 +125,7 @@ public class CompressionTests
         Assert.False(LooksGzip(response));
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheMediaTypeRuleDecidesForAnUndeclaredOperation(ITestWebApp testWebApp)
     {
         var text = await testWebApp.Get("/compression/text");
@@ -140,7 +140,7 @@ public class CompressionTests
     /// A HEAD runs the GET inside a counting stream, and the compression filter encodes into the
     /// counter - so the length reported is the one the GET actually sends.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AHeadReportsTheCompressedLength(ITestWebApp testWebApp)
     {
         var get = await testWebApp.Get("/compression/readings");
@@ -159,7 +159,7 @@ public class CompressionTests
     /// What the streaming guide used to say could not be done. One member around the whole
     /// stream, and the items still decode.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnNdjsonStreamIsGzipped(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/streaming/models");
@@ -180,7 +180,7 @@ public class CompressionTests
         Assert.Equal(3, items.Count);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnEventStreamIsNotCompressed(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/streaming/events");
@@ -192,7 +192,7 @@ public class CompressionTests
 
     // ---------------------------------------------------------------- requests
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AGzippedJsonBodyIsRead(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post(
@@ -217,7 +217,7 @@ public class CompressionTests
     /// A form could not arrive compressed while the JSON deserializers did the decoding, because
     /// the form reader read the raw body. The filter decodes for every reader.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AGzippedFormBodyIsRead(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post(
@@ -235,7 +235,7 @@ public class CompressionTests
         Assert.Equal("ada:hunter2", response.Deserialize<string>());
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ACodingTheServerDoesNotDecodeIsA415NamingWhatItDoes(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post(
@@ -256,7 +256,7 @@ public class CompressionTests
     /// The fixture caps a decoded body at 4096 bytes. A few hundred bytes of gzip past it is a
     /// 413, from inside the bind, on a request the host's own limit would have let through.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ABodyDecodingPastTheCapIsA413(ITestWebApp testWebApp)
     {
         var oversized = "{\"sensor\":\"" + new string('x', 10_000) + "\",\"value\":1}";

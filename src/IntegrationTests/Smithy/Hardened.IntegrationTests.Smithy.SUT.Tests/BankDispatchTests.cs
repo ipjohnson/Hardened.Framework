@@ -23,7 +23,7 @@ public class BankDispatchTests
     private static Action<TestWebRequest> Target(string target) =>
         request => request.Headers["X-Amz-Target"] = target;
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task GetBalance_DispatchesOnTheTargetHeader(ITestWebApp app)
     {
         var response = await app.Post(new { accountId = "acct-1" }, "/", Target("Bank.GetBalance"));
@@ -41,7 +41,7 @@ public class BankDispatchTests
     /// The same route and the same verb as the test above - only the header differs, which is the
     /// whole of how this protocol names an operation.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task Transfer_DispatchesToADifferentHandlerOnTheSameRoute(ITestWebApp app)
     {
         var response = await app.Post(
@@ -63,7 +63,7 @@ public class BankDispatchTests
     /// Every member of the input structure is the body, because a dispatch protocol has nowhere else
     /// to put one and the specification requires binding traits be ignored.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task Transfer_BindsTheWholeInputStructureFromTheBody(ITestWebApp app)
     {
         var response = await app.Post(
@@ -89,7 +89,7 @@ public class BankDispatchTests
     /// says which one it is. The specification asks for the full shape id and specifies that a
     /// client takes what follows the <c>#</c>, so the qualified form is what is sent.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task GetBalance_SendsTheDeclaredErrorWithItsTypeDiscriminator(ITestWebApp app)
     {
         var response = await app.Post(
@@ -111,7 +111,7 @@ public class BankDispatchTests
     /// The error's own members are still there - <c>__type</c> is an extra field beside them, not an
     /// envelope wrapping them.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task GetBalance_ErrorBodyIsTheShapeItselfNotAWrapper(ITestWebApp app)
     {
         var response = await app.Post(
@@ -131,7 +131,7 @@ public class BankDispatchTests
     /// The status comes from <c>@error("client")</c>, because <c>@httpError</c> is an HTTP binding
     /// trait and a dispatch protocol requires those be ignored.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task GetBalance_ErrorStatusComesFromTheErrorTrait(ITestWebApp app)
     {
         var response = await app.Post(
@@ -143,7 +143,7 @@ public class BankDispatchTests
         Assert.Equal(400, response.StatusCode);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task UnknownTarget_IsNotDispatched(ITestWebApp app)
     {
         var response = await app.Post(
@@ -155,7 +155,7 @@ public class BankDispatchTests
         Assert.NotEqual(200, response.StatusCode);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task PostWithNoTargetHeader_IsNotDispatched(ITestWebApp app)
     {
         var response = await app.Post(new { accountId = "acct-1" }, "/");
@@ -167,7 +167,7 @@ public class BankDispatchTests
     /// The point of the ordering: adding a dispatch protocol to an application does not disturb the
     /// routes already in it.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task PathRoutedOperationsStillWorkAlongsideDispatch(ITestWebApp app)
     {
         var routed = await app.Get("/pets/1");

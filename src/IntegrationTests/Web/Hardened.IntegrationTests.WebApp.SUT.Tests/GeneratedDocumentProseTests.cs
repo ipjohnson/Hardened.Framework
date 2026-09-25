@@ -37,7 +37,7 @@ public class GeneratedDocumentProseTests
         return JsonDocument.Parse(await new StreamReader(gzip).ReadToEndAsync()).RootElement;
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AHandlersSummaryReachesTheOperation(ITestWebApp app)
     {
         var operation = (await Document(app))
@@ -51,7 +51,7 @@ public class GeneratedDocumentProseTests
         );
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AParamTagReachesTheParameter(ITestWebApp app)
     {
         var parameter = (await Document(app))
@@ -67,7 +67,7 @@ public class GeneratedDocumentProseTests
         );
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ATypesSummaryReachesItsSchema(ITestWebApp app)
     {
         var schema = (await Document(app))
@@ -81,7 +81,7 @@ public class GeneratedDocumentProseTests
         );
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task APropertysSummaryReachesItsSchema(ITestWebApp app)
     {
         var name = (await Document(app))

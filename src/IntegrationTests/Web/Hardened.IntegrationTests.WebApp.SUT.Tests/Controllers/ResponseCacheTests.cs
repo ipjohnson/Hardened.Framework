@@ -16,7 +16,7 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 /// </remarks>
 public class ResponseCacheTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task ASecondRequestIsAnsweredWithoutRunningTheHandler(ITestWebApp testWebApp)
     {
         var first = await testWebApp.Get("/response-cache/catalog?culture=en-GB");
@@ -32,7 +32,7 @@ public class ResponseCacheTests
     /// <summary>
     /// The value the strategy was named on is in the key, so a different one is a different entry.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ADifferentQueryValueIsADifferentEntry([Shared] ITestWebApp testWebApp)
     {
         await testWebApp.Get("/response-cache/catalog?culture=en-GB");
@@ -46,7 +46,7 @@ public class ResponseCacheTests
     /// A handler that declares nothing is untouched, so the filter costs nothing where it was not
     /// asked for.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AHandlerThatDeclaresNothingIsNotCached([Shared] ITestWebApp testWebApp)
     {
         await testWebApp.Get("/response-cache/uncached");
@@ -59,7 +59,7 @@ public class ResponseCacheTests
     /// <summary>
     /// Two strategies compose into one key. Changing either half misses; changing neither hits.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ComposedStrategiesBothCount([Shared] ITestWebApp testWebApp)
     {
         var first = await testWebApp.Get(
@@ -86,7 +86,7 @@ public class ResponseCacheTests
     /// <c>VaryByHeader</c> writes the header it varies on, so a shared cache in front of this
     /// service does not serve one caller's answer to another.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AVariedResponseSaysWhatItVariedOn(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get(
@@ -103,7 +103,7 @@ public class ResponseCacheTests
     /// not cached at all. ASP.NET Core ships this as a note in its documentation and the failure is
     /// silent.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AResourceScopedHandlerIsNotCached([Shared] ITestWebApp testWebApp)
     {
         await testWebApp.Get("/response-cache/owned/7");
@@ -117,7 +117,7 @@ public class ResponseCacheTests
     /// A requirement over grants alone settles ahead of the cache, so it is still cached. The
     /// resource-scoped rule has to refuse the case above without also refusing this one.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AGrantGuardedHandlerIsStillCached(ITestWebApp testWebApp)
     {
         await testWebApp.Get("/response-cache/granted", Grants("pets:read"));
@@ -137,7 +137,7 @@ public class ResponseCacheTests
     /// permitted". <c>AGrantGuardedHandlerIsStillCached</c> above is the other half: warming and
     /// reading as a permitted caller was all that was ever exercised.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AWarmCacheStillRefusesTheGrantlessCaller(ITestWebApp testWebApp)
     {
         var warm = await testWebApp.Get("/response-cache/granted", Grants("pets:read"));
@@ -156,7 +156,7 @@ public class ResponseCacheTests
     /// And the refused caller is answered the refusal rather than nothing, which is what recording
     /// it and continuing buys over short-circuiting here.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheRefusedCallerIsNotGivenTheStoredBody(ITestWebApp testWebApp)
     {
         var warm = await testWebApp.Get("/response-cache/granted", Grants("pets:read"));
@@ -176,7 +176,7 @@ public class ResponseCacheTests
     /// require ownership - was invisible to it. <c>CacheScope.PerCaller</c> is the declaration that
     /// says so, and it keys the entry on the caller.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnOwnerScopedHandlerAnswersEachCallerTheirOwn([Shared] ITestWebApp testWebApp)
     {
         var first = await testWebApp.Get(
@@ -196,7 +196,7 @@ public class ResponseCacheTests
     /// <summary>
     /// And each caller's own entry is still an entry, so the feature survives being made safe.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnOwnerScopedHandlerStillAnswersOneCallerFromTheStore(ITestWebApp testWebApp)
     {
         await testWebApp.Get(
@@ -223,7 +223,7 @@ public class ResponseCacheTests
     /// are raised, and for the same reason: it names the handler and is asked once rather than per
     /// request.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AGuardedHandlerThatStatesNoScopeFails(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get(
@@ -243,7 +243,7 @@ public class ResponseCacheTests
     /// A published change reaches a cached read, which the trial found was impossible: an
     /// application could not reach its own entries at all, so an hour-long entry meant an hour.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task APublishReachesACachedRead([Shared] ITestWebApp testWebApp)
     {
         var first = await testWebApp.Get("/response-cache/tagged");

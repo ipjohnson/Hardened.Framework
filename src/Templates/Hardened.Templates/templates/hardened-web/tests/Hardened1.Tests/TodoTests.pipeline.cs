@@ -20,7 +20,7 @@ public class TodoTests
 
     private record NewTodoRequest(string Title);
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ListTodos_ReturnsEveryTodo(ITestWebApp app)
     {
         var response = await app.Get("/todos");
@@ -37,7 +37,7 @@ public class TodoTests
 #endif
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task GetTodo_ReturnsTheTodo(ITestWebApp app)
     {
         var response = await app.Get("/todos/1");
@@ -51,13 +51,13 @@ public class TodoTests
 #endif
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task GetTodo_UnknownId_IsNotFound(ITestWebApp app)
     {
         (await app.Get("/todos/9999")).Assert.NotFound();
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task CreateTodo_DuplicateTitle_IsConflict(ITestWebApp app)
     {
         var response = await app.Post(new NewTodoRequest("Add an endpoint"), "/todos");
@@ -69,7 +69,7 @@ public class TodoTests
 #endif
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task RemoveTodo_UnknownId_IsNotFound(ITestWebApp app)
     {
         (await app.Delete("/todos/9999")).Assert.NotFound();
@@ -85,7 +85,7 @@ public class TodoTests
     /// and the same route answers 201 with a Location header, because the status moved into the
     /// signature. This test is what makes that difference visible rather than a claim in a comment.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task CreateTodo_AnswersTwoHundred(ITestWebApp app)
     {
         var response = await app.Post(new NewTodoRequest("Write a test"), "/todos");
@@ -94,7 +94,7 @@ public class TodoTests
     }
 
     /// <summary>200 with the removed todo, for the same reason.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task RemoveTodo_AnswersTwoHundred(ITestWebApp app)
     {
         (await app.Delete("/todos/1")).Assert.Ok();
@@ -102,7 +102,7 @@ public class TodoTests
 #endif
 #if (declaredMode)
     /// <summary>201 and a Location header, both declared in the response set.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task CreateTodo_AnswersCreatedWithALocation(ITestWebApp app)
     {
         var response = await app.Post(new NewTodoRequest("Write a test"), "/todos");
@@ -121,7 +121,7 @@ public class TodoTests
     /// The case carries nothing, and the generated dispatch is told not to serialise it - so this
     /// is an empty body rather than the four characters "null".
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task RemoveTodo_AnswersNoContent(ITestWebApp app)
     {
         var response = await app.Delete("/todos/1");
@@ -141,7 +141,7 @@ public class TodoTests
     /// Nothing in this project validates anything by hand. The title's length limit became a filter
     /// in front of the handler, so a value too long never reaches the code.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ATitleOverItsLimitIsRejected(ITestWebApp app)
     {
         var response = await app.Post(new NewTodoRequest(new string('x', 100)), "/todos");
@@ -157,7 +157,7 @@ public class TodoTests
     /// The id's minimum is enforced the same way the title's length is - and the published
     /// document says so, which DocumentStatusTests holds it to.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task GetTodo_IdBelowItsMinimum_IsBadRequest(ITestWebApp app)
     {
 #if (xunit)
@@ -167,7 +167,7 @@ public class TodoTests
 #endif
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task RemoveTodo_IdBelowItsMinimum_IsBadRequest(ITestWebApp app)
     {
 #if (xunit)
@@ -182,7 +182,7 @@ public class TodoTests
     /// field-level envelope a failed validation answers - and the published document says so,
     /// which DocumentStatusTests holds it to.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task GetTodo_MalformedId_IsBadRequest(ITestWebApp app)
     {
 #if (xunit)
@@ -192,7 +192,7 @@ public class TodoTests
 #endif
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task RemoveTodo_MalformedId_IsBadRequest(ITestWebApp app)
     {
 #if (xunit)

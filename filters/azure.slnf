@@ -44,7 +44,6 @@
       "src\\Requests\\Hardened.Requests.Runtime\\Hardened.Requests.Runtime.csproj",
       "src\\Requests\\Hardened.Requests.Testing\\Hardened.Requests.Testing.csproj",
       "src\\Shared\\Hardened.Shared.Runtime\\Hardened.Shared.Runtime.csproj",
-      "src\\Shared\\Hardened.Shared.Testing.xUnit\\Hardened.Shared.Testing.xUnit.csproj",
       "src\\Shared\\Hardened.Shared.Testing\\Hardened.Shared.Testing.csproj",
       "src\\SourceGenerators\\Hardened.DependencyModules.SourceGenerator\\Hardened.DependencyModules.SourceGenerator.csproj",
       "src\\SourceGenerators\\Hardened.Function.SourceGenerator\\Hardened.Function.SourceGenerator.csproj",

@@ -22,7 +22,7 @@ namespace Hardened.IntegrationTests.AzureQueue.Settlement.SUT.Tests;
 /// queue fixture's is entirely the failure policy: not the code, not the messages, not the route.
 /// </para>
 /// <para>
-/// <b>Built by hand rather than through [HardenedTest], and this is the case that shows why.</b>
+/// <b>Built by hand rather than through [ModuleTest], and this is the case that shows why.</b>
 /// What is asserted is which messages the adapter completed and which it abandoned, by id, and
 /// that is visible only on the settlement channel the worker binds - so the tests hand the
 /// invocation handler the batch and a recording channel directly, the way the SQS fixture hands

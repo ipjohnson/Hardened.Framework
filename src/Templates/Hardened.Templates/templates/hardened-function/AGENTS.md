@@ -94,16 +94,16 @@ is what the old `Hardened.Amz.*` pin was and what let a template name a generato
 matched the interface it emitted against.
 
 #if (xunit)
-**Tests are xUnit v3.** `Hardened.Shared.Testing.xUnit` builds on `xunit.v3.extensibility.core`; a
-test project on xunit 2.x fails with `CS0433` on `Assert`. v3 test projects are also self-executing,
-hence `<OutputType>Exe</OutputType>`. `Hardened.Shared.Testing.NUnit` is the other runner, and
-`--test-framework nunit` scaffolds for it.
+**Tests are xUnit v3, version 4.** `DependencyModules.xUnit4` builds on
+`xunit.v3.extensibility.core` 4.x; a test project on xunit 2.x fails with `CS0433` on `Assert`, and
+a project on xunit.v3 3.x takes `DependencyModules.xUnit` in its place. v3 test projects are also
+self-executing, hence `<OutputType>Exe</OutputType>`. `DependencyModules.NUnit` is the other runner,
+and `--test-framework nunit` scaffolds for it.
 #endif
 #if (nunit)
-**Tests are NUnit 4.** `Hardened.Shared.Testing.NUnit` takes NUnit as `[4.2.2, 5.0.0)`, and
-`[HardenedTest]` is NUnit's own test attribute underneath, so the adapter discovers it with no
-`[Test]` beside it. `Hardened.Shared.Testing.xUnit` is the other runner, and `--test-framework xunit`
-scaffolds for it.
+**Tests are NUnit 4.** `DependencyModules.NUnit` takes NUnit as `[4.2.2, 5.0.0)`, and
+`[ModuleTest]` is an NUnit test builder, so the adapter discovers it with no `[Test]` beside it.
+`DependencyModules.xUnit4` is the other runner, and `--test-framework xunit` scaffolds for it.
 #endif
 
 #if (nsubstitute)
@@ -129,7 +129,7 @@ FakeItEasy. Remove either and a `[Mock]` parameter fails with "Mock library not 
 `--mocks nsubstitute` and `--mocks moq` scaffold the other two libraries.
 #endif
 
-**`[HardenedTest]` boots the real application.** Test method parameters are resolved from the
+**`[ModuleTest]` boots the real application.** Test method parameters are resolved from the
 application's own container, and the test harness drives the real delivery path.
 #if (moq)
 Take a `Mock<T>` parameter to substitute a service for the whole application.

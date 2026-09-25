@@ -1,7 +1,7 @@
 using DependencyModules.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Hardened.Functions.Testing;
 using Hardened.IntegrationTests.CloudRunChange.SUT;
-using Hardened.Shared.Testing.Attributes;
 using Hardened.Web.Kestrel.Runtime;
 using NSubstitute;
 using Xunit;
@@ -16,7 +16,7 @@ namespace Hardened.IntegrationTests.CloudRunChange.SUT.Tests;
 public class ChangeTests
 {
     /// <summary>A handler that names a collection and binds a plain type is reached with the document, and never sees a typed value.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AChangeReachesTheHandlerAsThePlainDocument(
         CloudRunChangeApp.Changes changes,
         [Mock] IOrderProjection projection
@@ -40,7 +40,7 @@ public class ChangeTests
             );
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task EveryChangeIsHandledSeparately(
         CloudRunChangeApp.Changes changes,
         [Mock] IOrderProjection projection
@@ -56,7 +56,7 @@ public class ChangeTests
         projection.Received().Apply(Arg.Is<Order>(order => order.Id == "a-2"));
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task EachChangeBindsItsOwnDocument(
         CloudRunChangeApp.Changes changes,
         [Mock] IOrderProjection projection
@@ -75,7 +75,7 @@ public class ChangeTests
     /// <c>[OldValue]</c> reaches the document as it was, as the handler's own type. The delivery
     /// sends the same document as both values, so the previous one is what was sent.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ThePreviousDocumentIsReachableThroughOldValue(
         CloudRunChangeApp.Changes changes,
         [Mock] IOrderProjection projection
@@ -92,7 +92,7 @@ public class ChangeTests
             );
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AFailedChangeIsNotAcknowledged(
         CloudRunChangeApp.Changes changes,
         [Mock] IOrderProjection projection
@@ -112,7 +112,7 @@ public class ChangeTests
 [KestrelRuntime]
 public class ChangeOverASocketTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task AChangeReachesTheHandlerAsThePlainDocument(
         CloudRunChangeApp.Changes changes,
         [Mock] IOrderProjection projection
@@ -136,7 +136,7 @@ public class ChangeOverASocketTests
             );
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ThePreviousDocumentIsReachableThroughOldValue(
         CloudRunChangeApp.Changes changes,
         [Mock] IOrderProjection projection
@@ -154,7 +154,7 @@ public class ChangeOverASocketTests
 [PipelineDelivery]
 public class PipelineChangeTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task AChangeReachesTheHandlerThroughThePipeline(
         CloudRunChangeApp.Changes changes,
         [Mock] IOrderProjection projection

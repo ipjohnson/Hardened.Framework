@@ -342,7 +342,7 @@ To see the filter chain of each handler, enable the `Hardened.Requests.Pipeline`
 
 ## Testing
 
-`[HardenedTest]` builds the application for a test method and passes the method's parameters from
+`[ModuleTest]` builds the application for a test method and passes the method's parameters from
 it. Requests go through routing, filters, binding, the handler and serialization in the test
 process. No socket is opened.
 
@@ -354,7 +354,7 @@ process. No socket is opened.
 
 public class TodoTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task GetTodo_ReturnsTheStoredTodo(TodosClient client, [Mock] ITodoStore store)
     {
         store.Find(1).Returns(new Todo(1, "Write the README", false));
@@ -364,7 +364,7 @@ public class TodoTests
         Assert.Equal("Write the README", todo.Value.Title);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task GetTodo_UnknownId_IsNotFound(TodosClient client)
     {
         var missing = await client.Todos[9999].GetAsync().Returns<NotFound<ClientModels.NotFound>>();
@@ -372,7 +372,7 @@ public class TodoTests
         Assert.Contains("9999", missing.Body.Detail);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task GetTodo_MalformedId_IsBadRequest(ITestWebApp app)
     {
         (await app.Get("/todos/not-a-number")).Assert.BadRequest();
@@ -394,8 +394,8 @@ public class TodoTests
   a class or the assembly.
 
 A Refit client works the same way with `Hardened.Refit.Testing` and `[assembly: RefitTesting]`.
-`[HardenedTest]` is in `Hardened.Shared.Testing.xUnit` for xUnit v3 and in
-`Hardened.Shared.Testing.NUnit` for NUnit.
+`[ModuleTest]` is in `DependencyModules.xUnit4` for xunit.v3 4.x, in `DependencyModules.xUnit`
+for xunit.v3 3.x, and in `DependencyModules.NUnit` for NUnit.
 
 Function tests use `[assembly: FunctionTesting]`, which delivers straight into the pipeline. The
 testing package of each cloud delivers through that provider's real event envelope instead:

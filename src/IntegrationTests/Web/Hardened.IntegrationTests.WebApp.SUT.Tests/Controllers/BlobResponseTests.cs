@@ -30,7 +30,7 @@ public class BlobResponseTests
         return buffer.ToArray();
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ABareBlobIsWrittenRaw(ITestWebApp app)
     {
         var response = await app.Get("/blob-response/bare/1");
@@ -44,7 +44,7 @@ public class BlobResponseTests
     /// The bytes themselves rather than <c>"f0VMRg=="</c>, which is what the JSON serializer makes
     /// of a <c>byte[]</c> it is handed.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ABlobInsideAResponseSetIsWrittenRaw(ITestWebApp app)
     {
         var response = await app.Get("/blob-response/blob/1");
@@ -54,7 +54,7 @@ public class BlobResponseTests
         Assert.Equal(Elf, Sent(response));
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AStreamInsideAResponseSetIsWrittenRaw(ITestWebApp app)
     {
         var response = await app.Get("/blob-response/stream/1");
@@ -68,7 +68,7 @@ public class BlobResponseTests
     /// empty body: the operation's declared octet stream reached the locator carrying a model, and
     /// nothing can produce that.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheDeclaredRefusalAnswersJson(ITestWebApp app)
     {
         var response = await app.Get("/blob-response/blob/0");
@@ -81,7 +81,7 @@ public class BlobResponseTests
         Assert.Equal(404, document.RootElement.GetProperty("status").GetInt32());
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AStreamSetRefusesInJsonToo(ITestWebApp app)
     {
         var response = await app.Get("/blob-response/stream/0");
@@ -95,7 +95,7 @@ public class BlobResponseTests
     /// refusal is JSON. It published a 200 with no content at all, so a generated client had no
     /// return type for the one thing the operation exists to send.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheDocumentDeclaresBytesAndAJsonRefusal(ITestWebApp app)
     {
         using var served = JsonDocument.Parse(

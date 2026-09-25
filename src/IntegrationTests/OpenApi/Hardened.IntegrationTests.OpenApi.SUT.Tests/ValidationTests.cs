@@ -52,7 +52,7 @@ public class ValidationTests
     /// <c>name</c>: the payload is reached by descending into the parameters' <c>body</c> member, so
     /// a caller can tell a body failure from a path parameter of the same name.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task CreatePet_MissingRequiredName_Returns400(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post(new CreatePetRequest("", "cat"), "/pets");
@@ -70,7 +70,7 @@ public class ValidationTests
     /// maxLength on a body property. The name is present, so this is the constraint after
     /// <c>[Required]</c> rather than instead of it.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task CreatePet_NameTooLong_Returns400(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post(
@@ -89,7 +89,7 @@ public class ValidationTests
     /// The pattern, which is the reason the spec read moved to a build task at all: this goes
     /// through a <c>[GeneratedRegex]</c> member rather than a Regex built at run time.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task CreatePet_TagViolatesPattern_Returns400(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post(
@@ -109,7 +109,7 @@ public class ValidationTests
     /// concerned, so making them say which they came from would be a distinction to decode without
     /// wanting it.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ListPets_LimitAboveMaximum_Returns400(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/pets?limit=500");
@@ -137,7 +137,7 @@ public class ValidationTests
     /// code distinguishes them.
     /// </para>
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ListPets_LimitNotANumber_Returns400(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/pets?limit=abc");
@@ -154,13 +154,13 @@ public class ValidationTests
     /// Omitting an optional parameter is still fine - the point above is about malformed values, not
     /// about making everything mandatory.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ListPets_WithoutLimit_StillSucceeds(ITestWebApp testWebApp)
     {
         (await testWebApp.Get("/pets")).Assert.Ok();
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task SearchPets_QueryTooShort_Returns400(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/pets/search?q=a");
@@ -176,7 +176,7 @@ public class ValidationTests
     /// Every failing constraint is reported, not just the first. A caller fixing one field at a time
     /// because the server only ever names one is the thing this avoids.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task CreatePet_SeveralViolations_ReportsAllOfThem(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post(
@@ -196,7 +196,7 @@ public class ValidationTests
     /// The other half of the contract: a request that satisfies the constraints is not touched. A
     /// filter that rejected everything would pass every test above.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task CreatePet_Valid_StillSucceeds(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post(new CreatePetRequest("Whiskers", "cat"), "/pets");
@@ -204,7 +204,7 @@ public class ValidationTests
         response.Assert.Ok();
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ListPets_LimitWithinRange_StillSucceeds(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/pets?limit=50");
@@ -216,7 +216,7 @@ public class ValidationTests
     /// An operation the spec constrains nothing about gets no filter at all, and has to keep
     /// working - the attachment is per-operation rather than blanket.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnUnconstrainedOperationIsUnaffected(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/stores");
@@ -235,7 +235,7 @@ public class ValidationTests
     /// wire names with indexed paths; header and query failures leaked the C# identifier the
     /// generator allocated.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AHeaderFailureNamesTheHeader(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post(
@@ -256,7 +256,7 @@ public class ValidationTests
     /// A valid key gets through, so the constraint is the thing being tested rather than the
     /// parameter merely being present.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AValidHeaderIsAccepted(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post(
@@ -281,7 +281,7 @@ public class ValidationTests
     /// <c>number</c> + <c>decimal</c> is NSwag's, and <c>string</c> + <c>number</c> is
     /// openapi-generator's - its <c>ModelUtils.isDecimalSchema</c> tests exactly that pair.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task MoneySurvivesTheRoundTripExactly(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post(
@@ -305,7 +305,7 @@ public class ValidationTests
     /// ValidationModules parses against the property's own type - because rendering it through
     /// double is the one thing a decimal member exists to avoid.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ABoundOnMoneyIsEnforced(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post(
@@ -324,7 +324,7 @@ public class ValidationTests
     /// The published document keeps the spelling the contract used, so a client generator reads
     /// back what the author wrote.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheDocumentPublishesBothSpellings(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/openapi.json");

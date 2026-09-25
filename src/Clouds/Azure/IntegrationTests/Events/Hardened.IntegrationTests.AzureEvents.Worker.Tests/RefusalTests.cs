@@ -1,10 +1,10 @@
 using DependencyModules.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Hardened.Azure.Functions.Runtime.Execution;
 using Hardened.Azure.Functions.Runtime.Hosting;
 using Hardened.Azure.Functions.ServiceBus;
 using Hardened.Azure.Functions.Testing;
 using Hardened.IntegrationTests.AzureEvents.SUT;
-using Hardened.Shared.Testing.Attributes;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using Xunit;
@@ -23,7 +23,7 @@ namespace Hardened.IntegrationTests.AzureEvents.SUT.Tests;
 /// </summary>
 public class RefusalTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task DataNoAdapterClaimsFailsTheInvocation(
         IServiceProvider provider,
         [Mock] ITriggerLog log

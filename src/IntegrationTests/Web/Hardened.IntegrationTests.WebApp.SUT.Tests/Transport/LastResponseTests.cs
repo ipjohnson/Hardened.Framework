@@ -16,7 +16,7 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Transport;
 /// </remarks>
 public class LastResponseTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task AfterAClientCallItReportsWhatThePipelineAnswered(ProbeClient client)
     {
         using var response = await client.Pets(TestContext.Current.CancellationToken);
@@ -31,7 +31,7 @@ public class LastResponseTests
     /// here is the one it wrote: the content coding is on the header and in the bytes, and undoing
     /// it is the reader's, as it is for a client.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     [Grants("pets:read")]
     public async Task AfterAHarnessCallItReportsTheSame(ITestWebApp app)
     {
@@ -51,7 +51,7 @@ public class LastResponseTests
         Assert.Contains("pets", await reader.ReadToEndAsync(TestContext.Current.CancellationToken));
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ACreatedStatusTheClientSwallowsIsStillReported(ITestWebApp app)
     {
         using var client = app.CreateHttpClient();
@@ -65,7 +65,7 @@ public class LastResponseTests
         Assert.Equal(201, LastResponse.Status);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ItIsTheLastResponseNotTheFirst(ITestWebApp app)
     {
         await app.Get("/authorization/pets");
@@ -74,7 +74,7 @@ public class LastResponseTests
         Assert.Equal(200, LastResponse.Status);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public void ReadingItBeforeAnyRequestFailsNamingTheTest()
     {
         var failure = Assert.Throws<InvalidOperationException>(() => LastResponse.Status);
@@ -88,7 +88,7 @@ public class LastResponseTests
     /// xUnit has the test method in scope and neither a test nor a test case yet. A response
     /// answered there is not kept, and the test body starts with nothing on record.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task WhileTheTestIsPreparedNothingIsKept(
         [WhilePreparing] Preparation seen,
         ITestWebApp app
@@ -156,7 +156,7 @@ public class LastResponseTests
 /// <summary>Reads its own answer while <see cref="LastResponseTests"/> reads its.</summary>
 public class LastResponseIsolationTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task AParallelTestSeesOnlyItsOwnResponse(ITestWebApp app)
     {
         for (var round = 0; round < 20; round++)

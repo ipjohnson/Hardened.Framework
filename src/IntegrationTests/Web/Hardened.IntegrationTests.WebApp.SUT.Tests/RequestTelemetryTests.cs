@@ -58,7 +58,7 @@ public class RequestTelemetryTests
         return captured;
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ARequestProducesOneServerSpanCarryingItsRouteTemplate(ITestWebApp testWebApp)
     {
         var span = await SpanFor(testWebApp, "/binding/path/telemetry-probe");
@@ -85,7 +85,7 @@ public class RequestTelemetryTests
     /// no route to carry and keeps the method as its name — one span per unmatched URL is exactly
     /// the cardinality explosion the conventions exist to prevent.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnUnmatchedRequestGetsASpanWithNoRoute(ITestWebApp testWebApp)
     {
         var span = await SpanFor(testWebApp, "/telemetry-probe-no-such-route");

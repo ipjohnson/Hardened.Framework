@@ -11,12 +11,12 @@
   <ItemGroup>
     <PackageReference Include="Hardened.Shared.Testing" />
 <!--#if (xunit) -->
-    <!-- The runner: [HardenedTest] for xUnit. Hardened.Shared.Testing.NUnit is the other one. -->
-    <PackageReference Include="Hardened.Shared.Testing.xUnit" />
+    <!-- The runner: [ModuleTest] for xunit.v3 4.x. DependencyModules.NUnit is the other one. -->
+    <PackageReference Include="DependencyModules.xUnit4" />
 <!--#endif -->
 <!--#if (nunit) -->
-    <!-- The runner: [HardenedTest] for NUnit. Hardened.Shared.Testing.xUnit is the other one. -->
-    <PackageReference Include="Hardened.Shared.Testing.NUnit" />
+    <!-- The runner: [ModuleTest] for NUnit. DependencyModules.xUnit4 is the other one. -->
+    <PackageReference Include="DependencyModules.NUnit" />
 <!--#endif -->
     <!-- The mock library behind [Mock]: the support attribute Bootstrap.cs declares, and the
          library itself. -->

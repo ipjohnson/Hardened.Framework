@@ -1,10 +1,10 @@
 using System.Text;
 using Amazon.Lambda.Core;
 using DependencyModules.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Hardened.Aws.Lambda.Runtime.Hosting;
 using Hardened.Aws.Lambda.Sqs;
 using Hardened.IntegrationTests.Events.SUT;
-using Hardened.Shared.Testing.Attributes;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using Xunit;
@@ -32,7 +32,7 @@ public class EnvelopeTests
     /// The same envelope a schedule arrives in, told apart by its source, and bound from its detail
     /// rather than the envelope around it.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ABusEventReachesItsHandlerAndBindsItsDetail(
         IServiceProvider provider,
         [Mock] ITriggerLog log
@@ -54,7 +54,7 @@ public class EnvelopeTests
     /// A source the deployment wired that no handler asked for. Guessing would hand it to code
     /// written for another shape, so the invocation fails and names what the function serves.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task APayloadNoAdapterClaimsFailsTheInvocation(
         IServiceProvider provider,
         [Mock] ITriggerLog log

@@ -251,7 +251,7 @@ All three templates take these options:
 
 | Option | Short name | Values | Default | Selects |
 |---|---|---|---|---|
-| `--test-framework` | `-tf` | `xunit`, `nunit` | `xunit` | xUnit v3 with `Hardened.Shared.Testing.xUnit`, or NUnit 4 with `Hardened.Shared.Testing.NUnit` |
+| `--test-framework` | `-tf` | `xunit`, `nunit` | `xunit` | xUnit v3 4.x with `DependencyModules.xUnit4`, or NUnit 4 with `DependencyModules.NUnit` |
 | `--mocks` | `-mo` on `hardened-web`, `-m` on the other two | `nsubstitute`, `moq`, `fakeiteasy` | `nsubstitute` | The library behind `[Mock]`: the package `DependencyModules.NSubstitute`, `DependencyModules.Moq` or `DependencyModules.FakeItEasy`, and the assembly attribute `NSubstituteSupport`, `MoqSupport` or `FakeItEasySupport` |
 | `--hardened-version` | `-hv` on `hardened-function` and `hardened-library`, none on `hardened-web` | A package version | The version of the template package | The value of `HardenedVersion`. See [Package versions](#package-versions) |
 | `--skip-restore` | None | `true`, `false` | `false` | Skips the restore that `dotnet new` runs after writing the files |

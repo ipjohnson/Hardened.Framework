@@ -21,7 +21,7 @@ public class LinkTests
     /// The path, with no idea where the application is deployed. This is the form for a caller who
     /// wants the route rather than something a client can call.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public Task RoutesBuildThePathFromTheTemplate(ITestWebApp testWebApp)
     {
         Assert.Equal("/binding/path/42", Application.Routes.Binding.FromPath("42"));
@@ -39,7 +39,7 @@ public class LinkTests
     /// names, so they have to be escaped here as well - and <c>LinkGenerator</c> is shared, so a
     /// spec-first route with the same token reaches the same emit sites.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public Task RoutesBuildAPathFromTokensNamedAfterKeywords(ITestWebApp testWebApp)
     {
         Assert.Equal(
@@ -55,7 +55,7 @@ public class LinkTests
     /// which route the link points at - the failure a typed builder exists to prevent, arriving by
     /// another door.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public Task ATokenValueIsEscaped(ITestWebApp testWebApp)
     {
         Assert.Equal("/binding/path/a%2Fb", Application.Routes.Binding.FromPath("a/b"));
@@ -67,7 +67,7 @@ public class LinkTests
     /// A typed token is formatted with the invariant culture, so the same code produces the same
     /// URL on a machine with a different locale.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public Task ATypedTokenIsFormattedInvariantly(ITestWebApp testWebApp)
     {
         Assert.Equal("/binding/path-typed/-7", Application.Routes.Binding.TypedPathToken(-7));
@@ -78,7 +78,7 @@ public class LinkTests
     /// <summary>
     /// The links type is in the container, so a handler can take it as a constructor parameter.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public Task TheLinksTypeResolvesFromTheContainer(ITestWebApp testWebApp)
     {
         Assert.NotNull(testWebApp.RootServiceProvider.GetRequiredService<Application.Links>());
@@ -90,7 +90,7 @@ public class LinkTests
     /// And it goes through the link context, which is what makes a link correct on a host that
     /// strips a prefix before the application sees the path - API Gateway's stage.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public Task ALinkGoesThroughTheLinkContext(ITestWebApp testWebApp)
     {
         var links = new Application.Links(new StageContext());
@@ -105,7 +105,7 @@ public class LinkTests
     }
 
     /// <summary>The default context is the identity, which is right for a host serving the root.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public Task TheDefaultContextLeavesThePathAlone(ITestWebApp testWebApp)
     {
         var links = testWebApp.RootServiceProvider.GetRequiredService<Application.Links>();
@@ -146,7 +146,7 @@ public class LinkTests
     /// and the method under it are both generated, and either one going away breaks the build.
     /// </para>
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public Task AnImportedModulesRoutesAreReachableFromTheApplicationsLinks(Application.Links links)
     {
         Assert.Equal(
@@ -160,7 +160,7 @@ public class LinkTests
     /// <summary>
     /// The property is named for the module, which is the name already written at the import site.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public Task TheImportedPropertyIsNamedForTheModule(Application.Links links)
     {
         Assert.IsType<Hardened.IntegrationTests.Web.SUT.WebLibrary.Links>(links.WebLibrary);

@@ -13,14 +13,17 @@
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="xunit.v3"/>
+        <PackageReference Include="xunit.v3.mtp-off"/>
         <PackageReference Include="DependencyModules.NSubstitute"/>
         <PackageReference Include="NSubstitute"/>
     </ItemGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\Hardened.IntegrationTests.Invoke.SUT\Hardened.IntegrationTests.Invoke.SUT.csproj"/>
-        <ProjectReference Include="..\..\..\..\..\Shared\Hardened.Shared.Testing.xUnit\Hardened.Shared.Testing.xUnit.csproj"/>
+        <ProjectReference Include="..\..\..\..\..\..\..\DependencyModules\src\DependencyModules.xUnit4\DependencyModules.xUnit4.csproj"
+                          Condition="Exists('..\..\..\..\..\..\..\DependencyModules\src\DependencyModules.xUnit4\DependencyModules.xUnit4.csproj')"/>
+        <PackageReference Include="DependencyModules.xUnit4"
+                          Condition="!Exists('..\..\..\..\..\..\..\DependencyModules\src\DependencyModules.xUnit4\DependencyModules.xUnit4.csproj')"/>
         <ProjectReference Include="..\..\..\..\..\Functions\Hardened.Functions.Testing\Hardened.Functions.Testing.csproj"/>
         <ProjectReference Include="..\..\..\Hardened.Aws.Lambda.Testing\Hardened.Aws.Lambda.Testing.csproj"/>
     </ItemGroup>

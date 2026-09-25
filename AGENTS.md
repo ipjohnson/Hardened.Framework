@@ -248,7 +248,7 @@ smithy rows are only ever added to the default list.
 A diff there means the shipped contract changed: review it as an API change, then re-approve
 deliberately.
 
-Twenty assemblies. A source generator package is not among them: it sets
+Fifty-one assemblies. A source generator package is not among them: it sets
 `IncludeBuildOutput=false` and packs an analyzer into `analyzers/dotnet/cs`, so no consumer binds
 against it and there is no `lib` assembly to have a surface.
 

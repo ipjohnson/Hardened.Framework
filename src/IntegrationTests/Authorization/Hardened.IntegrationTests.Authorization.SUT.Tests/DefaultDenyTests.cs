@@ -30,7 +30,7 @@ public class DefaultDenyTests
     /// The case the fixture exists for. The handler declares nothing, no generator emitted a filter
     /// for it specifically, and it still refuses - which is the whole of what "default deny" means.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AHandlerThatSaysNothingRefusesAnAnonymousCaller(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/guarded/implicit");
@@ -38,7 +38,7 @@ public class DefaultDenyTests
         response.Assert.Unauthorized();
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheBackstopRefusalCarriesAChallenge(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/guarded/implicit");
@@ -51,7 +51,7 @@ public class DefaultDenyTests
     /// The backstop asks for authentication and nothing more. A caller who has identified itself
     /// gets through without holding any particular grant, because no handler declared one.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AHandlerThatSaysNothingAdmitsAnyAuthenticatedCaller(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/guarded/implicit", Authenticated());
@@ -63,7 +63,7 @@ public class DefaultDenyTests
 
     #region opting back out
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AllowAnonymousIsReachableWithoutACredential(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/guarded/open");
@@ -75,7 +75,7 @@ public class DefaultDenyTests
     /// Written once on a controller, it covers every route below it - the same reading the build
     /// diagnostic uses, so the two cannot disagree about which handlers are public.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AControllerLevelOptOutCoversEveryRouteInIt(ITestWebApp testWebApp)
     {
         var health = await testWebApp.Get("/public/health");
@@ -94,7 +94,7 @@ public class DefaultDenyTests
     /// for it, and an authenticated caller without it is forbidden rather than admitted by the
     /// weaker default.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ADeclaredGrantStillAppliesUnderTheBackstop(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/guarded/pets", Authenticated());
@@ -102,7 +102,7 @@ public class DefaultDenyTests
         response.Assert.Forbidden();
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ACallerHoldingTheGrantIsAdmitted(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/guarded/pets", Holding("pets:read"));
@@ -114,7 +114,7 @@ public class DefaultDenyTests
     /// No credential is still a 401 rather than a 403, even on a route that declares a grant: the
     /// caller has not failed a permission check, it has not identified itself.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ADeclaredGrantRefusesAnAnonymousCallerWith401(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/guarded/pets");
@@ -122,7 +122,7 @@ public class DefaultDenyTests
         response.Assert.Unauthorized();
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ShortOfOneGrantIsForbiddenAndSaysWhichOne(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/guarded/pets-manage", Holding("pets:read"));
@@ -134,7 +134,7 @@ public class DefaultDenyTests
         Assert.Contains("pets:write", challenge.ToString());
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task HoldingBothGrantsIsAdmitted(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get(
@@ -156,7 +156,7 @@ public class DefaultDenyTests
     /// application can show that such a source reaches the middleware: the whole failure was that
     /// it was registered, resolvable, and never asked.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ATypedSourceAuthenticatesARealRequest(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/guarded/implicit", WithApiKey());
@@ -167,7 +167,7 @@ public class DefaultDenyTests
     /// <summary>
     /// And the principal it built is the one authorization judges, grants included.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ATypedSourcesGrantsAreTheOnesJudged(ITestWebApp testWebApp)
     {
         var admitted = await testWebApp.Get("/guarded/pets", WithApiKey());
@@ -181,7 +181,7 @@ public class DefaultDenyTests
     /// The two forms are one ordered list. A typed source that declines leaves the request to the
     /// plain source registered beside it, rather than ending it.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ATypedSourceDecliningFallsThroughToThePlainOne(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/guarded/implicit", Authenticated());

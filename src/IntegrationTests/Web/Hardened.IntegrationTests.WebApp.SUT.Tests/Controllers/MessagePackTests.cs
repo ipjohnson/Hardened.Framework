@@ -43,7 +43,7 @@ public class MessagePackTests
     /// <summary>
     /// The operation declares JSON first, so a client expressing no preference is answered with it.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AClientWithNoPreferenceGetsTheTypeTheOperationLeadsWith(
         ITestWebApp testWebApp
     )
@@ -55,7 +55,7 @@ public class MessagePackTests
         Assert.StartsWith(KnownContentType.Json, ContentType(response));
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AClientAskingForMessagePackGetsMessagePack(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get(
@@ -73,7 +73,7 @@ public class MessagePackTests
     /// The same operation, the same handler, a different representation. Which is the whole point:
     /// nothing about the handler says which one it answered with.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheSameOperationAnswersJsonForAClientThatAsksForIt(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get(
@@ -94,7 +94,7 @@ public class MessagePackTests
     /// negotiating per request, and the response still carries the content type - which nothing on
     /// that path assigns but the serializer itself.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnOperationDeclaringMessagePackAloneAnswersIt(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/msgpack/packed/4");
@@ -111,7 +111,7 @@ public class MessagePackTests
     /// No attribute declares this. A deserializer is chosen by the inbound <c>Content-Type</c>, so
     /// an operation reads MessagePack because the client sent it.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AMessagePackBodyIsRead(ITestWebApp testWebApp)
     {
         var body = MessagePackSerializer.Serialize(
@@ -140,7 +140,7 @@ public class MessagePackTests
     /// And a JSON body still reads on the same operation, because the reader is chosen per request
     /// rather than declared once.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AJsonBodyStillReadsOnTheSameOperation(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post(
@@ -167,7 +167,7 @@ public class MessagePackTests
     /// throw. Every bind failure, validation failure and authorization refusal on a MessagePack
     /// operation went out that way. See <c>ErrorEnvelopeFormatters</c>.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ARefusalIsAnsweredAsMessagePack(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get(
@@ -202,7 +202,7 @@ public class MessagePackTests
     /// which is why the media type could only be declared on an operation with one outcome.
     /// <c>HardenedFormatterResolver</c> answers for it now.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ADeclaredNotFoundIsAnsweredAsMessagePack(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get(
@@ -226,7 +226,7 @@ public class MessagePackTests
     }
 
     /// <summary>And the success case on the same operation still negotiates.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheSuccessOnTheSameOperationStillAnswersMessagePack(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get(

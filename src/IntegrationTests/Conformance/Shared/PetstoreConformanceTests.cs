@@ -1,4 +1,4 @@
-using Hardened.Shared.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Hardened.Web.Testing;
 using Xunit;
 
@@ -130,7 +130,7 @@ public abstract class PetstoreConformanceTests
 
     private string Because(string what) => $"[{FrontEnd}] {what}";
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ListPets_ReturnsOk(ITestWebApp app)
     {
         var response = await app.Get("/pets");
@@ -141,7 +141,7 @@ public abstract class PetstoreConformanceTests
         );
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task GetPet_WithAKnownId_ReturnsOk(ITestWebApp app)
     {
         var response = await app.Get("/pets/1");
@@ -152,7 +152,7 @@ public abstract class PetstoreConformanceTests
         );
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task GetPet_WithAnUnknownId_ReturnsNotFound(ITestWebApp app)
     {
         var response = await app.Get($"/pets/{AbsentPetId}");
@@ -175,7 +175,7 @@ public abstract class PetstoreConformanceTests
     /// about a URL addressing no endpoint at all. One implementation now serves all three, and this
     /// is what keeps that true.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task GetPet_WithAnEmptyToken_ReturnsNotFound(ITestWebApp app)
     {
         var response = await app.Get("/pets/");
@@ -189,7 +189,7 @@ public abstract class PetstoreConformanceTests
         );
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task CreatePet_ReturnsCreated(ITestWebApp app)
     {
         var response = await app.Post(new { name = "Rex" }, "/pets");
@@ -203,7 +203,7 @@ public abstract class PetstoreConformanceTests
     /// <summary>
     /// A path that exists under another verb is a 405, not a 404 — and it says which verbs it has.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task Pets_WithAnUnsupportedVerb_ReturnsMethodNotAllowed(ITestWebApp app)
     {
         var response = await app.Delete("/pets");
@@ -233,7 +233,7 @@ public abstract class PetstoreConformanceTests
     /// shared ExtractSpecTask base that both formats derive from, and the Smithy fixture simply
     /// never set PublishUrl. It does now.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task Description_IsServedAtTheDeclaredPath(ITestWebApp app)
     {
         var response = await app.Get(DocumentPath);
@@ -271,7 +271,7 @@ public abstract class PetstoreConformanceTests
     /// <summary>
     /// A declared-secure route refuses a caller who presents nothing.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task SecuredRoute_RefusesAnAnonymousCaller(ITestWebApp app)
     {
         var response = await app.Get(SecuredPath);
@@ -295,7 +295,7 @@ public abstract class PetstoreConformanceTests
     /// code-first throws a built-in response type wrapped in <c>ResponseException</c>. Both derive
     /// from <c>StatusCodeException</c>, which is where the two vocabularies already meet.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task DeclaredError_AnswersItsDeclaredStatus(ITestWebApp app)
     {
         var response = await app.Get($"/pets/{ThrottledPetId}");
@@ -317,7 +317,7 @@ public abstract class PetstoreConformanceTests
     /// disagree about it. What they agree on, and what this pins, is that the request is refused —
     /// a 200 would mean the constraint was declared and then not applied.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task MalformedPathToken_IsRefused(ITestWebApp app)
     {
         var response = await app.Get($"/pets/{MalformedPetId}");
@@ -347,7 +347,7 @@ public abstract class PetstoreConformanceTests
     /// of asserting it here rather than in each front-end's own tests.
     /// </para>
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task DeclaredError_AppearsInTheDescription(ITestWebApp app)
     {
         var response = await app.Get(DocumentPath);

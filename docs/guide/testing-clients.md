@@ -5,7 +5,7 @@ client sends its requests through an `HttpClient` whose handler runs the applica
 process, with no socket.
 
 ```csharp
-using Hardened.Shared.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Hardened.Web.Runtime.Responses;
 using Hardened.Web.Testing;
 using Todos.Client;
@@ -14,7 +14,7 @@ namespace Todos.Tests;
 
 public class TodoClientTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task GetTodo_ReturnsTheTodo(TodosClient client)
     {
         var todo = await client.Todos[1].GetAsync().Returns<Ok<ClientModels.Todo>>();
@@ -87,7 +87,7 @@ from them.
 Three more methods of `TodoClientTests` use it:
 
 ```csharp
-[HardenedTest]
+[ModuleTest]
 public async Task CreateTodo_AnswersCreatedWithALocation(TodosClient client)
 {
     var created = await client
@@ -98,7 +98,7 @@ public async Task CreateTodo_AnswersCreatedWithALocation(TodosClient client)
     Assert.Equal($"/todos/{created.Value.Id}", created.Location);
 }
 
-[HardenedTest]
+[ModuleTest]
 public async Task GetTodo_UnknownId_IsATypedNotFound(TodosClient client)
 {
     var missing = await client
@@ -109,7 +109,7 @@ public async Task GetTodo_UnknownId_IsATypedNotFound(TodosClient client)
     Assert.Contains("9999", missing.Body.Detail);
 }
 
-[HardenedTest]
+[ModuleTest]
 public async Task RemoveTodo_AnswersNoContent(TodosClient client)
 {
     await client.Todos[2].DeleteAsync().Returns<NoContent>();
@@ -195,7 +195,7 @@ adds `The client threw a bare ApiException rather than a model, which is what it
 without a type argument:
 
 ```csharp
-[HardenedTest]
+[ModuleTest]
 public async Task GetTodo_UnknownId_IsNotFound(TodosClient client)
 {
     await client.Todos[9999].GetAsync().ReturnsStatus<NotFound>();
@@ -305,7 +305,7 @@ This method of `TodoClientTests` takes one as a parameter, with `using System.Ne
 the file:
 
 ```csharp
-[HardenedTest]
+[ModuleTest]
 public async Task GetTodo_OverAnHttpClient(HttpClient http)
 {
     var todo = await http.GetFromJsonAsync<Todo>(
@@ -334,7 +334,7 @@ This is `tests/Todos.Tests/TodoRefitTests.cs` in a project from
 `dotnet new hardened-web -n Todos --client refit`:
 
 ```csharp
-using Hardened.Shared.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Hardened.Web.Runtime.Responses;
 using Hardened.Web.Testing;
 using Todos.Client;
@@ -343,7 +343,7 @@ namespace Todos.Tests;
 
 public class TodoRefitTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task GetTodo_ReturnsTheTodo(ITodosClient client)
     {
         var todo = await client.GetTodo(1).Returns<Ok<ClientModels.Todo>>();
@@ -351,7 +351,7 @@ public class TodoRefitTests
         Assert.Equal("Read the generated code", todo.Value.Title);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task GetTodo_UnknownId_IsATypedNotFound(ITodosClient client)
     {
         var missing = await client.GetTodo(9999).Returns<NotFound<ClientModels.NotFound>>();
@@ -379,7 +379,7 @@ such as a string where the path takes an `int`, goes through `ITestWebApp`.
 [Sending requests](/guide/testing-web) covers it. This method of `TodoClientTests` sends one:
 
 ```csharp
-[HardenedTest]
+[ModuleTest]
 public async Task GetTodo_MalformedId_IsBadRequest(ITestWebApp app)
 {
     (await app.Get("/todos/not-a-number")).Assert.BadRequest();

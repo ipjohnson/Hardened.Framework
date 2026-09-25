@@ -20,7 +20,7 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 /// </remarks>
 public class EmptySegmentTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task ATrailingSlashDoesNotFillASingleSegmentToken(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/binding/path/");
@@ -32,7 +32,7 @@ public class EmptySegmentTests
     /// The same rule at a token that is not the last thing in the route, where the empty match
     /// came from accepting a boundary at the position the scan started from.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnEmptySegmentDoesNotFillAMidRouteToken(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/binding/pair//second");
@@ -43,7 +43,7 @@ public class EmptySegmentTests
     /// <summary>
     /// A catch-all means the rest of the path, and there is no rest here.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ATrailingSlashDoesNotFillACatchAllToken(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/binding/files/");
@@ -55,7 +55,7 @@ public class EmptySegmentTests
     /// The point of the guard is to reject nothing, not to reject something — a token with a real
     /// value still binds, including a catch-all spanning separators.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ATokenWithAValueStillBinds(ITestWebApp testWebApp)
     {
         var single = await testWebApp.Get("/binding/path/abc");

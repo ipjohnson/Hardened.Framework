@@ -44,7 +44,7 @@
         <PackageVersion Include="DependencyModules.SourceGenerator" Version="$(DependencyModulesVersion)" />
         <PackageVersion Include="DependencyModules.SourceGenerator.Impl" Version="$(DependencyModulesVersion)" />
         <PackageVersion Include="DependencyModules.Testing" Version="$(DependencyModulesVersion)" />
-        <PackageVersion Include="DependencyModules.xUnit" Version="$(DependencyModulesVersion)" />
+        <PackageVersion Include="DependencyModules.xUnit4" Version="$(DependencyModulesVersion)" />
         <PackageVersion Include="Microsoft.Build.Framework" Version="17.8.43" />
         <PackageVersion Include="Microsoft.Build.Utilities.Core" Version="17.8.43" />
         <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4" />
@@ -180,12 +180,20 @@
     </ItemGroup>
 
     <!--
-      xunit.v3, never xunit 2.x. Hardened.Shared.Testing depends on DependencyModules.xUnit, which
-      brings v3, and referencing it alongside 2.x makes every Fact and Assert ambiguous.
+      xunit.v3 4.x, never xunit 2.x. A test project's DependencyModules.xUnit4 brings v3, and
+      referencing it alongside 2.x makes every Fact and Assert ambiguous.
 
-      NUnit is a range because Hardened.Shared.Testing.NUnit ships it as a dependency and the
-      runner reads NUnit's own attributes: a consumer on any 4.x works, a 5.0 has not been checked.
-      It resolves to 4.2.2 for the two test projects that used to name that version directly.
+      A test project references xunit.v3.mtp-off rather than xunit.v3. xunit.v3 4.x brings
+      Microsoft.Testing.Platform v2, which refuses the VSTest `dotnet test` on the .NET 10 SDK and
+      later, and this repository builds with the .NET 11 SDK. mtp-off keeps VSTest, so the
+      runsettings, the Code Coverage collector and the coverage gate stay as they are.
+
+      xunit.v3.assert and xunit.v3.extensibility.core stay on 3.2.2. Only Hardened.Requests.Testing
+      and Hardened.SourceGeneration.Testing reference them, and both ship: a floor of 3.2.2 lets a
+      consumer run on either xunit.v3 major. The tests here run them on 4.x.
+
+      NUnit is the range DependencyModules.NUnit declares. It resolves to 4.2.2 for the two NUnit
+      test projects.
 
       Testcontainers.DynamoDb is pinned, was "4.*". Same reproducibility argument as AWSSDK.
     -->
@@ -206,8 +214,8 @@
         <PackageVersion Include="SimpleFixture.xUnit" Version="4.0.0-RC191" />
         <PackageVersion Include="Testcontainers" Version="4.14.0" />
         <PackageVersion Include="Testcontainers.DynamoDb" Version="4.14.0" />
-        <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
-        <PackageVersion Include="xunit.v3" Version="3.2.2" />
+        <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.0" />
+        <PackageVersion Include="xunit.v3.mtp-off" Version="4.0.1" />
         <PackageVersion Include="xunit.v3.assert" Version="3.2.2" />
         <PackageVersion Include="xunit.v3.extensibility.core" Version="3.2.2" />
     </ItemGroup>

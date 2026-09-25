@@ -2,13 +2,15 @@
 namespace Hardened.Aws.DynamoDbClient
 {
     [Hardened.Shared.Runtime.Attributes.HardenedModule]
-    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     public class DynamoDbClientModule : DependencyModules.Runtime.Interfaces.IDependencyModule
     {
         public DynamoDbClientModule() { }
         public Microsoft.Extensions.DependencyInjection.ServiceProvider CreateServiceProvider(Hardened.Shared.Runtime.Application.IHardenedEnvironment environment, System.Action<Hardened.Shared.Runtime.Application.IHardenedEnvironment, Microsoft.Extensions.DependencyInjection.IServiceCollection>? overrideDependencies, System.Action<Microsoft.Extensions.Logging.ILoggingBuilder>? loggingBuilderAction, System.Action<Hardened.Shared.Runtime.Application.IHardenedEnvironment, Microsoft.Extensions.DependencyInjection.IServiceCollection>? initDependencies = null) { }
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         public override bool Equals(object? obj) { }
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         public override int GetHashCode() { }
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
         public class ConfigurationProvider : Hardened.Shared.Runtime.Configuration.IConfigurationPackage
         {
@@ -21,6 +23,7 @@ namespace Hardened.Aws.DynamoDbClient
     public class DynamoDbClientModuleAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
     {
         public DynamoDbClientModuleAttribute() { }
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
     }
     [DependencyModules.Runtime.Attributes.SingletonService(As=typeof(Hardened.Aws.DynamoDbClient.IDynamoDbClientProvider))]

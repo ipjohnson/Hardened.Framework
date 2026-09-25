@@ -404,7 +404,7 @@ all of them - because all of them are in the signature.
 
 ## Testing
 
-`[HardenedTest]` boots the real application — the module graph, configuration and startup services —
+`[ModuleTest]` boots the real application — the module graph, configuration and startup services —
 and injects what the test asks for. There is no socket, port or running host: every request a test
 sends goes through the in-process pipeline, so it exercises routing, filters, binding and
 serialisation rather than calling a method.
@@ -415,7 +415,7 @@ naming the response type the contract declares - the status, the body type and t
 status carries, in one word. `tests/Hardened1.Tests/TodoTests.cs` drives every operation that way:
 
 ```csharp
-[HardenedTest]
+[ModuleTest]
 #if (kiotaClient)
 public async Task GetTodo_ReturnsTheTodo(TemplateModuleNameClient client) {
     var todo = await client.Todos[1].GetAsync().Returns<Ok<ClientModels.Todo>>();
@@ -440,7 +440,7 @@ what a typed client cannot send - `(await app.Get("/todos/not-a-number")).Assert
 `ITestWebApp` drives the pipeline:
 
 ```csharp
-[HardenedTest]
+[ModuleTest]
 public async Task GetTodo_UnknownId_IsNotFound(ITestWebApp app) {
     (await app.Get("/todos/9999")).Assert.NotFound();
 }

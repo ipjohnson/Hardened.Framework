@@ -59,11 +59,11 @@ routes to whatever application composes it, and `[BasePath]` gives them a prefix
 
 ## Testing
 
-`[HardenedTest]` boots the real module and resolves the test's parameters from its container, so
+`[ModuleTest]` boots the real module and resolves the test's parameters from its container, so
 what runs is the registration a consuming application would get:
 
 ```csharp
-[HardenedTest]
+[ModuleTest]
 public void GreetsByName(IGreetingService greeting) {
 #if (xunit)
     Assert.Equal("Hello, world!", greeting.Greet("world"));

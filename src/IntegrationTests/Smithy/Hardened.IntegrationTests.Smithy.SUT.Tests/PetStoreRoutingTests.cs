@@ -14,7 +14,7 @@ namespace Hardened.IntegrationTests.Smithy.SUT.Tests;
 /// </remarks>
 public class PetStoreRoutingTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task GetPet_BindsThePathLabel(ITestWebApp app)
     {
         var response = await app.Get("/pets/1");
@@ -32,7 +32,7 @@ public class PetStoreRoutingTests
     /// The member is called <c>detailed</c> in the model and binds under <c>verbose</c>, which is
     /// what <c>@httpQuery("verbose")</c> says. The wire name is the contract.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task GetPet_BindsTheQueryParameterUnderItsWireName(ITestWebApp app)
     {
         var withNickname = await app.Get("/pets/2?verbose=true");
@@ -70,7 +70,7 @@ public class PetStoreRoutingTests
     /// resource, and still answer 400.
     /// </para>
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task GetPet_DoesNotMatchAPathLabelFailingThePattern(ITestWebApp app)
     {
         var response = await app.Get("/pets/NOT_VALID");
@@ -78,7 +78,7 @@ public class PetStoreRoutingTests
         response.Assert.NotFound();
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ListPets_ReturnsTheCollection(ITestWebApp app)
     {
         var response = await app.Get("/pets");
@@ -91,7 +91,7 @@ public class PetStoreRoutingTests
         Assert.Equal(2, output.Pets.Count);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ListPets_BindsTheQueryParameter(ITestWebApp app)
     {
         var response = await app.Get("/pets?limit=1");
@@ -101,7 +101,7 @@ public class PetStoreRoutingTests
     }
 
     /// <summary>@range(min: 1, max: 100) on the query member.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ListPets_RejectsALimitOutsideTheDeclaredRange(ITestWebApp app)
     {
         var response = await app.Get("/pets?limit=500");
@@ -113,7 +113,7 @@ public class PetStoreRoutingTests
     /// Every member of the input structure carries no binding trait, so the whole structure is the
     /// JSON body - the case OpenAPI needs a synthesised schema for and Smithy names itself.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task CreatePet_BindsTheInputStructureAsTheBody(ITestWebApp app)
     {
         var response = await app.Post(new { name = "Whiskers", kind = "cat" }, "/pets");
@@ -145,7 +145,7 @@ public class PetStoreRoutingTests
     /// is applied once, in <c>ContextSerializationService</c>.
     /// </para>
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task CreatePet_AppliesTheDeclaredStatusCode(ITestWebApp app)
     {
         var response = await app.Post(new { name = "Rex" }, "/pets");
@@ -154,7 +154,7 @@ public class PetStoreRoutingTests
     }
 
     /// <summary>@length(min: 1, max: 64) on the name member.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task CreatePet_RejectsANameLongerThanTheDeclaredLength(ITestWebApp app)
     {
         var response = await app.Post(new { name = new string('x', 65) }, "/pets");
@@ -166,7 +166,7 @@ public class PetStoreRoutingTests
     /// An enum member is <c>DOG</c> in the model and <c>dog</c> on the wire, because Smithy carries
     /// both and the generated converter uses the second.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task CreatePet_SerialisesAnEnumByItsWireValue(ITestWebApp app)
     {
         var response = await app.Post(new { name = "Rex", kind = "dog" }, "/pets");
@@ -182,7 +182,7 @@ public class PetStoreRoutingTests
         Assert.DoesNotContain("\"DOG\"", body);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task UnknownRoute_IsNotFound(ITestWebApp app)
     {
         var response = await app.Get("/pets/1/toys");
@@ -209,7 +209,7 @@ public class PetStoreRoutingTests
     /// <c>new PetNotFound("...").AsException()</c> instead, as the Throttled route does.
     /// </para>
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task GetPet_AnswersAMissWithTheDeclaredErrorShape(ITestWebApp app)
     {
         var response = await app.Get("/pets/no-such-pet");

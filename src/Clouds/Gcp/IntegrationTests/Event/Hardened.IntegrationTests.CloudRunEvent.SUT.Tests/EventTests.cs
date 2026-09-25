@@ -1,7 +1,7 @@
 using DependencyModules.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Hardened.Functions.Testing;
 using Hardened.IntegrationTests.CloudRunEvent.SUT;
-using Hardened.Shared.Testing.Attributes;
 using Hardened.Web.Kestrel.Runtime;
 using Hardened.Web.Testing;
 using NSubstitute;
@@ -23,7 +23,7 @@ public class EventTests
 {
     private const string Route = "/com.acme.orders/OrderPlaced";
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnEventReachesItsHandlerAndBindsItsData(
         ITriggerDelivery delivery,
         [Mock] ITriggerLog log
@@ -35,7 +35,7 @@ public class EventTests
     }
 
     /// <summary>The wire shape itself, posted by hand: binary mode, the attributes in headers, the data as the body.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ABinaryCloudEventPostedToTheServiceReachesTheHandler(
         ITestWebApp app,
         [Mock] ITriggerLog log
@@ -59,7 +59,7 @@ public class EventTests
     }
 
     /// <summary>A source the deployment wired that no handler asked for is a failure Eventarc sees, not a message swallowed.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnEventNoHandlerDeclaredIsAFailure(
         ITriggerDelivery delivery,
         [Mock] ITriggerLog log
@@ -77,7 +77,7 @@ public class EventTests
 [KestrelRuntime]
 public class EventOverASocketTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnEventReachesItsHandlerAndBindsItsData(
         ITriggerDelivery delivery,
         [Mock] ITriggerLog log
@@ -88,7 +88,7 @@ public class EventOverASocketTests
         log.Received().Record("event:s-1");
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnEventNoHandlerDeclaredIsAFailure(
         ITriggerDelivery delivery,
         [Mock] ITriggerLog log
@@ -104,7 +104,7 @@ public class EventOverASocketTests
 [PipelineDelivery]
 public class PipelineEventTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnEventReachesItsHandlerThroughThePipeline(
         ITriggerDelivery delivery,
         [Mock] ITriggerLog log

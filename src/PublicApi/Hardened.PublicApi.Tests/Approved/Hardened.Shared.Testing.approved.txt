@@ -62,20 +62,6 @@ namespace Hardened.Shared.Testing.Attributes
 }
 namespace Hardened.Shared.Testing
 {
-    public static class CurrentTest
-    {
-        public static System.Reflection.Assembly? Assembly { get; }
-        public static string? DisplayName { get; }
-        public static object? Key { get; }
-        public static Hardened.Shared.Testing.ICurrentTestProvider? Provider { get; set; }
-    }
-    public interface ICurrentTestProvider
-    {
-        System.Reflection.Assembly? Assembly { get; }
-        string? DisplayName { get; }
-        object? Key { get; }
-        Microsoft.Extensions.Logging.ILoggerProvider CreateLoggerProvider();
-    }
     public interface IRetryEngine
     {
         int Delay { get; set; }

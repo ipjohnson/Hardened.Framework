@@ -6,19 +6,13 @@
     <HardenedVersion>0.0.0-HARDENED-VERSION</HardenedVersion>
     <!-- The DependencyModules line the testing packages are on, stamped at pack the way
          HardenedVersion is. Hardened.Shared.Testing depends on DependencyModules.Testing at this
-         version, and the mock package below has to be the same line. -->
+         version, and the runner and mock packages below have to be the same line. -->
     <DependencyModulesVersion>0.0.0-DEPENDENCYMODULES-VERSION</DependencyModulesVersion>
   </PropertyGroup>
 
   <ItemGroup Label="Hardened">
     <PackageVersion Include="Hardened.Shared.Runtime" Version="$(HardenedVersion)" />
     <PackageVersion Include="Hardened.Shared.Testing" Version="$(HardenedVersion)" />
-<!--#if (xunit) -->
-    <PackageVersion Include="Hardened.Shared.Testing.xUnit" Version="$(HardenedVersion)" />
-<!--#endif -->
-<!--#if (nunit) -->
-    <PackageVersion Include="Hardened.Shared.Testing.NUnit" Version="$(HardenedVersion)" />
-<!--#endif -->
   </ItemGroup>
 
   <ItemGroup Label="Hardened source generators">
@@ -29,15 +23,18 @@
 
   <ItemGroup Label="Testing">
 <!--#if (xunit) -->
-    <!-- xUnit v3. Hardened.Shared.Testing.xUnit builds on xunit.v3.extensibility.core, so a test
-         project on xunit 2.x fails with CS0433 on Assert. -->
-    <PackageVersion Include="xunit.v3" Version="3.2.2" />
-    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
+    <!-- xUnit v3, version 4. DependencyModules.xUnit4 builds on xunit.v3.extensibility.core 4.x,
+         so a test project on xunit 2.x fails with CS0433 on Assert. DependencyModules.xUnit is the
+         runner for xunit.v3 3.x. -->
+    <PackageVersion Include="DependencyModules.xUnit4" Version="$(DependencyModulesVersion)" />
+    <PackageVersion Include="xunit.v3" Version="4.0.1" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.0" />
 <!--#endif -->
 <!--#if (nunit) -->
-    <!-- NUnit 4. Hardened.Shared.Testing.NUnit takes NUnit as [4.2.2, 5.0.0): the runner reads
+    <!-- NUnit 4. DependencyModules.NUnit takes NUnit as [4.2.2, 5.0.0): the runner reads
          TestContext and TestExecutionContext from the framework package itself, and a major version
          is where those are free to change shape. -->
+    <PackageVersion Include="DependencyModules.NUnit" Version="$(DependencyModulesVersion)" />
     <PackageVersion Include="NUnit" Version="4.2.2" />
     <PackageVersion Include="NUnit3TestAdapter" Version="4.6.0" />
 <!--#endif -->

@@ -31,7 +31,7 @@ public class RawBodyTests
     /// The defect. Every <c>Content-Type</c> answered 400 with a field-level envelope naming the
     /// parameter, including the one the operation publishes.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task Bytes_ReachTheHandlerWhateverTheContentType(ITestWebApp testWebApp)
     {
         foreach (var contentType in new[] { "application/octet-stream", "application/json", null })
@@ -52,7 +52,7 @@ public class RawBodyTests
     /// A <c>Stream</c> parameter is the transport's own body, unread, which is the point of asking
     /// for one rather than a <c>byte[]</c>.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AStreamParameterIsTheBody(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Put(Payload, "/raw-body/stream", Sending(null));
@@ -70,7 +70,7 @@ public class RawBodyTests
     /// missing body gets. It is the only reading under which <c>required</c> means anything here: a
     /// transport delivers "no body" and <c>Content-Length: 0</c> as the same empty stream.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ARequiredBlobWithNoBodyIsRefusedByName(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Put(Array.Empty<byte>(), "/raw-body/bytes", Sending(null));
@@ -81,7 +81,7 @@ public class RawBodyTests
     }
 
     /// <summary>And a nullable one reaches the handler instead, which is what declaring it said.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnOptionalBlobWithNoBodyReachesTheHandler(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Put(

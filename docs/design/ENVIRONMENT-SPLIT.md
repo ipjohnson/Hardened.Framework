@@ -68,7 +68,7 @@ public class SmtpEmailSender : IEmailSender { }
 Under the documented host shape, a developer running locally gets `SmtpEmailSender`.
 
 **And the tests pass.** `TestApplication` calls `ConfigureModule(environment, serviceCollection)`,
-which passes the Hardened environment explicitly, so under `[HardenedTest]` the two environments
+which passes the Hardened environment explicitly, so under `[ModuleTest]` the two environments
 are the same object and `[EnvironmentName("production")]` behaves exactly as documented. Green
 tests, different production behaviour — the same shape as `IStartupService` not running under the
 ASP.NET host.

@@ -33,17 +33,24 @@ namespace Hardened.Azure.Functions.CosmosDb
         public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
         public override bool Equals(object? obj) { }
         public override int GetHashCode() { }
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
     }
     [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter, AllowMultiple=true)]
     public class CosmosDbModuleAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
     {
         public CosmosDbModuleAttribute() { }
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         public string Connection { get; set; }
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         public string Database { get; set; }
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         public string LeaseContainer { get; set; }
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         public int RetryCount { get; set; }
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         public string RetryDelay { get; set; }
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
     }
     public class CosmosDbRequest : Hardened.Azure.Functions.Runtime.Execution.FunctionsPayloadRequest, Hardened.Requests.Abstract.Execution.IBatchRequest

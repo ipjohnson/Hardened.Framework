@@ -25,7 +25,7 @@ public class DescribedSecurityTests
     /// <summary>
     /// A scope in the description refuses a caller who holds nothing.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ADescribedScopeRefusesAnAnonymousCaller(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/secured/scoped");
@@ -43,7 +43,7 @@ public class DescribedSecurityTests
     /// unscoped alternative as the absence of a requirement would have made this route public while
     /// its description said otherwise.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnUnscopedAlternativeStillRefusesAnAnonymousCaller(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/secured/either");
@@ -68,7 +68,7 @@ public class DescribedSecurityTests
     /// reason phrase and nothing about the request - the same instances a null return writes.
     /// </para>
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ADeclaredRefusalAnswersTheDeclaredBody(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/secured/either");
@@ -94,7 +94,7 @@ public class DescribedSecurityTests
     /// document publishes the framework's <c>ErrorModel</c> for it and the refusal has to keep
     /// sending that.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ARefusalWithNoDeclaredBodyKeepsTheGenericOne(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/secured/scoped");
@@ -120,7 +120,7 @@ public class DescribedSecurityTests
     /// declared, so it may narrow a route and must never open one - and with nothing else guarding
     /// this application the route answers.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ARouteDeclaredPublicIsNotGuarded(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/stores");
@@ -131,7 +131,7 @@ public class DescribedSecurityTests
     /// <summary>
     /// A route the description says nothing about is untouched.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ARouteWithNoDeclaredSecurityIsNotGuarded(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/pets");
@@ -148,7 +148,7 @@ public class DescribedSecurityTests
     /// hand-rolled plumbing, and both spec-first arms of the trial invented the same bridge
     /// independently. <c>ICurrentCaller</c> is that bridge, shipped and injected by constructor.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AHandlerReadsTheCallerAndAdmitsTheOwner(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get(
@@ -163,7 +163,7 @@ public class DescribedSecurityTests
     /// The refusal the contract cannot express. Both requests hold the grant the description asks
     /// for and pass authorization; only the handler can tell which of them owns the row.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AHandlerReadsTheCallerAndRefusesSomebodyElse(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/secured/owned/somebody-else", Holding("pets:read"));
@@ -176,7 +176,7 @@ public class DescribedSecurityTests
     /// shape either way and never checks for null. Authorization refuses this one first, which is
     /// the arrangement: what a caller may do is judged before the handler runs.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnAnonymousRequestIsRefusedBeforeTheHandlerReadsAnything(
         ITestWebApp testWebApp
     )

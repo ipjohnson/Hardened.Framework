@@ -1,6 +1,6 @@
 using DependencyModules.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Hardened.IntegrationTests.Events.SUT;
-using Hardened.Shared.Testing.Attributes;
 using NSubstitute;
 using Xunit;
 
@@ -21,7 +21,7 @@ namespace Hardened.IntegrationTests.Events.SUT.Tests;
 /// </remarks>
 public class FailedHandlerTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task AFailedTimerHandlerFailsTheInvocation(
         EventsTestApp.Timers timers,
         [Mock] ITriggerLog log

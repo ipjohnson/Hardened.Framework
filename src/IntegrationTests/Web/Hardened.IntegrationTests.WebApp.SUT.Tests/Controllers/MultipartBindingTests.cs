@@ -10,7 +10,7 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 /// </summary>
 public class MultipartBindingTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task RequestBenchsUploadAnswersAsCarterDid(ITestWebApp testWebApp)
     {
         var response = await Uploads.Post(testWebApp, "/form/upload", Uploads.RequestBench());
@@ -23,7 +23,7 @@ public class MultipartBindingTests
     /// .NET's own client quotes its boundary, leaves names bare and sends <c>filename*</c> beside
     /// <c>filename</c>, which is how Carter's tests build the request.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task DotNetsMultipartContentIsRead(ITestWebApp testWebApp)
     {
         using var content = new MultipartFormDataContent();
@@ -46,7 +46,7 @@ public class MultipartBindingTests
         Assert.Equal(Uploads.Answer, await response.ReadTextAsync());
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task CurlsMultipartBodyIsRead(ITestWebApp testWebApp)
     {
         const string boundary = "------------------------a1b2c3d4e5f60718";
@@ -62,7 +62,7 @@ public class MultipartBindingTests
         Assert.Equal(Uploads.Answer, await response.ReadTextAsync());
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AModelBindsTheFieldsAndTheFile(ITestWebApp testWebApp)
     {
         var response = await Uploads.Post(testWebApp, "/form/upload-model", Uploads.RequestBench());
@@ -72,7 +72,7 @@ public class MultipartBindingTests
     }
 
     /// <summary>A missing file is refused the way a missing field is.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AMissingFileIsRequiredByName(ITestWebApp testWebApp)
     {
         var body = Encoding.UTF8.GetBytes(
@@ -102,7 +102,7 @@ public class MultipartBindingTests
     /// <summary>
     /// A body cut off inside a part is refused the way a malformed JSON body is.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ATruncatedBodyIsAnInvalidBody(ITestWebApp testWebApp)
     {
         var whole = Uploads.RequestBench();
@@ -117,7 +117,7 @@ public class MultipartBindingTests
         Assert.Equal("invalid", error.Code);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ABodyPastTheCapIsTooLarge(ITestWebApp testWebApp)
     {
         var response = await Uploads.Post(
@@ -130,7 +130,7 @@ public class MultipartBindingTests
     }
 
     /// <summary>Every byte of a file arrives, including the ones that are not UTF-8.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AFileKeepsEveryByte(ITestWebApp testWebApp)
     {
         var binary = Enumerable.Range(0, 256).Select(value => (byte)value).ToArray();
@@ -145,7 +145,7 @@ public class MultipartBindingTests
         Assert.Equal(binary, Uploads.Bytes(response));
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task SeveralFilesBindUnderOneName(ITestWebApp testWebApp)
     {
         var body = Encoding.UTF8.GetBytes(
@@ -175,7 +175,7 @@ public class MultipartBindingTests
 [KestrelRuntime]
 public class MultipartOverSocketTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task RequestBenchsUploadAnswersAsCarterDid(ITestWebApp testWebApp)
     {
         var response = await Uploads.Post(testWebApp, "/form/upload", Uploads.RequestBench());
@@ -184,7 +184,7 @@ public class MultipartOverSocketTests
         Assert.Equal(Uploads.Answer, await response.ReadTextAsync());
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AFileKeepsEveryByte(ITestWebApp testWebApp)
     {
         var binary = Enumerable.Range(0, 256).Select(value => (byte)value).ToArray();
@@ -199,7 +199,7 @@ public class MultipartOverSocketTests
         Assert.Equal(binary, Uploads.Bytes(response));
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ABodyPastTheCapIsTooLarge(ITestWebApp testWebApp)
     {
         var response = await Uploads.Post(

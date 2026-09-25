@@ -22,7 +22,7 @@ namespace Hardened.IntegrationTests.OpenApi.SUT.Tests;
 /// </remarks>
 public class DeclaredResponseHeaderTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task CreatePet_SendsTheLocationTheDescriptionDeclares(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post(
@@ -44,7 +44,7 @@ public class DeclaredResponseHeaderTests
     /// every read. That is the reason a success declaring a header is wrapped and one declaring
     /// none is left as the bare payload it always was.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task GetPet_SendsNoLocation(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/pets/1");

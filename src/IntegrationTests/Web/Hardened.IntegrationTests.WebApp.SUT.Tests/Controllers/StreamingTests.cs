@@ -27,7 +27,7 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 /// </summary>
 public class StreamingTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task AStreamOfModelsIsOneJsonDocumentPerLine(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/streaming/models");
@@ -59,7 +59,7 @@ public class StreamingTests
     /// events will depend on outright, since an <c>EventSource</c> refuses anything that is not
     /// <c>text/event-stream</c>.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AStreamKeepsItsOwnContentType(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/streaming/models");
@@ -89,7 +89,7 @@ public class StreamingTests
     /// through a real response for that one.
     /// </para>
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task EvenAStreamOfStringsIsValidJsonPerLine(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/streaming/strings");
@@ -124,7 +124,7 @@ public class StreamingTests
     /// reaches for it.
     /// </para>
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ACancellableIteratorSignatureBinds(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/streaming/cancellable");
@@ -163,7 +163,7 @@ public class StreamingTests
     /// whose content type is anything else, so a stream that framed correctly and answered
     /// <c>application/json</c> would be rejected before a single event was read.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task EventsAreDataLinesSeparatedByBlankLines(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/streaming/events");
@@ -196,7 +196,7 @@ public class StreamingTests
     /// beside it, which reads as working right up until a client dispatches on the event name and
     /// finds it in two places.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task EventFieldsAreWrittenBesideThePayloadNotInsideIt(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/streaming/events-with-ids");
@@ -227,7 +227,7 @@ public class StreamingTests
     /// Function URLs do not close promptly - a reader waiting on one hangs. A comment is the one
     /// thing every client is required to discard, so it costs three bytes and nothing else.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnEmptyEventStreamSendsAComment(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/streaming/events-empty");
@@ -245,7 +245,7 @@ public class StreamingTests
     /// written. Appending the empty-stream comment unconditionally would dispatch a spurious event
     /// at the end of every stream.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ANonEmptyEventStreamHasNoTrailingComment(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/streaming/events");
@@ -263,7 +263,7 @@ public class StreamingTests
     /// <summary>
     /// The client comes back with the last id it saw, and the handler resumes after it.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AReconnectWithLastEventIdResumesAfterThatEvent(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get(
@@ -287,7 +287,7 @@ public class StreamingTests
         );
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AReconnectWithNoLastEventIdStartsFromTheBeginning(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/streaming/events-resume");
@@ -305,7 +305,7 @@ public class StreamingTests
     /// be a real 204: no content type, no completion comment. Kestrel aborts a 204 that carries a
     /// body, and the client reads an abort as a network error and reconnects from it.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AReconnectPastTheLastEventIsA204WithNoBody(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get(
@@ -321,7 +321,7 @@ public class StreamingTests
     /// <summary>
     /// API Gateway payload 2.0 and a function URL deliver header names in lower case.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheLastEventIdHeaderIsReadCaseInsensitively(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get(
@@ -360,7 +360,7 @@ public class StreamingTests
     /// that is the header the negotiation has to look past. Reading the code said the default
     /// serializer catches this; this is the run.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ARefusalOnAnSseRouteIsJsonNotAHalfOpenEventStream(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/streaming/events-guarded", AsAnEventSource());
@@ -380,7 +380,7 @@ public class StreamingTests
     }
 
     /// <summary>The newline-delimited twin: no framing, no trailing newline, just the error.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ARefusalOnAStreamedRouteDoesNotEmitTheFramingPrologue(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/streaming/models-guarded");
@@ -402,7 +402,7 @@ public class StreamingTests
     /// A throw before the first event has nothing on the wire yet, so there is still a whole
     /// response to answer with, and it is the same error document a buffered handler's throw gets.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AFailureBeforeTheFirstEventIsAnErrorDocument(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get(
@@ -434,7 +434,7 @@ public class StreamingTests
     /// tear-down itself, and there is no connection here to tear down.
     /// </para>
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AFailureAfterTheFirstEventEndsTheStream(ITestWebApp testWebApp)
     {
         var failure = await Assert.ThrowsAsync<InvalidOperationException>(() =>
@@ -455,7 +455,7 @@ public class StreamingTests
     /// attribute. Row 14 of the test-gap findings suspected a duplicate here; this pins that the
     /// construction rules it out.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ARetryAfterTheFirstItemIsWrittenDoesNotDuplicateIt(ITestWebApp testWebApp)
     {
         var before = StreamingController.RetryAfterFirstEnumerations;
@@ -471,7 +471,7 @@ public class StreamingTests
     /// What a retry does cover on a streaming handler: the call. A handler that fails to produce
     /// the sequence is called again, and the events arrive.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ARetryOnAStreamingHandlerRetriesTheCall(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/streaming/events-retry-call");
@@ -500,7 +500,7 @@ public class StreamingTests
     /// handler waits 100 ms at a 10 ms interval, and how many timers fire in that window is the
     /// scheduler's business.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     [HeartbeatEvery(10)]
     public async Task AHeartbeatArrivesBetweenSlowEvents(ITestWebApp testWebApp)
     {
@@ -521,7 +521,7 @@ public class StreamingTests
     /// <c>X-Accel-Buffering: no</c> turns off nginx's per-response buffering. Both are inert
     /// where they do not apply.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnEventStreamCarriesNoCacheAndNoAccelBuffering(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/streaming/events");
@@ -533,7 +533,7 @@ public class StreamingTests
     }
 
     /// <summary>A newline-delimited response is an ordinary representation, and says nothing.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ANewlineDelimitedStreamCarriesNeitherHeader(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/streaming/models");
@@ -554,7 +554,7 @@ public class StreamingTests
     /// promptly and a reader waiting on one hangs. It has been in the filter from the start and has
     /// never been asserted through a real response until now.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnEmptyStreamStillTerminates(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/streaming/empty");

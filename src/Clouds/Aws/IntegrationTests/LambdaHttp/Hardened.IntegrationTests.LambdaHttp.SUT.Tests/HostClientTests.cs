@@ -1,7 +1,7 @@
 using System.Net.Http.Json;
 using DependencyModules.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Hardened.IntegrationTests.LambdaHttp.SUT;
-using Hardened.Shared.Testing.Attributes;
 using Hardened.Web.Testing;
 using Xunit;
 
@@ -25,7 +25,7 @@ namespace Hardened.IntegrationTests.LambdaHttp.SUT.Tests;
 /// </remarks>
 public class HostClientTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task AClientReachesTheHandlerThroughTheHost(HttpClient client)
     {
         var order = await client.GetFromJsonAsync<Order>("/orders/c-1");
@@ -43,7 +43,7 @@ public class HostClientTests
     /// something a test holds. Both calls answer, which is the whole claim: nothing the first
     /// invocation left behind was needed by the second.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task EachRequestGetsItsOwnEnvironment(HttpClient client)
     {
         var first = await client.GetFromJsonAsync<Order>("/orders/c-1");
@@ -57,7 +57,7 @@ public class HostClientTests
     /// A client marked <c>[Shared]</c> sends every request to the container the test was resolved
     /// from, which is the warm sandbox a test whose subject is the reuse asks for.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ASharedClientStillAnswers([Shared] HttpClient client)
     {
         var order = await client.GetFromJsonAsync<Order>("/orders/c-3");
@@ -75,7 +75,7 @@ public class HostClientTests
     /// about the deployment, not a preference - a sandbox is not promised between invocations, so a
     /// handler leaning on what the last one left behind has to fail here.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public void TheHostRebuildsItsContainerPerInvocation(ITestHost host)
     {
         Assert.Equal(TestContainerPolicy.PerInvocation, host.ContainerPolicy);

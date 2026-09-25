@@ -1,5 +1,5 @@
 using System.Text;
-using Hardened.Shared.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Hardened.Web.Testing;
 using Xunit;
 
@@ -16,7 +16,7 @@ namespace Hardened.IntegrationTests.LambdaHttp.SUT.Tests;
 /// </remarks>
 public class UploadTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task AFileKeepsEveryByte(ITestWebApp app)
     {
         var binary = Enumerable.Range(0, 256).Select(value => (byte)value).ToArray();

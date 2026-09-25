@@ -25,7 +25,7 @@ namespace Hardened.IntegrationTests.OpenApi.SUT.Tests;
 /// </remarks>
 public class EnumVocabularyTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task ADeclaredValueBindsAsAQueryParameter(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/pets/search?q=Buddy&species=guinea-pig");
@@ -45,7 +45,7 @@ public class EnumVocabularyTests
     /// The inverse of the defect. Accepting both would leave two vocabularies in place and let a
     /// client keep working by accident against a value the contract does not describe.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheCSharpMemberNameDoesNotBindAsAQueryParameter(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/pets/search?q=Buddy&species=GuineaPig");
@@ -53,7 +53,7 @@ public class EnumVocabularyTests
         response.Assert.BadRequest();
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnUndeclaredValueIsRefusedAsAQueryParameter(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/pets/search?q=Buddy&species=ferret");
@@ -62,7 +62,7 @@ public class EnumVocabularyTests
     }
 
     /// <summary>An integer enum binds by its declared number.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnIntegerEnumBindsByItsDeclaredNumber(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/pets/search?q=Buddy&size=25");
@@ -72,7 +72,7 @@ public class EnumVocabularyTests
         Assert.Equal(PetSize.Large, response.Deserialize<List<Pet>>()![0].Size);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnUndeclaredNumberIsRefusedForAnIntegerEnum(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/pets/search?q=Buddy&size=7");
@@ -83,7 +83,7 @@ public class EnumVocabularyTests
     /// <summary>
     /// The response carries the document's value, not the C# member name.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AResponseCarriesTheDeclaredValue(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/pets/search?q=Buddy&species=guinea-pig&size=5");
@@ -109,7 +109,7 @@ public class EnumVocabularyTests
     /// posting a generated record with an enum in it got a 500 - the request deserializer builds its
     /// own options, honours the type's attribute, and refused the member name this had written.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public void TheSharedSerializerWritesTheDeclaredValue(ITestWebApp testWebApp)
     {
         var serializer = testWebApp.RootServiceProvider.GetRequiredService<IJsonSerializer>();
@@ -132,7 +132,7 @@ public class EnumVocabularyTests
     /// application's own deserializer. This threw <c>JsonException</c> before, which the pipeline
     /// then reported as a 500.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public void ASharedSerializerRoundTripKeepsTheMember(ITestWebApp testWebApp)
     {
         var serializer = testWebApp.RootServiceProvider.GetRequiredService<IJsonSerializer>();
@@ -151,7 +151,7 @@ public class EnumVocabularyTests
     /// <summary>
     /// A body carrying a declared value is accepted through the real pipeline.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ADeclaredValueIsAcceptedInARequestBody(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post(
@@ -170,7 +170,7 @@ public class EnumVocabularyTests
     /// The generated converter diagnoses it precisely and raises <c>JsonException</c> to say so,
     /// which used to arrive as a 500 with the parser's text echoed to the caller.
     /// </remarks>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnUndeclaredValueInABodyIs400(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Post(

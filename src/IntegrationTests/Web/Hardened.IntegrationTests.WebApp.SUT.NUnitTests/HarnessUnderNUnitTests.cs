@@ -17,7 +17,7 @@ public class HarnessUnderNUnitTests
 {
     private static CancellationToken Token => TestContext.CurrentContext.CancellationToken;
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ARequestThroughTheHarnessAnswers(ITestWebApp app)
     {
         var response = await app.Get("/verbs/item/1");
@@ -26,7 +26,7 @@ public class HarnessUnderNUnitTests
         Assert.That(response.Deserialize<string>(), Is.EqualTo("got:1"));
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AMockBehindARouteIsTheOneTheHandlerSees(
         ITestWebApp app,
         [Mock] IMathService<int> math
@@ -40,7 +40,7 @@ public class HarnessUnderNUnitTests
         Assert.That(response.Deserialize<int>(), Is.EqualTo(100));
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AGeneratedClientIsAParameterAndReturnsReadsIt(WebAppClient client)
     {
         var created = await client
@@ -54,7 +54,7 @@ public class HarnessUnderNUnitTests
         Assert.That(created.Location, Is.EqualTo("/verbs/item/3"));
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ARefitInterfaceIsAParameterAndReturnsReadsIt(IWebAppApi api)
     {
         var created = await api.CreateLocated(new MathAddModel { Values = [1, 2, 3] })
@@ -63,7 +63,7 @@ public class HarnessUnderNUnitTests
         Assert.That(created.Location, Is.EqualTo("/verbs/item/3"));
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task LastResponseIsKeyedOnTheRunningTest(WebAppClient client)
     {
         await client.Verbs.Emptied.DeleteAsync(cancellationToken: Token);
@@ -71,7 +71,7 @@ public class HarnessUnderNUnitTests
         Assert.That(LastResponse.Status, Is.EqualTo(204));
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task TwoParametersCarryTwoCredentials(
         [Grants("pets:read")] WebAppClient reader,
         [Anonymous] WebAppClient nobody
@@ -86,7 +86,7 @@ public class HarnessUnderNUnitTests
         Assert.That(refused!.ResponseStatusCode, Is.EqualTo(401));
     }
 
-    [HardenedTest]
+    [ModuleTest]
     [Grants("pets:read")]
     public async Task TheCredentialInScopeReachesARefitCall(IWebAppApi api)
     {
@@ -96,7 +96,7 @@ public class HarnessUnderNUnitTests
     }
 
     /// <summary>A refusal from the harness's own assertion reads as this test's failure, with its message.</summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheHarnessAssertionNamesTheStatus(ITestWebApp app)
     {
         var response = await app.Get("/no/such/route");

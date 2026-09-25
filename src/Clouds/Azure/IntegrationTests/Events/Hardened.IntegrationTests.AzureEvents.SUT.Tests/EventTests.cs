@@ -1,7 +1,7 @@
 using DependencyModules.Testing.Attributes;
+using DependencyModules.xUnit.Attributes;
 using Hardened.Functions.Testing;
 using Hardened.IntegrationTests.AzureEvents.SUT;
-using Hardened.Shared.Testing.Attributes;
 using NSubstitute;
 using Xunit;
 
@@ -20,7 +20,7 @@ namespace Hardened.IntegrationTests.AzureEvents.SUT.Tests;
 /// </summary>
 public class EventTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnEventReachesItsHandlerAndBindsItsData(
         ITriggerDelivery delivery,
         [Mock] ITriggerLog log
@@ -41,7 +41,7 @@ public class EventTests
     /// is a deployment fault, and Event Grid retrying and then dead-lettering is what makes it
     /// visible.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnEventOfAnotherTypeFailsTheInvocation(
         ITriggerDelivery delivery,
         [Mock] ITriggerLog log

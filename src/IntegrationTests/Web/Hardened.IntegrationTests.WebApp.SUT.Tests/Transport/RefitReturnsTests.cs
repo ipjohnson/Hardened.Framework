@@ -17,7 +17,7 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Transport;
 /// </remarks>
 public class RefitReturnsTests
 {
-    [HardenedTest]
+    [ModuleTest]
     public async Task ACreatedResponseCarriesItsBodyAndItsLocation(IWebAppApi api)
     {
         var created = await api.CreateLocated(new MathAddModel { Values = [1, 2, 3] })
@@ -27,19 +27,19 @@ public class RefitReturnsTests
         Assert.Equal("/verbs/item/3", created.Location);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheOtherCaseOfTheSetAnswersItsStatus(IWebAppApi api)
     {
         await api.CreateLocated(new MathAddModel { Values = [] }).ReturnsStatus<BadRequest>();
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ADeclared204IsNoContent(IWebAppApi api)
     {
         await api.Empty().Returns<NoContent>();
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task ATwoHundredCarriesTheBodyAndEveryHeader(IWebAppApi api)
     {
         var answer = await api.Add(new MathAddModel { Values = [1, 2, 3] }).Returns<Ok<int>>();
@@ -52,7 +52,7 @@ public class RefitReturnsTests
     /// Refit has no error mapping, so the 422's body is read as the expectation's type argument
     /// through the client's own serializer - here the framework's own model of the refusal.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task ADeclaredRefusalIsReadThroughTheClientsSerializer(IWebAppApi api)
     {
         var refused = await api.RegisterDeclaring422(
@@ -66,7 +66,7 @@ public class RefitReturnsTests
         );
     }
 
-    [HardenedTest]
+    [ModuleTest]
     [Grants("pets:write")]
     public async Task AGuardsRefusalIsTheErrorModelAt403(IWebAppApi api)
     {
@@ -75,13 +75,13 @@ public class RefitReturnsTests
         Assert.Equal("This request is not permitted.", forbidden.Body.Message);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AnUndeclaredRefusalAnswersItsStatus(IWebAppApi api)
     {
         await api.Pets().ReturnsStatus<Unauthorized>();
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task TheWrongExpectationNamesBothStatuses(IWebAppApi api)
     {
         var failure = await Assert.ThrowsAsync<InvalidOperationException>(() =>
@@ -96,7 +96,7 @@ public class RefitReturnsTests
     /// A method returning the body alone has dropped the status, and the failure says which
     /// Refitter option puts it back.
     /// </summary>
-    [HardenedTest]
+    [ModuleTest]
     public async Task AMethodReturningTheBodyAloneCannotBeAnExpectation(IWebAppApi api)
     {
         var failure = await Assert.ThrowsAsync<InvalidOperationException>(() =>
@@ -107,7 +107,7 @@ public class RefitReturnsTests
         Assert.Contains("--use-api-response", failure.Message);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task TwoClientsInOneTestEachAnswerForTheirOwnCall(
         [Grants("pets:read")] IWebAppApi reader,
         [Anonymous] IWebAppApi nobody
@@ -120,7 +120,7 @@ public class RefitReturnsTests
         Assert.Equal("\"pets\"", pets.Value);
     }
 
-    [HardenedTest]
+    [ModuleTest]
     public async Task AClientCreatedInsideTheTestIsBuiltByTheSameRoute(ITestWebApp app)
     {
         var api = app.CreateClient<IWebAppApi>(new TestCredential(["pets:read"]));
