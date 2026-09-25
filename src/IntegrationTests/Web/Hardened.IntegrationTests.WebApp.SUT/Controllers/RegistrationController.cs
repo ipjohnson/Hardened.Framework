@@ -4,6 +4,7 @@ using Hardened.Requests.Runtime.Validation;
 using Hardened.Web.Runtime.Attributes;
 using Hardened.Web.Runtime.Responses;
 using ValidationModules;
+using ValidationModules.Constraints;
 // Both namespaces declare a ValidationException, which is CS0104 without this. Either reaches the
 // same response - ExceptionToModelConverter maps one shape from both - so which is aliased is a
 // choice, and Hardened's is the one this controller means.
@@ -53,6 +54,16 @@ public class RegistrationController
     [Post("/anonymous")]
     public string Unconstrained(MathAddModel model) =>
         string.Join(",", model.Values ?? new List<int>());
+
+    /// <summary>
+    /// A query value checked against a pattern that gives up after 50 milliseconds.
+    /// </summary>
+    [Get("/nested")]
+    public string Nested(
+        [FromQueryString]
+        [Pattern(typeof(RegistrationPatterns), nameof(RegistrationPatterns.Nested))]
+            string value
+    ) => value;
 
     /// <summary>
     /// The same model, refused at the first rule it breaks rather than with every one.

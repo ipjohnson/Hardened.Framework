@@ -177,6 +177,29 @@ first example's `NewList`:
 `capacity` is in `required` because its type is `int`.
 [The OpenAPI document](/guide/openapi-document) covers the rest of the schema.
 
+### A timeout on a pattern
+
+`[Pattern(typeof(T), nameof(T.Member))]` uses the `[GeneratedRegex]` method you declare, with the
+timeout you give it. Without a timeout, a pattern that backtracks catastrophically, such as
+`^(a+)+$`, runs on the request's thread for as long as a crafted value makes it. Give the method a
+timeout:
+
+```csharp
+using System.Text.RegularExpressions;
+
+namespace Todos;
+
+public static partial class TodoPatterns
+{
+    [GeneratedRegex("^[a-z0-9-]+$", RegexOptions.None, matchTimeoutMilliseconds: 2000)]
+    public static partial Regex Slug();
+}
+```
+
+A match that runs past its timeout throws `RegexMatchTimeoutException`, and the request answers 500.
+A `pattern` from an OpenAPI document or a Smithy model gets a timeout of 2,000 milliseconds. That is
+also the default of .NET's `RegularExpressionAttribute`.
+
 ## Constraints on parameters
 
 A constraint on a path, query or header parameter is checked like one on a model's member. The

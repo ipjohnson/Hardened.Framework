@@ -25,6 +25,29 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 public class RegistrationValidationTests
 {
     /// <summary>
+    /// A pattern that backtracks catastrophically on the value throws at its timeout, and the
+    /// request answers 500 rather than holding its thread.
+    /// </summary>
+    [HardenedTest]
+    public async Task APatternPastItsTimeoutAnswers500(ITestWebApp testWebApp)
+    {
+        var response = await testWebApp.Get(
+            "/registration/nested?value=" + new string('a', 32) + "!"
+        );
+
+        Assert.Equal(500, response.StatusCode);
+    }
+
+    [HardenedTest]
+    public async Task AValueThePatternMatchesIsAccepted(ITestWebApp testWebApp)
+    {
+        var response = await testWebApp.Get("/registration/nested?value=aaaa");
+
+        response.Assert.Ok();
+        Assert.Equal("aaaa", response.Deserialize<string>());
+    }
+
+    /// <summary>
     /// A route declaring <c>[ValidationMode(StopOnFirstError)]</c> reports the first rule the body
     /// breaks, where the same body at <c>/registration</c> reports both.
     /// </summary>

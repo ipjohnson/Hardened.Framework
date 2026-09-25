@@ -518,7 +518,9 @@ covers the attributes and the 400.
 drops a keyword that the member's type cannot carry, such as a `minimum` on a string.
 
 A `pattern` becomes a `[GeneratedRegex]` member of `<File>Patterns`. A `pattern` on a path parameter
-is part of the route. A path value that does not match answers 404, not 400.
+is part of the route. A path value that does not match answers 404, not 400. Each member has a
+match timeout of 2,000 milliseconds, in the route and in validation.
+[Validation](/guide/validation#a-timeout-on-a-pattern) covers the timeout.
 
 An operation with a constraint gets `I<Method>Parameters`, with a property for each parameter and
 `body` for the request body. The generated handler checks it.

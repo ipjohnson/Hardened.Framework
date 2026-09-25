@@ -1,4 +1,6 @@
+using System.Reflection;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Hardened.Requests.Runtime.Validation;
 using Hardened.Web.Runtime.Responses;
 
@@ -21,6 +23,30 @@ namespace Hardened.IntegrationTests.OpenApi.SUT.Tests;
 /// </remarks>
 public class ValidationTests
 {
+    /// <summary>
+    /// Every pattern in the specification reaches a regex that gives up after two seconds, so a
+    /// pattern that backtracks catastrophically on a crafted value cannot hold the request thread.
+    /// </summary>
+    [Fact]
+    public void EveryPatternRegexHasAMatchTimeout()
+    {
+        var patterns = typeof(CreatePetRequest).Assembly.GetType(
+            "Hardened.IntegrationTests.OpenApi.SUT.Validation.PetstorePatterns",
+            throwOnError: true
+        )!;
+
+        var regexes = patterns
+            .GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Where(method =>
+                method.ReturnType == typeof(Regex) && method.GetParameters().Length == 0
+            )
+            .Select(method => (Regex)method.Invoke(null, null)!)
+            .ToList();
+
+        Assert.NotEmpty(regexes);
+        Assert.All(regexes, regex => Assert.Equal(TimeSpan.FromSeconds(2), regex.MatchTimeout));
+    }
+
     /// <summary>
     /// A body property the spec marks required. The path is <c>body.name</c> rather than
     /// <c>name</c>: the payload is reached by descending into the parameters' <c>body</c> member, so
