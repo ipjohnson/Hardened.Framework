@@ -25,13 +25,26 @@ namespace Hardened.Requests.Runtime.Forms;
 public static class UrlEncodedParser
 {
     /// <summary>
+    /// The most fields a body may carry, counting each repeat of a name. The same number caps the
+    /// parts of a multipart body, and it is ASP.NET Core's default.
+    /// </summary>
+    internal const int MaxFields = 1024;
+
+    /// <summary>
     /// Parses a form body into its fields.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// Repeated names accumulate rather than overwrite: a form with several checkboxes of one name
     /// sends the name once per checked box, and taking the last would silently drop the rest.
     /// <see cref="StringValues"/> is what the header collections already use for the same reason.
+    /// </para>
+    /// <para>
+    /// Walked rather than split, so the cap stops the parse before the pairs past it are allocated,
+    /// and a body of bare separators allocates nothing.
+    /// </para>
     /// </remarks>
+    /// <exception cref="FormatException">The body has more than 1,024 fields.</exception>
     public static IFormCollection Parse(string? body)
     {
         if (string.IsNullOrEmpty(body))
@@ -40,22 +53,41 @@ public static class UrlEncodedParser
         }
 
         var fields = new Dictionary<string, StringValues>(StringComparer.Ordinal);
+        var count = 0;
 
-        foreach (var pair in body!.Split('&'))
+        for (var start = 0; start < body!.Length; )
         {
-            if (pair.Length == 0)
+            var end = body.IndexOf('&', start);
+
+            if (end == -1)
             {
-                continue;
+                end = body.Length;
             }
 
-            var separator = pair.IndexOf('=');
+            if (end > start)
+            {
+                if (++count > MaxFields)
+                {
+                    throw new FormatException("The body has more than " + MaxFields + " fields.");
+                }
 
-            var name = separator > -1 ? Decode(pair.Substring(0, separator)) : Decode(pair);
-            var value = separator > -1 ? Decode(pair.Substring(separator + 1)) : "";
+                var separator = body.IndexOf('=', start, end - start);
 
-            fields[name] = fields.TryGetValue(name, out var existing)
-                ? StringValues.Concat(existing, value)
-                : new StringValues(value);
+                var name =
+                    separator > -1
+                        ? Decode(body.Substring(start, separator - start))
+                        : Decode(body.Substring(start, end - start));
+                var value =
+                    separator > -1
+                        ? Decode(body.Substring(separator + 1, end - separator - 1))
+                        : "";
+
+                fields[name] = fields.TryGetValue(name, out var existing)
+                    ? StringValues.Concat(existing, value)
+                    : new StringValues(value);
+            }
+
+            start = end + 1;
         }
 
         return fields.Count == 0 ? EmptyFormCollection.Instance : new SimpleFormCollection(fields);

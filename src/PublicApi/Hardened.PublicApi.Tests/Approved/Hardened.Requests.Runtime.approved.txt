@@ -237,6 +237,13 @@ namespace Hardened.Requests.Runtime.Errors
         public ResourceNotFoundHandler(Microsoft.Extensions.Logging.ILogger<Hardened.Requests.Runtime.Errors.ResourceNotFoundHandler> logger) { }
         public System.Threading.Tasks.Task Handle(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
     }
+    public class UnsupportedContentTypeException : Hardened.Requests.Abstract.Errors.StatusCodeException
+    {
+        public UnsupportedContentTypeException(string contentType, string supported) { }
+        public string ContentType { get; }
+        public string Supported { get; }
+        public override void ApplyHeaders(System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers) { }
+    }
 }
 namespace Hardened.Requests.Runtime.Execution
 {
@@ -560,6 +567,11 @@ namespace Hardened.Requests.Runtime.Forms
         public static readonly Hardened.Requests.Runtime.Forms.EmptyFormCollection Instance;
         public int Count { get; }
         public Microsoft.Extensions.Primitives.StringValues Get(string key) { }
+    }
+    public static class FormBinding
+    {
+        public const string ContentTypes = "application/x-www-form-urlencoded, multipart/form-data";
+        public static System.Threading.Tasks.ValueTask<Hardened.Requests.Abstract.Forms.IFormCollection> Read(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
     }
     public class FormBodyTooLargeException : Hardened.Requests.Abstract.Errors.StatusCodeException
     {

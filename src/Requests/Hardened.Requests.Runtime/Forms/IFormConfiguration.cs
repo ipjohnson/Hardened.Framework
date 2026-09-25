@@ -10,8 +10,8 @@ namespace Hardened.Requests.Runtime.Forms;
 public interface IFormConfiguration
 {
     /// <summary>
-    /// The most bytes a form body may carry. A <c>multipart/form-data</c> body longer than this
-    /// answers 413.
+    /// The most bytes a form body may carry. A <c>multipart/form-data</c> or
+    /// <c>application/x-www-form-urlencoded</c> body longer than this answers 413.
     /// </summary>
     long MaxBodyBytes { get; }
 }

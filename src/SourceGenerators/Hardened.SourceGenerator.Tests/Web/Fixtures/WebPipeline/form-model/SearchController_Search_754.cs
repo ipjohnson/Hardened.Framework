@@ -43,7 +43,7 @@ namespace TestApp.Generated
         private static async global::System.Threading.Tasks.Task<global::Hardened.Requests.Abstract.Execution.IExecutionRequestParameters> BindRequestParameters(global::Hardened.Requests.Abstract.Execution.IExecutionContext context)
         {
             var parameters = new global::TestApp.Generated.SearchController_Search_754.Parameters();
-            var form = await context.KnownServices.FormReader.ReadForm(context);
+            var form = await global::Hardened.Requests.Runtime.Forms.FormBinding.Read(context);
             var searchModel = new global::TestApp.Search(
                 context.KnownServices.StringConverterService.ParseRequired<int>(
                     form.Get("page")!,

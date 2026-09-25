@@ -51,7 +51,7 @@ namespace TestApp.Generated
         private static async global::System.Threading.Tasks.Task<global::Hardened.Requests.Abstract.Execution.IExecutionRequestParameters> BindRequestParameters(global::Hardened.Requests.Abstract.Execution.IExecutionContext context)
         {
             var parameters = new global::TestApp.Generated.SignUpController_SignUp_1911.Parameters();
-            var form = await context.KnownServices.FormReader.ReadForm(context);
+            var form = await global::Hardened.Requests.Runtime.Forms.FormBinding.Read(context);
             parameters.email = context.KnownServices.StringConverterService.ParseRequired<global::System.String>(
                 form.Get("email")!,
                 "email"

@@ -28,11 +28,12 @@ namespace Hardened.Requests.Runtime.Forms;
 /// rather than here. The second read of a request's form returns the first.
 /// </para>
 /// <para>
-/// <b>A multipart body is read forward-only, into memory, up to a cap.</b> Nothing reads the
-/// stream's <c>Position</c> or <c>Length</c> or the <c>Content-Length</c> header: four of the hosts
-/// hand over a stream that cannot seek, and the decompression filter removes the header. A body
-/// past <see cref="IFormConfiguration.MaxBodyBytes"/> answers 413, and one that is not a multipart
-/// body answers the 400 a malformed JSON body gets.
+/// <b>A form body is read forward-only, into memory, up to a cap.</b> Nothing reads the stream's
+/// <c>Position</c> or <c>Length</c> or the <c>Content-Length</c> header: four of the hosts hand
+/// over a stream that cannot seek, and the decompression filter removes the header. A body past
+/// <see cref="IFormConfiguration.MaxBodyBytes"/> answers 413, whichever kind of form it is. One
+/// that does not parse, including one with more than 1,024 fields or parts, answers the 400 a
+/// malformed JSON body gets.
 /// </para>
 /// </remarks>
 [SingletonService(Using = RegistrationType.Try)]
@@ -73,7 +74,7 @@ public class FormReader : IFormReader
 
         if (urlEncoded)
         {
-            form = UrlEncodedParser.Parse(await ReadText(body).ConfigureAwait(false));
+            form = await ReadUrlEncoded(context, body).ConfigureAwait(false);
         }
         else
         {
@@ -109,7 +110,21 @@ public class FormReader : IFormReader
         return type.Trim().Equals(mediaType, StringComparison.OrdinalIgnoreCase);
     }
 
-    private static async Task<string> ReadText(Stream body)
+    /// <summary>
+    /// Whether a request's content type is one a form is read from, whatever its parameters.
+    /// </summary>
+    internal static bool IsFormContentType(string contentType) =>
+        IsMediaType(contentType, KnownContentType.FormUrlEncoded)
+        || IsMediaType(contentType, KnownContentType.MultipartFormData);
+
+    /// <summary>
+    /// The url-encoded body, read to the cap a multipart body is read to, and parsed.
+    /// </summary>
+    /// <remarks>
+    /// Always pooled. Nothing keeps the bytes, because the fields are strings by the time this
+    /// returns.
+    /// </remarks>
+    private async Task<IFormCollection> ReadUrlEncoded(IExecutionContext context, Stream body)
     {
         // From the start, because a filter ahead of this one may have read it. RetryFilter already
         // rewinds a seekable body between attempts for the same reason.
@@ -118,13 +133,23 @@ public class FormReader : IFormReader
             body.Position = 0;
         }
 
-        string content;
+        var (buffer, length) = await ReadAll(
+                body,
+                MaxBodyBytes(context),
+                pool: true,
+                context.CancellationToken
+            )
+            .ConfigureAwait(false);
 
-        // leaveOpen, because the body is the transport's and the response has not been written yet.
-        // Disposing the reader would close a stream something downstream may still be holding.
-        using (var reader = new StreamReader(body, Encoding.UTF8, true, 1024, leaveOpen: true))
+        string text;
+
+        try
         {
-            content = await reader.ReadToEndAsync().ConfigureAwait(false);
+            text = Text(buffer, length);
+        }
+        finally
+        {
+            Release(buffer, pool: true);
         }
 
         // Put it back for whatever reads next. A handler binding both form fields and a body model
@@ -135,7 +160,28 @@ public class FormReader : IFormReader
             body.Position = 0;
         }
 
-        return content;
+        try
+        {
+            return UrlEncodedParser.Parse(text);
+        }
+        catch (FormatException exception)
+        {
+            throw Invalid(exception.Message, exception);
+        }
+    }
+
+    /// <summary>The body as UTF-8 text.</summary>
+    /// <remarks>A byte order mark is not part of the first field's name.</remarks>
+    private static string Text(byte[] buffer, int length)
+    {
+        var bytes = new ReadOnlySpan<byte>(buffer, 0, length);
+
+        if (bytes.StartsWith(Encoding.UTF8.Preamble))
+        {
+            bytes = bytes.Slice(Encoding.UTF8.Preamble.Length);
+        }
+
+        return Encoding.UTF8.GetString(bytes);
     }
 
     /// <summary>
