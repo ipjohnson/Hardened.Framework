@@ -37,6 +37,7 @@ public sealed class CachedResponse
         Body = body;
         Headers = headers;
         Tags = tags ?? [];
+        Size = body.Length + Characters(contentType, headers, Tags) * sizeof(char);
     }
 
     public int Status { get; }
@@ -58,11 +59,38 @@ public sealed class CachedResponse
     public IReadOnlyList<string> Tags { get; }
 
     /// <summary>
-    /// What this entry costs a store that caps its size.
+    /// What this entry costs a store that caps its size, in bytes: the body, and the content type,
+    /// headers and tags as the UTF-16 strings they are in memory.
     /// </summary>
     /// <remarks>
-    /// The body alone. Header names and values are bounded and small next to it, and a size that
-    /// walks them would be paid on every store for a correction below the noise.
+    /// The strings count because a body can be two bytes. A store that counted only bodies against
+    /// its limit would hold any number of those. Counted once, here, rather than on every store.
     /// </remarks>
-    public long Size => Body.Length;
+    public long Size { get; }
+
+    private static long Characters(
+        string? contentType,
+        IReadOnlyList<KeyValuePair<string, StringValues>> headers,
+        IReadOnlyList<string> tags
+    )
+    {
+        long characters = contentType?.Length ?? 0;
+
+        foreach (var header in headers)
+        {
+            characters += header.Key.Length;
+
+            foreach (var value in header.Value)
+            {
+                characters += value?.Length ?? 0;
+            }
+        }
+
+        foreach (var tag in tags)
+        {
+            characters += tag.Length;
+        }
+
+        return characters;
+    }
 }

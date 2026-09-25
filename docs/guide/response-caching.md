@@ -329,6 +329,61 @@ public partial class TodosLibrary : IServiceCollectionConfiguration
 
 [The execution pipeline](/guide/execution-pipeline) covers `AddGlobalFilter` for every filter.
 
+### Values from configuration
+
+An attribute's arguments are constants. A duration or key values that come from configuration go
+through `AddGlobalFilter`, which takes an attribute built in code. `when` picks the routes, and the
+generated route builders give their paths. Here the duration of `GET /todos` comes from the
+`TODOS_CACHE_SECONDS` environment variable:
+
+```csharp
+using DependencyModules.Runtime.Interfaces;
+using Hardened.Requests.Caching.Memory;
+using Hardened.Requests.Runtime.Caching;
+using Hardened.Requests.Runtime.Filters;
+using Hardened.Shared.Runtime.Attributes;
+using Hardened.Web.Runtime.Attributes;
+using Hardened.Web.Runtime.Caching;
+using Hardened.Web.Runtime.DependencyInjection;
+using Hardened.Web.Runtime.OpenApi;
+using Microsoft.Extensions.DependencyInjection;
+using System.Globalization;
+using System.Text.Json.Serialization.Metadata;
+
+namespace Todos;
+
+[HardenedModule]
+[HardenedWebModule]
+[BasePath("/todos")]
+[Server("http://localhost:5080", "Local")]
+[Enable<OpenApiDocumentPublishing>]
+[HardenedMemoryResponseCache]
+public partial class TodosLibrary : IServiceCollectionConfiguration
+{
+    public void ConfigureServices(IServiceCollection services)
+    {
+        services.AddSingleton<IJsonTypeInfoResolver>(TodosJsonContext.Default);
+
+        var seconds = int.Parse(
+            Environment.GetEnvironmentVariable("TODOS_CACHE_SECONDS") ?? "60",
+            CultureInfo.InvariantCulture
+        );
+
+        services.AddGlobalFilter(
+            new CacheResponseAttribute<VaryByRoute> { Duration = seconds },
+            when: handler => handler.Method == "GET" && handler.Path == Routes.Todo.All()
+        );
+    }
+}
+```
+
+A configuration model is not built yet when `ConfigureServices` runs, so the value is read from the
+environment directly. `handler.Path` is the route's template. A route with parameters has the path
+`/todos/{id}`, which no route builder returns, so compare it with that string.
+
+A route cached this way has no attribute that shows it. `HRDW005` reads only the attributes. If no
+store is registered, the build does not warn, and every request to the route answers 500.
+
 ## More than one media type
 
 An operation that produces more than one media type gets one entry for each representation. The media types come from `[Produces]` on the method or class, `[assembly: Produces]`, or a registered `ResponseContentTypeDefault`. Here `ById` produces JSON and CSV:
@@ -695,7 +750,9 @@ On a controller class, `[CacheControl]` covers every handler in the class, a POS
 | `SizeLimit` | 104857600 bytes (100 MB) | The most the store holds |
 | `MaximumBodySize` | 67108864 bytes (64 MB) | The largest body it stores |
 
-An entry counts its body length against the limits. Headers do not count. A response larger than `MaximumBodySize` is sent and not stored.
+An entry counts against `SizeLimit` with its body, its content type, headers and tags at two bytes a character, the key it is stored under, and 512 bytes for the objects around them. `MaximumBodySize` counts the body alone. A response whose body is larger than `MaximumBodySize` is sent and not stored. An entry that `SizeLimit` has no room for is not stored either.
+
+A key carries the values that its strategies read. Under `VaryByQuery` or `VaryByHeader`, a caller who sends a new value on each request adds an entry on each. The limit bounds the memory those entries take. It does not stop them taking the room that other entries would use.
 
 `services.ConfigureMemoryResponseCache(...)`, in `Hardened.Requests.Caching.Memory`, sets the limits:
 

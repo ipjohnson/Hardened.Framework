@@ -15,14 +15,16 @@ public interface IMemoryResponseCacheConfiguration
     /// Core's output cache caps itself at 100 MB for the same reason; this is the same number.
     /// </para>
     /// <para>
-    /// Counted in response bodies. <c>MemoryCache</c> enforces a limit in whatever unit its entries
-    /// are sized in, and bytes is the only unit that means anything to whoever sets this.
+    /// Counted in bytes: each entry's body, its content type, headers and tags, the key it is stored
+    /// under, and a 512-byte allowance for the objects around them. <c>MemoryCache</c> enforces a
+    /// limit in whatever unit its entries are sized in, and bytes is the only unit that means
+    /// anything to whoever sets this.
     /// </para>
     /// </remarks>
     long SizeLimit { get; }
 
     /// <summary>
-    /// The largest single response the store will hold, in bytes.
+    /// The largest body the store will hold, in bytes.
     /// </summary>
     /// <remarks>
     /// A per-entry cap as well as a total, because one large response is how a total gets spent on

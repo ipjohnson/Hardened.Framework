@@ -37,6 +37,16 @@ namespace Hardened.Requests.Caching.Memory;
 /// </remarks>
 public sealed class MemoryResponseCacheStore : IResponseCacheStore, IDisposable
 {
+    /// <summary>
+    /// What a stored entry holds besides the bytes it counts: the cache's own entry, this store's
+    /// record, and the response object with its arrays.
+    /// </summary>
+    /// <remarks>
+    /// An entry with a two-byte body and one header was measured at 549 bytes on 64-bit .NET, key
+    /// excluded. This is the round figure below that.
+    /// </remarks>
+    internal const long EntryAllowance = 512;
+
     private readonly MemoryCache _cache;
     private readonly long _maximumBodySize;
     private readonly TimeProvider _timeProvider;
@@ -103,12 +113,13 @@ public sealed class MemoryResponseCacheStore : IResponseCacheStore, IDisposable
     }
 
     /// <summary>
-    /// Stores <paramref name="response"/>, unless it is larger than one entry may be.
+    /// Stores <paramref name="response"/>, unless its body is larger than one entry may be.
     /// </summary>
     /// <remarks>
     /// Refusing by doing nothing, which is what the contract asks for. The response was written to
     /// the client before this was called, so there is nothing to fail: the only consequence of a
-    /// refusal is that the next request misses.
+    /// refusal is that the next request misses. An entry the size limit has no room for is refused
+    /// the same way, by <see cref="MemoryCache"/>.
     /// </remarks>
     public ValueTask Set(
         string key,
@@ -117,7 +128,7 @@ public sealed class MemoryResponseCacheStore : IResponseCacheStore, IDisposable
         CancellationToken cancellationToken
     )
     {
-        if (response.Size > _maximumBodySize)
+        if (response.Body.Length > _maximumBodySize)
         {
             return default;
         }
@@ -153,7 +164,7 @@ public sealed class MemoryResponseCacheStore : IResponseCacheStore, IDisposable
 
                     // Sized, because MemoryCacheOptions.SizeLimit is only enforced when every entry says
                     // how big it is - and an entry with no size on a cache with a limit throws.
-                    Size = response.Size,
+                    Size = Cost(key, response),
                 }.RegisterPostEvictionCallback(OnEvicted)
             );
         }
@@ -192,6 +203,18 @@ public sealed class MemoryResponseCacheStore : IResponseCacheStore, IDisposable
     }
 
     public void Dispose() => _cache.Dispose();
+
+    /// <summary>
+    /// What an entry costs against the size limit: the response's own bytes, the key it is stored
+    /// under, and <see cref="EntryAllowance"/>.
+    /// </summary>
+    /// <remarks>
+    /// The key is where a request's values are. <c>VaryByQuery</c> and <c>VaryByHeader</c> copy
+    /// them into it, so a caller who sends a new value on each request adds an entry on each, and
+    /// with a short body that entry is mostly key and allowance.
+    /// </remarks>
+    internal static long Cost(string key, CachedResponse response) =>
+        response.Size + (long)key.Length * sizeof(char) + EntryAllowance;
 
     /// <summary>
     /// A stored response and when this store stops answering with it.
