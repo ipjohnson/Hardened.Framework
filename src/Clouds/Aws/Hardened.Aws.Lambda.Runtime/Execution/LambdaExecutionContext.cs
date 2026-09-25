@@ -37,6 +37,14 @@ public class LambdaExecutionContext : IExecutionContext
     /// </remarks>
     public static readonly TimeSpan DefaultDeadlineMargin = TimeSpan.FromMilliseconds(500);
 
+    /// <summary>
+    /// The longest delay <see cref="CancellationTokenSource.CancelAfter(TimeSpan)"/> accepts, about
+    /// 49.7 days. It throws for a longer one.
+    /// </summary>
+    private static readonly TimeSpan LongestTimerDelay = TimeSpan.FromMilliseconds(
+        uint.MaxValue - 1
+    );
+
     public LambdaExecutionContext(
         IServiceProvider rootServiceProvider,
         IServiceProvider requestServices,
@@ -66,6 +74,11 @@ public class LambdaExecutionContext : IExecutionContext
     /// with this invocation, so it is accurate per invocation rather than the configured timeout. A
     /// remaining time already inside the margin gives a token that is cancelled from the start,
     /// which is the honest answer: there is no time to do the work.
+    /// <para>
+    /// A remaining time longer than <see cref="LongestTimerDelay"/> gives a token that is never
+    /// cancelled. Lambda limits a function to 15 minutes, so only a local Runtime API stub or
+    /// emulator sends a deadline that far away.
+    /// </para>
     /// </remarks>
     public static CancellationTokenSource ForInvocation(
         ILambdaContext context,
@@ -80,7 +93,7 @@ public class LambdaExecutionContext : IExecutionContext
         {
             source.Cancel();
         }
-        else
+        else if (remaining <= LongestTimerDelay)
         {
             source.CancelAfter(remaining);
         }

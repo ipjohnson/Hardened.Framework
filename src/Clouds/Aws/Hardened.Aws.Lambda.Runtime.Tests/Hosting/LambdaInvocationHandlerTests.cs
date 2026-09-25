@@ -269,6 +269,24 @@ public class LambdaInvocationHandlerTests
     }
 
     /// <summary>
+    /// A deadline further away than a timer can wait, about 49.7 days, runs with no cancellation.
+    /// Lambda never sends one, but a local Runtime API stub can, and <c>CancelAfter</c> throws for
+    /// it.
+    /// </summary>
+    [Fact]
+    public async Task ADeadlinePastTheTimerLimitIsNeverCancelled()
+    {
+        var (handler, executor) = Build(new SqsAdapter());
+
+        await handler.Invoke(
+            Input(Payloads.SqsJson),
+            new TestLambdaContext(remainingTime: TimeSpan.FromDays(50))
+        );
+
+        Assert.False(executor.Context!.CancellationToken.IsCancellationRequested);
+    }
+
+    /// <summary>
     /// Dispatch is appended once however many invocations a warm sandbox serves.
     /// </summary>
     /// <remarks>
