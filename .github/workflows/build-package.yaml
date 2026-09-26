@@ -136,7 +136,7 @@ jobs:
           # This sat at 0.23.0 for the whole of v0.30.0-rc1000, so every preview that release
           # opened was stamped below it and the feed had nothing that could supersede the release.
           # It now moves in the same pull request as the tag it opens the line after.
-          RELEASE_LINE: 0.41.0
+          RELEASE_LINE: 0.42.0
         run: |
           VERSION="$RELEASE_LINE-preview$(printf '%06d' "$GITHUB_RUN_NUMBER")"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
