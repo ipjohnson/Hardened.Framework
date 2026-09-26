@@ -48,14 +48,14 @@ public class EntityTagHeaderTests
     }
 
     /// <summary>
-    /// The one shape a computed tag has. SHA-256 of nothing is a known value, which pins the
-    /// digest as well as the formatting.
+    /// The one shape a computed tag has. SHA-1 of nothing is a known value, which pins the digest
+    /// as well as the formatting.
     /// </summary>
     [Fact]
-    public void AComputedTagIsTheQuotedBase64Sha256OfTheBytes()
+    public void AComputedTagIsTheQuotedBase64Sha1OfTheBytes()
     {
         Assert.Equal(
-            "\"47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=\"",
+            "\"2jmj7l5rSw0yVb/vlWAYkK/YBwk=\"",
             EntityTagHeader.ForContent(ReadOnlySpan<byte>.Empty)
         );
     }

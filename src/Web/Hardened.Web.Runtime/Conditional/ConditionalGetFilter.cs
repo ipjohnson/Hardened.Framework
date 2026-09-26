@@ -1,6 +1,8 @@
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
+using Hardened.Shared.Runtime.Collections;
 using Hardened.Web.Runtime.Headers;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Web.Runtime.Conditional;
@@ -64,10 +66,15 @@ public sealed class ConditionalGetFilter : IExecutionFilter
             return;
         }
 
+        // One instance of this filter serves every request to the handler, so the pool comes from
+        // the request's services. GetService, because a container composed by hand, which the
+        // tests use and an embedding host may, need not register one.
+        var pool = context.RequestServices.GetService<IMemoryStreamPool>();
         var transport = response.Body;
         var body = new ConditionalResponseStream(
             response,
             transport,
+            pool,
             Read(request.Headers, KnownHeaders.IfNoneMatch),
             Read(request.Headers, KnownHeaders.IfModifiedSince)
         );

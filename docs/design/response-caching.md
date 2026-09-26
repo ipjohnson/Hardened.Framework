@@ -220,12 +220,12 @@ public Rate Read(string symbol) => _rates.Latest(symbol);
 ```
 GET /rates/EUR
 HTTP/1.1 200 OK
-ETag: "OybX3FuqNfSKoSm+h1FJqQ=="
+ETag: "jWZMOM2sasSVfQDvJezCLK4R7+w="
 
 GET /rates/EUR
-If-None-Match: "OybX3FuqNfSKoSm+h1FJqQ=="
+If-None-Match: "jWZMOM2sasSVfQDvJezCLK4R7+w="
 HTTP/1.1 304 Not Modified
-ETag: "OybX3FuqNfSKoSm+h1FJqQ=="
+ETag: "jWZMOM2sasSVfQDvJezCLK4R7+w="
 ```
 
 `[ConditionalGet]` answers a GET or HEAD whose caller already holds the response with a 304 and
@@ -234,7 +234,7 @@ no body. It goes on an operation or on a class, or on every GET handler in the a
 installs it otherwise. A service whose responses are small and change on every read gets nothing
 from a 304, and pays nothing for it.
 
-Every entry the store is handed carries an entity-tag, a SHA-256 of the bytes stored, computed as
+Every entry the store is handed carries an entity-tag, a SHA-1 of the bytes stored, computed as
 the response is captured when the handler wrote none. It goes out with the miss and is replayed
 with the hit, and it is what the filter compares against: a hit is answered 304 without running
 the handler and without the stored body. The filter sits outside the cache, which is the ordering
@@ -248,8 +248,8 @@ byte; the compression filter weakens it as it encodes, so a client that accepts 
 The filter decides on the first write. A response that already carries an `ETag` by then - the
 cache tagged the entry, a handler wrote one - is decided there and then, a 304 or the bytes
 straight through to the transport. A response carrying none is held back and tagged over the
-bytes as sent once they are all there: a buffer and a hash per response. That is the cost of
-declaring this on a handler that neither caches nor writes a validator, and it buys bandwidth
+bytes as sent once they are all there: a pooled buffer and a hash per response. That is the cost
+of declaring this on a handler that neither caches nor writes a validator, and it buys bandwidth
 only. The handler ran, and a 304 from a hash of its output saved the transfer and the client's
 parse, not the work. It is worth having for a large or frequently polled response, and for a
 shared cache in front of the service, which revalidates when its copy expires and keeps it on a

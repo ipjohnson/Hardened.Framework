@@ -7,6 +7,7 @@ using Hardened.Requests.Runtime.Caching;
 using Hardened.Requests.Runtime.Execution;
 using Hardened.Requests.Runtime.QueryString;
 using Hardened.Requests.Testing;
+using Hardened.Shared.Runtime.Collections;
 using Hardened.Web.Runtime.Compression;
 using Hardened.Web.Runtime.Conditional;
 using Hardened.Web.Runtime.Headers;
@@ -1048,5 +1049,306 @@ public class ConditionalGetFilterTests
 
         Assert.Single(store.Stored);
         AssertNotModified(miss, etag: Computed);
+    }
+
+    // ---------------------------------------------------------------- the pooled buffer
+
+    /// <summary>
+    /// A stream pool that counts what it lends and what comes back.
+    /// </summary>
+    /// <remarks>
+    /// Every loan is a new stream, so a returned stream is never lent again and a write made into it
+    /// after its return cannot hide behind the next borrower. A returned stream is filled with a
+    /// marker and left empty, and <see cref="NoneWrittenAfterReturn"/> checks that it stayed that
+    /// way. Setting the position of a closed stream throws, as it does in the application's pool.
+    /// </remarks>
+    private sealed class CountingStreamPool : IMemoryStreamPool
+    {
+        private const byte Marker = 0xEE;
+
+        private readonly HashSet<Reservation> _outstanding = [];
+        private readonly List<MemoryStream> _returned = [];
+
+        public int Lent { get; private set; }
+
+        public int Outstanding => _outstanding.Count;
+
+        public int Returned => _returned.Count;
+
+        public int ReturnedTwice { get; private set; }
+
+        public bool NoneWrittenAfterReturn =>
+            _returned.TrueForAll(stream =>
+                stream.Length == 0 && Array.TrueForAll(stream.GetBuffer(), b => b == Marker)
+            );
+
+        public IPoolItemReservation<MemoryStream> Get()
+        {
+            var reservation = new Reservation(this, new MemoryStream(1024));
+
+            _outstanding.Add(reservation);
+            Lent++;
+
+            return reservation;
+        }
+
+        private void Return(Reservation reservation)
+        {
+            if (!_outstanding.Remove(reservation))
+            {
+                ReturnedTwice++;
+
+                return;
+            }
+
+            var stream = reservation.Item;
+
+            Array.Fill(stream.GetBuffer(), Marker);
+            stream.Position = 0;
+            stream.SetLength(0);
+
+            _returned.Add(stream);
+        }
+
+        private sealed class Reservation(CountingStreamPool pool, MemoryStream item)
+            : IPoolItemReservation<MemoryStream>
+        {
+            public MemoryStream Item { get; } = item;
+
+            public void Dispose() => pool.Return(this);
+        }
+    }
+
+    /// <summary>
+    /// The application's pool, recording each stream it lends and the capacity it had then.
+    /// </summary>
+    private sealed class RecordingPool : IMemoryStreamPool
+    {
+        private readonly MemoryStreamPool _pool = new();
+
+        public List<(MemoryStream Stream, int Capacity)> Lent { get; } = [];
+
+        public IPoolItemReservation<MemoryStream> Get()
+        {
+            var reservation = _pool.Get();
+
+            Lent.Add((reservation.Item, reservation.Item.Capacity));
+
+            return reservation;
+        }
+    }
+
+    /// <summary>
+    /// A transport whose client has gone away: every write fails.
+    /// </summary>
+    private sealed class FailingTransport : Stream
+    {
+        public override bool CanRead => false;
+
+        public override bool CanSeek => false;
+
+        public override bool CanWrite => true;
+
+        public override long Length => 0;
+
+        public override long Position
+        {
+            get => 0;
+            set => throw new NotSupportedException();
+        }
+
+        public override void Flush() { }
+
+        public override int Read(byte[] buffer, int offset, int count) =>
+            throw new NotSupportedException();
+
+        public override long Seek(long offset, SeekOrigin origin) =>
+            throw new NotSupportedException();
+
+        public override void SetLength(long value) => throw new NotSupportedException();
+
+        public override void Write(byte[] buffer, int offset, int count) =>
+            throw new IOException("The client went away.");
+
+        public override ValueTask WriteAsync(
+            ReadOnlyMemory<byte> buffer,
+            CancellationToken cancellationToken = default
+        ) => ValueTask.FromException(new IOException("The client went away."));
+    }
+
+    private static (IServiceProvider Services, T Pool) Pooled<T>(T pool)
+        where T : IMemoryStreamPool
+    {
+        var services = new ServiceCollection();
+
+        services.AddSingleton<IMemoryStreamPool>(pool);
+
+        return (services.BuildServiceProvider(), pool);
+    }
+
+    private static void AssertReturnedOnce(CountingStreamPool pool)
+    {
+        Assert.Equal(1, pool.Lent);
+        Assert.Equal(1, pool.Returned);
+        Assert.Equal(0, pool.Outstanding);
+        Assert.Equal(0, pool.ReturnedTwice);
+        Assert.True(pool.NoneWrittenAfterReturn);
+    }
+
+    /// <summary>
+    /// The held-back body is written into a stream reserved from the application's pool. The
+    /// stream is held until the bytes are on the transport, and then it goes back once.
+    /// </summary>
+    [Fact]
+    public async Task AHeldBackBodyIsReservedFromThePoolAndReturnedOnceSent()
+    {
+        var (services, pool) = Pooled(new CountingStreamPool());
+        var context = Context(services: services);
+        var outstanding = -1;
+
+        await Run(
+            context,
+            async chain =>
+            {
+                await Writes(Json, etag: null)(chain);
+
+                outstanding = pool.Outstanding;
+            },
+            Filter()
+        );
+
+        Assert.Equal(1, outstanding);
+        AssertReturnedOnce(pool);
+        AssertSentInFull(context, etag: Computed);
+    }
+
+    [Fact]
+    public async Task AHeldBackBodyAnswered304ReturnsItsStream()
+    {
+        var (services, pool) = Pooled(new CountingStreamPool());
+        var context = Context(ifNoneMatch: Computed, services: services);
+
+        await Run(context, Writes(Json, etag: null), Filter());
+
+        AssertReturnedOnce(pool);
+        AssertNotModified(context, etag: Computed);
+    }
+
+    [Fact]
+    public async Task AThrowingChainReturnsTheStreamOnceWhatWasHeldIsWritten()
+    {
+        var (services, pool) = Pooled(new CountingStreamPool());
+        var context = Context(services: services);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            Run(
+                context,
+                async chain =>
+                {
+                    await chain.Context.Response.Body.WriteAsync(Encoding.UTF8.GetBytes("partial"));
+
+                    throw new InvalidOperationException("handler failed");
+                },
+                Filter()
+            )
+        );
+
+        Assert.Equal("partial", Encoding.UTF8.GetString(Transport(context)));
+        AssertReturnedOnce(pool);
+    }
+
+    [Fact]
+    public async Task ATransportThatFailsTheWriteStillGetsTheStreamReturned()
+    {
+        var (services, pool) = Pooled(new CountingStreamPool());
+        var context = Context(services: services);
+
+        context.Response.Body = new FailingTransport();
+
+        await Assert.ThrowsAsync<IOException>(() =>
+            Run(context, Writes(Json, etag: null), Filter())
+        );
+
+        AssertReturnedOnce(pool);
+    }
+
+    /// <summary>
+    /// Only a body that is held back reserves a stream. A handler's own tag sends the bytes
+    /// straight through, and a response that writes nothing is decided with nothing held.
+    /// </summary>
+    [Fact]
+    public async Task OnlyAHeldBackBodyReservesAStream()
+    {
+        var (services, pool) = Pooled(new CountingStreamPool());
+        var own = Context(services: services);
+        var empty = Context(services: services);
+
+        await Run(own, Writes(Json), Filter());
+        await Run(empty, _ => Task.CompletedTask, Filter());
+
+        Assert.Equal(0, pool.Lent);
+        AssertSentInFull(own);
+        Assert.Empty(Transport(empty));
+    }
+
+    /// <summary>
+    /// A caller that kept the body and writes after the chain returned is refused, rather than
+    /// writing into a stream the pool may have lent to another request.
+    /// </summary>
+    [Fact]
+    public async Task AWriteAfterTheStreamIsReturnedThrows()
+    {
+        var (services, pool) = Pooled(new CountingStreamPool());
+        var context = Context(services: services);
+        Stream? kept = null;
+
+        await Run(
+            context,
+            async chain =>
+            {
+                kept = chain.Context.Response.Body;
+
+                await Writes(Json, etag: null)(chain);
+            },
+            Filter()
+        );
+
+        Assert.NotNull(kept);
+        Assert.Throws<ObjectDisposedException>(() => kept.WriteByte(0));
+        await Assert.ThrowsAsync<ObjectDisposedException>(() =>
+            kept.WriteAsync(Encoding.UTF8.GetBytes(Json), TestContext.Current.CancellationToken)
+                .AsTask()
+        );
+        AssertReturnedOnce(pool);
+        AssertSentInFull(context, etag: Computed);
+    }
+
+    /// <summary>
+    /// The application's pool lends the stream the last response returned. It comes back with the
+    /// capacity the last body gave it, so a body of the same size does not grow it again, and with
+    /// none of the last body's bytes.
+    /// </summary>
+    [Fact]
+    public async Task AReturnedStreamIsLentAgainWithItsCapacityAndWithoutItsBytes()
+    {
+        var (services, pool) = Pooled(new RecordingPool());
+        var large = new string('x', 130_000);
+        var first = Context(services: services);
+        var small = Context(services: services);
+        var again = Context(services: services);
+
+        await Run(first, Writes(large, etag: null), Filter());
+        await Run(small, Writes(Json, etag: null), Filter());
+        await Run(again, Writes(large, etag: null), Filter());
+
+        Assert.Equal(3, pool.Lent.Count);
+        Assert.All(pool.Lent, lent => Assert.Same(pool.Lent[0].Stream, lent.Stream));
+        Assert.True(pool.Lent[2].Capacity >= large.Length);
+        AssertSentInFull(small, etag: Computed);
+        Assert.Equal(large, Encoding.UTF8.GetString(Transport(again)));
+        Assert.Equal(
+            EntityTagHeader.ForContent(Encoding.UTF8.GetBytes(large)),
+            Header(again, KnownHeaders.ETag)
+        );
     }
 }

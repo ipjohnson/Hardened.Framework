@@ -35,17 +35,17 @@ GET /todos/1
 
 HTTP/1.1 200 OK
 Content-Type: application/json
-ETag: "+x0430/JrxmEstC33HEuf0Yg/61Cvwmwtx2WMTybq/s="
+ETag: "h2ZWtI+DKyXNviuLFTZCmw6YG08="
 
 {"id":1,"title":"Read the generated code","done":true}
 ```
 
 ```http
 GET /todos/1
-If-None-Match: "+x0430/JrxmEstC33HEuf0Yg/61Cvwmwtx2WMTybq/s="
+If-None-Match: "h2ZWtI+DKyXNviuLFTZCmw6YG08="
 
 HTTP/1.1 304 Not Modified
-ETag: "+x0430/JrxmEstC33HEuf0Yg/61Cvwmwtx2WMTybq/s="
+ETag: "h2ZWtI+DKyXNviuLFTZCmw6YG08="
 ```
 
 The example adds the attribute and its `using` line to the `ById` handler of a project made with `dotnet new hardened-web -n Todos`. The attribute is in the namespace `Hardened.Web.Runtime.Conditional`, from the `Hardened.Web.Runtime` package. The template's `src/Todos` project compiles the example with no package added.
@@ -116,7 +116,7 @@ A handler with `[ConditionalGet]` on its method or class keeps only its own decl
 
 ## How the tag is computed
 
-When the response has no `ETag` at its first write, the filter holds the whole body in memory. When the handler finishes, the filter sets `ETag` to the SHA-256 hash of the body bytes, base64-encoded and quoted. The tag is strong. The same bytes always get the same tag.
+When the response has no `ETag` at its first write, the filter holds the whole body in memory. When the handler finishes, the filter sets `ETag` to the SHA-1 hash of the body bytes, base64-encoded and quoted. The tag is strong. The same bytes always get the same tag.
 
 When the response already has an `ETag` at its first write, the filter does not hold the body. It sends the body or answers 304 at once.
 
@@ -256,7 +256,7 @@ The filter removes `Content-Type`, `Content-Length` and `Content-Encoding` from 
 
 ## With the response cache
 
-`[CacheResponse<T>]` puts the same SHA-256 tag as the filter on every response it stores, unless the handler set one. With both attributes on a handler, a request whose `If-None-Match` matches a stored entry gets a 304. The handler does not run. The response cache does not send the stored body. [The execution pipeline](/guide/execution-pipeline) gives the order of the two filters.
+`[CacheResponse<T>]` puts the same SHA-1 tag as the filter on every response it stores, unless the handler set one. With both attributes on a handler, a request whose `If-None-Match` matches a stored entry gets a 304. The handler does not run. The response cache does not send the stored body. [The execution pipeline](/guide/execution-pipeline) gives the order of the two filters.
 
 The response cache needs a store, which [Response caching](/guide/response-caching) covers. The example runs with `[HardenedMemoryResponseCache]` on `TodosLibrary`.
 
@@ -298,7 +298,7 @@ GET /todos/1
 
 HTTP/1.1 200 OK
 Content-Type: application/json
-ETag: "+x0430/JrxmEstC33HEuf0Yg/61Cvwmwtx2WMTybq/s="
+ETag: "h2ZWtI+DKyXNviuLFTZCmw6YG08="
 
 {"id":1,"title":"Read the generated code","done":true}
 ```
@@ -311,10 +311,10 @@ HTTP/1.1 204 No Content
 
 ```http
 GET /todos/1
-If-None-Match: "+x0430/JrxmEstC33HEuf0Yg/61Cvwmwtx2WMTybq/s="
+If-None-Match: "h2ZWtI+DKyXNviuLFTZCmw6YG08="
 
 HTTP/1.1 304 Not Modified
-ETag: "+x0430/JrxmEstC33HEuf0Yg/61Cvwmwtx2WMTybq/s="
+ETag: "h2ZWtI+DKyXNviuLFTZCmw6YG08="
 ```
 
 ## With compression
