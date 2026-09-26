@@ -57,7 +57,7 @@ public class EntryPointRegistrationTests
     }
 
     /// <summary>
-    /// A rules class, which <c>Hardened.Validation.SourceGenerator</c> never read.
+    /// A model with no constraint attributes, whose rules come from a rules class.
     /// </summary>
     [ModuleTest]
     public void ARulesClassProducesARegisteredValidator(IValidatorFor<Shipment> validator)

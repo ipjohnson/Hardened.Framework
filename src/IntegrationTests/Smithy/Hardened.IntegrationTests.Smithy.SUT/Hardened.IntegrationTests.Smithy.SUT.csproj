@@ -15,7 +15,6 @@
             every emitter, the routing table and the handler generation.
         -->
         <ProjectReference Include="..\..\..\SourceGenerators\Hardened.Idl.SourceGenerator\Hardened.Idl.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
-        <ProjectReference Include="..\..\..\SourceGenerators\Hardened.Validation.SourceGenerator\Hardened.Validation.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
         <ProjectReference Include="..\..\..\SourceGenerators\Hardened.DependencyModules.SourceGenerator\Hardened.DependencyModules.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
     </ItemGroup>
 
@@ -107,5 +106,7 @@
     </ItemGroup>
 
     <Import Project="..\..\..\SourceGenerators\Hardened.Smithy.SourceGenerator\Package\Hardened.Smithy.SourceGenerator.targets"/>
+
+    <Import Project="..\..\..\SourceGenerators\ValidationModulesGenerator.props"/>
 
 </Project>

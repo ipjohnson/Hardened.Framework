@@ -1,7 +1,6 @@
 using Hardened.Requests.Abstract.Attributes;
 using Hardened.Requests.Runtime.Validation;
 using Hardened.SourceGeneration.Testing;
-using Hardened.Validation.SourceGenerator;
 using Hardened.Web.Runtime.Attributes;
 using Microsoft.CodeAnalysis;
 using ValidationModules;
@@ -42,9 +41,10 @@ public class NoValidationGeneratorTests
             new IIncrementalGenerator[]
             {
                 new WebLibrarySourceGenerator(),
-                new HardenedValidationGenerator(),
+                ValidationModulesPackage.Generator(),
             },
-            Anchors
+            Anchors,
+            buildProperties: ValidationModulesPackage.BuildProperties
         );
 
     private static IEnumerable<Diagnostic> Reported(GeneratorResult result) =>
@@ -98,7 +98,7 @@ public class NoValidationGeneratorTests
             .Single(Reported(WithoutTheValidationGenerator(ConstrainedModel)))
             .GetMessage();
 
-        Assert.Contains("Hardened.Validation.SourceGenerator", message);
+        Assert.Contains("ValidationModules.SourceGenerator", message);
     }
 
     [Fact]

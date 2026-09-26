@@ -217,7 +217,7 @@ Content-Type: application/json
 {"type":"ValidationError","message":"One or more validation errors occurred.","errors":[{"field":"order.quantity","code":"invalid","message":"The JSON value could not be converted to System.Int32."}]}
 ```
 
-When the project references `Hardened.Validation.SourceGenerator`, a body that fails a constraint
+When the project references `ValidationModules.SourceGenerator`, a body that fails a constraint
 answers 400 with the constraint's code and message. [Validation](/guide/validation) covers the
 constraints.
 

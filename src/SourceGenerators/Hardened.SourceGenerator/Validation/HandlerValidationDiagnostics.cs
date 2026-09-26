@@ -48,9 +48,8 @@ public static class HandlerValidationDiagnostics
             "HRDV006",
             "Constraints are declared and nothing compiles them",
             "'{0}' declares constraints and nothing in this project compiles them into a validator, "
-                + "so none of them is enforced. Reference Hardened.Validation.SourceGenerator as an "
-                + "analyzer, or remove the constraint attributes if this assembly is not meant to enforce "
-                + "them.",
+                + "so none of them is enforced. Reference the ValidationModules.SourceGenerator package, "
+                + "or remove the constraint attributes if this assembly is not meant to enforce them.",
             "Hardened.Validation",
             DiagnosticSeverity.Warning,
             isEnabledByDefault: true

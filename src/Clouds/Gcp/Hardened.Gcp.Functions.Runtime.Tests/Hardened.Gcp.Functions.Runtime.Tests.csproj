@@ -36,7 +36,6 @@
         <ProjectReference Include="..\..\..\SourceGenerators\Hardened.Library.SourceGenerator\Hardened.Library.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
         <ProjectReference Include="..\..\..\SourceGenerators\Hardened.Function.SourceGenerator\Hardened.Function.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
         <ProjectReference Include="..\..\..\SourceGenerators\Hardened.Web.SourceGenerator\Hardened.Web.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
-        <ProjectReference Include="..\..\..\SourceGenerators\Hardened.Validation.SourceGenerator\Hardened.Validation.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
         <ProjectReference Include="..\..\..\SourceGenerators\Hardened.DependencyModules.SourceGenerator\Hardened.DependencyModules.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
     </ItemGroup>
 
@@ -44,5 +43,7 @@
     <Import Project="..\..\..\Web\Hardened.Web.Runtime\Package\Hardened.Web.Runtime.targets"/>
     <Import Project="..\Hardened.Gcp.CloudRun.PubSub\Package\Hardened.Gcp.CloudRun.PubSub.targets"/>
     <Import Project="..\Hardened.Gcp.CloudRun.Runtime\Package\Hardened.Gcp.CloudRun.Runtime.targets"/>
+
+    <Import Project="..\..\..\SourceGenerators\ValidationModulesGenerator.props"/>
 
 </Project>

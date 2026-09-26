@@ -16,7 +16,7 @@ The project file, `src/Todos/Todos.csproj`, references the Smithy generator and 
     <PackageReference Include="Hardened.Shared.Runtime" />
     <PackageReference Include="Hardened.Web.Runtime" />
     <PackageReference Include="Hardened.Library.SourceGenerator" />
-    <PackageReference Include="Hardened.Validation.SourceGenerator" />
+    <PackageReference Include="ValidationModules.SourceGenerator" />
     <PackageReference Include="Hardened.Smithy.SourceGenerator" PrivateAssets="all" />
   </ItemGroup>
 

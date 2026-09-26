@@ -16,7 +16,6 @@
         <ProjectReference Include="..\..\..\Hardened.Aws.Lambda.Invoke\Hardened.Aws.Lambda.Invoke.csproj"/>
         <ProjectReference Include="..\..\..\..\..\SourceGenerators\Hardened.Library.SourceGenerator\Hardened.Library.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
         <ProjectReference Include="..\..\..\..\..\SourceGenerators\Hardened.Function.SourceGenerator\Hardened.Function.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
-        <ProjectReference Include="..\..\..\..\..\SourceGenerators\Hardened.Validation.SourceGenerator\Hardened.Validation.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
         <ProjectReference Include="..\..\..\..\..\SourceGenerators\Hardened.DependencyModules.SourceGenerator\Hardened.DependencyModules.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
     </ItemGroup>
 
@@ -35,5 +34,7 @@
     -->
     <Import Project="..\..\..\..\..\Requests\Hardened.Requests.Abstract\Package\Hardened.Requests.Abstract.targets"/>
     <Import Project="..\..\..\Hardened.Aws.Lambda.Invoke\Package\Hardened.Aws.Lambda.Invoke.targets"/>
+
+    <Import Project="..\..\..\..\..\SourceGenerators\ValidationModulesGenerator.props"/>
 
 </Project>

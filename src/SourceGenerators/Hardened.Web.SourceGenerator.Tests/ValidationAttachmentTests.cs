@@ -1,7 +1,6 @@
 using Hardened.Requests.Abstract.Attributes;
 using Hardened.Requests.Runtime.Validation;
 using Hardened.SourceGeneration.Testing;
-using Hardened.Validation.SourceGenerator;
 using Hardened.Web.Runtime.Attributes;
 using Microsoft.CodeAnalysis;
 using ValidationModules;
@@ -62,9 +61,10 @@ public class ValidationAttachmentTests
             new IIncrementalGenerator[]
             {
                 new WebLibrarySourceGenerator(),
-                new HardenedValidationGenerator(),
+                ValidationModulesPackage.Generator(),
             },
-            Anchors
+            Anchors,
+            buildProperties: ValidationModulesPackage.BuildProperties
         );
 
     private const string ConstrainedModel = """
@@ -223,6 +223,194 @@ public class ValidationAttachmentTests
         Assert.Contains("ctx.Push(\"order\")", validator);
     }
 
+    private const string RulesDescribedModel = """
+        using ValidationModules;
+        using Hardened.Web.Runtime.Attributes;
+
+        namespace TestApp;
+
+        public class Shipment {
+            public string? Carrier { get; set; }
+            public int Weight { get; set; }
+        }
+
+        public class ShipmentRules : IValidationRulesFor<Shipment> {
+            public static void Describe(ValidationRules<Shipment> rules, Shipment x) {
+                rules.Require(x.Carrier);
+                rules.Range(x.Weight, 1, 100);
+            }
+        }
+
+        """;
+
+    private const string ShipmentHandler = """
+        using Hardened.Web.Runtime.Attributes;
+        using Shipping;
+
+        namespace TestApp.Handlers;
+
+        public class ShipmentController {
+            [Post("/shipments")]
+            public string Create(Shipment shipment) => shipment.Carrier ?? "";
+        }
+        """;
+
+    /// <summary>
+    /// A model with no constraint attribute, whose rules are in a rules class, gets the filter and
+    /// the descent an attributed model gets.
+    /// </summary>
+    [Fact]
+    public void ARulesClassModelAttachesAFilter()
+    {
+        var result = Generate(
+                RulesDescribedModel
+                    + """
+                    public class ShipmentController {
+                        [Post("/shipments")]
+                        public string Create(Shipment shipment) => shipment.Carrier ?? "";
+                    }
+                    """
+            )
+            .AssertNoErrors();
+
+        Assert.Contains(
+            "ValidationFilterProvider<global::",
+            Handler(result, "ShipmentController_Create")
+        );
+        Assert.Contains(
+            "new global::TestApp.ShipmentValidator()",
+            result.SourceContaining("ParametersValidator")
+        );
+    }
+
+    /// <summary>
+    /// A model from a library that keeps its rules class beside it. The rules class is not in this
+    /// compilation, so the validator the library's build emitted is what says the model has one.
+    /// </summary>
+    [Fact]
+    public void ARulesClassModelFromALibraryAttachesAFilter()
+    {
+        var library = Library(
+            RulesDescribedModel.Replace("namespace TestApp;", "namespace Shipping;"),
+            ValidationModulesPackage.Generator()
+        );
+
+        var result = GenerateAgainst(ShipmentHandler, library).AssertNoErrors();
+
+        Assert.Contains(
+            "ValidationFilterProvider<global::",
+            Handler(result, "ShipmentController_Create")
+        );
+        Assert.Contains(
+            "new global::Shipping.ShipmentValidator()",
+            result.SourceContaining("ParametersValidator")
+        );
+    }
+
+    /// <summary>
+    /// A rules class in this project for a model a library declares. ValidationModules emits the
+    /// validator here, in the model's namespace.
+    /// </summary>
+    [Fact]
+    public void ARulesClassForALibraryModelAttachesAFilter()
+    {
+        var library = Library(
+            """
+            namespace Shipping;
+
+            public class Shipment {
+                public string? Carrier { get; set; }
+            }
+            """
+        );
+
+        var result = GenerateAgainst(
+                ShipmentHandler
+                    + """
+
+                    public class ShipmentRules : ValidationModules.IValidationRulesFor<Shipment> {
+                        public static void Describe(
+                            ValidationModules.ValidationRules<Shipment> rules, Shipment x) {
+                            rules.Require(x.Carrier);
+                        }
+                    }
+                    """,
+                library
+            )
+            .AssertNoErrors();
+
+        Assert.Contains(
+            "ValidationFilterProvider<global::",
+            Handler(result, "ShipmentController_Create")
+        );
+        Assert.Contains(
+            "new global::Shipping.ShipmentValidator()",
+            result.SourceContaining("ParametersValidator")
+        );
+    }
+
+    /// <summary>
+    /// A library class named like a validator that is not an <c>IValidatorFor</c> of the model is
+    /// not called as one. A FluentValidation <c>ShipmentValidator</c> beside a <c>Shipment</c> has
+    /// this shape.
+    /// </summary>
+    [Fact]
+    public void ALibraryClassNamedLikeAValidatorIsNotCalled()
+    {
+        var library = Library(
+            """
+            namespace Shipping;
+
+            public class Shipment {
+                public string? Carrier { get; set; }
+            }
+
+            public class ShipmentValidator {
+                public bool Check(Shipment shipment) => shipment.Carrier != null;
+            }
+            """
+        );
+
+        var result = GenerateAgainst(ShipmentHandler, library).AssertNoErrors();
+
+        Assert.DoesNotContain(
+            "ValidationFilterProvider",
+            Handler(result, "ShipmentController_Create")
+        );
+    }
+
+    /// <summary>
+    /// <paramref name="source"/> compiled as a library, with <paramref name="generators"/> run over
+    /// it the way the library's own build would run them.
+    /// </summary>
+    private static MetadataReference Library(
+        string source,
+        params IIncrementalGenerator[] generators
+    ) =>
+        GeneratorTestHarness
+            .Run(
+                new Dictionary<string, string> { ["Library.cs"] = source },
+                generators,
+                Anchors,
+                buildProperties: ValidationModulesPackage.BuildProperties,
+                assemblyName: "Shipping"
+            )
+            .AssertNoErrors()
+            .Compilation.ToMetadataReference();
+
+    private static GeneratorResult GenerateAgainst(string source, MetadataReference library) =>
+        GeneratorTestHarness.Run(
+            new Dictionary<string, string> { ["Test.cs"] = source },
+            new IIncrementalGenerator[]
+            {
+                new WebLibrarySourceGenerator(),
+                ValidationModulesPackage.Generator(),
+            },
+            Anchors,
+            buildProperties: ValidationModulesPackage.BuildProperties,
+            additionalReferences: [library]
+        );
+
     /// <summary>
     /// A handler whose types constrain nothing gets nothing. Attaching everywhere would put the
     /// cost on requests with nothing to check, and would make the case above unfalsifiable.
@@ -257,9 +445,9 @@ public class ValidationAttachmentTests
     /// type that does not exist and fail the build of a project that never asked for validation.
     /// </summary>
     /// <remarks>
-    /// The web generator asks rather than assumes, through a marker the validation generator
-    /// declares in post-initialization output. This runs the web generator alone, which is exactly
-    /// the shape of a consumer who references it and not the other.
+    /// The web generator asks rather than assumes, through a build property the validation
+    /// generator's package makes visible to the compiler. This runs the web generator alone, which is
+    /// exactly the shape of a consumer who references it and not the other.
     /// </remarks>
     [Fact]
     public void WithoutTheValidationGeneratorNothingIsAttached()

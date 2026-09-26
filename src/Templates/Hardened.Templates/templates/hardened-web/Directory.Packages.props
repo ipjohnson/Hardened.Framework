@@ -8,6 +8,10 @@
          HardenedVersion is. Hardened.Shared.Testing depends on DependencyModules.Testing at this
          version, and the runner and mock packages below have to be the same line. -->
     <DependencyModulesVersion>0.0.0-DEPENDENCYMODULES-VERSION</DependencyModulesVersion>
+    <!-- The ValidationModules line Hardened is built against, stamped at pack the same way. The
+         Hardened packages bring ValidationModules.Runtime at this version, and the generator
+         fails the build with VM5001 against a runtime older than itself. -->
+    <ValidationModulesVersion>0.0.0-VALIDATIONMODULES-VERSION</ValidationModulesVersion>
 <!--#if (kiotaClient) -->
     <!--
       The Kiota runtime the generated client compiles against. Pinned beside the tool that
@@ -130,7 +134,7 @@
     <PackageVersion Include="Hardened.OpenApi.SourceGenerator" Version="$(HardenedVersion)" />
     <PackageVersion Include="Hardened.Smithy.SourceGenerator" Version="$(HardenedVersion)" />
     <PackageVersion Include="Hardened.Idl.SourceGenerator" Version="$(HardenedVersion)" />
-    <PackageVersion Include="Hardened.Validation.SourceGenerator" Version="$(HardenedVersion)" />
+    <PackageVersion Include="ValidationModules.SourceGenerator" Version="$(ValidationModulesVersion)" />
   </ItemGroup>
 
   <ItemGroup Label="Testing">

@@ -75,8 +75,6 @@
       "src\\SourceGenerators\\Hardened.SourceGeneration.Testing\\Hardened.SourceGeneration.Testing.csproj",
       "src\\SourceGenerators\\Hardened.SourceGenerator.Tests\\Hardened.SourceGenerator.Tests.csproj",
       "src\\SourceGenerators\\Hardened.SourceGenerator\\Hardened.SourceGenerator.csproj",
-      "src\\SourceGenerators\\Hardened.Validation.SourceGenerator.Tests\\Hardened.Validation.SourceGenerator.Tests.csproj",
-      "src\\SourceGenerators\\Hardened.Validation.SourceGenerator\\Hardened.Validation.SourceGenerator.csproj",
       "src\\SourceGenerators\\Hardened.Web.SourceGenerator.Tests\\Hardened.Web.SourceGenerator.Tests.csproj",
       "src\\SourceGenerators\\Hardened.Web.SourceGenerator\\Hardened.Web.SourceGenerator.csproj",
       "src\\Templates\\Hardened.Templates.RazorBlade.Tests\\Hardened.Templates.RazorBlade.Tests.csproj",

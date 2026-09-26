@@ -67,7 +67,7 @@
         the icon.
     -->
     <Target Name="StageTemplates" BeforeTargets="GenerateNuspec">
-        <Exec Command="python3 &quot;$(MSBuildProjectDirectory)/stage-templates.py&quot; &quot;$(MSBuildProjectDirectory)/templates&quot; &quot;$(_TemplateStage)&quot; &quot;$(PackageVersion)&quot; &quot;$(DependencyModulesVersion)&quot;" />
+        <Exec Command="python3 &quot;$(MSBuildProjectDirectory)/stage-templates.py&quot; &quot;$(MSBuildProjectDirectory)/templates&quot; &quot;$(_TemplateStage)&quot; &quot;$(PackageVersion)&quot; &quot;$(DependencyModulesVersion)&quot; &quot;$(ValidationModulesVersion)&quot;" />
 
         <ItemGroup>
             <_PackageFiles Include="$(_TemplateStage)/**/*">

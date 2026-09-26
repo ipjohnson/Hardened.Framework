@@ -271,8 +271,6 @@
     <Project Path="src/SourceGenerators/Hardened.SourceGeneration.Testing/Hardened.SourceGeneration.Testing.csproj" />
     <Project Path="src/SourceGenerators/Hardened.SourceGenerator.Tests/Hardened.SourceGenerator.Tests.csproj" />
     <Project Path="src/SourceGenerators/Hardened.SourceGenerator/Hardened.SourceGenerator.csproj" />
-    <Project Path="src/SourceGenerators/Hardened.Validation.SourceGenerator.Tests/Hardened.Validation.SourceGenerator.Tests.csproj" />
-    <Project Path="src/SourceGenerators/Hardened.Validation.SourceGenerator/Hardened.Validation.SourceGenerator.csproj" />
     <Project Path="src/SourceGenerators/Hardened.Web.SourceGenerator.Tests/Hardened.Web.SourceGenerator.Tests.csproj" />
     <Project Path="src/SourceGenerators/Hardened.Web.SourceGenerator/Hardened.Web.SourceGenerator.csproj" />
   </Folder>

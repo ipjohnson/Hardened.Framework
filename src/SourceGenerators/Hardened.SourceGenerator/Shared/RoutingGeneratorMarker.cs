@@ -12,11 +12,6 @@ namespace Hardened.SourceGenerator.Shared;
 /// can see - and <c>Hardened.Library.SourceGenerator</c> reports its absence as HRDR006.
 /// </para>
 /// <para>
-/// The same arrangement <c>ValidationGeneratorMarker</c> uses, and for a related reason: a
-/// generator cannot observe another's regular output, so a marker is the only channel between two
-/// of them.
-/// </para>
-/// <para>
 /// Two constants and no logic, deliberately. This file is linked into five generator assemblies
 /// because three of them declare the marker, and only one asks the question - so what the others
 /// compile in has to be small enough to carry.

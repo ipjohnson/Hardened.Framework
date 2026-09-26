@@ -1,6 +1,6 @@
 # Packages
 
-The Hardened release publishes 66 packages. The tables on this page list every one of them.
+The Hardened release publishes 65 packages. The tables on this page list every one of them.
 
 A Kestrel application references these packages, including three source generators:
 
@@ -11,21 +11,22 @@ A Kestrel application references these packages, including three source generato
   <PackageReference Include="Hardened.Web.Kestrel.Runtime" Version="0.0.0-HARDENED-VERSION" />
   <PackageReference Include="Hardened.Library.SourceGenerator" Version="0.0.0-HARDENED-VERSION" PrivateAssets="all" />
   <PackageReference Include="Hardened.Web.SourceGenerator" Version="0.0.0-HARDENED-VERSION" PrivateAssets="all" />
-  <PackageReference Include="Hardened.Validation.SourceGenerator" Version="0.0.0-HARDENED-VERSION" PrivateAssets="all" />
+  <PackageReference Include="ValidationModules.SourceGenerator" Version="1.2.0" PrivateAssets="all" />
 </ItemGroup>
 ```
 
-Every package is on nuget.org. A release publishes all 66 packages at one version.
+Every package is on nuget.org. A release publishes all 65 packages at one version.
 [Project templates](/guide/project-templates) reference the packages that each project needs.
 
 ## Referencing a source generator
 
-Reference a source generator package with `PrivateAssets="all"`, as the example does. The eight
+Reference a source generator package with `PrivateAssets="all"`, as the example does. The seven
 generator packages are `Hardened.Library.SourceGenerator`, `Hardened.Web.SourceGenerator`,
-`Hardened.Validation.SourceGenerator`, `Hardened.Function.SourceGenerator`,
-`Hardened.OpenApi.SourceGenerator`, `Hardened.Smithy.SourceGenerator`,
-`Hardened.Azure.Functions.SourceGenerator` and `Hardened.Gcp.Functions.SourceGenerator`. The
-Generator column of the tables below marks each one.
+`Hardened.Function.SourceGenerator`, `Hardened.OpenApi.SourceGenerator`,
+`Hardened.Smithy.SourceGenerator`, `Hardened.Azure.Functions.SourceGenerator` and
+`Hardened.Gcp.Functions.SourceGenerator`. The Generator column of the tables below marks each one.
+The validators come from `ValidationModules.SourceGenerator`, which is referenced the same way.
+[Validation](/guide/validation) covers it.
 
 `PrivateAssets` decides which projects run the generator:
 
@@ -101,7 +102,6 @@ fails with `HRDR008`. The build also reports `CS0102` and `CS0111` on the genera
 |---|---|---|---|---|
 | `Hardened.Library.SourceGenerator` | Each module's generated half: `PopulateServiceCollection`, the module's attribute, `CreateServiceProvider` and the configuration. It holds the `Hardened.DependencyModules.SourceGenerator` generator as well | | Yes | [From scratch](/guide/from-scratch) |
 | `Hardened.Web.SourceGenerator` | The routing table, a handler class for each route, the typed links and the OpenAPI document | | Yes | [From scratch](/guide/from-scratch) |
-| `Hardened.Validation.SourceGenerator` | Validators for constraint attributes | | Yes | [Validation](/guide/validation) |
 | `Hardened.Function.SourceGenerator` | Handlers for `[HardenedFunction]` and the trigger attributes | | Yes | [Triggers](/guide/triggers) |
 | `Hardened.OpenApi.SourceGenerator` | Models, the service interface, handlers and routes from an OpenAPI document named by a `HardenedOpenApiSpec` item | `HardenedOpenApiSpec` item | Yes | [Generating from OpenAPI](/guide/openapi) |
 | `Hardened.Smithy.SourceGenerator` | The same from a Smithy model named by a `HardenedSmithyModel` item. The build needs the Smithy CLI | `HardenedSmithyModel` item | Yes | [Generating from Smithy](/guide/smithy) |
@@ -183,11 +183,12 @@ Streams adapter.
 
 ## Retired packages
 
-Besides the 66 packages above, nuget.org holds 23 retired package ids. The release does not publish
-them. The table lists all 23.
+Besides the 65 packages above, nuget.org holds 24 retired package ids. The release does not publish
+them. The table lists all 24.
 
 | Package | Last version | Current package |
 |---|---|---|
+| `Hardened.Validation.SourceGenerator` | 0.40.0-rc1000 | `ValidationModules.SourceGenerator` |
 | `Hardened.Aws.Lambda.ApiGateway` | 0.33.0-rc1000 | `Hardened.Aws.Lambda.Http`, with `[LambdaHttpModule]` in place of `[ApiGatewayModule]` |
 | `Hardened.Amz.DynamoDbClient` | 0.22.0-rc1000 | `Hardened.Aws.DynamoDbClient` |
 | `Hardened.Amz.DynamoDbClient.Testing` | 0.22.0-rc1000 | `Hardened.Aws.DynamoDbClient.Testing` |

@@ -55,6 +55,14 @@ public class RegistrationController
     public string Unconstrained(MathAddModel model) =>
         string.Join(",", model.Values ?? new List<int>());
 
+    /// <summary>A body whose rules are declared in a rules class rather than on its members.</summary>
+    [Post("/shipment")]
+    public string RegisterShipment(ShipmentModel shipment) => shipment.Carrier ?? "";
+
+    /// <summary>A body that descends into a model whose rules are in a rules class.</summary>
+    [Post("/consignment")]
+    public string RegisterConsignment(ConsignmentModel consignment) => consignment.Reference ?? "";
+
     /// <summary>
     /// The same model, bound and not validated, the way a route that echoes what it was sent binds it.
     /// </summary>

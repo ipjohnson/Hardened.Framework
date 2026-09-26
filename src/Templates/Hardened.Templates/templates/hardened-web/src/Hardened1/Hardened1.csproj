@@ -110,12 +110,12 @@
 <!--#endif -->
 
     <!--
-      Turns constraint attributes into validators and registers them. Required for a contract
-      that carries constraints - without it a handler declaring them throws at request time
-      rather than validating - and worth having for code-first too, where a [Required] added
-      later would otherwise compile and silently never run.
+      Turns constraint attributes and rules classes into validators and registers them. Required
+      for a contract that carries constraints - without it a handler declaring them throws at
+      request time rather than validating - and worth having for code-first too, where a
+      [Required] added later would otherwise compile and silently never run.
     -->
-    <PackageReference Include="Hardened.Validation.SourceGenerator" />
+    <PackageReference Include="ValidationModules.SourceGenerator" />
 <!--#if (specFirst) -->
     <!--
       PrivateAssets="all" so the generators stay in this project.

@@ -288,7 +288,9 @@ jobs:
           # comes from DependencyModules.xUnit, DependencyModules.xUnit4 or DependencyModules.NUnit,
           # and the running-test seam from DependencyModules.Testing.
           # Still 66 when the hand-kept list gave way to packing the solution (#417).
-          EXPECTED=66
+          # 65 without Hardened.Validation.SourceGenerator. Applications reference
+          # ValidationModules.SourceGenerator, which also reads rules classes.
+          EXPECTED=65
           ACTUAL=$(ls -1 ./artifacts/*.nupkg 2>/dev/null | wc -l | tr -d ' ')
 
           if [ "$ACTUAL" != "$EXPECTED" ]; then

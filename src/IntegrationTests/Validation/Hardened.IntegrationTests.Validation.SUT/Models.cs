@@ -34,13 +34,6 @@ public class Delivery
 /// <summary>
 /// A model whose rules are declared in a rules class rather than on its members.
 /// </summary>
-/// <remarks>
-/// The half <c>Hardened.Validation.SourceGenerator</c> never reached.
-/// <c>HardenedValidationGenerator</c> constructs <c>AttributeFrontEnd</c> and nothing else, so a
-/// rules class produced no validator and no diagnostic; <c>RulesFrontEnd</c> was compiled into the
-/// same assembly and never called. ValidationModules' generator reads both, which is the second
-/// reason this project takes it.
-/// </remarks>
 public class Shipment
 {
     public string? Carrier { get; init; }

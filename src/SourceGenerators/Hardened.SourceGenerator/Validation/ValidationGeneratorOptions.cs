@@ -1,6 +1,7 @@
 using System;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
+using ValidationModules.SourceGenerator.Impl;
 using ValidationModules.SourceGenerator.Impl.Models;
 
 namespace Hardened.SourceGenerator.Validation;
@@ -11,13 +12,13 @@ namespace Hardened.SourceGenerator.Validation;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Shared because two generators have to reach the same answer about the same type. The handler
-/// generators ask "does this body model get a validator, and what is it called" so they can emit a
-/// call to it; <c>Hardened.Validation.SourceGenerator</c> answers "yes" by emitting it. Those are
-/// separate assemblies reading the same compilation, and the only thing keeping them in step is
-/// that the question is asked with identical inputs. A field namer that differed between them
-/// would not fail - it would quietly report a different field name depending on which generator
-/// produced the validator.
+/// The same properties <c>ValidationModules.SourceGenerator</c> reads, because two generators have
+/// to reach the same answer about the same type. The handler generators ask "does this body model
+/// get a validator, and what is it called" so they can emit a call to it; ValidationModules'
+/// generator answers "yes" by emitting it. Those are separate assemblies reading the same
+/// compilation, and the only thing keeping them in step is that the question is asked with
+/// identical inputs. A field namer that differed between them would not fail - it would quietly
+/// report a different field name depending on which generator produced the validator.
 /// </para>
 /// <para>
 /// A wrong answer about <em>existence</em> is loud: the handler names a validator that was never
@@ -29,29 +30,10 @@ public sealed record ValidationGeneratorOptions(
     string? Naming,
     string? DataAnnotations,
     string? PatternPolicySetting,
-    bool IsAotFacing
+    bool IsAotFacing,
+    bool GeneratorReferenced = false
 )
 {
-    /// <summary>
-    /// The type <c>Hardened.Validation.SourceGenerator</c> declares to say it is running.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// A handler generator emits a call to a validator it cannot see, on the strength of the
-    /// validation generator emitting one for the same type. If that generator is not referenced,
-    /// nothing emits it and the compilation fails on a type that does not exist - in a project
-    /// that never asked for validation and whose models merely carry
-    /// <c>System.ComponentModel.DataAnnotations</c> attributes for some other reason.
-    /// </para>
-    /// <para>
-    /// So the question is asked rather than assumed. It works because this marker is
-    /// post-initialization output, which is the one kind of generated source other generators do
-    /// see - regular output is invisible to them, which is the constraint that shapes everything
-    /// else here.
-    /// </para>
-    /// </remarks>
-    public const string MarkerTypeName = "Hardened.Validation.Generated.ValidationGeneratorMarker";
-
     public static ValidationGeneratorOptions Read(AnalyzerConfigOptionsProvider provider)
     {
         provider.GlobalOptions.TryGetValue(
@@ -73,9 +55,30 @@ public sealed record ValidationGeneratorOptions(
             naming,
             dataAnnotations,
             patternPolicy,
-            IsTrue(publishAot) || IsTrue(aotCompatible)
+            IsTrue(publishAot) || IsTrue(aotCompatible),
+            provider.GlobalOptions.TryGetValue(GeneratorProperty, out _)
         );
     }
+
+    /// <summary>
+    /// A property <c>ValidationModules.SourceGenerator</c>'s package declares, which is how a
+    /// handler generator learns that validators are being emitted for this compilation.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A handler generator emits a call to a validator it cannot see, on the strength of
+    /// ValidationModules emitting one for the same type. If that generator is not referenced,
+    /// nothing emits it and the compilation fails on a type that does not exist - in a project that
+    /// never asked for validation and whose models merely carry
+    /// <c>System.ComponentModel.DataAnnotations</c> attributes for some other reason.
+    /// </para>
+    /// <para>
+    /// The package's targets list it as a <c>CompilerVisibleProperty</c>, and the build writes the
+    /// key whether or not it has a value. So its presence answers the question: one generator's
+    /// regular output is invisible to another, and this is not output at all.
+    /// </para>
+    /// </remarks>
+    public const string GeneratorProperty = "build_property.ValidationModules_Registration";
 
     /// <summary>
     /// The name of the validator emitted for a type, which is a convention rather than a message
@@ -85,10 +88,12 @@ public sealed record ValidationGeneratorOptions(
     /// The build task hands the generator every name it invents, because a task and a generator
     /// that derive the same name separately drift the moment one of them changes. This is the
     /// opposite case: there is no channel between two Roslyn generators to pass a name along, so
-    /// the convention is the channel. It is safe here only because getting it wrong cannot compile.
+    /// the convention is the channel - and it is ValidationModules' own, compiled in from the same
+    /// package, so the two cannot name a type differently. It is safe only because getting it wrong
+    /// cannot compile.
     /// </remarks>
     public static Func<INamedTypeSymbol, string> ValidatorNameFor { get; } =
-        static type => $"{type.Name}Validator";
+        GeneratedNames.Validator;
 
     /// <summary>
     /// Auto gates on the project's own AOT posture rather than on PublishAot alone, which is

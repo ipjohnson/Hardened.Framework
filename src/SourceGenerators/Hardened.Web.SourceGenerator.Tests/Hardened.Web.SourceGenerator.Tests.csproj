@@ -51,17 +51,6 @@
         <ProjectReference Include="..\Hardened.SourceGeneration.Testing\Hardened.SourceGeneration.Testing.csproj"/>
 
         <!--
-          The validation generator, so a test can run the pair the way a real project does. The web
-          generator emits calls to validators this one produces and cannot see, so running either
-          alone proves only half of the arrangement.
-
-          It carries its own copy of the ValidationModules and Hardened.SourceGenerator sources, as
-          the note above describes, so tests must not name types from either - only the two
-          generator classes.
-        -->
-        <ProjectReference Include="..\Hardened.Validation.SourceGenerator\Hardened.Validation.SourceGenerator.csproj"/>
-
-        <!--
             The build task, so the round trip can be closed rather than described: the document this
             generator emits is fed back through the parser and emitter a specification-first build
             uses, and the interfaces that come out are compared against the controllers that went
@@ -90,10 +79,36 @@
     </ItemGroup>
 
     <!--
+        ValidationModules' generator, so a test can run the pair the way a real project does. The web
+        generator emits calls to validators this one produces and cannot see, so running either alone
+        proves only half of the arrangement.
+
+        Its assembly rather than its analyzer, so a GeneratorDriver can construct it. The package leg
+        takes no assets, which keeps the generator from running over this project, and references
+        the DLL by path. It carries its own copy of the ValidationModules sources, so tests name only
+        its generator class.
+    -->
+    <PropertyGroup>
+        <ValidationModulesRoot Condition="'$(ValidationModulesRoot)' == ''">$(MSBuildThisFileDirectory)..\..\..\..\ValidationModules</ValidationModulesRoot>
+        <ValidationModulesGeneratorProject>$(ValidationModulesRoot)\src\ValidationModules.SourceGenerator\ValidationModules.SourceGenerator.csproj</ValidationModulesGeneratorProject>
+        <UseLocalValidationModules Condition="'$(UseLocalValidationModules)' == '' And Exists('$(ValidationModulesGeneratorProject)')">true</UseLocalValidationModules>
+    </PropertyGroup>
+
+    <ItemGroup Condition="'$(UseLocalValidationModules)' == 'true'">
+        <ProjectReference Include="$(ValidationModulesGeneratorProject)"/>
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(UseLocalValidationModules)' != 'true'">
+        <PackageReference Include="ValidationModules.SourceGenerator" GeneratePathProperty="true"
+                          IncludeAssets="none" PrivateAssets="all"/>
+        <Reference Include="$(PkgValidationModules_SourceGenerator)\analyzers\dotnet\cs\ValidationModules.SourceGenerator.dll"/>
+    </ItemGroup>
+
+    <!--
       This assembly's copy of the shared spec bridge, covered here. SpecSchemaWriter is 111 lines of
       it and was reachable from no test this project had.
 
-      GeneratedSourceTests is not linked: GeneratedSource is compiled into the validation generator
+      GeneratedSourceTests is not linked: GeneratedSource is compiled into the library generator
       too, so naming it here is ambiguous again - and GeneratedFileHeaderTests already covers this
       assembly's copy through the generator, which is the better test anyway.
     -->

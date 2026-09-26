@@ -350,8 +350,8 @@ delivery.
 A trigger handler runs through the execution pipeline, as a route does.
 [The execution pipeline](/guide/execution-pipeline) covers the filters.
 
-With `Hardened.Validation.SourceGenerator` referenced, the pipeline checks the constraint attributes
-on a trigger's payload type before the handler runs. Without that package, the build warns with
+With `ValidationModules.SourceGenerator` referenced, the pipeline checks the constraint attributes
+and rules classes for a trigger's payload type before the handler runs. Without that package, the build warns with
 `HRDV006`. The pipeline then checks nothing. [Validation](/guide/validation) covers the
 constraints.
 

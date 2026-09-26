@@ -20,7 +20,7 @@ namespace Hardened.Idl.Validation;
 /// </para>
 /// <para>
 /// No validator is emitted here. The constraints are attributes, and
-/// <c>Hardened.Validation.SourceGenerator</c> reads them the same way it reads attributes a
+/// <c>ValidationModules.SourceGenerator</c> reads them the same way it reads attributes a
 /// developer wrote - which is what makes a spec-declared constraint and a hand-written one one path
 /// rather than two that agree.
 /// </para>

@@ -14,7 +14,7 @@ namespace Hardened.Idl.Validation;
 /// <remarks>
 /// <para>
 /// The task writes attributes rather than validators. The validator is emitted by
-/// <c>Hardened.Validation.SourceGenerator</c>, which reads these out of the compilation exactly as
+/// <c>ValidationModules.SourceGenerator</c>, which reads these out of the compilation exactly as
 /// it reads attributes a developer wrote - so a spec-declared <c>maxLength</c> and a hand-written
 /// <c>[StringLength]</c> are one path rather than two that agree.
 /// </para>

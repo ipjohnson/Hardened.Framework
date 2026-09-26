@@ -144,10 +144,10 @@ check_generated() {
         FAILED=1
     fi
 
-    # Both version tokens are stamped at pack, and a token that reached the output restores nothing:
+    # Every version token is stamped at pack, and a token that reached the output restores nothing:
     # the framework one fails loudly, but the DependencyModules one sits behind the mock package and
     # would fail only the test project's restore, in a row that then never runs a test.
-    if grep -rl '0.0.0-HARDENED-VERSION\|0.0.0-DEPENDENCYMODULES-VERSION' "$out" --exclude-dir=bin --exclude-dir=obj >/dev/null 2>&1; then
+    if grep -rl '0.0.0-HARDENED-VERSION\|0.0.0-DEPENDENCYMODULES-VERSION\|0.0.0-VALIDATIONMODULES-VERSION' "$out" --exclude-dir=bin --exclude-dir=obj >/dev/null 2>&1; then
         echo "   FAILED: a version token reached the output unstamped in $out"
         FAILED=1
     fi

@@ -9,9 +9,10 @@
           here and only here: the two applications are the same code deployed against two event
           source mappings, one with ReportBatchItemFailures and one without, and that setting is a
           property of the deployment rather than of the handlers. Sharing the handlers is what makes
-          the pair a comparison rather than two unrelated fixtures.
+          the pair a comparison rather than two unrelated fixtures. VM6001 is ValidationModules
+          asking the same question about the validators it registers into both.
         -->
-        <NoWarn>$(NoWarn);HRDR004</NoWarn>
+        <NoWarn>$(NoWarn);HRDR004;VM6001</NoWarn>
     </PropertyGroup>
 
     <!--
@@ -24,7 +25,6 @@
         <ProjectReference Include="..\..\..\Hardened.Aws.Lambda.Sqs\Hardened.Aws.Lambda.Sqs.csproj"/>
         <ProjectReference Include="..\..\..\..\..\SourceGenerators\Hardened.Library.SourceGenerator\Hardened.Library.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
         <ProjectReference Include="..\..\..\..\..\SourceGenerators\Hardened.Function.SourceGenerator\Hardened.Function.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
-        <ProjectReference Include="..\..\..\..\..\SourceGenerators\Hardened.Validation.SourceGenerator\Hardened.Validation.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
         <ProjectReference Include="..\..\..\..\..\SourceGenerators\Hardened.DependencyModules.SourceGenerator\Hardened.DependencyModules.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
     </ItemGroup>
 
@@ -44,5 +44,7 @@
     -->
     <Import Project="..\..\..\..\..\Functions\Hardened.Functions.Runtime\Package\Hardened.Functions.Runtime.targets"/>
     <Import Project="..\..\..\Hardened.Aws.Lambda.Sqs\Package\Hardened.Aws.Lambda.Sqs.targets"/>
+
+    <Import Project="..\..\..\..\..\SourceGenerators\ValidationModulesGenerator.props"/>
 
 </Project>

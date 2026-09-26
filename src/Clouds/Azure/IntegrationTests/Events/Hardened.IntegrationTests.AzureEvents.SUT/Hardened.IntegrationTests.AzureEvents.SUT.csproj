@@ -29,7 +29,6 @@
         <ProjectReference Include="..\..\..\Hardened.Azure.Functions.EventGrid\Hardened.Azure.Functions.EventGrid.csproj"/>
         <ProjectReference Include="..\..\..\..\..\SourceGenerators\Hardened.Library.SourceGenerator\Hardened.Library.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
         <ProjectReference Include="..\..\..\..\..\SourceGenerators\Hardened.Function.SourceGenerator\Hardened.Function.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
-        <ProjectReference Include="..\..\..\..\..\SourceGenerators\Hardened.Validation.SourceGenerator\Hardened.Validation.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
         <ProjectReference Include="..\..\..\..\..\SourceGenerators\Hardened.DependencyModules.SourceGenerator\Hardened.DependencyModules.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
         <ProjectReference Include="..\..\..\Hardened.Azure.Functions.SourceGenerator\Hardened.Azure.Functions.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
     </ItemGroup>
@@ -43,5 +42,7 @@
     <Import Project="..\..\..\Hardened.Azure.Functions.Timer\Package\Hardened.Azure.Functions.Timer.targets"/>
     <Import Project="..\..\..\Hardened.Azure.Functions.EventGrid\Package\Hardened.Azure.Functions.EventGrid.targets"/>
     <Import Project="..\..\..\Hardened.Azure.Functions.Runtime\Package\Hardened.Azure.Functions.Runtime.targets"/>
+
+    <Import Project="..\..\..\..\..\SourceGenerators\ValidationModulesGenerator.props"/>
 
 </Project>

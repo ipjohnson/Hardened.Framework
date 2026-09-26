@@ -14,26 +14,22 @@ namespace Hardened.SourceGenerator.Tests.Function;
 /// assuming they behave alike is how one of them silently stops validating.
 /// </para>
 /// <para>
-/// <b>Both halves are written by hand rather than run.</b> The validation generator lives in an
-/// assembly this project cannot reference - it carries its own copy of these sources, and
-/// referencing both makes every shared type ambiguous. So the marker it declares and the validator
-/// it would emit are supplied as ordinary source. That makes this the sharpest available test of
-/// the convention: the generated code names <c>OrderValidator</c> without ever seeing it,
+/// <b>ValidationModules' generator is stood in for rather than run.</b> Its assembly carries its own
+/// copy of the ValidationModules sources this project compiles against, and referencing both makes
+/// every shared type ambiguous. So the build property its package makes visible is passed, and the
+/// validator it would emit is supplied as ordinary source. That makes this the sharpest available
+/// test of the convention: the generated code names <c>OrderValidator</c> without ever seeing it,
 /// and if the name it derives were wrong, the case would not compile.
 /// </para>
 /// </remarks>
 public class FunctionValidationTests
 {
     /// <summary>
-    /// Stands in for what <c>Hardened.Validation.SourceGenerator</c> contributes: the marker that
-    /// says it is running, and a validator named the way it names them.
+    /// Stands in for what ValidationModules' generator contributes: a validator named the way it
+    /// names them.
     /// </summary>
     private const string ValidationGeneratorOutput = """
         using ValidationModules;
-
-        namespace Hardened.Validation.Generated {
-            internal static class ValidationGeneratorMarker { }
-        }
 
         namespace TestApp {
             public sealed class OrderValidator : IValidatorFor<Order> {
@@ -45,6 +41,12 @@ public class FunctionValidationTests
         }
 
         """;
+
+    /// <summary>What the ValidationModules.SourceGenerator package makes visible to the compiler.</summary>
+    private static readonly Dictionary<string, string> ValidationModulesPackage = new()
+    {
+        ["ValidationModules_Registration"] = "",
+    };
 
     private const string FunctionSource = """
         using System.Threading.Tasks;
@@ -77,7 +79,8 @@ public class FunctionValidationTests
                 {
                     ["Functions.cs"] = FunctionSource,
                     ["Validation.cs"] = ValidationGeneratorOutput,
-                }
+                },
+                ValidationModulesPackage
             )
             .AssertNoErrors()
             .SourceContaining("Process.FunctionHandler");
@@ -101,7 +104,8 @@ public class FunctionValidationTests
                 {
                     ["Functions.cs"] = FunctionSource,
                     ["Validation.cs"] = ValidationGeneratorOutput,
-                }
+                },
+                ValidationModulesPackage
             )
             .AssertNoErrors()
             .SourceContaining("ParametersValidator");
@@ -110,8 +114,8 @@ public class FunctionValidationTests
     }
 
     /// <summary>
-    /// Without the marker nothing is attached, which is what keeps a project that never referenced
-    /// the validation generator building.
+    /// Without the build property nothing is attached, which is what keeps a project that never
+    /// referenced ValidationModules' generator building.
     /// </summary>
     [Fact]
     public void WithoutTheValidationGeneratorNothingIsAttached()
