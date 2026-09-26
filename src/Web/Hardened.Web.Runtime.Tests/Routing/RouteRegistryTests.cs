@@ -294,6 +294,49 @@ public class RouteRegistryTests
         Assert.NotNull(registry.Close().Matched("/acme/orders/7", "GET"));
     }
 
+    /// <remarks>
+    /// The builder refuses the second, and the registry carries its message out with the rest, the
+    /// same as for a declared handler registered twice.
+    /// </remarks>
+    [Fact]
+    public void AGeneratedHandlerRegisteredTwiceAtOnePathIsReported()
+    {
+        var registry = new RouteRegistry(Provider, Catalog());
+        var handler = new RegisteredRouteHandler(
+            "GET",
+            ["id"],
+            static (_, routePath) => new StubHandler(routePath ?? "")
+        );
+
+        registry.Map("/acme/orders/{id:int}", handler);
+        registry.Map("/acme/orders/{id:int}", handler);
+
+        Assert.Contains("could never be reached", Assert.Single(registry.Failures));
+    }
+
+    /// <remarks>
+    /// The build writes every operation as <c>"verb":{...}</c>, and the id goes in after that brace.
+    /// A handler constructed by hand can carry anything, and an operation with no brace is published
+    /// as it was written rather than with an id spliced into it.
+    /// </remarks>
+    [Fact]
+    public void AnOperationWithNoObjectInItIsPublishedAsWritten()
+    {
+        var registry = new RouteRegistry(Provider, Catalog());
+
+        registry.Map(
+            "/acme/orders",
+            new RegisteredRouteHandler(
+                "GET",
+                [],
+                static (_, routePath) => new StubHandler(routePath ?? ""),
+                "\"get\""
+            )
+        );
+
+        Assert.Equal(("/acme/orders", "\"get\""), Assert.Single(registry.Operations));
+    }
+
     [Fact]
     public void AGeneratedHandlerIsComposedOntoTheBasePath()
     {

@@ -118,6 +118,20 @@ public class CorsConfigurationTests
         Assert.True(config.IsOriginAllowed("https://app.example.com:8443"));
     }
 
+    /// <summary>
+    /// The <c>null</c> origin a sandboxed document or a <c>file:</c> page sends has no scheme and no
+    /// host, and a suffix rule does not admit it.
+    /// </summary>
+    [Fact]
+    public void AllowOriginSuffix_DoesNotAdmitTheNullOrigin()
+    {
+        var config = new CorsConfiguration();
+
+        config.AllowOriginSuffix("example.com");
+
+        Assert.False(config.IsOriginAllowed("null"));
+    }
+
     /// <summary>Any origin admits everything, which is the point and why it is opt-in.</summary>
     [Fact]
     public void AllowAnyOrigin_AdmitsAnything()
