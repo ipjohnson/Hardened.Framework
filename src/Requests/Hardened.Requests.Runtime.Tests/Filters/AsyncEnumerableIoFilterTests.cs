@@ -8,6 +8,7 @@ using Hardened.Requests.Runtime.Errors;
 using Hardened.Requests.Runtime.Execution;
 using Hardened.Requests.Runtime.Filters;
 using Hardened.Requests.Runtime.Tests.Support;
+using Hardened.Shared.Runtime.Collections;
 using Hardened.Shared.Runtime.Metrics;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
@@ -45,8 +46,9 @@ public class AsyncEnumerableIoFilterTests
         Func<IExecutionContext, Task>? serialize = null,
         Action<IExecutionContext>? headerActions = null,
         IStreamFraming? framing = null,
-        TimeSpan heartbeat = default
-    ) => new(Empty, serialize ?? WriteValue, headerActions, framing, heartbeat);
+        TimeSpan heartbeat = default,
+        IMemoryStreamPool? streamPool = null
+    ) => new(Empty, serialize ?? WriteValue, headerActions, framing, heartbeat, streamPool);
 
     private static IStreamFraming Framing(string name) =>
         name == "sse" ? SseFraming.Instance : NdjsonFraming.Instance;
@@ -526,6 +528,211 @@ public class AsyncEnumerableIoFilterTests
     }
 
     private static bool Throw(string message) => throw new InvalidOperationException(message);
+
+    #endregion
+
+    #region one write per item
+
+    private static IExecutionFilter Handler(IAsyncEnumerable<string> stream) =>
+        new Pipeline.Inline(c =>
+        {
+            c.Context.Response.ResponseValue = stream;
+
+            return Task.CompletedTask;
+        });
+
+    /// <summary>
+    /// Kestrel sends each write to a chunked response as a chunk of its own. Written straight
+    /// through, an event was three: <c>data: </c>, the payload and the blank line, so an 89-event
+    /// response left as 267 chunks where ASP.NET Core's sends 89.
+    /// </summary>
+    [Theory]
+    [InlineData("sse", "data: alpha\n\n|data: beta\n\n")]
+    [InlineData("ndjson", "alpha\n|beta\n")]
+    public async Task EachItemReachesTheTransportAsOneWrite(string framing, string expected)
+    {
+        var transport = new RecordingTransport();
+        var context = Pipeline.Context();
+
+        context.Response.Body = transport;
+
+        await Pipeline
+            .Chain(
+                context,
+                Filter<string>(framing: Framing(framing)),
+                Handler(Items("alpha", "beta"))
+            )
+            .Next();
+
+        Assert.Equal(expected.Split('|'), transport.Writes);
+    }
+
+    [Fact]
+    public async Task EveryPooledStreamIsReturnedWhenTheStreamEnds()
+    {
+        var pool = new CountingStreamPool();
+        var context = Pipeline.Context();
+
+        await Pipeline
+            .Chain(
+                context,
+                Filter<string>(framing: SseFraming.Instance, streamPool: pool),
+                Handler(Items("alpha", "beta", "gamma"))
+            )
+            .Next();
+
+        Assert.Equal(3, pool.Lent);
+        Assert.Equal(0, pool.Outstanding);
+        Assert.True(pool.NoneWrittenAfterReturn);
+    }
+
+    /// <summary>
+    /// An event stream can be quiet for hours. The stream an item was written into goes back before
+    /// the filter waits for the next one, so a quiet connection holds nothing from the pool.
+    /// </summary>
+    [Fact]
+    public async Task NothingIsHeldFromThePoolWhileTheHandlerIsQuiet()
+    {
+        var pool = new CountingStreamPool();
+        var waiting = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var context = Pipeline.Context();
+
+        var run = Pipeline
+            .Chain(
+                context,
+                Filter<string>(framing: SseFraming.Instance, streamPool: pool),
+                Handler(OneThenQuiet(waiting, release.Task))
+            )
+            .Next();
+
+        await waiting.Task.WaitAsync(
+            TimeSpan.FromSeconds(10),
+            TestContext.Current.CancellationToken
+        );
+
+        Assert.Equal(1, pool.Lent);
+        Assert.Equal(0, pool.Outstanding);
+
+        release.SetResult();
+
+        await run;
+
+        Assert.Equal("data: alpha\n\ndata: beta\n\n", Body(context));
+        Assert.Equal(0, pool.Outstanding);
+    }
+
+    private static async IAsyncEnumerable<string> OneThenQuiet(
+        TaskCompletionSource waiting,
+        Task release
+    )
+    {
+        yield return "alpha";
+
+        waiting.SetResult();
+
+        await release;
+
+        yield return "beta";
+    }
+
+    [Fact]
+    public async Task APooledStreamIsReturnedWhenTheHandlerFailsAfterTheFirstItem()
+    {
+        var pool = new CountingStreamPool();
+        var context = Pipeline.Context();
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            Pipeline
+                .Chain(
+                    context,
+                    Filter<string>(framing: SseFraming.Instance, streamPool: pool),
+                    Handler(FailsAfterFirst())
+                )
+                .Next()
+        );
+
+        Assert.Equal(0, pool.Outstanding);
+    }
+
+    [Fact]
+    public async Task APooledStreamIsReturnedWhenTheTransportFails()
+    {
+        var pool = new CountingStreamPool();
+        var context = Pipeline.Context();
+
+        context.Response.Body = new RecordingTransport { FailOnWrite = 2 };
+
+        await Assert.ThrowsAsync<IOException>(() =>
+            Pipeline
+                .Chain(
+                    context,
+                    Filter<string>(framing: SseFraming.Instance, streamPool: pool),
+                    Handler(Items("alpha", "beta"))
+                )
+                .Next()
+        );
+
+        Assert.Equal(2, pool.Lent);
+        Assert.Equal(0, pool.Outstanding);
+    }
+
+    /// <summary>
+    /// The transport is back on the response once the stream ends, including when it failed before
+    /// its first byte, so the error document goes to the transport rather than into a buffer.
+    /// </summary>
+    [Fact]
+    public async Task TheTransportIsBackOnTheResponseAfterTheStream()
+    {
+        var transport = new RecordingTransport();
+        var context = Pipeline.Context();
+
+        context.Response.Body = transport;
+
+        var filter = Filter<string>(
+            serialize: c =>
+            {
+                var message = Encoding.UTF8.GetBytes(c.Response.ExceptionValue?.Message ?? "");
+
+                return c.Response.Body.WriteAsync(
+                    message,
+                    0,
+                    message.Length,
+                    TestContext.Current.CancellationToken
+                );
+            },
+            framing: SseFraming.Instance
+        );
+
+        await Pipeline.Chain(context, filter, Handler(FailsBeforeFirst())).Next();
+
+        Assert.Same(transport, context.Response.Body);
+        Assert.Equal("before the first item", Assert.Single(transport.Writes));
+    }
+
+    /// <summary>
+    /// A compressing transport decides at its first write whether to compress, and declines once
+    /// <c>ResponseStarted</c> is true. The testing host answers that from the body's position, as
+    /// the Lambda and Azure Functions hosts do, so the response has to read as unstarted while the
+    /// first item is handed over.
+    /// </summary>
+    [Fact]
+    public async Task ATransportThatDecidesAtItsFirstWriteSeesAnUnstartedResponse()
+    {
+        bool? startedAtFirstWrite = null;
+        var context = Pipeline.Context();
+
+        context.Response.Body = new RecordingTransport
+        {
+            OnWrite = () => startedAtFirstWrite ??= context.Response.ResponseStarted,
+        };
+
+        await Pipeline
+            .Chain(context, Filter<string>(framing: SseFraming.Instance), Handler(Items("alpha")))
+            .Next();
+
+        Assert.False(startedAtFirstWrite);
+    }
 
     #endregion
 

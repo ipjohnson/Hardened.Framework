@@ -4,6 +4,7 @@ using Hardened.Requests.Abstract.Logging;
 using Hardened.Requests.Abstract.Metrics;
 using Hardened.Requests.Abstract.Serializer;
 using Hardened.Requests.Runtime.Errors;
+using Hardened.Shared.Runtime.Collections;
 using Hardened.Shared.Runtime.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -16,6 +17,7 @@ public class AsyncEnumerableIoFilter<TItem> : IExecutionFilter
     private readonly Action<IExecutionContext>? _headerActions;
     private readonly IStreamFraming _framing;
     private readonly TimeSpan _heartbeatInterval;
+    private readonly IMemoryStreamPool _streamPool;
 
     /// <param name="framing">
     /// What goes around each item. Defaults to newline-delimited JSON, which is what every
@@ -26,12 +28,17 @@ public class AsyncEnumerableIoFilter<TItem> : IExecutionFilter
     /// for never - which is what a filter built without one does, and what
     /// <c>IOFilterProvider</c> replaces with the configured interval.
     /// </param>
+    /// <param name="streamPool">
+    /// Where the buffer each item is written into is reserved. A filter built without one keeps a
+    /// pool of its own; <c>IOFilterProvider</c> passes the application's.
+    /// </param>
     public AsyncEnumerableIoFilter(
         Func<IExecutionContext, Task<IExecutionRequestParameters>> deserializeRequest,
         Func<IExecutionContext, Task> serializeResponse,
         Action<IExecutionContext>? headerActions,
         IStreamFraming? framing = null,
-        TimeSpan heartbeatInterval = default
+        TimeSpan heartbeatInterval = default,
+        IMemoryStreamPool? streamPool = null
     )
     {
         _deserializeRequest = deserializeRequest;
@@ -39,6 +46,7 @@ public class AsyncEnumerableIoFilter<TItem> : IExecutionFilter
         _headerActions = headerActions;
         _framing = framing ?? NdjsonFraming.Instance;
         _heartbeatInterval = heartbeatInterval;
+        _streamPool = streamPool ?? new MemoryStreamPool();
     }
 
     public async Task Execute(IExecutionChain chain)
@@ -165,6 +173,11 @@ public class AsyncEnumerableIoFilter<TItem> : IExecutionFilter
     /// The handler's enumerator does not touch the response body - a handler that writes to the
     /// body itself is not a streaming handler - so a heartbeat can never land inside an item.
     /// </para>
+    /// <para>
+    /// <b>Each item reaches the transport as one write.</b> For the length of the stream the body is
+    /// an <see cref="ItemBufferStream"/>, and the transport is back before this returns, so the
+    /// error document for a stream that failed before its first byte goes to the transport.
+    /// </para>
     /// </remarks>
     /// <returns>
     /// False when the handler failed before anything was committed, with the failure recorded on
@@ -181,6 +194,8 @@ public class AsyncEnumerableIoFilter<TItem> : IExecutionFilter
         var progress = new Progress { Heartbeats = _heartbeatInterval > TimeSpan.Zero };
 
         await using var enumerator = stream.GetAsyncEnumerator(cancellationToken);
+
+        using var body = ItemBufferStream.Install(response, _streamPool);
 
         while (true)
         {

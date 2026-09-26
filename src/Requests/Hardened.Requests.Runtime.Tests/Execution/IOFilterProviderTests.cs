@@ -6,6 +6,7 @@ using Hardened.Requests.Runtime.Filters;
 using Hardened.Requests.Runtime.Serializer;
 using Hardened.Requests.Runtime.Streaming;
 using Hardened.Requests.Runtime.Tests.Support;
+using Hardened.Shared.Runtime.Collections;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 using NSubstitute;
@@ -33,7 +34,8 @@ public class IOFilterProviderTests
 {
     private static IOFilterProvider Provider(
         Action<ResponseHeaderConfiguration>? configure = null,
-        TimeSpan? heartbeatInterval = null
+        TimeSpan? heartbeatInterval = null,
+        IMemoryStreamPool? streamPool = null
     )
     {
         var configuration = new ResponseHeaderConfiguration();
@@ -61,7 +63,8 @@ public class IOFilterProviderTests
         return new IOFilterProvider(
             serialization,
             Options.Create<IResponseHeaderConfiguration>(configuration),
-            Options.Create<IStreamingConfiguration>(streaming)
+            Options.Create<IStreamingConfiguration>(streaming),
+            memoryStreamPool: streamPool
         );
     }
 
@@ -95,6 +98,43 @@ public class IOFilterProviderTests
         );
 
         Assert.Contains(": keep-alive\n\n", body);
+    }
+
+    /// <summary>
+    /// The application's pool reaches the streamed filter, so the buffers items are written into
+    /// come from the pool the rest of the pipeline shares.
+    /// </summary>
+    [Fact]
+    public async Task TheStreamPoolReachesTheStreamedFilter()
+    {
+        var pool = new CountingStreamPool();
+        var filter = Provider(streamPool: pool)
+            .ProvideAsyncEnumerableFilter<string>(HandlerInfo(), NoParameters, SseFraming.Instance);
+
+        await Pipeline
+            .Chain(
+                Pipeline.Context(),
+                filter,
+                new Pipeline.Inline(c =>
+                {
+                    c.Context.Response.ResponseValue = TwoItems();
+
+                    return Task.CompletedTask;
+                })
+            )
+            .Next();
+
+        Assert.Equal(2, pool.Lent);
+        Assert.Equal(0, pool.Outstanding);
+    }
+
+    private static async IAsyncEnumerable<string> TwoItems()
+    {
+        yield return "one";
+
+        await Task.Yield();
+
+        yield return "two";
     }
 
     private static async IAsyncEnumerable<string> QuietThenOne()
