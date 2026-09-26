@@ -55,8 +55,8 @@ public static class EntityTagHeader
         "\"" + opaque + "-" + variant + "\"";
 
     /// <summary>
-    /// The strong entity-tag for <paramref name="content"/> exactly as it is sent: a SHA-256 of
-    /// the bytes, base64, quoted.
+    /// The strong entity-tag for <paramref name="content"/> exactly as it is sent: a SHA-1 of the
+    /// bytes, base64, quoted.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -65,14 +65,22 @@ public static class EntityTagHeader
     /// tag whichever of them computed it.
     /// </para>
     /// <para>
-    /// SHA-256 rather than something cheaper, for the reasons <c>ByPayload</c> gives: two
-    /// representations colliding hands a client a 304 for a body it does not hold, and
-    /// <c>MD5.Create()</c> throws outright on a FIPS-enforcing host. Strong, because it names
-    /// exactly these bytes; whatever re-encodes them on the way out weakens it.
+    /// SHA-1, which costs less per byte than SHA-256 on a CPU without SHA instructions and makes a
+    /// 28-character tag rather than a 44-character one. A collision costs less here than in the
+    /// key <c>ByPayload</c> computes, which stays SHA-256. Two representations colliding hands a
+    /// client a 304 for a body it does not hold. A 304 carries no body, so the client keeps a copy
+    /// that is out of date. It is never handed another caller's bytes, which is what a colliding
+    /// cache key does. The published SHA-1 collisions were built from two inputs chosen for the
+    /// purpose. SHA-1 is still a FIPS 180-4 hash, where <c>MD5.Create()</c> throws outright on a
+    /// FIPS-enforcing host.
+    /// </para>
+    /// <para>
+    /// Strong, because it names exactly these bytes; whatever re-encodes them on the way out
+    /// weakens it.
     /// </para>
     /// </remarks>
     public static string ForContent(ReadOnlySpan<byte> content) =>
-        Format(Convert.ToBase64String(SHA256.HashData(content)));
+        Format(Convert.ToBase64String(SHA1.HashData(content)));
 
     /// <summary>
     /// Whether <paramref name="ifNoneMatch"/> names <paramref name="etag"/>, or is <c>*</c>.

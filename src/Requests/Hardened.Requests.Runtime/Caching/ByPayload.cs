@@ -31,8 +31,8 @@ namespace Hardened.Requests.Runtime.Caching;
 /// <para>
 /// SHA-256 rather than a cheaper hash, and not for secrecy: the key is a lookup, but two different
 /// payloads colliding means one caller is served another's answer, so the cost of a collision is
-/// the same as the cost of a leak. It is also what the rest of this framework hashes with, and
-/// <c>MD5.Create()</c> throws outright on a FIPS-enforcing host.
+/// the same as the cost of a leak. A computed entity-tag is SHA-1, because a colliding tag costs a
+/// stale copy rather than a leak. <c>MD5.Create()</c> throws outright on a FIPS-enforcing host.
 /// </para>
 /// </remarks>
 public sealed class ByPayload : ICacheKeyProvider

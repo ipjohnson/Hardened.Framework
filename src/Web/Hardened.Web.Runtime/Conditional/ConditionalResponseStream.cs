@@ -1,5 +1,6 @@
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
+using Hardened.Shared.Runtime.Collections;
 using Hardened.Web.Runtime.Headers;
 using Hardened.Web.Runtime.Responses;
 using Microsoft.Extensions.Primitives;
@@ -33,6 +34,17 @@ namespace Hardened.Web.Runtime.Conditional;
 /// one, before this decided there was nothing to encode.
 /// </para>
 /// <para>
+/// <b>The held-back body is a pooled stream, returned once.</b> It is reserved on the write that
+/// holds the body back and returned by <see cref="CompleteAsync"/> once the bytes are on the
+/// transport or dropped for a 304, whether the chain completed or threw. A returned stream keeps
+/// its capacity, so a body the size of the last one does not grow it again. Nothing here disposes
+/// it, because the pool resets its position on return and that throws on a closed stream. The
+/// reference is cleared before the reservation is disposed. <see cref="ItemPool{T}"/> does not
+/// guard against a second return, and a stream returned twice is lent to the next two callers at
+/// once. After the return every write throws, so a caller that kept this body cannot write into a
+/// stream the pool has lent to another request.
+/// </para>
+/// <para>
 /// <see cref="Position"/> is the count of bytes accepted, whichever way they went, which is what
 /// the testing response and the API Gateway host read to decide whether a response has started.
 /// </para>
@@ -41,21 +53,29 @@ internal sealed class ConditionalResponseStream : Stream
 {
     private readonly IExecutionResponse _response;
     private readonly Stream _transport;
+    private readonly IMemoryStreamPool? _pool;
     private readonly StringValues _ifNoneMatch;
     private readonly StringValues _ifModifiedSince;
     private Stream? _target;
     private MemoryStream? _buffer;
+    private IPoolItemReservation<MemoryStream>? _reservation;
     private long _accepted;
+    private bool _completed;
 
+    /// <param name="pool">
+    /// Where a held-back body is reserved, or null for a stream of its own.
+    /// </param>
     public ConditionalResponseStream(
         IExecutionResponse response,
         Stream transport,
+        IMemoryStreamPool? pool,
         StringValues ifNoneMatch,
         StringValues ifModifiedSince
     )
     {
         _response = response;
         _transport = transport;
+        _pool = pool;
         _ifNoneMatch = ifNoneMatch;
         _ifModifiedSince = ifModifiedSince;
     }
@@ -91,26 +111,33 @@ internal sealed class ConditionalResponseStream : Stream
             return;
         }
 
-        if (decide)
+        try
         {
-            if (Storable() && !HasTag())
+            if (decide)
             {
-                _response.Headers[KnownHeaders.ETag] = EntityTagHeader.ForContent(Held());
+                if (Storable() && !HasTag())
+                {
+                    _response.Headers[KnownHeaders.ETag] = EntityTagHeader.ForContent(Held());
+                }
+
+                if (NotModified())
+                {
+                    Discard();
+
+                    return;
+                }
             }
 
-            if (NotModified())
+            if (_buffer != null)
             {
-                Discard();
+                _buffer.Position = 0;
 
-                return;
+                await _buffer.CopyToAsync(_transport, cancellationToken);
             }
         }
-
-        if (_buffer != null)
+        finally
         {
-            _buffer.Position = 0;
-
-            await _buffer.CopyToAsync(_transport, cancellationToken);
+            Release();
         }
     }
 
@@ -179,15 +206,35 @@ internal sealed class ConditionalResponseStream : Stream
             return _target;
         }
 
+        // The held-back stream is back in the pool, which may have lent it to another request.
+        ObjectDisposedException.ThrowIf(_completed, this);
+
         // No validator yet. The bytes are held back so one can be computed over all of them, and
         // the caller's conditionals wait for it. This is the cost of declaring [ConditionalGet] on
         // a handler that writes no tag of its own.
         if (!HasTag())
         {
-            return _target = _buffer = new MemoryStream();
+            _reservation = _pool?.Get();
+
+            return _target = _buffer = _reservation?.Item ?? new MemoryStream();
         }
 
         return _target = NotModified() ? Discard() : _transport;
+    }
+
+    /// <summary>
+    /// Returns the held-back stream to the pool and ends every write after it.
+    /// </summary>
+    private void Release()
+    {
+        var reservation = _reservation;
+
+        _reservation = null;
+        _buffer = null;
+        _target = null;
+        _completed = true;
+
+        reservation?.Dispose();
     }
 
     /// <summary>

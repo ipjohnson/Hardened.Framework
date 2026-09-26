@@ -36,7 +36,7 @@ GET /todos/1
 
 HTTP/1.1 200 OK
 Content-Type: application/json
-ETag: "+x0430/JrxmEstC33HEuf0Yg/61Cvwmwtx2WMTybq/s="
+ETag: "h2ZWtI+DKyXNviuLFTZCmw6YG08="
 
 {"id":1,"title":"Read the generated code","done":true}
 ```
@@ -52,7 +52,7 @@ GET /todos/1
 
 HTTP/1.1 200 OK
 Content-Type: application/json
-ETag: "+x0430/JrxmEstC33HEuf0Yg/61Cvwmwtx2WMTybq/s="
+ETag: "h2ZWtI+DKyXNviuLFTZCmw6YG08="
 
 {"id":1,"title":"Read the generated code","done":true}
 ```
@@ -209,7 +209,7 @@ GET /todos/search?title=read
 
 HTTP/1.1 200 OK
 Content-Type: application/json
-ETag: "a18rjkw5d/HSOBfWB1EbmO3a6Lk7y+7ZYDu7bHwhbRc="
+ETag: "l04zcrCM1WayCHDdIX3jDvHywmE="
 
 [{"id":1,"title":"Read the generated code","done":true}]
 ```
@@ -427,7 +427,7 @@ Accept: application/json
 
 HTTP/1.1 200 OK
 Content-Type: application/json
-ETag: "+x0430/JrxmEstC33HEuf0Yg/61Cvwmwtx2WMTybq/s="
+ETag: "h2ZWtI+DKyXNviuLFTZCmw6YG08="
 Vary: Accept
 
 {"id":1,"title":"Read the generated code","done":true}
@@ -439,7 +439,7 @@ Accept: text/csv
 
 HTTP/1.1 200 OK
 Content-Type: text/csv
-ETag: "XWztuaFFm6FIsWYSodVyE4TtfDHTfxtxlzCHNdnuoQA="
+ETag: "SUDZIzNu0VyS3KesXVTTOHaVee8="
 Vary: Accept
 
 id,title,done
@@ -492,7 +492,7 @@ Authorization: Bearer reader
 
 HTTP/1.1 200 OK
 Content-Type: application/json
-ETag: "mgP1Qv973lbMK1JIKEJAiiZdv2PK4xfaxuxlhKNF+Tk="
+ETag: "SLFaV7aYmye+EVbAQ6VdtE19SFo="
 
 "Signed in as ria"
 ```
@@ -503,7 +503,7 @@ Authorization: Bearer pia
 
 HTTP/1.1 200 OK
 Content-Type: application/json
-ETag: "/xmQdU9vYVGiSu446QP+8zQVx5ep9TZ4W3r5SaMPimk="
+ETag: "4NpfiJ6oFq5/9+ZCi7qdNVAnYlg="
 
 "Signed in as pia"
 ```
@@ -585,7 +585,7 @@ GET /todos
 
 HTTP/1.1 200 OK
 Content-Type: application/json
-ETag: "q3R4DPG22kwIZKmmP/pd3JHDU/YXIa6FbZ574u7p1Xs="
+ETag: "pI0D1mue6Lz5K8CdiKsImZjirFY="
 
 [{"id":1,"title":"Read the generated code","done":true},{"id":2,"title":"Add an endpoint","done":false}]
 ```
@@ -608,7 +608,7 @@ GET /todos
 
 HTTP/1.1 200 OK
 Content-Type: application/json
-ETag: "3XmST7QXlJ/M9wX2T4HDwwGEX+xlLc7Rguxy/3vYrNQ="
+ETag: "5+HVIZts/1pA75mhUiVQbV1IOZE="
 
 [{"id":1,"title":"Read the generated code","done":true},{"id":2,"title":"Add an endpoint","done":false},{"id":3,"title":"Write the docs","done":false}]
 ```
@@ -636,7 +636,7 @@ These headers are never stored, whatever wrote them:
 
 Every other header that the handler and the filters behind the cache wrote is stored and sent on a hit, `Cache-Control` included.
 
-The cache puts an `ETag` on a stored response that has none. The tag is the SHA-256 of the body, base64, in quotes. A handler's own `ETag` is kept. A response that is not stored gets no `ETag` from the cache. [Conditional requests](/guide/conditional-requests) covers answering 304 against that tag.
+The cache puts an `ETag` on a stored response that has none. The tag is the SHA-1 of the body, base64, in quotes. A handler's own `ETag` is kept. A response that is not stored gets no `ETag` from the cache. [Conditional requests](/guide/conditional-requests) covers answering 304 against that tag.
 
 A HEAD request uses the GET handler's entry. A HEAD that misses fills the entry. A later GET gets the full body from it.
 
@@ -695,7 +695,7 @@ GET /todos/1
 HTTP/1.1 200 OK
 Content-Type: application/json
 Cache-Control: public, max-age=60
-ETag: "+x0430/JrxmEstC33HEuf0Yg/61Cvwmwtx2WMTybq/s="
+ETag: "h2ZWtI+DKyXNviuLFTZCmw6YG08="
 
 {"id":1,"title":"Read the generated code","done":true}
 ```
@@ -716,7 +716,7 @@ GET /todos/1
 HTTP/1.1 200 OK
 Content-Type: application/json
 Cache-Control: public, max-age=60
-ETag: "+x0430/JrxmEstC33HEuf0Yg/61Cvwmwtx2WMTybq/s="
+ETag: "h2ZWtI+DKyXNviuLFTZCmw6YG08="
 
 {"id":1,"title":"Read the generated code","done":true}
 ```
