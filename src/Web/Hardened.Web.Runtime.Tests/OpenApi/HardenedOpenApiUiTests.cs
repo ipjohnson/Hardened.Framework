@@ -173,6 +173,11 @@ public class HardenedOpenApiUiTests
             new HardenedOpenApiUi { Path = "/docs" }.GetHashCode(),
             new HardenedOpenApiUi { Path = "/other" }.GetHashCode()
         );
+
+        Assert.Equal(
+            new HardenedOpenApiUi().GetHashCode(),
+            new HardenedOpenApiUi { Path = null }.GetHashCode()
+        );
     }
 
     #endregion

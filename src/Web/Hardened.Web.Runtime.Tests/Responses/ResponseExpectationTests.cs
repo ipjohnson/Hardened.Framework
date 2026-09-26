@@ -233,6 +233,23 @@ public class ResponseExpectationTests
     }
 
     /// <summary>
+    /// A 401 is meant to carry <c>WWW-Authenticate</c>, and not every server sends one. The read side
+    /// takes the header as optional, so a 401 without it reads back with no challenge rather than
+    /// failing.
+    /// </summary>
+    [Fact]
+    public void Unauthorized_ReadFromAResponseWithNoChallengeCarriesNone()
+    {
+        var read = Unauthorized<Problem>.FromResponse(
+            new Problem("no token"),
+            new Dictionary<string, string>()
+        );
+
+        Assert.Equal("no token", read.Body.Detail);
+        Assert.Null(read.Challenge);
+    }
+
+    /// <summary>
     /// Every response header, not only the ones the handler passed. The read side cannot tell them
     /// apart, and a test asking for one wants it either way.
     /// </summary>

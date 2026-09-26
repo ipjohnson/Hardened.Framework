@@ -6,6 +6,7 @@ using Hardened.Requests.Runtime.Configuration;
 using Hardened.Requests.Runtime.Filters;
 using Hardened.Requests.Runtime.Serializer;
 using Hardened.Requests.Runtime.Streaming;
+using Hardened.Shared.Runtime.Collections;
 using Microsoft.Extensions.Options;
 
 namespace Hardened.Requests.Runtime.Execution;
@@ -20,6 +21,7 @@ public class IOFilterProvider : IIOFilterProvider
     private readonly IContentNegotiationPolicy _negotiationPolicy;
     private readonly Action<IExecutionContext>? _headerActions;
     private readonly TimeSpan _heartbeatInterval;
+    private readonly IMemoryStreamPool _streamPool;
 
     /// <param name="serializationLocatorService">
     /// Where a declared content type is resolved to a serializer. Optional, because a host can
@@ -28,6 +30,10 @@ public class IOFilterProvider : IIOFilterProvider
     /// one nothing is bound and every response negotiates, which is what those pipelines did before
     /// there was a binding.
     /// </param>
+    /// <param name="memoryStreamPool">
+    /// Where a streamed response reserves the buffer each item is written into. Optional for the
+    /// same reason, and a provider built without one keeps a pool of its own.
+    /// </param>
     public IOFilterProvider(
         IContextSerializationService contextSerializationService,
         IOptions<IResponseHeaderConfiguration> responseHeaderConfiguration,
@@ -35,7 +41,8 @@ public class IOFilterProvider : IIOFilterProvider
         ISerializationLocatorService? serializationLocatorService = null,
         RawResponseSerializer? rawResponseWriter = null,
         StreamingJsonResponseSerializer? streamingWriter = null,
-        IContentNegotiationPolicy? negotiationPolicy = null
+        IContentNegotiationPolicy? negotiationPolicy = null,
+        IMemoryStreamPool? memoryStreamPool = null
     )
     {
         _contextSerializationService = contextSerializationService;
@@ -45,6 +52,7 @@ public class IOFilterProvider : IIOFilterProvider
         _negotiationPolicy = negotiationPolicy ?? new ContentNegotiationPolicy();
         _headerActions = SetupHeaderActions(responseHeaderConfiguration.Value);
         _heartbeatInterval = streamingConfiguration.Value.HeartbeatInterval;
+        _streamPool = memoryStreamPool ?? new MemoryStreamPool();
     }
 
     private Action<IExecutionContext>? SetupHeaderActions(
@@ -263,7 +271,8 @@ public class IOFilterProvider : IIOFilterProvider
             SerializeStreamedItem(),
             _headerActions,
             framing,
-            _heartbeatInterval
+            _heartbeatInterval,
+            _streamPool
         );
     }
 }

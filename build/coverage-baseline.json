@@ -80,8 +80,8 @@
     "branch": 100.0
   },
   "Hardened.Requests.Runtime": {
-    "line": 97.7,
-    "branch": 94.9
+    "line": 98.4,
+    "branch": 96.7
   },
   "Hardened.Requests.Serializers.Newtonsoft": {
     "line": 100.0,
