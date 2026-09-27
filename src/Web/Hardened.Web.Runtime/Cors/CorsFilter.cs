@@ -78,15 +78,18 @@ public class CorsFilter : IExecutionFilter
             return chain.Next();
         }
 
-        if (!request.Headers.TryGetValue(KnownHeaders.Origin, out var originValues))
+        if (
+            !request.Headers.TryGetValue(KnownHeaders.Origin, out var originValues)
+            || originValues.ToString() is not { Length: > 0 } origin
+        )
         {
-            return chain.Next();
-        }
+            // With origins configured the answer depends on Origin, so it varies on it whether or
+            // not this request sent one. Nothing configured, nothing here depends on it.
+            if (_routes == null && _config.IsConfigured)
+            {
+                VaryHeader.Add(context.Response.Headers, KnownHeaders.Origin);
+            }
 
-        var origin = originValues.ToString();
-
-        if (string.IsNullOrEmpty(origin))
-        {
             return chain.Next();
         }
 
@@ -151,8 +154,14 @@ public class CorsFilter : IExecutionFilter
 
         // Asking for a header that is not allowed fails the whole preflight rather than being
         // trimmed from the answer. Echoing a subset would have the browser block the real request
-        // anyway, having been told the preflight succeeded.
-        if (!policy.AreHeadersAllowed(requestedHeaders))
+        // anyway, having been told the preflight succeeded. The headers the operation itself reads
+        // are allowed as well: a contract that requires one on every call named it already.
+        if (
+            !policy.AreHeadersAllowed(
+                requestedHeaders,
+                handler?.HandlerInfo.RequestHeaders ?? Array.Empty<string>()
+            )
+        )
         {
             return Task.CompletedTask;
         }

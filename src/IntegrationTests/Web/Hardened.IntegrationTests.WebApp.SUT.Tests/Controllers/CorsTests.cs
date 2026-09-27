@@ -69,6 +69,42 @@ public class CorsTests
         );
     }
 
+    /// <summary>
+    /// A header the operation binds is allowed on its preflight, though the configuration names
+    /// only the defaults. A browser could not send a header a contract requires until it was
+    /// listed a second time.
+    /// </summary>
+    [ModuleTest]
+    public async Task APreflightAllowsAHeaderTheOperationReads(ITestWebApp app)
+    {
+        var response = await app.Request(
+            "OPTIONS",
+            null,
+            "/cors/tenant",
+            request =>
+            {
+                PreflightFor("GET")(request);
+                request.Headers[KnownHeaders.Cors.AccessControlRequestHeaders] = "x-tenant";
+            }
+        );
+
+        Assert.Equal(204, response.StatusCode);
+        Assert.Equal(
+            "x-tenant",
+            response.Headers[KnownHeaders.Cors.AccessControlAllowHeaders].ToString()
+        );
+    }
+
+    /// <summary>A route that sets no CORS headers still varies on Origin when it declares CORS.</summary>
+    [ModuleTest]
+    public async Task ADeclaringRouteVariesOnOriginWithoutOne(ITestWebApp app)
+    {
+        var response = await app.Get("/cors/greeting");
+
+        response.Assert.Ok();
+        Assert.Contains(KnownHeaders.Origin, response.Headers[KnownHeaders.Vary].ToString());
+    }
+
     [ModuleTest]
     public async Task APreflightForARouteThatDeclaresNoneIsRefused(ITestWebApp app)
     {

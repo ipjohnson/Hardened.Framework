@@ -3134,6 +3134,48 @@
         "x-hardened-timeout": 300000
       }
     },
+    "/cors/tenant": {
+      "get": {
+        "tags": [
+          "Cors"
+        ],
+        "operationId": "tenantHeader",
+        "summary": "A route that reads a header nothing in the CORS configuration names.",
+        "parameters": [
+          {
+            "name": "X-Tenant",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          }
+        },
+        "x-hardened-timeout": 300000
+      }
+    },
     "/declared-header/notes": {
       "get": {
         "tags": [

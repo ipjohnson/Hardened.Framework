@@ -124,6 +124,15 @@ public static class HandlerInfoCodeGenerator
             declaredArgs += ", declaredErrorBodies: " + declaredErrorBodies;
         }
 
+        // The headers the operation reads, which a CORS preflight allows beside the configured ones.
+        if (RequestHeaders(handlerModel) is { Count: > 0 } requestHeaders)
+        {
+            declaredArgs +=
+                ", requestHeaders: new string[] { "
+                + string.Join(", ", requestHeaders.Select(Quote))
+                + " }";
+        }
+
         // How a thrown framework record becomes the body declared at its status. A contract's only:
         // a code-first handler's declared bodies are the records themselves.
         if (
@@ -323,4 +332,43 @@ public static class HandlerInfoCodeGenerator
             .Select(contentType => contentType.Trim())
             .Where(contentType => contentType.Length > 0)
             .ToArray();
+
+    /// <summary>
+    /// The wire names of the headers the operation binds and the ones its filters declare reading,
+    /// each once, in declaration order.
+    /// </summary>
+    private static List<string> RequestHeaders(RequestHandlerModel handlerModel)
+    {
+        var headers = new List<string>();
+
+        foreach (var parameter in handlerModel.RequestParameterInformationList)
+        {
+            if (parameter.BindingType == ParameterBindType.Header)
+            {
+                Add(
+                    string.IsNullOrEmpty(parameter.BindingName)
+                        ? parameter.Name
+                        : parameter.BindingName
+                );
+            }
+        }
+
+        foreach (var declared in handlerModel.DeclaredHeaderParameters)
+        {
+            Add(declared.Name);
+        }
+
+        return headers;
+
+        void Add(string name)
+        {
+            if (!headers.Contains(name, System.StringComparer.OrdinalIgnoreCase))
+            {
+                headers.Add(name);
+            }
+        }
+    }
+
+    private static string Quote(string value) =>
+        "\"" + value.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
 }

@@ -130,10 +130,15 @@ public class CorsFilterTests
     {
         private readonly string _path;
         private readonly HashSet<string> _methods;
+        private readonly IExecutionRequestHandler? _handler;
 
         public Routes(string path, params string[] methods)
+            : this(path, null, methods) { }
+
+        public Routes(string path, IExecutionRequestHandler? handler, params string[] methods)
         {
             _path = path;
+            _handler = handler;
             _methods = new HashSet<string>(methods, StringComparer.OrdinalIgnoreCase);
         }
 
@@ -149,7 +154,9 @@ public class CorsFilterTests
 
             if (_methods.Contains(context.Request.Method))
             {
-                return new RequestHandlerInfo(Substitute.For<IExecutionRequestHandler>());
+                return new RequestHandlerInfo(
+                    _handler ?? Substitute.For<IExecutionRequestHandler>()
+                );
             }
 
             return RequestHandlerInfo.MethodNotAllowed(string.Join(", ", _methods));
@@ -175,25 +182,34 @@ public class CorsFilterTests
         Assert.Equal("Origin", context.Response.Headers[KnownHeaders.Vary].ToString());
     }
 
-    /// <summary>A request that is not cross-origin is not varied on, and is not annotated.</summary>
-    [Fact]
-    public async Task Execute_LeavesARequestWithNoOriginEntirelyAlone()
+    /// <summary>
+    /// A request without Origin is not annotated, and is varied on, because with origins configured
+    /// the answer depends on Origin. A shared cache that stored this response without the header
+    /// would serve it, with no CORS headers, to a browser that sends one.
+    /// </summary>
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    public async Task Execute_VariesARequestWithNoOriginAndAnnotatesNothing(string? origin)
     {
-        var context = Context("GET", origin: null);
+        var context = Context("GET", origin);
 
         var continued = await Run(new CorsFilter(ConfigAllowing(Allowed)), context);
 
         Assert.True(continued);
-        Assert.Empty(context.Response.Headers);
+        Assert.Equal("Origin", context.Response.Headers[KnownHeaders.Vary].ToString());
+        Assert.False(
+            context.Response.Headers.ContainsKey(KnownHeaders.Cors.AccessControlAllowOrigin)
+        );
     }
 
-    /// <summary>An empty Origin header is not an origin.</summary>
+    /// <summary>With nothing configured, nothing depends on Origin, and nothing is added.</summary>
     [Fact]
-    public async Task Execute_LeavesAnEmptyOriginHeaderAlone()
+    public async Task Execute_LeavesARequestWithNoOriginAloneWhenNothingIsConfigured()
     {
-        var context = Context("GET", origin: "");
+        var context = Context("GET", origin: null);
 
-        var continued = await Run(new CorsFilter(ConfigAllowing(Allowed)), context);
+        var continued = await Run(new CorsFilter(new CorsConfiguration()), context);
 
         Assert.True(continued);
         Assert.Empty(context.Response.Headers);
@@ -363,6 +379,66 @@ public class CorsFilterTests
 
         Assert.False(continued);
         Assert.Equal(204, context.Response.Status);
+        Assert.False(
+            context.Response.Headers.ContainsKey(KnownHeaders.Cors.AccessControlAllowOrigin)
+        );
+    }
+
+    /// <summary>
+    /// A header the target operation reads is allowed though nothing configured it. A contract that
+    /// requires one on every call otherwise had to name it again before a browser could send it.
+    /// </summary>
+    [Fact]
+    public async Task Execute_AllowsAHeaderTheOperationReads()
+    {
+        var handler = Substitute.For<IExecutionRequestHandler>();
+
+        handler.HandlerInfo.RequestHeaders.Returns(new[] { "X-Fleet-Id" });
+
+        var context = Context(
+            "OPTIONS",
+            Allowed,
+            requestMethod: "GET",
+            requestHeaders: "x-fleet-id"
+        );
+
+        await Run(
+            new CorsFilter(
+                ConfigAllowing(Allowed),
+                new[] { new Routes("/orders", handler, "GET") }
+            ),
+            context
+        );
+
+        Assert.Equal(
+            "x-fleet-id",
+            context.Response.Headers[KnownHeaders.Cors.AccessControlAllowHeaders].ToString()
+        );
+    }
+
+    /// <summary>A header neither configured nor read by the operation still fails the preflight.</summary>
+    [Fact]
+    public async Task Execute_RefusesAHeaderTheOperationDoesNotRead()
+    {
+        var handler = Substitute.For<IExecutionRequestHandler>();
+
+        handler.HandlerInfo.RequestHeaders.Returns(new[] { "X-Fleet-Id" });
+
+        var context = Context(
+            "OPTIONS",
+            Allowed,
+            requestMethod: "GET",
+            requestHeaders: "x-something-else"
+        );
+
+        await Run(
+            new CorsFilter(
+                ConfigAllowing(Allowed),
+                new[] { new Routes("/orders", handler, "GET") }
+            ),
+            context
+        );
+
         Assert.False(
             context.Response.Headers.ContainsKey(KnownHeaders.Cors.AccessControlAllowOrigin)
         );

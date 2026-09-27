@@ -168,6 +168,32 @@ public class CorsConfigurationTests
         }
     }
 
+    /// <summary>
+    /// Headers come from their own variable, so a deployment can allow one an operation needs
+    /// without a code change.
+    /// </summary>
+    [Fact]
+    public void LoadFromEnvironment_ReadsAllowedHeaders()
+    {
+        var variable = "CORS_TEST_" + Guid.NewGuid().ToString("N");
+
+        Environment.SetEnvironmentVariable(variable, "X-Fleet-Id, X-Request-Id");
+
+        try
+        {
+            var config = new CorsConfiguration { HeadersEnvironmentVariable = variable };
+
+            config.LoadFromEnvironment();
+
+            Assert.True(config.AreHeadersAllowed(["x-fleet-id", "X-Request-Id", "Authorization"]));
+            Assert.False(config.AreHeadersAllowed(["X-Other"]));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(variable, null);
+        }
+    }
+
     [Fact]
     public void LoadFromEnvironment_TreatsAStarAsAnyOrigin()
     {
