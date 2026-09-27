@@ -434,6 +434,7 @@ namespace Hardened.Requests.Abstract.Execution
         System.Collections.Generic.IReadOnlyList<Hardened.Requests.Abstract.Execution.IExecutionRequestParameter> Parameters { get; }
         string Path { get; }
         System.Collections.Generic.IReadOnlyList<string> ProducedContentTypes { get; }
+        System.Collections.Generic.IReadOnlyList<string> RequestHeaders { get; }
         Hardened.Requests.Abstract.Authorization.Requirement? Requirement { get; }
         bool StreamsResponse { get; }
         int? SuccessStatus { get; }
