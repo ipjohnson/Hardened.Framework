@@ -138,6 +138,10 @@ The prefix of a code names what reports it.
 `HOAT` and `HSMT` share one numbering. `HRDOA` shares it for the codes of the build task that
 writes the served document to a file. [HOAT and HSMT](#hoat-and-hsmt) lists these codes by number.
 
+A build that skips the OpenAPI or Smithy build task as up to date reports that task's last
+warnings again. The Smithy CLI's version warning, `HSMT011`, is the exception: it describes the CLI
+on the machine rather than the model, so it appears only on a build that runs the CLI.
+
 DependencyModules lists the `DM` codes in its
 [diagnostics reference](https://ipjohnson.github.io/DependencyModules/reference/diagnostics).
 ValidationModules lists the `VM` codes in its
