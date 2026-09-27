@@ -99,6 +99,63 @@ public class DescribedTimeoutEmitTests
     }
 
     /// <summary>
+    /// The implementation's method is nearer than its class, as a code-first handler's is, so its
+    /// <c>[Timeout]</c> is first in the metadata and is the one the runtime reads. The class's came
+    /// first here, so the class's budget applied to a described operation and the method's to a
+    /// code-first one.
+    /// </summary>
+    [Fact]
+    public void TheImplementationsMethodBeatsItsClass()
+    {
+        var result = OpenApiGenerator
+            .Run(
+                """
+                openapi: "3.0.0"
+                info: { title: Rates, version: "1.0" }
+                paths:
+                  /rates:
+                    get:
+                      tags: [Rate]
+                      operationId: readRates
+                      responses:
+                        '204': { description: Read }
+                """,
+                """
+                using System.Threading.Tasks;
+                using Hardened.Requests.Abstract.Attributes;
+                using Hardened.Requests.Runtime.Filters;
+                using Hardened.Shared.Runtime.Attributes;
+                using TestNamespace.Services;
+
+                namespace TestNamespace;
+
+                [HardenedModule]
+                public partial class TestApp { }
+
+                [Handler]
+                [Timeout(Milliseconds = 1000)]
+                public class RateServiceImpl : IRateService {
+                    [Timeout(Milliseconds = 5000)]
+                    public Task ReadRates() => Task.CompletedTask;
+                }
+                """
+            )
+            .AssertNoErrors();
+
+        var handler = string.Join(
+            "\n",
+            result
+                .GeneratedSources.Where(pair => pair.Key.Contains("ReadRates"))
+                .Select(pair => pair.Value)
+        );
+
+        var method = handler.IndexOf("Milliseconds = 5000", StringComparison.Ordinal);
+        var type = handler.IndexOf("Milliseconds = 1000", StringComparison.Ordinal);
+
+        Assert.True(method >= 0 && type > method, handler);
+    }
+
+    /// <summary>
     /// An operation the description says nothing about carries nothing, which is the same rule the
     /// code-first front end follows: what declares no budget is bounded by no filter and no timer.
     /// </summary>

@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Hardened.IntegrationTests.WebApp.SUT.Services;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Runtime.Filters;
@@ -54,6 +55,21 @@ public class TimeoutController
         await Task.Delay(Timeout.Infinite, cancellationToken);
 
         return "never";
+    }
+
+    /// <summary>
+    /// A stream whose budget runs out before its first item, so the deadline decides the whole
+    /// answer. 504.
+    /// </summary>
+    [Get("/stream-late")]
+    [Timeout(Milliseconds = ShortBudget)]
+    public async IAsyncEnumerable<string> StreamLate(
+        [EnumeratorCancellation] CancellationToken cancellationToken
+    )
+    {
+        await Task.Delay(Timeout.Infinite, cancellationToken);
+
+        yield return "never";
     }
 
     /// <summary>

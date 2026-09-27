@@ -210,8 +210,7 @@ public class AsyncEnumerableIoFilter<TItem> : IExecutionFilter
                         ? await MoveNextWithHeartbeats(context, moveNext.AsTask(), progress)
                         : await moveNext;
             }
-            catch (Exception exception)
-                when (!progress.Committed && !cancellationToken.IsCancellationRequested)
+            catch (Exception exception) when (!progress.Committed && Answerable(context, exception))
             {
                 response.ExceptionValue = exception;
 
@@ -251,6 +250,19 @@ public class AsyncEnumerableIoFilter<TItem> : IExecutionFilter
 
         return true;
     }
+
+    /// <summary>
+    /// Whether a failure before the first byte is answered with an error document.
+    /// </summary>
+    /// <remarks>
+    /// Not once the request is cancelled, unless a budget bounds the handler: a caller who hung up
+    /// is not there to read one. A bounded handler's cancellation is its deadline, and is answered
+    /// with the deadline's status and body, as a handler that does not stream is. It used to end
+    /// the request with a 500 and no body, which the document never declares.
+    /// </remarks>
+    private static bool Answerable(IExecutionContext context, Exception exception) =>
+        !context.CancellationToken.IsCancellationRequested
+        || (exception is OperationCanceledException && context.HandlerInfo?.Timeout is not null);
 
     /// <summary>
     /// What one stream has done so far. Shared between the loop and the heartbeat race, and read

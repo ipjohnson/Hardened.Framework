@@ -7702,6 +7702,44 @@
         "x-hardened-timeout": 100
       }
     },
+    "/timeout/stream-late": {
+      "get": {
+        "tags": [
+          "Timeout"
+        ],
+        "operationId": "streamLate",
+        "summary": "A stream whose budget runs out before its first item, so the deadline decides the whole answer. 504.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/x-ndjson": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "itemSchema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          }
+        },
+        "x-hardened-timeout": 100
+      }
+    },
     "/timeout/unbounded": {
       "get": {
         "tags": [
