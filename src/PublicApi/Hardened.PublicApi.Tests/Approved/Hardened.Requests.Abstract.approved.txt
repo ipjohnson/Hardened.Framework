@@ -202,6 +202,7 @@ namespace Hardened.Requests.Abstract.Authorization
     {
         Hardened.Requests.Abstract.Authorization.Requirement Requirement { get; }
     }
+    [Hardened.Requests.Abstract.Responses.AnswersHeader(403, "WWW-Authenticate", Description="The challenge naming what the caller lacks, as error=\"insufficient_scope\".")]
     [Hardened.Requests.Abstract.Responses.AnswersStatus(403, typeof(Hardened.Requests.Abstract.Errors.ErrorModel), Description="The caller does not hold what this operation requires.")]
     public interface IAuthorizeAttribute
     {

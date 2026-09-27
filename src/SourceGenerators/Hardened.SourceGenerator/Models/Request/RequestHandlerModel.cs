@@ -81,6 +81,8 @@ public class RequestHandlerModel
             SecurityRequirements = SecurityRequirements,
             DeclaredSecuritySchemes = DeclaredSecuritySchemes,
             DeclaredGrants = DeclaredGrants,
+            RequiresAuthorization = RequiresAuthorization,
+            NamesAScheme = NamesAScheme,
             ParameterEnums = ParameterEnums,
             MisplacedSchemeAttributes = MisplacedSchemeAttributes,
             AdditionalBodyParameters = AdditionalBodyParameters,
@@ -351,6 +353,29 @@ public class RequestHandlerModel
     public IReadOnlyList<string> DeclaredGrants { get; set; } = System.Array.Empty<string>();
 
     /// <summary>
+    /// Whether the method or its class carries an authorization requirement, and nothing makes the
+    /// handler public.
+    /// </summary>
+    /// <remarks>
+    /// The pipeline refuses a caller who presented nothing with a 401 whichever requirement it is,
+    /// so this is what the published 401 keys on. <see cref="SecurityRequirements"/> could not say
+    /// it, because it is empty wherever the requirement names no scheme, and <c>[AuthorizeGrants]</c>
+    /// alone was answered 401 by a service whose document declared none.
+    /// </remarks>
+    public bool RequiresAuthorization { get; set; }
+
+    /// <summary>
+    /// Whether <c>[Authorize&lt;TScheme&gt;]</c> is on the method or its class, whether or not the
+    /// scheme type carries an attribute the document can describe.
+    /// </summary>
+    /// <remarks>
+    /// A handler that names no scheme is published under the application's scheme when it declares
+    /// exactly one. A handler naming a scheme the document cannot describe named something else, so
+    /// it is left out of that.
+    /// </remarks>
+    public bool NamesAScheme { get; set; }
+
+    /// <summary>
     /// The wire vocabulary of every enum bound as a parameter of this handler.
     /// </summary>
     /// <remarks>
@@ -532,6 +557,14 @@ public class RequestHandlerModel
                 requestHandlerModel.DeclaredGrants,
                 StringComparer.Ordinal
             )
+        )
+        {
+            return false;
+        }
+
+        if (
+            RequiresAuthorization != requestHandlerModel.RequiresAuthorization
+            || NamesAScheme != requestHandlerModel.NamesAScheme
         )
         {
             return false;

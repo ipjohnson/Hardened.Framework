@@ -17,12 +17,11 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Controllers;
 /// principal. Nothing here validates a credential; that is a later phase.
 /// </para>
 /// <para>
-/// Half the handlers name <see cref="PetsOAuth"/> and half do not, which is the distinction the
-/// document turns on. A grant with no scheme beside it publishes nothing - a requirement has to
-/// reference a declared scheme - so <see cref="Pets"/> publishes <c>security</c>, a 401 and the
-/// challenge header, while <see cref="Unstated"/> requires the same grant at run time and
-/// publishes a 403 alone. Both are supported and only one is describable, and the suite covers
-/// each because the difference is invisible from the handler.
+/// Half the handlers name <see cref="PetsOAuth"/> and half do not. <see cref="PetsOAuth"/> is the
+/// only scheme this application declares, so both halves publish it under <c>security</c>, with
+/// the 401 and the challenge header: <see cref="Unstated"/> requires the same grant at run time and
+/// can only be met through that scheme. An application declaring several schemes publishes the
+/// 401 for such a handler and no <c>security</c>, because nothing says which scheme it means.
 /// </para>
 /// </remarks>
 [BasePath("/authorization")]
@@ -42,7 +41,7 @@ public class AuthorizationController
     [AuthorizeGrants("pets:read")]
     public string Pets() => "pets";
 
-    /// <summary>The same grant with no scheme named, which is guarded and undescribable.</summary>
+    /// <summary>The same grant with no scheme named.</summary>
     [Get("/pets-unstated")]
     [AuthorizeGrants("pets:read")]
     public string Unstated() => "unstated";

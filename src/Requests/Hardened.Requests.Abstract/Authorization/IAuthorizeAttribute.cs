@@ -24,13 +24,18 @@ namespace Hardened.Requests.Abstract.Authorization;
 /// names. An interface is visible on a type from a referenced assembly; a constructor body is not.
 /// </para>
 /// </remarks>
-// The 403 only. A 401 is already published for any operation carrying a security requirement,
-// with the WWW-Authenticate challenge beside it, and that is keyed on the more accurate signal:
-// whether the operation requires authentication at all, rather than on which attribute imposed it.
+// The 403 only. The document generator publishes the 401 for every operation carrying one of
+// these, and for every operation a module-level requirement reaches, with its WWW-Authenticate
+// challenge beside it. The 403 carries a challenge too, naming the scope the caller lacks.
 [AnswersStatus(
     403,
     typeof(Errors.ErrorModel),
     Description = "The caller does not hold what this operation requires."
+)]
+[AnswersHeader(
+    403,
+    "WWW-Authenticate",
+    Description = "The challenge naming what the caller lacks, as error=\"insufficient_scope\"."
 )]
 public interface IAuthorizeAttribute
 {

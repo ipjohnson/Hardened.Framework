@@ -136,7 +136,7 @@ public class DeclaredRefusalDocumentTests
             """
         );
 
-        Assert.Equal(["200", "403"], Statuses(document, "/rates"));
+        Assert.Equal(["200", "401", "403"], Statuses(document, "/rates"));
     }
 
     [Fact]
@@ -231,7 +231,7 @@ public class DeclaredRefusalDocumentTests
             """
         );
 
-        Assert.Equal(["200", "403"], Statuses(document, "/rates"));
+        Assert.Equal(["200", "401", "403"], Statuses(document, "/rates"));
     }
 
     /// <summary>
@@ -278,7 +278,8 @@ public class DeclaredRefusalDocumentTests
     /// <summary>
     /// The extensibility that keeps the document generator ignorant of what a filter does. This
     /// attribute is the application's own and the generator has never heard of it; it publishes a
-    /// 403 because <c>IAuthorizeAttribute</c> carries the declaration.
+    /// 403 because <c>IAuthorizeAttribute</c> carries the declaration, and the 401 because it is a
+    /// requirement.
     /// </summary>
     [Fact]
     public void AnApplicationsOwnGuardPublishesTheSameRefusal()
@@ -298,7 +299,7 @@ public class DeclaredRefusalDocumentTests
             """
         );
 
-        Assert.Equal(["200", "403"], Statuses(document, "/rates"));
+        Assert.Equal(["200", "401", "403"], Statuses(document, "/rates"));
     }
 
     /// <summary>An operation nothing guards publishes what it always did.</summary>
