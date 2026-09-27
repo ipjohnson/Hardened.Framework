@@ -125,6 +125,24 @@ public class DeclaredHeaderDocumentTests
         Assert.False(responses.GetProperty("304").TryGetProperty("content", out _));
 
         Assert.Contains("If-None-Match", ParameterNames(read));
+
+        // Compared with a Last-Modified this handler does not send, so it is never answered here.
+        Assert.DoesNotContain("If-Modified-Since", ParameterNames(read));
+    }
+
+    /// <summary>
+    /// A handler that sets <c>Last-Modified</c> and declares it publishes the header it is compared
+    /// with.
+    /// </summary>
+    [ModuleTest]
+    public async Task AReadDeclaringLastModifiedPublishesIfModifiedSince(ITestWebApp app)
+    {
+        var read = await Operation(app, "/conditional/document", "get");
+        var headers = read.GetProperty("responses").GetProperty("200").GetProperty("headers");
+
+        Assert.True(headers.TryGetProperty("Last-Modified", out _));
+        Assert.True(headers.TryGetProperty("ETag", out _));
+        Assert.Contains("If-None-Match", ParameterNames(read));
         Assert.Contains("If-Modified-Since", ParameterNames(read));
     }
 

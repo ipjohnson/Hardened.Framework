@@ -192,6 +192,12 @@ internal sealed class ScopedRefusal : IEquatable<ScopedRefusal>
 /// <summary>A header a declaration says a response carries, and the operations it reaches.</summary>
 internal sealed class ScopedResponseHeader : IEquatable<ScopedResponseHeader>
 {
+    /// <summary>
+    /// The status of a header on every response, as <c>AnswersHeaderAttribute.EveryStatus</c>
+    /// spells it.
+    /// </summary>
+    public const int EveryStatus = 0;
+
     public ScopedResponseHeader(int status, string name, string? description, DeclaredScope scope)
     {
         Status = status;
@@ -235,11 +241,17 @@ internal sealed class ScopedResponseHeader : IEquatable<ScopedResponseHeader>
 /// <summary>A header a declaration says it reads, and the operations it reaches.</summary>
 internal sealed class ScopedRequestHeader : IEquatable<ScopedRequestHeader>
 {
-    public ScopedRequestHeader(string name, string? description, DeclaredScope scope)
+    public ScopedRequestHeader(
+        string name,
+        string? description,
+        DeclaredScope scope,
+        string? whenAnswered = null
+    )
     {
         Name = name;
         Description = description;
         Scope = scope;
+        WhenAnswered = whenAnswered;
     }
 
     public string Name { get; }
@@ -248,11 +260,18 @@ internal sealed class ScopedRequestHeader : IEquatable<ScopedRequestHeader>
 
     public DeclaredScope Scope { get; }
 
+    /// <summary>
+    /// The response header the operation must declare for this one to be published, as
+    /// <c>ReadsHeaderAttribute.WhenAnswered</c> gives it.
+    /// </summary>
+    public string? WhenAnswered { get; }
+
     public bool Equals(ScopedRequestHeader? other) =>
         other is not null
         && Name == other.Name
         && Description == other.Description
-        && Scope.Equals(other.Scope);
+        && Scope.Equals(other.Scope)
+        && WhenAnswered == other.WhenAnswered;
 
     public override bool Equals(object? obj) => Equals(obj as ScopedRequestHeader);
 
@@ -264,6 +283,7 @@ internal sealed class ScopedRequestHeader : IEquatable<ScopedRequestHeader>
 
             hash = (hash * 397) ^ (Description?.GetHashCode() ?? 0);
             hash = (hash * 397) ^ Scope.GetHashCode();
+            hash = (hash * 397) ^ (WhenAnswered?.GetHashCode() ?? 0);
 
             return hash;
         }
@@ -305,7 +325,13 @@ internal sealed class OperationDeclarations
         {
             if (seen.Add(header.Name))
             {
-                result.Add(new DeclaredHeaderParameterModel(header.Name, header.Description));
+                result.Add(
+                    new DeclaredHeaderParameterModel(
+                        header.Name,
+                        header.Description,
+                        header.WhenAnswered
+                    )
+                );
             }
         }
 
@@ -371,7 +397,7 @@ internal sealed class OperationDeclarations
         foreach (var declared in ResponseHeaders)
         {
             if (
-                declared.Status != status
+                (declared.Status != status && declared.Status != ScopedResponseHeader.EveryStatus)
                 || Names(existing, declared.Name)
                 || Names(merged, declared.Name)
             )

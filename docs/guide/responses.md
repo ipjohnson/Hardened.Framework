@@ -406,7 +406,9 @@ parameter's name is the header's name. `Detail`, `Value` and `Body` are not head
 `[AnswersHeader(status, name)]` on a handler lists a header on the response with that status.
 `Description` sets the header's description. `AnswersHeaderAttribute` is in
 `Hardened.Requests.Abstract.Responses`. The attribute adds nothing for a status the operation does
-not list.
+not list. `[AnswersHeader(name)]`, with no status, lists the header on every response the operation
+lists. It is for a header a filter writes before the handler runs, as `[RateLimit]` writes
+`RateLimit-Remaining`.
 
 `src/Todos/VersionedTodoController.cs` sends an `ETag` through `Ok<T>` and lists it with
 `[AnswersHeader]`:

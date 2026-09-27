@@ -441,7 +441,8 @@ These attributes on the filter attribute's class reach the OpenAPI document of e
 | Attribute | Publishes | Namespace |
 |---|---|---|
 | `[AnswersStatus(status, typeof(body))]` | The status, with that body | `Hardened.Requests.Abstract.Responses` |
-| `[ReadsHeader(name)]` | The header, as an optional parameter | `Hardened.Web.Runtime.Responses` |
+| `[AnswersHeader(status, name)]` | The header, on the response with that status. With no status, on every response | `Hardened.Requests.Abstract.Responses` |
+| `[ReadsHeader(name)]` | The header, as an optional parameter. With `WhenAnswered`, only where a success lists that response header | `Hardened.Web.Runtime.Responses` |
 
 With both, `GET /todos` gains an `X-Tenant` header parameter and a 400 with `ErrorModel`. `ErrorModel` is in `Hardened.Requests.Abstract.Errors`. [The OpenAPI document](/guide/openapi-document) lists what the shipped filters publish.
 

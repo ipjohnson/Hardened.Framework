@@ -72,10 +72,13 @@ namespace Hardened.Web.Runtime.Conditional;
     NotWhenStreaming = true,
     Description = "A tag a previous response carried. Matching it is answered 304."
 )]
+// Only where the operation declares the Last-Modified it is compared with, which a handler that
+// sets one says with [AnswersHeader(200, KnownHeaders.LastModified)].
 [ReadsHeader(
     KnownHeaders.IfModifiedSince,
     Methods = Reads,
     NotWhenStreaming = true,
+    WhenAnswered = KnownHeaders.LastModified,
     Description = "When the caller last read this. Unchanged since then is answered 304."
 )]
 [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class)]

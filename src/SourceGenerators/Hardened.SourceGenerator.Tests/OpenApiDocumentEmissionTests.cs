@@ -774,8 +774,7 @@ public class OpenApiDocumentEmissionTests
     }
 
     /// <summary>
-    /// [OpenApiInfo] names the document; without it the entry point's class name and "1.0.0"
-    /// stand in, because they are the only facts the generator has.
+    /// [OpenApiInfo] names the document; without it the assembly's name and "1.0.0" stand in.
     /// </summary>
     [Fact]
     public void OpenApiInfoNamesTheDocument()
@@ -801,6 +800,26 @@ public class OpenApiDocumentEmissionTests
 
         Assert.Equal("Shipments API", info.GetProperty("title").GetString());
         Assert.Equal("3.1.4", info.GetProperty("version").GetString());
+    }
+
+    /// <summary>
+    /// The entry point's class name titled the document, so the template's was titled
+    /// <c>TodosLibrary</c> while its reference page said <c>Todos</c>.
+    /// </summary>
+    [Fact]
+    public void WithoutOpenApiInfoTheAssemblyTitlesTheDocument()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(Application(FidelityControllers, Enable))
+            .AssertNoErrors();
+
+        var info = JsonDocument
+            .Parse(Extract(result.SourceContaining("OpenApiDocument")))
+            .RootElement.GetProperty("info");
+
+        Assert.Equal(result.Compilation.AssemblyName, info.GetProperty("title").GetString());
+        Assert.NotEqual("Application", info.GetProperty("title").GetString());
+        Assert.Equal("1.0.0", info.GetProperty("version").GetString());
     }
 
     #endregion
@@ -1365,6 +1384,130 @@ public class OpenApiDocumentEmissionTests
         Assert.Equal("#/components/schemas/Address", branches[0].GetProperty("$ref").GetString());
         Assert.Equal("null", branches[1].GetProperty("type").GetString());
     }
+
+    /// <summary>
+    /// A member declared nullable beside <c>[Required]</c>, so that a missing value is refused
+    /// rather than read as the enum's first member. The server answers 400 to a null, so the
+    /// document offers none.
+    /// </summary>
+    [Fact]
+    public void ARequiredNullableMemberPublishesNoNull()
+    {
+        var schema = Document(
+                """
+                public enum Category { Plumbing, Electrical }
+
+                public record NewRequest(
+                    [property: ValidationModules.Constraints.Required] Category? Category,
+                    [property: ValidationModules.Constraints.Required] string? Note,
+                    string? Comment
+                );
+
+                public class RequestController {
+                    [Post("/requests")]
+                    public NewRequest Create(NewRequest request) => request;
+                }
+                """
+            )
+            .GetProperty("components")
+            .GetProperty("schemas")
+            .GetProperty("NewRequest");
+
+        var properties = schema.GetProperty("properties");
+
+        Assert.Equal(
+            "#/components/schemas/Category",
+            properties.GetProperty("category").GetProperty("$ref").GetString()
+        );
+        Assert.Equal("string", properties.GetProperty("note").GetProperty("type").GetString());
+
+        // A nullable member without [Required] still offers null.
+        Assert.Equal(
+            JsonValueKind.Array,
+            properties.GetProperty("comment").GetProperty("type").ValueKind
+        );
+
+        var required = schema
+            .GetProperty("required")
+            .EnumerateArray()
+            .Select(name => name.GetString())
+            .ToList();
+
+        Assert.Contains("category", required);
+        Assert.Contains("note", required);
+    }
+
+    /// <summary>
+    /// The limiter writes <c>RateLimit-*</c> before the handler runs, so every response after it
+    /// carries them: the handler's own statuses and the 429. <c>Retry-After</c> is the 429's
+    /// alone.
+    /// </summary>
+    [Fact]
+    public void ARateLimitPublishesItsHeadersOnEveryResponse()
+    {
+        var responses = Document(
+                """
+                public class QuoteController {
+                    [Get("/quotes")]
+                    [Hardened.Requests.Runtime.RateLimiting.RateLimit(PermitLimit = 3)]
+                    public string List() => "";
+                }
+                """
+            )
+            .GetProperty("paths")
+            .GetProperty("/quotes")
+            .GetProperty("get")
+            .GetProperty("responses");
+
+        string[] limits = ["RateLimit-Limit", "RateLimit-Remaining", "RateLimit-Reset"];
+
+        Assert.Equal(limits, HeaderNames(responses.GetProperty("200")));
+        Assert.Equal(["Retry-After", .. limits], HeaderNames(responses.GetProperty("429")));
+    }
+
+    /// <summary>
+    /// <c>If-Modified-Since</c> is compared with the response's <c>Last-Modified</c>, so it is
+    /// published only where a success declares one. Every generated client asked its caller for it
+    /// on every conditional read.
+    /// </summary>
+    [Fact]
+    public void IfModifiedSinceIsPublishedOnlyBesideADeclaredLastModified()
+    {
+        var paths = Document(
+                """
+                public class LibraryController {
+                    [Get("/books")]
+                    [Hardened.Web.Runtime.Conditional.ConditionalGet]
+                    [Hardened.Requests.Abstract.Responses.AnswersHeader(200, "Last-Modified")]
+                    public string List() => "";
+
+                    [Get("/authors")]
+                    [Hardened.Web.Runtime.Conditional.ConditionalGet]
+                    public string Authors() => "";
+                }
+                """
+            )
+            .GetProperty("paths");
+
+        Assert.Equal(
+            ["If-None-Match", "If-Modified-Since"],
+            ParameterNames(paths.GetProperty("/books").GetProperty("get"))
+        );
+        Assert.Equal(
+            ["If-None-Match"],
+            ParameterNames(paths.GetProperty("/authors").GetProperty("get"))
+        );
+    }
+
+    private static string[] HeaderNames(JsonElement response) =>
+        response.GetProperty("headers").EnumerateObject().Select(header => header.Name).ToArray();
+
+    private static string[] ParameterNames(JsonElement operation) =>
+        operation
+            .GetProperty("parameters")
+            .EnumerateArray()
+            .Select(parameter => parameter.GetProperty("name").GetString()!)
+            .ToArray();
 
     /// <summary>
     /// A catch-all token says it is one, since the template cannot.

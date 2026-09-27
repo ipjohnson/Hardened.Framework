@@ -148,7 +148,9 @@ public partial class TodosLibrary : IServiceCollectionConfiguration
 covers both.
 
 `[RateLimit]` on a method, a class or a module puts a 429 in the OpenAPI document for each handler
-it covers. A limit added with `AddGlobalFilter` puts nothing there.
+it covers. It also lists `RateLimit-Limit`, `RateLimit-Remaining` and `RateLimit-Reset` on every
+response of those handlers. A response the limiter did not reach does not carry them, such as a 401
+when the limit's `Scope` is `Principal`. A limit added with `AddGlobalFilter` puts nothing there.
 [The OpenAPI document](/guide/openapi-document) page lists what `[RateLimit]` publishes.
 
 ## What a limit counts

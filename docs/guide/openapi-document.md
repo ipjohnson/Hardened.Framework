@@ -155,7 +155,7 @@ Content-Type: application/json
 Cache-Control: no-cache
 Vary: Accept-Encoding
 
-{"openapi":"3.2.0","info":{"title":"Application","version":"1.0.0"},"paths":{}}
+{"openapi":"3.2.0","info":{"title":"Todos.Host","version":"1.0.0"},"paths":{}}
 ```
 
 Without the attribute, the build writes no document and the assembly carries none.
@@ -465,8 +465,8 @@ declaring the item.
 
 ## The title, servers and tags
 
-`info.title` is the class name of the module that serves the document. `info.version` is `1.0.0`.
-The template's document is titled `TodosLibrary`.
+`info.title` is the name of the assembly that serves the document. `info.version` is `1.0.0`. The
+template's document is titled `Todos`, as its reference page is.
 
 `[OpenApiInfo(title, version, description)]` on that module sets them. Its `version` defaults to
 `1.0.0`, and its `description` is optional. `[Server(url, description)]` on that module adds an
@@ -736,9 +736,9 @@ assembly.
 |---|---|
 | `[AuthorizeGrants]`, or any attribute implementing `IAuthorizeAttribute` | A 401 and a 403, each with a `WWW-Authenticate` header. The 403's description is "The caller does not hold what this operation requires." |
 | `[Authorize<TScheme>]` | A `security` requirement naming `TScheme`, the scheme under `components.securitySchemes`, the 401 and the 403 |
-| `[RateLimit]` | A 429 with a `Retry-After` header |
+| `[RateLimit]` | A 429 with a `Retry-After` header, and `RateLimit-Limit`, `RateLimit-Remaining` and `RateLimit-Reset` headers on every response |
 | `[Timeout]` | A 504, or the `Status` it sets, and `x-hardened-timeout` |
-| `[ConditionalGet]` | A 304 with an `ETag` header, an `ETag` header on the 200, and optional `If-None-Match` and `If-Modified-Since` header parameters |
+| `[ConditionalGet]` | A 304 with an `ETag` header, an `ETag` header on the 200, and an optional `If-None-Match` header parameter. An optional `If-Modified-Since` header parameter as well where the 200 declares `Last-Modified` |
 
 The refusals use the `ErrorModel` schema: `type`, `message` and `details`, all strings.
 

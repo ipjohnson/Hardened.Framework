@@ -22,7 +22,7 @@ namespace TestApp
 
             public global::System.Collections.Generic.IReadOnlyDictionary<string,global::Hardened.Web.Runtime.Routing.RouteConstraintTest> Constraints => _constraints;
 
-            public string DocumentPrefix => "{\"openapi\":\"3.2.0\",\"info\":{\"title\":\"Application\",\"version\":\"1.0.0\"},\"tags\":[{\"name\":\"Tenant\"}],\"paths\":{\"/orders/{id}\":{\"get\":{\"tags\":[\"Tenant\"],\"operationId\":\"get\",\"parameters\":[{\"name\":\"id\",\"in\":\"path\",\"required\":true,\"schema\":{\"type\":\"integer\",\"format\":\"int32\"}}],\"responses\":{\"200\":{\"description\":\"OK\",\"content\":{\"application/json\":{\"schema\":{\"type\":\"string\"}}}},\"404\":{\"description\":\"The path did not name a resource: a token failed its route constraint.\"}}}}";
+            public string DocumentPrefix => "{\"openapi\":\"3.2.0\",\"info\":{\"title\":\"GeneratorTestAssembly\",\"version\":\"1.0.0\"},\"tags\":[{\"name\":\"Tenant\"}],\"paths\":{\"/orders/{id}\":{\"get\":{\"tags\":[\"Tenant\"],\"operationId\":\"get\",\"parameters\":[{\"name\":\"id\",\"in\":\"path\",\"required\":true,\"schema\":{\"type\":\"integer\",\"format\":\"int32\"}}],\"responses\":{\"200\":{\"description\":\"OK\",\"content\":{\"application/json\":{\"schema\":{\"type\":\"string\"}}}},\"404\":{\"description\":\"The path did not name a resource: a token failed its route constraint.\"}}}}";
 
             public string DocumentSuffix => "}}";
         }
