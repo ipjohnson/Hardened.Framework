@@ -838,6 +838,10 @@ public class OpenApiDocumentEmissionTests
 
             [Get("/pets")]
             public Task<List<Pet>> List() => Task.FromResult(new List<Pet>());
+
+            [Put("/pets/{id}")]
+            [Hardened.Requests.Runtime.Authorization.AuthorizeGrants("pets:write")]
+            public Task<Pet> Replace(string id) => Task.FromResult(new Pet(id));
         }
         """;
 
@@ -955,6 +959,138 @@ public class OpenApiDocumentEmissionTests
                 .TryGetProperty("ErrorModel", out _)
         );
     }
+
+    /// <summary>
+    /// Grants naming no scheme, in an application declaring two: the service answers a caller who
+    /// presented nothing with a 401, so the operation publishes it, and no <c>security</c>, because
+    /// nothing says which scheme the requirement means.
+    /// </summary>
+    [Fact]
+    public void AGrantNamingNoSchemeAmongSeveralPublishesItsFourOhOneAlone()
+    {
+        var replace = SecuredDocument()
+            .GetProperty("paths")
+            .GetProperty("/pets/{id}")
+            .GetProperty("put");
+
+        Assert.False(replace.TryGetProperty("security", out _));
+
+        var responses = replace.GetProperty("responses");
+
+        Assert.True(
+            responses
+                .GetProperty("401")
+                .GetProperty("headers")
+                .TryGetProperty("WWW-Authenticate", out _)
+        );
+        Assert.True(
+            responses
+                .GetProperty("403")
+                .GetProperty("headers")
+                .TryGetProperty("WWW-Authenticate", out _)
+        );
+    }
+
+    /// <summary>
+    /// One scheme declared, so a requirement naming none can only be met through it, and the
+    /// grants are its scopes where it carries them.
+    /// </summary>
+    [Fact]
+    public void AGrantNamingNoSchemeIsPublishedUnderTheOneScheme()
+    {
+        var remove = Document(OneSchemeControllers)
+            .GetProperty("paths")
+            .GetProperty("/pets/{id}")
+            .GetProperty("delete");
+
+        var requirement = Assert.Single(remove.GetProperty("security").EnumerateArray());
+
+        Assert.Equal(
+            new[] { "pets:admin" },
+            requirement.GetProperty("PetsOAuth").EnumerateArray().Select(scope => scope.GetString())
+        );
+        Assert.True(remove.GetProperty("responses").TryGetProperty("401", out _));
+    }
+
+    /// <summary>
+    /// A handler naming a scheme the document cannot describe named something other than the one
+    /// scheme it can, so it keeps its 401 and is not published under that scheme.
+    /// </summary>
+    [Fact]
+    public void AnUndescribedSchemeIsNotReadAsTheOneScheme()
+    {
+        var document = Document(
+            OneSchemeControllers
+                + """
+
+                public sealed class ApiKeyAuth : Hardened.Requests.Abstract.Authorization.IAuthenticationScheme;
+
+                public class KeyController {
+                    [Get("/keys")]
+                    [Hardened.Requests.Runtime.Authorization.Authorize<ApiKeyAuth>]
+                    public Task<Pet> Get() => Task.FromResult(new Pet("k"));
+                }
+                """
+        );
+
+        var keys = document.GetProperty("paths").GetProperty("/keys").GetProperty("get");
+
+        Assert.False(keys.TryGetProperty("security", out _));
+        Assert.True(keys.GetProperty("responses").TryGetProperty("401", out _));
+    }
+
+    /// <summary>No scheme anywhere: the 401 and the 403, and nothing under <c>security</c>.</summary>
+    [Fact]
+    public void AGrantWithNoSchemeInTheApplicationPublishesItsRefusals()
+    {
+        var document = Document(
+            """
+            public record Pet(string Id);
+
+            public class PetController {
+                [Delete("/pets/{id}")]
+                [Hardened.Requests.Runtime.Authorization.AuthorizeGrants("pets:admin")]
+                public Task Remove(string id) => Task.CompletedTask;
+            }
+            """
+        );
+
+        var remove = document.GetProperty("paths").GetProperty("/pets/{id}").GetProperty("delete");
+
+        Assert.False(remove.TryGetProperty("security", out _));
+        Assert.True(remove.GetProperty("responses").TryGetProperty("401", out _));
+        Assert.True(remove.GetProperty("responses").TryGetProperty("403", out _));
+    }
+
+    private const string OneSchemeControllers = """
+        [Hardened.Requests.Abstract.Authorization.OAuth2AuthenticationScheme(
+            Hardened.Requests.Abstract.Authorization.OAuth2Flow.ClientCredentials, TokenUrl = "https://id.example/token")]
+        public sealed class PetsOAuth : Hardened.Requests.Abstract.Authorization.IAuthenticationScheme;
+
+        public record Pet(string Id);
+
+        public class PetController {
+            [Get("/pets/{id}")]
+            [Hardened.Requests.Runtime.Authorization.Authorize<PetsOAuth>]
+            public Task<Pet> Get(string id) => Task.FromResult(new Pet(id));
+
+            [Delete("/pets/{id}")]
+            [Hardened.Requests.Runtime.Authorization.AuthorizeGrants("pets:admin")]
+            public Task Remove(string id) => Task.CompletedTask;
+        }
+        """;
+
+    private static JsonElement Document(string controllers) =>
+        JsonDocument
+            .Parse(
+                Extract(
+                    RequestGeneratorHarness
+                        .Generate(Application(controllers, Enable))
+                        .AssertNoErrors()
+                        .SourceContaining("OpenApiDocument")
+                )
+            )
+            .RootElement;
 
     /// <summary>And an operation naming no scheme answers no 401, so nothing is added to it.</summary>
     [Fact]

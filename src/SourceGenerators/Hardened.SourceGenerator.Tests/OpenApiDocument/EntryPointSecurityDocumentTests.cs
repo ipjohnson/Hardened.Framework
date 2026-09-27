@@ -228,15 +228,16 @@ public class EntryPointSecurityDocumentTests
     }
 
     /// <summary>
-    /// Grants with no scheme in sight publish the 403 alone, as they do on a handler.
+    /// Grants with no scheme in sight publish no <c>security</c>, and the 401 and the 403 that
+    /// refuse a caller, as they do on a handler. The 401 was missing while the service answered it.
     /// </summary>
     [Fact]
-    public void GrantsWithNoSchemePublishThe403Alone()
+    public void GrantsWithNoSchemePublishTheRefusalsAndNoSecurity()
     {
         var operation = Operation(Document(Requires(schemes: [], grants: ["admin"]), Handler()));
 
         Assert.Empty(Security(operation));
-        Assert.Equal(["200", "403"], Statuses(operation));
+        Assert.Equal(["200", "401", "403"], Statuses(operation));
     }
 
     [Fact]

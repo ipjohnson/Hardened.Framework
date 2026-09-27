@@ -553,15 +553,16 @@ public class OpenApiDocumentTests
     }
 
     /// <summary>
-    /// A grant with no scheme beside it publishes nothing, so its 401 stays underived.
+    /// A grant with no scheme beside it is published under the application's one scheme, with the
+    /// 401 the service answers a caller who presented nothing.
     /// </summary>
     /// <remarks>
-    /// A requirement has to reference a declared scheme, and the generator cannot invent one. The
-    /// operation is guarded at run time exactly as its neighbour is; what separates them in the
-    /// document is that one of them said which scheme establishes its caller.
+    /// It published a 403 alone, and the service answered 401 all the same. This application
+    /// declares <c>PetsOAuth</c> and nothing else, so a requirement naming no scheme can only be met
+    /// through it, and the grant is its scope.
     /// </remarks>
     [ModuleTest]
-    public async Task AGrantWithNoSchemePublishesNoRequirement(ITestWebApp testWebApp)
+    public async Task AGrantWithNoSchemeIsPublishedUnderTheOneScheme(ITestWebApp testWebApp)
     {
         using var document = await Fetch(testWebApp);
 
@@ -570,8 +571,26 @@ public class OpenApiDocumentTests
             .GetProperty("/authorization/pets-unstated")
             .GetProperty("get");
 
-        Assert.False(operation.TryGetProperty("security", out _));
-        Assert.False(operation.GetProperty("responses").TryGetProperty("401", out _));
-        Assert.True(operation.GetProperty("responses").TryGetProperty("403", out _));
+        var requirement = Assert.Single(operation.GetProperty("security").EnumerateArray());
+
+        Assert.Equal(
+            new[] { "pets:read" },
+            requirement.GetProperty("PetsOAuth").EnumerateArray().Select(scope => scope.GetString())
+        );
+
+        var responses = operation.GetProperty("responses");
+
+        Assert.True(
+            responses
+                .GetProperty("401")
+                .GetProperty("headers")
+                .TryGetProperty("WWW-Authenticate", out _)
+        );
+        Assert.True(
+            responses
+                .GetProperty("403")
+                .GetProperty("headers")
+                .TryGetProperty("WWW-Authenticate", out _)
+        );
     }
 }

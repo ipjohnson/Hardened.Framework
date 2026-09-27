@@ -97,6 +97,14 @@
           },
           "403": {
             "description": "The caller does not hold what this operation requires.",
+            "headers": {
+              "WWW-Authenticate": {
+                "description": "The challenge naming what the caller lacks, as error=\"insufficient_scope\".",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -955,6 +963,14 @@
           },
           "403": {
             "description": "The caller does not hold what this operation requires.",
+            "headers": {
+              "WWW-Authenticate": {
+                "description": "The challenge naming what the caller lacks, as error=\"insufficient_scope\".",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
