@@ -77,13 +77,21 @@ public static class FilterResponseSelector
         GeneratorSyntaxContext context,
         MethodDeclarationSyntax method,
         CancellationToken cancellationToken
-    ) =>
-        Collect(
-            context,
-            Declarations(context, method),
-            Written(context, method),
-            cancellationToken
-        );
+    )
+    {
+        var declarations = Declarations(context, method);
+
+        // [AllowAnonymous] cancels every requirement on the handler, so the 403 they declare is
+        // not a status this operation can answer.
+        if (SecurityDeclarationSelector.AllowsAnonymous(context, method, cancellationToken))
+        {
+            declarations = declarations.Where(declaration =>
+                !SecurityDeclarationSelector.IsRequirement(declaration.Type)
+            );
+        }
+
+        return Collect(context, declarations, Written(context, method), cancellationToken);
+    }
 
     /// <summary>
     /// The same reading, over declarations that are not on a handler at all.

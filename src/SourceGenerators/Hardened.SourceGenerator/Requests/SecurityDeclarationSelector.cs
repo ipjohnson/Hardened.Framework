@@ -39,6 +39,12 @@ internal static class SecurityDeclarationSelector
     private const string SchemeInterface =
         "Hardened.Requests.Abstract.Authorization.IAuthenticationScheme";
 
+    private const string RequirementInterface =
+        "Hardened.Requests.Abstract.Authorization.IAuthorizeAttribute";
+
+    private const string AllowAnonymousAttributeName =
+        "Hardened.Requests.Runtime.Authorization.AllowAnonymousAttribute";
+
     /// <summary>
     /// Reads the method's and its controller's attributes and writes what they declare onto the
     /// model.
@@ -82,6 +88,16 @@ internal static class SecurityDeclarationSelector
             model.MisplacedSchemeAttributes = misplaced;
         }
 
+        if (AllowsAnonymous(context, method, cancellationToken))
+        {
+            return;
+        }
+
+        if (grants.Count > 0)
+        {
+            model.DeclaredGrants = grants;
+        }
+
         if (schemes.Count == 0)
         {
             return;
@@ -98,6 +114,27 @@ internal static class SecurityDeclarationSelector
         model.SecurityRequirements = requirements;
     }
 
+    /// <summary>
+    /// Reads the requirements an entry point declares for every handler in its compilation.
+    /// </summary>
+    /// <remarks>
+    /// The same reading as a handler's class, over the attributes the entry point's rung collected.
+    /// A scheme-shape attribute on the module class is not among them, so nothing here is misplaced.
+    /// </remarks>
+    internal static void ReadRequirements(
+        GeneratorSyntaxContext context,
+        IEnumerable<AttributeSyntax> attributes,
+        List<SecuritySchemeDeclaration> schemes,
+        List<string> grants,
+        CancellationToken cancellationToken
+    )
+    {
+        foreach (var attribute in attributes)
+        {
+            ReadAttribute(context, attribute, "", schemes, grants, null, cancellationToken);
+        }
+    }
+
     private static void Read(
         GeneratorSyntaxContext context,
         SyntaxList<AttributeListSyntax> attributeLists,
@@ -112,63 +149,150 @@ internal static class SecurityDeclarationSelector
         {
             foreach (var attribute in attributeList.Attributes)
             {
-                cancellationToken.ThrowIfCancellationRequested();
+                ReadAttribute(
+                    context,
+                    attribute,
+                    owner,
+                    schemes,
+                    grants,
+                    misplaced,
+                    cancellationToken
+                );
+            }
+        }
+    }
 
+    private static void ReadAttribute(
+        GeneratorSyntaxContext context,
+        AttributeSyntax attribute,
+        string owner,
+        List<SecuritySchemeDeclaration> schemes,
+        List<string> grants,
+        List<string>? misplaced,
+        CancellationToken cancellationToken
+    )
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (
+            context.SemanticModel.GetTypeInfo(attribute, cancellationToken).Type
+            is not INamedTypeSymbol type
+        )
+        {
+            return;
+        }
+
+        var definition = type.OriginalDefinition.ToDisplayString();
+
+        if (
+            definition.StartsWith(AuthorizeAttributeName + "<", System.StringComparison.Ordinal)
+            && type.TypeArguments.Length >= 1
+            && type.TypeArguments[0] is INamedTypeSymbol schemeType
+            && ImplementsScheme(schemeType)
+        )
+        {
+            var declaration = Declare(schemeType);
+
+            if (
+                declaration != null
+                && !schemes.Exists(existing => existing.Name == declaration.Name)
+            )
+            {
+                schemes.Add(declaration);
+            }
+        }
+        else if (definition == GrantsAttributeName)
+        {
+            // The literal form only. The generic form computes its grants in a provider the
+            // generator cannot run.
+            LiteralGrants(attribute, context, grants, cancellationToken);
+        }
+        else if (
+            misplaced != null
+            && type.Name
+                is "HttpAuthenticationSchemeAttribute"
+                    or "ApiKeyAuthenticationSchemeAttribute"
+                    or "OAuth2AuthenticationSchemeAttribute"
+        )
+        {
+            // A scheme-shape attribute in a position nothing reads. It belongs on a scheme type
+            // named by [Authorize<TScheme>]; here it publishes nothing and enforces nothing, which
+            // is the silent no-op the second trial walked into.
+            var entry = owner + "|" + type.Name;
+
+            if (!misplaced.Contains(entry))
+            {
+                misplaced.Add(entry);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Whether <c>[AllowAnonymous]</c> is on the handler's method or on its class.
+    /// </summary>
+    /// <remarks>
+    /// The pipeline makes such a handler public whatever requirement its method or class declares,
+    /// so the operation publishes none of what the requirement would: no <c>security</c>, no 401
+    /// and no 403.
+    /// </remarks>
+    internal static bool AllowsAnonymous(
+        GeneratorSyntaxContext context,
+        MethodDeclarationSyntax method,
+        CancellationToken cancellationToken
+    ) =>
+        Carries(context, method.AttributeLists, AllowAnonymousAttributeName, cancellationToken)
+        || (
+            method.Parent is TypeDeclarationSyntax declaringType
+            && Carries(
+                context,
+                declaringType.AttributeLists,
+                AllowAnonymousAttributeName,
+                cancellationToken
+            )
+        );
+
+    /// <summary>Whether this attribute type imposes a requirement the pipeline honours.</summary>
+    internal static bool IsRequirement(INamedTypeSymbol? type)
+    {
+        if (type == null)
+        {
+            return false;
+        }
+
+        foreach (var contract in type.AllInterfaces)
+        {
+            if (contract.ToDisplayString() == RequirementInterface)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool Carries(
+        GeneratorSyntaxContext context,
+        SyntaxList<AttributeListSyntax> attributeLists,
+        string attributeName,
+        CancellationToken cancellationToken
+    )
+    {
+        foreach (var attributeList in attributeLists)
+        {
+            foreach (var attribute in attributeList.Attributes)
+            {
                 if (
                     context.SemanticModel.GetTypeInfo(attribute, cancellationToken).Type
-                    is not INamedTypeSymbol type
+                        is INamedTypeSymbol type
+                    && type.ToDisplayString() == attributeName
                 )
                 {
-                    continue;
-                }
-
-                var definition = type.OriginalDefinition.ToDisplayString();
-
-                if (
-                    definition.StartsWith(
-                        AuthorizeAttributeName + "<",
-                        System.StringComparison.Ordinal
-                    )
-                    && type.TypeArguments.Length >= 1
-                    && type.TypeArguments[0] is INamedTypeSymbol schemeType
-                    && ImplementsScheme(schemeType)
-                )
-                {
-                    var declaration = Declare(schemeType);
-
-                    if (
-                        declaration != null
-                        && !schemes.Exists(existing => existing.Name == declaration.Name)
-                    )
-                    {
-                        schemes.Add(declaration);
-                    }
-                }
-                else if (definition == GrantsAttributeName)
-                {
-                    // The literal form only. The generic form computes its grants in a provider
-                    // the generator cannot run.
-                    LiteralGrants(attribute, context, grants, cancellationToken);
-                }
-                else if (
-                    type.Name
-                    is "HttpAuthenticationSchemeAttribute"
-                        or "ApiKeyAuthenticationSchemeAttribute"
-                        or "OAuth2AuthenticationSchemeAttribute"
-                )
-                {
-                    // A scheme-shape attribute in a position nothing reads. It belongs on a scheme
-                    // type named by [Authorize<TScheme>]; here it publishes nothing and enforces
-                    // nothing, which is the silent no-op the second trial walked into.
-                    var entry = owner + "|" + type.Name;
-
-                    if (!misplaced.Contains(entry))
-                    {
-                        misplaced.Add(entry);
-                    }
+                    return true;
                 }
             }
         }
+
+        return false;
     }
 
     private static bool ImplementsScheme(INamedTypeSymbol type)
@@ -322,7 +446,7 @@ internal static class SecurityDeclarationSelector
         return null;
     }
 
-    private static string RequirementJson(
+    internal static string RequirementJson(
         SecuritySchemeDeclaration scheme,
         IReadOnlyList<string> grants
     )

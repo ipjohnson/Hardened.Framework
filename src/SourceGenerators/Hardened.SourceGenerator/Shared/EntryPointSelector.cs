@@ -58,6 +58,20 @@ public static partial class EntryPointSelector
         /// operation. Null where the entry point declares no filter.
         /// </summary>
         public IEntryPointFilterFacts? FilterFacts { get; set; }
+
+        /// <summary>
+        /// Whether one of those declarations is a requirement on the caller, such as
+        /// <c>[Authorize&lt;TScheme&gt;]</c>. Every handler in the compilation then says something
+        /// about authorization.
+        /// </summary>
+        public bool DeclaresRequirement { get; set; }
+
+        /// <summary>
+        /// What the requirements publish: their schemes, their literal grants and the 403. Kept
+        /// apart from <see cref="FilterFacts"/> because <c>[AllowAnonymous]</c> on a handler
+        /// cancels them. Null where the entry point declares no requirement.
+        /// </summary>
+        public IEntryPointFilterFacts? SecurityFacts { get; set; }
     }
 
     public class Comparer : IEqualityComparer<Model>
@@ -91,7 +105,9 @@ public static partial class EntryPointSelector
                 )
                 && x.ImportsAStore == y.ImportsAStore
                 && x.FilterDeclarations.SequenceEqual(y.FilterDeclarations)
-                && Equals(x.FilterFacts, y.FilterFacts);
+                && Equals(x.FilterFacts, y.FilterFacts)
+                && x.DeclaresRequirement == y.DeclaresRequirement
+                && Equals(x.SecurityFacts, y.SecurityFacts);
         }
 
         private bool CompareProperties(Model x, Model y)
