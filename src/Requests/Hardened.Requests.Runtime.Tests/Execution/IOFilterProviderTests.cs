@@ -78,7 +78,7 @@ public class IOFilterProviderTests
         var filter = Provider(heartbeatInterval: TimeSpan.FromMilliseconds(10))
             .ProvideAsyncEnumerableFilter<string>(HandlerInfo(), NoParameters, SseFraming.Instance);
 
-        var context = Pipeline.Context();
+        var context = Pipeline.Context(accept: null);
 
         await Pipeline
             .Chain(
@@ -113,7 +113,7 @@ public class IOFilterProviderTests
 
         await Pipeline
             .Chain(
-                Pipeline.Context(),
+                Pipeline.Context(accept: null),
                 filter,
                 new Pipeline.Inline(c =>
                 {
@@ -298,7 +298,7 @@ public class IOFilterProviderTests
     {
         var filter = Provider().ProvideAsyncEnumerableFilter<string>(HandlerInfo(), NoParameters);
 
-        var context = Pipeline.Context();
+        var context = Pipeline.Context(accept: null);
 
         context.Response.ResponseValue = Values();
 
@@ -313,7 +313,7 @@ public class IOFilterProviderTests
         var filter = Provider()
             .ProvideAsyncEnumerableFilter<string>(HandlerInfo(), NoParameters, SseFraming.Instance);
 
-        var context = Pipeline.Context();
+        var context = Pipeline.Context(accept: null);
 
         context.Response.ResponseValue = Values();
 

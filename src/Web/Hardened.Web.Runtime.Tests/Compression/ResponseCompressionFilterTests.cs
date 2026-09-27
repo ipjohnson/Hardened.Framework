@@ -863,10 +863,12 @@ public class ResponseCompressionFilterTests
         {
             [KnownHeaders.AcceptEncoding] = Browser,
         };
+        // No Accept, as a client that takes the stream sends: a stream refuses one naming only
+        // other types.
         var request = new TestExecutionRequest(
             "GET",
             "/feed",
-            "application/json",
+            null,
             new SimpleQueryStringCollection(new Dictionary<string, string>())
         )
         {

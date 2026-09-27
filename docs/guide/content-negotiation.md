@@ -106,7 +106,8 @@ A handler that returns `byte[]` or `Stream` and declares two or more media types
 [Choosing the content type per request](#choosing-the-content-type-per-request) shows how a handler
 sets the content type.
 
-[Streaming responses](/guide/streaming) covers a handler that returns `IAsyncEnumerable<T>`. A
+A handler that returns `IAsyncEnumerable<T>` answers in its stream's media type, and a request that
+names other types only gets 406 under `Strict`. [Streaming responses](/guide/streaming) covers it. A
 handler with `[Output<T>]` renders a view whatever `Accept` says. [Views](/guide/views) covers it.
 
 ## Matching the `Accept` header

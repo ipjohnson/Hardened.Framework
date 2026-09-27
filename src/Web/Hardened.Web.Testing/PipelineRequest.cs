@@ -84,7 +84,7 @@ internal static class PipelineRequest
         return new TestExecutionRequest(
             method,
             path,
-            accept.ToString(),
+            accept.Count == 0 ? null : accept.ToString(),
             QueryStringParser.ParseFromPath(pathAndQuery)
         )
         {

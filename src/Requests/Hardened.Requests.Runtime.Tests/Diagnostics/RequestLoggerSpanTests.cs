@@ -274,6 +274,31 @@ public class RequestLoggerSpanTests
     }
 
     /// <summary>
+    /// A request cancelled on its own token is not this service failing, so its span is not marked
+    /// as an error. <c>RequestEnd</c> still marks it from the status.
+    /// </summary>
+    [Fact]
+    public void ACancelledRequestsSpanIsNotMarkedAsAnError()
+    {
+        using var listening = new Listening();
+        using var cancellation = new CancellationTokenSource();
+
+        var logger = Logger();
+        var context = Context();
+
+        context.CancellationToken.Returns(cancellation.Token);
+        cancellation.Cancel();
+
+        logger.RequestBegin(context);
+        logger.RequestFailed(context, new TaskCanceledException());
+
+        var span = Assert.Single(listening.Started);
+
+        Assert.Null(span.GetTagItem("error.type"));
+        Assert.NotEqual(ActivityStatusCode.Error, span.Status);
+    }
+
+    /// <summary>
     /// The stack goes on the span as well as in the log line. Logs and traces are sampled and
     /// retained separately, so a span that says only "it failed" sends whoever is reading it looking
     /// for a log line that may no longer exist.
