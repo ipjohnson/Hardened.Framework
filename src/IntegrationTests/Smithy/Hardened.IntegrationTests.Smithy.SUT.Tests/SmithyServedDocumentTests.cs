@@ -301,4 +301,32 @@ public class SmithyServedDocumentTests
         Assert.Equal("binary", schema.GetProperty("format").GetString());
         Assert.Single(content.EnumerateObject());
     }
+
+    /// <summary>
+    /// An error shape's <c>@httpHeader</c> member is published under the error response's headers,
+    /// and not as a property of the body.
+    /// </summary>
+    [ModuleTest]
+    public async Task AnErrorsHeaderMemberIsPublishedAsAHeader(ITestWebApp app)
+    {
+        var document = await Document(app);
+
+        var throttled = document
+            .GetProperty("paths")
+            .GetProperty("/pets/{petId}")
+            .GetProperty("get")
+            .GetProperty("responses")
+            .GetProperty("429");
+
+        Assert.True(throttled.GetProperty("headers").TryGetProperty("Retry-After", out _));
+
+        var properties = document
+            .GetProperty("components")
+            .GetProperty("schemas")
+            .GetProperty("Throttled")
+            .GetProperty("properties");
+
+        Assert.True(properties.TryGetProperty("message", out _));
+        Assert.False(properties.TryGetProperty("retryAfter", out _));
+    }
 }

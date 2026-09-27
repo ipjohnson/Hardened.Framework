@@ -157,6 +157,31 @@ internal static class ErrorResponseEmitter
             return;
         }
 
+        // A Smithy error binds its headers to members of the error shape, so the payload record
+        // holds the values and implements IProvidesResponseHeaders itself. The exception passes the
+        // call on rather than taking each value a second time.
+        if (error.HeadersOnPayload && error.Ref != null)
+        {
+            var delegated = definition.AddMethod("ApplyHeaders");
+
+            delegated.Modifiers |= ComponentModifier.Public | ComponentModifier.Override;
+            delegated.SetReturnType(typeof(void));
+            delegated.AddParameter(
+                new GenericTypeDefinition(
+                    typeof(IDictionary<,>),
+                    new ITypeDefinition[]
+                    {
+                        TypeDefinition.Get(typeof(string)),
+                        TypeDefinition.Get("Microsoft.Extensions.Primitives", "StringValues"),
+                    }
+                ),
+                "headers"
+            );
+            delegated.AddIndentedStatement("Body.ApplyHeaders(headers)");
+
+            return;
+        }
+
         foreach (var header in error.Headers)
         {
             // ParameterName is already the property's spelling, so the constructor's has to be

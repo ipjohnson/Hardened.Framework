@@ -74,6 +74,18 @@ internal class ErrorResponseModel : IEquatable<ErrorResponseModel>
     /// </remarks>
     public List<ResponseHeaderModel> Headers { get; } = new();
 
+    /// <summary>
+    /// Whether the payload type carries these headers itself.
+    /// </summary>
+    /// <remarks>
+    /// Smithy binds an error's header to a member of the error shape, as it does an output's, so
+    /// the payload record implements <c>IProvidesResponseHeaders</c> and the generated exception
+    /// and case read the value from it. OpenAPI declares an error's headers beside its schema, so
+    /// the exception and the case take each value as a parameter. See
+    /// <c>SuccessResponseModel.HeadersOnPayload</c>.
+    /// </remarks>
+    public bool HeadersOnPayload { get; set; }
+
     public bool Equals(ErrorResponseModel? other)
     {
         if (other is null)
@@ -86,6 +98,7 @@ internal class ErrorResponseModel : IEquatable<ErrorResponseModel>
             && Name == other.Name
             && TypeName == other.TypeName
             && ExceptionTypeName == other.ExceptionTypeName
+            && HeadersOnPayload == other.HeadersOnPayload
             && Headers.SequenceEqual(other.Headers);
     }
 

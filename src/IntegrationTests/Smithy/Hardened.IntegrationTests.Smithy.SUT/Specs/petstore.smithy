@@ -195,6 +195,10 @@ structure Throttled {
 
     @range(min: 0)
     retryAfterSeconds: Integer
+
+    // Bound to a response header, so it leaves the body and is sent as Retry-After.
+    @httpHeader("Retry-After")
+    retryAfter: String
 }
 
 /// One event in a pet's history: it was adopted.

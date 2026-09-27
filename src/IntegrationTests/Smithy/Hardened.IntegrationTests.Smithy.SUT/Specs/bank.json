@@ -943,7 +943,12 @@
             ],
             "traits": {
                 "aws.protocols#awsJson1_0": {}
-            }
+            },
+            "errors": [
+                {
+                    "target": "com.example.bank#AccountNotFound"
+                }
+            ]
         },
         "com.example.bank#GetBalance": {
             "type": "operation",
@@ -953,11 +958,6 @@
             "output": {
                 "target": "com.example.bank#GetBalanceOutput"
             },
-            "errors": [
-                {
-                    "target": "com.example.bank#AccountNotFound"
-                }
-            ],
             "traits": {
                 "smithy.api#readonly": {}
             }
@@ -1000,12 +1000,7 @@
             },
             "output": {
                 "target": "com.example.bank#TransferOutput"
-            },
-            "errors": [
-                {
-                    "target": "com.example.bank#AccountNotFound"
-                }
-            ]
+            }
         },
         "com.example.bank#TransferInput": {
             "type": "structure",

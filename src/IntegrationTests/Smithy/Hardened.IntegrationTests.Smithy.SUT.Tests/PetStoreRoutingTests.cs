@@ -256,4 +256,25 @@ public class PetStoreRoutingTests
 
         Assert.Equal(photo.Length, response.Deserialize<PutPetPhotoOutput>().ByteCount);
     }
+
+    /// <summary>
+    /// An error shape's <c>@httpHeader</c> member is sent as that header and left out of the body.
+    /// </summary>
+    /// <remarks>
+    /// It was read as a body member, so <c>retryAfter</c> went out in the JSON and no
+    /// <c>Retry-After</c> was sent, although the document declared one on the 429.
+    /// </remarks>
+    [ModuleTest]
+    public async Task GetPet_ThrottledSendsItsRetryAfterAsAHeader(ITestWebApp app)
+    {
+        var response = await app.Get("/pets/throttled");
+
+        Assert.Equal(429, response.StatusCode);
+        Assert.Equal("30", response.Headers["Retry-After"].ToString());
+
+        using var body = System.Text.Json.JsonDocument.Parse(await response.ReadTextAsync());
+
+        Assert.Equal("Slow down.", body.RootElement.GetProperty("message").GetString());
+        Assert.False(body.RootElement.TryGetProperty("retryAfter", out _));
+    }
 }

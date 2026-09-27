@@ -179,4 +179,42 @@ public class ErrorFactoryEmitterTests
     }
 
     #endregion
+
+    private static ErrorResponseModel WithRetryAfter(ErrorResponseModel error, bool onPayload)
+    {
+        error.Headers.Add(
+            new ResponseHeaderModel { Name = "Retry-After", ParameterName = "RetryAfter" }
+        );
+        error.HeadersOnPayload = onPayload;
+
+        return error;
+    }
+
+    /// <summary>A header declared beside the body travels as an argument, as the body does.</summary>
+    [Fact]
+    public void AHeaderDeclaredBesideTheBodyIsAnArgument()
+    {
+        var output = Emit(
+            WithRetryAfter(
+                Error(429, "#/components/schemas/Throttled", "ThrottledException"),
+                onPayload: false
+            )
+        );
+
+        Assert.Contains("string retryAfter) => new(body, retryAfter);", output);
+    }
+
+    /// <summary>A header that is a member of the body is already in the body.</summary>
+    [Fact]
+    public void AHeaderOnThePayloadIsNotAnArgument()
+    {
+        var output = Emit(
+            WithRetryAfter(
+                Error(429, "#/components/schemas/Throttled", "ThrottledException"),
+                onPayload: true
+            )
+        );
+
+        Assert.Contains("Throttled body) => new(body);", output);
+    }
 }
