@@ -415,7 +415,8 @@ class does not change it. A budget in the contract also beats `[assembly: Timeou
 application default.
 
 `[Timeout]` on the implementation bounds an operation that the contract gives no budget. When the
-implementation's class and method both declare one, the class's budget applies.
+implementation's class and method both declare one, the method's budget applies, as on a
+code-first handler.
 
 [Generating from OpenAPI](/guide/openapi) and [Generating from Smithy](/guide/smithy) cover the
 rest of a contract.
@@ -545,7 +546,9 @@ Content-Type: application/x-ndjson
 
 The end of the stream is logged at `Error` as a failed request, not with the timeout `Warning` line.
 The stream ends at the deadline also when the handler does not pass the token on. When the budget
-runs out before the first item, the caller gets 500 with an empty body.
+runs out before the first item, nothing has been sent, so the caller gets the operation's timeout
+status and body, as for a handler that does not stream. That is a 504 unless the operation declares
+another status.
 [Streaming responses](/guide/streaming) covers a client that disconnects from a stream.
 
 ## A budget of zero or less
@@ -574,6 +577,17 @@ CSC : error HRDW006: 'TodoController.Export' is bounded by a [Timeout] declaring
 
 Every host enforces a budget: Kestrel, ASP.NET Core, AWS Lambda, Google Cloud Run, Google Cloud
 Functions and Azure Functions. A budget also fires in the in-process test host.
+
+## On AWS Lambda
+
+The invocation's own deadline bounds every request on AWS Lambda as well. The request's token is
+cancelled 500 ms before that deadline, and a bounded handler then answers its timeout status, as it
+would at its own deadline. A budget longer than the function's timeout never runs out, because the
+function's timeout comes first.
+
+Nothing checks a budget against the function's timeout. Lambda gives a function each invocation's
+deadline, and not the timeout it was configured with, so there is no number to compare a budget with
+at startup. [AWS Lambda](/aws/#cancellation) covers the invocation's token.
 
 ## Limits
 

@@ -30,6 +30,19 @@ public class TimeoutTests
     }
 
     /// <summary>
+    /// A stream whose budget runs out before its first item answers the same 504, with its body,
+    /// rather than ending with a 500 and nothing written.
+    /// </summary>
+    [ModuleTest]
+    public async Task AStreamThatTimesOutBeforeItsFirstItemIs504(ITestWebApp testWebApp)
+    {
+        var response = await testWebApp.Get("/timeout/stream-late");
+
+        Assert.Equal(504, response.StatusCode);
+        Assert.Equal("GatewayTimeout", response.Deserialize<ErrorModel>().Type);
+    }
+
+    /// <summary>
     /// The deadline is a bound rather than a delay: an operation that finishes inside it answers
     /// normally, and the handler ran once.
     /// </summary>

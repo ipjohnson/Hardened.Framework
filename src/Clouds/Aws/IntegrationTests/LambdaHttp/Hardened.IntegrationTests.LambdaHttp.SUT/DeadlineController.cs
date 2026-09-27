@@ -1,3 +1,4 @@
+using Hardened.Requests.Runtime.Filters;
 using Hardened.Web.Runtime.Attributes;
 
 namespace Hardened.IntegrationTests.LambdaHttp.SUT;
@@ -20,5 +21,18 @@ public class DeadlineController
         {
             return "cancelled";
         }
+    }
+
+    /// <summary>
+    /// A budget longer than the invocation has left, on a handler that lets the cancellation
+    /// escape, as a handler that passes its token on does.
+    /// </summary>
+    [Get("/deadline/bounded")]
+    [Timeout(Milliseconds = 60_000)]
+    public async Task<string> Bounded(CancellationToken cancellationToken)
+    {
+        await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken);
+
+        return "finished";
     }
 }

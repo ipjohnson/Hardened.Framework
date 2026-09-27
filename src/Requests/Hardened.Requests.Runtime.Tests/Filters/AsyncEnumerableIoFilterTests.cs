@@ -1,9 +1,11 @@
+using System.Runtime.CompilerServices;
 using System.Text;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.Logging;
 using Hardened.Requests.Abstract.Metrics;
 using Hardened.Requests.Abstract.Serializer;
+using Hardened.Requests.Abstract.Timeouts;
 using Hardened.Requests.Runtime.Errors;
 using Hardened.Requests.Runtime.Execution;
 using Hardened.Requests.Runtime.Filters;
@@ -503,6 +505,88 @@ public class AsyncEnumerableIoFilterTests
 
         Assert.Equal("data: alpha\n\n", Body(context));
         Assert.Equal(KnownContentType.EventStream, context.Response.ContentType);
+    }
+
+    /// <summary>
+    /// A budget that runs out before the first item is answered with the deadline's status, as it
+    /// is for a handler that does not stream: nothing has reached the wire, so there is still a
+    /// whole response to send. It used to end the request with a 500 and no body.
+    /// </summary>
+    [Fact]
+    public async Task ABoundedStreamCancelledBeforeItsFirstItemIsAnErrorDocument()
+    {
+        using var cancellation = new CancellationTokenSource();
+        var serialized = new List<Exception?>();
+        var context = Pipeline.Cancellable(cancellation.Token);
+
+        context.HandlerInfo = new ExecutionRequestHandlerInfo(
+            "/feed",
+            "GET",
+            typeof(AsyncEnumerableIoFilterTests),
+            "Feed",
+            timeout: new TimeoutPolicy(100)
+        );
+
+        var filter = new AsyncEnumerableIoFilter<string>(
+            Empty,
+            c =>
+            {
+                serialized.Add(c.Response.ExceptionValue);
+
+                return Task.CompletedTask;
+            },
+            null,
+            SseFraming.Instance
+        );
+
+        cancellation.Cancel();
+
+        await Pipeline.Chain(context, filter, Handler(WaitsForever(cancellation.Token))).Next();
+
+        Assert.IsAssignableFrom<OperationCanceledException>(Assert.Single(serialized));
+        Assert.Null(context.Response.ContentType);
+        Assert.Equal("", Body(context));
+    }
+
+    /// <summary>
+    /// With no budget, a cancelled request is a caller who hung up, and nobody is there to read an
+    /// error document.
+    /// </summary>
+    [Fact]
+    public async Task AnUnboundedStreamCancelledBeforeItsFirstItemIsNotAnswered()
+    {
+        using var cancellation = new CancellationTokenSource();
+        var serialized = 0;
+        var context = Pipeline.Cancellable(cancellation.Token);
+
+        var filter = new AsyncEnumerableIoFilter<string>(
+            Empty,
+            _ =>
+            {
+                serialized++;
+
+                return Task.CompletedTask;
+            },
+            null,
+            SseFraming.Instance
+        );
+
+        cancellation.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            Pipeline.Chain(context, filter, Handler(WaitsForever(cancellation.Token))).Next()
+        );
+
+        Assert.Equal(0, serialized);
+    }
+
+    private static async IAsyncEnumerable<string> WaitsForever(
+        [EnumeratorCancellation] CancellationToken cancellationToken = default
+    )
+    {
+        await Task.Delay(Timeout.Infinite, cancellationToken);
+
+        yield return "never";
     }
 
     private static async IAsyncEnumerable<string> FailsBeforeFirst()
