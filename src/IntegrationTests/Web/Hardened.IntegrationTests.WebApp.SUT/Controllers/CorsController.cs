@@ -15,6 +15,10 @@ public class CorsController
     [Get("/greeting")]
     public string Greeting() => "hello";
 
+    /// <summary>A route that reads a header nothing in the CORS configuration names.</summary>
+    [Get("/tenant")]
+    public string TenantHeader([FromHeader("X-Tenant")] string tenant) => tenant;
+
     /// <summary>
     /// The registration model's constraints, so a body that breaks them is refused with 400 after
     /// the CORS filter has run.

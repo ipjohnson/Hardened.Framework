@@ -317,7 +317,11 @@ public class GeneratedCodeRegressionTests
             )
             .AssertNoErrors();
 
-        Assert.Contains("_parameterInfo, _metadata)", result.SourceContaining("Search"));
+        // The header a CORS preflight allows for this operation follows the metadata.
+        Assert.Contains(
+            "_parameterInfo, _metadata, requestHeaders: new string[] { \"X-Tenant\" })",
+            result.SourceContaining("Search")
+        );
         Assert.Contains("null, _metadata)", result.SourceContaining("Health"));
     }
 }

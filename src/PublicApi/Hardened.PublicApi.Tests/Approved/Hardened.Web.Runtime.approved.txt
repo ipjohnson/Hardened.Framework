@@ -302,6 +302,7 @@ namespace Hardened.Web.Runtime.Cors
     public class CorsConfiguration
     {
         public const string DefaultEnvironmentVariable = "CORS_ALLOWED_ORIGINS";
+        public const string DefaultHeadersEnvironmentVariable = "CORS_ALLOWED_HEADERS";
         public CorsConfiguration() { }
         public bool AllowAnyOrigin { get; set; }
         public bool AllowCredentials { get; set; }
@@ -310,12 +311,14 @@ namespace Hardened.Web.Runtime.Cors
         public string EnvironmentVariable { get; set; }
         public System.Collections.Generic.IReadOnlyCollection<string> ExposedHeaders { get; }
         public string FallbackMethods { get; set; }
+        public string HeadersEnvironmentVariable { get; set; }
         public bool IsConfigured { get; }
         public int MaxAgeSec { get; set; }
         public void AllowHeader(string header) { }
         public void AllowOrigin(string origin) { }
         public void AllowOriginSuffix(string domain) { }
         public bool AreHeadersAllowed(System.Collections.Generic.IEnumerable<string> requested) { }
+        public bool AreHeadersAllowed(System.Collections.Generic.IEnumerable<string> requested, System.Collections.Generic.IReadOnlyCollection<string> alsoAllowed) { }
         public void ClearExposedHeaders() { }
         public void ExposeHeader(string header) { }
         public bool IsOriginAllowed(string origin) { }

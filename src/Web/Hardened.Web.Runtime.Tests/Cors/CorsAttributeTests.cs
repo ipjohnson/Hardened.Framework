@@ -153,15 +153,19 @@ public class CorsAttributeTests
         Assert.Contains(KnownHeaders.Origin, headers[KnownHeaders.Vary].ToString());
     }
 
+    /// <summary>
+    /// A request without Origin gets no CORS headers and is still varied on: the route declared
+    /// CORS, so its answer depends on Origin.
+    /// </summary>
     [Fact]
-    public async Task ARequestWithNoOriginIsLeftAlone()
+    public async Task ARequestWithNoOriginIsVariedOnAndNotAnnotated()
     {
         var declaration = new CorsAttribute();
 
         var headers = await Run(declaration, Info(declaration), origin: null);
 
         Assert.False(headers.ContainsKey(KnownHeaders.Cors.AccessControlAllowOrigin));
-        Assert.False(headers.ContainsKey(KnownHeaders.Vary));
+        Assert.Equal(KnownHeaders.Origin, headers[KnownHeaders.Vary].ToString());
     }
 
     [Fact]

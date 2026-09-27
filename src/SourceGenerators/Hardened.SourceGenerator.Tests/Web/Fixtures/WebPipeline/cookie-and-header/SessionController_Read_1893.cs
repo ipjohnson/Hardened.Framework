@@ -9,7 +9,7 @@ namespace TestApp.Generated
     {
         private static readonly global::Hardened.Requests.Abstract.Execution.IExecutionRequestParameter[] _parameterInfo =         CreateParameterInfo()
 ;
-        private static readonly global::Hardened.Requests.Runtime.Execution.ExecutionRequestHandlerInfo _handlerInfo =         new global::Hardened.Requests.Runtime.Execution.ExecutionRequestHandlerInfo("/session", "GET", typeof(global::TestApp.SessionController), "Read", _parameterInfo)
+        private static readonly global::Hardened.Requests.Runtime.Execution.ExecutionRequestHandlerInfo _handlerInfo =         new global::Hardened.Requests.Runtime.Execution.ExecutionRequestHandlerInfo("/session", "GET", typeof(global::TestApp.SessionController), "Read", _parameterInfo, requestHeaders: new string[] { "X-Trace-Id" })
 ;
 
         public SessionController_Read_1893(global::System.IServiceProvider serviceProvider, string? routePath = null)
