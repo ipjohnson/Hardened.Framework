@@ -259,7 +259,7 @@ public class TestClientBuilderTests
         var host = new SubstitutePipeline();
         var seen = new CountingHandler();
 
-        var context = TestClientBuilder.CreateContext(host.Provider, null);
+        var context = TestClientBuilder.CreateContext(host.Provider, null, reuseContainer: false);
 
         using var http = context.CreateHttpClient(seen);
 
@@ -285,8 +285,65 @@ public class TestClientBuilderTests
         }
     }
 
+    /// <summary>
+    /// <c>[Shared]</c> reaches a client a route composes over handlers of its own, which is how the
+    /// Kiota route builds every client, as well as the harness's own client.
+    /// </summary>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AComposedClientReachesTheContainersTheHarnesssOwnDoes(bool reuse)
+    {
+        var host = new ReuseRecordingHost();
+        var services = new ServiceCollection();
+
+        services.AddSingleton<ITestHost>(host);
+
+        using var provider = services.BuildServiceProvider();
+
+        var context = TestClientBuilder.CreateContext(provider, null, reuse);
+
+        using var composed = context.CreateHttpClient(new CountingHandler());
+
+        Assert.Equal(new[] { reuse, reuse }, host.Asked);
+    }
+
+    /// <summary>Records the reuse each handler was asked for, and answers nothing.</summary>
+    private sealed class ReuseRecordingHost : ITestHost
+    {
+        public List<bool> Asked { get; } = [];
+
+        public bool IsTerminal => true;
+
+        public Uri BaseAddress => new("http://harness/");
+
+        public Task StartAsync(IServiceProvider provider, CancellationToken cancellationToken) =>
+            Task.CompletedTask;
+
+        public HttpMessageHandler CreateHandler(TestCredential? credential) =>
+            CreateHandler(credential, reuseContainer: false);
+
+        public HttpMessageHandler CreateHandler(TestCredential? credential, bool reuseContainer)
+        {
+            Asked.Add(reuseContainer);
+
+            return new HttpClientHandler();
+        }
+
+        public Task<TestWebResponse> SendAsync(
+            TestHostRequest request,
+            CancellationToken cancellationToken
+        ) => throw new NotSupportedException();
+
+        public ValueTask DisposeAsync() => default;
+    }
+
     private static TestClientContext Context() =>
-        TestClientBuilder.CreateContext(new SubstitutePipeline().Provider, null);
+        TestClientBuilder.CreateContext(
+            new SubstitutePipeline().Provider,
+            null,
+            reuseContainer: false
+        );
 
     [Fact]
     public void TheHttpClientCarriesTheBaseAddressAndTheCredential()
@@ -295,7 +352,8 @@ public class TestClientBuilderTests
 
         using var client = TestClientBuilder.CreateHttpClient(
             host.Provider,
-            new TestCredential(new[] { "x" }, "pia")
+            new TestCredential(new[] { "x" }, "pia"),
+            reuseContainer: false
         );
 
         Assert.Equal("http://harness/", client.BaseAddress!.ToString());

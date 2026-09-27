@@ -237,7 +237,7 @@ public class WebTestingAttribute
     /// the test registered reaching a later request. Without it every request runs against a
     /// container of its own on a host that rebuilds.
     /// </remarks>
-    private static bool IsShared(System.Reflection.ParameterInfo parameter) =>
+    internal static bool IsShared(System.Reflection.ParameterInfo parameter) =>
         parameter
             .GetCustomAttributes(inherit: true)
             .OfType<ISharedTestRegistration>()

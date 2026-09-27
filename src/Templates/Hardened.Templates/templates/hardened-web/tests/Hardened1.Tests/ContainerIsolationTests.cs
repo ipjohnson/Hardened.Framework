@@ -60,4 +60,46 @@ public class ContainerIsolationTests
         Assert.That(todos.Select(todo => todo.Id), Is.EqualTo(new[] { 1, 2, 3 }));
 #endif
     }
+#if (kiotaClient)
+
+    /// <summary>
+    /// The same mark on the generated client, and Returns&lt;T&gt;() still reads each call.
+    /// </summary>
+    [ModuleTest]
+    public async Task SharedClientSendsEveryRequestToOneContainer(
+        [Shared] TemplateModuleNameClient client
+    )
+    {
+        await client.Todos.PostAsync(new ClientModels.NewTodo { Title = "Write a test" });
+
+        var todos = await client.Todos.GetAsync().Returns<Ok<List<ClientModels.Todo>>>();
+
+#if (xunit)
+        Assert.Equal([1, 2, 3], todos.Value.Select(todo => todo.Id!.Value));
+#else
+        Assert.That(todos.Value.Select(todo => todo.Id!.Value), Is.EqualTo(new[] { 1, 2, 3 }));
+#endif
+    }
+#endif
+#if (refitClient)
+
+    /// <summary>
+    /// The same mark on the generated client, and Returns&lt;T&gt;() still reads each call.
+    /// </summary>
+    [ModuleTest]
+    public async Task SharedClientSendsEveryRequestToOneContainer(
+        [Shared] ITemplateModuleNameClient client
+    )
+    {
+        await client.CreateTodo(new ClientModels.NewTodo { Title = "Write a test" });
+
+        var todos = await client.ListTodos().Returns<Ok<ICollection<ClientModels.Todo>>>();
+
+#if (xunit)
+        Assert.Equal([1, 2, 3], todos.Value.Select(todo => todo.Id));
+#else
+        Assert.That(todos.Value.Select(todo => todo.Id), Is.EqualTo(new[] { 1, 2, 3 }));
+#endif
+    }
+#endif
 }

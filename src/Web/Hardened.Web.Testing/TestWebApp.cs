@@ -94,7 +94,11 @@ public class TestWebApp : TestContext, ITestWebApp
     }
 
     public HttpClient CreateHttpClient(TestCredential? credential = null) =>
-        TestClientBuilder.CreateHttpClient(_applicationRoot.Provider, credential ?? _credential);
+        TestClientBuilder.CreateHttpClient(
+            _applicationRoot.Provider,
+            credential ?? _credential,
+            _reuseContainer
+        );
 
     /// <remarks>
     /// The factory is looked for in the test assembly the harness was built for, and for an
@@ -109,7 +113,8 @@ public class TestWebApp : TestContext, ITestWebApp
                 typeof(TClient),
                 TestClientBuilder.CreateContext(
                     _applicationRoot.Provider,
-                    credential ?? _credential
+                    credential ?? _credential,
+                    _reuseContainer
                 ),
                 _testAssembly ?? Assembly.GetCallingAssembly()
             );
@@ -168,7 +173,8 @@ public class TestWebApp : TestContext, ITestWebApp
 
     /// <summary>
     /// Sends every request to one container, which is what <c>[Shared]</c> on the parameter asks
-    /// for and what a test whose subject is the reuse needs.
+    /// for and what a test whose subject is the reuse needs. A client this instance builds sends to
+    /// the same container.
     /// </summary>
     /// <remarks>
     /// Set at construction by the harness rather than exposed to a test, so the only way to ask is

@@ -282,7 +282,7 @@ The attributes are valid on a parameter, a method, a class and the assembly. The
 
 A parameter with no attribute takes the method's credential.
 
-`[Shared]` on a parameter that also carries a credential attribute does not send its requests to one container. Put the credential on the method instead. [Writing a test](/guide/testing) covers `[Shared]`.
+`[Shared]` beside a credential attribute on a parameter sends that parameter's requests to one container, as it does alone. [Writing a test](/guide/testing) covers `[Shared]`.
 
 ## How the caller is authenticated
 

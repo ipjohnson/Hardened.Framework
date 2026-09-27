@@ -268,24 +268,33 @@ container.
 
 ## Sending every request to one container
 
-`[Shared]` on an `ITestWebApp` or `HttpClient` parameter sends every request it makes to the test's
-own container. That is the container the parameters were resolved from.
+`[Shared]` on a parameter that sends requests sends every request it makes to the test's own
+container. That is the container the parameters were resolved from.
 `SharedSendsEveryRequestToOneContainer`, in the example under
 [A container for each request](#a-container-for-each-request), uses it.
 
-The attribute is `SharedAttribute`, in the namespace `DependencyModules.Testing.Attributes`. It goes
-on a parameter only. It is ignored on some parameters that send requests. On those, each request
-still runs in a container of its own.
+It works on an `ITestWebApp`, an `HttpClient` and a generated client, whichever route builds the
+client. It also works when the same parameter carries `[Grants]`, `[Subject]` or `[Anonymous]`. A
+client that a `[Shared]` `ITestWebApp` builds with `CreateClient` or `CreateHttpClient` sends to the
+same container.
 
-| Parameter carrying `[Shared]` | One container |
-|---|---|
-| `ITestWebApp` or `HttpClient` | Yes |
-| A Refit client | Yes |
-| A client whose constructor takes one `HttpClient` | Yes |
-| A client that an `ITestClientFactory<T>` builds from the `HttpClient` it is given | Yes |
-| A Kiota client | No |
-| A client that an `ITestClientFactory<T>` builds in `Create(TestClientContext)` over `CreateHttpClient` | No |
-| Any of these with `[Grants]`, `[Subject]` or `[Anonymous]` on the same parameter | No. With the credential attribute on the method, yes |
+The template's `ContainerIsolationTests` marks the generated client. `ClientModels` is the alias for
+the client's models that [Typed clients](/guide/testing-clients) describes:
+
+```csharp
+[ModuleTest]
+public async Task SharedClientSendsEveryRequestToOneContainer([Shared] TodosClient client)
+{
+    await client.Todos.PostAsync(new ClientModels.NewTodo { Title = "Write a test" });
+
+    var todos = await client.Todos.GetAsync().Returns<Ok<List<ClientModels.Todo>>>();
+
+    Assert.Equal([1, 2, 3], todos.Value.Select(todo => todo.Id!.Value));
+}
+```
+
+The attribute is `SharedAttribute`, in the namespace `DependencyModules.Testing.Attributes`. It goes
+on a parameter only.
 
 [Typed clients](/guide/testing-clients) covers client factories.
 [Sending requests](/guide/testing-web) covers the credential attributes.
