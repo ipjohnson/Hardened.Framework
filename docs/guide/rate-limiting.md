@@ -185,6 +185,15 @@ its own counts. Two instances with `PermitLimit = 3` allow six requests between 
 each execution environment is a separate process, so each keeps its own counts. A count shared by
 every instance needs a store of the application's own. See [Stores](#stores).
 
+On AWS Lambda, a function that declares a rate limit and counts it in process logs a warning at
+startup that names the limited handlers:
+
+```text
+Warning: [Warning] Hardened.Aws.Lambda.Runtime.RateLimiting.InProcessRateLimitStartupService: 1 handler(s) declare a rate limit and InProcessRateLimitStore counts it: GET /quotes. It counts per execution environment, and Lambda runs as many as traffic needs, so a caller gets the limit from each of them. Count in an API Gateway usage plan or AWS WAF, or register an IRateLimitStore that counts somewhere shared.
+```
+
+A function that registers a store of its own gets no warning.
+
 ## Headers and the 429 response
 
 The rate limit headers take these values:

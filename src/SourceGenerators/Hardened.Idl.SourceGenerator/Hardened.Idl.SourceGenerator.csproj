@@ -89,6 +89,9 @@
         <Compile Include="../Hardened.SourceGenerator/Web/ServerSentEventManifestEmitter.cs">
             <Link>Web/%(FileName)%(Extension)</Link>
         </Compile>
+        <Compile Include="../Hardened.SourceGenerator/Web/RateLimitManifestEmitter.cs">
+            <Link>Web/%(FileName)%(Extension)</Link>
+        </Compile>
         <Compile Include="../Hardened.SourceGenerator/Web/ApplicationFilterEmitter.cs">
             <Link>Web/%(FileName)%(Extension)</Link>
         </Compile>

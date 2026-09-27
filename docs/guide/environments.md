@@ -47,6 +47,12 @@ Content-Type: application/json
 "development"
 ```
 
+On AWS Lambda the name is `production` when the variable is unset. The Lambda service sets
+`AWS_LAMBDA_RUNTIME_API` before the function starts, and that decides it. A deployed function that
+leaves `HARDENED_ENVIRONMENT` out of its configuration therefore does not serve `/docs`. The
+template's `Program.cs` builds its environment before it starts the local Lambda emulator, which
+sets the same variable, so a function run from an IDE or `dotnet run` is still `development`.
+
 The interface is in the `Hardened.Shared.Runtime` package, in the namespace
 `Hardened.Shared.Runtime.Application`.
 
@@ -137,7 +143,7 @@ services.AddHardenedEnvironment(new EnvironmentImpl("staging"));
 
 | Parameter | Type | When omitted | Sets |
 |---|---|---|---|
-| `name` | `string?` | `HARDENED_ENVIRONMENT`, or `development` when it is unset | `Name` |
+| `name` | `string?` | `HARDENED_ENVIRONMENT`, or when it is unset `production` where `AWS_LAMBDA_RUNTIME_API` is set and `development` elsewhere. `EnvironmentImpl.DefaultName` decides it | `Name` |
 | `environmentValues` | `IDictionary<string, string>?` | No values | The values `Value` reads before the process's environment variables |
 | `arguments` | `IReadOnlyList<string>?` | Empty | `Arguments` |
 | `customData` | `IDictionary<string, object>?` | No custom data | The objects `CustomData` returns |
