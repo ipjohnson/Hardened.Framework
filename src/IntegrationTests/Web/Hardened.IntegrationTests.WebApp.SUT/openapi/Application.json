@@ -3888,6 +3888,38 @@
         "x-hardened-timeout": 300000
       }
     },
+    "/errors/took-over-then-threw": {
+      "get": {
+        "tags": [
+          "Error"
+        ],
+        "operationId": "tookOverThenThrew",
+        "summary": "A handler that takes over its body and throws before writing any of it, which has not answered.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          }
+        },
+        "x-hardened-timeout": 300000
+      }
+    },
     "/errors/unsatisfiable": {
       "get": {
         "tags": [

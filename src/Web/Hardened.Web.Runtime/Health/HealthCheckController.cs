@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Text.Json;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
@@ -38,12 +39,8 @@ public class HealthCheckController
     /// <summary>
     /// Alive if this code is running. No dependency is consulted, on purpose.
     /// </summary>
-    public Task Live(IExecutionContext context)
-    {
+    public Task Live(IExecutionContext context) =>
         Write(context, 200, HealthStatus.Healthy, Array.Empty<(string, HealthCheckResult)>());
-
-        return Task.CompletedTask;
-    }
 
     public async Task Ready(IExecutionContext context)
     {
@@ -55,7 +52,12 @@ public class HealthCheckController
         {
             // No checks is ready. An application that registered none has not said it is unhealthy;
             // it has said it has nothing to verify.
-            Write(context, 200, HealthStatus.Healthy, Array.Empty<(string, HealthCheckResult)>());
+            await Write(
+                context,
+                200,
+                HealthStatus.Healthy,
+                Array.Empty<(string, HealthCheckResult)>()
+            );
 
             return;
         }
@@ -73,7 +75,7 @@ public class HealthCheckController
             (current, result) => Max(current, result.Item2.Status)
         );
 
-        Write(context, worst == HealthStatus.Unhealthy ? 503 : 200, worst, results);
+        await Write(context, worst == HealthStatus.Unhealthy ? 503 : 200, worst, results);
     }
 
     /// <summary>
@@ -115,12 +117,19 @@ public class HealthCheckController
     /// Writes the body directly rather than going through serialization.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// The same reason <c>OpenApiDocumentController</c> does: there is nothing to negotiate, and
     /// leaving <c>ShouldSerialize</c> on would have the locator pick a serializer from whatever the
     /// prober happened to send in <c>Accept</c>. It also keeps the endpoint answerable when the
     /// serialization stack is itself the thing that is broken.
+    /// </para>
+    /// <para>
+    /// Built in memory and written once, asynchronously. The writer flushed straight into the
+    /// response stream, and Kestrel's refuses a synchronous write, so both probes answered an empty
+    /// body on every socket host while the in-process tests, writing to a memory stream, passed.
+    /// </para>
     /// </remarks>
-    private void Write(
+    private async Task Write(
         IExecutionContext context,
         int status,
         HealthStatus overall,
@@ -134,23 +143,28 @@ public class HealthCheckController
         response.ShouldSerialize = false;
         response.Headers[KnownHeaders.CacheControl] = new StringValues("no-store");
 
-        using var writer = new Utf8JsonWriter(response.Body);
+        var body = new ArrayBufferWriter<byte>();
 
-        writer.WriteStartObject();
-        writer.WriteString("status", overall.ToString());
-
-        if (_config.IncludeDetail && results.Count > 0)
+        using (var writer = new Utf8JsonWriter(body))
         {
-            writer.WriteStartObject("checks");
+            writer.WriteStartObject();
+            writer.WriteString("status", overall.ToString());
 
-            foreach (var (name, result) in results)
+            if (_config.IncludeDetail && results.Count > 0)
             {
-                writer.WriteStartObject(name);
-                writer.WriteString("status", result.Status.ToString());
+                writer.WriteStartObject("checks");
 
-                if (result.Description != null)
+                foreach (var (name, result) in results)
                 {
-                    writer.WriteString("description", result.Description);
+                    writer.WriteStartObject(name);
+                    writer.WriteString("status", result.Status.ToString());
+
+                    if (result.Description != null)
+                    {
+                        writer.WriteString("description", result.Description);
+                    }
+
+                    writer.WriteEndObject();
                 }
 
                 writer.WriteEndObject();
@@ -159,7 +173,6 @@ public class HealthCheckController
             writer.WriteEndObject();
         }
 
-        writer.WriteEndObject();
-        writer.Flush();
+        await response.Body.WriteAsync(body.WrittenMemory, context.CancellationToken);
     }
 }

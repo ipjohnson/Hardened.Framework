@@ -585,6 +585,8 @@ Content-Type: application/json
 ```
 
 `[RequireAuthorization]` also covers the health endpoints, `/openapi.json` and `/docs`.
+`HealthCheckConfiguration.AllowAnonymous` serves the health endpoints to any caller, and
+`OpenApiDocumentConfiguration.AllowAnonymous` serves the document and `/docs`.
 [Hosts](/guide/hosts) and [The OpenAPI document](/guide/openapi-document) cover them.
 
 In the project of the module that carries `[RequireAuthorization]`, the build reports warning

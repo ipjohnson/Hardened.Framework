@@ -4,6 +4,7 @@ using Hardened.Requests.Abstract.Authorization;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.RequestFilter;
+using Hardened.Requests.Runtime.Authorization;
 using Hardened.Requests.Runtime.Filters;
 using Hardened.Requests.Runtime.QueryString;
 using Hardened.Requests.Testing;
@@ -252,6 +253,40 @@ public class HealthCheckProviderTests
                 services,
                 "/health/live"
             ).Requirement
+        );
+    }
+
+    /// <summary>
+    /// A deployment on default-deny opens its probes on the configuration, and both carry
+    /// <c>[AllowAnonymous]</c>. Without the setting neither does.
+    /// </summary>
+    [Theory]
+    [InlineData("/health/live")]
+    [InlineData("/health/ready")]
+    public void AllowAnonymousOpensAProbe(string path)
+    {
+        var open = new HealthCheckConfiguration { AllowAnonymous = true };
+        var openServices = Services(open, Array.Empty<IHealthCheck>());
+
+        Assert.Contains(
+            HandlerInfoFor(
+                new HealthCheckProvider(open, openServices),
+                openServices,
+                path
+            ).Metadata,
+            item => item is AllowAnonymousAttribute
+        );
+
+        var closed = new HealthCheckConfiguration();
+        var closedServices = Services(closed, Array.Empty<IHealthCheck>());
+
+        Assert.DoesNotContain(
+            HandlerInfoFor(
+                new HealthCheckProvider(closed, closedServices),
+                closedServices,
+                path
+            ).Metadata,
+            item => item is AllowAnonymousAttribute
         );
     }
 

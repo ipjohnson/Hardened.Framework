@@ -2,9 +2,11 @@ using Hardened.Requests.Abstract.Attributes;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Outputs;
 using Hardened.Requests.Abstract.PathTokens;
+using Hardened.Requests.Runtime.Authorization;
 using Hardened.Requests.Runtime.Execution;
 using Hardened.Web.Runtime.Handlers;
 using Hardened.Web.Runtime.Responses;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Hardened.Web.Runtime.OpenApi;
 
@@ -98,9 +100,14 @@ public class OpenApiUiProvider : IWebExecutionRequestHandlerProvider
         private static readonly Func<IExecutionContext, IHardenedResponseOutput> OutputFactory =
             static _ => new OpenApiUiPage();
 
-        private static readonly object[] Metadata = [new OutputAttribute<OpenApiUiPage>()];
-
         public Handler(IOpenApiUiConfiguration configuration, IServiceProvider serviceProvider)
+            : this(configuration, serviceProvider, Metadata(serviceProvider)) { }
+
+        private Handler(
+            IOpenApiUiConfiguration configuration,
+            IServiceProvider serviceProvider,
+            object[] metadata
+        )
             : base(
                 ExecutionHelper.StandardFilterEmptyParameters<OpenApiUiController>(
                     serviceProvider,
@@ -110,7 +117,7 @@ public class OpenApiUiProvider : IWebExecutionRequestHandlerProvider
                         typeof(OpenApiUiController),
                         nameof(OpenApiUiController.Index),
                         [],
-                        Metadata
+                        metadata
                     ),
                     // A lambda rather than a static method, because what varies between two installed
                     // pages is exactly what it closes over.
@@ -119,11 +126,20 @@ public class OpenApiUiProvider : IWebExecutionRequestHandlerProvider
                         context.Response.OutputFactory = OutputFactory;
                         context.Response.ResponseValue = controller.Index(configuration);
                     },
-                    ExecutionHelper.GetFilterInfo(Metadata)
+                    ExecutionHelper.GetFilterInfo(metadata)
                 )
             )
         {
             _ = OutputCheck;
         }
+
+        /// <summary>
+        /// The page's output, and <c>[AllowAnonymous]</c> where
+        /// <see cref="OpenApiDocumentConfiguration.AllowAnonymous"/> opens the document it renders.
+        /// </summary>
+        private static object[] Metadata(IServiceProvider serviceProvider) =>
+            serviceProvider.GetService<OpenApiDocumentConfiguration>() is { AllowAnonymous: true }
+                ? [new OutputAttribute<OpenApiUiPage>(), new AllowAnonymousAttribute()]
+                : [new OutputAttribute<OpenApiUiPage>()];
     }
 }

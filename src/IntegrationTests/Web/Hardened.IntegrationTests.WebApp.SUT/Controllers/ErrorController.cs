@@ -1,5 +1,6 @@
 using Hardened.IntegrationTests.WebApp.SUT.Filters;
 using Hardened.Requests.Abstract.Attributes;
+using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Runtime.Errors;
 using Hardened.Web.Runtime.Attributes;
 using Hardened.Web.Runtime.Responses;
@@ -35,6 +36,19 @@ public class ErrorController
     /// <summary>Anything else is a server error.</summary>
     [Get("/server")]
     public string Server() => throw new InvalidOperationException("the widget was not ready");
+
+    /// <summary>
+    /// A handler that takes over its body and throws before writing any of it, which has not
+    /// answered.
+    /// </summary>
+    [Get("/took-over-then-threw")]
+    public string TookOverThenThrew(IExecutionContext context)
+    {
+        context.Response.ShouldSerialize = false;
+        context.Response.Status = 200;
+
+        throw new InvalidOperationException("the body was never written");
+    }
 
     /// <summary>
     /// Named so that the old substring classification would have called it a client error.
