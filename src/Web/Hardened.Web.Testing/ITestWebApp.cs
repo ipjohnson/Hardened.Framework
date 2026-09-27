@@ -92,7 +92,8 @@ public interface ITestWebApp : ITestContext
     /// <see cref="Get"/> runs. Its <c>BaseAddress</c> is <c>http://harness/</c>, which the handler
     /// ignores and a client that builds relative URLs resolves against. It carries the test's
     /// credential from the attributes in scope, or <paramref name="credential"/> where one is
-    /// given, as the two headers <c>TestGrantsPrincipalSource</c> reads.
+    /// given, as the two headers <c>TestGrantsPrincipalSource</c> reads. On an instance the test
+    /// took with <c>[Shared]</c>, its requests reach the same container as the instance's own.
     /// </remarks>
     HttpClient CreateHttpClient(TestCredential? credential = null);
 
@@ -100,10 +101,13 @@ public interface ITestWebApp : ITestContext
     /// A typed client over the pipeline, built the way a test parameter of that type is built.
     /// </summary>
     /// <remarks>
-    /// Two routes, tried in order: a public <see cref="ITestClientFactory{TClient}"/> for the type in
-    /// the test assembly, or a single public constructor taking exactly one <see cref="HttpClient"/>.
-    /// A type with neither fails naming both. For a credential decided inside the test; a
-    /// parameter with <see cref="GrantsAttribute"/> is the same construction with none of the code.
+    /// Three routes, tried in order: a public <see cref="ITestClientFactory{TClient}"/> for the type
+    /// in the test assembly, an <see cref="ITestClientRoute"/> the assembly named in a
+    /// <see cref="TestClientRouteAttribute"/>, or a single public constructor taking exactly one
+    /// <see cref="HttpClient"/>. A type with none fails naming all three. For a credential decided
+    /// inside the test; a parameter with <see cref="GrantsAttribute"/> is the same construction with
+    /// none of the code. On an instance the test took with <c>[Shared]</c>, the client's requests
+    /// reach the same container as the instance's own.
     /// </remarks>
     TClient CreateClient<TClient>(TestCredential? credential = null)
         where TClient : class;

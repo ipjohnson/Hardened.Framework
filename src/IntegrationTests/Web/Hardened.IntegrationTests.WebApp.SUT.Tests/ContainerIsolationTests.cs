@@ -1,4 +1,5 @@
 using DependencyModules.Testing.Attributes;
+using Hardened.IntegrationTests.WebApp.SUT.Client;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Tests;
 
@@ -68,4 +69,63 @@ public class ContainerIsolationTests
 
         Assert.Equal("2", seen.Deserialize<string>());
     }
+
+    /// <summary>
+    /// A generated client is a caller like the harness, and isolated the same way.
+    /// </summary>
+    [ModuleTest]
+    public async Task AGeneratedClientKeepsNothingFromTheRequestBefore(WebAppClient client)
+    {
+        Assert.Equal("1", await client.ResponseCache.Uncached.GetAsync(cancellationToken: Token));
+        Assert.Equal("1", await client.ResponseCache.Uncached.GetAsync(cancellationToken: Token));
+    }
+
+    /// <summary>
+    /// <c>[Shared]</c> on a Kiota client. The Kiota route builds its client over handlers of its
+    /// own, and that chain used to be composed without the mark.
+    /// </summary>
+    [ModuleTest]
+    public async Task ASharedGeneratedClientPutsEveryRequestOnOneContainer(
+        [Shared] WebAppClient client
+    )
+    {
+        Assert.Equal("1", await client.ResponseCache.Uncached.GetAsync(cancellationToken: Token));
+        Assert.Equal("2", await client.ResponseCache.Uncached.GetAsync(cancellationToken: Token));
+    }
+
+    /// <summary>
+    /// A credential attribute on the parameter is what builds its value, so it reads
+    /// <c>[Shared]</c> beside it rather than leaving it to the harness.
+    /// </summary>
+    [ModuleTest]
+    public async Task SharedBesideTheParametersOwnCredentialStillShares(
+        [Shared, Grants("pets:read")] WebAppClient client,
+        [Shared, Subject("pia")] ITestWebApp app,
+        [Shared, Anonymous] HttpClient http
+    )
+    {
+        Assert.Equal("1", await client.ResponseCache.Uncached.GetAsync(cancellationToken: Token));
+        Assert.Equal("2", (await app.Get("/response-cache/uncached")).Deserialize<string>());
+        Assert.Equal("\"3\"", await http.GetStringAsync("/response-cache/uncached", Token));
+    }
+
+    /// <summary>
+    /// A client a shared harness builds sends to the harness's container, whether the test built
+    /// it by type or took the raw <see cref="HttpClient"/>.
+    /// </summary>
+    [ModuleTest]
+    public async Task TheClientsASharedHarnessBuildsReachItsContainer([Shared] ITestWebApp app)
+    {
+        await app.Get("/response-cache/uncached");
+
+        var client = app.CreateClient<WebAppClient>();
+
+        Assert.Equal("2", await client.ResponseCache.Uncached.GetAsync(cancellationToken: Token));
+
+        using var http = app.CreateHttpClient();
+
+        Assert.Equal("\"3\"", await http.GetStringAsync("/response-cache/uncached", Token));
+    }
+
+    private static CancellationToken Token => TestContext.Current.CancellationToken;
 }

@@ -398,11 +398,6 @@ test is read with the Kiota call's status. The assertion on the Refit call repor
 `Expected 201 (Created<TodoDto>), the call was answered 200 carrying a ApiResponse<TodoDto>.` With
 `[RefitTesting]` declared first, both calls are read correctly.
 
-`[Shared]` does not send a client's requests to one container when `[KiotaTesting]` builds the
-client, or when a factory builds it with `context.CreateHttpClient`. On an `HttpClient`, a Refit
-interface or a client with an `HttpClient` constructor, `[Shared]` does send them to one container.
-[Writing a test](/guide/testing) covers `[Shared]`.
-
 ## Next
 
 - [Sending requests](/guide/testing-web): `ITestWebApp`, credentials and `LastResponse`

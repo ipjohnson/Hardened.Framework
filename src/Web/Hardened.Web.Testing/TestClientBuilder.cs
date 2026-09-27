@@ -47,11 +47,6 @@ internal static class TestClientBuilder
         IReadOnlyList<ITestClientReader>
     > Readers = new();
 
-    public static HttpClient CreateHttpClient(
-        IServiceProvider rootServiceProvider,
-        TestCredential? credential
-    ) => CreateHttpClient(rootServiceProvider, credential, reuseContainer: false);
-
     /// <param name="reuseContainer">
     /// Whether every request this client makes reaches one container, which is what
     /// <c>[Shared]</c> on the parameter asks for. False is a container per request, on a host that
@@ -122,11 +117,6 @@ internal static class TestClientBuilder
         throw new InvalidOperationException(NoRouteMessage(clientType, testAssembly));
     }
 
-    public static TestClientContext CreateContext(
-        IServiceProvider rootServiceProvider,
-        TestCredential? credential
-    ) => CreateContext(rootServiceProvider, credential, reuseContainer: false);
-
     /// <param name="reuseContainer">As on <see cref="CreateHttpClient(IServiceProvider, TestCredential, bool)"/>.</param>
     public static TestClientContext CreateContext(
         IServiceProvider rootServiceProvider,
@@ -136,7 +126,8 @@ internal static class TestClientBuilder
         new(
             HostOf(rootServiceProvider),
             credential,
-            CreateHttpClient(rootServiceProvider, credential, reuseContainer)
+            CreateHttpClient(rootServiceProvider, credential, reuseContainer),
+            reuseContainer
         );
 
     public static string NoRouteMessage(Type clientType, Assembly testAssembly) =>
@@ -162,6 +153,10 @@ internal static class TestClientBuilder
     /// The value for a parameter carrying a credential attribute: the harness or a client, built
     /// with that parameter's own credential, or null to stand aside for ordinary resolution.
     /// </summary>
+    /// <remarks>
+    /// <c>[Shared]</c> on the same parameter is read here too, because the attribute that supplies
+    /// the value is the only one that builds it.
+    /// </remarks>
     public static object? ForParameter(
         ITestMethodContext testMethod,
         IServiceProvider serviceProvider,
@@ -169,6 +164,7 @@ internal static class TestClientBuilder
     )
     {
         var credential = TestCredential.Resolve(testMethod, parameter);
+        var reuse = WebTestingAttribute.IsShared(parameter);
         var testAssembly = testMethod.Method.DeclaringType!.Assembly;
         var root = serviceProvider.GetRequiredService<IApplicationRoot>().Provider;
 
@@ -176,17 +172,19 @@ internal static class TestClientBuilder
         {
             var loggerType = typeof(ILogger<>).MakeGenericType(testMethod.Method.DeclaringType!);
 
-            return new TestWebApp(
+            var app = new TestWebApp(
                 serviceProvider.GetRequiredService<IApplicationRoot>(),
                 (ILogger)serviceProvider.GetRequiredService(loggerType),
                 credential,
                 testAssembly
             );
+
+            return reuse ? app.ReusingOneContainer() : app;
         }
 
         if (parameter.ParameterType == typeof(HttpClient))
         {
-            return CreateHttpClient(root, credential);
+            return CreateHttpClient(root, credential, reuse);
         }
 
         if (!HasRoute(parameter.ParameterType, testAssembly))
@@ -194,7 +192,7 @@ internal static class TestClientBuilder
             return null;
         }
 
-        return Build(parameter.ParameterType, CreateContext(root, credential), testAssembly);
+        return Build(parameter.ParameterType, CreateContext(root, credential, reuse), testAssembly);
     }
 
     /// <summary>

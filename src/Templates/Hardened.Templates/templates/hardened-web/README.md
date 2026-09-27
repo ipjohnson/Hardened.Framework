@@ -484,6 +484,9 @@ between invocations, so a handler leaning on what the last request left behind f
 here rather than intermittently in production.
 `tests/Hardened1.Tests/ContainerIsolationTests.cs` shows both sides. Mark a parameter `[Shared]`
 to send every request to one container, for a test whose subject is the reuse itself.
+#if (hasClient)
+It works on the generated client too, and `Returns<T>()` still reads each call.
+#endif
 
 #if (hasClient)
 ## Clients

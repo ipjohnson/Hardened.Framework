@@ -260,7 +260,7 @@ The attributes in the next table come from DependencyModules. `Hardened.Shared.T
 | Attribute | Targets | Namespace and package | What it does | Page |
 |---|---|---|---|---|
 | `[Mock]` | Parameter; repeatable | `DependencyModules.Testing.Attributes` in `DependencyModules.Testing` | Registers a test double for the parameter's type in the test's container, and passes it to the test | [Substituting services](/guide/testing-mocks) |
-| `[Shared]` | Parameter | `DependencyModules.Testing.Attributes` in `DependencyModules.Testing` | On an `ITestWebApp` or `HttpClient` parameter: sends every request it makes to the test's own container | [Writing a test](/guide/testing) |
+| `[Shared]` | Parameter | `DependencyModules.Testing.Attributes` in `DependencyModules.Testing` | On a parameter that sends requests, such as `ITestWebApp`, `HttpClient` or a generated client: sends every request it makes to the test's own container | [Writing a test](/guide/testing) |
 | `[TestExport(service)]`<br>`Type service` | Class, method, assembly; repeatable | `DependencyModules.Testing.Attributes` in `DependencyModules.Testing` | Registers a class of your own for every test it covers<br>Properties: `Implementation` (none), `Lifetime` (`ServiceLifetime.Transient`), `Shared` (`false`) | [Substituting services](/guide/testing-mocks) |
 | `[NSubstituteSupport]` | Class, method, assembly | `DependencyModules.NSubstitute` in `DependencyModules.NSubstitute` | Makes `[Mock]` build its doubles with NSubstitute | [Substituting services](/guide/testing-mocks) |
 | `[MoqSupport]` | Class, method, assembly | `DependencyModules.Moq` in `DependencyModules.Moq` | Makes `[Mock]` build its doubles with Moq | [Substituting services](/guide/testing-mocks) |

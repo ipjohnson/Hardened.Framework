@@ -14,18 +14,27 @@ namespace Hardened.Web.Testing;
 /// in the client's own chain looked.
 /// </para>
 /// <para>
-/// The credential is applied to whichever client is used, so a route never handles one.
+/// The credential is applied to whichever client is used, so a route never handles one. So is
+/// <c>[Shared]</c>: both clients send every request to the test's own container where the
+/// parameter carries it, and each request to a container of its own where it does not.
 /// </para>
 /// </remarks>
 public sealed class TestClientContext
 {
     private readonly ITestHost _host;
     private readonly TestCredential? _credential;
+    private readonly bool _reuseContainer;
 
-    internal TestClientContext(ITestHost host, TestCredential? credential, HttpClient http)
+    internal TestClientContext(
+        ITestHost host,
+        TestCredential? credential,
+        HttpClient http,
+        bool reuseContainer
+    )
     {
         _host = host;
         _credential = credential;
+        _reuseContainer = reuseContainer;
         Http = http;
     }
 
@@ -51,7 +60,7 @@ public sealed class TestClientContext
     {
         ArgumentNullException.ThrowIfNull(handlers);
 
-        var chain = _host.CreateHandler(_credential);
+        var chain = _host.CreateHandler(_credential, _reuseContainer);
 
         for (var index = handlers.Length - 1; index >= 0; index--)
         {
