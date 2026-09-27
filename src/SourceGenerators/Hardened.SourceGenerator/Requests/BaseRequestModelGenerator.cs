@@ -45,7 +45,17 @@ public abstract class BaseRequestModelGenerator
             .Read(context, methodDeclaration, cancellationToken)
             .For(nameModel.Method, response.IsAsyncEnumerable);
 
-        var refusals = declared.Refusals;
+        var answered = DeclaredResponses(context, response).Concat(thrown).ToList();
+
+        // A refusal a filter declares at a status the handler declares too is written as the
+        // handler's body wherever that body has an instance to share, so the filter's shape is not
+        // one the operation answers there. Kept where there is none, because the framework's own
+        // shape is what goes out.
+        var refusals = declared
+            .Refusals.Where(refusal =>
+                !ResponseSchemaModel.HasDeclaredInstance(answered, refusal.Status)
+            )
+            .ToList();
 
         var model = Compose(
             nameModel,
@@ -64,9 +74,7 @@ public abstract class BaseRequestModelGenerator
             // handler. The document writer groups by status and does not care which produced an
             // entry. Filter-declared responses go last, so a status the handler declared itself
             // keeps the shape the handler gave it.
-            declared.WithHeaders(
-                DeclaredResponses(context, response).Concat(thrown).Concat(refusals).ToList()
-            ),
+            declared.WithHeaders(answered.Concat(refusals).ToList()),
             // Complete unless a declaration named only failures and left the success to the return
             // type. [Throws<T>] is one such, and a guard that can refuse the operation is another:
             // both add a status the handler can be answered with instead of running, and neither
@@ -317,6 +325,13 @@ public abstract class BaseRequestModelGenerator
             )
             {
                 IsProblem = unionCase.HasBody && ProblemBodies.Implement(symbol),
+
+                // A case that is its own body. A generic case such as NotFound<ApiError> sends a
+                // body of the application's type, which has no instance to share.
+                DeclaredInstance =
+                    unionCase.HasBody && unionCase.BodyTypeName == null
+                        ? ProblemBodies.DefaultInstance(symbol, unionCase.Status)
+                        : null,
             };
 
             // The headers the case declares, off the case type rather than the body's - a

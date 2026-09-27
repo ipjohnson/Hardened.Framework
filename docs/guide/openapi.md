@@ -544,6 +544,12 @@ Content-Type: application/json
 An operation that declares a 422 answers every validation failure with 422, a malformed body
 included.
 
+An operation that declares a body at its validation status answers validation failures with that
+body, the way the document describes them. The body above is sent only where the contract declares
+no body there. The same holds for the other refusals the framework raises itself, such as a 401, a
+429 or a 504: a status the contract declares a body for is answered with that body.
+[Declared responses](/guide/responses#what-a-thrown-exception-answers) covers the rule.
+
 The generated validation ignores `multipleOf`, `uniqueItems` and `not`. The build reports warning
 `HOAT024`, which names the keyword. The same applies to constraints on an array's inline items, such
 as `items: {minLength: 2}`.

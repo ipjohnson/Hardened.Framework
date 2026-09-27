@@ -568,6 +568,78 @@ public class DocumentWriterTests
 
     #endregion
 
+    #region the framework's shape beside a declared status
+
+    private static string[] SchemaRefs(RequestHandlerModel handler, int status)
+    {
+        var schema = Responses(handler)
+            .GetProperty(status.ToString())
+            .GetProperty("content")
+            .GetProperty("application/json")
+            .GetProperty("schema");
+
+        return schema.TryGetProperty("oneOf", out var oneOf)
+            ? oneOf
+                .EnumerateArray()
+                .Select(entry => entry.GetProperty("$ref").GetString()!)
+                .ToArray()
+            : [schema.GetProperty("$ref").GetString()!];
+    }
+
+    /// <summary>
+    /// A secured operation declaring its own 401 with no instance the framework can send: the
+    /// authorization filter's refusal sends <c>ErrorModel</c> there, so both are listed.
+    /// </summary>
+    [Fact]
+    public void ADeclaredStatusWithNoInstanceListsTheFrameworksShapeBeside()
+    {
+        var handler = Handler(
+            responses: [new ResponseSchemaModel(401, "Sign in first.", Schema("SignIn"))],
+            security: ["{\"BearerAuth\":[]}"]
+        );
+
+        Assert.Equal(
+            ["#/components/schemas/SignIn", "#/components/schemas/ErrorModel"],
+            SchemaRefs(handler, 401)
+        );
+    }
+
+    /// <summary>
+    /// With an instance, the refusal sends the declared body, and the document lists it alone.
+    /// </summary>
+    [Fact]
+    public void ADeclaredStatusWithAnInstanceListsItAlone()
+    {
+        var handler = Handler(
+            responses:
+            [
+                new ResponseSchemaModel(401, "Sign in first.", Schema("SignIn"))
+                {
+                    DeclaredInstance = "global::TestApp.SignIn.Default",
+                },
+            ],
+            security: ["{\"BearerAuth\":[]}"]
+        );
+
+        Assert.Equal(["#/components/schemas/SignIn"], SchemaRefs(handler, 401));
+    }
+
+    [Fact]
+    public void AScopedOperationsDeclared403WithNoInstanceListsTheFrameworksShapeBeside()
+    {
+        var handler = Handler(
+            responses: [new ResponseSchemaModel(403, "Not yours.", Schema("NotYours"))],
+            security: ["{\"PetsOAuth\":[\"pets:read\"]}"]
+        );
+
+        Assert.Equal(
+            ["#/components/schemas/NotYours", "#/components/schemas/ErrorModel"],
+            SchemaRefs(handler, 403)
+        );
+    }
+
+    #endregion
+
     #region problem records
 
     private static ResponseSchemaModel Problem(int status, string name) =>

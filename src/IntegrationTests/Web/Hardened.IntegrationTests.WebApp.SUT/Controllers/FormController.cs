@@ -1,6 +1,8 @@
 using Hardened.IntegrationTests.WebApp.SUT.Models;
 using Hardened.Requests.Abstract.Attributes;
+using Hardened.Requests.Abstract.Responses;
 using Hardened.Web.Runtime.Attributes;
+using Hardened.Web.Runtime.Responses;
 using IFormFile = Hardened.Requests.Abstract.Forms.IFormFile;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Controllers;
@@ -39,6 +41,13 @@ public class FormController
     [Post("/optional")]
     public string Optional([FromForm] string present, [FromForm] string missing = "fallback") =>
         present + ":" + missing;
+
+    /// <summary>
+    /// A form handler declaring the 413 the form reader answers past the cap. The reader's refusal
+    /// is written as this <c>ContentTooLarge</c>, which is what the document publishes.
+    /// </summary>
+    [Post("/declared-limit")]
+    public Response<string, ContentTooLarge> DeclaredLimit([FromForm] string present) => present;
 
     /// <summary>The eight fields of RequestBench's form, bound as one model and echoed.</summary>
     [Post("/search")]

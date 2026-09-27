@@ -4,6 +4,7 @@ using Hardened.Requests.Abstract.Errors;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.Responses;
+using Hardened.Requests.Abstract.Serializer;
 using Hardened.Requests.Runtime.RateLimiting;
 using Hardened.Requests.Runtime.Validation;
 
@@ -44,7 +45,12 @@ public class ExceptionToModelConverter : IExceptionToModelConverter
             // The status the contract declared for validation failures, where it declared one.
             // Arm C published a 422 and was answered 400; the declared status was wired to
             // nothing.
-            return (context.HandlerInfo?.ValidationErrorStatus ?? 400, errorModel);
+            var validationStatus = context.HandlerInfo?.ValidationErrorStatus ?? 400;
+
+            // And the body the operation declares at that status, where it declares one. The
+            // document publishes that body there and not this envelope, so a generated client reads
+            // the declared shape. The field errors are in the request log.
+            return (validationStatus, Declared(context, validationStatus) ?? errorModel);
         }
 
         // An exception that names its own status, which is how a specification's declared error
@@ -59,7 +65,14 @@ public class ExceptionToModelConverter : IExceptionToModelConverter
         {
             statusCodeException.ApplyHeaders(context.Response.Headers);
 
-            var declaredValue = exp is StatusCodeException { Value: { } value } ? value : null;
+            var ownValue = exp is StatusCodeException { Value: { } value } ? value : null;
+
+            // The 406 is the one refusal the framework raises with a body of its own, naming what
+            // the operation produces. A body the operation declares for 406 still wins over it.
+            var declaredValue =
+                exp is NotAcceptableException
+                    ? Declared(context, statusCodeException.StatusCode) ?? ownValue
+                    : ownValue;
 
             // The body the operation declared for that status, where the exception carried none.
             //
@@ -93,9 +106,11 @@ public class ExceptionToModelConverter : IExceptionToModelConverter
         // absent from the document the operation published.
         if (exp is JsonException jsonException)
         {
+            var bodyStatus = context.HandlerInfo?.ValidationErrorStatus ?? 400;
+
             return (
-                context.HandlerInfo?.ValidationErrorStatus ?? 400,
-                BodyReadError(jsonException, BodyField(context))
+                bodyStatus,
+                Declared(context, bodyStatus) ?? BodyReadError(jsonException, BodyField(context))
             );
         }
 
@@ -137,11 +152,12 @@ public class ExceptionToModelConverter : IExceptionToModelConverter
 
             return (
                 declared.Status,
-                new ErrorModel
-                {
-                    Type = declared.Status == 503 ? "ServiceUnavailable" : "GatewayTimeout",
-                    Message = "The server did not finish this request in time.",
-                }
+                Declared(context, declared.Status)
+                    ?? new ErrorModel
+                    {
+                        Type = declared.Status == 503 ? "ServiceUnavailable" : "GatewayTimeout",
+                        Message = "The server did not finish this request in time.",
+                    }
             );
         }
 
@@ -162,7 +178,11 @@ public class ExceptionToModelConverter : IExceptionToModelConverter
         {
             // The message is kept here and dropped below, which is the whole distinction: these are
             // raised about the caller's own request, by code that chose the wording for them.
-            return (400, new ErrorModel { Type = exp.GetType().Name, Message = exp.Message });
+            return (
+                400,
+                Declared(context, 400)
+                    ?? new ErrorModel { Type = exp.GetType().Name, Message = exp.Message }
+            );
         }
 
         // Nothing about the exception reaches the caller.
@@ -176,17 +196,27 @@ public class ExceptionToModelConverter : IExceptionToModelConverter
         //
         // Nothing is lost: IRequestLogger.RequestFailed logs a server fault with its stack, method
         // and path at Error, which is where it belongs.
-        return (500, ServerError);
+        return (500, Declared(context, 500) ?? ServerError);
     }
 
     /// <summary>
-    /// The body the handler's contract declares for <paramref name="statusCode"/>, or null.
+    /// The body the handler's operation declares for <paramref name="statusCode"/>, or null.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// One instance per (schema, status) for the life of the process, holding the status and its
     /// reason phrase and nothing about the request - which is what makes sharing it safe, and what
     /// keeps a refusal from revealing why it refused. A handler with more to say throws the
     /// generated exception type, which carries a body it wrote.
+    /// </para>
+    /// <para>
+    /// Every refusal the framework raises itself reads it: authorization, a rate limit, a body over
+    /// its limit, validation, a malformed body, a deadline, the 406 and an unhandled fault. The
+    /// document publishes the declared body at a declared status and not the framework's shape, so
+    /// a refusal that sent the framework's shape there was a body the document did not describe. A
+    /// contract's instances are generated from its schemas; a code-first handler's are the
+    /// <c>Default</c> of each problem record its response set or <c>[Throws&lt;T&gt;]</c> names.
+    /// </para>
     /// </remarks>
     private static object? Declared(IExecutionContext context, int statusCode) =>
         context.HandlerInfo is { } handlerInfo

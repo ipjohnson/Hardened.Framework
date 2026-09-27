@@ -143,6 +143,27 @@ public class FormBindingTests
         Assert.Equal(413, response.StatusCode);
     }
 
+    /// <summary>
+    /// The 0.41 trial's A-05: past the cap, an operation declaring 413 with <c>ContentTooLarge</c>
+    /// answered the framework's <c>ErrorModel</c>. It answers the problem it declares.
+    /// </summary>
+    [ModuleTest]
+    public async Task ABodyPastTheCapAnswersTheDeclaredProblem(ITestWebApp testWebApp)
+    {
+        var response = await testWebApp.Post(
+            "present=" + new string('x', 100_000),
+            "/form/declared-limit",
+            AsForm
+        );
+
+        Assert.Equal(413, response.StatusCode);
+        Assert.StartsWith(
+            KnownContentType.ProblemJson,
+            response.Headers[KnownHeaders.ContentType].ToString()
+        );
+        Assert.Contains("urn:hardened:problem:content-too-large", await response.ReadTextAsync());
+    }
+
     [ModuleTest]
     public async Task AUrlEncodedBodyWithTooManyFieldsIsInvalid(ITestWebApp testWebApp)
     {

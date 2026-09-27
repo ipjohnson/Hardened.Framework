@@ -62,20 +62,23 @@ public class ContextSerializationService : IContextSerializationService
     /// A 406, with a body naming what the operation can produce.
     /// </summary>
     /// <remarks>
-    /// The content type is committed before re-entering the locator, which does two things: it says
+    /// <para>
+    /// The content type is committed before the refusal is written, which does two things: it says
     /// plainly that this response is a JSON error document rather than one of the representations
     /// under negotiation, and it means the declared-set tier is not consulted a second time - so
     /// this cannot recurse into the refusal it is answering.
+    /// </para>
+    /// <para>
+    /// Written by the exception serializer, as every other refusal is, so an application's own
+    /// <c>IExceptionToModelConverter</c> decides this body too, and a body the operation declares
+    /// for 406 is the one sent.
+    /// </para>
     /// </remarks>
     private Task WriteNotAcceptable(IExecutionContext context, NotAcceptableException exception)
     {
-        context.Response.Status = exception.StatusCode;
-        context.Response.ResponseValue = exception.Value;
         context.Response.ContentType = KnownContentType.Json;
 
-        return _serializationLocatorService
-            .FindResponseSerializer(context)
-            .SerializeResponse(context);
+        return _exceptionResponseSerializer.Handle(context, exception);
     }
 
     private Task SerializeAcceptedResponse(

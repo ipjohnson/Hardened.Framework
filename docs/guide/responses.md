@@ -598,6 +598,25 @@ A handler that throws a generic form declares the body type and the status. A ha
 
 The message of an exception that answers 500 is not sent.
 
+The bodies in the last three rows are `ErrorModel`, in `Hardened.Requests.Abstract.Errors`. The
+framework sends the same shape for the refusals it raises itself, such as a 401, a rate limit's
+429 and a timeout's 504. It has three members:
+
+| Member | Value |
+|---|---|
+| `type` | What refused: the exception's type name, or a name such as `GatewayTimeout` |
+| `message` | A sentence for the caller. A 500's message never comes from the exception |
+| `details` | More about the refusal, such as the media types a 406 names. Empty where there is nothing more |
+
+A refusal at a status the operation declares a body for sends that body instead of `ErrorModel` or
+the validation body. The OpenAPI document publishes the declared body at that status, so this
+keeps the two in agreement. The refusals this covers are the ones the framework raises itself:
+authorization, a rate limit, a body over its limit, validation, a body that cannot be read, a
+deadline, a 406 and a 500. A problem type such as `ContentTooLarge` in a response set or in
+`[Throws<T>]` is sent as its `Default`. A contract's declared body is sent with the status and the
+title the build fills in. `RateLimited` and the generic forms have no instance to send, so a
+refusal at their status keeps the framework's shape, and the document lists both.
+
 A `FormatException` from `int.Parse("ten")` in a handler answers 500, like any other exception. A
 `FormatException` thrown while the request is bound answers 400. A custom binding attribute or a
 JSON converter of your own can throw one. The response names `BadRequestException` and keeps the

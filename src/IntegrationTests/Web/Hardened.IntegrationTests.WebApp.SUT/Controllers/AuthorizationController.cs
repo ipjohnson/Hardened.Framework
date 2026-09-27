@@ -1,6 +1,8 @@
 using Hardened.Requests.Abstract.Authorization;
+using Hardened.Requests.Abstract.Responses;
 using Hardened.Requests.Runtime.Authorization;
 using Hardened.Web.Runtime.Attributes;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Controllers;
 
@@ -44,6 +46,13 @@ public class AuthorizationController
     [Get("/pets-unstated")]
     [AuthorizeGrants("pets:read")]
     public string Unstated() => "unstated";
+
+    /// <summary>
+    /// A 403 the handler declares, which the authorization filter's refusal is written as.
+    /// </summary>
+    [Get("/declared-forbidden")]
+    [AuthorizeGrants("pets:read")]
+    public Response<string, Forbidden> DeclaredForbidden() => "declared";
 
     /// <summary>Both grants, which is what one requirement object in a specification means.</summary>
     [Get("/pets-manage")]

@@ -205,6 +205,40 @@ public class EntryPointRungDocumentTests
     }
 
     /// <summary>
+    /// A status whose declared body the framework writes for its own refusals takes none of the
+    /// rung's: the refusal goes out as the handler's body, so the rung's shape is not one the
+    /// operation answers there.
+    /// </summary>
+    [Fact]
+    public void AStatusTheHandlerDeclaresWithAnInstanceTakesNoneOfTheRungs()
+    {
+        var operation = Operation(
+            NotModified(new DeclaredScope(null, notWhenStreaming: false)),
+            Handler(
+                responses:
+                [
+                    new ResponseSchemaModel(304, "The handler's own.", null)
+                    {
+                        DeclaredInstance = "global::TestApp.Unchanged.Default",
+                    },
+                ]
+            )
+        );
+
+        Assert.Equal(
+            "The handler's own.",
+            operation
+                .GetProperty("responses")
+                .GetProperty("304")
+                .GetProperty("description")
+                .GetString()
+        );
+        Assert.False(
+            operation.GetProperty("responses").GetProperty("304").TryGetProperty("oneOf", out _)
+        );
+    }
+
+    /// <summary>
     /// An entry point declaring no filter writes the document it wrote before this existed.
     /// </summary>
     [Fact]
