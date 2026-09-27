@@ -216,6 +216,15 @@ The 429's body is
 request's body is not read. A request over the limit with a malformed JSON body gets the 429, not a
 400.
 
+An operation whose contract declares an error for 429 answers with that error instead, because the
+document publishes it there. The build fills the error's message or title with the status's reason
+phrase and leaves its other members empty. A Smithy error shape with a required `message` and an
+optional `retryAfter` answers `{"message":"Too Many Requests","retryAfter":null}`. A shape with
+another required member keeps the body above, because nothing can fill that member. `RateLimited`
+in a code-first response set has no instance to send, so its 429 keeps the body above too.
+[Declared responses](/guide/responses#what-a-thrown-exception-answers) covers the rule for every
+refusal.
+
 When a later filter also refuses the request, that filter's answer is sent in place of the 429. The
 answer carries no rate limit headers. An anonymous request over the limit to a handler with
 `[Authorize<TScheme>]` gets 401. A request over the limit with `Content-Encoding: deflate` gets 415.
