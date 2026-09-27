@@ -1386,17 +1386,10 @@ internal static class SpecHandlerModelBuilder
     /// The operation's path with each constrained path parameter carrying its route constraint.
     /// </summary>
     /// <remarks>
-    /// <para>
-    /// The description says <c>/pets/{petId}</c> and declares the constraint separately; a route
-    /// template says <c>/pets/{petId:slug}</c>. Composing them here is what puts a described
-    /// constraint into the routing table rather than only into a validator - so a value that
-    /// violates it means the route did not match, and the answer is 404 rather than a 400 about a
-    /// URL naming no resource.
-    /// </para>
-    /// <para>
-    /// Path parameters only. A query, header or body constraint judges a request that did name a
-    /// resource and stays on the validation path, where 400 is the right answer.
-    /// </para>
+    /// The description says <c>/vans/{vin}</c> and declares the pattern separately; a route
+    /// template says <c>/vans/{vin:spec_p_9cdd0a7f}</c>. The build task sets a route constraint
+    /// only where two operations share a route's shape and the pattern is what tells them apart,
+    /// so most described paths come through unchanged and the validator checks their patterns.
     /// </remarks>
     private static string ConstrainedPath(OperationModel operation)
     {

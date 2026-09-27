@@ -517,10 +517,16 @@ covers the attributes and the 400.
 `required` adds no `[Required]` to a value type such as `int`, or to a path parameter. The build
 drops a keyword that the member's type cannot carry, such as a `minimum` on a string.
 
-A `pattern` becomes a `[GeneratedRegex]` member of `<File>Patterns`. A `pattern` on a path parameter
-is part of the route. A path value that does not match answers 404, not 400. Each member has a
-match timeout of 2,000 milliseconds, in the route and in validation.
-[Validation](/guide/validation#a-timeout-on-a-pattern) covers the timeout.
+A `pattern` becomes a `[GeneratedRegex]` member of `<File>Patterns`. Each member has a match
+timeout of 2,000 milliseconds. [Validation](/guide/validation#a-timeout-on-a-pattern) covers the
+timeout.
+
+A `pattern` on a path parameter is checked like any other constraint. A path value that does not
+match answers 400 naming the parameter, and the served document lists that 400. The exception is two
+operations under one method whose paths are the same apart from the names of their parameters, such
+as `GET /vans/{vin}` and `GET /vans/{fleetCode}`. Their patterns are part of the routes, because the
+patterns are what send a value to one operation or the other. A value that matches neither answers
+404 with no body.
 
 An operation with a constraint gets `I<Method>Parameters`, with a property for each parameter and
 `body` for the request body. The generated handler checks it.

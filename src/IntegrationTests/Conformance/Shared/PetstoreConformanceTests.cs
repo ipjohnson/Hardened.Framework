@@ -107,26 +107,8 @@ public abstract class PetstoreConformanceTests
     /// </remarks>
     protected virtual string DeclaredErrorStatus => "429";
 
-    /// <summary>A pet id that violates the constraint the operation declares on it.</summary>
+    /// <summary>A pet id that violates the pattern the operation declares on it.</summary>
     protected virtual string MalformedPetId => "NOT_A_VALID_ID";
-
-    /// <summary>
-    /// What this front-end answers when a path token violates its declared constraint.
-    /// </summary>
-    /// <remarks>
-    /// <b>This is a known divergence, not a settled design.</b> Given the same declared intent —
-    /// <c>{petId:slug}</c> code-first, <c>pattern: '^[a-z0-9-]+$'</c> in OpenAPI,
-    /// <c>@pattern("^[a-z0-9-]+$")</c> in Smithy — the described front-ends answer 400 and
-    /// code-first answers 404. Both are defensible on their own terms: code-first compiles a
-    /// constraint into the route table, so violating it means the route did not match; a described
-    /// front-end treats the same constraint as a validation rule on a route that did match.
-    /// <para>
-    /// They cannot both be right for one declaration, and a client cannot tell which it will get.
-    /// Pinning the value per front-end keeps the divergence from widening while the question is
-    /// open; when it is answered, the override below is deleted rather than the test.
-    /// </para>
-    /// </remarks>
-    protected virtual int MalformedTokenStatus => 404;
 
     private string Because(string what) => $"[{FrontEnd}] {what}";
 
@@ -310,12 +292,13 @@ public abstract class PetstoreConformanceTests
     }
 
     /// <summary>
-    /// A path token violating its declared constraint is refused rather than reaching the handler.
+    /// A path token violating its declared pattern is refused with 400 before the handler.
     /// </summary>
     /// <remarks>
-    /// The status is <see cref="MalformedTokenStatus"/> because the three front-ends currently
-    /// disagree about it. What they agree on, and what this pins, is that the request is refused —
-    /// a 200 would mean the constraint was declared and then not applied.
+    /// The three declare the pattern as <c>[Pattern]</c> code-first, <c>pattern</c> in OpenAPI and
+    /// <c>@pattern</c> in Smithy, and each is validation on a route that matched. A 200 means the
+    /// pattern was declared and then not applied. A 404 means it was compiled into the route, which
+    /// answers with no body under an operation that declares its 404 with one.
     /// </remarks>
     [ModuleTest]
     public async Task MalformedPathToken_IsRefused(ITestWebApp app)
@@ -323,10 +306,11 @@ public abstract class PetstoreConformanceTests
         var response = await app.Get($"/pets/{MalformedPetId}");
 
         Assert.True(
-            response.StatusCode == MalformedTokenStatus,
+            response.StatusCode == 400,
             Because(
-                $"GET /pets/{MalformedPetId} answered {response.StatusCode}, expected "
-                    + $"{MalformedTokenStatus}. A 200 means the declared constraint was not applied."
+                $"GET /pets/{MalformedPetId} answered {response.StatusCode}, expected 400. "
+                    + "A 200 means the declared pattern was not applied, and a 404 means it was "
+                    + "compiled into the route."
             )
         );
     }

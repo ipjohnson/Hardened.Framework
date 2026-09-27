@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using CSharpAuthor;
 using Hardened.Generation.Models;
 
@@ -6,17 +7,23 @@ namespace Hardened.Idl.Validation;
 
 /// <summary>
 /// Turns a constraint declared on a path parameter into a route constraint the routing table
-/// compiles in.
+/// compiles in, where two operations need it to be told apart.
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>Why a path parameter is different from every other kind.</b> A constraint on a path segment
-/// narrows which URLs name a resource, so violating it means the route did not match and the answer
-/// is 404. That is the same reasoning already settled for an empty token: <c>/pets/</c> against
-/// <c>/pets/{petId}</c> answers 404 rather than telling a client it addressed a real endpoint
-/// incorrectly about a URL addressing no endpoint at all. A constraint on a query, header or body
-/// parameter is a judgement about a request that did name a resource; it stays on the validation
-/// path and answers 400.
+/// <b>A path pattern is a validation rule, not a route.</b> A value that fails it named a real
+/// endpoint with a malformed value, which is what a 400 naming the parameter says, as it says for
+/// a body member that fails its <c>pattern</c>. Compiled into the route, the same value answered a
+/// bodyless 404 under an operation whose document declares its 404 with a body, and a generated
+/// client failed to read it. A Smithy author also expects <c>@pattern</c> on a label to behave as
+/// it does on a body member.
+/// </para>
+/// <para>
+/// <b>Kept where it tells two routes apart.</b> Two operations answering the same verb on the same
+/// shape of path, such as <c>GET /vans/{vin}</c> and <c>GET /vans/{fleetCode}</c>, match the same
+/// URLs without their constraints, so the constraints are what route a value to one or the other.
+/// There the pattern stays in the route and a value neither accepts answers 404, because no route
+/// matched. Everywhere else the route matches and the generated validator checks the pattern.
 /// </para>
 /// <para>
 /// <b>Nothing new is invented to carry it.</b> The emitted method uses
@@ -28,16 +35,16 @@ namespace Hardened.Idl.Validation;
 /// rather than the 448 KB a runtime-constructed <c>Regex</c> costs.
 /// </para>
 /// <para>
-/// A pattern the registry rejects contributes no constraint. It stays on the validation path, which
-/// is the behaviour before this existed, and the registry already records the rejection for the task
-/// to report.
+/// A pattern the registry rejects contributes no constraint. It stays on the validation path, and
+/// the registry already records the rejection for the task to report.
 /// </para>
 /// </remarks>
 internal static class RouteConstraintEmitter
 {
     /// <summary>
-    /// Assigns a route-constraint name to every path parameter carrying a pattern, and emits the
-    /// constraint methods those names refer to.
+    /// Assigns a route-constraint name to every path parameter carrying a pattern on an operation
+    /// that shares its route's shape with another, and emits the constraint methods those names
+    /// refer to.
     /// </summary>
     public static void Emit(
         NamespaceDefinition validation,
@@ -46,11 +53,17 @@ internal static class RouteConstraintEmitter
     )
     {
         var emitted = new Dictionary<string, string>(System.StringComparer.Ordinal);
+        var shared = SharedShapes(model);
 
         foreach (var service in model.Services)
         {
             foreach (var operation in service.Operations)
             {
+                if (!shared.Contains(Shape(operation)))
+                {
+                    continue;
+                }
+
                 foreach (var parameter in operation.Parameters)
                 {
                     if (!IsConstrainedPathParameter(parameter))
@@ -114,6 +127,41 @@ internal static class RouteConstraintEmitter
             );
         }
     }
+
+    /// <summary>
+    /// The shapes more than one operation answers: the verb and the path with every token blanked,
+    /// so <c>GET /vans/{vin}</c> and <c>GET /vans/{fleetCode}</c> share <c>GET /vans/{}</c>.
+    /// </summary>
+    private static HashSet<string> SharedShapes(ServiceSpecModel model)
+    {
+        var seen = new HashSet<string>(System.StringComparer.Ordinal);
+        var shared = new HashSet<string>(System.StringComparer.Ordinal);
+
+        foreach (var service in model.Services)
+        {
+            foreach (var operation in service.Operations)
+            {
+                var shape = Shape(operation);
+
+                if (!seen.Add(shape))
+                {
+                    shared.Add(shape);
+                }
+            }
+        }
+
+        return shared;
+    }
+
+    /// <summary>
+    /// The verb and the path with each token blanked. The path is lower-cased because a module
+    /// carrying <c>[CaseInsensitiveRoutes]</c> matches <c>/Vans/{vin}</c> and <c>/vans/{code}</c>
+    /// as one route, and the build task cannot see the attribute.
+    /// </summary>
+    private static string Shape(OperationModel operation) =>
+        operation.HttpMethod.ToUpperInvariant()
+        + " "
+        + Regex.Replace(operation.Path, "\\{[^}]*\\}", "{}").ToLowerInvariant();
 
     /// <summary>
     /// A path parameter carrying a pattern. Type-based constraints are deliberately left alone for
