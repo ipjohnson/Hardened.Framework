@@ -397,7 +397,7 @@ public class TodoLastResponseTests
 
 The recorded response is kept per running test, so tests that run in parallel each read their own. Reading `LastResponse` before any response throws `InvalidOperationException` with this message: `LastResponse has nothing to report: no request has been answered through the pipeline in 'Todos.Tests.TodoTimingTests.ReadsLastResponseFirst'. Send one through ITestWebApp, or through a client it built, before reading it.` The quoted name is the running test's.
 
-On a socket host, `LastResponse` holds what came back over the wire, with the server's headers. The body reaches the client as the server writes it, so a test that sends with `HttpCompletionOption.ResponseHeadersRead` reads each NDJSON line or event when the server flushes it. `LastResponse` has the status and the headers from the start, and the body once the client has read it to the end. A body the client never finishes, such as an event stream, is recorded as empty.
+On a socket host, `LastResponse` holds what came back over the wire, with the server's headers. The body reaches the client as the server writes it, so a test that sends with `HttpCompletionOption.ResponseHeadersRead` reads each NDJSON line or event when the server flushes it. `LastResponse` has the status and the headers from the start. It has the body when the client buffered it, which `HttpClient` does unless a request is sent with `ResponseHeadersRead`. A body read as a stream, such as an event stream, is recorded as empty.
 
 ## The exception behind a failed request
 

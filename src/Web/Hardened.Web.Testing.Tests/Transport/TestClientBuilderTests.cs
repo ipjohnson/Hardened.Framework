@@ -270,6 +270,28 @@ public class TestClientBuilderTests
         Assert.Equal(1, seen.Calls);
     }
 
+    /// <summary>
+    /// The handler a host hands out with nothing asked of it answers from the pipeline, as the one
+    /// asked for a container per request does.
+    /// </summary>
+    [Fact]
+    public async Task TheHostsPlainHandlerAnswersFromThePipeline()
+    {
+        var host = TestClientBuilder.HostOf(new SubstitutePipeline().Provider);
+
+        using var http = new HttpClient(host.CreateHandler(null))
+        {
+            BaseAddress = host.BaseAddress,
+        };
+
+        using var response = await http.GetAsync(
+            "/anything",
+            Xunit.TestContext.Current.CancellationToken
+        );
+
+        Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
+    }
+
     private sealed class CountingHandler : DelegatingHandler
     {
         public int Calls;

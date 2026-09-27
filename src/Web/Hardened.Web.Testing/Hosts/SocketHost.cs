@@ -233,14 +233,13 @@ public abstract class SocketHost : ITestHost
 
     /// <summary>
     /// What came back over the wire, kept for <see cref="LastResponse"/>: the status and every header
-    /// when they arrive, and the body once the client has read it to the end.
+    /// when they arrive, and the body when the client buffers it.
     /// </summary>
     /// <remarks>
-    /// The body is handed on as it arrives rather than read to the end first. Reading it here held
-    /// an NDJSON export back until the server had written its last line, so a test reading with
-    /// <c>HttpCompletionOption.ResponseHeadersRead</c> saw every line at once. A client that buffers,
-    /// which is the default, reads to the end before its call returns, so the record has the body by
-    /// then. A body the client never finishes, such as an event stream, is recorded as empty.
+    /// The body is handed on as it arrives, through <see cref="RecordedContent"/>, rather than read
+    /// to the end first. Reading it here held an NDJSON export back until the server had written its
+    /// last line, so a test reading with <c>HttpCompletionOption.ResponseHeadersRead</c> saw every
+    /// line at once.
     /// </remarks>
     private sealed class SocketRecordingHandler : DelegatingHandler
     {
@@ -262,146 +261,6 @@ public abstract class SocketHost : ITestHost
             );
 
             return response;
-        }
-    }
-
-    /// <summary>
-    /// The response's content, passed through unchanged, with a copy of every byte read handed to a
-    /// callback when the reading reaches the end.
-    /// </summary>
-    private sealed class RecordedContent : HttpContent
-    {
-        private readonly HttpContent _inner;
-        private readonly Action<byte[]> _ended;
-
-        public RecordedContent(HttpContent inner, Action<byte[]> ended)
-        {
-            _inner = inner;
-            _ended = ended;
-
-            foreach (var header in inner.Headers)
-            {
-                Headers.TryAddWithoutValidation(header.Key, header.Value);
-            }
-        }
-
-        protected override async Task<Stream> CreateContentReadStreamAsync(
-            CancellationToken cancellationToken
-        ) => new RecordingStream(await _inner.ReadAsStreamAsync(cancellationToken), _ended);
-
-        protected override Task<Stream> CreateContentReadStreamAsync() =>
-            CreateContentReadStreamAsync(CancellationToken.None);
-
-        protected override async Task SerializeToStreamAsync(
-            Stream stream,
-            System.Net.TransportContext? context,
-            CancellationToken cancellationToken
-        )
-        {
-            await using var source = await CreateContentReadStreamAsync(cancellationToken);
-
-            await source.CopyToAsync(stream, cancellationToken);
-        }
-
-        protected override Task SerializeToStreamAsync(
-            Stream stream,
-            System.Net.TransportContext? context
-        ) => SerializeToStreamAsync(stream, context, CancellationToken.None);
-
-        protected override bool TryComputeLength(out long length)
-        {
-            length = 0;
-
-            return false;
-        }
-
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                _inner.Dispose();
-            }
-
-            base.Dispose(disposing);
-        }
-    }
-
-    /// <summary>
-    /// A read-only pass-through that keeps what was read, and hands it over the first time a read
-    /// returns nothing.
-    /// </summary>
-    private sealed class RecordingStream(Stream inner, Action<byte[]> ended) : Stream
-    {
-        private readonly MemoryStream _copy = new();
-        private bool _ended;
-
-        public override bool CanRead => true;
-
-        public override bool CanSeek => false;
-
-        public override bool CanWrite => false;
-
-        public override long Length => throw new NotSupportedException();
-
-        public override long Position
-        {
-            get => throw new NotSupportedException();
-            set => throw new NotSupportedException();
-        }
-
-        public override int Read(byte[] buffer, int offset, int count) =>
-            Kept(buffer.AsMemory(offset), inner.Read(buffer, offset, count));
-
-        public override async ValueTask<int> ReadAsync(
-            Memory<byte> buffer,
-            CancellationToken cancellationToken = default
-        )
-        {
-            var read = await inner.ReadAsync(buffer, cancellationToken);
-
-            return Kept(buffer, read);
-        }
-
-        public override Task<int> ReadAsync(
-            byte[] buffer,
-            int offset,
-            int count,
-            CancellationToken cancellationToken
-        ) => ReadAsync(buffer.AsMemory(offset, count), cancellationToken).AsTask();
-
-        public override void Flush() { }
-
-        public override long Seek(long offset, SeekOrigin origin) =>
-            throw new NotSupportedException();
-
-        public override void SetLength(long value) => throw new NotSupportedException();
-
-        public override void Write(byte[] buffer, int offset, int count) =>
-            throw new NotSupportedException();
-
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                inner.Dispose();
-            }
-
-            base.Dispose(disposing);
-        }
-
-        private int Kept(Memory<byte> buffer, int read)
-        {
-            if (read > 0)
-            {
-                _copy.Write(buffer.Span.Slice(0, read));
-            }
-            else if (!_ended)
-            {
-                _ended = true;
-                ended(_copy.ToArray());
-            }
-
-            return read;
         }
     }
 }

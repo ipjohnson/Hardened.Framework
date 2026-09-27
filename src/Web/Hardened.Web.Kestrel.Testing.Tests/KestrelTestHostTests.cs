@@ -289,7 +289,7 @@ public class KestrelTestHostTests
 
     /// <summary>
     /// A body is handed on as it arrives, so a line the server flushed is read before the server
-    /// writes the next, and the record has the whole body once the client reads to the end.
+    /// writes the next. A body read as a stream is not recorded, so the record has the status alone.
     /// </summary>
     /// <remarks>
     /// The server waits for the test between the two lines. A host that read the body to the end
@@ -342,7 +342,8 @@ public class KestrelTestHostTests
 
         Assert.Equal("{\"n\":2}", await reader.ReadLineAsync(bound.Token));
         Assert.Null(await reader.ReadLineAsync(bound.Token));
-        Assert.Equal("{\"n\":1}\n{\"n\":2}\n", Encoding.UTF8.GetString(LastResponse.Body));
+        Assert.Equal(200, LastResponse.Status);
+        Assert.Empty(LastResponse.Body);
     }
 
     /// <summary>
