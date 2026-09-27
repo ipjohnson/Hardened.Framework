@@ -127,8 +127,8 @@ test. It lists the types a value converts to and the exceptions for other types.
 
 The model is built the first time something resolves it. For `TodoController`, that is the first
 request to it, not startup. A value that does not convert throws when the model is built.
-`TODOS_PAGE_SIZE=ten` throws `FormatException`. With the model in the constructor, every request to
-the controller answers 500:
+`TODOS_PAGE_SIZE=ten` throws a `FormatException` that names the variable. With the model in the
+constructor, every request to the controller answers 500:
 
 ```http
 GET /todos
@@ -139,10 +139,11 @@ Content-Type: application/json
 {"type":"ServerError","message":"The server could not complete this request.","details":""}
 ```
 
-The log shows a `HandlerCreationException` around the `FormatException`:
+The log shows a `HandlerCreationException` around the `FormatException`. The exception
+`Convert.ChangeType` threw is the inner one:
 
 ```text
-fail: Hardened.Requests.Runtime.Logging.RequestLogger[0] GET /todos request failed Hardened.Requests.Runtime.Filters.HandlerCreationException: GET /todos could not construct its handler Todos.TodoController: The input string 'ten' was not in a correct format.  ---> System.FormatException: The input string 'ten' was not in a correct format.
+fail: Hardened.Requests.Runtime.Logging.RequestLogger[0] GET /todos request failed Hardened.Requests.Runtime.Filters.HandlerCreationException: GET /todos could not construct its handler Todos.TodoController: The environment variable TODOS_PAGE_SIZE could not be read as Int32: The input string 'ten' was not in a correct format.  ---> System.FormatException: The environment variable TODOS_PAGE_SIZE could not be read as Int32: The input string 'ten' was not in a correct format.  ---> System.FormatException: The input string 'ten' was not in a correct format.
 ```
 
 A model that fails to build is not stored. Each request builds it again and fails again.

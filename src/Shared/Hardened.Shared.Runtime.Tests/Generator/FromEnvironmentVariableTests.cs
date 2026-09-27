@@ -58,6 +58,9 @@ public class FromEnvironmentVariableTests
             [FromEnvironmentVariable("VERBOSE")]
             private bool _verbose = false;
 
+            [FromEnvironmentVariable("PAGE_SIZE")]
+            private int? _pageSize;
+
             private string _notFromTheEnvironment = "untouched";
         }
         """;
@@ -197,13 +200,31 @@ public class FromEnvironmentVariableTests
     /// the worse outcome.
     /// </summary>
     [Fact]
-    public void AValueThatCannotBeConvertedThrows()
+    public void AValueThatCannotBeConvertedThrowsNamingTheVariable()
     {
         var assembly = GeneratedAssembly("EnvBadConvert");
 
-        Assert.Throws<FormatException>(() =>
+        var exception = Assert.Throws<FormatException>(() =>
             Resolve(assembly, EnvironmentWith(("RETENTION_DAYS", "ninety")))
         );
+
+        Assert.StartsWith(
+            "The environment variable RETENTION_DAYS could not be read as Int32: ",
+            exception.Message
+        );
+    }
+
+    /// <summary>
+    /// The generated read passes the field's current value as the default, which for a nullable
+    /// field makes the read's type the nullable one.
+    /// </summary>
+    [Fact]
+    public void ANullableFieldIsRead()
+    {
+        var assembly = GeneratedAssembly("EnvNullable");
+
+        Assert.Equal(25, Read(Resolve(assembly, EnvironmentWith(("PAGE_SIZE", "25"))), "PageSize"));
+        Assert.Null(Read(Resolve(assembly, EnvironmentWith()), "PageSize"));
     }
 
     /// <summary>A field with no attribute is not touched by the environment at all.</summary>

@@ -22,6 +22,10 @@ namespace Hardened.Shared.Runtime.Application
         public T? Value<T>(string name, T? defaultValue = default) { }
         public static string DefaultName(System.Func<string, string?> variable) { }
     }
+    public static class EnvironmentValue
+    {
+        public static T Convert<T>(string name, object value) { }
+    }
     public static class HardenedEnvironmentServiceCollectionExtensions
     {
         public static Microsoft.Extensions.DependencyInjection.IServiceCollection AddHardenedEnvironment(this Microsoft.Extensions.DependencyInjection.IServiceCollection services, Hardened.Shared.Runtime.Application.IHardenedEnvironment environment) { }
