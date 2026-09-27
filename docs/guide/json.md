@@ -488,7 +488,7 @@ The native binary answers `GET /todos/99` with the `NotFound` body:
 GET /todos/99
 
 HTTP/1.1 404 Not Found
-Content-Type: application/json
+Content-Type: application/problem+json
 
 {"resource":"todo","detail":"No todo has id 99.","type":"urn:hardened:problem:not-found","title":"Not Found","status":404}
 ```

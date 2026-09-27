@@ -23,7 +23,7 @@ namespace Hardened.Web.Runtime.Responses;
 /// </remarks>
 [HttpStatus(429)]
 public sealed record RateLimited(TimeSpan RetryAfter, string? Detail = null)
-    : IHttpStatusResponse,
+    : IProblemDetails,
         IProvidesResponseHeaders,
         IDeclaresStatus
 {

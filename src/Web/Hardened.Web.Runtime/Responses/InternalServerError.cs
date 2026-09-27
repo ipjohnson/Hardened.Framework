@@ -20,9 +20,7 @@ namespace Hardened.Web.Runtime.Responses;
 /// </para>
 /// </remarks>
 [HttpStatus(500)]
-public sealed record InternalServerError(string? Detail = null)
-    : IHttpStatusResponse,
-        IDeclaresStatus
+public sealed record InternalServerError(string? Detail = null) : IProblemDetails, IDeclaresStatus
 {
     /// <summary>
     /// The InternalServerError with a generic message, for a handler with nothing more to say than the status.

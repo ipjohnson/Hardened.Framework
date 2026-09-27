@@ -19,9 +19,7 @@ namespace Hardened.Web.Runtime.Responses;
 /// </para>
 /// </remarks>
 [HttpStatus(428)]
-public sealed record PreconditionRequired(string? Detail = null)
-    : IHttpStatusResponse,
-        IDeclaresStatus
+public sealed record PreconditionRequired(string? Detail = null) : IProblemDetails, IDeclaresStatus
 {
     /// <summary>
     /// The PreconditionRequired with a generic message, for a handler with nothing more to say than the status.

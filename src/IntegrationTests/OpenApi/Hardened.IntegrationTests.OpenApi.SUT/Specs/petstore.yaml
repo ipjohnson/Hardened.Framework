@@ -413,6 +413,52 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  # A failure declared as a problem document. Beside a JSON success its 404 went out as
+  # application/json, the first media type the client accepted; declared alone, it went out as an
+  # empty 500, because nothing produced application/problem+json.
+  /pets/{petId}/checkup:
+    get:
+      tags:
+        - Pet
+      operationId: getPetCheckup
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The pet as of its last checkup
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pet'
+        '404':
+          description: No pet with that id
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+    delete:
+      tags:
+        - Pet
+      operationId: clearPetCheckup
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Checkup cleared
+        '404':
+          description: No pet with that id
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
   /stores:
     get:
       tags:

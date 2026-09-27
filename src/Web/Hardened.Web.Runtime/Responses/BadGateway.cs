@@ -18,7 +18,7 @@ namespace Hardened.Web.Runtime.Responses;
 /// </para>
 /// </remarks>
 [HttpStatus(502)]
-public sealed record BadGateway(string? Detail = null) : IHttpStatusResponse, IDeclaresStatus
+public sealed record BadGateway(string? Detail = null) : IProblemDetails, IDeclaresStatus
 {
     /// <summary>
     /// The BadGateway with a generic message, for a handler with nothing more to say than the status.

@@ -74,7 +74,7 @@ public class BlobResponseTests
         var response = await app.Get("/blob-response/blob/0");
 
         Assert.Equal(404, response.StatusCode);
-        Assert.StartsWith("application/json", response.Headers["Content-Type"].ToString());
+        Assert.StartsWith("application/problem+json", response.Headers["Content-Type"].ToString());
 
         using var document = JsonDocument.Parse(await response.ReadTextAsync());
 
@@ -87,12 +87,12 @@ public class BlobResponseTests
         var response = await app.Get("/blob-response/stream/0");
 
         Assert.Equal(404, response.StatusCode);
-        Assert.StartsWith("application/json", response.Headers["Content-Type"].ToString());
+        Assert.StartsWith("application/problem+json", response.Headers["Content-Type"].ToString());
     }
 
     /// <summary>
     /// And the document says both: the success is the declared media type carrying binary, the
-    /// refusal is JSON. It published a 200 with no content at all, so a generated client had no
+    /// refusal is a JSON problem document. It published a 200 with no content at all, so a generated client had no
     /// return type for the one thing the operation exists to send.
     /// </summary>
     [ModuleTest]
@@ -121,7 +121,7 @@ public class BlobResponseTests
 
         var refusal = responses.GetProperty("404").GetProperty("content");
 
-        Assert.True(refusal.TryGetProperty("application/json", out _));
+        Assert.True(refusal.TryGetProperty("application/problem+json", out _));
         Assert.False(refusal.TryGetProperty("application/octet-stream", out _));
     }
 }

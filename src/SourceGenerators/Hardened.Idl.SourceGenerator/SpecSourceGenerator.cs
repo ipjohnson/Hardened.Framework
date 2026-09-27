@@ -390,6 +390,34 @@ public class SpecSourceGenerator : IIncrementalGenerator
                 }
             );
 
+        // HRDR012 for a described operation: a media type its contract declares that nothing here
+        // writes. An output of its own, because it reads only the handlers and what the compilation
+        // can write. The compilation is collapsed to one string first, as the attribute-routed
+        // generator does, so an edit does not rebuild anything that did not change.
+        var writableContentTypes = context.CompilationProvider.Select(
+            static (compilation, _) => SerializerContentTypes.Read(compilation)
+        );
+
+        context.RegisterSourceOutput(
+            enrichedModels.Combine(writableContentTypes),
+            SourceGeneratorWrapper.Wrap<(ImmutableArray<RequestHandlerModel> Left, string Right)>(
+                (ctx, pair) =>
+                {
+                    foreach (var handler in pair.Left)
+                    {
+                        ContentTypeDiagnostics.Report(
+                            ctx,
+                            handler.ControllerType.Name + "." + handler.HandlerMethod,
+                            declaresNothing: false,
+                            handler.ResponseInformation.UnproducibleContentTypeDiagnostic,
+                            pair.Right,
+                            described: true
+                        );
+                    }
+                }
+            )
+        );
+
         // Find entry points for routing table generation
         var entryPointProvider = context
             .SyntaxProvider.CreateSyntaxProvider(

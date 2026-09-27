@@ -44,8 +44,17 @@ public class NewtonsoftSerializer : IResponseSerializer
     /// </remarks>
     public string ContentType => KnownContentType.Json;
 
+    /// <remarks>
+    /// <c>application/problem+json</c> as well, for a failure, as the built-in JSON serializers do.
+    /// See <see cref="ProblemJson"/>.
+    /// </remarks>
+    public bool CanProduce(string mediaType, IExecutionContext context) =>
+        MediaType.Matches(mediaType, ContentType) || ProblemJson.Produces(mediaType, context);
+
     public async Task SerializeResponse(IExecutionContext context)
     {
+        context.Response.ContentType = ProblemJson.ContentTypeFor(context);
+
         using var outputBuffer = _memoryStreamPool.Get();
         await using var textWriter = new StreamWriter(outputBuffer.Item, null, -1, true);
 

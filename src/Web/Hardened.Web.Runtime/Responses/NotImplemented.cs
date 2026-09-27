@@ -17,7 +17,7 @@ namespace Hardened.Web.Runtime.Responses;
 /// </para>
 /// </remarks>
 [HttpStatus(501)]
-public sealed record NotImplemented(string? Detail = null) : IHttpStatusResponse, IDeclaresStatus
+public sealed record NotImplemented(string? Detail = null) : IProblemDetails, IDeclaresStatus
 {
     /// <summary>
     /// The NotImplemented with a generic message, for a handler with nothing more to say than the status.

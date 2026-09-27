@@ -649,7 +649,7 @@ namespace Hardened.Web.Runtime.Responses
         public static Hardened.Web.Runtime.Responses.Accepted FromResponse(object? body, System.Collections.Generic.IReadOnlyDictionary<string, string> headers) { }
     }
     [Hardened.Web.Runtime.Responses.HttpStatus(502)]
-    public sealed class BadGateway : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Web.Runtime.Responses.BadGateway>
+    public sealed class BadGateway : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProblemDetails, System.IEquatable<Hardened.Web.Runtime.Responses.BadGateway>
     {
         public static readonly Hardened.Web.Runtime.Responses.BadGateway Default;
         public BadGateway(string? Detail = null) { }
@@ -671,7 +671,7 @@ namespace Hardened.Web.Runtime.Responses
         public static Hardened.Web.Runtime.Responses.BadGateway<T> FromResponse(object? body, System.Collections.Generic.IReadOnlyDictionary<string, string> headers) { }
     }
     [Hardened.Web.Runtime.Responses.HttpStatus(400)]
-    public sealed class BadRequest : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Web.Runtime.Responses.BadRequest>
+    public sealed class BadRequest : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProblemDetails, System.IEquatable<Hardened.Web.Runtime.Responses.BadRequest>
     {
         public static readonly Hardened.Web.Runtime.Responses.BadRequest Default;
         public BadRequest(string? Detail = null) { }
@@ -693,7 +693,7 @@ namespace Hardened.Web.Runtime.Responses
         public static Hardened.Web.Runtime.Responses.BadRequest<T> FromResponse(object? body, System.Collections.Generic.IReadOnlyDictionary<string, string> headers) { }
     }
     [Hardened.Web.Runtime.Responses.HttpStatus(409)]
-    public sealed class Conflict : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Web.Runtime.Responses.Conflict>
+    public sealed class Conflict : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProblemDetails, System.IEquatable<Hardened.Web.Runtime.Responses.Conflict>
     {
         public static readonly Hardened.Web.Runtime.Responses.Conflict Default;
         public Conflict(string? Detail = null) { }
@@ -715,7 +715,7 @@ namespace Hardened.Web.Runtime.Responses
         public static Hardened.Web.Runtime.Responses.Conflict<T> FromResponse(object? body, System.Collections.Generic.IReadOnlyDictionary<string, string> headers) { }
     }
     [Hardened.Web.Runtime.Responses.HttpStatus(413)]
-    public sealed class ContentTooLarge : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Web.Runtime.Responses.ContentTooLarge>
+    public sealed class ContentTooLarge : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProblemDetails, System.IEquatable<Hardened.Web.Runtime.Responses.ContentTooLarge>
     {
         public static readonly Hardened.Web.Runtime.Responses.ContentTooLarge Default;
         public ContentTooLarge(string? Detail = null) { }
@@ -748,7 +748,7 @@ namespace Hardened.Web.Runtime.Responses
         public static Hardened.Web.Runtime.Responses.Created<T> FromResponse(object? body, System.Collections.Generic.IReadOnlyDictionary<string, string> headers) { }
     }
     [Hardened.Web.Runtime.Responses.HttpStatus(403)]
-    public sealed class Forbidden : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Web.Runtime.Responses.Forbidden>
+    public sealed class Forbidden : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProblemDetails, System.IEquatable<Hardened.Web.Runtime.Responses.Forbidden>
     {
         public static readonly Hardened.Web.Runtime.Responses.Forbidden Default;
         public Forbidden(string? Detail = null) { }
@@ -770,7 +770,7 @@ namespace Hardened.Web.Runtime.Responses
         public static Hardened.Web.Runtime.Responses.Forbidden<T> FromResponse(object? body, System.Collections.Generic.IReadOnlyDictionary<string, string> headers) { }
     }
     [Hardened.Web.Runtime.Responses.HttpStatus(504)]
-    public sealed class GatewayTimeout : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Web.Runtime.Responses.GatewayTimeout>
+    public sealed class GatewayTimeout : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProblemDetails, System.IEquatable<Hardened.Web.Runtime.Responses.GatewayTimeout>
     {
         public static readonly Hardened.Web.Runtime.Responses.GatewayTimeout Default;
         public GatewayTimeout(string? Detail = null) { }
@@ -792,7 +792,7 @@ namespace Hardened.Web.Runtime.Responses
         public static Hardened.Web.Runtime.Responses.GatewayTimeout<T> FromResponse(object? body, System.Collections.Generic.IReadOnlyDictionary<string, string> headers) { }
     }
     [Hardened.Web.Runtime.Responses.HttpStatus(410)]
-    public sealed class Gone : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Web.Runtime.Responses.Gone>
+    public sealed class Gone : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProblemDetails, System.IEquatable<Hardened.Web.Runtime.Responses.Gone>
     {
         public static readonly Hardened.Web.Runtime.Responses.Gone Default;
         public Gone(string? Detail = null) { }
@@ -988,7 +988,7 @@ namespace Hardened.Web.Runtime.Responses
         TSelf FromResponse(object? body, System.Collections.Generic.IReadOnlyDictionary<string, string> headers);
     }
     [Hardened.Web.Runtime.Responses.HttpStatus(500)]
-    public sealed class InternalServerError : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Web.Runtime.Responses.InternalServerError>
+    public sealed class InternalServerError : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProblemDetails, System.IEquatable<Hardened.Web.Runtime.Responses.InternalServerError>
     {
         public static readonly Hardened.Web.Runtime.Responses.InternalServerError Default;
         public InternalServerError(string? Detail = null) { }
@@ -1050,7 +1050,7 @@ namespace Hardened.Web.Runtime.Responses
         public static Hardened.Web.Runtime.Responses.NotAcceptable FromResponse(object? body, System.Collections.Generic.IReadOnlyDictionary<string, string> headers) { }
     }
     [Hardened.Web.Runtime.Responses.HttpStatus(404)]
-    public sealed class NotFound : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Web.Runtime.Responses.NotFound>
+    public sealed class NotFound : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProblemDetails, System.IEquatable<Hardened.Web.Runtime.Responses.NotFound>
     {
         public static readonly Hardened.Web.Runtime.Responses.NotFound Default;
         public NotFound(string Resource, string? Detail = null) { }
@@ -1073,7 +1073,7 @@ namespace Hardened.Web.Runtime.Responses
         public static Hardened.Web.Runtime.Responses.NotFound<T> FromResponse(object? body, System.Collections.Generic.IReadOnlyDictionary<string, string> headers) { }
     }
     [Hardened.Web.Runtime.Responses.HttpStatus(501)]
-    public sealed class NotImplemented : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Web.Runtime.Responses.NotImplemented>
+    public sealed class NotImplemented : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProblemDetails, System.IEquatable<Hardened.Web.Runtime.Responses.NotImplemented>
     {
         public static readonly Hardened.Web.Runtime.Responses.NotImplemented Default;
         public NotImplemented(string? Detail = null) { }
@@ -1118,7 +1118,7 @@ namespace Hardened.Web.Runtime.Responses
         public static Hardened.Web.Runtime.Responses.Ok<T> FromResponse(object? body, System.Collections.Generic.IReadOnlyDictionary<string, string> headers) { }
     }
     [Hardened.Web.Runtime.Responses.HttpStatus(402)]
-    public sealed class PaymentRequired : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Web.Runtime.Responses.PaymentRequired>
+    public sealed class PaymentRequired : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProblemDetails, System.IEquatable<Hardened.Web.Runtime.Responses.PaymentRequired>
     {
         public static readonly Hardened.Web.Runtime.Responses.PaymentRequired Default;
         public PaymentRequired(string? Detail = null) { }
@@ -1140,7 +1140,7 @@ namespace Hardened.Web.Runtime.Responses
         public static Hardened.Web.Runtime.Responses.PaymentRequired<T> FromResponse(object? body, System.Collections.Generic.IReadOnlyDictionary<string, string> headers) { }
     }
     [Hardened.Web.Runtime.Responses.HttpStatus(412)]
-    public sealed class PreconditionFailed : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Web.Runtime.Responses.PreconditionFailed>
+    public sealed class PreconditionFailed : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProblemDetails, System.IEquatable<Hardened.Web.Runtime.Responses.PreconditionFailed>
     {
         public static readonly Hardened.Web.Runtime.Responses.PreconditionFailed Default;
         public PreconditionFailed(string? Detail = null) { }
@@ -1162,7 +1162,7 @@ namespace Hardened.Web.Runtime.Responses
         public static Hardened.Web.Runtime.Responses.PreconditionFailed<T> FromResponse(object? body, System.Collections.Generic.IReadOnlyDictionary<string, string> headers) { }
     }
     [Hardened.Web.Runtime.Responses.HttpStatus(428)]
-    public sealed class PreconditionRequired : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Web.Runtime.Responses.PreconditionRequired>
+    public sealed class PreconditionRequired : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProblemDetails, System.IEquatable<Hardened.Web.Runtime.Responses.PreconditionRequired>
     {
         public static readonly Hardened.Web.Runtime.Responses.PreconditionRequired Default;
         public PreconditionRequired(string? Detail = null) { }
@@ -1207,7 +1207,7 @@ namespace Hardened.Web.Runtime.Responses
         public const string UnsupportedMediaType = "urn:hardened:problem:unsupported-media-type";
     }
     [Hardened.Web.Runtime.Responses.HttpStatus(429)]
-    public sealed class RateLimited : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProvidesResponseHeaders, System.IEquatable<Hardened.Web.Runtime.Responses.RateLimited>
+    public sealed class RateLimited : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProblemDetails, Hardened.Requests.Abstract.Responses.IProvidesResponseHeaders, System.IEquatable<Hardened.Web.Runtime.Responses.RateLimited>
     {
         public RateLimited(System.TimeSpan RetryAfter, string? Detail = null) { }
         public string? Detail { get; init; }
@@ -1241,7 +1241,7 @@ namespace Hardened.Web.Runtime.Responses
         public bool NotWhenStreaming { get; set; }
     }
     [Hardened.Web.Runtime.Responses.HttpStatus(408)]
-    public sealed class RequestTimeout : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Web.Runtime.Responses.RequestTimeout>
+    public sealed class RequestTimeout : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProblemDetails, System.IEquatable<Hardened.Web.Runtime.Responses.RequestTimeout>
     {
         public static readonly Hardened.Web.Runtime.Responses.RequestTimeout Default;
         public RequestTimeout(string? Detail = null) { }
@@ -1293,7 +1293,7 @@ namespace Hardened.Web.Runtime.Responses
         public static System.TimeSpan RequiredRetryAfter(System.Collections.Generic.IReadOnlyDictionary<string, string> headers) { }
     }
     [Hardened.Web.Runtime.Responses.HttpStatus(503)]
-    public sealed class ServiceUnavailable : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProvidesResponseHeaders, System.IEquatable<Hardened.Web.Runtime.Responses.ServiceUnavailable>
+    public sealed class ServiceUnavailable : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProblemDetails, Hardened.Requests.Abstract.Responses.IProvidesResponseHeaders, System.IEquatable<Hardened.Web.Runtime.Responses.ServiceUnavailable>
     {
         public static readonly Hardened.Web.Runtime.Responses.ServiceUnavailable Default;
         public ServiceUnavailable(System.TimeSpan? After = default, string? Detail = null) { }
@@ -1343,7 +1343,7 @@ namespace Hardened.Web.Runtime.Responses
         public int? StatusCode { get; }
     }
     [Hardened.Web.Runtime.Responses.HttpStatus(401)]
-    public sealed class Unauthorized : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProvidesResponseHeaders, System.IEquatable<Hardened.Web.Runtime.Responses.Unauthorized>
+    public sealed class Unauthorized : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProblemDetails, Hardened.Requests.Abstract.Responses.IProvidesResponseHeaders, System.IEquatable<Hardened.Web.Runtime.Responses.Unauthorized>
     {
         public static readonly Hardened.Web.Runtime.Responses.Unauthorized Default;
         public Unauthorized(string? Detail = null, Hardened.Requests.Abstract.Authorization.AuthorizationChallenge? Challenge = null) { }
@@ -1369,7 +1369,7 @@ namespace Hardened.Web.Runtime.Responses
         public static Hardened.Web.Runtime.Responses.Unauthorized<T> FromResponse(object? body, System.Collections.Generic.IReadOnlyDictionary<string, string> headers) { }
     }
     [Hardened.Web.Runtime.Responses.HttpStatus(422)]
-    public sealed class UnprocessableContent : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Web.Runtime.Responses.UnprocessableContent>
+    public sealed class UnprocessableContent : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProblemDetails, System.IEquatable<Hardened.Web.Runtime.Responses.UnprocessableContent>
     {
         public static readonly Hardened.Web.Runtime.Responses.UnprocessableContent Default;
         public UnprocessableContent(string? Detail = null) { }
@@ -1391,7 +1391,7 @@ namespace Hardened.Web.Runtime.Responses
         public static Hardened.Web.Runtime.Responses.UnprocessableContent<T> FromResponse(object? body, System.Collections.Generic.IReadOnlyDictionary<string, string> headers) { }
     }
     [Hardened.Web.Runtime.Responses.HttpStatus(415)]
-    public sealed class UnsupportedMediaType : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Web.Runtime.Responses.UnsupportedMediaType>
+    public sealed class UnsupportedMediaType : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProblemDetails, System.IEquatable<Hardened.Web.Runtime.Responses.UnsupportedMediaType>
     {
         public static readonly Hardened.Web.Runtime.Responses.UnsupportedMediaType Default;
         public UnsupportedMediaType(string? Detail = null) { }

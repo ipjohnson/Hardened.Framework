@@ -180,7 +180,10 @@ public static class FilterResponseSelector
                                     body,
                                     context.SemanticModel.Compilation.Assembly
                                 )
-                        ),
+                        )
+                        {
+                            IsProblem = ProblemBodies.Implement(body),
+                        },
                         Scope(facet)
                     )
                 );
