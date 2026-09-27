@@ -70,6 +70,10 @@ public class CompressionTests
         Assert.Equal(20, response.Deserialize<List<CompressionController.Sample>>().Count);
     }
 
+    /// <summary>
+    /// Served plain, and still varying on <c>Accept-Encoding</c>, because a request that accepts
+    /// gzip gets different bytes at the same URL.
+    /// </summary>
     [ModuleTest]
     public async Task AClientAcceptingNothingIsServedPlain(ITestWebApp testWebApp)
     {
@@ -81,6 +85,7 @@ public class CompressionTests
         response.Assert.Ok();
 
         Assert.Equal("", Coding(response));
+        Assert.Contains("Accept-Encoding", response.Headers[KnownHeaders.Vary].ToString());
         Assert.False(LooksGzip(response));
         Assert.Equal(20, response.Deserialize<List<CompressionController.Sample>>().Count);
     }

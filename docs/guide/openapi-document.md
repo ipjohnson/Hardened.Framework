@@ -153,13 +153,15 @@ GET /openapi.json
 HTTP/1.1 200 OK
 Content-Type: application/json
 Cache-Control: no-cache
+Vary: Accept-Encoding
 
 {"openapi":"3.2.0","info":{"title":"Application","version":"1.0.0"},"paths":{}}
 ```
 
 Without the attribute, the build writes no document and the assembly carries none.
 
-The document answers GET and HEAD. The response carries `Cache-Control: no-cache`:
+The document answers GET and HEAD. The response carries `Cache-Control: no-cache` and
+`Vary: Accept-Encoding`:
 
 ```http
 HEAD /openapi.json
@@ -167,6 +169,7 @@ HEAD /openapi.json
 HTTP/1.1 200 OK
 Content-Type: application/json
 Cache-Control: no-cache
+Vary: Accept-Encoding
 ```
 
 Another method answers 405 with `Allow: GET, HEAD`:
@@ -179,7 +182,8 @@ Allow: GET, HEAD
 ```
 
 A request that sends `Accept-Encoding: gzip` gets the document compressed, with
-`Content-Encoding: gzip`. Any other request gets it uncompressed.
+`Content-Encoding: gzip`. Any other request gets it uncompressed. Both answers carry
+`Vary: Accept-Encoding`, because that header decides which one a request gets.
 
 The document has no `[AllowAnonymous]`. Under `[RequireAuthorization]` on the application module,
 `/openapi.json` answers 401 to a caller with no credentials. [Authorization](/guide/authorization)
@@ -249,6 +253,7 @@ HEAD /spec.json
 HTTP/1.1 200 OK
 Content-Type: application/json
 Cache-Control: no-cache
+Vary: Accept-Encoding
 ```
 
 ```http
@@ -426,6 +431,7 @@ HEAD /openapi.json
 HTTP/1.1 200 OK
 Content-Type: application/json
 Cache-Control: no-cache
+Vary: Accept-Encoding
 ```
 
 ```http
@@ -434,6 +440,7 @@ HEAD /openapi.yaml
 HTTP/1.1 200 OK
 Content-Type: application/yaml
 Cache-Control: no-cache
+Vary: Accept-Encoding
 ```
 
 `UiUrl` serves a reference page over the `PublishUrl` document. Its title is `API Reference`.

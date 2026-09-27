@@ -46,6 +46,23 @@ public class OpenApiDocumentTests
     }
 
     /// <summary>
+    /// Both answers vary on <c>Accept-Encoding</c>, and say so once, though this fixture's
+    /// application-wide compression filter runs over the document as well.
+    /// </summary>
+    [ModuleTest]
+    public async Task BothAnswersVaryOnAcceptEncoding(ITestWebApp testWebApp)
+    {
+        var gzip = await testWebApp.Get("/openapi.json");
+        var identity = await testWebApp.Get(
+            "/openapi.json",
+            request => request.Headers["Accept-Encoding"] = "identity"
+        );
+
+        Assert.Equal("Accept-Encoding", gzip.Headers["Vary"].ToString());
+        Assert.Equal("Accept-Encoding", identity.Headers["Vary"].ToString());
+    }
+
+    /// <summary>
     /// A client that does not take gzip gets the document inflated rather than unreadable.
     /// </summary>
     [ModuleTest]

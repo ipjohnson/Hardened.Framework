@@ -38,6 +38,7 @@ public class OpenApiDocumentController
         response.ContentType = contentType;
         response.ShouldSerialize = false;
         response.Headers[KnownHeaders.CacheControl] = new StringValues("no-cache");
+        VaryHeader.Add(response.Headers, KnownHeaders.AcceptEncoding);
 
         if (AcceptsGZip(context))
         {

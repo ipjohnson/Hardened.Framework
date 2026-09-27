@@ -23,7 +23,9 @@ namespace Hardened.Web.Runtime.Compression;
 /// coding is chosen from <c>Accept-Encoding</c> against the configured order, with the operation's
 /// <see cref="CompressionType"/> preference tried first. Whether the body is then compressed at
 /// all depends on the status and the content type, which nothing knows until something writes -
-/// so that half lives in <see cref="CompressingResponseStream"/>.
+/// so that half lives in <see cref="CompressingResponseStream"/>. The body is wrapped for a
+/// request that accepts no coding as well, because a response that could have been compressed
+/// still carries <c>Vary: Accept-Encoding</c>, and only the first write knows whether it could.
 /// </para>
 /// <para>
 /// Installed by <c>[Compress]</c> on an operation or a class, or on every handler by
@@ -77,14 +79,6 @@ public sealed class ResponseCompressionFilter : IExecutionFilter
 
         var configuration = Configuration(context);
         var coding = Negotiate(context.Request.Headers, configuration, _favor);
-
-        if (coding == null)
-        {
-            await chain.Next();
-
-            return;
-        }
-
         var transport = response.Body;
         var body = new CompressingResponseStream(
             context,

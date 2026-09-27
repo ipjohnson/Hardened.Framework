@@ -24,6 +24,12 @@ namespace Hardened.Web.Runtime.Compression;
 /// because the headers it would need to change have already been sent.
 /// </para>
 /// <para>
+/// A response the rules would compress says <c>Vary: Accept-Encoding</c> even when the request
+/// accepted no coding the server offers, because its encoding still depends on that header. So the
+/// filter puts this stream in place for every request, and <see cref="_coding"/> is null for one
+/// that accepted nothing.
+/// </para>
+/// <para>
 /// <see cref="Position"/> is the count of bytes accepted, which is what the API Gateway host's
 /// started check reads and what the testing response reads for the same purpose.
 /// </para>
@@ -32,7 +38,7 @@ internal sealed class CompressingResponseStream : Stream
 {
     private readonly IExecutionContext _context;
     private readonly Stream _transport;
-    private readonly string _coding;
+    private readonly string? _coding;
     private readonly ICompressionPredicate? _predicate;
     private readonly ICompressionConfiguration _configuration;
     private Stream? _target;
@@ -42,7 +48,7 @@ internal sealed class CompressingResponseStream : Stream
     public CompressingResponseStream(
         IExecutionContext context,
         Stream transport,
-        string coding,
+        string? coding,
         ICompressionPredicate? predicate,
         ICompressionConfiguration configuration
     )
@@ -163,8 +169,14 @@ internal sealed class CompressingResponseStream : Stream
             return _target = _transport;
         }
 
-        response.Headers[KnownHeaders.ContentEncoding] = _coding;
         VaryHeader.Add(response.Headers, KnownHeaders.AcceptEncoding);
+
+        if (_coding == null)
+        {
+            return _target = _transport;
+        }
+
+        response.Headers[KnownHeaders.ContentEncoding] = _coding;
 
         // Whatever was announced measured the identity bytes. The transport frames what is
         // actually written.
