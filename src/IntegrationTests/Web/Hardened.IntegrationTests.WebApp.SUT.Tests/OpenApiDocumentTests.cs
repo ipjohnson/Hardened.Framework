@@ -178,6 +178,34 @@ public class OpenApiDocumentTests
     }
 
     /// <summary>
+    /// <c>Accepted&lt;T&gt;</c> returned on its own publishes the 202, its body and the
+    /// <c>Location</c> it may carry, as <c>Created&lt;T&gt;</c> does the 201.
+    /// </summary>
+    [ModuleTest]
+    public async Task AnAcceptedBodyIsDescribedAtTwoHundredAndTwo(ITestWebApp testWebApp)
+    {
+        using var document = await Fetch(testWebApp);
+
+        var accepted = document
+            .RootElement.GetProperty("paths")
+            .GetProperty("/verbs/queued")
+            .GetProperty("post")
+            .GetProperty("responses")
+            .GetProperty("202");
+
+        Assert.Equal(
+            "#/components/schemas/CreatedNote",
+            accepted
+                .GetProperty("content")
+                .GetProperty("application/json")
+                .GetProperty("schema")
+                .GetProperty("$ref")
+                .GetString()
+        );
+        Assert.True(accepted.GetProperty("headers").TryGetProperty("Location", out _));
+    }
+
+    /// <summary>
     /// A path template names its parameters and nothing else.
     /// </summary>
     /// <remarks>

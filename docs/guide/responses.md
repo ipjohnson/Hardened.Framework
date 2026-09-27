@@ -156,6 +156,7 @@ Each type in this table is a sealed record in `Hardened.Web.Runtime.Responses` t
 | `Ok<T>` | 200 | `(T Value, IReadOnlyDictionary<string, string>? Headers = null)` or `(T value, string headerName, string headerValue)` | The headers it is given |
 | `Created<T>` | 201 | `(T Value, string Location)` | `Location` |
 | `Accepted` | 202 | `(string? Location = null)` | `Location`, when it is given |
+| `Accepted<T>` | 202 | `(T Value, string? Location = null)` | `Location`, when it is given |
 | `NoContent` | 204 | `()` | None |
 | `NotModified` | 304 | `(string? ETag = null)` | `ETag`, when it is given |
 | `BadRequest` | 400 | `(string? Detail = null)` | None |
@@ -180,7 +181,7 @@ Each type in this table is a sealed record in `Hardened.Web.Runtime.Responses` t
 | `ServiceUnavailable` | 503 | `(TimeSpan? After = null, string? Detail = null)` | `Retry-After`, when `After` is given |
 | `GatewayTimeout` | 504 | `(string? Detail = null)` | None |
 
-`Ok<T>` and `Created<T>` send `Value` as the body. `NoContent` and `NotModified` send no body.
+`Ok<T>`, `Created<T>` and `Accepted<T>` send `Value` as the body. `Accepted`, `NoContent` and `NotModified` send no body.
 
 The types with a `Detail` parameter are the problem types. A problem type sends itself as the body:
 its constructor members first, then `type`, `title` and `status`. The 404 at the top of this page
@@ -211,7 +212,7 @@ Each problem type except `RateLimited` has a static `Default`: one shared instan
 Each problem type has a generic form, such as `NotFound<T>`. `MethodNotAllowed` has one too. A
 generic form answers the same status. It sends a body of the application's own type in place of the
 record. The document describes a generic form's case with the schema of its type argument.
-`Accepted`, `NoContent`, `NotAcceptable` and `NotModified` have no generic form.
+`NoContent`, `NotAcceptable` and `NotModified` have no generic form. `Accepted<T>` is the form of `Accepted` with a body, and takes a `Location` as `Accepted` does.
 
 A generic form's constructor is `(T Body)`, except for these:
 
@@ -395,7 +396,7 @@ parameter's name is the header's name. `Detail`, `Value` and `Body` are not head
 | Type | Header | In the document |
 |---|---|---|
 | `Created<T>` | `Location` | Listed |
-| `Accepted` | `Location` | Listed |
+| `Accepted` and `Accepted<T>` | `Location` | Listed |
 | `MethodNotAllowed` | `Allow` | Listed |
 | `NotModified` | `ETag` | Listed |
 | `Ok<T>` | The headers it is given | Not listed |

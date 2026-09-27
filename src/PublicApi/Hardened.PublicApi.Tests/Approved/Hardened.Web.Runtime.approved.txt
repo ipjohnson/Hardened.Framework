@@ -648,6 +648,17 @@ namespace Hardened.Web.Runtime.Responses
         public void ApplyHeaders(System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers) { }
         public static Hardened.Web.Runtime.Responses.Accepted FromResponse(object? body, System.Collections.Generic.IReadOnlyDictionary<string, string> headers) { }
     }
+    [Hardened.Web.Runtime.Responses.HttpStatus(202)]
+    public sealed class Accepted<T> : Hardened.Requests.Abstract.Responses.ICarriesResponseBody, Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProvidesResponseHeaders, Hardened.Web.Runtime.Responses.IResponseExpectation<Hardened.Web.Runtime.Responses.Accepted<T>>, System.IEquatable<Hardened.Web.Runtime.Responses.Accepted<T>>
+    {
+        public Accepted(T Value, string? Location = null) { }
+        public string? Location { get; init; }
+        public int Status { get; }
+        public T Value { get; init; }
+        public static int StatusCode { get; }
+        public void ApplyHeaders(System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers) { }
+        public static Hardened.Web.Runtime.Responses.Accepted<T> FromResponse(object? body, System.Collections.Generic.IReadOnlyDictionary<string, string> headers) { }
+    }
     [Hardened.Web.Runtime.Responses.HttpStatus(502)]
     public sealed class BadGateway : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProblemDetails, System.IEquatable<Hardened.Web.Runtime.Responses.BadGateway>
     {

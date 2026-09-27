@@ -53,6 +53,21 @@ public class EnumVocabularyTests
     }
 
     /// <summary>
+    /// The harness reads a response with the resolvers the application writes it with, so a value
+    /// the build wrote a converter for reads back as the enum. It threw on <c>"inProgress"</c>
+    /// while the harness read with the web defaults alone.
+    /// </summary>
+    [ModuleTest]
+    public async Task DeserializeReadsTheVocabularyBack(ITestWebApp testWebApp)
+    {
+        var ticket = (await testWebApp.Get("/enum-vocabulary/ticket")).Deserialize<Ticket>();
+        var order = (await testWebApp.Get("/enum-vocabulary/order")).Deserialize<Order>();
+
+        Assert.Equal(new Ticket("Ship it", Priority.InProgress), ticket);
+        Assert.Equal(new Order(LegacyCode.AB12, Shipping.NextDay), order);
+    }
+
+    /// <summary>
     /// A dictionary keyed by the enum writes its keys in the vocabulary, and reads them back. It
     /// answered 500 with an empty body once the converter was registered, because the converter
     /// read and wrote values and System.Text.Json wants the property-name pair for a key.

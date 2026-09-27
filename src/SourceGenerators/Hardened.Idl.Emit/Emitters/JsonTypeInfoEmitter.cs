@@ -257,14 +257,6 @@ internal static class JsonTypeInfoEmitter
 
         foreach (var prop in schema.Properties.OrderByDescending(p => !p.HasDefault))
         {
-            // A member bound to a response header leaves as a header, so it has no place in the
-            // body's metadata. The constructor parameter below stays - the positions have to match
-            // the constructor the schema emitter wrote, and the handler still sets the member.
-            if (prop.IsHeaderBound)
-            {
-                continue;
-            }
-
             EmitPropertyInfo(sb, prop, typeName, allSchemas, ns);
         }
 
@@ -391,7 +383,7 @@ internal static class JsonTypeInfoEmitter
         // the request body it describes unserializable; see ResponseOnlyAttribute.
         var getter = $"static obj => (({declaringTypeName})obj).{propName}";
 
-        var required = RequiresPresenceCheck(prop);
+        var required = !prop.IsHeaderBound && RequiresPresenceCheck(prop);
 
         var open = required ? RequireMethodName + "(" : "";
         var close = required ? ")," : ",";
@@ -420,11 +412,19 @@ internal static class JsonTypeInfoEmitter
                 : "                    Setter = null,"
         );
 
+        // A member bound to a response header leaves as a header, so the body neither writes nor
+        // reads it. It is listed rather than left out because its constructor parameter has to bind
+        // to a property: without one System.Text.Json refused to read the type at all, which a
+        // test reading a response through the application's resolver found.
+        if (prop.IsHeaderBound)
+        {
+            sb.AppendLine("                    IgnoreCondition = JsonIgnoreCondition.Always,");
+        }
         // Absent rather than null for a member the description declares optional and not nullable.
         // The same decision SchemaEmitter writes as [JsonIgnore(Condition = WhenWritingNull)], and
         // it has to be made twice: this resolver builds JsonPropertyInfo by hand and never reads
         // the attribute, so the two serializers answered differently for the same contract.
-        if (prop.OmittedWhenNull)
+        else if (prop.OmittedWhenNull)
         {
             sb.AppendLine(
                 "                    IgnoreCondition = JsonIgnoreCondition.WhenWritingNull,"

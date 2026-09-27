@@ -125,6 +125,15 @@ public class KestrelHostTests
     }
 
     [ModuleTest]
+    [Grants("pets:read")]
+    [Claim("tenant", "acme")]
+    public async Task AClaimCrossesTheWire(ITestWebApp app)
+    {
+        (await app.Get("/authorization/tenants/acme")).Assert.Ok();
+        (await app.Get("/authorization/tenants/globex")).Assert.Forbidden();
+    }
+
+    [ModuleTest]
     public async Task AnUnmatchedPathIs404(ITestWebApp app)
     {
         var response = await app.Get("/no/such/route");

@@ -9,11 +9,10 @@ namespace Hardened.Web.Runtime.Responses;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Bodyless, which is a choice rather than a rule: 202 permits a representation of the accepted
-/// work, but a body that describes a thing which has not happened is the shape most likely to be
-/// mistaken for a result. A caller who wants status polls <see cref="Location"/>; a caller who wants
-/// to return a real progress representation declares their own 202 type, which is exactly what
-/// <c>[HttpStatus(202)]</c> on a record of their own is for.
+/// Bodyless: a caller who wants status polls <see cref="Location"/>. A 202 that describes the
+/// accepted work - an identifier, a state - is <see cref="Accepted{T}"/>, which a test also reads
+/// back with <c>Returns&lt;Accepted&lt;T&gt;&gt;()</c>. A body that describes a thing which has not
+/// happened is easily mistaken for a result, so the representation should say what it is.
 /// </para>
 /// <para>
 /// <see cref="Location"/> is optional here where a 201's is not. A creation always produced

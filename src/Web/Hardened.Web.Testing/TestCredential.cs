@@ -6,8 +6,8 @@ using Microsoft.Extensions.Primitives;
 namespace Hardened.Web.Testing;
 
 /// <summary>
-/// Who a test's requests are sent as: the grants and the subject
-/// <see cref="TestGrantsPrincipalSource"/> reads off the two test headers.
+/// Who a test's requests are sent as: the grants, the subject and the claims
+/// <see cref="TestGrantsPrincipalSource"/> reads off the test headers.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -18,9 +18,10 @@ namespace Hardened.Web.Testing;
 /// and the same headers on <c>app.Get</c> make the harness and the client one caller.
 /// </para>
 /// <para>
-/// Usually resolved from <see cref="GrantsAttribute"/>, <see cref="SubjectAttribute"/> and
-/// <see cref="AnonymousAttribute"/> rather than constructed. Constructed for a caller decided
-/// inside the test, and handed to <see cref="ITestWebApp.CreateClient{TClient}"/>.
+/// Usually resolved from <see cref="GrantsAttribute"/>, <see cref="SubjectAttribute"/>,
+/// <see cref="ClaimAttribute"/> and <see cref="AnonymousAttribute"/> rather than constructed.
+/// Constructed for a caller decided inside the test, and handed to
+/// <see cref="ITestWebApp.CreateClient{TClient}"/>.
 /// </para>
 /// </remarks>
 /// <param name="Grants">
@@ -33,12 +34,18 @@ public sealed record TestCredential(IReadOnlyList<string>? Grants, string? Subje
     /// <summary>No headers at all: the request stays anonymous.</summary>
     public static readonly TestCredential Anonymous = new(Grants: null);
 
+    /// <summary>
+    /// The claims the caller carries, as <c>X-Test-Claims</c>, or null for none: what a policy reads
+    /// through <c>ICallerPrincipal.TryGetClaim</c>.
+    /// </summary>
+    public IReadOnlyDictionary<string, string>? Claims { get; init; }
+
     /// <summary>Whether this credential sends nothing.</summary>
-    public bool IsAnonymous => Grants == null && Subject == null;
+    public bool IsAnonymous => Grants == null && Subject == null && ClaimsHeaderValue == null;
 
     /// <summary>
-    /// Sets the two headers on <paramref name="headers"/> when the caller set neither, so a test
-    /// that wrote its own credential into the request keeps it.
+    /// Sets the test headers on <paramref name="headers"/> when the caller set none of them, so a
+    /// test that wrote its own credential into the request keeps it.
     /// </summary>
     public void ApplyTo(IDictionary<string, StringValues> headers)
     {
@@ -46,6 +53,7 @@ public sealed record TestCredential(IReadOnlyList<string>? Grants, string? Subje
             IsAnonymous
             || headers.ContainsKey(TestGrantsPrincipalSource.GrantsHeader)
             || headers.ContainsKey(TestGrantsPrincipalSource.SubjectHeader)
+            || headers.ContainsKey(TestGrantsPrincipalSource.ClaimsHeader)
         )
         {
             return;
@@ -57,10 +65,15 @@ public sealed record TestCredential(IReadOnlyList<string>? Grants, string? Subje
         {
             headers[TestGrantsPrincipalSource.SubjectHeader] = Subject;
         }
+
+        if (ClaimsHeaderValue is { } claims)
+        {
+            headers[TestGrantsPrincipalSource.ClaimsHeader] = claims;
+        }
     }
 
     /// <summary>
-    /// Sets the two headers on a request that carries neither, in a socket host's chain - the
+    /// Sets the test headers on a request that carries none of them, in a socket host's chain - the
     /// same rule the pipeline host applies to the execution request it builds.
     /// </summary>
     internal void ApplyTo(HttpRequestMessage request)
@@ -69,26 +82,16 @@ public sealed record TestCredential(IReadOnlyList<string>? Grants, string? Subje
             IsAnonymous
             || request.Headers.Contains(TestGrantsPrincipalSource.GrantsHeader)
             || request.Headers.Contains(TestGrantsPrincipalSource.SubjectHeader)
+            || request.Headers.Contains(TestGrantsPrincipalSource.ClaimsHeader)
         )
         {
             return;
         }
 
-        request.Headers.TryAddWithoutValidation(
-            TestGrantsPrincipalSource.GrantsHeader,
-            GrantsHeaderValue
-        );
-
-        if (Subject != null)
-        {
-            request.Headers.TryAddWithoutValidation(
-                TestGrantsPrincipalSource.SubjectHeader,
-                Subject
-            );
-        }
+        ApplyTo(request.Headers);
     }
 
-    /// <summary>Sets the two headers as the client's defaults, so every request it sends carries them.</summary>
+    /// <summary>Sets the test headers as the client's defaults, so every request it sends carries them.</summary>
     public void ApplyTo(HttpClient client)
     {
         if (IsAnonymous)
@@ -96,17 +99,21 @@ public sealed record TestCredential(IReadOnlyList<string>? Grants, string? Subje
             return;
         }
 
-        client.DefaultRequestHeaders.TryAddWithoutValidation(
-            TestGrantsPrincipalSource.GrantsHeader,
-            GrantsHeaderValue
-        );
+        ApplyTo(client.DefaultRequestHeaders);
+    }
+
+    private void ApplyTo(System.Net.Http.Headers.HttpHeaders headers)
+    {
+        headers.TryAddWithoutValidation(TestGrantsPrincipalSource.GrantsHeader, GrantsHeaderValue);
 
         if (Subject != null)
         {
-            client.DefaultRequestHeaders.TryAddWithoutValidation(
-                TestGrantsPrincipalSource.SubjectHeader,
-                Subject
-            );
+            headers.TryAddWithoutValidation(TestGrantsPrincipalSource.SubjectHeader, Subject);
+        }
+
+        if (ClaimsHeaderValue is { } claims)
+        {
+            headers.TryAddWithoutValidation(TestGrantsPrincipalSource.ClaimsHeader, claims);
         }
     }
 
@@ -118,6 +125,9 @@ public sealed record TestCredential(IReadOnlyList<string>? Grants, string? Subje
         Grants == null || Grants.Count == 0
             ? TestGrantsPrincipalSource.AnonymousGrantsValue
             : string.Join(" ", Grants);
+
+    private string? ClaimsHeaderValue =>
+        Claims == null || Claims.Count == 0 ? null : TestGrantsPrincipalSource.FormatClaims(Claims);
 
     /// <summary>
     /// The credential the attributes in scope resolve to: the assembly's, then the class's, then
@@ -162,8 +172,8 @@ public sealed record TestCredential(IReadOnlyList<string>? Grants, string? Subje
 }
 
 /// <summary>
-/// What the three credential attributes share: a step over the credential resolved so far, and
-/// the parameter hook that builds a client for a parameter carrying one.
+/// What the credential attributes share: a step over the credential resolved so far, and the
+/// parameter hook that builds a client for a parameter carrying one.
 /// </summary>
 /// <remarks>
 /// A parameter attribute implements <see cref="ITestParameterValueProvider"/> so the runner asks it
@@ -247,6 +257,55 @@ public sealed class SubjectAttribute : TestCredentialAttribute
         {
             Subject = Subject,
         };
+}
+
+/// <summary>
+/// A claim the caller carries, as <c>X-Test-Claims</c>, for a policy that reads one: a tenant, an
+/// organisation.
+/// </summary>
+/// <remarks>
+/// One per claim, as many as the caller needs. On a parameter, a method, a class or the assembly; a
+/// narrower one replaces a wider one's value for the same name and keeps the others. The grants and
+/// the subject are kept, and <see cref="AnonymousAttribute"/> clears the claims with the rest.
+/// </remarks>
+[AttributeUsage(
+    AttributeTargets.Parameter
+        | AttributeTargets.Method
+        | AttributeTargets.Class
+        | AttributeTargets.Assembly,
+    AllowMultiple = true
+)]
+public sealed class ClaimAttribute : TestCredentialAttribute
+{
+    public ClaimAttribute(string name, string value)
+    {
+        Name = name;
+        Value = value;
+    }
+
+    public string Name { get; }
+
+    public string Value { get; }
+
+    internal override TestCredential Apply(TestCredential current)
+    {
+        var claims = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        if (current.Claims != null)
+        {
+            foreach (var claim in current.Claims)
+            {
+                claims[claim.Key] = claim.Value;
+            }
+        }
+
+        claims[Name] = Value;
+
+        return current with
+        {
+            Claims = claims,
+        };
+    }
 }
 
 /// <summary>

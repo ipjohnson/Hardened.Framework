@@ -53,6 +53,20 @@ public class KiotaReturnsTests
             .ReturnsStatus<BadRequest>();
     }
 
+    /// <summary>
+    /// A 202 with a body, which the client returns as the body alone, like the 201 above.
+    /// </summary>
+    [ModuleTest]
+    public async Task AnAcceptedResponseCarriesItsBodyAndItsLocation(WebAppClient client)
+    {
+        var accepted = await client
+            .Verbs.Queued.PostAsync(cancellationToken: Token)
+            .Returns<Accepted<ClientModels.CreatedNote>>();
+
+        Assert.Equal("queued", accepted.Value.Title);
+        Assert.Equal("/verbs/queued/1", accepted.Location);
+    }
+
     [ModuleTest]
     public async Task ADeclared204IsNoContent(WebAppClient client)
     {

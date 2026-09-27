@@ -63,6 +63,13 @@ public class HardenedTestEntryPointSetupTests
         public void MethodWithItsOwnEnvironment() { }
     }
 
+    private class DeclaresTwoValuesOnOneMethod
+    {
+        [EnvironmentValue("first-value", "one")]
+        [EnvironmentValue("second-value", "two")]
+        public void Method() { }
+    }
+
     // ---- environment name, across the three scopes -------------------------------------------
 
     /// <summary>
@@ -132,6 +139,19 @@ public class HardenedTestEntryPointSetupTests
         Assert.Equal("from-method", environment.Value<string>("method-scoped-value"));
         Assert.Equal("from-class", environment.Value<string>("class-scoped-value"));
         Assert.Equal("from-assembly", environment.Value<string>("assembly-scoped-value"));
+    }
+
+    [Fact]
+    public void OneMethodMayDeclareSeveralValues()
+    {
+        var (provider, _) = Setup<DeclaresTwoValuesOnOneMethod>(
+            nameof(DeclaresTwoValuesOnOneMethod.Method)
+        );
+
+        var environment = provider.GetRequiredService<IHardenedEnvironment>();
+
+        Assert.Equal("one", environment.Value<string>("first-value"));
+        Assert.Equal("two", environment.Value<string>("second-value"));
     }
 
     [Fact]

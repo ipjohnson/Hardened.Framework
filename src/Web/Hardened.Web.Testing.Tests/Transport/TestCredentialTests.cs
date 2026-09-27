@@ -1,6 +1,9 @@
 using System.Reflection;
 using DependencyModules.Testing.Attributes.Interfaces;
+using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Testing;
 using Microsoft.Extensions.Primitives;
+using NSubstitute;
 using Xunit;
 
 namespace Hardened.Web.Testing.Tests.Transport;
@@ -247,5 +250,96 @@ public class TestCredentialTests
 
         Assert.Equal("a b", client.DefaultRequestHeaders.GetValues("X-Test-Grants").Single());
         Assert.Equal("pia", client.DefaultRequestHeaders.GetValues("X-Test-Subject").Single());
+    }
+
+    [Claim("tenant", "class-tenant")]
+    [Claim("region", "eu")]
+    private sealed class ClaimsFixture
+    {
+        [Claim("tenant", "method-tenant")]
+        [Grants("method:grant")]
+        public void OnMethod() { }
+
+        [Anonymous]
+        public void Cancelled() { }
+    }
+
+    private static TestCredential ResolveClaims(string method) =>
+        TestCredential.Resolve(
+            typeof(ClaimsFixture)
+                .GetCustomAttributes()
+                .Concat(typeof(ClaimsFixture).GetMethod(method)!.GetCustomAttributes())
+        );
+
+    /// <summary>
+    /// Claims gather across the levels, and a narrower level's value replaces a wider one's for the
+    /// same name. A grant beside them leaves them alone.
+    /// </summary>
+    [Fact]
+    public void ANarrowerClaimReplacesTheSameNameAndKeepsTheOthers()
+    {
+        var credential = ResolveClaims(nameof(ClaimsFixture.OnMethod));
+
+        Assert.Equal(new[] { "method:grant" }, credential.Grants);
+        Assert.Equal("method-tenant", credential.Claims!["tenant"]);
+        Assert.Equal("eu", credential.Claims["region"]);
+    }
+
+    [Fact]
+    public void AnonymousClearsTheClaims()
+    {
+        Assert.True(ResolveClaims(nameof(ClaimsFixture.Cancelled)).IsAnonymous);
+    }
+
+    /// <summary>
+    /// A claim alone is an authenticated caller holding no grants, and a value holding the header's
+    /// own separators reaches the principal whole.
+    /// </summary>
+    [Fact]
+    public async Task AClaimReachesThePrincipalWhole()
+    {
+        var credential = TestCredential.Resolve(
+            new[] { new ClaimAttribute("tenant", "a&b=c, d"), new ClaimAttribute("empty", "") }
+        );
+
+        var request = PipelineRequest.CreateRequest(
+            "GET",
+            "/",
+            new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase),
+            Stream.Null,
+            credential
+        );
+
+        var context = Substitute.For<IExecutionContext>();
+
+        context.Request.Returns(request);
+
+        var caller = await new TestGrantsPrincipalSource().Authenticate(context);
+
+        Assert.NotNull(caller);
+        Assert.Empty(caller.Grants);
+        Assert.True(caller.TryGetClaim("tenant", out var tenant));
+        Assert.Equal("a&b=c, d", tenant);
+        Assert.True(caller.TryGetClaim("empty", out var empty));
+        Assert.Equal("", empty);
+    }
+
+    [Fact]
+    public void TheClaimsBecomeTheClientsDefaults()
+    {
+        using var client = new HttpClient();
+
+        (
+            new TestCredential(null)
+            {
+                Claims = new Dictionary<string, string> { ["tenant"] = "acme" },
+            }
+        ).ApplyTo(client);
+
+        Assert.Equal("-", client.DefaultRequestHeaders.GetValues("X-Test-Grants").Single());
+        Assert.Equal(
+            "tenant=acme",
+            client.DefaultRequestHeaders.GetValues("X-Test-Claims").Single()
+        );
     }
 }

@@ -117,6 +117,7 @@ The socket hosts serve plain HTTP on `127.0.0.1`. A test sees these differences 
 | `TestWebResponse.Failure` after a handler threw | The exception | Null | Null |
 | A path with no route | 404 | 404 | Handed to the rest of the ASP.NET Core pipeline, which answers 404 when nothing else does |
 | `LastResponse` | What the pipeline answered | What came back over the socket | What came back over the socket |
+| A streamed body | Whole when the call returns | Handed on as the server writes it | Handed on as the server writes it |
 | Requests in one test | Each in a container of its own | All in one container | All in one container |
 
 The credential attributes work on both socket hosts. A test marked `[Grants("todos:read")]` reaches

@@ -138,6 +138,7 @@ client received. `Returns<T>()` reads the status and the headers of a success fr
 | `Ok<T>` | 200 | `Value`, and `Headers`, every response header |
 | `Created<T>` | 201 | `Value`, and `Location`, which must be present |
 | `Accepted` | 202 | `Location`, when present |
+| `Accepted<T>` | 202 | `Value`, and `Location`, when present |
 | `NoContent` | 204 | Nothing |
 | `NotModified` | 304 | `ETag`, when present |
 | `BadRequest<T>` | 400 | `Body` |

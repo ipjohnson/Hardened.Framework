@@ -241,8 +241,8 @@ collection holds the attributes of the method, its class and the assembly. `GetA
 returns the attribute of type `T` from the narrowest of the three. `GetAttributes<T>()` returns
 all of them.
 
-An environment attribute can set any number of values. Each attribute target can carry only one
-`[EnvironmentValue]`. `FeatureFlagsAttribute` sets two values:
+An environment attribute can set any number of values, and can compute them.
+`FeatureFlagsAttribute` sets two values:
 
 ```csharp
 using System.Reflection;

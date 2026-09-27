@@ -363,7 +363,8 @@ throw `ArgumentException`.
 `IExecutionContext`. The function reads the handler's bound parameters through
 `context.Request.Parameters`. The example compares the route's `tenant` with the caller's `tenant`
 claim. The `acme` token's caller carries that claim. [Authentication](/guide/authentication) covers
-claims.
+claims. A test sends the claim with `[Claim("tenant", "acme")]`, which
+[Sending requests](/guide/testing-web) covers.
 
 ```csharp
 using Hardened.Requests.Abstract.Authorization;

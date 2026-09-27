@@ -86,6 +86,29 @@ public class AuthorizationController
     [Authorize<PetsOAuth>]
     [RequiresPetWrite]
     public string Derived() => "derived";
+
+    /// <summary>
+    /// A policy that reads a claim, which is the tenant example in the authorization guide.
+    /// </summary>
+    [Get("/tenants/{tenant}")]
+    [Authorize<PetsOAuth, SameTenant>]
+    public string Tenant(string tenant) => tenant;
+}
+
+/// <summary>
+/// Admits a caller whose <c>tenant</c> claim names the tenant in the path.
+/// </summary>
+public sealed class SameTenant : AuthorizationPolicy
+{
+    protected override Requirement Define() =>
+        Predicate(
+            (caller, context) =>
+                caller.TryGetClaim("tenant", out var tenant)
+                && context.Request.Parameters is { } parameters
+                && parameters.TryGetParameter("tenant", out var requested)
+                && Equals(requested, tenant),
+            "the caller's tenant"
+        );
 }
 
 /// <summary>

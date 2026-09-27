@@ -159,11 +159,11 @@ The response has these members:
 
 A test runs on the pipeline host by default. There, `Headers` holds what the pipeline wrote, such as `Content-Type`, `Location` and `X-Correlation-Id`. Headers that a server adds, such as `Date` and `Content-Length`, are absent. A cookie that the handler sets is in `Headers` as `Set-Cookie`.
 
-`Deserialize<T>()`, `ReadTextAsync()` and `DeserializeAsyncEnumerable<T>()` undo a gzip or Brotli `Content-Encoding` before reading. Any other content coding throws `BadContentEncodingException`. `Deserialize<T>()` and `DeserializeAsyncEnumerable<T>()` read with System.Text.Json's web defaults: camelCase names, matched without regard to case. They do not use the application's JSON settings.
+`Deserialize<T>()`, `ReadTextAsync()` and `DeserializeAsyncEnumerable<T>()` undo a gzip or Brotli `Content-Encoding` before reading. Any other content coding throws `BadContentEncodingException`. `Deserialize<T>()` and `DeserializeAsyncEnumerable<T>()` read with what the application's JSON response serializer writes with. That is `SerializeOptions` from `JsonSerializerConfiguration`, or System.Text.Json's web defaults when it is not set, with every registered `IJsonTypeInfoResolver` ahead of reflection. An enum therefore reads back in the vocabulary the build writes for it. Names match without regard to case. A `TestWebResponse` that the test constructs itself reads with the web defaults.
 
 `Deserialize<T>()` reads `Body` from where it stands and does not rewind it. A second `Deserialize<T>()`, or one after `ReadTextAsync()`, throws `JsonException`. `Deserialize<T>()` on an empty body, such as a 204's, throws `JsonException` too. `ReadTextAsync()` and `DeserializeAsyncEnumerable<T>()` rewind `Body` before reading.
 
-On the pipeline host, the call returns when the handler has finished, so every item of a stream is in `Body`. `DeserializeAsyncEnumerable<T>()` skips blank lines. It throws `JsonException` on the `data:` lines of a server-sent-events body. `ReadTextAsync()` returns those lines. [Streaming responses](/guide/streaming) covers the stream formats.
+On the pipeline host, the call returns when the handler has finished, so every item of a stream is in `Body`. A socket host hands a stream on as the server writes it, as [The last response](#the-last-response) describes. `DeserializeAsyncEnumerable<T>()` skips blank lines. It throws `JsonException` on the `data:` lines of a server-sent-events body. `ReadTextAsync()` returns those lines. [Streaming responses](/guide/streaming) covers the stream formats.
 
 In this example, `TodoController.All` carries `[Compress]`. `TodoFeedController`, from the first example of [Streaming responses](/guide/streaming), answers `GET /todos/feed`.
 
@@ -229,14 +229,17 @@ A test asserts any other status on `StatusCode`, as the first example does for t
 
 ## Credentials
 
-`[Grants]`, `[Subject]` and `[Anonymous]` name who a test's requests are sent as. They are in `Hardened.Web.Testing`. They send two headers, `X-Test-Grants` and `X-Test-Subject`:
+`[Grants]`, `[Subject]`, `[Claim]` and `[Anonymous]` name who a test's requests are sent as. They are in `Hardened.Web.Testing`. They send three headers, `X-Test-Grants`, `X-Test-Subject` and `X-Test-Claims`:
 
 | Attribute | Sends |
 |---|---|
 | `[Grants("todos:read", "todos:write")]` | `X-Test-Grants: todos:read todos:write` |
 | `[Grants]`, with no grants | `X-Test-Grants: -` |
 | `[Subject("pia")]` | `X-Test-Subject: pia`, and `X-Test-Grants: -` when no grants are in scope |
-| `[Anonymous]` | Neither header |
+| `[Claim("tenant", "acme")]` | `X-Test-Claims: tenant=acme`, and `X-Test-Grants: -` when no grants are in scope |
+| `[Anonymous]` | None of them |
+
+`[Claim]` is repeatable, one per claim. Two claims send `X-Test-Claims: tenant=acme&region=eu`, with each name and value percent-encoded.
 
 `ITestWebApp`, an `HttpClient` parameter and every client built for a parameter send the credential. They send it on a socket host too.
 
@@ -274,11 +277,12 @@ public class TodoReaderTests
 
 The attributes are valid on a parameter, a method, a class and the assembly. They apply widest first: the assembly, then the class, then the method, then the parameter. Each one changes what the wider levels set:
 
-| Attribute | Grants | Subject |
-|---|---|---|
-| `[Grants]` | Replaced | Kept |
-| `[Subject]` | Kept | Replaced |
-| `[Anonymous]` | Cleared | Cleared |
+| Attribute | Grants | Subject | Claims |
+|---|---|---|---|
+| `[Grants]` | Replaced | Kept | Kept |
+| `[Subject]` | Kept | Replaced | Kept |
+| `[Claim]` | Kept | Kept | Added, replacing a wider claim of the same name |
+| `[Anonymous]` | Cleared | Cleared | Cleared |
 
 A parameter with no attribute takes the method's credential.
 
@@ -288,11 +292,11 @@ A parameter with no attribute takes the method's credential.
 
 `[WebTesting]` registers `TestGrantsPrincipalSource` beside the application's own principal sources. The source is in `Hardened.Requests.Testing`. [Authentication](/guide/authentication) covers principal sources.
 
-The source authenticates a request that carries `X-Test-Grants`. The caller holds the grants that the header names, separated by spaces. A value of `-` names no grants. The caller's subject is the value of `X-Test-Subject`, or `integration-test` when that header is absent. The caller's scheme is `test`. A request without `X-Test-Grants` is left to the application's own sources, including a request that carries only `X-Test-Subject`.
+The source authenticates a request that carries `X-Test-Grants`. The caller holds the grants that the header names, separated by spaces. A value of `-` names no grants. The caller's subject is the value of `X-Test-Subject`, or `integration-test` when that header is absent. The caller's claims are the pairs in `X-Test-Claims`, which `ICallerPrincipal.TryGetClaim` reads. The caller's scheme is `test`. A request without `X-Test-Grants` is left to the application's own sources, including a request that carries only `X-Test-Subject`.
 
 Authorization sees the caller. `[AuthorizeGrants]` and `ICurrentCaller` read its grants and subject. A caller with no grants gets 403. A request with no caller gets 401.
 
-Outside a test, nothing registers the source, so the two headers authenticate nobody. The application with `[AuthorizeGrants("todos:read")]` on `ById`, run on Kestrel, answers a request that carries them with a 401:
+Outside a test, nothing registers the source, so the test headers authenticate nobody. The application with `[AuthorizeGrants("todos:read")]` on `ById`, run on Kestrel, answers a request that carries them with a 401:
 
 ```http
 GET /todos/1
@@ -308,9 +312,9 @@ WWW-Authenticate: Bearer
 
 ## Setting the caller in the test
 
-A parameter's attribute applies to that parameter alone, so two parameters of one type with different attributes are two callers. A callback that sets `X-Test-Grants` or `X-Test-Subject` sends what it set, and nothing from the attributes. A callback that sets only `X-Test-Subject` therefore sends no caller.
+A parameter's attribute applies to that parameter alone, so two parameters of one type with different attributes are two callers. A callback that sets `X-Test-Grants`, `X-Test-Subject` or `X-Test-Claims` sends what it set, and nothing from the attributes. A callback that sets only `X-Test-Subject` therefore sends no caller. `TestGrantsPrincipalSource.FormatClaims` writes a value for `X-Test-Claims`.
 
-The attributes resolve to a `TestCredential`, declared as `TestCredential(IReadOnlyList<string>? Grants, string? Subject = null)`. `TestCredential.Anonymous` sends neither header. An empty grant list sends `X-Test-Grants: -`. `app.CreateClient<T>(credential)` and `app.CreateHttpClient(credential)` build a client that sends the credential given. Without a credential, they send the credential in scope.
+The attributes resolve to a `TestCredential`, declared as `TestCredential(IReadOnlyList<string>? Grants, string? Subject = null)`, with the claims in its `Claims` property. `TestCredential.Anonymous` sends none of the headers. An empty grant list sends `X-Test-Grants: -`. `app.CreateClient<T>(credential)` and `app.CreateHttpClient(credential)` build a client that sends the credential given. Without a credential, they send the credential in scope.
 
 `ById` carries the same `[AuthorizeGrants("todos:read")]` in this example:
 
@@ -393,7 +397,7 @@ public class TodoLastResponseTests
 
 The recorded response is kept per running test, so tests that run in parallel each read their own. Reading `LastResponse` before any response throws `InvalidOperationException` with this message: `LastResponse has nothing to report: no request has been answered through the pipeline in 'Todos.Tests.TodoTimingTests.ReadsLastResponseFirst'. Send one through ITestWebApp, or through a client it built, before reading it.` The quoted name is the running test's.
 
-On a socket host, `LastResponse` holds what came back over the wire, with the server's headers. It records the body of an event stream as empty there.
+On a socket host, `LastResponse` holds what came back over the wire, with the server's headers. The body reaches the client as the server writes it, so a test that sends with `HttpCompletionOption.ResponseHeadersRead` reads each NDJSON line or event when the server flushes it. `LastResponse` has the status and the headers from the start. It has the body when the client buffered it, which `HttpClient` does unless a request is sent with `ResponseHeadersRead`. A body read as a stream, such as an event stream, is recorded as empty.
 
 ## The exception behind a failed request
 

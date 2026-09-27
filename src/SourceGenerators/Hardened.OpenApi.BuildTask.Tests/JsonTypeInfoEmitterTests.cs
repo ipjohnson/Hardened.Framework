@@ -59,6 +59,60 @@ public class JsonTypeInfoEmitterTests
         Assert.Contains("(string?)args[2]", result);
     }
 
+    /// <summary>
+    /// A member bound to a response header is listed and ignored, so its constructor parameter
+    /// binds and the type can be read. Left out, the type could not be deserialized at all.
+    /// </summary>
+    [Fact]
+    public void Emit_HeaderBoundMember_IsListedAndIgnored()
+    {
+        var schemas = new List<SchemaModel>
+        {
+            new()
+            {
+                Name = "CreatePetOutput",
+                Kind = SchemaKind.Object,
+                Required = new List<string> { "name", "location" },
+                Properties = new List<PropertyModel>
+                {
+                    new()
+                    {
+                        Name = "name",
+                        Type = "string",
+                        IsRequired = true,
+                    },
+                    new()
+                    {
+                        Name = "location",
+                        Type = "string",
+                        IsRequired = true,
+                        HeaderName = "Location",
+                    },
+                },
+            },
+        };
+
+        var result = EmitterHarness.JsonTypeInfo(schemas, "petstore");
+
+        var named = result.IndexOf("PropertyName = \"location\"", StringComparison.Ordinal);
+        var start = result.LastIndexOf("CreatePropertyInfo", named, StringComparison.Ordinal);
+        var block = result.Substring(
+            start,
+            result.IndexOf("})", named, StringComparison.Ordinal) - start
+        );
+
+        Assert.Contains("IgnoreCondition = JsonIgnoreCondition.Always", block);
+
+        // Not wrapped in the presence check a required member gets: an ignored member is never read.
+        Assert.False(
+            result
+                .Substring(0, start)
+                .TrimEnd()
+                .EndsWith("Required(JsonMetadataServices.", StringComparison.Ordinal)
+        );
+        Assert.Contains("Setter = null", block);
+    }
+
     [Fact]
     public void Emit_SimpleRecord_GeneratesPropertyInfos()
     {

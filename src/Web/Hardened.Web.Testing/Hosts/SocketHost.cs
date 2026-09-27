@@ -232,10 +232,15 @@ public abstract class SocketHost : ITestHost
     }
 
     /// <summary>
-    /// What came back over the wire, kept for <see cref="LastResponse"/>: the status, every
-    /// header, and the body - read to the end here and handed on as the same bytes, except for an
-    /// event stream, which never ends and is left to stream with its body recorded as empty.
+    /// What came back over the wire, kept for <see cref="LastResponse"/>: the status and every header
+    /// when they arrive, and the body when the client buffers it.
     /// </summary>
+    /// <remarks>
+    /// The body is handed on as it arrives, through <see cref="RecordedContent"/>, rather than read
+    /// to the end first. Reading it here held an NDJSON export back until the server had written its
+    /// last line, so a test reading with <c>HttpCompletionOption.ResponseHeadersRead</c> saw every
+    /// line at once.
+    /// </remarks>
     private sealed class SocketRecordingHandler : DelegatingHandler
     {
         protected override async Task<HttpResponseMessage> SendAsync(
@@ -244,32 +249,16 @@ public abstract class SocketHost : ITestHost
         )
         {
             var response = await base.SendAsync(request, cancellationToken);
+            var status = (int)response.StatusCode;
+            var headers = Headers(response);
             var contentType = response.Content.Headers.ContentType?.ToString();
 
-            if (
-                contentType != null
-                && contentType.StartsWith(
-                    KnownContentType.EventStream,
-                    StringComparison.OrdinalIgnoreCase
-                )
-            )
-            {
-                LastResponse.Record((int)response.StatusCode, Headers(response), contentType, []);
+            LastResponse.Record(status, headers, contentType, []);
 
-                return response;
-            }
-
-            var bytes = await response.Content.ReadAsByteArrayAsync(cancellationToken);
-            var buffered = new ByteArrayContent(bytes);
-
-            foreach (var header in response.Content.Headers)
-            {
-                buffered.Headers.TryAddWithoutValidation(header.Key, header.Value);
-            }
-
-            response.Content = buffered;
-
-            LastResponse.Record((int)response.StatusCode, Headers(response), contentType, bytes);
+            response.Content = new RecordedContent(
+                response.Content,
+                body => LastResponse.Record(status, headers, contentType, body)
+            );
 
             return response;
         }

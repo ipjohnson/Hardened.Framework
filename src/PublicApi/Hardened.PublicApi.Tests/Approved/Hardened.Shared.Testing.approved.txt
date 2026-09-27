@@ -18,6 +18,7 @@ namespace Hardened.Shared.Testing.Attributes
         public EnvironmentNameAttribute(string name) { }
         public string Name { get; }
     }
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method, AllowMultiple=true)]
     public class EnvironmentValueAttribute : System.Attribute
     {
         public EnvironmentValueAttribute(string variable, string value) { }
