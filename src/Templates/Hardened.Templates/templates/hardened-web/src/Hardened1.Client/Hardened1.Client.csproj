@@ -74,7 +74,7 @@
 
     <Error Condition="'$(_KiotaRestoreExitCode)' != '0'"
            Code="HTPL002"
-           Text="The Kiota tool could not be restored, so the client cannot be generated. The pin is microsoft.openapi.kiota in .config/dotnet-tools.json; a fresh machine needs network for the first restore, and `dotnet tool restore` in the solution folder shows what NuGet said." />
+           Text="The Kiota tool could not be restored, so the client cannot be generated. The pin is microsoft.openapi.kiota in .config/dotnet-tools.json; a fresh machine needs network for the first restore, and two builds restoring at once on one machine can fail it, each holding a file the other needs. `dotnet tool restore` in the solution folder shows what NuGet said." />
   </Target>
 
   <!--

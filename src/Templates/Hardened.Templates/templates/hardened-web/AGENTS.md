@@ -55,12 +55,12 @@ Change the thing it was generated from.
 #endif
 #if (kiotaClient)
 | `src/Hardened1.Client` shows no source files | Never built. The client is generated into `obj/kiota/` by the first real build; a design-time build does not run Kiota. |
-| `HTPL002`, or `RestoreKiota` fails on a fresh machine | `dotnet tool restore` needs network the first time. The pin is `microsoft.openapi.kiota` in `.config/dotnet-tools.json`. |
+| `HTPL002`, or `RestoreKiota` fails | `dotnet tool restore` needs network the first time, and two builds restoring at once on one machine can fail each other. Build one at a time. The pin is `microsoft.openapi.kiota` in `.config/dotnet-tools.json`. |
 | `HTPL003` | The Kiota tool and `KiotaBundleVersion` in `Directory.Packages.props` disagree. Bump both to one Kiota release. |
 #endif
 #if (refitClient)
 | `src/Hardened1.Client` shows no source files | Never built. The client is generated into `obj/refitter/` by the first real build; a design-time build does not run Refitter. |
-| `HTPL004`, or `RestoreRefitter` fails on a fresh machine | `dotnet tool restore` needs network the first time. The pin is `refitter` in `.config/dotnet-tools.json`. |
+| `HTPL004`, or `RestoreRefitter` fails | `dotnet tool restore` needs network the first time, and two builds restoring at once on one machine can fail each other. Build one at a time. The pin is `refitter` in `.config/dotnet-tools.json`. |
 | The generated interface no longer compiles after a bump | The Refitter tool in `.config/dotnet-tools.json` and `Refit` in `Directory.Packages.props` disagree. Nothing checks this pair at build; bump both to a matching pair. |
 #endif
 #if (hasClient)
