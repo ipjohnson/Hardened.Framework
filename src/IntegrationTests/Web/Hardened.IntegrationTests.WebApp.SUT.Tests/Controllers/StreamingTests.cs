@@ -1,5 +1,6 @@
 using Hardened.IntegrationTests.WebApp.SUT.Controllers;
 using Hardened.IntegrationTests.WebApp.SUT.Tests.Support;
+using Hardened.Requests.Abstract.Errors;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Web.Runtime.Responses;
 
@@ -345,6 +346,48 @@ public class StreamingTests
     #endregion
 
     #region refusals and failures
+
+    /// <summary>
+    /// A request that names only types a stream is not gets 406, with the body a JSON operation
+    /// sends to <c>Accept: text/csv</c>. A stream used to be sent whatever <c>Accept</c> said.
+    /// </summary>
+    [ModuleTest]
+    public async Task AnEventStreamIs406ToARequestThatTakesOnlyJson(ITestWebApp testWebApp)
+    {
+        var response = await testWebApp.Get(
+            "/streaming/events",
+            request => request.Headers[KnownHeaders.Accept] = KnownContentType.Json
+        );
+
+        Assert.Equal(406, response.StatusCode);
+        Assert.Equal(
+            "This operation produces text/event-stream.",
+            response.Deserialize<ErrorModel>().Message
+        );
+    }
+
+    [ModuleTest]
+    public async Task AnNdjsonStreamIs406ToARequestThatTakesOnlyJson(ITestWebApp testWebApp)
+    {
+        var response = await testWebApp.Get(
+            "/streaming/strings",
+            request => request.Headers[KnownHeaders.Accept] = KnownContentType.Json
+        );
+
+        Assert.Equal(406, response.StatusCode);
+    }
+
+    [ModuleTest]
+    public async Task AnEventStreamIsSentToAnEventSource(ITestWebApp testWebApp)
+    {
+        var response = await testWebApp.Get("/streaming/events", AsAnEventSource());
+
+        response.Assert.Ok();
+        Assert.Equal(
+            KnownContentType.EventStream,
+            response.Headers[KnownHeaders.ContentType].ToString()
+        );
+    }
 
     private static Action<TestWebRequest> AsAnEventSource() =>
         request => request.Headers[KnownHeaders.Accept] = KnownContentType.EventStream;

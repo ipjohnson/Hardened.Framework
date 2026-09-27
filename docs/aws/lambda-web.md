@@ -211,13 +211,14 @@ answer. After 30 seconds the process exits with
 
 ### Server-sent events in buffered mode
 
-In `buffered` mode, a `[ServerSentEvents]` handler's events all arrive together when the handler
-finishes. [Streaming responses](/guide/streaming) covers these handlers. At startup in `buffered`
+In `buffered` mode, the events of a handler that answers `text/event-stream` all arrive together
+when the handler finishes. That is a `[ServerSentEvents]` handler, or an operation whose contract
+declares an event stream. [Streaming responses](/guide/streaming) covers these handlers. At startup in `buffered`
 mode, an application that has any of them logs a warning that names them. For a handler at
 `/todos/events` in the template, the local run prints:
 
 ```text
-Warning: [Warning] Hardened.Aws.Lambda.Runtime.Streaming.ServerSentEventsResponseModeStartupService: HARDENED_LAMBDA_RESPONSE_MODE is buffered and 1 handler(s) answer text/event-stream: GET /events. Their events are delivered when the invocation ends, or never if it times out first. Deploy behind a function URL in RESPONSE_STREAM invoke mode with HARDENED_LAMBDA_RESPONSE_MODE=stream, or remove [ServerSentEvents].
+Warning: [Warning] Hardened.Aws.Lambda.Runtime.Streaming.ServerSentEventsResponseModeStartupService: HARDENED_LAMBDA_RESPONSE_MODE is buffered and 1 handler(s) answer text/event-stream: GET /events. Their events are delivered when the invocation ends, or never if it times out first. Deploy behind a function URL in RESPONSE_STREAM invoke mode with HARDENED_LAMBDA_RESPONSE_MODE=stream, or stop answering them as event streams: remove [ServerSentEvents] from a handler written in C#, or the event stream from the operation in its contract.
 ```
 
 The warning names each handler by its verb and its path without the module's base path. A handler
