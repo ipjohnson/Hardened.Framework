@@ -756,11 +756,21 @@ public static class OpenApiDocumentGenerator
         }
 
         // The rung's responses go last, so a status the handler declared itself keeps the shape the
-        // handler gave it - the order Compose puts a declaration's own refusals in.
+        // handler gave it - the order Compose puts a declaration's own refusals in. And a status
+        // whose declared body the framework writes for its own refusals takes none of the rung's.
         var merged = handler.WithFilters(
             handler.Filters,
             responseSchemas: reaching.WithHeaders(
-                handler.ResponseSchemas.Concat(reaching.Refusals).ToList()
+                handler
+                    .ResponseSchemas.Concat(
+                        reaching.Refusals.Where(refusal =>
+                            !ResponseSchemaModel.HasDeclaredInstance(
+                                handler.ResponseSchemas,
+                                refusal.Status
+                            )
+                        )
+                    )
+                    .ToList()
             )
         );
 
@@ -1422,6 +1432,8 @@ public static class OpenApiDocumentGenerator
         OpenApiVersion version
     )
     {
+        handler = WithFrameworkShapesBeside(handler);
+
         var successStatus = handler.ResponseInformation.DefaultStatusCode ?? 200;
 
         builder.Append(",\"responses\":{");
@@ -1933,6 +1945,100 @@ public static class OpenApiDocumentGenerator
         components["RequestValidationError"] = ValidationErrorSchema;
 
         responses[400] = Envelope(handler, "The request failed validation.", ValidationErrorRef);
+    }
+
+    /// <summary>
+    /// The handler, with the framework's own body beside each declared status whose declared body
+    /// the framework cannot send for its refusals.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A refusal the framework raises at a declared status sends the declared body, which is why the
+    /// writers below publish nothing of their own at a status the operation declares. That needs an
+    /// instance to send: a problem record's <c>Default</c>, or a contract body the build can fill. A
+    /// generic case such as <c>BadRequest&lt;ApiError&gt;</c> has none, so the refusal sends
+    /// <c>RequestValidationError</c> or <c>ErrorModel</c> there, and the document lists that body
+    /// as well. Two bodies at one status become a <c>oneOf</c>, which is what the wire does.
+    /// </para>
+    /// <para>
+    /// The same refusals the writers below publish where nothing is declared: validation, the 401
+    /// of a secured operation, the 403 of one whose every requirement names a scope, and a deadline.
+    /// </para>
+    /// </remarks>
+    private static RequestHandlerModel WithFrameworkShapesBeside(RequestHandlerModel handler)
+    {
+        List<ResponseSchemaModel>? beside = null;
+
+        void Beside(int status, string description, string reference, string name, string json)
+        {
+            if (
+                !DeclaresStatus(handler, status)
+                || ResponseSchemaModel.HasDeclaredInstance(handler.ResponseSchemas, status)
+                || handler.ResponseSchemas.Any(response =>
+                    response.Status == status && response.Schema?.Schema == reference
+                )
+            )
+            {
+                return;
+            }
+
+            (beside ??= new List<ResponseSchemaModel>()).Add(
+                new ResponseSchemaModel(
+                    status,
+                    description,
+                    new HandlerSchema(reference, new[] { new SchemaComponent(name, json) })
+                )
+            );
+        }
+
+        if (
+            handler.ParametersValidator != null
+            || handler.HasGeneratedValidation
+            || HasBindingRefusals(handler)
+        )
+        {
+            Beside(
+                handler.ResponseInformation.ValidationErrorStatus ?? 400,
+                "The request failed validation.",
+                ValidationErrorRef,
+                "RequestValidationError",
+                ValidationErrorSchema
+            );
+        }
+
+        if (handler.SecurityRequirements.Count > 0)
+        {
+            Beside(401, "Authentication required.", ErrorModelRef, "ErrorModel", ErrorModelSchema);
+        }
+
+        if (EveryAlternativeRequiresAScope(handler))
+        {
+            Beside(
+                403,
+                "The caller does not hold what this operation requires.",
+                ErrorModelRef,
+                "ErrorModel",
+                ErrorModelSchema
+            );
+        }
+
+        if (handler.DeclaredTimeout is { } timeout)
+        {
+            Beside(
+                timeout.Status,
+                "The operation did not finish inside its budget.",
+                ErrorModelRef,
+                "ErrorModel",
+                ErrorModelSchema
+            );
+        }
+
+        return beside == null
+            ? handler
+            : handler.WithFilters(
+                handler.Filters,
+                responseSchemas: handler.ResponseSchemas.Concat(beside).ToList()
+            );
     }
 
     /// <summary>

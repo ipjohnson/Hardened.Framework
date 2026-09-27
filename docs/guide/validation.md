@@ -375,6 +375,13 @@ The OpenAPI document lists a 400 with the `RequestValidationError` schema for an
 validates. [The execution pipeline](/guide/execution-pipeline) shows where the check runs among the
 filters.
 
+An operation that declares a body of its own at the validation status answers validation failures
+with that body, and the document lists that body alone. That is a handler whose response set
+includes `BadRequest`, or a contract that declares a `Problem` for its 400. The body then carries
+no field errors. They are in the request log. Declare no body at the validation status to send
+`RequestValidationError`. [Declared responses](/guide/responses#what-a-thrown-exception-answers)
+covers the rule.
+
 ## Field names
 
 Each entry's `field` depends on where the value is:
@@ -614,7 +621,7 @@ The OpenAPI document then lists the 422 with the `RequestValidationError` schema
 ## Change the body
 
 The registered `IExceptionToModelConverter` writes the body of every refusal that comes from an
-exception, a validation failure included. A class with
+exception, a validation failure and the 406 included. A class with
 `[SingletonService(Using = RegistrationType.Replace)]` that implements it replaces the default.
 `ExceptionToModelConverter` is the default. A replacement can call it for the status and the body
 it would have sent.

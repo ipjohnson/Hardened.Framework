@@ -739,6 +739,11 @@ lists every code.
 - Under an awsJson protocol, the response is sent as `Content-Type: application/json`. The served
   document keeps only one of the operations at `POST /`.
 - A route attribute in the project is not served, as for an OpenAPI document.
+- `smithy.framework#ValidationException` is not mapped. The build runs `smithy ast` over the
+  project's own `.smithy` files, so the shape has to be declared in one of them. A validation failure
+  on an operation that declares it at 400 answers the body the build fills for that shape, which
+  carries no field errors. They are in the request log. An operation that declares no 400 answers
+  the framework's `RequestValidationError`, which lists them.
 
 :::
 

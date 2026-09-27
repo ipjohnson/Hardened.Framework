@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Linq;
 using CSharpAuthor;
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Shared;
@@ -118,11 +119,9 @@ public static class HandlerInfoCodeGenerator
         // The bodies the contract declares per status, for the refusals the pipeline raises itself.
         // A framework exception carries no body, so without this a document promising a Problem for
         // its 401 answered a shape the document never described.
-        if (!string.IsNullOrEmpty(handlerModel.ResponseInformation.DeclaredErrorBodiesExpression))
+        if (DeclaredErrorBodies(handlerModel) is { } declaredErrorBodies)
         {
-            declaredArgs +=
-                ", declaredErrorBodies: "
-                + handlerModel.ResponseInformation.DeclaredErrorBodiesExpression;
+            declaredArgs += ", declaredErrorBodies: " + declaredErrorBodies;
         }
 
         // The media types this operation produces, as the array negotiation reads. Emitted only when
@@ -233,6 +232,43 @@ public static class HandlerInfoCodeGenerator
         metadataField.Modifiers =
             ComponentModifier.Private | ComponentModifier.Static | ComponentModifier.Readonly;
         metadataField.InitializeValue = NewArray(typeof(object), arguments.ToArray());
+    }
+
+    /// <summary>
+    /// The bodies the operation declares for its failures, as the dictionary the handler info takes,
+    /// or null where it declares none that can be shared.
+    /// </summary>
+    /// <remarks>
+    /// A contract's are built by the bridge, from the schemas it can fill. A code-first handler's
+    /// come from the response set and <c>[Throws&lt;T&gt;]</c>: a case whose type carries a shared
+    /// <c>Default</c>, which is every problem record Hardened ships but <c>RateLimited</c>. The first
+    /// such body at a status is the one a refusal at that status writes.
+    /// </remarks>
+    internal static string? DeclaredErrorBodies(RequestHandlerModel handlerModel)
+    {
+        if (!string.IsNullOrEmpty(handlerModel.ResponseInformation.DeclaredErrorBodiesExpression))
+        {
+            return handlerModel.ResponseInformation.DeclaredErrorBodiesExpression;
+        }
+
+        var entries = new SortedDictionary<int, string>();
+
+        foreach (var response in handlerModel.ResponseSchemas)
+        {
+            if (response.DeclaredInstance != null && !entries.ContainsKey(response.Status))
+            {
+                entries[response.Status] = response.DeclaredInstance;
+            }
+        }
+
+        if (entries.Count == 0)
+        {
+            return null;
+        }
+
+        return "new global::System.Collections.Generic.Dictionary<int, object> { "
+            + string.Join(", ", entries.Select(entry => $"{{ {entry.Key}, {entry.Value} }}"))
+            + " }";
     }
 
     /// <summary>

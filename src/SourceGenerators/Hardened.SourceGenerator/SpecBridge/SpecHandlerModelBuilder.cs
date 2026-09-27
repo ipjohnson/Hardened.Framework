@@ -317,7 +317,13 @@ internal static class SpecHandlerModelBuilder
                 && contentType != "application/json"
                     ? contentType
                     : RawBodyContentType(parameters),
-            ResponseSchemas = BuildResponseSchemas(operation, schemas),
+            ResponseSchemas = BuildResponseSchemas(
+                operation,
+                schemas,
+                responseInfo.DeclaredErrorBodiesExpression,
+                modelsNamespace,
+                specFileName
+            ),
 
             // One item of a streamed response, which the document writer publishes as itemSchema
             // and as the array of it under schema, beside the description and headers the
@@ -1022,6 +1028,31 @@ internal static class SpecHandlerModelBuilder
             + " }";
     }
 
+    /// <summary>
+    /// The filled body the handler info carries for this error, or null where it carries none.
+    /// </summary>
+    private static string? DeclaredInstance(
+        ErrorResponseModel error,
+        string? declaredErrorBodies,
+        string modelsNamespace,
+        string specFileName
+    )
+    {
+        if (declaredErrorBodies == null || error.Ref == null)
+        {
+            return null;
+        }
+
+        var field = Field(
+            modelsNamespace,
+            specFileName,
+            TypeMapper.GetRefName(error.Ref),
+            error.StatusCode
+        );
+
+        return declaredErrorBodies.Contains(field) ? field : null;
+    }
+
     /// <summary>The generated field holding one (schema, status) body, qualified.</summary>
     private static string Field(
         string modelsNamespace,
@@ -1438,14 +1469,6 @@ internal static class SpecHandlerModelBuilder
     }
 
     /// <summary>
-    /// Every status the operation declares, with the payload declared for it.
-    /// </summary>
-    /// <remarks>
-    /// Successes and errors both, because a document that describes only the happy path leaves a
-    /// generated client with no branch for the 404 the contract promised. The response's own
-    /// description wins over the status's standard wording.
-    /// </remarks>
-    /// <summary>
     /// The framing a described stream is sent with, from the media type the contract declares.
     /// </summary>
     /// <remarks>
@@ -1460,9 +1483,28 @@ internal static class SpecHandlerModelBuilder
             ? StreamFramingNames.ServerSentEvents
             : null;
 
+    /// <summary>
+    /// Every status the operation declares, with the payload declared for it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Successes and errors both, because a document that describes only the happy path leaves a
+    /// generated client with no branch for the 404 the contract promised. The response's own
+    /// description wins over the status's standard wording.
+    /// </para>
+    /// <para>
+    /// A failure whose body the handler info carries as a filled instance says so, because that is
+    /// the body the framework writes when it refuses at that status itself. Read from the same
+    /// expression the handler info is emitted from, so the document and the runtime cannot
+    /// disagree about which statuses have one.
+    /// </para>
+    /// </remarks>
     private static IReadOnlyList<ResponseSchemaModel> BuildResponseSchemas(
         OperationModel operation,
-        IReadOnlyList<SchemaModel> schemas
+        IReadOnlyList<SchemaModel> schemas,
+        string? declaredErrorBodies,
+        string modelsNamespace,
+        string specFileName
     )
     {
         var result = new List<ResponseSchemaModel>();
@@ -1497,6 +1539,12 @@ internal static class SpecHandlerModelBuilder
                 )
                 {
                     Headers = error.Headers,
+                    DeclaredInstance = DeclaredInstance(
+                        error,
+                        declaredErrorBodies,
+                        modelsNamespace,
+                        specFileName
+                    ),
                 }
             );
         }

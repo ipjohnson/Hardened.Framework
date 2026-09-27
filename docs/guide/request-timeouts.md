@@ -238,6 +238,10 @@ body. `Status` decides the status line and the body's `type`:
 
 The body's `message` is always "The server did not finish this request in time." Its `details` is
 empty. `RetryAfterSeconds` adds a `Retry-After` header with that many seconds, whatever the status.
+
+An operation that declares a body for that status answers with the declared body instead. That is a
+`GatewayTimeout` in the handler's response set, or a `Problem` a contract declares for its 504.
+[Declared responses](/guide/responses#what-a-thrown-exception-answers) covers the rule.
 This version of the first example's `Export` sets `Status` and `RetryAfterSeconds`:
 
 ```csharp

@@ -346,6 +346,7 @@ internal sealed class OperationDeclarations
                     {
                         Headers = added,
                         IsProblem = response.IsProblem,
+                        DeclaredInstance = response.DeclaredInstance,
                     }
             );
         }

@@ -5,6 +5,7 @@ using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Runtime.Errors;
 using Hardened.Requests.Runtime.Execution;
 using Hardened.Requests.Runtime.Filters;
+using Hardened.Requests.Runtime.Forms;
 using Hardened.Requests.Runtime.Validation;
 using Microsoft.Extensions.Primitives;
 using NSubstitute;
@@ -935,4 +936,174 @@ public class ExceptionToModelConverterTests
     }
 
     #endregion
+
+    // ---------------------------------------------------------------- every refusal, declared
+
+    /// <summary>
+    /// A context whose handler declares <paramref name="body"/> at <paramref name="status"/>, and
+    /// carries <paramref name="metadata"/>.
+    /// </summary>
+    private static IExecutionContext Declaring(
+        int status,
+        object body,
+        int? validationErrorStatus = null,
+        params object[] metadata
+    )
+    {
+        var response = Substitute.For<IExecutionResponse>();
+        response.Headers.Returns(new Dictionary<string, StringValues>());
+
+        var context = Substitute.For<IExecutionContext>();
+        context.Response.Returns(response);
+        context.HandlerInfo.Returns(
+            new ExecutionRequestHandlerInfo(
+                "/photos",
+                "POST",
+                typeof(ExceptionToModelConverterTests),
+                "Upload",
+                metadata: metadata,
+                validationErrorStatus: validationErrorStatus,
+                declaredErrorBodies: new Dictionary<int, object> { { status, body } }
+            )
+        );
+
+        return context;
+    }
+
+    /// <summary>
+    /// The 0.41 trial's A-05: a form over its limit answered <c>ErrorModel</c> where the operation
+    /// declares 413 with the <c>ContentTooLarge</c> problem.
+    /// </summary>
+    [Fact]
+    public void AFormOverItsLimitAnswersTheDeclaredBody()
+    {
+        var declared = new { Title = "Content Too Large", Status = 413 };
+
+        var (status, model) = Converter.ConvertExceptionToModel(
+            Declaring(413, declared),
+            new FormBodyTooLargeException(16_000_000)
+        );
+
+        Assert.Equal(413, status);
+        Assert.Same(declared, model);
+    }
+
+    /// <summary>B-10: the timeout's 504 answered <c>ErrorModel</c> where a contract declares one.</summary>
+    [Fact]
+    public void AMissedDeadlineAnswersTheDeclaredBody()
+    {
+        var declared = new { Title = "Gateway Timeout", Status = 504 };
+
+        var (status, model) = Converter.ConvertExceptionToModel(
+            Declaring(504, declared, metadata: new TimeoutAttribute()),
+            new OperationCanceledException()
+        );
+
+        Assert.Equal(504, status);
+        Assert.Same(declared, model);
+    }
+
+    /// <summary>
+    /// B-14 and C-04: a contract declaring its own 400 published only that shape and was answered
+    /// the framework's envelope. The declared body is what a generated client reads.
+    /// </summary>
+    [Fact]
+    public void AValidationFailureAnswersTheDeclaredBody()
+    {
+        var declared = new { Title = "Bad Request", Status = 400 };
+
+        var (status, model) = Converter.ConvertExceptionToModel(
+            Declaring(400, declared),
+            new ValidationException(ValidationModules.ValidationResult.Valid)
+        );
+
+        Assert.Equal(400, status);
+        Assert.Same(declared, model);
+    }
+
+    [Fact]
+    public void AValidationFailureAnswersTheBodyDeclaredAtTheValidationStatus()
+    {
+        var declared = new { Title = "Unprocessable Content", Status = 422 };
+
+        var (status, model) = Converter.ConvertExceptionToModel(
+            Declaring(422, declared, validationErrorStatus: 422),
+            new ValidationException(ValidationModules.ValidationResult.Valid)
+        );
+
+        Assert.Equal(422, status);
+        Assert.Same(declared, model);
+    }
+
+    [Fact]
+    public void AnUnreadableBodyAnswersTheDeclaredBody()
+    {
+        var declared = new { Title = "Bad Request", Status = 400 };
+
+        var (status, model) = Converter.ConvertExceptionToModel(
+            Declaring(400, declared),
+            new JsonException("'h' is an invalid start of a value.")
+        );
+
+        Assert.Equal(400, status);
+        Assert.Same(declared, model);
+    }
+
+    [Fact]
+    public void ABadRequestAnswersTheDeclaredBody()
+    {
+        var declared = new { Title = "Bad Request", Status = 400 };
+
+        var (status, model) = Converter.ConvertExceptionToModel(
+            Declaring(400, declared),
+            new BadRequestException("The value of id is not an integer.")
+        );
+
+        Assert.Equal(400, status);
+        Assert.Same(declared, model);
+    }
+
+    [Fact]
+    public void AnUnhandledFaultAnswersTheDeclaredBody()
+    {
+        var declared = new { Title = "Internal Server Error", Status = 500 };
+
+        var (status, model) = Converter.ConvertExceptionToModel(
+            Declaring(500, declared),
+            new InvalidOperationException("connection string 'Password=hunter2' failed")
+        );
+
+        Assert.Equal(500, status);
+        Assert.Same(declared, model);
+    }
+
+    /// <summary>
+    /// The 406 carries a body of its own, naming what the operation produces. A body the operation
+    /// declares for 406 still wins, as it does for every other refusal.
+    /// </summary>
+    [Fact]
+    public void ANotAcceptableAnswersTheDeclaredBodyOverItsOwn()
+    {
+        var declared = new { Title = "Not Acceptable", Status = 406 };
+
+        var (status, model) = Converter.ConvertExceptionToModel(
+            Declaring(406, declared),
+            new Hardened.Requests.Abstract.Serializer.NotAcceptableException(["application/json"])
+        );
+
+        Assert.Equal(406, status);
+        Assert.Same(declared, model);
+    }
+
+    [Fact]
+    public void ANotAcceptableWithNothingDeclaredNamesWhatIsProduced()
+    {
+        var (status, model) = Converter.ConvertExceptionToModel(
+            Context(),
+            new Hardened.Requests.Abstract.Serializer.NotAcceptableException(["application/json"])
+        );
+
+        Assert.Equal(406, status);
+        Assert.Equal("application/json", Assert.IsType<ErrorModel>(model).Details);
+    }
 }

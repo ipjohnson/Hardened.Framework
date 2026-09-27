@@ -152,4 +152,22 @@ public class AuthorizationTests
     }
 
     #endregion
+
+    /// <summary>
+    /// The 0.41 trial's A-02: a handler declaring its own <c>Forbidden</c> was refused with the
+    /// framework's <c>ErrorModel</c>, and the document published a <c>oneOf</c> of the two. The
+    /// refusal is the declared problem.
+    /// </summary>
+    [ModuleTest]
+    public async Task ARefusalOnAnOperationDeclaringItsOwn403AnswersIt(ITestWebApp testWebApp)
+    {
+        var response = await testWebApp.Get(
+            "/authorization/declared-forbidden",
+            Holding("pets:write")
+        );
+
+        Assert.Equal(403, response.StatusCode);
+        Assert.StartsWith("application/problem+json", response.Headers["Content-Type"].ToString());
+        Assert.Contains("urn:hardened:problem:forbidden", await response.ReadTextAsync());
+    }
 }

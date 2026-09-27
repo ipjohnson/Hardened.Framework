@@ -63,6 +63,26 @@ public sealed class ResponseSchemaModel : System.IEquatable<ResponseSchemaModel>
     internal bool IsProblem { get; set; }
 
     /// <summary>
+    /// A shared instance of the body, as a C# expression, where one exists for a failure: a problem
+    /// record's <c>Default</c>, or a contract's filled error body.
+    /// </summary>
+    /// <remarks>
+    /// What the framework writes for a refusal it raises itself at this status, so the operation's
+    /// own declaration is the body a caller reads whichever side refused. Null where no instance can
+    /// be had without inventing values, and the framework's own shape is sent there instead.
+    /// </remarks>
+    internal string? DeclaredInstance { get; set; }
+
+    /// <summary>
+    /// Whether one of <paramref name="responses"/> at <paramref name="status"/> carries an instance
+    /// the framework writes when it refuses at that status itself.
+    /// </summary>
+    internal static bool HasDeclaredInstance(
+        IReadOnlyList<ResponseSchemaModel> responses,
+        int status
+    ) => responses.Any(response => response.Status == status && response.DeclaredInstance != null);
+
+    /// <summary>
     /// By value, because this reaches <c>RequestHandlerModel</c>'s equality and that is a Roslyn
     /// incremental cache key. A reference comparison here would report two identical response sets
     /// as different on every edit, and - worse - is one refactor away from reporting two different
@@ -74,7 +94,8 @@ public sealed class ResponseSchemaModel : System.IEquatable<ResponseSchemaModel>
         && Description == other.Description
         && Equals(Schema, other.Schema)
         && Headers.SequenceEqual(other.Headers)
-        && IsProblem == other.IsProblem;
+        && IsProblem == other.IsProblem
+        && DeclaredInstance == other.DeclaredInstance;
 
     public override bool Equals(object? obj) => Equals(obj as ResponseSchemaModel);
 

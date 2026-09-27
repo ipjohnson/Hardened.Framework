@@ -13,6 +13,11 @@ namespace Hardened.IntegrationTests.OpenApi.ResponseModel.SUT.Tests;
 /// <c>/labels</c> POST is the same declaration here: its validation failures answer 422, the
 /// operations declaring nothing keep their 400, and the published document carries the declared
 /// 422 without a synthesized 400 beside it.
+/// <para>
+/// The body is the <c>Problem</c> the contract declares at 422, which is what the document
+/// publishes there, rather than the framework's field-level envelope. A client generated from the
+/// document reads the declared shape; the field errors are in the request log.
+/// </para>
 /// </remarks>
 public class DeclaredValidationStatusTests
 {
@@ -27,10 +32,10 @@ public class DeclaredValidationStatusTests
 
         Assert.Equal(422, response.StatusCode);
 
-        var error = response.Deserialize<ValidationShape>();
+        var problem = response.Deserialize<ProblemShape>();
 
-        Assert.Equal("ValidationError", error!.Type);
-        Assert.Contains(error.Errors, e => e.Field.Contains("name"));
+        Assert.Equal(422, problem!.Status);
+        Assert.Equal("Unprocessable Content", problem.Title);
     }
 
     [ModuleTest]
@@ -73,7 +78,5 @@ public class DeclaredValidationStatusTests
         Assert.False(responses.TryGetProperty("400", out _));
     }
 
-    private record ValidationShape(string Type, string Message, List<FieldShape> Errors);
-
-    private record FieldShape(string Field, string Code, string Message);
+    private record ProblemShape(string? Title, int? Status, string? Detail);
 }

@@ -122,6 +122,41 @@
         "x-hardened-timeout": 300000
       }
     },
+    "/authorization/declared-forbidden": {
+      "get": {
+        "tags": [
+          "Authorization"
+        ],
+        "operationId": "declaredForbidden",
+        "summary": "A 403 the handler declares, which the authorization filter's refusal is written as.",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          }
+        },
+        "x-hardened-timeout": 300000
+      }
+    },
     "/authorization/derived": {
       "get": {
         "tags": [
@@ -3718,6 +3753,59 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/UnwritableBody"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          }
+        },
+        "x-hardened-timeout": 300000
+      }
+    },
+    "/form/declared-limit": {
+      "post": {
+        "tags": [
+          "Form"
+        ],
+        "operationId": "declaredLimit",
+        "summary": "A form handler declaring the 413 the form reader answers past the cap. The reader's refusal is written as this ContentTooLarge, which is what the document publishes.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "present"
+                ],
+                "properties": {
+                  "present": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "413": {
+            "description": "Content Too Large",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContentTooLarge"
                 }
               }
             }
@@ -7519,6 +7607,32 @@
           }
         }
       },
+      "ContentTooLarge": {
+        "type": "object",
+        "required": [
+          "type",
+          "title",
+          "status"
+        ],
+        "properties": {
+          "detail": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "type": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "CreatedNote": {
         "type": "object",
         "required": [
@@ -7562,6 +7676,32 @@
           },
           "details": {
             "type": "string"
+          }
+        }
+      },
+      "Forbidden": {
+        "type": "object",
+        "required": [
+          "type",
+          "title",
+          "status"
+        ],
+        "properties": {
+          "detail": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "type": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },

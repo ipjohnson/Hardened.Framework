@@ -135,6 +135,7 @@ public static class ThrownResponseSelector
                         // case's are read - the symbol is already in hand here.
                         Headers = UnionResponseSelector.DeclaredHeaders(errorType),
                         IsProblem = ProblemBodies.Implement(errorType),
+                        DeclaredInstance = ProblemBodies.DefaultInstance(errorType, status.Value),
                     }
                 );
             }

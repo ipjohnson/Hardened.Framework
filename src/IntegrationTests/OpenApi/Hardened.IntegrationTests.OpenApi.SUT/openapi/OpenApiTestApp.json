@@ -848,7 +848,14 @@
             }
           },
           "403": {
-            "description": "The caller is not the owner."
+            "description": "The caller is not the owner.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
         }
       }
