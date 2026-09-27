@@ -111,6 +111,11 @@ public static class OpenApiDocumentGenerator
         handlers = WithEntryPointRung(appModel, handlers);
         registered = WithEntryPointRung(appModel, registered);
 
+        // And its requirements, which reach every operation except one that allows anonymous
+        // callers, as they do in the pipeline.
+        handlers = WithEntryPointSecurity(appModel, handlers);
+        registered = WithEntryPointSecurity(appModel, registered);
+
         // And [ErrorBodies(Json)] narrows every refusal, before any of them is written. Here rather
         // than inside ErrorContentTypes because the rule is about the service and the handlers are
         // already rewritten once at this point - threading a flag down to two call sites would put
@@ -382,6 +387,104 @@ public static class OpenApiDocumentGenerator
 
         return merged;
     }
+
+    /// <summary>
+    /// <paramref name="handlers"/> carrying the requirements the entry point declares, as though
+    /// each one's class declared them.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The pipeline conjoins a requirement written on the module class into every handler compiled
+    /// with it, so the operation publishes the module's schemes under <c>security</c>, the 401 that
+    /// follows from them, and the 403. A handler carrying <c>[AllowAnonymous]</c>, on its method or
+    /// its class, is public at run time and is left as it is.
+    /// </para>
+    /// <para>
+    /// Combined the way <c>SecurityDeclarationSelector</c> combines a method's and its class's:
+    /// every scheme is an alternative, and every literal grant is a scope on each alternative that
+    /// carries scopes. A described operation's requirements are its contract's, and the module's
+    /// schemes are added beside them.
+    /// </para>
+    /// </remarks>
+    private static IReadOnlyList<RequestHandlerModel> WithEntryPointSecurity(
+        EntryPointSelector.Model appModel,
+        IReadOnlyList<RequestHandlerModel> handlers
+    )
+    {
+        if (appModel.SecurityFacts is not EntryPointSecurity security || security.IsEmpty)
+        {
+            return handlers;
+        }
+
+        var secured = new List<RequestHandlerModel>(handlers.Count);
+
+        foreach (var handler in handlers)
+        {
+            if (AllowsAnonymous(handler))
+            {
+                secured.Add(handler);
+
+                continue;
+            }
+
+            var merged = Merged(
+                handler,
+                security.Refusals.For(
+                    handler.Name.Method,
+                    handler.ResponseInformation.IsAsyncEnumerable
+                )
+            );
+
+            // Merged hands back the handler itself where the rung added no response, and the
+            // model the routing table reads must not change.
+            var copy = ReferenceEquals(merged, handler)
+                ? handler.WithFilters(handler.Filters)
+                : merged;
+
+            var grants = handler.DeclaredGrants.Union(security.Grants).ToList();
+            var schemes = handler.DeclaredSecuritySchemes.ToList();
+
+            foreach (var scheme in security.Schemes)
+            {
+                if (!schemes.Exists(existing => existing.Name == scheme.Name))
+                {
+                    schemes.Add(scheme);
+                }
+            }
+
+            var requirements = new List<string>();
+
+            if (handler.DeclaredSecuritySchemes.Count == 0)
+            {
+                requirements.AddRange(handler.SecurityRequirements);
+            }
+
+            foreach (var scheme in schemes)
+            {
+                var requirement = SecurityDeclarationSelector.RequirementJson(scheme, grants);
+
+                if (!requirements.Contains(requirement))
+                {
+                    requirements.Add(requirement);
+                }
+            }
+
+            copy.DeclaredSecuritySchemes = schemes;
+            copy.DeclaredGrants = grants;
+            copy.SecurityRequirements = requirements;
+
+            secured.Add(copy);
+        }
+
+        return secured;
+    }
+
+    /// <summary>Whether the handler's method or class carries <c>[AllowAnonymous]</c>.</summary>
+    private static bool AllowsAnonymous(RequestHandlerModel handler) =>
+        handler.Filters.Any(filter =>
+            filter.TypeDefinition.Name == "AllowAnonymousAttribute"
+            && filter.TypeDefinition.Namespace == "Hardened.Requests.Runtime.Authorization"
+        );
 
     /// <summary>
     /// Every handler's refusals narrowed to JSON, where the entry point asked for that.

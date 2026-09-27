@@ -80,6 +80,7 @@ public class RequestHandlerModel
             // [Handler] filters, which is the worst kind of sometimes.
             SecurityRequirements = SecurityRequirements,
             DeclaredSecuritySchemes = DeclaredSecuritySchemes,
+            DeclaredGrants = DeclaredGrants,
             ParameterEnums = ParameterEnums,
             MisplacedSchemeAttributes = MisplacedSchemeAttributes,
             AdditionalBodyParameters = AdditionalBodyParameters,
@@ -321,12 +322,12 @@ public class RequestHandlerModel
     public bool HasGeneratedValidation { get; set; }
 
     /// <summary>
-    /// The contract's declared security, one OpenAPI requirement object of JSON per entry.
+    /// The operation's declared security, one OpenAPI requirement object of JSON per entry.
     /// </summary>
     /// <remarks>
-    /// For the published document; enforcement travels as authorization filters. Empty for a
-    /// handler whose contract declared none, and always empty for code-first, which has no way to
-    /// declare a scheme yet.
+    /// For the published document; enforcement travels as authorization filters. A described
+    /// handler takes these from its contract, and a code-first one from the schemes its
+    /// <c>[Authorize&lt;TScheme&gt;]</c> attributes name. Empty where neither declares one.
     /// </remarks>
     public IReadOnlyList<string> SecurityRequirements { get; set; } = System.Array.Empty<string>();
 
@@ -337,6 +338,17 @@ public class RequestHandlerModel
     /// </summary>
     public IReadOnlyList<SecuritySchemeDeclaration> DeclaredSecuritySchemes { get; set; } =
         System.Array.Empty<SecuritySchemeDeclaration>();
+
+    /// <summary>
+    /// The grants this handler's <c>[AuthorizeGrants("...")]</c> attributes name as literals, on
+    /// the method and on its class.
+    /// </summary>
+    /// <remarks>
+    /// Already folded into <see cref="SecurityRequirements"/> as scopes where a scheme carries them.
+    /// Kept apart as well so that a requirement declared on the entry point, which only the document
+    /// writer sees beside the handler, can be combined with them the way a class's is.
+    /// </remarks>
+    public IReadOnlyList<string> DeclaredGrants { get; set; } = System.Array.Empty<string>();
 
     /// <summary>
     /// The wire vocabulary of every enum bound as a parameter of this handler.
@@ -513,6 +525,16 @@ public class RequestHandlerModel
             {
                 return false;
             }
+        }
+
+        if (
+            !DeclaredGrants.SequenceEqual(
+                requestHandlerModel.DeclaredGrants,
+                StringComparer.Ordinal
+            )
+        )
+        {
+            return false;
         }
 
         if (ParameterEnums.Count != requestHandlerModel.ParameterEnums.Count)

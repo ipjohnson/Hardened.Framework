@@ -1003,6 +1003,60 @@ public class OpenApiDocumentEmissionTests
         Assert.Contains("Authorize<TScheme>", diagnostic.GetMessage());
     }
 
+    /// <summary>
+    /// <c>[AllowAnonymous]</c> on a method under a guarded class makes that handler public at run
+    /// time, so its operation publishes none of the class's requirement. It used to publish the
+    /// scheme, the 401 and the 403 of a route that refuses nobody.
+    /// </summary>
+    [Fact]
+    public void AnAnonymousMethodUnderAGuardedClassPublishesNoneOfItsRequirement()
+    {
+        var paths = JsonDocument
+            .Parse(
+                Extract(
+                    RequestGeneratorHarness
+                        .Generate(
+                            Application(
+                                """
+                                [Hardened.Requests.Abstract.Authorization.HttpAuthenticationScheme("bearer")]
+                                public sealed class BearerAuth : Hardened.Requests.Abstract.Authorization.IAuthenticationScheme;
+
+                                public record Pet(string Id);
+
+                                [Hardened.Requests.Runtime.Authorization.Authorize<BearerAuth>]
+                                [Hardened.Requests.Runtime.Authorization.AuthorizeGrants("pets:read")]
+                                public class PetController {
+                                    [Get("/pets/{id}")]
+                                    public Task<Pet> Get(string id) => Task.FromResult(new Pet(id));
+
+                                    [Get("/pets/health")]
+                                    [Hardened.Requests.Runtime.Authorization.AllowAnonymous]
+                                    public string Health() => "";
+                                }
+                                """,
+                                Enable
+                            )
+                        )
+                        .AssertNoErrors()
+                        .SourceContaining("OpenApiDocument")
+                )
+            )
+            .RootElement.GetProperty("paths");
+
+        var open = paths.GetProperty("/pets/health").GetProperty("get");
+
+        Assert.False(open.TryGetProperty("security", out _));
+        Assert.Equal(
+            ["200"],
+            open.GetProperty("responses").EnumerateObject().Select(response => response.Name)
+        );
+
+        var guarded = paths.GetProperty("/pets/{id}").GetProperty("get");
+
+        Assert.True(guarded.TryGetProperty("security", out _));
+        Assert.True(guarded.GetProperty("responses").TryGetProperty("403", out _));
+    }
+
     #endregion
 
     #region shapes the document used to get wrong

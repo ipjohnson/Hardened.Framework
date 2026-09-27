@@ -188,4 +188,119 @@ public class EntryPointFilterRungTests
         Assert.True(comparer.Equals(Model(ConditionalGet), Model(ConditionalGet)));
         Assert.False(comparer.Equals(Model(ConditionalGet), Model("")));
     }
+
+    // ---------------------------------------------------------------- requirements
+
+    private const string AuthorizeBearer =
+        "[Hardened.Requests.Runtime.Authorization.Authorize<BearerAuth>]";
+
+    private const string Schemes = """
+        [Hardened.Requests.Abstract.Authorization.HttpAuthenticationScheme("bearer")]
+        public sealed class BearerAuth : Hardened.Requests.Abstract.Authorization.IAuthenticationScheme;
+
+        [Hardened.Requests.Abstract.Authorization.ApiKeyAuthenticationScheme("X-Api-Key", Hardened.Requests.Abstract.Authorization.ApiKeyLocation.Header)]
+        public sealed class ApiKeyAuth : Hardened.Requests.Abstract.Authorization.IAuthenticationScheme;
+        """;
+
+    private static EntryPointSelector.Model Secured(string attributes) =>
+        EntryPointCapture.Single(
+            EntryPointCapture.Application(attributes: attributes, trailing: Schemes)
+        );
+
+    private static EntryPointSecurity Security(EntryPointSelector.Model model) =>
+        Assert.IsType<EntryPointSecurity>(model.SecurityFacts);
+
+    /// <summary>
+    /// A requirement on the module class reaches the array the pipeline merges into every handler,
+    /// which is what makes it guard them.
+    /// </summary>
+    [Fact]
+    public void ARequirementReachesTheModelReadyToConstruct()
+    {
+        var model = Secured(AuthorizeBearer);
+
+        var declaration = Assert.Single(model.FilterDeclarations);
+
+        Assert.Equal("AuthorizeAttribute", declaration.TypeDefinition.Name);
+        Assert.Equal(
+            "Hardened.Requests.Runtime.Authorization",
+            declaration.TypeDefinition.Namespace
+        );
+        Assert.True(model.DeclaresRequirement);
+    }
+
+    /// <summary>
+    /// And carries the scheme it names and the 403, apart from the filters' facts, because
+    /// <c>[AllowAnonymous]</c> on a handler cancels a requirement and cancels no filter.
+    /// </summary>
+    [Fact]
+    public void ARequirementCarriesItsSchemeAndThe403ApartFromTheFilters()
+    {
+        var model = Secured(AuthorizeBearer + "\n" + ConditionalGet);
+
+        var security = Security(model);
+
+        Assert.Equal("BearerAuth", Assert.Single(security.Schemes).Name);
+        Assert.Contains(security.Refusals.For("POST", false).Refusals, r => r.Status == 403);
+        Assert.DoesNotContain(security.Refusals.Refusals, r => r.Response.Status == 304);
+
+        Assert.DoesNotContain(Facts(model).Refusals, r => r.Response.Status == 403);
+        Assert.Equal(
+            ["AuthorizeAttribute", "ConditionalGetAttribute"],
+            model.FilterDeclarations.Select(declaration => declaration.TypeDefinition.Name)
+        );
+    }
+
+    [Fact]
+    public void AGrantsRequirementCarriesItsLiteralGrants()
+    {
+        var security = Security(
+            Secured("[Hardened.Requests.Runtime.Authorization.AuthorizeGrants(\"admin\")]")
+        );
+
+        Assert.Empty(security.Schemes);
+        Assert.Equal(["admin"], security.Grants);
+        Assert.False(security.IsEmpty);
+    }
+
+    /// <summary>
+    /// A scheme and a grant written side by side are both read, the way they are on a controller.
+    /// </summary>
+    [Fact]
+    public void EveryRequirementDeclaredOnTheEntryPointIsRead()
+    {
+        var model = Secured(
+            AuthorizeBearer
+                + "\n[Hardened.Requests.Runtime.Authorization.AuthorizeGrants(\"admin\")]"
+        );
+
+        var security = Security(model);
+
+        Assert.Equal("BearerAuth", Assert.Single(security.Schemes).Name);
+        Assert.Equal(["admin"], security.Grants);
+        Assert.Equal(2, model.FilterDeclarations.Count);
+    }
+
+    [Fact]
+    public void AnEntryPointDeclaringNoRequirementCarriesNone()
+    {
+        var model = Model(ConditionalGet);
+
+        Assert.False(model.DeclaresRequirement);
+        Assert.Null(model.SecurityFacts);
+    }
+
+    [Fact]
+    public void TwoEntryPointsDeclaringTheSameRequirementCompareEqual()
+    {
+        var comparer = new EntryPointSelector.Comparer();
+
+        Assert.True(comparer.Equals(Secured(AuthorizeBearer), Secured(AuthorizeBearer)));
+        Assert.False(
+            comparer.Equals(
+                Secured(AuthorizeBearer),
+                Secured("[Hardened.Requests.Runtime.Authorization.Authorize<ApiKeyAuth>]")
+            )
+        );
+    }
 }
