@@ -478,6 +478,11 @@ A C# `union` declaration can take the place of `Response<T1..Tn>`. The handler's
 change. The union's cases follow the same rules as a set's: the status from `[HttpStatus]`, and the
 same bodies and document entries.
 
+The compiler checks the code that reads a union, not the code that returns one. A case added to
+`TodoResult` compiles with the handler unchanged, and the document lists its status. The template's
+`tests/Todos.Tests/DocumentStatusTests.cs` fails when the document lists a status that no request
+answered.
+
 `dotnet new hardened-web -n Todos --response-model union` writes the handler this way:
 
 ```csharp
