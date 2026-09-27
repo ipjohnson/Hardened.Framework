@@ -31,6 +31,9 @@ internal sealed class TaskHarness : IDisposable
 
     public string GeneratedSourceDirectory => Path.Combine(OutputDirectory, "generated");
 
+    /// <summary>Where every run keeps its warnings for <see cref="Replay"/>.</summary>
+    public string WarningsFile => Path.Combine(OutputDirectory, "warnings.txt");
+
     public string WriteSpec(string fileName, string content)
     {
         var path = Path.Combine(SpecDirectory, fileName);
@@ -54,6 +57,7 @@ internal sealed class TaskHarness : IDisposable
             GeneratedSourceDirectory = GeneratedSourceDirectory,
             Namespace = "Test.Api",
             ResponseModel = responseModel,
+            WarningsFile = WarningsFile,
         };
 
         var succeeded = task.Execute();
@@ -64,7 +68,24 @@ internal sealed class TaskHarness : IDisposable
             engine.Warnings,
             task.ModelFiles.Select(item => item.ItemSpec).ToArray(),
             task.GeneratedSources.Select(item => item.ItemSpec).ToArray()
-        );
+        )
+        {
+            Ran = task.Ran,
+        };
+    }
+
+    /// <summary>What a build that skipped the task reports, from the file the last run kept.</summary>
+    public IReadOnlyList<BuildWarningEventArgs> Replay()
+    {
+        var engine = new RecordingBuildEngine();
+
+        new Hardened.Idl.BuildTask.ReplaySpecWarnings
+        {
+            BuildEngine = engine,
+            WarningsFile = WarningsFile,
+        }.Execute();
+
+        return engine.Warnings;
     }
 
     public string ModelPathFor(string specFileName) =>
@@ -99,6 +120,8 @@ internal sealed class TaskHarness : IDisposable
         IReadOnlyList<string> GeneratedSources
     )
     {
+        public bool Ran { get; init; }
+
         public bool HasError(string code) => Errors.Any(error => error.Code == code);
 
         public int WarningCount(string code) => Warnings.Count(warning => warning.Code == code);

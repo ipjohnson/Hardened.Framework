@@ -194,10 +194,14 @@ in this repository references projects rather than packages, so it has to `<Impo
 file** the way the Azure HTTP fixture already does. `GeneratorTestHarness` sets the same pair as a
 parse-option feature, which is what lets the generator suites compile what they emit.
 
-**Generated sources under `obj/**/generated/` are not cleaned by a rename.** A generator that
-changes name leaves its old directory behind, and Rider compiles both. Debug and Release have
-separate directories, so an IDE reading one while you build the other reports errors `dotnet build`
-does not. Delete `obj/` when the IDE and the CLI disagree.
+**Generated sources under `obj/**/generated/` outlive a rename unless a compile prunes them.** The
+compiler rewrites every generated file each time it runs and deletes none, so a renamed handler or
+generator leaves its old files behind, and Rider compiles both. `HardenedPruneGeneratedFiles`, in
+`Hardened.OpenApiDocument.targets`, deletes a file under a `Hardened.*` generator's folder that a
+compile which ran did not rewrite. It reaches a project that imports a generator package's targets,
+and a generator outside Hardened is not pruned. Debug and Release have separate directories, so an
+IDE reading one while you build the other reports errors `dotnet build` does not. Delete `obj/` when
+the IDE and the CLI disagree.
 
 ## One executor
 

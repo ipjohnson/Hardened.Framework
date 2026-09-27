@@ -116,7 +116,8 @@ public class GenerateSmithyAstTests : IDisposable
     private (bool Result, SmithyTaskHarness.RecordingBuildEngine Engine, string Output) Run(
         string? toolPath,
         string expectedVersion = "",
-        bool pinVersion = true
+        bool pinVersion = true,
+        string warningsFile = ""
     )
     {
         var engine = new SmithyTaskHarness.RecordingBuildEngine();
@@ -130,6 +131,7 @@ public class GenerateSmithyAstTests : IDisposable
             ToolPath = toolPath ?? "",
             ExpectedVersion = expectedVersion,
             PinVersion = pinVersion,
+            WarningsFile = warningsFile,
         };
 
         return (task.Execute(), engine, output);
@@ -325,6 +327,55 @@ public class GenerateSmithyAstTests : IDisposable
         Assert.Equal(Path.GetFullPath(Path.Combine("models", "ok.smithy")), warning.File);
         Assert.Equal(5, warning.LineNumber);
         Assert.StartsWith("HttpMethodSemantics:", warning.Message);
+    }
+
+    /// <summary>
+    /// What the CLI said about the model is kept, where it was said, for a build that skips the task.
+    /// </summary>
+    [Fact]
+    public void Execute_KeepsWhatTheCliSaidAboutTheModelForAReplay()
+    {
+        var warnings = Path.Combine(_root, "out", "ast.warnings.txt");
+
+        var (result, engine, _) = Run(
+            FakeCli(
+                "1.73.0",
+                output: "{\"smithy\":\"2.0\",\"shapes\":{}}",
+                report: "──  WARNING  ──── HttpMethodSemantics\n"
+                    + "File:  models/ok.smithy:5:1\n"
+                    + "\n"
+                    + "POST on a @readonly operation\n"
+            ),
+            warningsFile: warnings
+        );
+
+        Assert.True(result, string.Join("\n", engine.Errors.Select(e => e.Message)));
+
+        var kept = Assert.Single(Hardened.Idl.BuildTask.SpecWarnings.Read(warnings));
+
+        Assert.Equal("HSMT013", kept.Code);
+        Assert.Equal(5, kept.Line);
+        Assert.Equal(Assert.Single(engine.Warnings).Message, kept.Message);
+    }
+
+    /// <summary>
+    /// The version warning is about the CLI on this machine, so it is not kept: a replay after an
+    /// upgrade would report a mismatch that no longer holds.
+    /// </summary>
+    [Fact]
+    public void Execute_DoesNotKeepTheVersionWarning()
+    {
+        var warnings = Path.Combine(_root, "out", "ast.warnings.txt");
+
+        var (_, engine, _) = Run(
+            FakeCli("1.56.0", output: "{\"smithy\":\"2.0\",\"shapes\":{}}"),
+            expectedVersion: "1.73.0",
+            pinVersion: false,
+            warningsFile: warnings
+        );
+
+        Assert.Contains(engine.Warnings, warning => warning.Code == "HSMT011");
+        Assert.False(File.Exists(warnings));
     }
 
     /// <summary>

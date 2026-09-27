@@ -76,7 +76,49 @@ public sealed class GenerateSmithyAst : Microsoft.Build.Utilities.Task
     [Output]
     public ITaskItem? AstFile { get; set; }
 
+    /// <summary>
+    /// Where this run keeps what the CLI said about the model, for <c>ReplaySpecWarnings</c>, or
+    /// empty to keep nothing.
+    /// </summary>
+    /// <remarks>
+    /// Only the findings about the model are kept. <c>HSMT011</c> is about the CLI on this machine,
+    /// and a build that skipped this task after the CLI was upgraded would report a mismatch that
+    /// no longer holds.
+    /// </remarks>
+    public string WarningsFile { get; set; } = "";
+
+    /// <summary>True once the task has run, which a target MSBuild skipped does not set.</summary>
+    [Output]
+    public bool Ran { get; set; }
+
+    private readonly List<Hardened.Idl.BuildTask.SpecWarning> _modelWarnings = new();
+
     public override bool Execute()
+    {
+        var succeeded = Run();
+
+        if (!string.IsNullOrEmpty(WarningsFile))
+        {
+            Hardened.Idl.BuildTask.SpecWarnings.Write(WarningsFile, _modelWarnings);
+        }
+
+        Ran = true;
+
+        return succeeded;
+    }
+
+    /// <summary>
+    /// Reports something the CLI said about the model, and keeps it for the warnings file.
+    /// </summary>
+    private void WarnAboutModel(string? file, int line, int column, string message)
+    {
+        Log.LogWarning(null, "HSMT013", null, file, line, column, 0, 0, "{0}", message);
+        _modelWarnings.Add(
+            new Hardened.Idl.BuildTask.SpecWarning("HSMT013", file, message, line, column)
+        );
+    }
+
+    private bool Run()
     {
         var tool = ResolveTool();
 
@@ -339,16 +381,10 @@ public sealed class GenerateSmithyAst : Microsoft.Build.Utilities.Task
             }
             else
             {
-                Log.LogWarning(
-                    null,
-                    "HSMT013",
-                    null,
+                WarnAboutModel(
                     Attribute(finding.File),
                     finding.Line,
                     finding.Column,
-                    0,
-                    0,
-                    "{0}",
                     Describe(finding)
                 );
             }
@@ -382,34 +418,17 @@ public sealed class GenerateSmithyAst : Microsoft.Build.Utilities.Task
 
         if (findings.Count == 0)
         {
-            Log.LogWarning(
-                null,
-                "HSMT013",
-                null,
-                FirstModel(),
-                0,
-                0,
-                0,
-                0,
-                "{0}",
-                standardError.Trim()
-            );
+            WarnAboutModel(FirstModel(), 0, 0, standardError.Trim());
 
             return;
         }
 
         foreach (var finding in findings)
         {
-            Log.LogWarning(
-                null,
-                "HSMT013",
-                null,
+            WarnAboutModel(
                 Attribute(finding.File),
                 finding.Line,
                 finding.Column,
-                0,
-                0,
-                "{0}",
                 Describe(finding)
             );
         }

@@ -780,9 +780,10 @@ A `HardenedSmithyServiceShapeId` that the model does not declare stops the build
 | `HSMT015` | Error | `HardenedSmithyModel` items disagree on `PublishUrl` or `UiUrl` |
 | `HSMT031` | Warning | The served document puts two operations at one path and method |
 
-The codes that Smithy and OpenAPI projects share, from 020 up, take the `HSMT` prefix in a Smithy
-project. [Generating from OpenAPI](/guide/openapi) lists them. [Diagnostics](/reference/diagnostics)
-lists every code.
+The build task's codes that Smithy and OpenAPI projects share, from 020 up, take the `HSMT` prefix
+in a Smithy project, where an OpenAPI project reports `HOAT`. [Generating from OpenAPI](/guide/openapi)
+lists them. The generator's codes keep the `HOAG` prefix in both. `HOAG030`, when no `[Handler]`
+class implements the service, is one. [Diagnostics](/reference/diagnostics) lists every code.
 
 ## Limits
 

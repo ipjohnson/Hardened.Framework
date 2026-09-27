@@ -77,6 +77,20 @@
                Condition="'$(_HardenedSmithyUseNetTaskHost)' != 'true' And '$(HardenedSmithyInProcessTask)' == 'true'"
                AssemblyFile="$(HardenedSmithyTaskAssembly)"/>
 
+    <UsingTask TaskName="Hardened.Idl.BuildTask.ReplaySpecWarnings"
+               Condition="'$(_HardenedSmithyUseNetTaskHost)' == 'true'"
+               Runtime="NET"
+               AssemblyFile="$(HardenedSmithyNetTaskAssembly)"/>
+
+    <UsingTask TaskName="Hardened.Idl.BuildTask.ReplaySpecWarnings"
+               Condition="'$(_HardenedSmithyUseNetTaskHost)' != 'true' And '$(HardenedSmithyInProcessTask)' != 'true'"
+               TaskFactory="TaskHostFactory"
+               AssemblyFile="$(HardenedSmithyTaskAssembly)"/>
+
+    <UsingTask TaskName="Hardened.Idl.BuildTask.ReplaySpecWarnings"
+               Condition="'$(_HardenedSmithyUseNetTaskHost)' != 'true' And '$(HardenedSmithyInProcessTask)' == 'true'"
+               AssemblyFile="$(HardenedSmithyTaskAssembly)"/>
+
     <!--
         Committing .smithy rather than a generated AST.
         =============================================
@@ -225,10 +239,23 @@
                            OutputPath="$(IntermediateOutputPath)smithy/ast/$(HardenedSmithyModelName).json"
                            ToolPath="$(HardenedSmithyCliPath)"
                            ExpectedVersion="$(HardenedSmithyCliVersion)"
-                           PinVersion="$(HardenedSmithyPinCliVersion)"/>
+                           PinVersion="$(HardenedSmithyPinCliVersion)"
+                           WarningsFile="$(IntermediateOutputPath)smithy/ast/$(HardenedSmithyModelName).warnings.txt">
+            <Output TaskParameter="Ran" PropertyName="_HardenedSmithyAstRan"/>
+        </GenerateSmithyAst>
 
         <Touch Files="$(IntermediateOutputPath)smithy/ast/$(HardenedSmithyModelName).stamp"
                AlwaysCreate="true"/>
+    </Target>
+
+    <!--
+        What the CLI said about the model, again, on a build that skipped the target above as up to
+        date. HardenedSmithyReplayWarnings below explains the mechanism.
+    -->
+    <Target Name="HardenedSmithyReplayAstWarnings"
+            AfterTargets="HardenedSmithyGenerateAst"
+            Condition="'@(HardenedSmithyModel)' != '' And '$(_HardenedSmithyAstRan)' != 'true' And Exists('$(IntermediateOutputPath)smithy/ast/$(HardenedSmithyModelName).warnings.txt')">
+        <ReplaySpecWarnings WarningsFile="$(IntermediateOutputPath)smithy/ast/$(HardenedSmithyModelName).warnings.txt"/>
     </Target>
 
     <!--
@@ -343,9 +370,11 @@
                            BindCancellationToken="$(HardenedBindCancellationToken)"
                            EmbedDocument="$(HardenedSmithyEmbedDocument)"
                            EmitUnreferencedSchemas="$(HardenedSmithyEmitUnreferencedSchemas)"
-                           ServiceShapeId="$(HardenedSmithyServiceShapeId)">
+                           ServiceShapeId="$(HardenedSmithyServiceShapeId)"
+                           WarningsFile="$(HardenedSmithyModelDir)warnings.txt">
             <Output TaskParameter="ModelFiles" ItemName="_HardenedSmithyModelWritten"/>
             <Output TaskParameter="GeneratedSources" ItemName="_HardenedSmithySourceWritten"/>
+            <Output TaskParameter="Ran" PropertyName="_HardenedSmithyExtractRan"/>
         </ExtractSmithySpec>
 
         <!--
@@ -356,6 +385,19 @@
             the input and produce byte-identical output.
         -->
         <Touch Files="@(_HardenedSmithyModel);@(_HardenedSmithySource)" AlwaysCreate="false"/>
+    </Target>
+
+    <!--
+        The model's warnings, again, on a build that skipped the target above as up to date. A
+        skipped task reports nothing, so HSMT006 for an unmodeled trait appeared on the build that ran
+        the task and on no build after it. _HardenedSmithyExtractRan is set only by a task that ran:
+        MSBuild sets no task output for a skipped target, because the task element has no Ran
+        attribute to infer it from. The file exists only where the task had a warning.
+    -->
+    <Target Name="HardenedSmithyReplayWarnings"
+            AfterTargets="HardenedSmithyExtractModels"
+            Condition="'@(HardenedSmithyAst)' != '' And '$(_HardenedSmithyExtractRan)' != 'true' And Exists('$(HardenedSmithyModelDir)warnings.txt')">
+        <ReplaySpecWarnings WarningsFile="$(HardenedSmithyModelDir)warnings.txt"/>
     </Target>
 
     <!--

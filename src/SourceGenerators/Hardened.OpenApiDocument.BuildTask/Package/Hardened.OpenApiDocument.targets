@@ -1,5 +1,8 @@
 <Project>
     <!--
+        The targets the three generator packages share: the document export, and the pruning of
+        generated files a compile no longer produces, below.
+
         The document export: <HardenedOpenApiOutput> writes the OpenAPI document an assembly serves
         to a file after the compile, in the format the extension names (.json indented, .yaml or
         .yml as YAML), and <HardenedOpenApiOutputVersion> lowers that file to 3.0.0 or 3.1.0 for a
@@ -75,5 +78,49 @@
                               ProjectDirectory="$(MSBuildProjectDirectory)"
                               Version="$(HardenedOpenApiOutputVersion)"
                               DiagnosticPrefix="$(HardenedOpenApiDocumentDiagnosticPrefix)"/>
+    </Target>
+
+    <!--
+        Generated files a compile no longer produces.
+
+        With EmitCompilerGeneratedFiles the compiler writes every generated file again each time it
+        runs, and deletes none. A handler that was renamed, or a contract that was replaced, leaves
+        its old files beside the new ones, and those are what a reader is told to read. After a
+        compile that ran, a file under a Hardened generator's folder that is older than the compile
+        is one no generator produces any more.
+
+        Whether the compile ran is read off the assembly it writes, against the moment before it
+        started. A compile skipped as up to date writes nothing, and nothing is deleted.
+
+        GetLastWriteTime and ToUniversalTime rather than GetLastWriteTimeUtc, which is not among the
+        property functions the .NET 8 SDK's MSBuild allows. The template pins that SDK.
+    -->
+    <Target Name="_HardenedMarkCompileStart"
+            BeforeTargets="CoreCompile"
+            Condition="'$(EmitCompilerGeneratedFiles)' == 'true'">
+        <PropertyGroup>
+            <_HardenedCompileStartTicks>$([System.DateTime]::UtcNow.Ticks)</_HardenedCompileStartTicks>
+
+            <!-- Two seconds before the compile, so a file system that keeps whole seconds cannot date
+                 a file the compile wrote to before it began. -->
+            <_HardenedStaleBeforeTicks>$([System.DateTime]::UtcNow.AddSeconds(-2).Ticks)</_HardenedStaleBeforeTicks>
+        </PropertyGroup>
+    </Target>
+
+    <Target Name="HardenedPruneGeneratedFiles"
+            AfterTargets="CoreCompile"
+            Condition="'$(EmitCompilerGeneratedFiles)' == 'true' And '$(_HardenedCompileStartTicks)' != '' And '$(CompilerGeneratedFilesOutputPath)' != ''">
+        <PropertyGroup>
+            <_HardenedCompiledAssembly>@(IntermediateAssembly->'%(FullPath)')</_HardenedCompiledAssembly>
+            <_HardenedCompileRan Condition="Exists('$(_HardenedCompiledAssembly)') And $([System.IO.File]::GetLastWriteTime('$(_HardenedCompiledAssembly)').ToUniversalTime().Ticks) &gt;= $(_HardenedCompileStartTicks)">true</_HardenedCompileRan>
+        </PropertyGroup>
+
+        <ItemGroup Condition="'$(_HardenedCompileRan)' == 'true'">
+            <_HardenedGeneratedFile Include="$(CompilerGeneratedFilesOutputPath)/Hardened.*/**/*.cs"/>
+            <_HardenedStaleFile Include="@(_HardenedGeneratedFile)"
+                                Condition="$([System.IO.File]::GetLastWriteTime('%(FullPath)').ToUniversalTime().Ticks) &lt; $(_HardenedStaleBeforeTicks)"/>
+        </ItemGroup>
+
+        <Delete Files="@(_HardenedStaleFile)" Condition="'$(_HardenedCompileRan)' == 'true'"/>
     </Target>
 </Project>

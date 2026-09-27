@@ -69,6 +69,20 @@
                Condition="'$(_HardenedOpenApiUseNetTaskHost)' != 'true' And '$(HardenedOpenApiInProcessTask)' == 'true'"
                AssemblyFile="$(HardenedOpenApiTaskAssembly)"/>
 
+    <UsingTask TaskName="Hardened.Idl.BuildTask.ReplaySpecWarnings"
+               Condition="'$(_HardenedOpenApiUseNetTaskHost)' == 'true'"
+               Runtime="NET"
+               AssemblyFile="$(HardenedOpenApiNetTaskAssembly)"/>
+
+    <UsingTask TaskName="Hardened.Idl.BuildTask.ReplaySpecWarnings"
+               Condition="'$(_HardenedOpenApiUseNetTaskHost)' != 'true' And '$(HardenedOpenApiInProcessTask)' != 'true'"
+               TaskFactory="TaskHostFactory"
+               AssemblyFile="$(HardenedOpenApiTaskAssembly)"/>
+
+    <UsingTask TaskName="Hardened.Idl.BuildTask.ReplaySpecWarnings"
+               Condition="'$(_HardenedOpenApiUseNetTaskHost)' != 'true' And '$(HardenedOpenApiInProcessTask)' == 'true'"
+               AssemblyFile="$(HardenedOpenApiTaskAssembly)"/>
+
     <!--
         The files the task will write are declared here, at the top level, and NOT inside the target
         that writes them.
@@ -220,9 +234,11 @@
                             EmbedDocument="$(HardenedOpenApiEmbedDocument)"
                             GroupUntaggedByPath="$(HardenedOpenApiGroupUntaggedByPath)"
                             LoadExternalRefs="$(HardenedOpenApiLoadExternalRefs)"
-                            EmitUnreferencedSchemas="$(HardenedOpenApiEmitUnreferencedSchemas)">
+                            EmitUnreferencedSchemas="$(HardenedOpenApiEmitUnreferencedSchemas)"
+                            WarningsFile="$(HardenedOpenApiModelDir)warnings.txt">
             <Output TaskParameter="ModelFiles" ItemName="_HardenedOpenApiModelWritten"/>
             <Output TaskParameter="GeneratedSources" ItemName="_HardenedOpenApiSourceWritten"/>
+            <Output TaskParameter="Ran" PropertyName="_HardenedOpenApiExtractRan"/>
         </ExtractOpenApiSpec>
 
         <!--
@@ -240,6 +256,19 @@
             files, so it reconsiders exactly once rather than on every build afterwards.
         -->
         <Touch Files="@(_HardenedOpenApiModel);@(_HardenedOpenApiSource)" AlwaysCreate="false"/>
+    </Target>
+
+    <!--
+        The description's warnings, again, on a build that skipped the target above as up to date. A
+        skipped task reports nothing, so a warning appeared on the build that ran the task and on no
+        build after it. _HardenedOpenApiExtractRan is set only by a task that ran: MSBuild sets no
+        task output for a skipped target, because the task element has no Ran attribute to infer it
+        from. The file exists only where the task had a warning.
+    -->
+    <Target Name="HardenedOpenApiReplayWarnings"
+            AfterTargets="HardenedOpenApiExtractSpecs"
+            Condition="'@(HardenedOpenApiSpec)' != '' And '$(_HardenedOpenApiExtractRan)' != 'true' And Exists('$(HardenedOpenApiModelDir)warnings.txt')">
+        <ReplaySpecWarnings WarningsFile="$(HardenedOpenApiModelDir)warnings.txt"/>
     </Target>
 
     <!--

@@ -80,6 +80,61 @@ public class TargetsWiringTests
             .Where(property => property.GetCustomAttribute<OutputAttribute>() == null)
             .Select(property => property.Name);
 
+    public static TheoryData<string, string> WarningTasks() =>
+        new()
+        {
+            { "Hardened.Smithy.SourceGenerator", "ExtractSmithySpec" },
+            { "Hardened.Smithy.SourceGenerator", "GenerateSmithyAst" },
+            { "Hardened.OpenApi.SourceGenerator", "ExtractOpenApiSpec" },
+        };
+
+    /// <summary>
+    /// The warnings the task keeps are replayed from the same file, and only when the task was
+    /// skipped.
+    /// </summary>
+    /// <remarks>
+    /// The 0.41 trial's C-21: a warning appeared on the build that ran the task and on no build
+    /// after it. The replay runs when the property the task's <c>Ran</c> output sets is empty,
+    /// which is what a target MSBuild skipped as up to date leaves it.
+    /// </remarks>
+    [Theory]
+    [MemberData(nameof(WarningTasks))]
+    public void TheWarningsTheTaskKeeps_AreReplayedWhenItIsSkipped(
+        string generator,
+        string taskName
+    )
+    {
+        var targets = ReadTargets(generator);
+        var block = Regex.Match(
+            targets,
+            $@"<{taskName}\b.*?</{taskName}>",
+            RegexOptions.Singleline
+        );
+
+        Assert.True(block.Success, $"No <{taskName}> invocation with outputs found.");
+
+        var file = Regex.Match(block.Value, "WarningsFile=\"([^\"]+)\"");
+        var ran = Regex.Match(
+            block.Value,
+            "<Output TaskParameter=\"Ran\" PropertyName=\"([^\"]+)\""
+        );
+
+        Assert.True(file.Success, $"{taskName} is not given a WarningsFile.");
+        Assert.True(ran.Success, $"{taskName}'s Ran output is not captured.");
+
+        var replay = Regex
+            .Matches(
+                targets,
+                "<Target[^>]*Condition=\"([^\"]*)\"[^>]*>\\s*<ReplaySpecWarnings WarningsFile=\"([^\"]+)\"",
+                RegexOptions.Singleline
+            )
+            .Cast<Match>()
+            .SingleOrDefault(match => match.Groups[2].Value == file.Groups[1].Value);
+
+        Assert.True(replay != null, $"No target replays {file.Groups[1].Value}.");
+        Assert.Contains("'$(" + ran.Groups[1].Value + ")' != 'true'", replay!.Groups[1].Value);
+    }
+
     /// <summary>The text of one task invocation, from its opening tag to the end of its attributes.</summary>
     private static string Invocation(string targets, string taskName)
     {

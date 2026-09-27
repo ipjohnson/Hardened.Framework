@@ -158,6 +158,36 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task
     public ITaskItem[] GeneratedSources { get; set; } = System.Array.Empty<ITaskItem>();
 
     /// <summary>
+    /// Where the warnings this run reports are kept for <see cref="ReplaySpecWarnings"/>, or empty
+    /// to keep none.
+    /// </summary>
+    public string WarningsFile { get; set; } = "";
+
+    /// <summary>
+    /// True once the task has run.
+    /// </summary>
+    /// <remarks>
+    /// A target MSBuild skips as up to date does not set it, which is how the targets tell a
+    /// skipped task, whose warnings they replay, from one that has just reported its own.
+    /// </remarks>
+    [Output]
+    public bool Ran { get; set; }
+
+    /// <summary>What this run has warned about, in the order it was reported.</summary>
+    private readonly List<SpecWarning> _warnings = new();
+
+    /// <summary>
+    /// Reports a warning against <paramref name="file"/> and keeps it for the warnings file.
+    /// </summary>
+    private void Warn(string code, string? file, string format, params object[] args)
+    {
+        var message = string.Format(System.Globalization.CultureInfo.CurrentCulture, format, args);
+
+        Log.LogWarning(null, code, null, file, 0, 0, 0, 0, "{0}", message);
+        _warnings.Add(new SpecWarning(code, file, message));
+    }
+
+    /// <summary>
     /// Turns one description into the neutral model everything downstream works on.
     /// </summary>
     /// <remarks>
@@ -268,15 +298,9 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task
         // in it would otherwise degrade to JsonElement without saying so.
         foreach (var dangling in result.DanglingReferences)
         {
-            Log.LogWarning(
-                null,
+            Warn(
                 DiagnosticPrefix + "008",
-                null,
                 path,
-                0,
-                0,
-                0,
-                0,
                 "The slice of '{0}' removed a schema that is still referenced: {1}. The reference "
                     + "degrades to JsonElement.",
                 path,
@@ -343,15 +367,9 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task
 
         if (sliced)
         {
-            Log.LogWarning(
-                null,
+            Warn(
                 DiagnosticPrefix + "009",
-                null,
                 path,
-                0,
-                0,
-                0,
-                0,
                 "'{0}' is sliced but its document is embedded whole, so the application will serve "
                     + "a description of operations it does not implement.",
                 path
@@ -549,15 +567,9 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task
                 // spec does not look like a fully understood one.
                 foreach (var diagnostic in readerDiagnostics)
                 {
-                    Log.LogWarning(
-                        null,
+                    Warn(
                         DiagnosticPrefix + "006",
-                        null,
                         path,
-                        0,
-                        0,
-                        0,
-                        0,
                         "{0} '{1}': {2}",
                         SpecNoun,
                         path,
@@ -630,18 +642,7 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task
                 {
                     // Already resolved. Reported so the choice is visible rather than discovered
                     // later in a generated file nobody opened.
-                    Log.LogWarning(
-                        null,
-                        problem.Code,
-                        null,
-                        path,
-                        0,
-                        0,
-                        0,
-                        0,
-                        "{0}",
-                        problem.Message
-                    );
+                    Warn(problem.Code, path, "{0}", problem.Message);
                 }
             }
 
@@ -686,6 +687,13 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task
 
         ModelFiles = models.ToArray();
         GeneratedSources = sources.ToArray();
+
+        if (!string.IsNullOrEmpty(WarningsFile))
+        {
+            SpecWarnings.Write(WarningsFile, _warnings);
+        }
+
+        Ran = true;
 
         return !Log.HasLoggedErrors;
     }
@@ -797,15 +805,9 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task
         )
         {
             _renamedResponseModelWarned = true;
-            Log.LogWarning(
-                null,
+            Warn(
                 DiagnosticPrefix + "026",
                 null,
-                null,
-                0,
-                0,
-                0,
-                0,
                 "$(HardenedResponseModel) is 'Standard', which was renamed 'Throws' in 0.19.0. "
                     + "The mode selected is unchanged; write <HardenedResponseModel>Throws</HardenedResponseModel>."
             );

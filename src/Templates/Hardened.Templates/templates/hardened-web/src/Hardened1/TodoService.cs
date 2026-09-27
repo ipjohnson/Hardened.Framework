@@ -21,8 +21,16 @@ namespace Hardened1;
 /// compiler converts into the type the signature names. Nothing here wraps a value in a Task; the
 /// store does that, once, for the in-memory case.
 ///
-/// Build, then read obj/<configuration>/<tfm>/openapi/generated/ to see the interface, the models, the
-/// routing table and the validation the contract's constraints produced.
+#if (openapi)
+/// Build, then read obj/<configuration>/<tfm>/openapi/generated/ to see the interface, the models and
+/// the validation the contract's constraints produced, and obj/<configuration>/<tfm>/generated/ to
+/// see the routing table and the handlers.
+#endif
+#if (smithy)
+/// Build, then read obj/<configuration>/<tfm>/smithy/generated/ to see the interface, the models and
+/// the validation the model's constraints produced, and obj/<configuration>/<tfm>/generated/ to see
+/// the routing table and the handlers.
+#endif
 /// </remarks>
 [Handler]
 public class TodoService(ITodoStore store) : ITodosService
