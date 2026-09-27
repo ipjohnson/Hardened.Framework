@@ -69,11 +69,25 @@ public sealed class LambdaWebTestingAttribute : TestHostAttribute
     /// </example>
     public LambdaResponseMode ResponseMode { get; set; } = LambdaResponseMode.Buffered;
 
+    /// <summary>
+    /// How long each invocation's Lambda context reports remaining, in milliseconds. 30 seconds
+    /// unless the test says otherwise.
+    /// </summary>
+    /// <remarks>
+    /// The runtime cancels a handler's token 500 milliseconds before the deadline this sets. A test
+    /// of what a handler does when its time runs out sets it short on the method, as
+    /// <c>[LambdaWebTesting(RemainingTimeMilliseconds = 600)]</c>, and the runtime cancels the
+    /// token itself. A token the test cancels by hand skips the runtime's part.
+    /// </remarks>
+    public int RemainingTimeMilliseconds { get; set; } = 30_000;
+
     public override ITestHost CreateHost(ITestMethodContext testMethod, IServiceCollection services)
     {
+        var remaining = TimeSpan.FromMilliseconds(RemainingTimeMilliseconds);
+
         if (ResponseMode != LambdaResponseMode.Stream)
         {
-            return new LambdaWebHost();
+            return new LambdaWebHost { RemainingTime = remaining };
         }
 
         var capture = new StreamedResponseCapture();
@@ -86,7 +100,7 @@ public sealed class LambdaWebTestingAttribute : TestHostAttribute
         services.AddSingleton<IResponseStreamFactory>(capture);
         services.ConfigureLambdaResponseMode(mode => mode.Mode = LambdaResponseMode.Stream);
 
-        return new LambdaWebHost(capture);
+        return new LambdaWebHost(capture) { RemainingTime = remaining };
     }
 }
 
@@ -139,6 +153,9 @@ public sealed class LambdaWebHost : ITestHost
     /// socket - so it only has to be a well-formed base.
     /// </summary>
     public Uri BaseAddress { get; } = new("http://apigateway.test/");
+
+    /// <summary>What each invocation's Lambda context reports remaining when it starts.</summary>
+    internal TimeSpan RemainingTime { get; init; } = TimeSpan.FromSeconds(30);
 
     /// <remarks>
     /// Dispatch is not appended here, unlike the pipeline host: <c>LambdaInvocationHandler</c>
@@ -206,7 +223,7 @@ public sealed class LambdaWebHost : ITestHost
 
         using var input = new MemoryStream(Encoding.UTF8.GetBytes(Event(request)));
 
-        var output = await handler.Invoke(input, new TestContext());
+        var output = await handler.Invoke(input, new TestContext(RemainingTime));
 
         // A streamed invocation returns Stream.Null and wrote its answer to the response stream, so
         // the capture is the response. An adapter that cannot stream stays buffered under the same
@@ -428,6 +445,16 @@ public sealed class LambdaWebHost : ITestHost
                 headers[header.Key] = new StringValues(header.Value.ToArray());
             }
 
+            // The content's own headers too. A client's Content-Type rides on the content, and
+            // without it the event carried a JSON or multipart body with no type at all.
+            if (request.Content != null)
+            {
+                foreach (var header in request.Content.Headers)
+                {
+                    headers[header.Key] = new StringValues(header.Value.ToArray());
+                }
+            }
+
             var body =
                 request.Content == null
                     ? Stream.Null
@@ -452,7 +479,16 @@ public sealed class LambdaWebHost : ITestHost
 
             foreach (var header in response.Headers)
             {
-                message.Headers.TryAddWithoutValidation(header.Key, header.Value.ToString());
+                var values = header.Value.ToArray();
+
+                // A content header is refused on the message and belongs on the content. That is
+                // where Content-Type goes, and a generated client reads it to know there is a body
+                // at all, so dropping it failed every typed call. PipelineHttpMessageHandler
+                // follows the same rule.
+                if (!message.Headers.TryAddWithoutValidation(header.Key, values))
+                {
+                    message.Content.Headers.TryAddWithoutValidation(header.Key, values);
+                }
             }
 
             return message;
@@ -460,8 +496,10 @@ public sealed class LambdaWebHost : ITestHost
     }
 
     /// <summary>Enough context to invoke, with a deadline the host turns into a token.</summary>
-    private sealed class TestContext : ILambdaContext
+    private sealed class TestContext(TimeSpan remaining) : ILambdaContext
     {
+        private readonly DateTimeOffset _deadline = DateTimeOffset.UtcNow + remaining;
+
         public string AwsRequestId => Guid.NewGuid().ToString();
         public IClientContext ClientContext => null!;
         public string FunctionName => "web-test";
@@ -473,6 +511,8 @@ public sealed class LambdaWebHost : ITestHost
         public string LogGroupName => "/aws/lambda/web-test";
         public string LogStreamName => "test";
         public int MemoryLimitInMB => 512;
-        public TimeSpan RemainingTime => TimeSpan.FromSeconds(30);
+
+        /// <summary>Counted down from the invocation's deadline, as the runtime's own context is.</summary>
+        public TimeSpan RemainingTime => _deadline - DateTimeOffset.UtcNow;
     }
 }
