@@ -409,14 +409,14 @@ build reports nothing.
 
 `HRDW008` names where the file was bound from. It says `the container` for an `IFormFile` with no
 attribute. For the other sources it says `the request body`, `the query string`, `the headers`,
-`the cookies` or `the path`. A custom binding attribute on an `IFormFile` is not reported. None of
-the three diagnostics carries a file location. [Diagnostics](/reference/diagnostics) lists every
-code.
+`the cookies` or `the path`. A custom binding attribute on an `IFormFile` is not reported.
+`HRDW008` is reported at the parameter, so the build names its file and line. `HRDW002` and
+`HRDW007` carry no file location. [Diagnostics](/reference/diagnostics) lists every code.
 
 The import handler without `[FromForm]` fails the build with this error:
 
 ```text
-CSC : error HRDW008: 'TodoFormController.Import' binds 'file', a file, from the container. A file only arrives as a part of a multipart form, so bind it with [FromForm].
+src/Todos/TodoFormController.cs(21,72): error HRDW008: 'TodoFormController.Import' binds 'file', a file, from the container. A file only arrives as a part of a multipart form, so bind it with [FromForm].
 ```
 
 `Create(ITodoStore store, [FromForm] string title, NewTodo todo)` fails the build with this error:

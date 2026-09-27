@@ -111,8 +111,16 @@ public static class RequestGeneratorHarness
     }
 
     /// <summary>Runs the generator over several source files.</summary>
-    public static GeneratorResult Generate(IReadOnlyDictionary<string, string> sources) =>
-        GeneratorTestHarness.Run(sources, [new RequestGenerator()], Anchors);
+    public static GeneratorResult Generate(
+        IReadOnlyDictionary<string, string> sources,
+        IReadOnlyDictionary<string, string>? buildProperties = null
+    ) =>
+        GeneratorTestHarness.Run(
+            sources,
+            [new RequestGenerator()],
+            Anchors,
+            buildProperties: buildProperties
+        );
 
     /// <summary>
     /// Wraps <paramref name="body"/> in a controller with a single <c>[Get]</c> route, for the many

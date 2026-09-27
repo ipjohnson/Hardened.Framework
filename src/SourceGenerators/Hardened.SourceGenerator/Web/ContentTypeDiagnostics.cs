@@ -1,4 +1,6 @@
-﻿using Microsoft.CodeAnalysis;
+﻿using Hardened.SourceGenerator.Models.Request;
+using Hardened.SourceGenerator.Requests;
+using Microsoft.CodeAnalysis;
 
 namespace Hardened.SourceGenerator.Web;
 
@@ -34,10 +36,11 @@ namespace Hardened.SourceGenerator.Web;
 /// that off this compilation and its references, which is what makes the warning answerable.
 /// </para>
 /// <para>
-/// Found in the syntax transform, where the return type is known, and reported from the routing
-/// generator, which has a <c>SourceProductionContext</c>. At <see cref="Location.None"/> for the
-/// reason its neighbours are: the handler model carries no location, by design, because a span on
-/// it would rebuild every handler below an edit.
+/// Found in the syntax transform, where the return type is known. The error is reported at the
+/// handler's name, found in the compilation through <see cref="HandlerDeclaration"/>. The warning
+/// is reported from the routing generator, which knows what the compilation writes, at
+/// <see cref="Location.None"/>: the handler model carries no location, by design, because a span
+/// on it would rebuild every handler below an edit.
 /// </para>
 /// </remarks>
 public static class ContentTypeDiagnostics
@@ -94,7 +97,36 @@ public static class ContentTypeDiagnostics
         );
 
     /// <summary>
-    /// Reports the findings the transform carried, if any survive what this compilation can write.
+    /// Whether the handler answers with bytes and declares no media type. A handler that is not
+    /// generated is not asked, for the reason the routing table does not route to it.
+    /// </summary>
+    public static bool MissesDeclaration(RequestHandlerModel handler) =>
+        handler.ResponseInformation.MissingContentTypeDiagnostic && !handler.CannotBeEmitted();
+
+    /// <summary>Reports a handler that answers with bytes and declares no media type.</summary>
+    public static void ReportMissingDeclaration(
+        SourceProductionContext context,
+        RequestHandlerModel handler,
+        IMethodSymbol? method
+    )
+    {
+        if (!MissesDeclaration(handler))
+        {
+            return;
+        }
+
+        context.ReportDiagnostic(
+            Diagnostic.Create(
+                MissingDeclaration(),
+                HandlerDeclaration.Of(method),
+                handler.ControllerType.Name + "." + handler.HandlerMethod
+            )
+        );
+    }
+
+    /// <summary>
+    /// Reports the declared media types nothing in reach writes, if any survive what this
+    /// compilation can write.
     /// </summary>
     /// <param name="unproducible">
     /// The declared media types the transform could not rule producible from the return type alone,
@@ -111,19 +143,11 @@ public static class ContentTypeDiagnostics
     public static void Report(
         SourceProductionContext context,
         string handler,
-        bool declaresNothing,
         string? unproducible,
         string writable,
         bool described = false
     )
     {
-        if (declaresNothing)
-        {
-            context.ReportDiagnostic(
-                Diagnostic.Create(MissingDeclaration(), Location.None, handler)
-            );
-        }
-
         if (string.IsNullOrEmpty(unproducible))
         {
             return;

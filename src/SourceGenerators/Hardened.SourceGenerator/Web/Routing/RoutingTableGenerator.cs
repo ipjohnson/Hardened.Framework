@@ -149,13 +149,12 @@ public static class RoutingTableGenerator
                 handler.ResponseInformation.StreamFramingDiagnostic
             );
 
-            // What the operation says it produces, against what could produce it. Bytes with no
-            // declaration is an error; a model declared as something nothing here writes is a
-            // warning, because the host may register the serializer.
+            // A model declared as something nothing here writes is a warning, because the host may
+            // register the serializer. Bytes with no declaration is an error, reported at the
+            // handler by WebIncrementalGenerator.
             ContentTypeDiagnostics.Report(
                 context,
                 name,
-                handler.ResponseInformation.MissingContentTypeDiagnostic,
                 handler.ResponseInformation.UnproducibleContentTypeDiagnostic,
                 options.WritableContentTypes
             );

@@ -131,6 +131,29 @@ public static class WebIncrementalGenerator
             )
         );
 
+        // Findings reported at the handler's declaration: a file bound from anywhere but the form,
+        // and bytes answered with no declared media type. Both are decided on the handler model,
+        // which carries no location for the reason given above, so a handler with either is paired
+        // with the compilation and its method is found there. Filtered first, so a build with no
+        // finding pairs nothing, and nothing downstream emits source.
+        initializationContext.RegisterSourceOutput(
+            modelProvider
+                .Where(static handler =>
+                    FormFileDiagnostics.FindMisbound(handler).Count > 0
+                    || ContentTypeDiagnostics.MissesDeclaration(handler)
+                )
+                .Combine(initializationContext.CompilationProvider),
+            SourceGeneratorWrapper.Wrap<(RequestHandlerModel Left, Compilation Right)>(
+                (context, pair) =>
+                {
+                    var method = HandlerDeclaration.Find(pair.Right, pair.Left);
+
+                    FormFileDiagnostics.Report(context, pair.Left, method);
+                    ContentTypeDiagnostics.ReportMissingDeclaration(context, pair.Left, method);
+                }
+            )
+        );
+
         var invokeGenerator = new WebExecutionHandlerCodeGenerator();
 
         // The handler stage reports a route token nothing declares, so it has to know what the

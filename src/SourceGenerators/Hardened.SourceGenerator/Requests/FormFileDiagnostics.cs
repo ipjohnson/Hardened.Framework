@@ -47,14 +47,19 @@ public static class FormFileDiagnostics
             )
             .ToList();
 
-    public static void Report(SourceProductionContext context, RequestHandlerModel model)
+    /// <summary>Reports each misbound file at its parameter, in <paramref name="method"/>.</summary>
+    public static void Report(
+        SourceProductionContext context,
+        RequestHandlerModel model,
+        IMethodSymbol? method
+    )
     {
         foreach (var parameter in FindMisbound(model))
         {
             context.ReportDiagnostic(
                 Diagnostic.Create(
                     Descriptor(),
-                    Location.None,
+                    HandlerDeclaration.Of(method, parameter.Name),
                     model.ControllerType.Name + "." + model.HandlerMethod,
                     parameter.Name,
                     Source(parameter.BindingType)
