@@ -23,6 +23,15 @@ matched against `handlerInfo.HandlerType.Assembly`, so a process composing sever
 each one's declarations to that module's own handlers and no others. That is open question 1,
 answered the way `TimeoutResolver` already answers it for `[assembly: Timeout]`.
 
+**Requirements ride the same rung.** An `IAuthorizeAttribute` on the module class, such as
+`[Authorize<TScheme>]`, is collected beside the filter providers and emitted into the same array.
+It installs no filter of its own: `WithWiderRungs` conjoins its requirement into each handler's, and
+`AuthorizationFilterProvider` guards the handler by that, so `[AllowAnonymous]` on a handler still
+cancels it. The document reads it apart from the filters, as `EntryPointSecurity`, because the
+same exception applies there: an operation that allows anonymous callers publishes none of the
+module's schemes, 401 or 403. Before the 0.41 trial the rung collected filter providers only, and
+`[Authorize<TScheme>]` on a module class compiled and guarded nothing (A-19).
+
 **What is not built**, and why each is its own change:
 
 - *The assembly rung.* `FilterResponseSelector` already reads it for the document and nothing

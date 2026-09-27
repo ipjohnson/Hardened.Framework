@@ -101,8 +101,9 @@ CSC : warning HRDSC001: 'TodosLibrary' carries [HttpAuthenticationScheme], which
 ## Requiring a caller
 
 `[Authorize<TScheme>]` on a method covers that handler. On a controller class, it covers every
-handler in the class. A method or a class takes one `[Authorize<TScheme>]`. A second one that names
-another scheme fails the build with `CS0579`, `Duplicate 'Authorize<>' attribute`.
+handler in the class. On a `[HardenedModule]` class, it covers every handler compiled with the
+module. A method or a class takes one `[Authorize<TScheme>]`. A second one that names another scheme
+fails the build with `CS0579`, `Duplicate 'Authorize<>' attribute`.
 
 The attribute requires only an authenticated caller. It does not check which scheme or which source
 authenticated the caller. A caller that an API-key source authenticated passes
@@ -114,10 +115,28 @@ requires a caller on every handler. [Authorization](/guide/authorization) covers
 [The OpenAPI document](/guide/openapi-document) covers what `[Authorize<TScheme>]` publishes: the
 operation's `security`, a 401 and a 403.
 
-`[Authorize<TScheme>]` on a `[HardenedModule]` class is not read. It requires nothing and publishes
-nothing. The build reports nothing. Put the attribute on the controller classes, or use
-`[RequireAuthorization]`. [Authorization](/guide/authorization) lists the other places where the
-build does not read an authorization attribute.
+On a module class, the attribute acts as though every controller class compiled with the module
+carried it. Each operation lists the scheme under `security`, with the 401 and the 403. A handler
+with `[AllowAnonymous]` on its method or its class stays public, and its operation lists none of
+them. `[AuthorizeGrants]` and `[Authorize<TScheme, TPolicy>]` on a module class work the same way.
+
+```csharp
+using Hardened.Requests.Runtime.Authorization;
+using Hardened.Shared.Runtime.Attributes;
+using Hardened.Web.Runtime.OpenApi;
+
+namespace Todos;
+
+[HardenedModule]
+[Authorize<BearerAuth>]
+[Enable<OpenApiDocumentPublishing>]
+public partial class TodosLibrary;
+```
+
+The module's attribute covers only the handlers compiled in its project. A host's handlers are not
+covered by a library module's attribute. The framework's own routes, such as the health endpoints
+and `/openapi.json`, are not covered either. [Authorization](/guide/authorization) lists the places
+where the build does not read an authorization attribute.
 
 ## Writing a principal source
 

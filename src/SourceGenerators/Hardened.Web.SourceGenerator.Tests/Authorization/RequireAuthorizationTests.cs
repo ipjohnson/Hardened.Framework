@@ -121,6 +121,31 @@ public class RequireAuthorizationTests
 
     #region saying something
 
+    /// <summary>
+    /// A requirement on the module class reaches every handler compiled with it, so none of them
+    /// is left saying nothing. The runtime conjoins it into each handler's requirement.
+    /// </summary>
+    [Fact]
+    public void ARequirementOnTheModuleSpeaksForEveryHandler()
+    {
+        Assert.Empty(
+            Reported(
+                "[RequireAuthorization]\n[Authorize<UserController.BearerAuth>]",
+                OneUnguardedHandler
+                    + "\n    public sealed class BearerAuth : "
+                    + "Hardened.Requests.Abstract.Authorization.IAuthenticationScheme;"
+            )
+        );
+    }
+
+    [Fact]
+    public void AGrantOnTheModuleSpeaksForEveryHandler()
+    {
+        Assert.Empty(
+            Reported("[RequireAuthorization]\n[AuthorizeGrants(\"admin\")]", OneUnguardedHandler)
+        );
+    }
+
     [Fact]
     public void AHandlerWithAGrantAttributeIsNotReported()
     {
