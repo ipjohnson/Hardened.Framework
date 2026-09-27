@@ -1051,6 +1051,41 @@ public class ConditionalGetFilterTests
         AssertNotModified(miss, etag: Computed);
     }
 
+    /// <summary>
+    /// What that miss stores is the handler's 200, not the 304 its caller was sent. The 304 is
+    /// decided as the cache copies the buffer out, so an entry read from the response afterwards
+    /// served every later caller a 304 with no body until it expired.
+    /// </summary>
+    [Fact]
+    public async Task AMissWithAMatchingTagStoresThe200ForACallerHoldingNothing()
+    {
+        var (services, store) = Caching();
+        var handled = 0;
+
+        Func<IExecutionChain, Task> handler = async chain =>
+        {
+            handled++;
+
+            await Writes(Json, etag: null)(chain);
+        };
+
+        var revalidation = Context(ifNoneMatch: Computed, services: services);
+
+        await Run(revalidation, handler, Filter(), Cache());
+
+        var entry = Assert.Single(store.Stored);
+
+        Assert.Equal(200, entry.Status);
+        Assert.Equal("application/json", entry.ContentType);
+
+        var plain = Context(services: services);
+
+        await Run(plain, handler, Filter(), Cache());
+
+        Assert.Equal(1, handled);
+        AssertSentInFull(plain, status: 200, etag: Computed);
+    }
+
     // ---------------------------------------------------------------- the pooled buffer
 
     /// <summary>

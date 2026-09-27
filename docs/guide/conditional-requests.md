@@ -258,6 +258,8 @@ The filter removes `Content-Type`, `Content-Length` and `Content-Encoding` from 
 
 `[CacheResponse<T>]` puts the same SHA-1 tag as the filter on every response it stores, unless the handler set one. With both attributes on a handler, a request whose `If-None-Match` matches a stored entry gets a 304. The handler does not run. The response cache does not send the stored body. [The execution pipeline](/guide/execution-pipeline) gives the order of the two filters.
 
+A request whose `If-None-Match` matches, and which finds no entry, runs the handler and gets a 304. The entry it fills holds the handler's 200 and its body. A later request without `If-None-Match` gets that body. This is the usual order for a client that polls: the first request after an entry expires is a revalidation.
+
 The response cache needs a store, which [Response caching](/guide/response-caching) covers. The example runs with `[HardenedMemoryResponseCache]` on `TodosLibrary`.
 
 ```csharp
