@@ -238,7 +238,11 @@ namespace Test.Api
                             _pathTokenNamesPetController_ThreeTokens,
                             charSpan.Slice(index).ToString()
                         );
-                        return _infoPetController_ThreeTokens ??= new global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo(new global::Test.Api.Generated.PetController_ThreeTokens(_rootServiceProvider));
+                        return _infoPetController_ThreeTokens ?? global::System.Threading.Interlocked.CompareExchange(
+                            ref _infoPetController_ThreeTokens,
+                            new global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo(new global::Test.Api.Generated.PetController_ThreeTokens(_rootServiceProvider)),
+                            null
+                        ) ?? _infoPetController_ThreeTokens;
                     default:
                         return _methodNotAllowedGETHEAD;
                 }
@@ -262,7 +266,11 @@ namespace Test.Api
                             _pathTokenNamesPetController_TwoTokens,
                             charSpan.Slice(index).ToString()
                         );
-                        return _infoPetController_TwoTokens ??= new global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo(new global::Test.Api.Generated.PetController_TwoTokens(_rootServiceProvider));
+                        return _infoPetController_TwoTokens ?? global::System.Threading.Interlocked.CompareExchange(
+                            ref _infoPetController_TwoTokens,
+                            new global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo(new global::Test.Api.Generated.PetController_TwoTokens(_rootServiceProvider)),
+                            null
+                        ) ?? _infoPetController_TwoTokens;
                     default:
                         return _methodNotAllowedGETHEAD;
                 }

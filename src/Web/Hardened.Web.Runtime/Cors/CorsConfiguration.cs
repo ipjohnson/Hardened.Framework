@@ -9,6 +9,9 @@ public class CorsConfiguration
 {
     public const string DefaultEnvironmentVariable = "CORS_ALLOWED_ORIGINS";
 
+    /// <summary>The variable <see cref="LoadFromEnvironment"/> reads allowed headers from.</summary>
+    public const string DefaultHeadersEnvironmentVariable = "CORS_ALLOWED_HEADERS";
+
     private readonly HashSet<string> _allowedOrigins = new(StringComparer.OrdinalIgnoreCase);
     private readonly List<string> _allowedOriginSuffixes = new();
     private readonly HashSet<string> _allowedHeaders = new(StringComparer.OrdinalIgnoreCase)
@@ -32,6 +35,8 @@ public class CorsConfiguration
     private readonly List<string> _exposedHeaders = new() { CorrelationHeaderFilter.HeaderName };
 
     public string EnvironmentVariable { get; set; } = DefaultEnvironmentVariable;
+
+    public string HeadersEnvironmentVariable { get; set; } = DefaultHeadersEnvironmentVariable;
 
     public IReadOnlySet<string> AllowedOrigins => _allowedOrigins;
 
@@ -114,24 +119,21 @@ public class CorsConfiguration
     }
 
     /// <summary>
-    /// Reads comma-separated origins from the configured environment variable and adds them to the
-    /// allowed set.
+    /// Reads comma-separated origins and headers from the configured environment variables and
+    /// adds them to the allowed sets.
     /// </summary>
+    /// <remarks>
+    /// The headers variable exists because a header an operation needs, such as a tenant id the
+    /// contract does not declare, could only be allowed in code.
+    /// </remarks>
     public void LoadFromEnvironment()
     {
-        var value = Environment.GetEnvironmentVariable(EnvironmentVariable);
-
-        if (string.IsNullOrWhiteSpace(value))
+        foreach (var header in Entries(HeadersEnvironmentVariable))
         {
-            return;
+            AllowHeader(header);
         }
 
-        foreach (
-            var origin in value.Split(
-                ',',
-                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries
-            )
-        )
+        foreach (var origin in Entries(EnvironmentVariable))
         {
             if (origin == "*")
             {
@@ -187,11 +189,24 @@ public class CorsConfiguration
     }
 
     /// <summary>Whether every header the preflight asked about is allowed.</summary>
-    public bool AreHeadersAllowed(IEnumerable<string> requested)
+    public bool AreHeadersAllowed(IEnumerable<string> requested) =>
+        AreHeadersAllowed(requested, Array.Empty<string>());
+
+    /// <summary>
+    /// Whether every header the preflight asked about is allowed here or is one of
+    /// <paramref name="alsoAllowed"/>, the headers the operation itself reads.
+    /// </summary>
+    public bool AreHeadersAllowed(
+        IEnumerable<string> requested,
+        IReadOnlyCollection<string> alsoAllowed
+    )
     {
         foreach (var header in requested)
         {
-            if (!_allowedHeaders.Contains(header))
+            if (
+                !_allowedHeaders.Contains(header)
+                && !alsoAllowed.Contains(header, StringComparer.OrdinalIgnoreCase)
+            )
             {
                 return false;
             }
@@ -199,6 +214,15 @@ public class CorsConfiguration
 
         return true;
     }
+
+    /// <summary>The comma-separated entries of an environment variable, or none where it is unset.</summary>
+    private static string[] Entries(string variable) =>
+        Environment.GetEnvironmentVariable(variable) is { } value
+            ? value.Split(
+                ',',
+                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries
+            )
+            : Array.Empty<string>();
 
     private static string Normalize(string origin) => origin.Trim().TrimEnd('/');
 

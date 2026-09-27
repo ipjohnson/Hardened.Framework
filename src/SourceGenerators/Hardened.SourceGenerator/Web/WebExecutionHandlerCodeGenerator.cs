@@ -66,9 +66,6 @@ public class WebExecutionHandlerCodeGenerator
         // field named after the parameter, and refuses every request.
         BoundModelDiagnostics.Report(sourceProductionContext, requestHandlerModel);
 
-        // And again: a file bound from anywhere but the form compiles and refuses every request.
-        FormFileDiagnostics.Report(sourceProductionContext, requestHandlerModel);
-
         // And the same treatment again: a token that binds nothing leaves a handler that compiles
         // and routes, and refuses every request once it is running.
         RouteBindingDiagnostics.Report(sourceProductionContext, requestHandlerModel);
@@ -86,6 +83,10 @@ public class WebExecutionHandlerCodeGenerator
 
         // A zero budget compiles, publishes, and fails the first request.
         TimeoutDeclarationDiagnostics.Report(sourceProductionContext, requestHandlerModel);
+
+        // A cache key on a query key the operation does not bind compiles, and serves one entry to
+        // requests that differ in the keys it does bind.
+        VaryByQueryDiagnostics.Report(sourceProductionContext, requestHandlerModel);
 
         // Every diagnostic first, then the decision. Two body parameters are the one case above
         // whose generated file does not compile: the invocation omits an argument the method

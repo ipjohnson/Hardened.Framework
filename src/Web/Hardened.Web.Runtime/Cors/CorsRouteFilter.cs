@@ -24,18 +24,18 @@ internal sealed class CorsRouteFilter : IExecutionFilter
     {
         var context = chain.Context;
 
+        // On every response, a request without Origin included. The answer depends on Origin
+        // either way, and a shared cache that stored the answer to a request without one would
+        // serve it, with no CORS headers, to the browser that sends one.
+        VaryHeader.Add(context.Response.Headers, KnownHeaders.Origin);
+
         if (
             context.Request.Headers.TryGetValue(KnownHeaders.Origin, out var originValues)
             && originValues.ToString() is { Length: > 0 } origin
+            && _policy.IsOriginAllowed(origin)
         )
         {
-            // For the reason CorsFilter gives: the answer depends on Origin either way.
-            VaryHeader.Add(context.Response.Headers, KnownHeaders.Origin);
-
-            if (_policy.IsOriginAllowed(origin))
-            {
-                CorsHeaders.WriteActual(context.Response.Headers, _policy, origin);
-            }
+            CorsHeaders.WriteActual(context.Response.Headers, _policy, origin);
         }
 
         return chain.Next();

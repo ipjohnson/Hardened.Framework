@@ -408,7 +408,6 @@ public class SpecSourceGenerator : IIncrementalGenerator
                         ContentTypeDiagnostics.Report(
                             ctx,
                             handler.ControllerType.Name + "." + handler.HandlerMethod,
-                            declaresNothing: false,
                             handler.ResponseInformation.UnproducibleContentTypeDiagnostic,
                             pair.Right,
                             described: true

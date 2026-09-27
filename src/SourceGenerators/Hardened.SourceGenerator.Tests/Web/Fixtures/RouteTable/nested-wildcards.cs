@@ -5,6 +5,7 @@ using Hardened.Web.Runtime.Handlers;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Threading;
 using Test.Api.Generated;
 using Test.Api.Services;
 
@@ -246,7 +247,11 @@ namespace Test.Api
                             _pathTokenNamesPetController_ThreeTokens,
                             charSpan.Slice(index).ToString()
                         );
-                        return _infoPetController_ThreeTokens ??= new RequestHandlerInfo(new PetController_ThreeTokens(_rootServiceProvider));
+                        return _infoPetController_ThreeTokens ?? Interlocked.CompareExchange(
+                            ref _infoPetController_ThreeTokens,
+                            new RequestHandlerInfo(new PetController_ThreeTokens(_rootServiceProvider)),
+                            null
+                        ) ?? _infoPetController_ThreeTokens;
                     default:
                         return _methodNotAllowedGETHEAD;
                 }
@@ -270,7 +275,11 @@ namespace Test.Api
                             _pathTokenNamesPetController_TwoTokens,
                             charSpan.Slice(index).ToString()
                         );
-                        return _infoPetController_TwoTokens ??= new RequestHandlerInfo(new PetController_TwoTokens(_rootServiceProvider));
+                        return _infoPetController_TwoTokens ?? Interlocked.CompareExchange(
+                            ref _infoPetController_TwoTokens,
+                            new RequestHandlerInfo(new PetController_TwoTokens(_rootServiceProvider)),
+                            null
+                        ) ?? _infoPetController_TwoTokens;
                     default:
                         return _methodNotAllowedGETHEAD;
                 }

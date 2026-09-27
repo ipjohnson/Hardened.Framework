@@ -65,6 +65,71 @@ public class ExceptionToModelConverterTests
         return context;
     }
 
+    private sealed class TooLarge : Exception
+    {
+        public TooLarge()
+            : base("Request body too large.") { }
+    }
+
+    /// <summary>What a host registers to name its own refusal.</summary>
+    private sealed class TooLargeReader : IExceptionStatusReader
+    {
+        public int? StatusOf(Exception exception) => exception is TooLarge ? 413 : null;
+    }
+
+    private static IExecutionContext WithReader()
+    {
+        var context = Context();
+        var provider = Substitute.For<IServiceProvider>();
+
+        provider
+            .GetService(typeof(IEnumerable<IExceptionStatusReader>))
+            .Returns(new IExceptionStatusReader[] { new TooLargeReader() });
+        context.RootServiceProvider.Returns(provider);
+
+        return context;
+    }
+
+    /// <summary>
+    /// A body over Kestrel's limit is refused by Kestrel's own exception, which the converter
+    /// cannot name, so it answered 500. The host's reader names it, and the message stays, because
+    /// it describes the request.
+    /// </summary>
+    [Fact]
+    public void AHostsRefusalAnswersTheStatusItsReaderNames()
+    {
+        var (status, model) = Converter.ConvertExceptionToModel(WithReader(), new TooLarge());
+
+        Assert.Equal(413, status);
+
+        var error = Assert.IsType<ErrorModel>(model);
+
+        Assert.Equal("TooLarge", error.Type);
+        Assert.Equal("Request body too large.", error.Message);
+    }
+
+    [Fact]
+    public void AHostsRefusalWrappedByADeserializerIsFound()
+    {
+        var (status, _) = Converter.ConvertExceptionToModel(
+            WithReader(),
+            new JsonException("The body could not be read.", new TooLarge())
+        );
+
+        Assert.Equal(413, status);
+    }
+
+    [Fact]
+    public void AnExceptionNoReaderKnowsIsStillAServerFault()
+    {
+        var (status, _) = Converter.ConvertExceptionToModel(
+            WithReader(),
+            new InvalidOperationException("broken")
+        );
+
+        Assert.Equal(500, status);
+    }
+
     [Fact]
     public void ValidationExceptionMapsTo400WithFieldErrors()
     {

@@ -111,4 +111,29 @@ public abstract class ExecutionRequestConformanceTests : PayloadExecutionRequest
 
         Assert.Equal(payload, copy.ToArray());
     }
+
+    /// <summary>
+    /// A request that sent no <c>Accept</c> reads as null or empty, which negotiation takes as a
+    /// client that takes anything.
+    /// </summary>
+    /// <remarks>
+    /// The Lambda and Azure Functions HTTP requests read it as <c>application/json</c>, so an
+    /// operation declaring one other media type, and every stream, answered 406 there to a request
+    /// that stated no preference.
+    /// </remarks>
+    [Fact]
+    public void AnAbsentAcceptNamesNothing()
+    {
+        var request = Create(_ => { });
+
+        Assert.True(string.IsNullOrEmpty(request.Accept), $"Accept read as '{request.Accept}'");
+    }
+
+    [Fact]
+    public void AnAcceptIsSurfacedAsSent()
+    {
+        var request = Create(s => s.Headers["Accept"] = "text/event-stream");
+
+        Assert.Equal("text/event-stream", request.Accept);
+    }
 }

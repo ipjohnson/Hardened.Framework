@@ -1,5 +1,8 @@
 <Project>
 
+    <!-- Whether DependencyModules comes from a checkout beside this repository or the packages. -->
+    <Import Project="DependencyModules.props" />
+
     <!--
       Package metadata shared by every package in this repository.
 

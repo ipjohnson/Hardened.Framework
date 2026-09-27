@@ -89,8 +89,24 @@ among its declared media types, as in `[Produces("application/json", "text/event
 other stream is NDJSON under `application/x-ndjson`, whatever other media type `[Produces]` names.
 
 A stream's framing is fixed when the application is built. The request's `Accept` header does not
-change it. A stream is never answered 406. [Content negotiation](/guide/content-negotiation) covers
-`Accept` and `[Produces]`.
+change it, but it is read the way it is for an operation that answers a model. Under the default
+negotiation mode, `Strict`, a request that names media types, none of them the stream's, gets 406.
+The body names the stream's media type:
+
+```http
+GET /todos/feed
+Accept: application/json
+
+HTTP/1.1 406 Not Acceptable
+Content-Type: application/json
+
+{"type":"NotAcceptable","message":"This operation produces application/x-ndjson.","details":"application/x-ndjson"}
+```
+
+A request with no `Accept`, with `*/*`, or naming the stream's media type gets the stream. A
+browser's `EventSource` sends `Accept: text/event-stream`, and a client generated from the OpenAPI
+document names the stream's media type. Under `Lenient`, the stream is sent whatever `Accept` says.
+[Content negotiation](/guide/content-negotiation) covers `Accept`, the two modes and `[Produces]`.
 
 Each item is written as JSON with the application's JSON settings, in both framings. In an
 application whose other responses are MessagePack, the items are still JSON.
@@ -370,6 +386,16 @@ data: {"id":2,"title":"Add an endpoint","done":false}
 A handler that passes the token to the work it awaits stops when the client disconnects. A handler
 that does not pass it on runs until it yields its next item. The write then fails, and the stream
 ends.
+
+A stream the client disconnected from is logged as one `Information` line with event id 78006, not
+as a failed request:
+
+```text
+info: Hardened.Requests.Runtime.Logging.RequestLogger[78006] GET /todos/feed was cancelled before it finished
+```
+
+The line is the same for any request whose own token was cancelled, which is the client
+disconnecting or the host ending the request.
 
 ## Compression
 

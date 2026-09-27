@@ -5,6 +5,7 @@ using Hardened.Web.Runtime.Handlers;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Threading;
 using Test.Api.Generated;
 using Test.Api.Services;
 
@@ -47,9 +48,17 @@ namespace Test.Api
                     switch (dispatchValues.ToString())
                     {
                         case "Bank.GetBalance":
-                            return _infoPetController_GetBalance ??= new RequestHandlerInfo(new PetController_GetBalance(_rootServiceProvider));
+                            return _infoPetController_GetBalance ?? Interlocked.CompareExchange(
+                                ref _infoPetController_GetBalance,
+                                new RequestHandlerInfo(new PetController_GetBalance(_rootServiceProvider)),
+                                null
+                            ) ?? _infoPetController_GetBalance;
                         case "Bank.Transfer":
-                            return _infoPetController_Transfer ??= new RequestHandlerInfo(new PetController_Transfer(_rootServiceProvider));
+                            return _infoPetController_Transfer ?? Interlocked.CompareExchange(
+                                ref _infoPetController_Transfer,
+                                new RequestHandlerInfo(new PetController_Transfer(_rootServiceProvider)),
+                                null
+                            ) ?? _infoPetController_Transfer;
                     }
                 }
                 var pathSpan = context.Request.Path.AsSpan();
@@ -73,7 +82,11 @@ namespace Test.Api
                         {
                             case "HEAD":
                             case "GET":
-                                return _infoPetController_Health ??= new RequestHandlerInfo(new PetController_Health(_rootServiceProvider));
+                                return _infoPetController_Health ?? Interlocked.CompareExchange(
+                                    ref _infoPetController_Health,
+                                    new RequestHandlerInfo(new PetController_Health(_rootServiceProvider)),
+                                    null
+                                ) ?? _infoPetController_Health;
                             default:
                                 return _methodNotAllowedGETHEAD;
                         }

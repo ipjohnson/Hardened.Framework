@@ -246,7 +246,7 @@ ce-time: 2026-09-23T12:45:07Z
 HTTP/1.1 400 Bad Request
 Content-Type: application/json
 
-{"type":"ValidationError","message":"One or more validation errors occurred.","errors":[{"field":"order.quantity","code":"invalid","message":"The JSON value could not be converted to System.Int32."}]}
+{"type":"ValidationError","message":"One or more validation errors occurred.","errors":[{"field":"order.quantity","code":"invalid","message":"The value is not an integer this field can hold."}]}
 ```
 
 ### Eventarc Standard triggers

@@ -406,7 +406,9 @@ parameter's name is the header's name. `Detail`, `Value` and `Body` are not head
 `[AnswersHeader(status, name)]` on a handler lists a header on the response with that status.
 `Description` sets the header's description. `AnswersHeaderAttribute` is in
 `Hardened.Requests.Abstract.Responses`. The attribute adds nothing for a status the operation does
-not list.
+not list. `[AnswersHeader(name)]`, with no status, lists the header on every response the operation
+lists. It is for a header a filter writes before the handler runs, as `[RateLimit]` writes
+`RateLimit-Remaining`.
 
 `src/Todos/VersionedTodoController.cs` sends an `ETag` through `Ok<T>` and lists it with
 `[AnswersHeader]`:
@@ -475,6 +477,11 @@ The document lists the `ETag` header on the 200 of `GET /todos/versioned/{id}`:
 A C# `union` declaration can take the place of `Response<T1..Tn>`. The handler's body does not
 change. The union's cases follow the same rules as a set's: the status from `[HttpStatus]`, and the
 same bodies and document entries.
+
+The compiler checks the code that reads a union, not the code that returns one. A case added to
+`TodoResult` compiles with the handler unchanged, and the document lists its status. The template's
+`tests/Todos.Tests/DocumentStatusTests.cs` fails when the document lists a status that no request
+answered.
 
 `dotnet new hardened-web -n Todos --response-model union` writes the handler this way:
 

@@ -78,6 +78,7 @@ caller has to set it. See [Who the answer is for](#who-the-answer-is-for).
 | Strategy | Assembly | Keys on |
 |---|---|---|
 | `VaryByQuery("a", "b")` | `Hardened.Web.Runtime` | The named query-string values |
+| `VaryByQuery` | `Hardened.Web.Runtime` | Every query key the operation binds |
 | `VaryByHeader("Accept-Language")` | `Hardened.Web.Runtime` | The named request headers, and writes `Vary` |
 | `VaryByRoute` | `Hardened.Web.Runtime` | The route's own tokens |
 | `ByPayload` | `Hardened.Requests.Runtime` | The whole request body |
@@ -88,6 +89,12 @@ one entry, which is what a collection endpoint should have.
 
 `VaryByQuery` and `VaryByHeader` take named keys rather than everything. A cache keyed on the whole
 query string is one a caller misses at will by adding a parameter nothing reads.
+
+`VaryByQuery` with no keys reads the keys the operation binds, which the generator puts on
+`IExecutionRequestHandlerInfo.QueryParameters`. That is still not everything: a value nothing binds
+stays out of the key. It exists because the 0.41 trial restated a contract's seven query parameters
+by hand, misspelt one, and served page 1 for page 2. `HRDW009` warns when a named key is one the
+operation does not bind.
 
 ### Writing one
 
@@ -392,13 +399,24 @@ clock.Advance(TimeSpan.FromHours(2));         // a day-long entry, tested in a m
 `MemoryCache`'s own absolute expiration is still set and still runs on the machine clock. That one
 decides when the memory is freed, not what a request is answered with.
 
+## Concurrent misses
+
+`CoalesceMisses` makes a miss on a key whose response another request is producing wait for that
+response, and answer with the entry it stored. ASP.NET Core locks per resource by default. Here it
+is opt-in: waiting ties one request's answer to another's, and a declaration that did not ask
+for that keeps one handler run per miss, as before.
+
+The waiting is per filter, so per handler and per process. A request that waited for a response
+that was not stored, a refusal or a failure, runs the handler itself rather than being handed an
+answer produced for another request. The first request asks the store once more before it runs the
+handler, so a request that misses just as the previous one finishes finds the entry instead of
+running the handler again.
+
 ## Not built
 
 - **Per-resource invalidation.** A tag names a handler's entries, not a row: "drop every cached
   response touching pet 7" needs the tag to carry the id, which means the declaration cannot be a
   constant. ASP.NET Core has the same shape and the same limit.
-- **Stampede protection.** ASP.NET Core locks per resource so a cold key is computed once. Here,
-  *n* concurrent misses run the handler *n* times and the last one wins.
 - **Skipping the handler on a validator it knows.** A 304 from a handler's own `ETag` costs the
   body, not the handler: the handler ran to write the tag. Answering before it runs needs the
   current validator from somewhere else. Only a cache hit skips the handler today.

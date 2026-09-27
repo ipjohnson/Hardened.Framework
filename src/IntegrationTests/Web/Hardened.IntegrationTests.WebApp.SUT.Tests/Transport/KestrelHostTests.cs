@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Hardened.IntegrationTests.WebApp.SUT.Client;
 using Hardened.IntegrationTests.WebApp.SUT.Services;
+using Hardened.Requests.Abstract.Errors;
 using Hardened.Requests.Abstract.Responses;
 using Hardened.Web.Kestrel.Runtime;
 using Hardened.Web.Runtime.Responses;
@@ -188,5 +189,18 @@ public class KestrelHostTests
 
         Assert.Equal(500, response.StatusCode);
         Assert.IsType<InvalidOperationException>(response.Failure);
+    }
+
+    /// <summary>
+    /// A stream whose budget runs out before its first item answers its timeout status over the
+    /// socket too, with the body a handler that does not stream sends.
+    /// </summary>
+    [ModuleTest]
+    public async Task AStreamThatTimesOutBeforeItsFirstItemIs504(ITestWebApp app)
+    {
+        var response = await app.Get("/timeout/stream-late");
+
+        Assert.Equal(504, response.StatusCode);
+        Assert.Equal("GatewayTimeout", response.Deserialize<ErrorModel>().Type);
     }
 }

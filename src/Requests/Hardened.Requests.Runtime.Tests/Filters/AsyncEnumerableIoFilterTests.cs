@@ -1,9 +1,11 @@
+using System.Runtime.CompilerServices;
 using System.Text;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.Logging;
 using Hardened.Requests.Abstract.Metrics;
 using Hardened.Requests.Abstract.Serializer;
+using Hardened.Requests.Abstract.Timeouts;
 using Hardened.Requests.Runtime.Errors;
 using Hardened.Requests.Runtime.Execution;
 using Hardened.Requests.Runtime.Filters;
@@ -24,6 +26,10 @@ namespace Hardened.Requests.Runtime.Tests.Filters;
 /// <para>
 /// The shape of the output is the contract: one item per line, and a single newline when nothing
 /// was produced.
+/// </para>
+/// <para>
+/// Every request here states no preference unless a test is about <c>Accept</c>, which a stream
+/// now reads the way an operation answering a model does.
 /// </para>
 /// </summary>
 public class AsyncEnumerableIoFilterTests
@@ -69,7 +75,7 @@ public class AsyncEnumerableIoFilterTests
     [Fact]
     public async Task EachStreamedItemIsWrittenOnItsOwnLine()
     {
-        var context = Pipeline.Context();
+        var context = Pipeline.Context(accept: null);
 
         await Pipeline
             .Chain(
@@ -90,7 +96,7 @@ public class AsyncEnumerableIoFilterTests
     [Fact]
     public async Task AStreamedResponseIsMarkedAsNewlineDelimitedJson()
     {
-        var context = Pipeline.Context();
+        var context = Pipeline.Context(accept: null);
 
         await Pipeline
             .Chain(
@@ -116,7 +122,7 @@ public class AsyncEnumerableIoFilterTests
     [Fact]
     public async Task StreamingClearsShouldSerializeSoNothingSerializesTheStreamAgain()
     {
-        var context = Pipeline.Context();
+        var context = Pipeline.Context(accept: null);
 
         await Pipeline
             .Chain(
@@ -142,7 +148,7 @@ public class AsyncEnumerableIoFilterTests
     [Fact]
     public async Task AnEmptyStreamStillWritesATrailingNewlineSoTheBodyIsNeverEmpty()
     {
-        var context = Pipeline.Context();
+        var context = Pipeline.Context(accept: null);
 
         await Pipeline
             .Chain(
@@ -167,7 +173,7 @@ public class AsyncEnumerableIoFilterTests
     [Fact]
     public async Task ANonStreamingResponseValueIsSerializedNormally()
     {
-        var context = Pipeline.Context();
+        var context = Pipeline.Context(accept: null);
 
         await Pipeline
             .Chain(
@@ -194,7 +200,7 @@ public class AsyncEnumerableIoFilterTests
     [Fact]
     public async Task AStreamOfADifferentItemTypeIsNotStreamed()
     {
-        var context = Pipeline.Context();
+        var context = Pipeline.Context(accept: null);
 
         await Pipeline
             .Chain(
@@ -220,7 +226,7 @@ public class AsyncEnumerableIoFilterTests
     [Fact]
     public async Task AnExceptionIsSerializedInsteadOfTheStream()
     {
-        var context = Pipeline.Context();
+        var context = Pipeline.Context(accept: null);
 
         await Pipeline
             .Chain(
@@ -296,7 +302,7 @@ public class AsyncEnumerableIoFilterTests
     public async Task ARequestAlreadyRefusedIsNeitherBoundNorStreamed()
     {
         var log = new List<string>();
-        var context = Pipeline.Context();
+        var context = Pipeline.Context(accept: null);
         var bound = false;
 
         context.Response.ExceptionValue = new InvalidOperationException("refused upstream");
@@ -365,7 +371,7 @@ public class AsyncEnumerableIoFilterTests
     [Fact]
     public async Task ConfiguredHeaderActionsApplyToAStreamedResponse()
     {
-        var context = Pipeline.Context();
+        var context = Pipeline.Context(accept: null);
 
         var filter = Filter<string>(headerActions: c => c.Response.Headers["X-Stream"] = "yes");
 
@@ -400,7 +406,7 @@ public class AsyncEnumerableIoFilterTests
     [InlineData("ndjson")]
     public async Task A204FromTheHandlerWritesNoFramingAndNoCompletion(string framing)
     {
-        var context = Pipeline.Context();
+        var context = Pipeline.Context(accept: null);
 
         await Pipeline
             .Chain(
@@ -443,7 +449,7 @@ public class AsyncEnumerableIoFilterTests
     public async Task AFailureBeforeTheFirstItemIsAnErrorDocumentNotAStream()
     {
         var serialized = new List<string>();
-        var context = Pipeline.Context();
+        var context = Pipeline.Context(accept: null);
 
         var filter = new AsyncEnumerableIoFilter<string>(
             Empty,
@@ -484,7 +490,7 @@ public class AsyncEnumerableIoFilterTests
     [Fact]
     public async Task AFailureAfterTheFirstItemEndsTheStream()
     {
-        var context = Pipeline.Context();
+        var context = Pipeline.Context(accept: null);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             Pipeline
@@ -503,6 +509,169 @@ public class AsyncEnumerableIoFilterTests
 
         Assert.Equal("data: alpha\n\n", Body(context));
         Assert.Equal(KnownContentType.EventStream, context.Response.ContentType);
+    }
+
+    /// <summary>
+    /// A request naming only types this stream is not is answered 406 before the first item, as a
+    /// JSON operation answers <c>Accept: text/csv</c>. The body names the stream's media type.
+    /// </summary>
+    [Fact]
+    public async Task ARequestThatWillNotTakeTheStreamIs406()
+    {
+        var serialized = new List<Exception?>();
+        var context = Pipeline.Context(accept: "application/json");
+        var enumerated = false;
+
+        var filter = new AsyncEnumerableIoFilter<string>(
+            Empty,
+            c =>
+            {
+                serialized.Add(c.Response.ExceptionValue);
+
+                return Task.CompletedTask;
+            },
+            null,
+            SseFraming.Instance
+        );
+
+        await Pipeline.Chain(context, filter, Handler(Tracked(() => enumerated = true))).Next();
+
+        var refused = Assert.IsType<NotAcceptableException>(Assert.Single(serialized));
+
+        Assert.Equal("This operation produces text/event-stream.", refused.Message);
+        Assert.False(enumerated);
+        Assert.Null(context.Response.ContentType);
+        Assert.Equal("", Body(context));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("*/*")]
+    [InlineData("text/*")]
+    [InlineData("text/event-stream")]
+    [InlineData("application/json, text/event-stream")]
+    public async Task ARequestThatTakesTheStreamGetsIt(string? accept)
+    {
+        var context = Pipeline.Context(accept: accept);
+
+        await Pipeline
+            .Chain(context, Filter<string>(framing: SseFraming.Instance), Handler(Items("alpha")))
+            .Next();
+
+        Assert.Equal("data: alpha\n\n", Body(context));
+    }
+
+    /// <summary>
+    /// Under the lenient mode a stream is sent whatever <c>Accept</c> says, as an operation with one
+    /// declared type is.
+    /// </summary>
+    [Fact]
+    public async Task UnderLenientNegotiationTheStreamIsSentAnyway()
+    {
+        var context = Pipeline.Context(
+            accept: "application/json",
+            configureServices: services =>
+                services.AddSingleton<IContentNegotiationPolicy>(
+                    new ContentNegotiationPolicy(ContentNegotiationMode.Lenient)
+                )
+        );
+
+        await Pipeline
+            .Chain(context, Filter<string>(framing: SseFraming.Instance), Handler(Items("alpha")))
+            .Next();
+
+        Assert.Equal("data: alpha\n\n", Body(context));
+    }
+
+    private static async IAsyncEnumerable<string> Tracked(Action onStart)
+    {
+        onStart();
+
+        await Task.Yield();
+
+        yield return "alpha";
+    }
+
+    /// <summary>
+    /// A budget that runs out before the first item is answered with the deadline's status, as it
+    /// is for a handler that does not stream: nothing has reached the wire, so there is still a
+    /// whole response to send. It used to end the request with a 500 and no body.
+    /// </summary>
+    [Fact]
+    public async Task ABoundedStreamCancelledBeforeItsFirstItemIsAnErrorDocument()
+    {
+        using var cancellation = new CancellationTokenSource();
+        var serialized = new List<Exception?>();
+        var context = Pipeline.Cancellable(cancellation.Token, accept: null);
+
+        context.HandlerInfo = new ExecutionRequestHandlerInfo(
+            "/feed",
+            "GET",
+            typeof(AsyncEnumerableIoFilterTests),
+            "Feed",
+            timeout: new TimeoutPolicy(100)
+        );
+
+        var filter = new AsyncEnumerableIoFilter<string>(
+            Empty,
+            c =>
+            {
+                serialized.Add(c.Response.ExceptionValue);
+
+                return Task.CompletedTask;
+            },
+            null,
+            SseFraming.Instance
+        );
+
+        cancellation.Cancel();
+
+        await Pipeline.Chain(context, filter, Handler(WaitsForever(cancellation.Token))).Next();
+
+        Assert.IsAssignableFrom<OperationCanceledException>(Assert.Single(serialized));
+        Assert.Null(context.Response.ContentType);
+        Assert.Equal("", Body(context));
+    }
+
+    /// <summary>
+    /// With no budget, a cancelled request is a caller who hung up, and nobody is there to read an
+    /// error document.
+    /// </summary>
+    [Fact]
+    public async Task AnUnboundedStreamCancelledBeforeItsFirstItemIsNotAnswered()
+    {
+        using var cancellation = new CancellationTokenSource();
+        var serialized = 0;
+        var context = Pipeline.Cancellable(cancellation.Token, accept: null);
+
+        var filter = new AsyncEnumerableIoFilter<string>(
+            Empty,
+            _ =>
+            {
+                serialized++;
+
+                return Task.CompletedTask;
+            },
+            null,
+            SseFraming.Instance
+        );
+
+        cancellation.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            Pipeline.Chain(context, filter, Handler(WaitsForever(cancellation.Token))).Next()
+        );
+
+        Assert.Equal(0, serialized);
+    }
+
+    private static async IAsyncEnumerable<string> WaitsForever(
+        [EnumeratorCancellation] CancellationToken cancellationToken = default
+    )
+    {
+        await Task.Delay(Timeout.Infinite, cancellationToken);
+
+        yield return "never";
     }
 
     private static async IAsyncEnumerable<string> FailsBeforeFirst()
@@ -552,7 +721,7 @@ public class AsyncEnumerableIoFilterTests
     public async Task EachItemReachesTheTransportAsOneWrite(string framing, string expected)
     {
         var transport = new RecordingTransport();
-        var context = Pipeline.Context();
+        var context = Pipeline.Context(accept: null);
 
         context.Response.Body = transport;
 
@@ -571,7 +740,7 @@ public class AsyncEnumerableIoFilterTests
     public async Task EveryPooledStreamIsReturnedWhenTheStreamEnds()
     {
         var pool = new CountingStreamPool();
-        var context = Pipeline.Context();
+        var context = Pipeline.Context(accept: null);
 
         await Pipeline
             .Chain(
@@ -596,7 +765,7 @@ public class AsyncEnumerableIoFilterTests
         var pool = new CountingStreamPool();
         var waiting = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var context = Pipeline.Context();
+        var context = Pipeline.Context(accept: null);
 
         var run = Pipeline
             .Chain(
@@ -640,7 +809,7 @@ public class AsyncEnumerableIoFilterTests
     public async Task APooledStreamIsReturnedWhenTheHandlerFailsAfterTheFirstItem()
     {
         var pool = new CountingStreamPool();
-        var context = Pipeline.Context();
+        var context = Pipeline.Context(accept: null);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             Pipeline
@@ -659,7 +828,7 @@ public class AsyncEnumerableIoFilterTests
     public async Task APooledStreamIsReturnedWhenTheTransportFails()
     {
         var pool = new CountingStreamPool();
-        var context = Pipeline.Context();
+        var context = Pipeline.Context(accept: null);
 
         context.Response.Body = new RecordingTransport { FailOnWrite = 2 };
 
@@ -685,7 +854,7 @@ public class AsyncEnumerableIoFilterTests
     public async Task TheTransportIsBackOnTheResponseAfterTheStream()
     {
         var transport = new RecordingTransport();
-        var context = Pipeline.Context();
+        var context = Pipeline.Context(accept: null);
 
         context.Response.Body = transport;
 
@@ -720,7 +889,7 @@ public class AsyncEnumerableIoFilterTests
     public async Task ATransportThatDecidesAtItsFirstWriteSeesAnUnstartedResponse()
     {
         bool? startedAtFirstWrite = null;
-        var context = Pipeline.Context();
+        var context = Pipeline.Context(accept: null);
 
         context.Response.Body = new RecordingTransport
         {
@@ -791,7 +960,7 @@ public class AsyncEnumerableIoFilterTests
             TaskCreationOptions.RunContinuationsAsynchronously
         );
         var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var context = Pipeline.Context();
+        var context = Pipeline.Context(accept: null);
 
         context.Response.Body = new WatchedBody(heartbeatSeen);
 
@@ -830,7 +999,7 @@ public class AsyncEnumerableIoFilterTests
     [Fact]
     public async Task AStreamThatYieldsPromptlyGetsNoHeartbeat()
     {
-        var context = Pipeline.Context();
+        var context = Pipeline.Context(accept: null);
 
         await Pipeline
             .Chain(
@@ -851,7 +1020,7 @@ public class AsyncEnumerableIoFilterTests
     [Fact]
     public async Task AZeroIntervalMeansNoHeartbeat()
     {
-        var context = Pipeline.Context();
+        var context = Pipeline.Context(accept: null);
 
         await Pipeline
             .Chain(
@@ -878,7 +1047,7 @@ public class AsyncEnumerableIoFilterTests
     [Fact]
     public async Task NdjsonGetsNoHeartbeatWhateverTheInterval()
     {
-        var context = Pipeline.Context();
+        var context = Pipeline.Context(accept: null);
 
         await Pipeline
             .Chain(
@@ -906,7 +1075,7 @@ public class AsyncEnumerableIoFilterTests
     [Fact]
     public async Task AnEmptyStreamThatHeartbeatedWritesNoCompletionComment()
     {
-        var context = Pipeline.Context();
+        var context = Pipeline.Context(accept: null);
 
         await Pipeline
             .Chain(
@@ -937,7 +1106,7 @@ public class AsyncEnumerableIoFilterTests
     [Fact]
     public async Task AnEventStreamCarriesNoCacheAndNoAccelBuffering()
     {
-        var context = Pipeline.Context();
+        var context = Pipeline.Context(accept: null);
 
         await Pipeline
             .Chain(
@@ -960,7 +1129,7 @@ public class AsyncEnumerableIoFilterTests
     [Fact]
     public async Task AHandlersOwnCacheControlIsKeptOnAnEventStream()
     {
-        var context = Pipeline.Context();
+        var context = Pipeline.Context(accept: null);
 
         await Pipeline
             .Chain(
@@ -986,7 +1155,7 @@ public class AsyncEnumerableIoFilterTests
     [Fact]
     public async Task ANewlineDelimitedStreamCarriesNeitherHeader()
     {
-        var context = Pipeline.Context();
+        var context = Pipeline.Context(accept: null);
 
         await Pipeline
             .Chain(
@@ -1022,7 +1191,7 @@ public class AsyncEnumerableIoFilterTests
     [InlineData("ndjson", "alpha\nbeta\n")]
     public async Task AFramingWritesNothingSynchronously(string framing, string expected)
     {
-        var context = Pipeline.Context();
+        var context = Pipeline.Context(accept: null);
 
         context.Response.Body = new SynchronousWritesRejectedStream();
 
@@ -1055,7 +1224,7 @@ public class AsyncEnumerableIoFilterTests
         string expected
     )
     {
-        var context = Pipeline.Context();
+        var context = Pipeline.Context(accept: null);
 
         context.Response.Body = new SynchronousWritesRejectedStream();
 
@@ -1080,7 +1249,7 @@ public class AsyncEnumerableIoFilterTests
     [Fact]
     public async Task AHeartbeatIsWrittenAsynchronously()
     {
-        var context = Pipeline.Context();
+        var context = Pipeline.Context(accept: null);
 
         context.Response.Body = new SynchronousWritesRejectedStream();
 

@@ -22,4 +22,17 @@ public class DeadlineTests
 
         Assert.Equal("cancelled", response.Deserialize<string>());
     }
+
+    /// <summary>
+    /// The invocation's deadline comes before the handler's 60 second budget, and the handler
+    /// answers its timeout status there, as it would at its own deadline.
+    /// </summary>
+    [ModuleTest]
+    [LambdaWebTesting(RemainingTimeMilliseconds = 700)]
+    public async Task ABudgetLongerThanTheInvocationEndsAtTheInvocationsDeadline(ITestWebApp app)
+    {
+        var response = await app.Get("/deadline/bounded");
+
+        Assert.Equal(504, response.StatusCode);
+    }
 }

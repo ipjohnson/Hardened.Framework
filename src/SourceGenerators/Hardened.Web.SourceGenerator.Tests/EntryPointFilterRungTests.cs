@@ -190,7 +190,8 @@ public class EntryPointFilterRungTests
 
     /// <summary>
     /// And the rest of what a caller needs to make the request: the tag on both statuses, and the
-    /// header to send it back in.
+    /// header to send it back in. Not <c>If-Modified-Since</c>, which is compared with a
+    /// <c>Last-Modified</c> none of these handlers sends.
     /// </summary>
     [Fact]
     public void EveryReadPublishesTheHeadersTheDeclarationReadsAndWrites()
@@ -199,10 +200,37 @@ public class EntryPointFilterRungTests
 
         Assert.Equal(["ETag"], Headers(document, "/books", "200"));
         Assert.Equal(["ETag"], Headers(document, "/books", "304"));
-        Assert.Contains("If-None-Match", Parameters(document, "/books"));
-        Assert.Contains("If-Modified-Since", Parameters(document, "/books"));
+        Assert.Equal(["If-None-Match"], Parameters(document, "/books"));
 
         Assert.Empty(Parameters(document, "/books", "post"));
+    }
+
+    /// <summary>
+    /// A handler that declares the <c>Last-Modified</c> it sets publishes the header it is compared
+    /// with, and only that handler does.
+    /// </summary>
+    [Fact]
+    public void AReadDeclaringLastModifiedPublishesIfModifiedSince()
+    {
+        var document = Document(
+            Generate(
+                "[ConditionalGet]",
+                """
+                public class LibraryController {
+                    [Get("/books")]
+                    [Hardened.Requests.Abstract.Responses.AnswersHeader(200, "Last-Modified")]
+                    public string List() => "";
+
+                    [Get("/books/{id}")]
+                    public string Read(string id) => "";
+                }
+
+                """
+            )
+        );
+
+        Assert.Equal(["If-None-Match", "If-Modified-Since"], Parameters(document, "/books"));
+        Assert.Equal(["id", "If-None-Match"], Parameters(document, "/books/{id}"));
     }
 
     /// <summary>

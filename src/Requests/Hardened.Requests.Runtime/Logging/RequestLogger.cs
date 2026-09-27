@@ -394,6 +394,12 @@ public partial class RequestLogger : IRequestLogger
     /// operation was given and nothing about a stack that ends in <c>Task.Delay</c>.
     /// </para>
     /// <para>
+    /// A request cancelled on its own token is not a fault either. The token belongs to the
+    /// transport, so the caller disconnected or the host ended the request, and a stream a mobile
+    /// client walked away from is routine. It is one Information line, and the span is not marked
+    /// as an error for it.
+    /// </para>
+    /// <para>
     /// Everything else - and anything after the response started, whatever status was on it - is
     /// a fault, logged at Error with the exception, which is where an unhandled exception belongs.
     /// The status is read off the response, which <c>ExceptionResponseSerializer</c> assigns before
@@ -419,6 +425,15 @@ public partial class RequestLogger : IRequestLogger
                 budget.Milliseconds,
                 budget.Status
             );
+        }
+        else if (
+            exp is OperationCanceledException
+            && context.CancellationToken.IsCancellationRequested
+        )
+        {
+            LogRequestCancelled(context.Request.Method, context.Request.Path);
+
+            return;
         }
         else if (!started && status is >= 400 and < 500)
         {
@@ -529,4 +544,11 @@ public partial class RequestLogger : IRequestLogger
         int milliseconds,
         int statusCode
     );
+
+    [LoggerMessage(
+        EventId = 78006,
+        Level = LogLevel.Information,
+        Message = "{httpMethod} {path} was cancelled before it finished"
+    )]
+    protected partial void LogRequestCancelled(string httpMethod, string path);
 }

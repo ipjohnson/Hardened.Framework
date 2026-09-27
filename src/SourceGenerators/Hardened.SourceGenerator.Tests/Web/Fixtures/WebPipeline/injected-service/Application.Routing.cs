@@ -8,6 +8,7 @@ using Hardened.Web.Runtime.Handlers;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Threading;
 using TestApp.Generated;
 
 namespace TestApp
@@ -63,7 +64,11 @@ namespace TestApp
                         {
                             case "HEAD":
                             case "GET":
-                                return _infoClockController_Now_648 ??= new RequestHandlerInfo(new ClockController_Now_648(_rootServiceProvider));
+                                return _infoClockController_Now_648 ?? Interlocked.CompareExchange(
+                                    ref _infoClockController_Now_648,
+                                    new RequestHandlerInfo(new ClockController_Now_648(_rootServiceProvider)),
+                                    null
+                                ) ?? _infoClockController_Now_648;
                             default:
                                 return _methodNotAllowedGETHEAD;
                         }

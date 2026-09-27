@@ -67,7 +67,8 @@ internal class ServerSentEventsResponseModeStartupService : IStartupService
             "{Variable} is buffered and {Count} handler(s) answer text/event-stream: {Handlers}. "
                 + "Their events are delivered when the invocation ends, or never if it times out first. "
                 + "Deploy behind a function URL in RESPONSE_STREAM invoke mode with {Variable}=stream, or "
-                + "remove [ServerSentEvents].",
+                + "stop answering them as event streams: remove [ServerSentEvents] from a handler written in "
+                + "C#, or the event stream from the operation in its contract.",
             LambdaResponseModeConfiguration.EnvironmentVariable,
             handlers.Length,
             string.Join(", ", handlers),

@@ -25,6 +25,11 @@ namespace Hardened.Web.AspNetCore.Runtime
         [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
         public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
     }
+    public sealed class BadHttpRequestStatusReader : Hardened.Requests.Abstract.Errors.IExceptionStatusReader
+    {
+        public BadHttpRequestStatusReader() { }
+        public int? StatusOf(System.Exception exception) { }
+    }
 }
 namespace Hardened.Web.AspNetCore.Runtime.Impl
 {

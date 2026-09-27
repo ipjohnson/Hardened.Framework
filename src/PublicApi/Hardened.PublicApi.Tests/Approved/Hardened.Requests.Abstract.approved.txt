@@ -284,6 +284,7 @@ namespace Hardened.Requests.Abstract.Caching
     }
     public interface ICacheResponseDeclaration
     {
+        bool CoalesceMisses { get; }
         int Duration { get; }
         Hardened.Requests.Abstract.Caching.CacheScope Scope { get; }
         System.Collections.Generic.IReadOnlyList<string> Tags { get; }
@@ -311,6 +312,10 @@ namespace Hardened.Requests.Abstract.Errors
         public string Details { get; set; }
         public string Message { get; set; }
         public string Type { get; set; }
+    }
+    public interface IExceptionStatusReader
+    {
+        int? StatusOf(System.Exception exception);
     }
     public interface IExceptionToModelConverter
     {
@@ -434,6 +439,8 @@ namespace Hardened.Requests.Abstract.Execution
         System.Collections.Generic.IReadOnlyList<Hardened.Requests.Abstract.Execution.IExecutionRequestParameter> Parameters { get; }
         string Path { get; }
         System.Collections.Generic.IReadOnlyList<string> ProducedContentTypes { get; }
+        System.Collections.Generic.IReadOnlyList<string> QueryParameters { get; }
+        System.Collections.Generic.IReadOnlyList<string> RequestHeaders { get; }
         Hardened.Requests.Abstract.Authorization.Requirement? Requirement { get; }
         bool StreamsResponse { get; }
         int? SuccessStatus { get; }
@@ -735,6 +742,13 @@ namespace Hardened.Requests.Abstract.QueryString
         Microsoft.Extensions.Primitives.StringValues Get(string key);
     }
 }
+namespace Hardened.Requests.Abstract.RateLimiting
+{
+    public interface IRateLimitManifest
+    {
+        System.Collections.Generic.IReadOnlyList<string> Handlers { get; }
+    }
+}
 namespace Hardened.Requests.Abstract.RequestFilter
 {
     public static class FilterOrder
@@ -796,6 +810,8 @@ namespace Hardened.Requests.Abstract.Responses
     [System.AttributeUsage(System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Interface, AllowMultiple=true, Inherited=true)]
     public sealed class AnswersHeaderAttribute : System.Attribute
     {
+        public const int EveryStatus = 0;
+        public AnswersHeaderAttribute(string name) { }
         public AnswersHeaderAttribute(int status, string name) { }
         public string? Description { get; set; }
         public string? Methods { get; set; }
@@ -1020,6 +1036,7 @@ namespace Hardened.Requests.Abstract.Serializer
     }
     public interface IRequestDeserializer
     {
+        System.Collections.Generic.IReadOnlyList<string> ContentTypes { get; }
         bool IsDefaultSerializer { get; }
         int Order { get; }
         bool CanProcessContext(Hardened.Requests.Abstract.Execution.IExecutionContext context);
@@ -1076,6 +1093,7 @@ namespace Hardened.Requests.Abstract.Serializer
         public static bool Accepts(string? accept, string? produced) { }
         public static Hardened.Requests.Abstract.Serializer.MediaType.AcceptEnumerator Enumerate(string? accept) { }
         public static int FirstAccepted(string? accept, System.Collections.Generic.IReadOnlyList<string> produced) { }
+        public static bool IsJson(string? contentType) { }
         public static bool Matches(System.ReadOnlySpan<char> requested, string produced) { }
         public static bool Matches(string? requested, string? produced) { }
         public ref struct AcceptEnumerator

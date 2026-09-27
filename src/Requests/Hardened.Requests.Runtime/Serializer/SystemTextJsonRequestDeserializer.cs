@@ -53,14 +53,23 @@ public class SystemTextJsonRequestDeserializer : IRequestDeserializer
                 resolvers
             )
         );
+
+        // Last, so a DateTimeOffset converter the application configured is asked first. The
+        // options can be the application's own instance, shared with another deserializer.
+        if (!_serializerOptions.Converters.Contains(OffsetRequiredDateTimeOffsetConverter.Instance))
+        {
+            _serializerOptions.Converters.Add(OffsetRequiredDateTimeOffsetConverter.Instance);
+        }
     }
 
     public bool IsDefaultSerializer => true;
 
     public bool CanProcessContext(IExecutionContext context)
     {
-        return context.Request.ContentType?.Contains("application/json") ?? false;
+        return MediaType.IsJson(context.Request.ContentType);
     }
+
+    public IReadOnlyList<string> ContentTypes { get; } = [KnownContentType.Json];
 
     /// <summary>
     /// Reads the body as it is. A compressed body was decoded by <c>RequestDecompressionFilter</c>

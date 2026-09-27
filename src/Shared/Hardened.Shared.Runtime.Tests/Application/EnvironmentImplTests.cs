@@ -129,12 +129,90 @@ public class EnvironmentImplTests
         );
     }
 
+    /// <summary>
+    /// A configuration model is built when a handler first resolves it, so this surfaces in a log
+    /// line about the handler. The variable's name is what an operator needs to fix it.
+    /// </summary>
     [Fact]
-    public void AValueThatCannotBeConvertedThrows()
+    public void AValueThatCannotBeConvertedThrowsNamingTheVariable()
     {
-        Assert.Throws<FormatException>(() =>
+        var exception = Assert.Throws<FormatException>(() =>
             Environment(("RETENTION_DAYS", "ninety")).Value<int>("RETENTION_DAYS")
         );
+
+        Assert.StartsWith(
+            "The environment variable RETENTION_DAYS could not be read as Int32: ",
+            exception.Message
+        );
+        Assert.IsType<FormatException>(exception.InnerException);
+        Assert.EndsWith(exception.InnerException.Message, exception.Message);
+    }
+
+    [Fact]
+    public void ANumberOutOfRangeThrowsNamingTheVariable()
+    {
+        var exception = Assert.Throws<OverflowException>(() =>
+            Environment(("RETENTION_DAYS", "9000000000")).Value<int>("RETENTION_DAYS")
+        );
+
+        Assert.StartsWith(
+            "The environment variable RETENTION_DAYS could not be read as Int32: ",
+            exception.Message
+        );
+    }
+
+    /// <summary>
+    /// <c>Convert.ChangeType</c> converts text to no enum, and says so with an
+    /// <see cref="InvalidCastException"/> whether the value is right or wrong.
+    /// </summary>
+    [Fact]
+    public void ATypeTextDoesNotConvertToThrowsNamingTheVariable()
+    {
+        var exception = Assert.Throws<InvalidCastException>(() =>
+            Environment(("REPORT_DAY", "Monday")).Value<DayOfWeek>("REPORT_DAY")
+        );
+
+        Assert.StartsWith(
+            "The environment variable REPORT_DAY could not be read as DayOfWeek: ",
+            exception.Message
+        );
+    }
+
+    /// <summary>
+    /// <c>Convert.ChangeType</c> refuses a nullable type, so a nullable field read from a variable
+    /// threw whenever the variable was set.
+    /// </summary>
+    [Fact]
+    public void ANullableTypeIsReadAsItsUnderlyingType()
+    {
+        var environment = Environment(("PAGE_SIZE", "25"));
+
+        Assert.Equal(25, environment.Value<int?>("PAGE_SIZE"));
+        Assert.Null(environment.Value<int?>("UNSET"));
+    }
+
+    /// <summary>
+    /// With the process's culture, <c>de-DE</c> read <c>1.5</c> as <c>15</c>, because a period
+    /// separates thousands there. Route, query and header values are read with the invariant
+    /// culture, and a variable is written for a machine in the same way.
+    /// </summary>
+    [Fact]
+    public void ANumberIsReadWithTheInvariantCulture()
+    {
+        var culture = System.Globalization.CultureInfo.CurrentCulture;
+
+        try
+        {
+            System.Globalization.CultureInfo.CurrentCulture = new System.Globalization.CultureInfo(
+                "de-DE"
+            );
+
+            Assert.Equal(1.5, Environment(("RATIO", "1.5")).Value<double>("RATIO"));
+        }
+        finally
+        {
+            System.Globalization.CultureInfo.CurrentCulture = culture;
+        }
     }
 
     [Fact]
@@ -285,5 +363,29 @@ public class EnvironmentMatchingTests
     public void MatchesVariableIsTrueWhenTheExpectedValueIsAlsoEmpty()
     {
         Assert.True(new EnvironmentImpl("test").MatchesVariable("FEATURE", ""));
+    }
+
+    /// <summary>
+    /// A function the Lambda service started, with no <c>HARDENED_ENVIRONMENT</c>, is production.
+    /// It was development, and served <c>/docs</c>. Read through a delegate, because setting the
+    /// process's own variable would race every other test that builds an environment.
+    /// </summary>
+    [Fact]
+    public void AProcessTheLambdaServiceStartedDefaultsToProduction()
+    {
+        Assert.Equal(
+            "production",
+            EnvironmentImpl.DefaultName(name =>
+                name == "AWS_LAMBDA_RUNTIME_API" ? "127.0.0.1:9001" : null
+            )
+        );
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    public void AnyOtherProcessDefaultsToDevelopment(string? runtimeApi)
+    {
+        Assert.Equal("development", EnvironmentImpl.DefaultName(_ => runtimeApi));
     }
 }

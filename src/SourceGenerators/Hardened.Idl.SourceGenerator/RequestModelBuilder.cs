@@ -53,7 +53,6 @@ internal static class RequestModelBuilder
             if (handlerInfo != null)
             {
                 var filters = new List<AttributeModel>(model.Filters);
-                filters.AddRange(handlerInfo.ClassFilters);
 
                 // Find method-level filters matching this handler's method
                 var responseInformation = model.ResponseInformation;
@@ -97,6 +96,11 @@ internal static class RequestModelBuilder
                         break;
                     }
                 }
+
+                // After the method's, as the attribute-routed generator emits them. Metadata order
+                // is precedence: the first [Timeout] is the one that applies, so the class's used
+                // to beat the method's here while the method's won on a code-first handler.
+                filters.AddRange(handlerInfo.ClassFilters);
 
                 // Through WithFilters, which carries every settable member, rather than a second
                 // hand-rolled copy. This used to restate the members one by one, and each field

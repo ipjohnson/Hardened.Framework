@@ -730,8 +730,8 @@ WWW-Authenticate: Bearer
 ```
 
 A request whose credential no principal source accepts has no authenticated caller. It gets the same
-401. A principal source can refuse such a credential itself. [Authentication](/guide/authentication)
-covers that.
+401. A principal source cannot refuse a credential itself. It returns null, and a requirement refuses
+the anonymous request. [Authentication](/guide/authentication#rejecting-a-credential) covers that.
 
 In an application with no principal source, no request has an authenticated caller. Every guarded
 handler then answers 401.

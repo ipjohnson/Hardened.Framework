@@ -88,7 +88,11 @@ namespace Test.Api
                             _pathTokenNamesPetController_GetFile,
                             charSpan.Slice(index).ToString()
                         );
-                        return _infoPetController_GetFile ??= new global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo(new global::Test.Api.Generated.PetController_GetFile(_rootServiceProvider));
+                        return _infoPetController_GetFile ?? global::System.Threading.Interlocked.CompareExchange(
+                            ref _infoPetController_GetFile,
+                            new global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo(new global::Test.Api.Generated.PetController_GetFile(_rootServiceProvider)),
+                            null
+                        ) ?? _infoPetController_GetFile;
                     default:
                         return _methodNotAllowedGETHEAD;
                 }

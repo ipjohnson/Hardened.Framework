@@ -148,7 +148,9 @@ public partial class TodosLibrary : IServiceCollectionConfiguration
 covers both.
 
 `[RateLimit]` on a method, a class or a module puts a 429 in the OpenAPI document for each handler
-it covers. A limit added with `AddGlobalFilter` puts nothing there.
+it covers. It also lists `RateLimit-Limit`, `RateLimit-Remaining` and `RateLimit-Reset` on every
+response of those handlers. A response the limiter did not reach does not carry them, such as a 401
+when the limit's `Scope` is `Principal`. A limit added with `AddGlobalFilter` puts nothing there.
 [The OpenAPI document](/guide/openapi-document) page lists what `[RateLimit]` publishes.
 
 ## What a limit counts
@@ -185,6 +187,15 @@ its own counts. Two instances with `PermitLimit = 3` allow six requests between 
 each execution environment is a separate process, so each keeps its own counts. A count shared by
 every instance needs a store of the application's own. See [Stores](#stores).
 
+On AWS Lambda, a function that declares a rate limit and counts it in process logs a warning at
+startup that names the limited handlers:
+
+```text
+Warning: [Warning] Hardened.Aws.Lambda.Runtime.RateLimiting.InProcessRateLimitStartupService: 1 handler(s) declare a rate limit and InProcessRateLimitStore counts it: GET /quotes. It counts per execution environment, and Lambda runs as many as traffic needs, so a caller gets the limit from each of them. Count in an API Gateway usage plan or AWS WAF, or register an IRateLimitStore that counts somewhere shared.
+```
+
+A function that registers a store of its own gets no warning.
+
 ## Headers and the 429 response
 
 The rate limit headers take these values:
@@ -204,6 +215,15 @@ The 429's body is
 `{"type":"RateLimitExceededException","message":"Rate limit exceeded.","details":""}`. A refused
 request's body is not read. A request over the limit with a malformed JSON body gets the 429, not a
 400.
+
+An operation whose contract declares an error for 429 answers with that error instead, because the
+document publishes it there. The build fills the error's message or title with the status's reason
+phrase and leaves its other members empty. A Smithy error shape with a required `message` and an
+optional `retryAfter` answers `{"message":"Too Many Requests","retryAfter":null}`. A shape with
+another required member keeps the body above, because nothing can fill that member. `RateLimited`
+in a code-first response set has no instance to send, so its 429 keeps the body above too.
+[Declared responses](/guide/responses#what-a-thrown-exception-answers) covers the rule for every
+refusal.
 
 When a later filter also refuses the request, that filter's answer is sent in place of the 429. The
 answer carries no rate limit headers. An anonymous request over the limit to a handler with

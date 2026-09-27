@@ -34,9 +34,11 @@ public sealed class BearerPrincipalSource<TScheme> : IPrincipalSource<TScheme>
 - A present token goes to the delegate. The delegate owns validation entirely: parse it as a JWT,
   introspect it against an issuer, look it up in a table. The framework never learns which.
 - The delegate's null means the credential was refused; the request continues anonymously and
-  authorization refuses it with the challenge it already composes. A delegate that wants the
-  RFC 6750 `error="invalid_token"` answer throws `AuthorizationException` with
-  `AuthorizationChallenge.InsufficientAuthentication()` or a challenge of its own.
+  authorization refuses it with the challenge it already composes. A source cannot give the
+  RFC 6750 `error="invalid_token"` answer today. It runs before routing, where nothing answers an
+  exception, so an `AuthorizationException` thrown there fails the request with a 500 and an
+  empty body. Answering it would need `AuthenticationMiddleware` to turn such an exception into
+  its challenge.
 
 Registration is one line beside the scheme declaration the document already reads:
 

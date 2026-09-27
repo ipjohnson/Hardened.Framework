@@ -196,6 +196,27 @@ public interface IExecutionRequestHandlerInfo
         Func<object, object?>
     > NoDeclaredErrorConversions = new Dictionary<int, Func<object, object?>>();
 
+    /// <summary>
+    /// The request headers the operation reads, by their wire names: the parameters it binds from a
+    /// header and the headers its filters declare with <c>[ReadsHeader]</c>.
+    /// </summary>
+    /// <remarks>
+    /// What a CORS preflight allows beside the configured headers. A contract that requires a header
+    /// on every operation was otherwise unreachable from a browser until someone listed the same
+    /// header again in the CORS configuration.
+    /// </remarks>
+    IReadOnlyList<string> RequestHeaders => Array.Empty<string>();
+
+    /// <summary>
+    /// The query keys the operation binds, by their wire names: its query parameters and the
+    /// members of a model it binds from the query string.
+    /// </summary>
+    /// <remarks>
+    /// What <c>VaryByQuery</c> with no keys varies a cached response on, so the key follows the
+    /// contract instead of a list restated by hand.
+    /// </remarks>
+    IReadOnlyList<string> QueryParameters => Array.Empty<string>();
+
     IReadOnlyList<IExecutionRequestParameter> Parameters { get; }
 
     IReadOnlyList<object> Metadata => Array.Empty<object>();

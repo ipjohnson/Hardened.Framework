@@ -413,8 +413,16 @@ A handler has one body parameter. A second one fails the build with error `HRDR0
 CSC : error HRDR009: 'NoteController.Add' reads 'request' and 'note' from the request body, and a request carries one body. A parameter that names no route token and is not an interface binds from the body: mark a service [FromServices] or type it as the interface it is registered against, and bind a value with [FromQueryString], [FromHeader], [FromForm] or a route token.
 ```
 
-On the Kestrel and ASP.NET Core hosts, a request body over Kestrel's limit answers 500. The limit is
-30,000,000 bytes by default. On the Kestrel host, `Limits.MaxRequestBodySize` in the callback that
+On the Kestrel and ASP.NET Core hosts, a request body over Kestrel's limit answers 413:
+
+```http
+HTTP/1.1 413 Payload Too Large
+Content-Type: application/json
+
+{"type":"BadHttpRequestException","message":"Request body too large. The max request body size is 30000000 bytes.","details":""}
+```
+
+The limit is 30,000,000 bytes by default. On the Kestrel host, `Limits.MaxRequestBodySize` in the callback that
 `HardenedKestrelApplication.Create` takes raises the limit. This call raises it to 50,000,000 bytes.
 It replaces the call in the template's `src/Todos.Host/Program.cs`:
 

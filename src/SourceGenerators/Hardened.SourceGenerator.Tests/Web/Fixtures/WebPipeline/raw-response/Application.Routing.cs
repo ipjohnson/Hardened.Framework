@@ -8,6 +8,7 @@ using Hardened.Web.Runtime.Handlers;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Threading;
 using TestApp.Generated;
 
 namespace TestApp
@@ -63,7 +64,11 @@ namespace TestApp
                         {
                             case "HEAD":
                             case "GET":
-                                return _infoBlobController_Blob ??= new RequestHandlerInfo(new BlobController_Blob(_rootServiceProvider));
+                                return _infoBlobController_Blob ?? Interlocked.CompareExchange(
+                                    ref _infoBlobController_Blob,
+                                    new RequestHandlerInfo(new BlobController_Blob(_rootServiceProvider)),
+                                    null
+                                ) ?? _infoBlobController_Blob;
                             default:
                                 return _methodNotAllowedGETHEAD;
                         }

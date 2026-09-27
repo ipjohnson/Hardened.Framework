@@ -8,6 +8,7 @@ using Hardened.Web.Runtime.Handlers;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Threading;
 using TestApp.Generated;
 
 namespace TestApp
@@ -63,7 +64,11 @@ namespace TestApp
                         {
                             case "HEAD":
                             case "GET":
-                                return _infoContextController_WhoAmI_897 ??= new RequestHandlerInfo(new ContextController_WhoAmI_897(_rootServiceProvider));
+                                return _infoContextController_WhoAmI_897 ?? Interlocked.CompareExchange(
+                                    ref _infoContextController_WhoAmI_897,
+                                    new RequestHandlerInfo(new ContextController_WhoAmI_897(_rootServiceProvider)),
+                                    null
+                                ) ?? _infoContextController_WhoAmI_897;
                             default:
                                 return _methodNotAllowedGETHEAD;
                         }

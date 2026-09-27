@@ -16,10 +16,15 @@ namespace Hardened.SourceGenerator.Models.Request;
 /// </remarks>
 public sealed class DeclaredHeaderParameterModel : System.IEquatable<DeclaredHeaderParameterModel>
 {
-    public DeclaredHeaderParameterModel(string name, string? description)
+    public DeclaredHeaderParameterModel(
+        string name,
+        string? description,
+        string? whenAnswered = null
+    )
     {
         Name = name;
         Description = description;
+        WhenAnswered = whenAnswered;
     }
 
     /// <summary>The header's name, as it goes on the wire.</summary>
@@ -28,11 +33,22 @@ public sealed class DeclaredHeaderParameterModel : System.IEquatable<DeclaredHea
     /// <summary>The parameter's <c>description</c>, or null.</summary>
     public string? Description { get; }
 
+    /// <summary>
+    /// The response header the operation must declare for this parameter to be published, or null.
+    /// </summary>
+    public string? WhenAnswered { get; }
+
     public bool Equals(DeclaredHeaderParameterModel? other) =>
-        other is not null && Name == other.Name && Description == other.Description;
+        other is not null
+        && Name == other.Name
+        && Description == other.Description
+        && WhenAnswered == other.WhenAnswered;
 
     public override bool Equals(object? obj) => Equals(obj as DeclaredHeaderParameterModel);
 
     public override int GetHashCode() =>
-        unchecked((Name.GetHashCode() * 397) ^ (Description?.GetHashCode() ?? 0));
+        unchecked(
+            (((Name.GetHashCode() * 397) ^ (Description?.GetHashCode() ?? 0)) * 397)
+            ^ (WhenAnswered?.GetHashCode() ?? 0)
+        );
 }

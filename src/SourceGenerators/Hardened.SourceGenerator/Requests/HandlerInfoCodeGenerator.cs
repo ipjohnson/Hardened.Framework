@@ -124,6 +124,25 @@ public static class HandlerInfoCodeGenerator
             declaredArgs += ", declaredErrorBodies: " + declaredErrorBodies;
         }
 
+        // The headers the operation reads, which a CORS preflight allows beside the configured ones.
+        if (RequestHeaders(handlerModel) is { Count: > 0 } requestHeaders)
+        {
+            declaredArgs +=
+                ", requestHeaders: new string[] { "
+                + string.Join(", ", requestHeaders.Select(Quote))
+                + " }";
+        }
+
+        // The query keys the operation binds, which VaryByQuery with no keys varies a cached
+        // response on.
+        if (QueryParameters(handlerModel) is { Count: > 0 } queryParameters)
+        {
+            declaredArgs +=
+                ", queryParameters: new string[] { "
+                + string.Join(", ", queryParameters.Select(Quote))
+                + " }";
+        }
+
         // How a thrown framework record becomes the body declared at its status. A contract's only:
         // a code-first handler's declared bodies are the records themselves.
         if (
@@ -323,4 +342,81 @@ public static class HandlerInfoCodeGenerator
             .Select(contentType => contentType.Trim())
             .Where(contentType => contentType.Length > 0)
             .ToArray();
+
+    /// <summary>
+    /// The wire names of the headers the operation binds and the ones its filters declare reading,
+    /// each once, in declaration order.
+    /// </summary>
+    private static List<string> RequestHeaders(RequestHandlerModel handlerModel)
+    {
+        var headers = new List<string>();
+
+        foreach (var parameter in handlerModel.RequestParameterInformationList)
+        {
+            if (parameter.BindingType == ParameterBindType.Header)
+            {
+                Add(WireName(parameter));
+            }
+        }
+
+        foreach (var declared in handlerModel.DeclaredHeaderParameters)
+        {
+            Add(declared.Name);
+        }
+
+        return headers;
+
+        void Add(string name)
+        {
+            if (!headers.Contains(name, System.StringComparer.OrdinalIgnoreCase))
+            {
+                headers.Add(name);
+            }
+        }
+    }
+
+    /// <summary>
+    /// The wire names of the query keys the operation binds, each once, in declaration order. A
+    /// model bound from the query string contributes its members, as the document lists them.
+    /// </summary>
+    public static List<string> QueryParameters(RequestHandlerModel handlerModel)
+    {
+        var keys = new List<string>();
+
+        foreach (var parameter in handlerModel.RequestParameterInformationList)
+        {
+            if (parameter.BindingType != ParameterBindType.QueryString)
+            {
+                continue;
+            }
+
+            if (parameter.Model is { Problem: null } model)
+            {
+                foreach (var member in model.Members)
+                {
+                    Add(WireName(member.Value));
+                }
+            }
+            else
+            {
+                Add(WireName(parameter));
+            }
+        }
+
+        return keys;
+
+        void Add(string name)
+        {
+            if (!keys.Contains(name, System.StringComparer.Ordinal))
+            {
+                keys.Add(name);
+            }
+        }
+    }
+
+    private static string WireName(RequestParameterInformation parameter) =>
+        string.IsNullOrEmpty(parameter.BindingName) ? parameter.Name : parameter.BindingName;
+
+    private static string Quote(string value) =>
+        "\"" + value.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
 }

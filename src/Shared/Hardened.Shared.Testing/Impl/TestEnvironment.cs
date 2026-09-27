@@ -28,12 +28,7 @@ public class TestEnvironment : IHardenedEnvironment
     {
         if (_values.TryGetValue(name, out var value))
         {
-            if (value is T tValue)
-            {
-                return tValue;
-            }
-
-            return (T)Convert.ChangeType(value, typeof(T));
+            return EnvironmentValue.Convert<T>(name, value);
         }
 
         return defaultValue;

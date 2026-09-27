@@ -19,6 +19,12 @@ public class AsyncEnumerableIoFilter<TItem> : IExecutionFilter
     private readonly TimeSpan _heartbeatInterval;
     private readonly IMemoryStreamPool _streamPool;
 
+    /// <summary>
+    /// Resolved on the first request that names types this stream is not, which is the only one
+    /// that needs it.
+    /// </summary>
+    private IContentNegotiationPolicy? _negotiation;
+
     /// <param name="framing">
     /// What goes around each item. Defaults to newline-delimited JSON, which is what every
     /// streamed handler answered as before there was a choice.
@@ -123,10 +129,18 @@ public class AsyncEnumerableIoFilter<TItem> : IExecutionFilter
             {
                 context.Response.ShouldSerialize = false;
 
+                if (!Acceptable(context))
+                {
+                    context.Response.ExceptionValue = new NotAcceptableException(
+                        new[] { _framing.ContentType }
+                    );
+
+                    await _serializeResponse(chain.Context);
+                }
                 // A stream that failed before it began is answered the way a refusal is: as an
                 // error document under its own status. The failure is on the response by the time
                 // this returns false, and nothing has reached the wire.
-                if (!await WriteStream(context, asyncEnumerable))
+                else if (!await WriteStream(context, asyncEnumerable))
                 {
                     await _serializeResponse(chain.Context);
                 }
@@ -210,8 +224,7 @@ public class AsyncEnumerableIoFilter<TItem> : IExecutionFilter
                         ? await MoveNextWithHeartbeats(context, moveNext.AsTask(), progress)
                         : await moveNext;
             }
-            catch (Exception exception)
-                when (!progress.Committed && !cancellationToken.IsCancellationRequested)
+            catch (Exception exception) when (!progress.Committed && Answerable(context, exception))
             {
                 response.ExceptionValue = exception;
 
@@ -251,6 +264,38 @@ public class AsyncEnumerableIoFilter<TItem> : IExecutionFilter
 
         return true;
     }
+
+    /// <summary>
+    /// Whether the request will take this stream's media type.
+    /// </summary>
+    /// <remarks>
+    /// The rule an operation answering a model follows: a request that names types, none of them
+    /// this stream's, is answered 406 under <see cref="ContentNegotiationMode.Strict"/> and sent the
+    /// stream anyway under <see cref="ContentNegotiationMode.Lenient"/>. Checked before the first
+    /// item, while there is still a whole response to answer with. A stream used to be sent
+    /// whatever <c>Accept</c> said.
+    /// </remarks>
+    private bool Acceptable(IExecutionContext context) =>
+        MediaType.Accepts(context.Request.Accept, _framing.ContentType)
+        || Negotiation(context).Mode == ContentNegotiationMode.Lenient;
+
+    private IContentNegotiationPolicy Negotiation(IExecutionContext context) =>
+        _negotiation ??=
+            context.RootServiceProvider.GetService<IContentNegotiationPolicy>()
+            ?? new ContentNegotiationPolicy();
+
+    /// <summary>
+    /// Whether a failure before the first byte is answered with an error document.
+    /// </summary>
+    /// <remarks>
+    /// Not once the request is cancelled, unless a budget bounds the handler: a caller who hung up
+    /// is not there to read one. A bounded handler's cancellation is its deadline, and is answered
+    /// with the deadline's status and body, as a handler that does not stream is. It used to end
+    /// the request with a 500 and no body, which the document never declares.
+    /// </remarks>
+    private static bool Answerable(IExecutionContext context, Exception exception) =>
+        !context.CancellationToken.IsCancellationRequested
+        || (exception is OperationCanceledException && context.HandlerInfo?.Timeout is not null);
 
     /// <summary>
     /// What one stream has done so far. Shared between the loop and the heartbeat race, and read

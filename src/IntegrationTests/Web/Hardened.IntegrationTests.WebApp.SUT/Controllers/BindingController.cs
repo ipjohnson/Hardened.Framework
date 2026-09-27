@@ -161,4 +161,8 @@ public class BindingController
     [Post("/body/{label}")]
     public string BodyWithPath(string label, MathAddModel model) =>
         $"{label}:{string.Join(",", model.Values ?? new List<int>())}";
+
+    /// <summary>A body with a date-time member, answered with the offset it was read with.</summary>
+    [Post("/window")]
+    public string Window(WindowModel model) => model.EndsAt.Offset.ToString();
 }

@@ -18,15 +18,15 @@
 
     <ItemGroup>
         <ProjectReference Include="..\Hardened.Shared.Testing\Hardened.Shared.Testing.csproj"/>
-        <ProjectReference Include="..\..\..\..\DependencyModules\src\DependencyModules.NUnit\DependencyModules.NUnit.csproj"
-                          Condition="Exists('..\..\..\..\DependencyModules\src\DependencyModules.NUnit\DependencyModules.NUnit.csproj')"/>
+        <ProjectReference Include="$(DependencyModulesRoot)\src\DependencyModules.NUnit\DependencyModules.NUnit.csproj"
+                          Condition="'$(UseLocalDependencyModules)' == 'true'"/>
         <PackageReference Include="DependencyModules.NUnit"
-                          Condition="!Exists('..\..\..\..\DependencyModules\src\DependencyModules.NUnit\DependencyModules.NUnit.csproj')"/>
+                          Condition="'$(UseLocalDependencyModules)' != 'true'"/>
         <!-- The mock library behind [Mock]: [NSubstituteSupport] in Bootstrap.cs, and NSubstitute with it. -->
-        <ProjectReference Include="..\..\..\..\DependencyModules\src\DependencyModules.NSubstitute\DependencyModules.NSubstitute.csproj"
-                          Condition="Exists('..\..\..\..\DependencyModules\src\DependencyModules.NSubstitute\DependencyModules.NSubstitute.csproj')"/>
+        <ProjectReference Include="$(DependencyModulesRoot)\src\DependencyModules.NSubstitute\DependencyModules.NSubstitute.csproj"
+                          Condition="'$(UseLocalDependencyModules)' == 'true'"/>
         <PackageReference Include="DependencyModules.NSubstitute"
-                          Condition="!Exists('..\..\..\..\DependencyModules\src\DependencyModules.NSubstitute\DependencyModules.NSubstitute.csproj')"/>
+                          Condition="'$(UseLocalDependencyModules)' != 'true'"/>
     </ItemGroup>
 
 </Project>

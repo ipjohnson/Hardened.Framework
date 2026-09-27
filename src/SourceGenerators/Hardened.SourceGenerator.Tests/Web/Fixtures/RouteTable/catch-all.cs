@@ -5,6 +5,7 @@ using Hardened.Web.Runtime.Handlers;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Threading;
 using Test.Api.Generated;
 using Test.Api.Services;
 
@@ -96,7 +97,11 @@ namespace Test.Api
                             _pathTokenNamesPetController_GetFile,
                             charSpan.Slice(index).ToString()
                         );
-                        return _infoPetController_GetFile ??= new RequestHandlerInfo(new PetController_GetFile(_rootServiceProvider));
+                        return _infoPetController_GetFile ?? Interlocked.CompareExchange(
+                            ref _infoPetController_GetFile,
+                            new RequestHandlerInfo(new PetController_GetFile(_rootServiceProvider)),
+                            null
+                        ) ?? _infoPetController_GetFile;
                     default:
                         return _methodNotAllowedGETHEAD;
                 }

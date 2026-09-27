@@ -8,6 +8,7 @@ using Hardened.Web.Runtime.Handlers;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Threading;
 using TestApp.Generated;
 
 namespace TestApp
@@ -62,7 +63,11 @@ namespace TestApp
                         switch (methodString)
                         {
                             case "POST":
-                                return _infoOrderController_Place_554 ??= new RequestHandlerInfo(new OrderController_Place_554(_rootServiceProvider));
+                                return _infoOrderController_Place_554 ?? Interlocked.CompareExchange(
+                                    ref _infoOrderController_Place_554,
+                                    new RequestHandlerInfo(new OrderController_Place_554(_rootServiceProvider)),
+                                    null
+                                ) ?? _infoOrderController_Place_554;
                             default:
                                 return _methodNotAllowedPOST;
                         }

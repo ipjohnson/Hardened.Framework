@@ -259,6 +259,11 @@ public class ResponseCompressionFilterTests
         Assert.Equal("br", Encoding_(context));
     }
 
+    /// <summary>
+    /// Served identity, and still varying on <c>Accept-Encoding</c>: the same request with gzip in
+    /// it gets a different body. A shared cache that stored this answer without being told so
+    /// would treat the resource as the same for every coding.
+    /// </summary>
     [Theory]
     [InlineData(null)]
     [InlineData("")]
@@ -272,6 +277,33 @@ public class ResponseCompressionFilterTests
 
         Assert.Equal("", Encoding_(context));
         Assert.Equal(Json, Encoding.UTF8.GetString(Transport(context)));
+        Assert.Equal("Accept-Encoding", context.Response.Headers[KnownHeaders.Vary].ToString());
+    }
+
+    /// <summary>
+    /// A response the filter would not compress for any request is the same bytes whatever the
+    /// request accepts, so it does not vary.
+    /// </summary>
+    [Theory]
+    [InlineData(null)]
+    [InlineData(Browser)]
+    public async Task AResponseTheFilterWouldNeverCompressDoesNotVary(string? acceptEncoding)
+    {
+        var context = Context(acceptEncoding);
+
+        await Run(context, Writes("png bytes", contentType: "image/png"), Filter());
+
+        Assert.Equal("", Encoding_(context));
+        Assert.False(context.Response.Headers.ContainsKey(KnownHeaders.Vary));
+    }
+
+    [Fact]
+    public async Task AResponseAPredicateDeclinesDoesNotVary()
+    {
+        var context = Context(acceptEncoding: null);
+
+        await Run(context, Writes(Json, value: new object()), Filter(new Predicate(false)));
+
         Assert.False(context.Response.Headers.ContainsKey(KnownHeaders.Vary));
     }
 
@@ -322,10 +354,12 @@ public class ResponseCompressionFilterTests
     /// The CORS filter runs first and says <c>Origin</c>. Assigning here would erase that, which
     /// is the one thing a shared cache must not be allowed to forget.
     /// </summary>
-    [Fact]
-    public async Task VaryIsMergedWithWhatWasAlreadyThere()
+    [Theory]
+    [InlineData(Browser)]
+    [InlineData(null)]
+    public async Task VaryIsMergedWithWhatWasAlreadyThere(string? acceptEncoding)
     {
-        var context = Context();
+        var context = Context(acceptEncoding);
 
         context.Response.Headers[KnownHeaders.Vary] = KnownHeaders.Origin;
 
@@ -452,6 +486,7 @@ public class ResponseCompressionFilterTests
 
         Assert.Equal("", Encoding_(context));
         Assert.Equal(Json, Encoding.UTF8.GetString(Transport(context)));
+        Assert.False(context.Response.Headers.ContainsKey(KnownHeaders.Vary));
     }
 
     [Fact]
@@ -764,6 +799,10 @@ public class ResponseCompressionFilterTests
         Assert.Equal(Json, Decode(Transport(hit), KnownEncoding.GZip));
     }
 
+    /// <summary>
+    /// The entry was taken before a compressed miss was encoded, so the plain hit carries the
+    /// entry's strong tag. It still varies on <c>Accept-Encoding</c>, like the plain miss would.
+    /// </summary>
     [Fact]
     public async Task AHitToAClientAcceptingNothingIsServedPlain()
     {
@@ -776,6 +815,9 @@ public class ResponseCompressionFilterTests
 
         Assert.Equal("", Encoding_(hit));
         Assert.Equal(Json, Encoding.UTF8.GetString(Transport(hit)));
+        Assert.StartsWith("W/", miss.Response.Headers[KnownHeaders.ETag].ToString());
+        Assert.StartsWith("\"", hit.Response.Headers[KnownHeaders.ETag].ToString());
+        Assert.Equal("Accept-Encoding", hit.Response.Headers[KnownHeaders.Vary].ToString());
     }
 
     /// <summary>
@@ -821,10 +863,12 @@ public class ResponseCompressionFilterTests
         {
             [KnownHeaders.AcceptEncoding] = Browser,
         };
+        // No Accept, as a client that takes the stream sends: a stream refuses one naming only
+        // other types.
         var request = new TestExecutionRequest(
             "GET",
             "/feed",
-            "application/json",
+            null,
             new SimpleQueryStringCollection(new Dictionary<string, string>())
         )
         {

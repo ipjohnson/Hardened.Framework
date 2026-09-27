@@ -73,8 +73,13 @@ public class HttpFunctionRequest : IExecutionRequest
     public string? ContentType =>
         Headers.TryGet(KnownHeaders.ContentType, out var value) ? value : "application/json";
 
+    /// <summary>
+    /// The header as sent, or null when there is none, which means the client takes anything. It
+    /// used to read as <c>application/json</c> here and nowhere else, so an operation declaring one
+    /// other media type answered 406 on this host to a request that stated no preference.
+    /// </summary>
     public string? Accept =>
-        Headers.TryGet(KnownHeaders.Accept, out var value) ? value : "application/json";
+        Headers.TryGet(KnownHeaders.Accept, out var value) ? (string?)value : null;
 
     public IExecutionRequestParameters? Parameters { get; set; }
 

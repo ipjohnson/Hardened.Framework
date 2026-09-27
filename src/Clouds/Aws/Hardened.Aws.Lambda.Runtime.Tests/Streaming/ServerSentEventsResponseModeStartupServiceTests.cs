@@ -76,6 +76,29 @@ public class ServerSentEventsResponseModeStartupServiceTests
     }
 
     /// <summary>
+    /// An event stream can come from a contract, which has no attribute to remove, so the advice
+    /// names both.
+    /// </summary>
+    [Fact]
+    public async Task TheAdviceCoversAStreamFromAContract()
+    {
+        var services = Services(LambdaResponseMode.Buffered);
+        var log = new RecordingLoggerProvider();
+
+        services.AddSingleton<IServerSentEventManifest>(new Manifest("GET /vans/{vin}/events"));
+        services.AddLogging(logging => logging.AddProvider(log));
+
+        await new ServerSentEventsResponseModeStartupService().Startup(
+            services.BuildServiceProvider()
+        );
+
+        var warning = Assert.Single(log.Warnings);
+
+        Assert.Contains("remove [ServerSentEvents] from a handler written in C#", warning);
+        Assert.Contains("the event stream from the operation in its contract", warning);
+    }
+
+    /// <summary>
     /// Startup does not depend on there being somewhere to log to.
     /// </summary>
     [Fact]

@@ -167,6 +167,34 @@ public class CorsStartupServiceTests
     }
 
     /// <summary>
+    /// An application's own configuration stands whichever side of the module it is registered on.
+    /// A library module's ran first on the host and was replaced, while the tests, whose entry
+    /// point is the library, ran it last and passed.
+    /// </summary>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AnApplicationsOwnConfigurationStandsInEitherOrder(bool registeredFirst)
+    {
+        var own = new CorsConfiguration();
+        var services = new ServiceCollection();
+
+        if (registeredFirst)
+        {
+            services.AddSingleton(own);
+        }
+
+        new HardenedWebModule().ConfigureServices(services);
+
+        if (!registeredFirst)
+        {
+            services.AddSingleton(own);
+        }
+
+        Assert.Same(own, services.BuildServiceProvider().GetRequiredService<CorsConfiguration>());
+    }
+
+    /// <summary>
     /// The filter is a singleton, so the instance the middleware installs is the one every request
     /// runs through rather than a new one per resolve.
     /// </summary>

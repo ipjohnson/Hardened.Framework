@@ -1,4 +1,6 @@
 ﻿using Hardened.IntegrationTests.WebApp.SUT.Models;
+using Hardened.Requests.Abstract.Errors;
+using Hardened.Requests.Abstract.Headers;
 using Hardened.Web.Runtime.Responses;
 using Microsoft.Extensions.Primitives;
 
@@ -356,5 +358,64 @@ public class ParameterBindingTests
 
         response.Assert.Ok();
         Assert.Equal("totals:1,2,3", response.Deserialize<string>());
+    }
+
+    /// <summary>
+    /// A JSON body sent as <c>text/plain</c> is refused, with the types the service reads. It was
+    /// read as JSON and answered 200, and a text/plain POST is one a browser sends cross-site with
+    /// no preflight.
+    /// </summary>
+    [ModuleTest]
+    public async Task AJsonBodySentAsTextIs415(ITestWebApp testWebApp)
+    {
+        var response = await testWebApp.Post(
+            new MathAddModel { Values = new List<int> { 1 } },
+            "/binding/body/totals",
+            request => request.Headers[KnownHeaders.ContentType] = "text/plain"
+        );
+
+        var message = response.Deserialize<ErrorModel>().Message;
+
+        // This fixture registers MessagePack as well, so both types are listed.
+        Assert.Equal(415, response.StatusCode);
+        Assert.StartsWith("This route does not read text/plain. It reads ", message);
+        Assert.Contains("application/json", message);
+        Assert.Contains("application/json", response.Headers[KnownHeaders.Accept].ToString());
+    }
+
+    [ModuleTest]
+    public async Task AJsonSuffixedBodyIsRead(ITestWebApp testWebApp)
+    {
+        var response = await testWebApp.Post(
+            new MathAddModel { Values = new List<int> { 4 } },
+            "/binding/body/totals",
+            request => request.Headers[KnownHeaders.ContentType] = "application/merge-patch+json"
+        );
+
+        response.Assert.Ok();
+        Assert.Equal("totals:4", response.Deserialize<string>());
+    }
+
+    /// <summary>
+    /// A date-time with no offset is refused, where it was read as the server's local time. One
+    /// with an offset keeps it.
+    /// </summary>
+    [ModuleTest]
+    public async Task ADateTimeWithNoOffsetIsRefused(ITestWebApp testWebApp)
+    {
+        var refused = await testWebApp.Post(
+            new Dictionary<string, string> { ["endsAt"] = "2030-01-01T00:00:00" },
+            "/binding/window"
+        );
+        var read = await testWebApp.Post(
+            new Dictionary<string, string> { ["endsAt"] = "2030-01-01T00:00:00+01:00" },
+            "/binding/window"
+        );
+
+        Assert.Equal(400, refused.StatusCode);
+        Assert.Contains("states no offset", await refused.ReadTextAsync());
+
+        read.Assert.Ok();
+        Assert.Equal("01:00:00", read.Deserialize<string>());
     }
 }

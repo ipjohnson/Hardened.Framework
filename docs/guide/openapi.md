@@ -448,6 +448,12 @@ A case that the operation does not declare does not convert. Returning it is a c
 success with no body is a case type of its own, such as `<Method>NoContent` for a 204. The handler
 returns it with `return new RemoveTodoNoContent();`.
 
+The compiler does not check the other direction. A handler that never returns a case the operation
+declares compiles. So does a handler written before the contract declared a new status. The
+template's `tests/Todos.Tests/DocumentStatusTests.cs` is the check for that. It sends a request for
+each status the routes answer, and fails when the served document lists a status that no request
+answered. A newly declared status fails it until a request is written that gets it.
+
 A shipped record without a type argument, such as `NotFound`, converts into the declared case when
 the declared body has a string `title` and an integer `status`, and every other required member can
 be filled. The build fills `type`, `title` and `status` from the record, and `detail` from its

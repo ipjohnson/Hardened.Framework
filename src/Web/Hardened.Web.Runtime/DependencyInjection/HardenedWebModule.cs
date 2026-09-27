@@ -85,7 +85,11 @@ public partial class HardenedWebModule : IServiceCollectionConfiguration
             ServiceDescriptor.Singleton<IRequestFilterProvider, RequestDecompressionProvider>()
         );
 
-        services.AddSingleton<CorsConfiguration>(sp =>
+        // TryAdd, so an application's own configuration stands whichever order the modules run in.
+        // On the host the library's registration came first and this replaced it, while under the
+        // tests, whose entry point is the library, the library's came last and won - so a
+        // configuration that passed its tests answered every preflight without CORS headers.
+        services.TryAddSingleton<CorsConfiguration>(sp =>
         {
             var config = new CorsConfiguration();
             config.LoadFromEnvironment();

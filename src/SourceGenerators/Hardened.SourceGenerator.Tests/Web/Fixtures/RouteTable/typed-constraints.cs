@@ -5,6 +5,7 @@ using Hardened.Web.Runtime.Handlers;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Threading;
 using Test.Api.Generated;
 using Test.Api.Services;
 
@@ -168,7 +169,11 @@ namespace Test.Api
                             _pathTokenNamesPetController_GetFlag,
                             charSpan.Slice(index).ToString()
                         );
-                        return _infoPetController_GetFlag ??= new RequestHandlerInfo(new PetController_GetFlag(_rootServiceProvider));
+                        return _infoPetController_GetFlag ?? Interlocked.CompareExchange(
+                            ref _infoPetController_GetFlag,
+                            new RequestHandlerInfo(new PetController_GetFlag(_rootServiceProvider)),
+                            null
+                        ) ?? _infoPetController_GetFlag;
                     default:
                         return _methodNotAllowedGETHEAD;
                 }
@@ -227,7 +232,11 @@ namespace Test.Api
                             _pathTokenNamesPetController_GetItem,
                             charSpan.Slice(index).ToString()
                         );
-                        return _infoPetController_GetItem ??= new RequestHandlerInfo(new PetController_GetItem(_rootServiceProvider));
+                        return _infoPetController_GetItem ?? Interlocked.CompareExchange(
+                            ref _infoPetController_GetItem,
+                            new RequestHandlerInfo(new PetController_GetItem(_rootServiceProvider)),
+                            null
+                        ) ?? _infoPetController_GetItem;
                     default:
                         return _methodNotAllowedGETHEAD;
                 }
@@ -286,7 +295,11 @@ namespace Test.Api
                             _pathTokenNamesPetController_GetByKey,
                             charSpan.Slice(index).ToString()
                         );
-                        return _infoPetController_GetByKey ??= new RequestHandlerInfo(new PetController_GetByKey(_rootServiceProvider));
+                        return _infoPetController_GetByKey ?? Interlocked.CompareExchange(
+                            ref _infoPetController_GetByKey,
+                            new RequestHandlerInfo(new PetController_GetByKey(_rootServiceProvider)),
+                            null
+                        ) ?? _infoPetController_GetByKey;
                     default:
                         return _methodNotAllowedGETHEAD;
                 }
@@ -345,7 +358,11 @@ namespace Test.Api
                             _pathTokenNamesPetController_GetPrice,
                             charSpan.Slice(index).ToString()
                         );
-                        return _infoPetController_GetPrice ??= new RequestHandlerInfo(new PetController_GetPrice(_rootServiceProvider));
+                        return _infoPetController_GetPrice ?? Interlocked.CompareExchange(
+                            ref _infoPetController_GetPrice,
+                            new RequestHandlerInfo(new PetController_GetPrice(_rootServiceProvider)),
+                            null
+                        ) ?? _infoPetController_GetPrice;
                     default:
                         return _methodNotAllowedGETHEAD;
                 }

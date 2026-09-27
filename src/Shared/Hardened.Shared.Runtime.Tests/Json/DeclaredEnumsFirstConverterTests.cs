@@ -57,7 +57,7 @@ public class DeclaredEnumsFirstConverterTests
         ) => writer.WriteStringValue(value == Genre.ScienceFiction ? "science-fiction" : "fiction");
     }
 
-    private static JsonSerializerOptions Shared() => new JsonSerializerConfiguration().Options;
+    private static JsonSerializerOptions Shared() => new SharedJsonConfiguration().Options;
 
     /// <summary>
     /// The System.Text.Json behaviour the defect rests on, pinned so the fix is not mistaken for

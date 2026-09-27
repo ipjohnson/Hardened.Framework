@@ -133,6 +133,20 @@ public sealed class CacheResponseAttribute<TProvider>
 
     IReadOnlyList<string> ICacheResponseDeclaration.Tags => Tags;
 
+    /// <summary>
+    /// Whether requests that miss the same key while its response is being produced wait for that
+    /// response rather than each running the handler.
+    /// </summary>
+    /// <remarks>
+    /// Off by default. A polled operation whose entry expires otherwise answers the burst of
+    /// requests that arrive before the first one finishes by running the handler once for each. A
+    /// waiting request is answered with the entry the first one stored. When the first one stores
+    /// nothing, because it answered anything but a 200 or failed, each waiting request runs the
+    /// handler itself. Set on any of a handler's composed declarations, it applies to the one key
+    /// they share.
+    /// </remarks>
+    public bool CoalesceMisses { get; set; }
+
     public ICacheKeyProvider CreateKeyProvider() => TProvider.Create(Values);
 
     public IEnumerable<RequestFilterInfo> GetFilters(IExecutionRequestHandlerInfo handlerInfo)

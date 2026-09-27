@@ -95,18 +95,33 @@ a JSON string. To send JSON, return a model or declare nothing.
 A handler that returns `byte[]` or `Stream` must declare its media type on the method or on its
 class. Without one, the build fails with `HRDR011`. `[assembly: Produces]` does not satisfy the
 check. The check applies to the success case of a response set. `Response<byte[], NotFound>` needs
-`[Produces]` too. For a handler `ExportController.Export` that returns `byte[]` and declares
-nothing, the build reports:
+`[Produces]` too. This handler in `src/Todos/ExportController.cs` returns `byte[]` and declares
+nothing:
+
+```csharp
+using Hardened.Web.Runtime.Attributes;
+
+namespace Todos;
+
+public class ExportController
+{
+    [Get("/export")]
+    public byte[] Export() => [];
+}
+```
+
+The build reports the error at the handler's name:
 
 ```text
-CSC : error HRDR011: 'ExportController.Export' answers with byte[] or Stream and carries no [Produces], so nothing says what the bytes are. Answering with either means the handler writes its own response, and no serializer is consulted - declare the media type with [Produces("application/pdf")] or answer with a model.
+src/Todos/ExportController.cs(8,19): error HRDR011: 'ExportController.Export' answers with byte[] or Stream and carries no [Produces], so nothing says what the bytes are. Answering with either means the handler writes its own response, and no serializer is consulted - declare the media type with [Produces("application/pdf")] or answer with a model.
 ```
 
 A handler that returns `byte[]` or `Stream` and declares two or more media types is not negotiated.
 [Choosing the content type per request](#choosing-the-content-type-per-request) shows how a handler
 sets the content type.
 
-[Streaming responses](/guide/streaming) covers a handler that returns `IAsyncEnumerable<T>`. A
+A handler that returns `IAsyncEnumerable<T>` answers in its stream's media type, and a request that
+names other types only gets 406 under `Strict`. [Streaming responses](/guide/streaming) covers it. A
 handler with `[Output<T>]` renders a view whatever `Accept` says. [Views](/guide/views) covers it.
 
 ## Matching the `Accept` header
@@ -555,27 +570,12 @@ replacing the JSON serializer.
 ## Request bodies
 
 The request's `Content-Type` selects the deserializer that reads a body parameter. `[Produces]` has
-no effect on request bodies. The JSON deserializer reads a body whose `Content-Type` contains
-`application/json`. It also reads every body that no other deserializer claims, including a body
-with no `Content-Type`.
+no effect on request bodies. The JSON deserializer reads a body whose `Content-Type` is
+`application/json`, `text/json` or a `+json` type such as `application/merge-patch+json`, whatever
+its parameters. It also reads a body with no `Content-Type`.
 
-A request with a body that is not JSON, under a `Content-Type` that nothing claims, gets a 400 with
-the code `invalid` and the parser's message:
-
-```http
-POST /todos
-Content-Type: application/xml
-
-<todo><title>Buy milk</title></todo>
-
-HTTP/1.1 400 Bad Request
-Content-Type: application/json
-
-{"type":"ValidationError","message":"One or more validation errors occurred.","errors":[{"field":"request","code":"invalid","message":"'<' is an invalid start of a value."}]}
-```
-
-A handler with a body parameter gets no 415 for its `Content-Type`. The JSON deserializer reads a
-JSON body sent as `text/plain`:
+A body whose `Content-Type` no deserializer reads answers 415. The `Accept` header names the types
+the service reads, and so does the body. A JSON body sent as `text/plain` gets this response:
 
 ```http
 POST /todos
@@ -583,14 +583,17 @@ Content-Type: text/plain
 
 {"title":"Buy milk"}
 
-HTTP/1.1 201 Created
+HTTP/1.1 415 Unsupported Media Type
+Accept: application/json
 Content-Type: application/json
-Location: /todos/3
 
-{"id":3,"title":"Buy milk","done":false}
+{"type":"UnsupportedContentTypeException","message":"This route does not read text/plain. It reads application/json.","details":""}
 ```
 
-The MessagePack package adds a deserializer for `application/x-msgpack`.
+A browser sends a `text/plain` POST to another origin without a CORS preflight, so the 415 also
+keeps such a request from reaching a JSON handler. [CORS](/guide/cors) covers preflights.
+
+The MessagePack package adds a deserializer for `application/x-msgpack`, and the 415 lists it too.
 [MessagePack](/guide/message-pack) covers it. A `[FromForm]` parameter is read as a form, and a
 body that is not a form answers 415. [Forms and files](/guide/forms) covers it. A body parameter declared as `byte[]` or `Stream`
 receives the body as sent. [Parameter binding](/guide/parameter-binding) covers it.

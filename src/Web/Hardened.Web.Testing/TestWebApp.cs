@@ -149,9 +149,11 @@ public class TestWebApp : TestContext, ITestWebApp
 
         var hasBody = testWebRequest.Body != null || bodyValue != null;
 
+        // JSON, which is what the value is serialized as. It was text/js, which is not a JSON type,
+        // and read only because the JSON deserializer used to take any body nothing claimed.
         if (hasBody && !headers.ContainsKey(KnownHeaders.ContentType))
         {
-            headers[KnownHeaders.ContentType] = KnownContentType.Js;
+            headers[KnownHeaders.ContentType] = KnownContentType.Json;
         }
 
         var body =
@@ -220,9 +222,9 @@ public class TestWebApp : TestContext, ITestWebApp
         }
 
         // Resolve IJsonSerializer first so its constructor populates the
-        // shared JsonSerializerConfiguration.Options TypeInfoResolverChain
+        // shared SharedJsonConfiguration.Options TypeInfoResolverChain
         // with the source-gen contexts the application has registered. The
-        // options instance held by IJsonSerializerConfiguration is the same
+        // options instance held by ISharedJsonConfiguration is the same
         // one mutated by AotJsonSerializer/JsonSerializerImpl on construction.
         var serializer = _applicationRoot.Provider.GetRequiredService<IJsonSerializer>();
         var memoryStream = new MemoryStream();

@@ -55,10 +55,10 @@
              [FakeItEasySupport], from the DependencyModules package of the same name. The test
              project chooses that package, so this one does not pull NSubstitute into a Moq project.
         -->
-        <ProjectReference Include="..\..\..\..\DependencyModules\src\DependencyModules.Testing\DependencyModules.Testing.csproj"
-                          Condition="Exists('..\..\..\..\DependencyModules\src\DependencyModules.Testing\DependencyModules.Testing.csproj')"/>
+        <ProjectReference Include="$(DependencyModulesRoot)\src\DependencyModules.Testing\DependencyModules.Testing.csproj"
+                          Condition="'$(UseLocalDependencyModules)' == 'true'"/>
         <PackageReference Include="DependencyModules.Testing"
-                          Condition="!Exists('..\..\..\..\DependencyModules\src\DependencyModules.Testing\DependencyModules.Testing.csproj')"/>
+                          Condition="'$(UseLocalDependencyModules)' != 'true'"/>
     </ItemGroup>
 
 </Project>

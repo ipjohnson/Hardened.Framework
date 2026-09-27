@@ -47,6 +47,12 @@ Content-Type: application/json
 "development"
 ```
 
+On AWS Lambda the name is `production` when the variable is unset. The Lambda service sets
+`AWS_LAMBDA_RUNTIME_API` before the function starts, and that decides it. A deployed function that
+leaves `HARDENED_ENVIRONMENT` out of its configuration therefore does not serve `/docs`. The
+template's `Program.cs` builds its environment before it starts the local Lambda emulator, which
+sets the same variable, so a function run from an IDE or `dotnet run` is still `development`.
+
 The interface is in the `Hardened.Shared.Runtime` package, in the namespace
 `Hardened.Shared.Runtime.Application`.
 
@@ -137,7 +143,7 @@ services.AddHardenedEnvironment(new EnvironmentImpl("staging"));
 
 | Parameter | Type | When omitted | Sets |
 |---|---|---|---|
-| `name` | `string?` | `HARDENED_ENVIRONMENT`, or `development` when it is unset | `Name` |
+| `name` | `string?` | `HARDENED_ENVIRONMENT`, or when it is unset `production` where `AWS_LAMBDA_RUNTIME_API` is set and `development` elsewhere. `EnvironmentImpl.DefaultName` decides it | `Name` |
 | `environmentValues` | `IDictionary<string, string>?` | No values | The values `Value` reads before the process's environment variables |
 | `arguments` | `IReadOnlyList<string>?` | Empty | `Arguments` |
 | `customData` | `IDictionary<string, object>?` | No custom data | The objects `CustomData` returns |
@@ -207,20 +213,27 @@ true
 Without the variable, the body is `false`.
 
 `Value` returns a `string` as it is. It converts any other type with `Convert.ChangeType`, using the
-process's current culture:
+invariant culture, as route, query and header values are read. A nullable type, such as `int?`,
+converts as its underlying type:
 
 | `T` | Converts | When it cannot |
 |---|---|---|
 | `string` | Returned as it is | Always succeeds |
-| `int`, `long`, `double` | Parsed with the current culture | `FormatException` |
+| `int`, `long`, `double` | Parsed with the invariant culture | `FormatException`. `OverflowException` for a number out of range |
 | `bool` | `true` or `false` | `FormatException`. `1` throws |
-| `DateTime` | Parsed with the current culture | `FormatException` |
+| `DateTime` | Parsed with the invariant culture | `FormatException` |
 | An enum, `TimeSpan`, `Guid`, `Uri` | Never | `InvalidCastException` |
-| A nullable type, such as `int?` | Never | `InvalidCastException` |
 
 For a type that cannot convert, `Value` throws only when a value is present. With no value, `Value`
-returns `defaultValue` without a conversion. Under the `de-DE` culture, `1.5` reads as the `double`
-`15`.
+returns `defaultValue` without a conversion.
+
+The exception names the variable and the type, followed by the message of the exception
+`Convert.ChangeType` threw. That exception is its `InnerException`. `Value<int>("RETENTION_DAYS")`
+with `RETENTION_DAYS=ninety` throws `FormatException` with this message:
+
+```text
+The environment variable RETENTION_DAYS could not be read as Int32: The input string 'ninety' was not in a correct format.
+```
 
 A configuration model reads its `[FromEnvironmentVariable]` fields through `Value`. The same rules
 apply to those fields. [Configuration](/guide/configuration) describes configuration models.
@@ -245,8 +258,9 @@ var startedAt = environment.CustomData<DateTimeOffset>("startedAt");
 ## Tests
 
 A test's environment is named `test`. In a test, `Value` reads only the values the test declares.
-It does not read the process's environment variables. `Arguments` is empty. `CustomData` returns
-`defaultValue`.
+It does not read the process's environment variables. It converts a value that is not already of the
+type asked for by the rules above, so a test sees the exception a deployment would. `Arguments` is
+empty. `CustomData` returns `defaultValue`.
 
 The test runner registers the environment under both service types before it applies the modules.
 `[IfEnvironment]` and `[IfNotEnvironment]` therefore see `test`.

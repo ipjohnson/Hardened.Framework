@@ -9,9 +9,9 @@ namespace Hardened.SourceGenerator.OpenApiDocument;
 /// <remarks>
 /// <para>
 /// Carried into <see cref="OpenApiDocumentGenerator.Write"/> by the specification-first path,
-/// merged across every spec the project declares. Null members fall back exactly as before this
-/// existed: the entry point's class name, "1.0.0", and no schemes - which is also what code-first
-/// gets unless it declares <c>[OpenApiInfo]</c>.
+/// merged across every spec the project declares. Null members fall back to the assembly's name,
+/// "1.0.0", and no schemes - which is also what code-first gets unless it declares
+/// <c>[OpenApiInfo]</c>.
 /// </para>
 /// <para>
 /// Value-equal, because it rides an incremental provider: an identity that compared by reference

@@ -97,8 +97,9 @@ Vary: Origin
 
 `CorsConfiguration` holds the settings. It is in the `Hardened.Web.Runtime.Cors` namespace. A
 configuration that the application registers in `ConfigureServices` replaces the one that the web
-module builds. The file `src/Todos.Host/ApplicationCors.cs` registers one on the host project's
-application module:
+module builds, whether the library module or the host's application module registers it. A
+library's registration also reaches its tests, whose entry point is the library. The file
+`src/Todos.Host/ApplicationCors.cs` registers one on the host project's application module:
 
 ```csharp
 using DependencyModules.Runtime.Interfaces;
@@ -184,8 +185,9 @@ The configuration has these members:
 | `ClearExposedHeaders()` | | Removes every exposed header, `X-Correlation-Id` included |
 | `MaxAgeSec` | `86400` | How long a browser may keep a preflight's answer, in seconds. Sent as `Access-Control-Max-Age` |
 | `FallbackMethods` | `GET, POST, PUT, DELETE, OPTIONS` | The methods a preflight for a path with no route is told, in an application that declares no `[Cors]` |
-| `EnvironmentVariable` | `CORS_ALLOWED_ORIGINS` | The variable `LoadFromEnvironment()` reads |
-| `LoadFromEnvironment()` | | Adds the entries of the variable, in the three forms of the previous section |
+| `EnvironmentVariable` | `CORS_ALLOWED_ORIGINS` | The variable `LoadFromEnvironment()` reads origins from |
+| `HeadersEnvironmentVariable` | `CORS_ALLOWED_HEADERS` | The variable `LoadFromEnvironment()` reads allowed request headers from, separated by commas |
+| `LoadFromEnvironment()` | | Adds the entries of both variables, the origins in the three forms of the previous section |
 
 ## Cross-origin requests
 
@@ -260,7 +262,13 @@ Vary: Origin
 
 Every requested header must be allowed, or the whole preflight is refused. The allowed request
 headers are `Authorization`, `Content-Type`, `Accept`, `x-auth-token` and `x-amz-content-sha256`.
-The filter compares them without regard to case. `AllowHeader` adds one.
+The filter compares them without regard to case. `AllowHeader` adds one, and so does an entry in
+`CORS_ALLOWED_HEADERS`, such as `CORS_ALLOWED_HEADERS=X-Request-Id,X-Tenant`.
+
+A preflight also allows the headers the operation it asks about reads: a parameter bound from a
+header, such as `[FromHeader("X-Tenant")]` or a contract's `@httpHeader`, and a header a filter
+reads, such as the `If-None-Match` of `[ConditionalGet]`. A contract that requires a header on
+every call is therefore reachable from a browser without listing the header again.
 
 A refused preflight is still a 204, with `Vary: Origin` and no CORS headers:
 
@@ -294,8 +302,14 @@ leaves out `Access-Control-Allow-Credentials`.
 
 In an application that declares no `[Cors]`, every response to a request with an `Origin` header
 carries `Vary: Origin`, whether the origin is allowed or refused. A preflight's 204 carries it too.
-Once a route declares `[Cors]`, a declaring route's response and every preflight carry
-`Vary: Origin`. A route with no declaration does not.
+Once an origin is allowed, a response to a request without an `Origin` header carries it as well.
+
+Once a route declares `[Cors]`, every response of a declaring route carries `Vary: Origin`, with or
+without an `Origin` header, and so does every preflight. A route with no declaration does not.
+
+A response that depends on `Origin` has to say so even when the request sent none. A shared cache
+could otherwise store the answer to such a request, which has no CORS headers, and serve it to a
+browser that sends one.
 
 The filter adds `Origin` to the `Vary` values that other filters write. A compressed response
 carries `Vary: Origin, Accept-Encoding`. [Compression](/guide/compression) covers when a response is

@@ -12,7 +12,7 @@ public class AotJsonSerializer : IJsonSerializer
     private readonly JsonSerializerOptions _prettyOptions;
 
     public AotJsonSerializer(
-        IOptions<Hardened.Shared.Runtime.Json.IJsonSerializerConfiguration> configuration,
+        IOptions<Hardened.Shared.Runtime.Json.ISharedJsonConfiguration> configuration,
         IEnumerable<IJsonTypeInfoResolver> resolvers
     )
     {

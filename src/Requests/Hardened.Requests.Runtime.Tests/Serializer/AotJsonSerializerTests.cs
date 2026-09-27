@@ -52,13 +52,13 @@ public class AotJsonSerializerTests
     /// </summary>
     private static IJsonSerializer Serializer(params IJsonTypeInfoResolver[] resolvers)
     {
-        var configuration = new JsonSerializerConfiguration
+        var configuration = new SharedJsonConfiguration
         {
             Options = new JsonSerializerOptions(JsonSerializerDefaults.Web),
         };
 
         return new AotJsonSerializer(
-            Options.Create<IJsonSerializerConfiguration>(configuration),
+            Options.Create<ISharedJsonConfiguration>(configuration),
             resolvers
         );
     }

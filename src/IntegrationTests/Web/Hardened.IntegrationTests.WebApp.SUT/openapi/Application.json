@@ -1,7 +1,7 @@
 {
   "openapi": "3.2.0",
   "info": {
-    "title": "Application",
+    "title": "Hardened.IntegrationTests.WebApp.SUT",
     "version": "1.0.0"
   },
   "tags": [
@@ -1883,6 +1883,48 @@
         "x-hardened-timeout": 300000
       }
     },
+    "/binding/window": {
+      "post": {
+        "tags": [
+          "Binding"
+        ],
+        "operationId": "window",
+        "summary": "A body with a date-time member, answered with the offset it was read with.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WindowModel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          }
+        },
+        "x-hardened-timeout": 300000
+      }
+    },
     "/blob-response/bare/{id}": {
       "get": {
         "tags": [
@@ -2653,6 +2695,12 @@
                 "schema": {
                   "type": "string"
                 }
+              },
+              "Last-Modified": {
+                "description": "When the document last changed.",
+                "schema": {
+                  "type": "string"
+                }
               }
             },
             "content": {
@@ -2709,15 +2757,6 @@
             "in": "header",
             "required": false,
             "description": "A tag a previous response carried. Matching it is answered 304.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "If-Modified-Since",
-            "in": "header",
-            "required": false,
-            "description": "When the caller last read this. Unchanged since then is answered 304.",
             "schema": {
               "type": "string"
             }
@@ -3134,6 +3173,48 @@
         "x-hardened-timeout": 300000
       }
     },
+    "/cors/tenant": {
+      "get": {
+        "tags": [
+          "Cors"
+        ],
+        "operationId": "tenantHeader",
+        "summary": "A route that reads a header nothing in the CORS configuration names.",
+        "parameters": [
+          {
+            "name": "X-Tenant",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          }
+        },
+        "x-hardened-timeout": 300000
+      }
+    },
     "/declared-header/notes": {
       "get": {
         "tags": [
@@ -3146,15 +3227,6 @@
             "in": "header",
             "required": false,
             "description": "A tag a previous response carried. Matching it is answered 304.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "If-Modified-Since",
-            "in": "header",
-            "required": false,
-            "description": "When the caller last read this. Unchanged since then is answered 304.",
             "schema": {
               "type": "string"
             }
@@ -5932,15 +6004,6 @@
             "schema": {
               "type": "string"
             }
-          },
-          {
-            "name": "If-Modified-Since",
-            "in": "header",
-            "required": false,
-            "description": "When the caller last read this. Unchanged since then is answered 304.",
-            "schema": {
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -5967,6 +6030,38 @@
             "headers": {
               "ETag": {
                 "description": "The tag the caller already holds, repeated.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          }
+        },
+        "x-hardened-timeout": 300000
+      }
+    },
+    "/response-cache/coalesced": {
+      "get": {
+        "tags": [
+          "ResponseCache"
+        ],
+        "operationId": "coalesced",
+        "summary": "Slow enough for concurrent requests to overlap, and coalescing their misses.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
                 "schema": {
                   "type": "string"
                 }
@@ -6050,15 +6145,6 @@
             "in": "header",
             "required": false,
             "description": "A tag a previous response carried. Matching it is answered 304.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "If-Modified-Since",
-            "in": "header",
-            "required": false,
-            "description": "When the caller last read this. Unchanged since then is answered 304.",
             "schema": {
               "type": "string"
             }
@@ -6285,6 +6371,56 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          }
+        },
+        "x-hardened-timeout": 300000
+      }
+    },
+    "/response-cache/pages": {
+      "get": {
+        "tags": [
+          "ResponseCache"
+        ],
+        "operationId": "pages",
+        "summary": "Keyed on every query key the operation binds, with none named, which is what the 0.41 trial asked for after a misspelt key served page 1 for page 2.",
+        "parameters": [
+          {
+            "name": "category",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
                 }
               }
             }
@@ -7578,6 +7714,44 @@
         "x-hardened-timeout": 100
       }
     },
+    "/timeout/stream-late": {
+      "get": {
+        "tags": [
+          "Timeout"
+        ],
+        "operationId": "streamLate",
+        "summary": "A stream whose budget runs out before its first item, so the deadline decides the whole answer. 504.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/x-ndjson": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "itemSchema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          }
+        },
+        "x-hardened-timeout": 100
+      }
+    },
     "/timeout/unbounded": {
       "get": {
         "tags": [
@@ -7989,10 +8163,7 @@
         ],
         "properties": {
           "city": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": "string"
           },
           "country": {
             "type": [
@@ -8038,10 +8209,7 @@
         ],
         "properties": {
           "reference": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": "string"
           },
           "shipment": {
             "anyOf": [
@@ -8603,6 +8771,19 @@
           "bytes": {
             "type": "integer",
             "format": "int64"
+          }
+        }
+      },
+      "WindowModel": {
+        "type": "object",
+        "description": "A body carrying a date-time, which has to state its offset.",
+        "required": [
+          "endsAt"
+        ],
+        "properties": {
+          "endsAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       }

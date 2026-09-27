@@ -1,5 +1,6 @@
 ﻿using DependencyModules.Runtime.Attributes;
 using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.Serializer;
 using Hardened.Shared.Runtime.Collections;
 using Microsoft.Extensions.Logging;
@@ -40,8 +41,10 @@ public class NewtonsoftDeserializer : IRequestDeserializer
 
     public bool CanProcessContext(IExecutionContext context)
     {
-        return context.Request.ContentType?.Contains("application/json") ?? false;
+        return MediaType.IsJson(context.Request.ContentType);
     }
+
+    public IReadOnlyList<string> ContentTypes { get; } = [KnownContentType.Json];
 
     /// <summary>
     /// Reads the request body and deserializes it, leaving the body open for whoever owns it.

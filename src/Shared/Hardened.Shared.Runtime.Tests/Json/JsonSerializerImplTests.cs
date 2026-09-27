@@ -24,7 +24,7 @@ public class JsonSerializerImplTests
 
     private static IJsonSerializer Serializer()
     {
-        var configuration = Substitute.For<IJsonSerializerConfiguration>();
+        var configuration = Substitute.For<ISharedJsonConfiguration>();
 
         configuration.Options.Returns(
             new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true }

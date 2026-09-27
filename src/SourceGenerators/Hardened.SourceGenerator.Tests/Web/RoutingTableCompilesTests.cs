@@ -277,7 +277,38 @@ public class RoutingTableCompilesTests
             .SourceContaining("Routing");
 
         Assert.DoesNotContain("new PathTokenCollection(", routing);
-        Assert.Contains("_infoHealthController_Health ??= new RequestHandlerInfo(", routing);
+        Assert.Contains(
+            "return _infoHealthController_Health ?? Interlocked.CompareExchange(",
+            routing
+        );
+        Assert.Contains("ref _infoHealthController_Health,", routing);
+        Assert.Contains(") ?? _infoHealthController_Health;", routing);
+    }
+
+    /// <summary>
+    /// The record is published with a compare-exchange rather than assigned, so requests that
+    /// arrive together before it exists answer with one handler, and one filter chain, between
+    /// them.
+    /// </summary>
+    [Fact]
+    public void AHandlerIsPublishedOnceForABurstOfFirstRequests()
+    {
+        var routing = RequestGeneratorHarness
+            .Generate(
+                Application(
+                    """
+                    public class HealthController {
+                        [Get("/health")]
+                        public string Health() => "ok";
+                    }
+                    """
+                )
+            )
+            .AssertNoErrors()
+            .SourceContaining("Routing");
+
+        Assert.DoesNotContain("??=", routing);
+        Assert.Contains("new RequestHandlerInfo(new HealthController_Health(", routing);
     }
 
     /// <summary>
@@ -311,7 +342,10 @@ public class RoutingTableCompilesTests
 
         // The handler type of a tokened route carries a hash of the template, so the field is
         // matched rather than spelled.
-        Assert.Matches(@"_infoOrderController_Get\w* \?\?= new RequestHandlerInfo\(", routing);
+        Assert.Matches(
+            @"_infoOrderController_Get\w* \?\? Interlocked\.CompareExchange\(\s+ref _infoOrderController_Get\w*,\s+new RequestHandlerInfo\(",
+            routing
+        );
     }
 
     /// <summary>

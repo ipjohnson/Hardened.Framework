@@ -40,7 +40,7 @@
 
         <CSharpAuthorProject Condition="'$(CSharpAuthorRoot)' != ''">$(CSharpAuthorRoot)/CSharpAuthor/CSharpAuthor.csproj</CSharpAuthorProject>
 
-        <UseLocalCSharpAuthor Condition="'$(UseLocalCSharpAuthor)' == '' And Exists('$(CSharpAuthorProject)')">true</UseLocalCSharpAuthor>
+        <UseLocalCSharpAuthor Condition="'$(UseLocalCSharpAuthor)' == '' And '$(UseSiblingCheckouts)' != 'false' And Exists('$(CSharpAuthorProject)')">true</UseLocalCSharpAuthor>
         <UseLocalCSharpAuthor Condition="'$(UseLocalCSharpAuthor)' == ''">false</UseLocalCSharpAuthor>
 
         <!-- The package's own switch for compiling its source in. -->

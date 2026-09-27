@@ -149,13 +149,12 @@ public static class RoutingTableGenerator
                 handler.ResponseInformation.StreamFramingDiagnostic
             );
 
-            // What the operation says it produces, against what could produce it. Bytes with no
-            // declaration is an error; a model declared as something nothing here writes is a
-            // warning, because the host may register the serializer.
+            // A model declared as something nothing here writes is a warning, because the host may
+            // register the serializer. Bytes with no declaration is an error, reported at the
+            // handler by WebIncrementalGenerator.
             ContentTypeDiagnostics.Report(
                 context,
                 name,
-                handler.ResponseInformation.MissingContentTypeDiagnostic,
                 handler.ResponseInformation.UnproducibleContentTypeDiagnostic,
                 options.WritableContentTypes
             );
@@ -385,9 +384,17 @@ public static class RoutingTableGenerator
 
         EnumWireConverterEmitter.Emit(appClass, enums);
 
-        var eventStreams = ServerSentEventManifestEmitter.Collect(endPointModels);
+        var eventStreams = ServerSentEventManifestEmitter.Collect(endPointModels, _basePath);
 
         ServerSentEventManifestEmitter.Emit(appClass, eventStreams);
+
+        var rateLimited = RateLimitManifestEmitter.Collect(
+            endPointModels,
+            appModel.FilterDeclarations,
+            _basePath
+        );
+
+        RateLimitManifestEmitter.Emit(appClass, rateLimited);
 
         ApplicationFilterEmitter.Emit(appClass, appModel.FilterDeclarations);
 
@@ -398,6 +405,7 @@ public static class RoutingTableGenerator
             endPointModels,
             enums,
             eventStreams,
+            rateLimited,
             cancellationToken,
             options
         );
@@ -439,6 +447,7 @@ public static class RoutingTableGenerator
         IReadOnlyList<RequestHandlerModel> webEndPointModels,
         IReadOnlyList<EnumVocabulary> enums,
         IReadOnlyList<string> eventStreams,
+        IReadOnlyList<string> rateLimited,
         CancellationToken cancellationToken,
         RoutingTableOptions options
     )
@@ -523,6 +532,26 @@ public static class RoutingTableGenerator
                             applicationModel.EntryPointType.Name
                                 + "."
                                 + ServerSentEventManifestEmitter.ContainerName
+                        ),
+                    }
+                )
+            );
+        }
+
+        // Only where a handler is rate limited, for the same reason.
+        if (rateLimited.Count > 0)
+        {
+            diMethod.AddIndentedStatement(
+                serviceCollection.InvokeGeneric(
+                    "AddSingleton",
+                    new[]
+                    {
+                        KnownTypes.Requests.IRateLimitManifest,
+                        TypeDefinition.Get(
+                            applicationModel.EntryPointType.Namespace,
+                            applicationModel.EntryPointType.Name
+                                + "."
+                                + RateLimitManifestEmitter.ContainerName
                         ),
                     }
                 )
@@ -1583,10 +1612,20 @@ public static class RoutingTableGenerator
     /// field.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// Nothing in it is per request. The handler is a singleton the table builds once, and the verb
     /// set is fixed at compile time; the token values that used to be in it are written into the
     /// request instead. So a route with a token in it reuses its record exactly as a literal route
     /// already did, and the leaf collapses to a field read.
+    /// </para>
+    /// <para>
+    /// <b>Published with a compare-exchange, so once really is once.</b> Requests that arrive
+    /// together before the field is set each build a handler, and with <c>??=</c> each used its own,
+    /// with its own filter chain. A filter that holds state across requests then held it once per
+    /// request of the burst: <c>[CacheResponse(CoalesceMisses = true)]</c> ran the handler for each
+    /// of five concurrent first requests. The exchange keeps the first record stored, and every
+    /// request of the burst answers with that one.
+    /// </para>
     /// </remarks>
     private static IOutputComponent CachedInfo(
         ClassDefinition routingClass,
@@ -1611,11 +1650,19 @@ public static class RoutingTableGenerator
             routingClass.Fields.FirstOrDefault(field => field.Name == fieldName)
             ?? routingClass.AddField(KnownTypes.Web.RequestHandlerInfo.MakeNullable(), fieldName);
 
-        var cachedInfo = NullCoalesceEqual(
-            infoField.Instance,
-            New(KnownTypes.Web.RequestHandlerInfo, newHandler)
+        var published = Invoke(
+            typeof(System.Threading.Interlocked),
+            "CompareExchange",
+            CodeOutputComponent.Get("ref " + fieldName),
+            New(KnownTypes.Web.RequestHandlerInfo, newHandler),
+            Null()
         );
 
+        // The exchange answers null when it stored this record, so the field is read once more.
+        var stored = NullCoalesce(published, infoField.Instance);
+        var cachedInfo = NullCoalesce(infoField.Instance, stored);
+
+        stored.PrintParentheses = false;
         cachedInfo.PrintParentheses = false;
 
         return cachedInfo;

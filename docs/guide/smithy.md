@@ -444,6 +444,10 @@ detail, or its title when the record has no detail. `title` and `status` are fil
 declares them. A shape with another required member has no conversion. The handler returns the case
 instead: `new TodoNotFoundError(new TodoNotFound(...))`.
 
+The compiler does not check that a handler returns every error its operation declares. A handler
+compiles unchanged after the model adds an error. The template's `DocumentStatusTests` is the check,
+as [Generating from OpenAPI](/guide/openapi#response-and-union) describes.
+
 Under `Throws`, the same record thrown with `AsException()` is sent as the error's shape, filled the
 same way. An operation that declares two errors at one status fills neither, and the record is sent
 as it was thrown.

@@ -171,6 +171,31 @@ public class RequestLoggerTests
     }
 
     /// <summary>
+    /// A cancellation of the request's own token is the caller leaving or the host ending the
+    /// request, not a fault. A client that walked away from a stream used to leave an Error line
+    /// with a stack through the heartbeat's delay.
+    /// </summary>
+    [Fact]
+    public void ACancellationOfTheRequestsOwnTokenIsOneInformationLine()
+    {
+        var (logger, log) = Logger();
+        using var cancellation = new CancellationTokenSource();
+        var context = Pipeline.Cancellable(cancellation.Token);
+
+        context.Response.Status = 200;
+        Started(context);
+        cancellation.Cancel();
+
+        logger.RequestFailed(context, new TaskCanceledException());
+
+        var line = Assert.Single(log.Lines);
+
+        Assert.Equal(LogLevel.Information, line.Level);
+        Assert.Equal("GET / was cancelled before it finished", line.Message);
+        Assert.Null(line.Exception);
+    }
+
+    /// <summary>
     /// After the response has started the status on it is the one already sent, whatever it says,
     /// and a failure past that point tore the body: a fault.
     /// </summary>

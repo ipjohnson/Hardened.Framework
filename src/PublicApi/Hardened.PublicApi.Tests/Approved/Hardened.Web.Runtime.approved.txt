@@ -253,7 +253,7 @@ namespace Hardened.Web.Runtime.Conditional
     [Hardened.Requests.Abstract.Responses.AnswersHeader(200, "ETag", Description="A tag for this response, to send back in If-None-Match.", Methods="GET,HEAD", NotWhenStreaming=true)]
     [Hardened.Requests.Abstract.Responses.AnswersHeader(304, "ETag", Description="The tag the caller already holds, repeated.", Methods="GET,HEAD", NotWhenStreaming=true)]
     [Hardened.Requests.Abstract.Responses.AnswersStatus(304, Description="The caller\'s copy is current; nothing is sent.", Methods="GET,HEAD", NotWhenStreaming=true)]
-    [Hardened.Web.Runtime.Responses.ReadsHeader("If-Modified-Since", Description="When the caller last read this. Unchanged since then is answered 304.", Methods="GET,HEAD", NotWhenStreaming=true)]
+    [Hardened.Web.Runtime.Responses.ReadsHeader("If-Modified-Since", Description="When the caller last read this. Unchanged since then is answered 304.", Methods="GET,HEAD", NotWhenStreaming=true, WhenAnswered="Last-Modified")]
     [Hardened.Web.Runtime.Responses.ReadsHeader("If-None-Match", Description="A tag a previous response carried. Matching it is answered 304.", Methods="GET,HEAD", NotWhenStreaming=true)]
     [System.AttributeUsage(System.AttributeTargets.Class | System.AttributeTargets.Method)]
     public sealed class ConditionalGetAttribute : System.Attribute, Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider
@@ -302,6 +302,7 @@ namespace Hardened.Web.Runtime.Cors
     public class CorsConfiguration
     {
         public const string DefaultEnvironmentVariable = "CORS_ALLOWED_ORIGINS";
+        public const string DefaultHeadersEnvironmentVariable = "CORS_ALLOWED_HEADERS";
         public CorsConfiguration() { }
         public bool AllowAnyOrigin { get; set; }
         public bool AllowCredentials { get; set; }
@@ -310,12 +311,14 @@ namespace Hardened.Web.Runtime.Cors
         public string EnvironmentVariable { get; set; }
         public System.Collections.Generic.IReadOnlyCollection<string> ExposedHeaders { get; }
         public string FallbackMethods { get; set; }
+        public string HeadersEnvironmentVariable { get; set; }
         public bool IsConfigured { get; }
         public int MaxAgeSec { get; set; }
         public void AllowHeader(string header) { }
         public void AllowOrigin(string origin) { }
         public void AllowOriginSuffix(string domain) { }
         public bool AreHeadersAllowed(System.Collections.Generic.IEnumerable<string> requested) { }
+        public bool AreHeadersAllowed(System.Collections.Generic.IEnumerable<string> requested, System.Collections.Generic.IReadOnlyCollection<string> alsoAllowed) { }
         public void ClearExposedHeaders() { }
         public void ExposeHeader(string header) { }
         public bool IsOriginAllowed(string origin) { }
@@ -1256,6 +1259,7 @@ namespace Hardened.Web.Runtime.Responses
         public string? Methods { get; set; }
         public string Name { get; }
         public bool NotWhenStreaming { get; set; }
+        public string? WhenAnswered { get; set; }
     }
     [Hardened.Web.Runtime.Responses.HttpStatus(408)]
     public sealed class RequestTimeout : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProblemDetails, System.IEquatable<Hardened.Web.Runtime.Responses.RequestTimeout>

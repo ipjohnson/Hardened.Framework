@@ -160,7 +160,8 @@ and reports warning `HOAG010`:
 'ParamProbeController.P' was not generated because the type of parameter 'links' could not be resolved. Other handlers in this assembly are unaffected.
 ```
 
-The build does the same when the parameter has `[FromServices]`.
+The build does the same when the parameter has `[FromServices]`. The rest of the build succeeds,
+including when the handler's other parameters carry constraints.
 
 A `Links` method passes the path through the link context that the class was built with. With no
 configuration, a `Links` method returns the same path as the `Routes` member, and so does its

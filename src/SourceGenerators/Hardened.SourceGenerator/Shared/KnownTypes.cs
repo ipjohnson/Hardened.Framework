@@ -420,6 +420,13 @@ public static class KnownTypes
             "IServerSentEventManifest"
         );
 
+        /// <summary>The list of rate-limited handlers a routing table emits for a host to read.</summary>
+        public static readonly ITypeDefinition IRateLimitManifest = TypeDefinition.Get(
+            TypeDefinitionEnum.InterfaceDefinition,
+            "Hardened.Requests.Abstract.RateLimiting",
+            "IRateLimitManifest"
+        );
+
         /// <summary>The filters an entry point declares for every handler in its compilation.</summary>
         public static readonly ITypeDefinition IApplicationFilterDeclarations = TypeDefinition.Get(
             TypeDefinitionEnum.InterfaceDefinition,

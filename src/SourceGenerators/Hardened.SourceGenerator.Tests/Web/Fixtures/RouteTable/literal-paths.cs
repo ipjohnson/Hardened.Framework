@@ -5,6 +5,7 @@ using Hardened.Web.Runtime.Handlers;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Threading;
 using Test.Api.Generated;
 using Test.Api.Services;
 
@@ -104,7 +105,11 @@ namespace Test.Api
                         {
                             case "HEAD":
                             case "GET":
-                                return _infoPetController_ListPets ??= new RequestHandlerInfo(new PetController_ListPets(_rootServiceProvider));
+                                return _infoPetController_ListPets ?? Interlocked.CompareExchange(
+                                    ref _infoPetController_ListPets,
+                                    new RequestHandlerInfo(new PetController_ListPets(_rootServiceProvider)),
+                                    null
+                                ) ?? _infoPetController_ListPets;
                             default:
                                 return _methodNotAllowedGETHEAD;
                         }
@@ -131,7 +136,11 @@ namespace Test.Api
                         {
                             case "HEAD":
                             case "GET":
-                                return _infoPetController_Featured ??= new RequestHandlerInfo(new PetController_Featured(_rootServiceProvider));
+                                return _infoPetController_Featured ?? Interlocked.CompareExchange(
+                                    ref _infoPetController_Featured,
+                                    new RequestHandlerInfo(new PetController_Featured(_rootServiceProvider)),
+                                    null
+                                ) ?? _infoPetController_Featured;
                             default:
                                 return _methodNotAllowedGETHEAD;
                         }
@@ -152,7 +161,11 @@ namespace Test.Api
                         {
                             case "HEAD":
                             case "GET":
-                                return _infoPetController_Store ??= new RequestHandlerInfo(new PetController_Store(_rootServiceProvider));
+                                return _infoPetController_Store ?? Interlocked.CompareExchange(
+                                    ref _infoPetController_Store,
+                                    new RequestHandlerInfo(new PetController_Store(_rootServiceProvider)),
+                                    null
+                                ) ?? _infoPetController_Store;
                             default:
                                 return _methodNotAllowedGETHEAD;
                         }
