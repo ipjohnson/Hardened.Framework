@@ -67,10 +67,15 @@ public static class WebIncrementalGenerator
         // 2 to 14, because a span is an offset and every offset below an edit shifts. That model
         // builds a class per handler, the routing table and the OpenAPI document, so it has to stay
         // insensitive to where things sit in a file. This one does not.
+        //
+        // A requirement written on the module class, such as [Authorize<TScheme>], reaches every
+        // handler in the compilation, so none of them is left saying nothing.
         var authorizationRequired = entryPointProvider
             .Collect()
             .Select(
-                (entryPoints, _) => entryPoints.Any(RequireAuthorizationDiagnostics.IsRequired)
+                (entryPoints, _) =>
+                    entryPoints.Any(RequireAuthorizationDiagnostics.IsRequired)
+                    && !entryPoints.Any(entryPoint => entryPoint.DeclaresRequirement)
             );
 
         var handlerAuthorization = initializationContext.SyntaxProvider.CreateSyntaxProvider(

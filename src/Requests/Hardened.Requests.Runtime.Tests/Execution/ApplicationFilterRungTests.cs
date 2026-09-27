@@ -1,6 +1,8 @@
 using System.Reflection;
+using Hardened.Requests.Abstract.Authorization;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.RequestFilter;
+using Hardened.Requests.Runtime.Authorization;
 using Hardened.Requests.Runtime.Execution;
 using Hardened.Requests.Runtime.Filters;
 using Hardened.Requests.Runtime.Tests.Support;
@@ -35,6 +37,8 @@ public class ApplicationFilterRungTests
     private const string Invoke = "invoke";
 
     private class Controller;
+
+    private sealed class BearerAuth : IAuthenticationScheme;
 
     /// <summary>
     /// A filter attribute of the shape an application declares on its module class: it decides for
@@ -240,6 +244,46 @@ public class ApplicationFilterRungTests
         Assert.Contains("own", ran);
         Assert.DoesNotContain("wide", ran);
         Assert.DoesNotContain(wide, composed.Metadata);
+    }
+
+    /// <summary>
+    /// A requirement on the module is conjoined into the requirement of a handler that declares
+    /// none, and that requirement is what the authorization filter provider guards the handler by.
+    /// </summary>
+    [Fact]
+    public async Task AModulesRequirementGuardsAHandlerThatDeclaresNone()
+    {
+        var log = new List<string>();
+
+        var (_, composed) = await Run(
+            log,
+            [new Declarations(new AuthorizeAttribute<BearerAuth>())]
+        );
+
+        Assert.NotNull(composed.Requirement);
+        Assert.NotNull(
+            new AuthorizationFilterProvider(requireAuthorization: false).GetFilter(composed)
+        );
+    }
+
+    /// <summary>
+    /// <c>[AllowAnonymous]</c> on the handler cancels it, as it cancels one written on the
+    /// handler's class.
+    /// </summary>
+    [Fact]
+    public async Task AHandlerThatAllowsAnonymousCallersIsNotGuardedByTheModulesRequirement()
+    {
+        var log = new List<string>();
+
+        var (_, composed) = await Run(
+            log,
+            [new Declarations(new AuthorizeAttribute<BearerAuth>())],
+            metadata: [new AllowAnonymousAttribute()]
+        );
+
+        Assert.Null(
+            new AuthorizationFilterProvider(requireAuthorization: false).GetFilter(composed)
+        );
     }
 
     /// <summary>

@@ -521,8 +521,12 @@ Content-Type: application/json
 | The class | `[AuthorizeGrants]` on the method |
 | The method | A convention's requirement |
 | The method | `[RequireAuthorization]` on a module |
+| The method or the class | `[Authorize<TScheme>]` or `[AuthorizeGrants]` on the module class |
 
 On a class, `[AllowAnonymous]` covers every handler in the class.
+
+The OpenAPI document follows the same rule. The operation of a public handler lists no `security`
+and no 401 or 403 from the requirements that `[AllowAnonymous]` overrides.
 
 When `[AllowAnonymous]` cancels an authorization attribute written on the method itself, the build
 warns with `HAUTH002`. That is the first and the third row: both on the method, or
@@ -586,6 +590,11 @@ In the project of the module that carries `[RequireAuthorization]`, the build re
 `HAUTH001` for each unannotated handler compiled there. The warning points at the handler's method
 name. `HAUTH001` counts an attribute on the method or on the class that contains it. A convention
 does not count. A handler that only a convention guards is still reported.
+
+A requirement on the module class, such as `[Authorize<BearerAuth>]` or `[AuthorizeGrants("staff")]`,
+covers every handler compiled with the module. No handler there is unannotated, and the build
+reports no `HAUTH001`. [Authentication](/guide/authentication#requiring-a-caller) covers
+`[Authorize<TScheme>]` on a module class.
 
 `[RequireAuthorization]` can go on the application module, on the library module or on the
 assembly:
@@ -727,11 +736,11 @@ handler then answers 401.
 ## Limits
 
 ::: warning
-An authorization attribute on a base class, on another declaration of a `partial` class or on a
-module class compiles and is not read. `[RequireAuthorization]` on the assembly compiles and is not
-read either. Each handler is guarded as if the attribute were absent. Put an authorization attribute
-on the handler's method or on the class declaration that contains it, and `[RequireAuthorization]`
-on a module class.
+An authorization attribute on a base class or on another declaration of a `partial` class compiles
+and is not read. `[AllowAnonymous]` on a module class and `[RequireAuthorization]` on the assembly
+compile and are not read either. Each handler is guarded as if the attribute were absent. Put an
+authorization attribute on the handler's method, on the class declaration that contains it or on
+the module class, and `[RequireAuthorization]` on a module class.
 :::
 
 The build reports none of these. Under `[RequireAuthorization]`, `HAUTH001` reports the affected
