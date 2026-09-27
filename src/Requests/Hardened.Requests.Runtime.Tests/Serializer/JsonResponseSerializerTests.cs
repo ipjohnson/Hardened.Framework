@@ -1,8 +1,10 @@
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
+using Hardened.Requests.Abstract.Responses;
 using Hardened.Requests.Abstract.Serializer;
 using Hardened.Requests.Runtime.Configuration;
 using Hardened.Requests.Runtime.Serializer;
@@ -172,9 +174,54 @@ public class JsonResponseSerializerTests
     {
         Assert.True(SerializerNamed(serializerName).IsDefaultSerializer);
     }
+
+    /// <summary>
+    /// A failure whose body is a problem record is written as application/problem+json, by both.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(SerializerNames))]
+    public async Task AFailureWhoseBodyIsAProblemIsLabelledProblemJson(string serializerName)
+    {
+        var (context, body) = Context(new PayloadProblem("No payload."));
+
+        context.Response.Status.Returns(404);
+
+        await SerializerNamed(serializerName).SerializeResponse(context);
+
+        context.Response.Received().ContentType = "application/problem+json";
+        Assert.Contains("\"detail\":\"No payload.\"", Encoding.UTF8.GetString(body.ToArray()));
+    }
+
+    /// <summary>
+    /// Both answer for application/problem+json on a failure, which is what lets an operation
+    /// declare it, and on nothing else.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(SerializerNames))]
+    public void BothProduceProblemJsonForAFailureOnly(string serializerName)
+    {
+        var serializer = SerializerNamed(serializerName);
+        var (failure, _) = Context(new PayloadProblem(null));
+        var (success, _) = Context(new Payload("x", 1));
+
+        failure.Response.Status.Returns(404);
+        success.Response.Status.Returns(200);
+
+        Assert.True(serializer.CanProduce("application/problem+json", failure));
+        Assert.False(serializer.CanProduce("application/problem+json", success));
+    }
 }
 
 internal record Payload(string Name, int Value);
+
+internal record PayloadProblem(string? Detail) : IProblemDetails
+{
+    public string Type => "urn:test:no-payload";
+
+    public string Title => "No Payload";
+
+    public int Status => 404;
+}
 
 /// <summary>
 /// Metadata for <see cref="Payload"/>, source generated.
@@ -191,4 +238,5 @@ internal record Payload(string Name, int Value);
 /// </remarks>
 [JsonSourceGenerationOptions(JsonSerializerDefaults.Web)]
 [JsonSerializable(typeof(Payload))]
+[JsonSerializable(typeof(PayloadProblem))]
 internal partial class PayloadContext : JsonSerializerContext;

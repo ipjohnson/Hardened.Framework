@@ -19,7 +19,7 @@ namespace Hardened.Web.Runtime.Responses;
 /// </para>
 /// </remarks>
 [HttpStatus(408)]
-public sealed record RequestTimeout(string? Detail = null) : IHttpStatusResponse, IDeclaresStatus
+public sealed record RequestTimeout(string? Detail = null) : IProblemDetails, IDeclaresStatus
 {
     /// <summary>
     /// The RequestTimeout with a generic message, for a handler with nothing more to say than the status.

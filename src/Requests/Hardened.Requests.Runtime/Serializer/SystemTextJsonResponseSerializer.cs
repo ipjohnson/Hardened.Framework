@@ -70,9 +70,15 @@ public class SystemTextJsonResponseSerializer : IResponseSerializer
 
     public string ContentType => KnownContentType.Json;
 
+    /// <remarks>
+    /// <c>application/problem+json</c> as well, for a failure. See <see cref="ProblemJson"/>.
+    /// </remarks>
+    public bool CanProduce(string mediaType, IExecutionContext context) =>
+        MediaType.Matches(mediaType, ContentType) || ProblemJson.Produces(mediaType, context);
+
     public async Task SerializeResponse(IExecutionContext context)
     {
-        context.Response.ContentType = "application/json";
+        context.Response.ContentType = ProblemJson.ContentTypeFor(context);
 
         if (context.Response.ResponseValue == null)
         {

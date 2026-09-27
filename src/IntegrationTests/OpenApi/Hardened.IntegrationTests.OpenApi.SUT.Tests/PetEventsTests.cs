@@ -58,7 +58,7 @@ public class PetEventsTests
 
         Assert.Equal(404, response.StatusCode);
         Assert.StartsWith(
-            "application/json",
+            "application/problem+json",
             response.Headers[KnownHeaders.ContentType].ToString()
         );
         Assert.Contains("No pet has id missing.", await BodyOf(response));

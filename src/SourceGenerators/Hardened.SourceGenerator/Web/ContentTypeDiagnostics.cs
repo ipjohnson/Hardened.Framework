@@ -78,6 +78,22 @@ public static class ContentTypeDiagnostics
         );
 
     /// <summary>
+    /// The same finding for a described operation, whose media types a contract declared rather
+    /// than <c>[Produces]</c>.
+    /// </summary>
+    private static DiagnosticDescriptor NothingProducesDescribed() =>
+        new(
+            id: NothingProducesId,
+            title: "nothing in this compilation produces a declared content type",
+            messageFormat: "'{0}' is declared by its contract as answering {1}, and nothing here writes a model as that "
+                + "media type. Register an IResponseSerializer declaring it, or reference the package that writes "
+                + "it. A host that registers one makes this correct, which is why it is a warning.",
+            category: "Hardened.Web",
+            defaultSeverity: DiagnosticSeverity.Warning,
+            isEnabledByDefault: true
+        );
+
+    /// <summary>
     /// Reports the findings the transform carried, if any survive what this compilation can write.
     /// </summary>
     /// <param name="unproducible">
@@ -88,12 +104,17 @@ public static class ContentTypeDiagnostics
     /// The media types a serializer in reach declares, comma-joined - see
     /// <see cref="SerializerContentTypes"/>. A candidate named here is produced and is not reported.
     /// </param>
+    /// <param name="described">
+    /// Whether a contract declared the media types, which only changes what the warning names as
+    /// their source.
+    /// </param>
     public static void Report(
         SourceProductionContext context,
         string handler,
         bool declaresNothing,
         string? unproducible,
-        string writable
+        string writable,
+        bool described = false
     )
     {
         if (declaresNothing)
@@ -116,7 +137,12 @@ public static class ContentTypeDiagnostics
             }
 
             context.ReportDiagnostic(
-                Diagnostic.Create(NothingProduces(), Location.None, handler, contentType)
+                Diagnostic.Create(
+                    described ? NothingProducesDescribed() : NothingProduces(),
+                    Location.None,
+                    handler,
+                    contentType
+                )
             );
         }
     }

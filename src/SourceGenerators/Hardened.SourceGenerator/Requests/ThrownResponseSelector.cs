@@ -134,6 +134,7 @@ public static class ThrownResponseSelector
                         // The headers the thrown type declares, by the same convention a returned
                         // case's are read - the symbol is already in hand here.
                         Headers = UnionResponseSelector.DeclaredHeaders(errorType),
+                        IsProblem = ProblemBodies.Implement(errorType),
                     }
                 );
             }

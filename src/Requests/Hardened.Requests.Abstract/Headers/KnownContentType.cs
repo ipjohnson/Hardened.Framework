@@ -7,6 +7,11 @@ public class KnownContentType
     public const string Json = "application/json";
     public static StringValues JsonStringValues = new StringValues(Json);
 
+    /// <summary>
+    /// A problem details document, the media type RFC 9457 registers for one.
+    /// </summary>
+    public const string ProblemJson = "application/problem+json";
+
     public const string Js = "text/js";
     public static StringValues JsStringValues = new StringValues(Js);
 

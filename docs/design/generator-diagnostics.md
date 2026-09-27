@@ -290,6 +290,17 @@ replacing that one replaces it with another declaring the same media type.
 A streamed handler is skipped: its media types are its framing's, and the streaming writer produces
 both of them.
 
+**A described operation gets it too**, from its own output in the spec generator, which reads only
+the handlers and what the compilation can write. The candidates come from the contract's success and
+failure media types, with a message that names the contract rather than `[Produces]`.
+`application/problem+json` is producible for a failure, because the JSON serializers write it for a
+status of 400 or above, and not for a success. A success the handler writes as text or bytes is not
+a candidate, nor is `text/html` on a success, which a view writes and the view check covers. An
+operation that negotiates nothing, which is a dispatch protocol such as `awsJson1_0`, is skipped:
+its media type is the document's, and every response it sends is written by the default serializer.
+The 0.41 trial found the gap: a contract had no such check, and a failure declared only as
+`application/problem+json` built clean and answered 500.
+
 ## Validation
 
 ### HRDV001 — retired

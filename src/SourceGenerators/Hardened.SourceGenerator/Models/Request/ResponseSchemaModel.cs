@@ -53,6 +53,16 @@ public sealed class ResponseSchemaModel : System.IEquatable<ResponseSchemaModel>
         System.Array.Empty<ResponseHeaderModel>();
 
     /// <summary>
+    /// Whether the body implements <c>IProblemDetails</c>, which the JSON serializers write as
+    /// <c>application/problem+json</c> for a failure.
+    /// </summary>
+    /// <remarks>
+    /// Read off the body's type where the model is built, because the document writer has only the
+    /// schema by then, and a schema cannot say which interfaces its type implemented.
+    /// </remarks>
+    internal bool IsProblem { get; set; }
+
+    /// <summary>
     /// By value, because this reaches <c>RequestHandlerModel</c>'s equality and that is a Roslyn
     /// incremental cache key. A reference comparison here would report two identical response sets
     /// as different on every edit, and - worse - is one refactor away from reporting two different
@@ -63,7 +73,8 @@ public sealed class ResponseSchemaModel : System.IEquatable<ResponseSchemaModel>
         && Status == other.Status
         && Description == other.Description
         && Equals(Schema, other.Schema)
-        && Headers.SequenceEqual(other.Headers);
+        && Headers.SequenceEqual(other.Headers)
+        && IsProblem == other.IsProblem;
 
     public override bool Equals(object? obj) => Equals(obj as ResponseSchemaModel);
 

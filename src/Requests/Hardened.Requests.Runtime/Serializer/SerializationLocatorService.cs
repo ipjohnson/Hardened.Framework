@@ -175,6 +175,18 @@ public class SerializationLocatorService : ISerializationLocatorService
         // sends by default: the declared string, wrapped in quotes with its newlines escaped.
         var declared = context.HandlerInfo?.ProducedContentTypes;
 
+        // A failure, in the media types the operation declared for failures where it declared them
+        // apart. Negotiated within the whole set, a contract's application/problem+json 404 went
+        // out as the application/json its 200 declares, because that was the first type the client
+        // accepted.
+        if (
+            context.Response.Status >= 400
+            && context.HandlerInfo?.ErrorContentTypes is { Count: > 0 } failures
+        )
+        {
+            declared = failures;
+        }
+
         if (declared is { Count: > 0 })
         {
             return FindDeclaredProducer(declared, accept, context);
@@ -271,6 +283,32 @@ public class SerializationLocatorService : ISerializationLocatorService
                     context.Response.ContentType = declared[j];
 
                     return serializer;
+                }
+            }
+
+            // A client asking for JSON takes a problem document as JSON, which it is. Only for a
+            // failure and only after the exact matches, so an operation declaring both answers
+            // application/json to a client that named it.
+            if (
+                context.Response.Status >= 400
+                && requested.Equals(KnownContentType.Json, StringComparison.OrdinalIgnoreCase)
+            )
+            {
+                for (var j = 0; j < declared.Count; j++)
+                {
+                    if (!MediaType.Matches(KnownContentType.ProblemJson, declared[j]))
+                    {
+                        continue;
+                    }
+
+                    var serializer = FindProducerOf(declared[j], context);
+
+                    if (serializer != null)
+                    {
+                        context.Response.ContentType = declared[j];
+
+                        return serializer;
+                    }
                 }
             }
         }

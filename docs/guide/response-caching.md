@@ -704,7 +704,7 @@ ETag: "h2ZWtI+DKyXNviuLFTZCmw6YG08="
 GET /todos/9
 
 HTTP/1.1 404 Not Found
-Content-Type: application/json
+Content-Type: application/problem+json
 Cache-Control: public, max-age=60
 
 {"resource":"todo","detail":"No todo has id 9.","type":"urn:hardened:problem:not-found","title":"Not Found","status":404}

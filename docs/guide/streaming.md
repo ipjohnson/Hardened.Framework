@@ -298,7 +298,7 @@ public async IAsyncEnumerable<Todo> TodoChanges(ITodoStore store, int id)
 GET /todos/99/changes
 
 HTTP/1.1 404 Not Found
-Content-Type: application/json
+Content-Type: application/problem+json
 
 {"resource":"todo","detail":"No todo has id 99.","type":"urn:hardened:problem:not-found","title":"Not Found","status":404}
 ```

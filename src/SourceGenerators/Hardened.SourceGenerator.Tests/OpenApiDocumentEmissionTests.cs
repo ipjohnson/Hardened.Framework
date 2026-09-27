@@ -1057,6 +1057,58 @@ public class OpenApiDocumentEmissionTests
         Assert.True(guarded.GetProperty("responses").TryGetProperty("403", out _));
     }
 
+    /// <summary>
+    /// A problem record Hardened ships is written as application/problem+json, so its status is
+    /// published that way. A body of the handler's own under the same status stays JSON.
+    /// </summary>
+    [Fact]
+    public void AProblemRecordIsPublishedAsProblemJson()
+    {
+        var responses = JsonDocument
+            .Parse(
+                Extract(
+                    RequestGeneratorHarness
+                        .Generate(
+                            Application(
+                                """
+                                public record Pet(string Id);
+                                public record ApiError(string Code);
+
+                                public class PetController {
+                                    [Get("/pets/{id}")]
+                                    public Hardened.Requests.Abstract.Responses.Response<Pet, Hardened.Web.Runtime.Responses.NotFound, Hardened.Web.Runtime.Responses.Conflict<ApiError>> Get(string id) => new Pet(id);
+                                }
+                                """,
+                                Enable
+                            )
+                        )
+                        .AssertNoErrors()
+                        .SourceContaining("OpenApiDocument")
+                )
+            )
+            .RootElement.GetProperty("paths")
+            .GetProperty("/pets/{id}")
+            .GetProperty("get")
+            .GetProperty("responses");
+
+        Assert.Equal(
+            ["application/problem+json"],
+            responses
+                .GetProperty("404")
+                .GetProperty("content")
+                .EnumerateObject()
+                .Select(mediaType => mediaType.Name)
+        );
+        Assert.Equal(
+            ["application/json"],
+            responses
+                .GetProperty("409")
+                .GetProperty("content")
+                .EnumerateObject()
+                .Select(mediaType => mediaType.Name)
+        );
+    }
+
     #endregion
 
     #region shapes the document used to get wrong

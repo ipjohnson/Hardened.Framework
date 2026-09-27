@@ -24,7 +24,7 @@ namespace Hardened.Web.Runtime.Responses;
 /// </remarks>
 [HttpStatus(503)]
 public sealed record ServiceUnavailable(TimeSpan? After = null, string? Detail = null)
-    : IHttpStatusResponse,
+    : IProblemDetails,
         IProvidesResponseHeaders,
         IDeclaresStatus
 {

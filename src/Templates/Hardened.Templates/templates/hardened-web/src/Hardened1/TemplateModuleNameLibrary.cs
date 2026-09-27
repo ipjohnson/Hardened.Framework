@@ -37,7 +37,7 @@ namespace Hardened1;
 // no error body. Sending text is the only thing a service can do about that.
 //
 // Drop the line to answer refusals as MessagePack too. The published document follows either way:
-// with it, an error response declares application/json and nothing else.
+// with it, an error response declares JSON and nothing else.
 [JsonErrorBodies]
 #endif
 #if (codeFirst)

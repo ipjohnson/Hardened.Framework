@@ -1774,12 +1774,13 @@ public static class OpenApiDocumentGenerator
 
             WriteResponseHeaders(builder, group);
 
+            var bodies = group.Where(response => response.Schema != null).ToList();
+
             // The handler's media types describe its success. An error body goes through the same
             // locator under a set of its own, because the exception path serializes JSON only when
             // nothing can write the error model as a declared type - see ErrorContentTypes.
-            var contentTypes = group.Key >= 400 ? errorContentTypes : successContentTypes;
-
-            var bodies = group.Where(response => response.Schema != null).ToList();
+            var contentTypes =
+                group.Key < 400 ? successContentTypes : WithProblems(errorContentTypes, bodies);
 
             // A described operation's streamed success sits in the declared set for its
             // description and headers, and carries no schema of its own: the item is on
@@ -2241,6 +2242,54 @@ public static class OpenApiDocumentGenerator
 
         return types;
     }
+
+    /// <summary>
+    /// <paramref name="errorContentTypes"/> for a status whose bodies are <paramref name="bodies"/>,
+    /// with <c>application/problem+json</c> where one of them is a problem record.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The JSON serializers label a failure whose body implements <c>IProblemDetails</c> that way
+    /// rather than as <c>application/json</c>. Where every body at the status is one, the JSON entry
+    /// is replaced. Where only some are, the status is answered under both, so both are listed.
+    /// </para>
+    /// <para>
+    /// Another media type keeps its place: a MessagePack client is answered a problem in MessagePack.
+    /// </para>
+    /// </remarks>
+    private static IReadOnlyList<string> WithProblems(
+        IReadOnlyList<string> errorContentTypes,
+        IReadOnlyList<ResponseSchemaModel> bodies
+    )
+    {
+        var problems = bodies.Count(response => response.IsProblem);
+
+        if (problems == 0 || !errorContentTypes.Contains(Json))
+        {
+            return errorContentTypes;
+        }
+
+        var types = new List<string>(errorContentTypes.Count + 1);
+
+        foreach (var contentType in errorContentTypes)
+        {
+            if (contentType == Json && problems < bodies.Count)
+            {
+                types.Add(Json);
+            }
+
+            var written = contentType == Json ? ProblemJson : contentType;
+
+            if (!types.Contains(written))
+            {
+                types.Add(written);
+            }
+        }
+
+        return types;
+    }
+
+    private const string ProblemJson = "application/problem+json";
 
     private const string ErrorModelRef = "{\"$ref\":\"#/components/schemas/ErrorModel\"}";
 

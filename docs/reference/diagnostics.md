@@ -180,7 +180,7 @@ that implements `IAuthorizeAttribute`, on the handler or on the module class.
 | `HRDR009` | Error | More than one parameter binds from the request body | Generator | [Parameter binding](/guide/parameter-binding) |
 | `HRDR010` | Warning | A parameter binds from the body of a GET, HEAD, OPTIONS or TRACE handler | Generator | [Parameter binding](/guide/parameter-binding) |
 | `HRDR011` | Error | A handler answers with `byte[]` or `Stream`, bare or as the success case of a response set, and carries no `[Produces]` | Generator | [Content negotiation](/guide/content-negotiation) |
-| `HRDR012` | Warning | A handler returns a model and declares a media type that nothing in the compilation or its references writes | Generator | [Content negotiation](/guide/content-negotiation) |
+| `HRDR012` | Warning | A handler returns a model and declares a media type that nothing in the compilation or its references writes, with `[Produces]` or in its OpenAPI or Smithy contract | Generator | [Content negotiation](/guide/content-negotiation) |
 | `HRDR013` | Warning | A route attribute sits on an interface member. No route is compiled for it | Generator | [Routing](/guide/routing) |
 | `HRDR014` | Error | A lambda route registration the build cannot read: the handler is not a lambda written in the call, or the verb is not a constant | Generator | [Registered routes](/guide/registered-routes) |
 

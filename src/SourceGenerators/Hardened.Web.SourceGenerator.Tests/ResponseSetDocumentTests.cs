@@ -289,9 +289,9 @@ public class ResponseSetDocumentTests
     }
 
     /// <summary>
-    /// The refusal is a model, and a model is JSON. The declared media type describes the success
-    /// case, so publishing it on the 404 promised a shape nothing can write: an octet-stream
-    /// <c>NotFound</c>.
+    /// The refusal is a model, and a model is JSON: a problem record, so problem JSON. The declared
+    /// media type describes the success case, so publishing it on the 404 promised a shape nothing
+    /// can write: an octet-stream <c>NotFound</c>.
     /// </summary>
     [Fact]
     public void TheRefusalOfASetAnsweringWithBytesStaysJson()
@@ -310,7 +310,7 @@ public class ResponseSetDocumentTests
 
         var refusal = responses.GetProperty("404").GetProperty("content");
 
-        Assert.True(refusal.TryGetProperty("application/json", out _));
+        Assert.True(refusal.TryGetProperty("application/problem+json", out _));
         Assert.False(refusal.TryGetProperty("application/octet-stream", out _));
     }
 

@@ -18,9 +18,7 @@ namespace Hardened.Web.Runtime.Responses;
 /// </para>
 /// </remarks>
 [HttpStatus(415)]
-public sealed record UnsupportedMediaType(string? Detail = null)
-    : IHttpStatusResponse,
-        IDeclaresStatus
+public sealed record UnsupportedMediaType(string? Detail = null) : IProblemDetails, IDeclaresStatus
 {
     /// <summary>
     /// The UnsupportedMediaType with a generic message, for a handler with nothing more to say than the status.

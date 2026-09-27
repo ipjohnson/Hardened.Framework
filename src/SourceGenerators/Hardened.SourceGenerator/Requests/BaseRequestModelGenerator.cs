@@ -314,7 +314,10 @@ public abstract class BaseRequestModelGenerator
                         context.SemanticModel.Compilation.Assembly
                     )
                     : null
-            );
+            )
+            {
+                IsProblem = unionCase.HasBody && ProblemBodies.Implement(symbol),
+            };
 
             // The headers the case declares, off the case type rather than the body's - a
             // Created<Todo> sends a Todo and carries a Location, and the Location is the case's.

@@ -331,9 +331,11 @@ namespace Hardened.Requests.Runtime.Execution
                     Hardened.Requests.Abstract.Timeouts.TimeoutPolicy? timeout = null,
                     bool streamsResponse = false,
                     System.Collections.Generic.IReadOnlyDictionary<int, object>? declaredErrorBodies = null,
-                    bool writesRawBytes = false) { }
+                    bool writesRawBytes = false,
+                    System.Collections.Generic.IReadOnlyList<string>? errorContentTypes = null) { }
         public string? BodyParameterName { get; }
         public System.Collections.Generic.IReadOnlyDictionary<int, object> DeclaredErrorBodies { get; }
+        public System.Collections.Generic.IReadOnlyList<string> ErrorContentTypes { get; }
         public System.Type HandlerType { get; }
         public string InvokeMethod { get; }
         public System.Collections.Generic.IReadOnlyList<object> Metadata { get; }
@@ -841,6 +843,7 @@ namespace Hardened.Requests.Runtime.Serializer
         public AotResponseSerializer(Microsoft.Extensions.Options.IOptions<Hardened.Requests.Runtime.Configuration.IJsonSerializerConfiguration> configuration, System.Collections.Generic.IEnumerable<System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver> resolvers) { }
         public string ContentType { get; }
         public bool IsDefaultSerializer { get; }
+        public bool CanProduce(string mediaType, Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
         public System.Threading.Tasks.Task SerializeResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
     }
     [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
@@ -934,6 +937,7 @@ namespace Hardened.Requests.Runtime.Serializer
         public SystemTextJsonResponseSerializer(Microsoft.Extensions.Options.IOptions<Hardened.Requests.Runtime.Configuration.IJsonSerializerConfiguration> configuration, System.Collections.Generic.IEnumerable<System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver> resolvers) { }
         public string ContentType { get; }
         public bool IsDefaultSerializer { get; }
+        public bool CanProduce(string mediaType, Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
         public System.Threading.Tasks.Task SerializeResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
     }
 }
