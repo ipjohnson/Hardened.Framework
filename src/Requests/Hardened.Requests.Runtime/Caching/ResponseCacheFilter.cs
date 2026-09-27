@@ -559,19 +559,28 @@ public sealed class ResponseCacheFilter : IExecutionFilter
 
         response.Body = buffer;
 
-        var storable = false;
+        CachedResponse? entry = null;
 
         try
         {
             await chain.Next();
 
-            storable = IsStorable(response);
-
-            // Tagged before the copy, which is the write that starts the response on every host,
-            // so the tag goes out with the miss as well as into the entry.
-            if (storable)
+            // Tagged and taken before the copy, which is the write that starts the response on
+            // every host. The tag then goes out with the miss as well as into the entry. And the
+            // filters further out have not yet seen a byte: the copy is where [ConditionalGet]
+            // turns this caller's answer into a 304 and compression writes its coding, and
+            // neither belongs to the next caller.
+            if (IsStorable(response))
             {
                 Tag(response, buffer);
+
+                entry = new CachedResponse(
+                    response.Status ?? 200,
+                    response.ContentType,
+                    buffer.ToArray(),
+                    Replayable(response.Headers, carried),
+                    _tags
+                );
             }
         }
         finally
@@ -583,18 +592,10 @@ public sealed class ResponseCacheFilter : IExecutionFilter
             await buffer.CopyToAsync(transportBody, context.CancellationToken);
         }
 
-        if (!storable)
+        if (entry == null)
         {
             return;
         }
-
-        var entry = new CachedResponse(
-            response.Status ?? 200,
-            response.ContentType,
-            buffer.ToArray(),
-            Replayable(response.Headers, carried),
-            _tags
-        );
 
         await store.Set(key, entry, _duration, context.CancellationToken);
     }

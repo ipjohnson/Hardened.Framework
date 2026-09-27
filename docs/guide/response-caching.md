@@ -644,7 +644,7 @@ A HEAD request uses the GET handler's entry. A HEAD that misses fills the entry.
 
 The store holds the body before compression. A hit is compressed for a caller that sends `Accept-Encoding: gzip`. It is sent as stored to a caller that does not.
 
-On a compressed response, compression makes the cache's `ETag` weak: `W/"..."`. An entry filled by a compressed response keeps the weak `ETag` and `Vary: Accept-Encoding`. Every hit on that entry sends both, compressed or not. An entry filled by an uncompressed response keeps the strong tag.
+On a compressed response, compression makes the cache's `ETag` weak: `W/"..."`, and adds `Vary: Accept-Encoding`. It does that as the response is sent, after the cache has taken the entry, so the entry keeps the strong tag whichever response filled it. A compressed hit is sent with the weak tag, and a hit sent as stored with the strong one.
 
 [Compression](/guide/compression) covers the rest.
 

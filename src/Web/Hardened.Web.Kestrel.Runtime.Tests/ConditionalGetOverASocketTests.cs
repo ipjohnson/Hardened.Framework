@@ -108,6 +108,42 @@ public class ConditionalGetOverASocketTests
     }
 
     /// <summary>
+    /// The order a polling client produces: once the entry expires, the next request is a
+    /// revalidation, and it is the one that fills the store again. A caller holding nothing is
+    /// handed the body from that entry, not the 304 the revalidation was sent.
+    /// </summary>
+    [Fact]
+    public async Task ARevalidationThatFillsTheStoreLeavesTheBodyForTheNextCaller()
+    {
+        await using var harness = await Harness.Start(TestContext.Current.CancellationToken);
+
+        var miss = await harness.Get(cancellationToken: TestContext.Current.CancellationToken);
+        var tag = miss.Headers.ETag!.ToString();
+
+        harness.Expire();
+
+        using (
+            var revalidated = await harness.Revalidate(
+                tag,
+                cancellationToken: TestContext.Current.CancellationToken
+            )
+        )
+        {
+            Assert.Equal(HttpStatusCode.NotModified, revalidated.StatusCode);
+        }
+
+        var plain = await harness.Get(cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, plain.StatusCode);
+        Assert.Equal("application/json", plain.Content.Headers.ContentType?.MediaType);
+        Assert.Equal(
+            Answer,
+            await plain.Content.ReadAsStringAsync(TestContext.Current.CancellationToken)
+        );
+        Assert.Equal(2, harness.Answered);
+    }
+
+    /// <summary>
     /// The compressing body sits inside the conditional one and had already written its coding
     /// and weakened the tag when the 304 was decided. The coding comes off, because there is no
     /// content for it to describe; the weak tag stays, because it is what the 200 carried.
@@ -175,6 +211,7 @@ public class ConditionalGetOverASocketTests
     private sealed class Harness : IAsyncDisposable
     {
         private readonly HttpClient _client;
+        private readonly Store _store = new();
 
         private HardenedKestrelApplication _app = null!;
 
@@ -204,7 +241,7 @@ public class ConditionalGetOverASocketTests
                 }
             );
 
-            harness._app = Build();
+            harness._app = Build(harness._store);
 
             harness.Compose();
 
@@ -214,6 +251,9 @@ public class ConditionalGetOverASocketTests
 
             return harness;
         }
+
+        /// <summary>Empties the store, as an entry's duration running out would.</summary>
+        public void Expire() => _store.Clear();
 
         /// <summary>A full answer, read to the end so the connection is free for the next.</summary>
         public Task<HttpResponseMessage> Get(
@@ -276,7 +316,7 @@ public class ConditionalGetOverASocketTests
             await _app.DisposeAsync();
         }
 
-        private static HardenedKestrelApplication Build()
+        private static HardenedKestrelApplication Build(Store store)
         {
             var services = new ServiceCollection();
 
@@ -286,7 +326,7 @@ public class ConditionalGetOverASocketTests
             new KestrelRuntime().PopulateServiceCollection(services);
 
             // The cache filter resolves this from the root provider on its first request.
-            services.AddSingleton<IResponseCacheStore>(new Store());
+            services.AddSingleton<IResponseCacheStore>(store);
 
             // Port 0, so the OS picks one and concurrent test classes cannot collide.
             return HardenedKestrelApplication.Create(
@@ -375,6 +415,8 @@ public class ConditionalGetOverASocketTests
             }
 
             public ValueTask EvictByTag(string tag, CancellationToken cancellationToken) => default;
+
+            public void Clear() => _entries.Clear();
         }
     }
 }
