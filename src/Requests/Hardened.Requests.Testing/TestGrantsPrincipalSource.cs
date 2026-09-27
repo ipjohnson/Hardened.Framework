@@ -20,7 +20,8 @@ namespace Hardened.Requests.Testing;
 /// </code>
 /// <para>
 /// <see cref="SubjectHeader"/> names which caller, for a test where one caller's data reaching
-/// another is the thing being asserted.
+/// another is the thing being asserted. <see cref="ClaimsHeader"/> carries claims, for a policy that
+/// reads one.
 /// </para>
 /// <para>
 /// A request without the header stays anonymous, which is what an authorization test wants both
@@ -44,6 +45,17 @@ public sealed class TestGrantsPrincipalSource : IPrincipalSource
     /// </remarks>
     public const string SubjectHeader = "X-Test-Subject";
 
+    /// <summary>
+    /// The claims the caller carries, for a policy that reads one through
+    /// <see cref="ICallerPrincipal.TryGetClaim"/>: a tenant, an organisation.
+    /// </summary>
+    /// <remarks>
+    /// Written as a query string is, <c>tenant=acme&amp;region=eu-west</c>, with each name and value
+    /// percent-encoded so a value may hold any character. <see cref="FormatClaims"/> writes it. Read
+    /// only beside <see cref="GrantsHeader"/>, as the subject is.
+    /// </remarks>
+    public const string ClaimsHeader = "X-Test-Claims";
+
     /// <summary>The subject a request that names none is authenticated as.</summary>
     public const string DefaultSubject = "integration-test";
 
@@ -66,14 +78,56 @@ public sealed class TestGrantsPrincipalSource : IPrincipalSource
             ? named.ToString()
             : DefaultSubject;
 
+        var claims = context.Request.Headers.TryGetValue(ClaimsHeader, out var carried)
+            ? ParseClaims(carried)
+            : null;
+
         return new ValueTask<ICallerPrincipal?>(
             new CallerPrincipal(
                 SchemeName,
                 value == AnonymousGrantsValue
                     ? []
                     : value.Split(' ', StringSplitOptions.RemoveEmptyEntries),
-                subject: subject
+                subject: subject,
+                claims: claims
             )
         );
+    }
+
+    /// <summary>The <see cref="ClaimsHeader"/> value for <paramref name="claims"/>.</summary>
+    public static string FormatClaims(IEnumerable<KeyValuePair<string, string>> claims) =>
+        string.Join(
+            "&",
+            claims.Select(claim =>
+                Uri.EscapeDataString(claim.Key) + "=" + Uri.EscapeDataString(claim.Value)
+            )
+        );
+
+    /// <summary>
+    /// Every <c>name=value</c> pair in every value of the header. A pair with no <c>=</c> is a claim
+    /// with an empty value.
+    /// </summary>
+    private static List<KeyValuePair<string, string>> ParseClaims(IEnumerable<string?> values)
+    {
+        var claims = new List<KeyValuePair<string, string>>();
+
+        foreach (var value in values)
+        {
+            foreach (var pair in (value ?? "").Split('&', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var separator = pair.IndexOf('=');
+                var name = separator < 0 ? pair : pair.Substring(0, separator);
+                var claim = separator < 0 ? "" : pair.Substring(separator + 1);
+
+                claims.Add(
+                    new KeyValuePair<string, string>(
+                        Uri.UnescapeDataString(name),
+                        Uri.UnescapeDataString(claim)
+                    )
+                );
+            }
+        }
+
+        return claims;
     }
 }

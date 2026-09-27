@@ -44,6 +44,40 @@ public class CredentialTests
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
+    /// <summary>
+    /// A claim reaches a policy that reads it, beside the class's grant, and names one tenant only.
+    /// </summary>
+    [ModuleTest]
+    [Claim("tenant", "acme")]
+    public async Task AClaimReachesAPolicyThatReadsIt(ITestWebApp app)
+    {
+        (await app.Get("/authorization/tenants/acme")).Assert.Ok();
+        (await app.Get("/authorization/tenants/globex")).Assert.Forbidden();
+    }
+
+    [ModuleTest]
+    public async Task WithoutTheClaimThePolicyRefuses(ITestWebApp app)
+    {
+        (await app.Get("/authorization/tenants/acme")).Assert.Forbidden();
+    }
+
+    /// <summary>
+    /// A claim on a parameter reaches that client's requests, and a value with the header's own
+    /// separators in it arrives whole.
+    /// </summary>
+    [ModuleTest]
+    public async Task AClaimOnAParameterReachesItsRequests(
+        [Claim("tenant", "a&b=c, d")] HttpClient client
+    )
+    {
+        using var response = await client.GetAsync(
+            "/authorization/tenants/" + Uri.EscapeDataString("a&b=c, d"),
+            TestContext.Current.CancellationToken
+        );
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
     /// <summary>The method's grant replaces the class's, so the class's route is refused.</summary>
     [ModuleTest]
     [Grants("pets:write")]

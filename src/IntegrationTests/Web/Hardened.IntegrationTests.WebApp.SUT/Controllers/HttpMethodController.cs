@@ -59,6 +59,14 @@ public class HttpMethodController
     public global::Hardened.Web.Runtime.Responses.Created<CreatedNote> CreateByType() =>
         new(new CreatedNote("created"), "/verbs/created-by-type/1");
 
+    /// <summary>
+    /// A 202 carrying a representation of the accepted work and where to watch it, both stated by
+    /// the return type.
+    /// </summary>
+    [Post("/queued")]
+    public global::Hardened.Web.Runtime.Responses.Accepted<CreatedNote> Queue() =>
+        new(new CreatedNote("queued"), "/verbs/queued/1");
+
     /// <summary>A declared 204, which also means the body is not written.</summary>
     [Delete("/emptied", SuccessStatus = 204)]
     public string EmptyItem() => "this body is not written";

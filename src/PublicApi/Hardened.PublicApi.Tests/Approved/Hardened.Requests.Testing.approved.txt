@@ -199,12 +199,14 @@ namespace Hardened.Requests.Testing
     public sealed class TestGrantsPrincipalSource : Hardened.Requests.Abstract.Authorization.IPrincipalSource
     {
         public const string AnonymousGrantsValue = "-";
+        public const string ClaimsHeader = "X-Test-Claims";
         public const string DefaultSubject = "integration-test";
         public const string GrantsHeader = "X-Test-Grants";
         public const string SchemeName = "test";
         public const string SubjectHeader = "X-Test-Subject";
         public TestGrantsPrincipalSource() { }
         public System.Threading.Tasks.ValueTask<Hardened.Requests.Abstract.Authorization.ICallerPrincipal?> Authenticate(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+        public static string FormatClaims(System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, string>> claims) { }
     }
     public class TestTransportInfo : Hardened.Requests.Abstract.Execution.ITransportInfo
     {

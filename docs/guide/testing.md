@@ -345,10 +345,9 @@ over the assembly's. The values from `[EnvironmentValue]` on the method, the cla
 are merged. When two of them set the same variable, the widest wins: the assembly's over the
 class's, and the class's over the method's.
 
-A method, a class or the assembly takes one `[EnvironmentValue]`. A second on the same method fails
-to compile with `CS0579`, "Duplicate 'EnvironmentValue' attribute". A custom environment attribute
-sets any number of values. [Substituting services](/guide/testing-mocks) covers the interface it
-implements.
+A method, a class or the assembly can carry several `[EnvironmentValue]` attributes, one per
+variable. A custom environment attribute can compute its values instead.
+[Substituting services](/guide/testing-mocks) covers the interface it implements.
 
 ## Steps and retries
 

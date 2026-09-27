@@ -18,6 +18,7 @@ public class TestWebApp : TestContext, ITestWebApp
     private readonly Assembly? _testAssembly;
     private ITestHost? _host;
     private bool _reuseContainer;
+    private System.Text.Json.JsonSerializerOptions? _responseJson;
 
     public TestWebApp(IApplicationRoot applicationRoot, ILogger logger)
         : this(applicationRoot, logger, null, null) { }
@@ -158,11 +159,15 @@ public class TestWebApp : TestContext, ITestWebApp
                 ? new MemoryStream(testWebRequest.Body)
                 : SetupBodyStream(bodyValue);
 
-        return await Host.SendAsync(
+        var response = await Host.SendAsync(
             new TestHostRequest(httpMethod, path, headers, body, _credential),
             testWebRequest.Token.Value,
             _reuseContainer
         );
+
+        response.JsonOptions = _responseJson ??= ResponseJson.OptionsFor(_applicationRoot.Provider);
+
+        return response;
     }
 
     /// <summary>

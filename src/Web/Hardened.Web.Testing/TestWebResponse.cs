@@ -62,6 +62,12 @@ public class TestWebResponse
     public IWebAssertThat Assert => _assertThat ??= new WebAssertThat(this);
 
     /// <summary>
+    /// What <see cref="Deserialize{T}"/> and <see cref="DeserializeAsyncEnumerable{T}"/> read with:
+    /// the application's own, set by <see cref="ITestWebApp"/>, or the web defaults.
+    /// </summary>
+    internal JsonSerializerOptions JsonOptions { get; set; } = ResponseJson.WebDefaults;
+
+    /// <summary>
     /// The items of an NDJSON body, decoded first when the response says it is compressed - the
     /// same as <see cref="Deserialize{T}"/>, and for the same reason: a test asserting on the
     /// items should not have to know whether the handler was compressed.
@@ -75,13 +81,12 @@ public class TestWebResponse
         try
         {
             using var reader = new StreamReader(decoded, leaveOpen: true);
-            var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
 
             while (await reader.ReadLineAsync() is { } line)
             {
                 if (string.IsNullOrWhiteSpace(line))
                     continue;
-                yield return JsonSerializer.Deserialize<T>(line, options)
+                yield return JsonSerializer.Deserialize<T>(line, JsonOptions)
                     ?? throw new Exception("Could not deserialize NDJSON line");
             }
         }
@@ -100,10 +105,8 @@ public class TestWebResponse
 
         try
         {
-            return System.Text.Json.JsonSerializer.Deserialize<T>(
-                    decoded,
-                    new JsonSerializerOptions(JsonSerializerDefaults.Web)
-                ) ?? throw new Exception("Could not deserialize response");
+            return System.Text.Json.JsonSerializer.Deserialize<T>(decoded, JsonOptions)
+                ?? throw new Exception("Could not deserialize response");
         }
         finally
         {

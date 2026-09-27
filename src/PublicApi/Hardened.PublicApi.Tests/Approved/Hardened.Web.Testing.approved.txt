@@ -6,6 +6,13 @@ namespace Hardened.Web.Testing
     {
         public AnonymousAttribute() { }
     }
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter, AllowMultiple=true)]
+    public sealed class ClaimAttribute : Hardened.Web.Testing.TestCredentialAttribute
+    {
+        public ClaimAttribute(string name, string value) { }
+        public string Name { get; }
+        public string Value { get; }
+    }
     public sealed class ClientAnswer : System.IEquatable<Hardened.Web.Testing.ClientAnswer>
     {
         public ClientAnswer(int Status, object? Body, System.Collections.Generic.IReadOnlyDictionary<string, string> Headers, string? Caveat = null) { }
@@ -149,6 +156,7 @@ namespace Hardened.Web.Testing
     {
         public static readonly Hardened.Web.Testing.TestCredential Anonymous;
         public TestCredential(System.Collections.Generic.IReadOnlyList<string>? Grants, string? Subject = null) { }
+        public System.Collections.Generic.IReadOnlyDictionary<string, string>? Claims { get; init; }
         public System.Collections.Generic.IReadOnlyList<string>? Grants { get; init; }
         public bool IsAnonymous { get; }
         public string? Subject { get; init; }
@@ -216,7 +224,7 @@ namespace Hardened.Web.Testing
         public System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> Headers { get; }
         public int StatusCode { get; }
         public T Deserialize<T>() { }
-        [System.Runtime.CompilerServices.AsyncIteratorStateMachine(typeof(Hardened.Web.Testing.TestWebResponse.<DeserializeAsyncEnumerable>d__17<T>))]
+        [System.Runtime.CompilerServices.AsyncIteratorStateMachine(typeof(Hardened.Web.Testing.TestWebResponse.<DeserializeAsyncEnumerable>d__21<T>))]
         public System.Collections.Generic.IAsyncEnumerable<T> DeserializeAsyncEnumerable<T>() { }
         public System.Threading.Tasks.Task<string> ReadTextAsync() { }
     }

@@ -288,6 +288,64 @@ public class KestrelTestHostTests
     }
 
     /// <summary>
+    /// A body is handed on as it arrives, so a line the server flushed is read before the server
+    /// writes the next, and the record has the whole body once the client reads to the end.
+    /// </summary>
+    /// <remarks>
+    /// The server waits for the test between the two lines. A host that read the body to the end
+    /// before handing it on never returns the response, and the bound fails the test.
+    /// </remarks>
+    [Fact]
+    public async Task AStreamedBodyArrivesAsTheServerWritesIt()
+    {
+        var next = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        await using var harness = await HostHarness.Start(
+            async chain =>
+            {
+                var response = chain.Context.Response;
+                var cancellation = chain.Context.CancellationToken;
+
+                response.Status = 200;
+                response.ContentType = "application/x-ndjson";
+                response.ShouldSerialize = false;
+
+                await response.Body.WriteAsync("{\"n\":1}\n"u8.ToArray(), cancellation);
+                await response.Body.FlushAsync(cancellation);
+                await next.Task.WaitAsync(cancellation);
+                await response.Body.WriteAsync("{\"n\":2}\n"u8.ToArray(), cancellation);
+            },
+            Token
+        );
+
+        using var bound = CancellationTokenSource.CreateLinkedTokenSource(Token);
+
+        bound.CancelAfter(TimeSpan.FromSeconds(10));
+
+        using var client = new HttpClient(harness.Host.CreateHandler(null))
+        {
+            BaseAddress = harness.Host.BaseAddress,
+        };
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/export");
+        using var response = await client.SendAsync(
+            request,
+            HttpCompletionOption.ResponseHeadersRead,
+            bound.Token
+        );
+
+        using var reader = new StreamReader(await response.Content.ReadAsStreamAsync(bound.Token));
+
+        Assert.Equal("{\"n\":1}", await reader.ReadLineAsync(bound.Token));
+
+        next.SetResult();
+
+        Assert.Equal("{\"n\":2}", await reader.ReadLineAsync(bound.Token));
+        Assert.Null(await reader.ReadLineAsync(bound.Token));
+        Assert.Equal("{\"n\":1}\n{\"n\":2}\n", Encoding.UTF8.GetString(LastResponse.Body));
+    }
+
+    /// <summary>
     /// Disposing the container disposes the host, and the port is closed by the time it returns.
     /// </summary>
     [Fact]
