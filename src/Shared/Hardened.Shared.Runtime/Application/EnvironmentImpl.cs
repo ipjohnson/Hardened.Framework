@@ -57,12 +57,7 @@ public class EnvironmentImpl : IHardenedEnvironment
 
         if (!string.IsNullOrEmpty(envValue))
         {
-            if (typeof(T) == typeof(string))
-            {
-                return (T)(object)envValue;
-            }
-
-            return (T)Convert.ChangeType(envValue, typeof(T));
+            return EnvironmentValue.Convert<T>(name, envValue);
         }
 
         return defaultValue;
