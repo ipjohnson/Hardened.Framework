@@ -234,8 +234,8 @@ public class HandPostedPushTests
 
 [Queues](/gcp/queue) covers the headers a push gives the handler.
 
-`app.Post` sends a `byte[]` body as itself. A push needs `Content-Type: application/json`.
-`ITestWebApp` sends a body as `text/js` when the test sets no content type. The push then answers
+`app.Post` sends a `byte[]` body as itself. A push needs `Content-Type: application/json`, which
+`ITestWebApp` sends when the test sets no content type. A push under another content type answers
 404, because no adapter reads it.
 
 `response.Assert.Ok()` fails unless the request reached a handler. It catches the 404 of a push that

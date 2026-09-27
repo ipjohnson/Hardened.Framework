@@ -313,6 +313,10 @@ namespace Hardened.Requests.Abstract.Errors
         public string Message { get; set; }
         public string Type { get; set; }
     }
+    public interface IExceptionStatusReader
+    {
+        int? StatusOf(System.Exception exception);
+    }
     public interface IExceptionToModelConverter
     {
         System.ValueTuple<int, object> ConvertExceptionToModel(Hardened.Requests.Abstract.Execution.IExecutionContext context, System.Exception exp);
@@ -1023,6 +1027,7 @@ namespace Hardened.Requests.Abstract.Serializer
     }
     public interface IRequestDeserializer
     {
+        System.Collections.Generic.IReadOnlyList<string> ContentTypes { get; }
         bool IsDefaultSerializer { get; }
         int Order { get; }
         bool CanProcessContext(Hardened.Requests.Abstract.Execution.IExecutionContext context);
@@ -1079,6 +1084,7 @@ namespace Hardened.Requests.Abstract.Serializer
         public static bool Accepts(string? accept, string? produced) { }
         public static Hardened.Requests.Abstract.Serializer.MediaType.AcceptEnumerator Enumerate(string? accept) { }
         public static int FirstAccepted(string? accept, System.Collections.Generic.IReadOnlyList<string> produced) { }
+        public static bool IsJson(string? contentType) { }
         public static bool Matches(System.ReadOnlySpan<char> requested, string produced) { }
         public static bool Matches(string? requested, string? produced) { }
         public ref struct AcceptEnumerator

@@ -1,7 +1,9 @@
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Serializer;
+using Hardened.Requests.Runtime.Errors;
 using Hardened.Requests.Runtime.Serializer;
 using Hardened.Requests.Runtime.Tests.Support;
+using Hardened.Requests.Testing;
 using NSubstitute;
 using Xunit;
 
@@ -29,14 +31,28 @@ public class SerializationLocatorServiceTests
         return serializer;
     }
 
-    private static IRequestDeserializer Request(bool canProcess, bool isDefault)
+    private static IRequestDeserializer Request(
+        bool canProcess,
+        bool isDefault,
+        params string[] contentTypes
+    )
     {
         var deserializer = Substitute.For<IRequestDeserializer>();
 
         deserializer.CanProcessContext(Arg.Any<IExecutionContext>()).Returns(canProcess);
         deserializer.IsDefaultSerializer.Returns(isDefault);
+        deserializer.ContentTypes.Returns(contentTypes);
 
         return deserializer;
+    }
+
+    private static IExecutionContext WithContentType(string contentType)
+    {
+        var context = Pipeline.Context();
+
+        ((TestExecutionRequest)context.Request).Headers["Content-Type"] = contentType;
+
+        return context;
     }
 
     private static SerializationLocatorService Locator(
@@ -296,6 +312,61 @@ public class SerializationLocatorServiceTests
             .FindRequestDeserializer(Pipeline.Context());
 
         Assert.Same(fallback, chosen);
+    }
+
+    /// <summary>
+    /// A body that names a type nothing reads is refused, not read by the default. A
+    /// <c>text/plain</c> body read as JSON answered 201, and a text/plain POST is one a browser sends
+    /// cross-site without a preflight.
+    /// </summary>
+    [Fact]
+    public void ABodyWhoseContentTypeNothingReadsIs415()
+    {
+        var json = Request(canProcess: false, isDefault: true, "application/json");
+        var msgpack = Request(canProcess: false, isDefault: false, "application/x-msgpack");
+
+        var refused = Assert.Throws<UnsupportedContentTypeException>(() =>
+            Locator(deserializers: new[] { json, msgpack })
+                .FindRequestDeserializer(WithContentType("text/plain"))
+        );
+
+        Assert.Equal(415, refused.StatusCode);
+        Assert.Equal(
+            "This route does not read text/plain. It reads application/x-msgpack, application/json.",
+            refused.Message
+        );
+    }
+
+    /// <summary>
+    /// A body that names no type is read by the default, as a form body with none reads as
+    /// url-encoded.
+    /// </summary>
+    [Fact]
+    public void ABodyWithNoContentTypeIsReadByTheDefault()
+    {
+        var fallback = Request(canProcess: false, isDefault: true, "application/json");
+
+        Assert.Same(
+            fallback,
+            Locator(deserializers: new[] { fallback }).FindRequestDeserializer(Pipeline.Context())
+        );
+    }
+
+    [Theory]
+    [InlineData("application/json", true)]
+    [InlineData("application/json; charset=utf-8", true)]
+    [InlineData("APPLICATION/JSON", true)]
+    [InlineData("text/json", true)]
+    [InlineData("application/merge-patch+json", true)]
+    [InlineData("application/vnd.api+json; charset=utf-8", true)]
+    [InlineData("text/plain", false)]
+    [InlineData("application/jsonp", false)]
+    [InlineData("multipart/form-data; boundary=x", false)]
+    [InlineData("", false)]
+    [InlineData(null, false)]
+    public void IsJsonReadsTheMediaTypeWithoutItsParameters(string? contentType, bool json)
+    {
+        Assert.Equal(json, MediaType.IsJson(contentType));
     }
 
     [Fact]

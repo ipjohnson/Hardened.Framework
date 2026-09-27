@@ -7,6 +7,7 @@ using Hardened.Requests.Abstract.Responses;
 using Hardened.Requests.Abstract.Serializer;
 using Hardened.Requests.Runtime.RateLimiting;
 using Hardened.Requests.Runtime.Validation;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Hardened.Requests.Runtime.Errors;
 
@@ -90,6 +91,18 @@ public class ExceptionToModelConverter : IExceptionToModelConverter
             return (
                 statusCodeException.StatusCode,
                 declaredValue ?? new ErrorModel { Type = exp.GetType().Name, Message = exp.Message }
+            );
+        }
+
+        // A host's own refusal of a request it could not read, which only the host can name: a body
+        // over Kestrel's limit answered 500 here, with the message the host wrote for the caller
+        // in the log instead. The body keeps that message, because it describes the request.
+        if (HostStatus(context, exp) is { } hostStatus)
+        {
+            return (
+                hostStatus,
+                Declared(context, hostStatus)
+                    ?? new ErrorModel { Type = exp.GetType().Name, Message = exp.Message }
             );
         }
 
@@ -286,10 +299,43 @@ public class ExceptionToModelConverter : IExceptionToModelConverter
                                 ? body
                                 : FieldFrom(exception.Path, body),
                             Code = "invalid",
-                            Message = WithoutPositionSuffix(exception.Message),
+                            Message = Readable(WithoutPositionSuffix(exception.Message)),
                         },
                 ],
         };
+
+    /// <summary>
+    /// The status a registered <see cref="IExceptionStatusReader"/> puts on the exception, or null.
+    /// </summary>
+    /// <remarks>
+    /// Resolved on the failure path only, so a request that succeeds pays nothing for it.
+    /// </remarks>
+    private static int? HostStatus(IExecutionContext context, Exception exp)
+    {
+        var readers = context.RootServiceProvider.GetService<IEnumerable<IExceptionStatusReader>>();
+
+        if (readers == null)
+        {
+            return null;
+        }
+
+        foreach (var reader in readers)
+        {
+            // One level down as well, for a deserializer that wraps what its stream threw.
+            if (
+                (
+                    reader.StatusOf(exp)
+                    ?? (exp.InnerException is { } inner ? reader.StatusOf(inner) : null)
+                ) is
+                { } status
+            )
+            {
+                return status;
+            }
+        }
+
+        return null;
+    }
 
     /// <summary>
     /// Whether the payload is not JSON at all, as opposed to JSON the model could not take.
@@ -459,6 +505,58 @@ public class ExceptionToModelConverter : IExceptionToModelConverter
             ? body + "." + path.Substring(2)
             : body + path.Substring(1);
     }
+
+    /// <summary>
+    /// The reader's sentence about a value it could not convert, in the caller's terms.
+    /// </summary>
+    /// <remarks>
+    /// "The JSON value could not be converted to System.Int32." names a .NET type the caller has
+    /// never seen. The field is named beside the message, so what the caller needs is what kind of
+    /// value goes there. A converter's own sentence, such as a generated enum's
+    /// "'cooking' is not a value Genre declares.", is kept as written.
+    /// </remarks>
+    private static string Readable(string message)
+    {
+        const string prefix = "The JSON value could not be converted to ";
+
+        if (
+            !message.StartsWith(prefix, StringComparison.Ordinal)
+            || !message.EndsWith(".", StringComparison.Ordinal)
+        )
+        {
+            return message;
+        }
+
+        return "The value is not "
+            + Kind(message.Substring(prefix.Length, message.Length - prefix.Length - 1))
+            + ".";
+    }
+
+    private static string Kind(string type) =>
+        type switch
+        {
+            "System.Byte"
+            or "System.SByte"
+            or "System.Int16"
+            or "System.UInt16"
+            or "System.Int32"
+            or "System.UInt32"
+            or "System.Int64"
+            or "System.UInt64" => "an integer this field can hold",
+            "System.Single" or "System.Double" or "System.Decimal" =>
+                "a number this field can hold",
+            "System.Boolean" => "true or false",
+            "System.String" => "a string",
+            "System.Guid" => "a UUID",
+            "System.DateTime" or "System.DateTimeOffset" => "a date-time",
+            "System.DateOnly" => "a date",
+            "System.TimeOnly" => "a time",
+            "System.TimeSpan" => "a duration",
+            _ when type.EndsWith("[]", StringComparison.Ordinal)
+                    || type.StartsWith("System.Collections.", StringComparison.Ordinal) =>
+                "an array",
+            _ => "of the type this field takes",
+        };
 
     private static string WithoutPositionSuffix(string message)
     {

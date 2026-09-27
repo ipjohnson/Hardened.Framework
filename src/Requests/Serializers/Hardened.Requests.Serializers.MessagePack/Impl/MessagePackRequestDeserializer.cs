@@ -52,6 +52,8 @@ public class MessagePackRequestDeserializer : IRequestDeserializer
     public bool CanProcessContext(IExecutionContext context) =>
         context.Request.ContentType?.Contains(MessagePackContentType.Value) ?? false;
 
+    public IReadOnlyList<string> ContentTypes { get; } = [MessagePackContentType.Value];
+
     /// <summary>
     /// Reads the body as it is. A compressed body was decoded by <c>RequestDecompressionFilter</c>
     /// before the bind, which is why this does not look at <c>Content-Encoding</c>.

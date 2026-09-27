@@ -33,6 +33,38 @@ public static class MediaType
     public const string Any = "*/*";
 
     /// <summary>
+    /// Whether a <c>Content-Type</c> names JSON: <c>application/json</c>, <c>text/json</c>, or a
+    /// <c>+json</c> type such as <c>application/merge-patch+json</c>. Parameters and case are
+    /// ignored.
+    /// </summary>
+    /// <remarks>
+    /// One rule for every JSON request deserializer. Each tested
+    /// <c>ContentType.Contains("application/json")</c>, which is false for a <c>+json</c> type and
+    /// for <c>text/json</c>, and those bodies were read only because JSON is also the default.
+    /// </remarks>
+    public static bool IsJson(string? contentType)
+    {
+        if (string.IsNullOrEmpty(contentType))
+        {
+            return false;
+        }
+
+        var mediaType = contentType.AsSpan();
+        var parameters = mediaType.IndexOf(';');
+
+        if (parameters >= 0)
+        {
+            mediaType = mediaType.Slice(0, parameters);
+        }
+
+        mediaType = mediaType.Trim();
+
+        return mediaType.Equals("application/json".AsSpan(), StringComparison.OrdinalIgnoreCase)
+            || mediaType.Equals("text/json".AsSpan(), StringComparison.OrdinalIgnoreCase)
+            || mediaType.EndsWith("+json".AsSpan(), StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// Whether a client sending <paramref name="accept"/> will take <paramref name="produced"/>.
     /// </summary>
     /// <param name="accept">

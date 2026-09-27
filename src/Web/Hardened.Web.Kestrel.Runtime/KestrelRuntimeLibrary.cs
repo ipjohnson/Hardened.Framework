@@ -1,8 +1,10 @@
 using DependencyModules.Runtime.Attributes;
 using DependencyModules.Runtime.Interfaces;
+using Hardened.Requests.Abstract.Errors;
 using Hardened.Web.Kestrel.Runtime.Impl;
 using Hardened.Web.Runtime.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Hardened.Web.Kestrel.Runtime;
 
@@ -46,5 +48,12 @@ public partial class KestrelRuntime : IServiceCollectionConfiguration
     /// provider, so a TLS endpoint can be configured in the callback
     /// <see cref="HardenedKestrelApplication.Create"/> takes.
     /// </summary>
-    public void ConfigureServices(IServiceCollection services) => HttpsServices.Add(services);
+    public void ConfigureServices(IServiceCollection services)
+    {
+        HttpsServices.Add(services);
+
+        services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IExceptionStatusReader, BadHttpRequestStatusReader>()
+        );
+    }
 }
