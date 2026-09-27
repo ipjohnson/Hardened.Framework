@@ -41,7 +41,7 @@ public class JsonSerializerImpl : IJsonSerializer
     /// body its own application answers 400 to, and the test reads as a defect in the handler.
     /// </remarks>
     public JsonSerializerImpl(
-        IOptions<IJsonSerializerConfiguration> configuration,
+        IOptions<ISharedJsonConfiguration> configuration,
         IEnumerable<IJsonTypeInfoResolver> resolvers
     )
     {
