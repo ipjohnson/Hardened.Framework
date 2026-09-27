@@ -110,7 +110,7 @@ namespace Todos.Host;
 public partial class Application;
 ```
 
-The three `[ConditionalGet]` declarations add a 304 response to each GET operation they cover in the OpenAPI document. They also declare the `ETag` header on the 200 and the 304, and the optional `If-None-Match` and `If-Modified-Since` request headers. `[Enable<ConditionalGet>]` is applied at startup, so the document does not show it.
+The three `[ConditionalGet]` declarations add a 304 response to each GET operation they cover in the OpenAPI document. They also declare the `ETag` header on the 200 and the 304, and the optional `If-None-Match` request header. An operation whose 200 declares `Last-Modified` also gets the optional `If-Modified-Since` request header. [Setting a validator in the handler](#setting-a-validator-in-the-handler) shows the declaration. `[Enable<ConditionalGet>]` is applied at startup, so the document does not show it.
 
 A handler with `[ConditionalGet]` on its method or class keeps only its own declaration. `[Enable<ConditionalGet>]` and `[ConditionalGet]` on the module skip it. `[ConditionalGet]` on both a method and its class installs two filters. The second filter finds the first in place and passes the request through. The handler behaves as it does with one filter.
 
@@ -134,7 +134,7 @@ The handler's tag must include the double quotes. An unquoted tag never matches 
 
 A handler can also set `Last-Modified`, which the filter compares with `If-Modified-Since`. Only an `ETag` stops the filter from holding the body. When the handler sets only `Last-Modified`, the filter still holds and hashes the body. The response then carries the computed `ETag` as well as the handler's `Last-Modified`.
 
-The handler in `src/Todos/DocumentController.cs` sets both headers through an `IExecutionContext` parameter:
+The handler in `src/Todos/DocumentController.cs` sets both headers through an `IExecutionContext` parameter. `[AnswersHeader(200, KnownHeaders.LastModified)]` declares the `Last-Modified` it sets, so the document lists the header on the 200 and publishes `If-Modified-Since`. Without the declaration the document leaves `If-Modified-Since` out, because an operation that sends no `Last-Modified` never answers it:
 
 ```csharp
 using Hardened.Requests.Abstract.Execution;
@@ -151,6 +151,7 @@ public class DocumentController
 {
     [Get("/documents/{id}")]
     [ConditionalGet]
+    [AnswersHeader(200, KnownHeaders.LastModified)]
     public async Task<Response<Document, NotFound>> Read(
         IDocumentStore documents,
         string id,

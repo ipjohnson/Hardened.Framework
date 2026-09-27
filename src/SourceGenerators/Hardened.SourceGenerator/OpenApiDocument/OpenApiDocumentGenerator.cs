@@ -142,12 +142,18 @@ public static class OpenApiDocumentGenerator
         registered = WithOutputContentTypes(appModel, registered);
 
         // Identity, in preference order: the contract's own (specification-first), an
-        // [OpenApiInfo] on the entry point (code-first), then the fallbacks every application got
-        // before either existed - the entry point's class name and "1.0.0". The fallbacks renamed
-        // an API its author had titled, which is why the first two exist.
+        // [OpenApiInfo] on the entry point (code-first), then the fallbacks - the assembly's name
+        // and "1.0.0". The fallbacks renamed an API its author had titled, which is why the first
+        // two exist. The title fell back to the entry point's class name, so the template's
+        // document was titled TodosLibrary while its reference page said Todos. The class name is
+        // left for a model built without a compilation.
         var (declaredTitle, declaredVersion, declaredDescription) = InfoAttribute(appModel);
 
-        var title = identity?.Title ?? declaredTitle ?? appModel.EntryPointType.Name;
+        var title =
+            identity?.Title
+            ?? declaredTitle
+            ?? appModel.AssemblyName
+            ?? appModel.EntryPointType.Name;
         var infoVersion = identity?.Version ?? declaredVersion ?? "1.0.0";
         var description = identity?.Description ?? declaredDescription;
 
@@ -1224,6 +1230,19 @@ public static class OpenApiDocumentGenerator
         builder.Append(']');
     }
 
+    /// <summary>Whether a success the operation publishes declares the response header.</summary>
+    private static bool DeclaresSuccessHeader(RequestHandlerModel handler, string name) =>
+        Names(handler.SingleResponseHeaders, name)
+        || handler.ResponseSchemas.Any(response =>
+            response.Status is >= 200 and < 300 && Names(response.Headers, name)
+        );
+
+    private static bool Names(IReadOnlyList<ResponseHeaderModel>? headers, string name) =>
+        headers != null
+        && headers.Any(header =>
+            string.Equals(header.Name, name, System.StringComparison.OrdinalIgnoreCase)
+        );
+
     private static void WriteParameters(
         StringBuilder builder,
         RequestHandlerModel handler,
@@ -1238,7 +1257,8 @@ public static class OpenApiDocumentGenerator
 
         // A header a filter reads is dropped where the handler binds one of that name: the
         // handler's carries a type, a constraint and a description of its own, and two entries
-        // under one name is a document no generator can read.
+        // under one name is a document no generator can read. One compared with a response header
+        // is dropped where no success declares that header, because it is never answered there.
         var declared = handler
             .DeclaredHeaderParameters.Where(header =>
                 !bound.Any(parameter =>
@@ -1247,6 +1267,10 @@ public static class OpenApiDocumentGenerator
                         header.Name,
                         System.StringComparison.OrdinalIgnoreCase
                     )
+                )
+                && (
+                    header.WhenAnswered == null
+                    || DeclaresSuccessHeader(handler, header.WhenAnswered)
                 )
             )
             .ToList();

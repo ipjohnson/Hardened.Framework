@@ -43,7 +43,24 @@ namespace Hardened.Requests.Abstract.Responses;
 )]
 public sealed class AnswersHeaderAttribute(int status, string name) : Attribute
 {
-    /// <summary>The status whose response carries the header.</summary>
+    /// <summary>
+    /// The <see cref="Status"/> of a header on every response the operation publishes.
+    /// </summary>
+    public const int EveryStatus = 0;
+
+    /// <summary>States that every response the operation publishes carries the header.</summary>
+    /// <remarks>
+    /// For a filter that writes a header before the handler runs, such as <c>[RateLimit]</c>'s
+    /// <c>RateLimit-Remaining</c>. Whatever the handler then answers carries it, and so does a
+    /// refusal from a filter that runs after this one.
+    /// </remarks>
+    /// <param name="name">The header's name, as it goes on the wire.</param>
+    public AnswersHeaderAttribute(string name)
+        : this(EveryStatus, name) { }
+
+    /// <summary>
+    /// The status whose response carries the header, or <see cref="EveryStatus"/>.
+    /// </summary>
     public int Status { get; } = status;
 
     /// <summary>The header's name, as it goes on the wire.</summary>

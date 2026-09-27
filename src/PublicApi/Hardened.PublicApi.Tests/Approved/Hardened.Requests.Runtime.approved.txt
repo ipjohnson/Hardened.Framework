@@ -769,6 +769,9 @@ namespace Hardened.Requests.Runtime.RateLimiting
         public System.Threading.Tasks.ValueTask<Hardened.Requests.Runtime.RateLimiting.RateLimitDecision> Acquire(string partition, Hardened.Requests.Runtime.RateLimiting.RateLimitPolicy policy, System.Threading.CancellationToken cancellationToken) { }
         public void Dispose() { }
     }
+    [Hardened.Requests.Abstract.Responses.AnswersHeader("RateLimit-Limit", Description="Requests allowed in each window.")]
+    [Hardened.Requests.Abstract.Responses.AnswersHeader("RateLimit-Remaining", Description="Requests left in the current window. 0 on a refusal.")]
+    [Hardened.Requests.Abstract.Responses.AnswersHeader("RateLimit-Reset", Description="The window\'s length in seconds, or on a refusal the seconds Retry-After gives.")]
     [Hardened.Requests.Abstract.Responses.AnswersHeader(429, "Retry-After", Description="How long to wait before the allowance returns, in seconds.")]
     [Hardened.Requests.Abstract.Responses.AnswersStatus(429, typeof(Hardened.Requests.Abstract.Errors.ErrorModel), Description="The caller has spent this operation\'s allowance. Retry-After says when it returns" +
         ".")]

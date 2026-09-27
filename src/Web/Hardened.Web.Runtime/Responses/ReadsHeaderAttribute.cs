@@ -56,4 +56,15 @@ public sealed class ReadsHeaderAttribute(string name) : Attribute
     /// <see cref="Methods"/> exists.
     /// </summary>
     public bool NotWhenStreaming { get; set; }
+
+    /// <summary>
+    /// A response header the operation must declare for this to be published, or null to publish
+    /// it wherever it reaches.
+    /// </summary>
+    /// <remarks>
+    /// For a header compared with one the handler writes. <c>If-Modified-Since</c> is compared with
+    /// the response's <c>Last-Modified</c>, so on an operation that sends none it is never
+    /// answered, and a document naming it had every generated client ask its caller for one.
+    /// </remarks>
+    public string? WhenAnswered { get; set; }
 }

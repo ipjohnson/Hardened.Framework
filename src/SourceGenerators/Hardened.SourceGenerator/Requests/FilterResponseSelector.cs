@@ -240,11 +240,28 @@ public static class FilterResponseSelector
         ref List<ScopedResponseHeader>? headers
     )
     {
+        int status;
+        string name;
+
+        // The one-argument form names only the header, which every response carries.
         if (
-            facet.ConstructorArguments.Length < 2
-            || facet.ConstructorArguments[0].Value is not int status
-            || facet.ConstructorArguments[1].Value is not string name
+            facet.ConstructorArguments.Length == 1
+            && facet.ConstructorArguments[0].Value is string everyResponse
         )
+        {
+            status = ScopedResponseHeader.EveryStatus;
+            name = everyResponse;
+        }
+        else if (
+            facet.ConstructorArguments.Length >= 2
+            && facet.ConstructorArguments[0].Value is int declaredStatus
+            && facet.ConstructorArguments[1].Value is string declaredName
+        )
+        {
+            status = declaredStatus;
+            name = declaredName;
+        }
+        else
         {
             return;
         }
@@ -292,7 +309,12 @@ public static class FilterResponseSelector
         }
 
         (headers ??= new List<ScopedRequestHeader>()).Add(
-            new ScopedRequestHeader(name, Named(facet, "Description") as string, Scope(facet))
+            new ScopedRequestHeader(
+                name,
+                Named(facet, "Description") as string,
+                Scope(facet),
+                Named(facet, "WhenAnswered") as string
+            )
         );
     }
 

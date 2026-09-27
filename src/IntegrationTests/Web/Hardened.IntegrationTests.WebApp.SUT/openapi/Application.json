@@ -1,7 +1,7 @@
 {
   "openapi": "3.2.0",
   "info": {
-    "title": "Application",
+    "title": "Hardened.IntegrationTests.WebApp.SUT",
     "version": "1.0.0"
   },
   "tags": [
@@ -2695,6 +2695,12 @@
                 "schema": {
                   "type": "string"
                 }
+              },
+              "Last-Modified": {
+                "description": "When the document last changed.",
+                "schema": {
+                  "type": "string"
+                }
               }
             },
             "content": {
@@ -2751,15 +2757,6 @@
             "in": "header",
             "required": false,
             "description": "A tag a previous response carried. Matching it is answered 304.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "If-Modified-Since",
-            "in": "header",
-            "required": false,
-            "description": "When the caller last read this. Unchanged since then is answered 304.",
             "schema": {
               "type": "string"
             }
@@ -3230,15 +3227,6 @@
             "in": "header",
             "required": false,
             "description": "A tag a previous response carried. Matching it is answered 304.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "If-Modified-Since",
-            "in": "header",
-            "required": false,
-            "description": "When the caller last read this. Unchanged since then is answered 304.",
             "schema": {
               "type": "string"
             }
@@ -6016,15 +6004,6 @@
             "schema": {
               "type": "string"
             }
-          },
-          {
-            "name": "If-Modified-Since",
-            "in": "header",
-            "required": false,
-            "description": "When the caller last read this. Unchanged since then is answered 304.",
-            "schema": {
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -6166,15 +6145,6 @@
             "in": "header",
             "required": false,
             "description": "A tag a previous response carried. Matching it is answered 304.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "If-Modified-Since",
-            "in": "header",
-            "required": false,
-            "description": "When the caller last read this. Unchanged since then is answered 304.",
             "schema": {
               "type": "string"
             }
@@ -8193,10 +8163,7 @@
         ],
         "properties": {
           "city": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": "string"
           },
           "country": {
             "type": [
@@ -8242,10 +8209,7 @@
         ],
         "properties": {
           "reference": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": "string"
           },
           "shipment": {
             "anyOf": [

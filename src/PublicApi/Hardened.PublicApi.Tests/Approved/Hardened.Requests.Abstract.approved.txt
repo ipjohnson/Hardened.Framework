@@ -810,6 +810,8 @@ namespace Hardened.Requests.Abstract.Responses
     [System.AttributeUsage(System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Interface, AllowMultiple=true, Inherited=true)]
     public sealed class AnswersHeaderAttribute : System.Attribute
     {
+        public const int EveryStatus = 0;
+        public AnswersHeaderAttribute(string name) { }
         public AnswersHeaderAttribute(int status, string name) { }
         public string? Description { get; set; }
         public string? Methods { get; set; }

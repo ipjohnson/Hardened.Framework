@@ -11,6 +11,12 @@ public static partial class EntryPointSelector
     {
         public ITypeDefinition EntryPointType { get; set; } = default!;
 
+        /// <summary>
+        /// The assembly the entry point is compiled into, which titles its document when nothing
+        /// else does.
+        /// </summary>
+        public string? AssemblyName { get; set; }
+
         public IReadOnlyList<AttributeModel> AttributeModels { get; set; } = default!;
 
         public bool RootEntryPoint { get; set; }
@@ -93,6 +99,7 @@ public static partial class EntryPointSelector
                 return false;
 
             return x.EntryPointType.Equals(y.EntryPointType)
+                && string.Equals(x.AssemblyName, y.AssemblyName, StringComparison.Ordinal)
                 && x.RootEntryPoint == y.RootEntryPoint
                 && CompareAttributes(x, y)
                 && CompareMethodDefinitions(x, y)
@@ -262,6 +269,7 @@ public static partial class EntryPointSelector
             var model = new Model
             {
                 EntryPointType = ((ClassDeclarationSyntax)syntaxContext.Node).GetTypeDefinition(),
+                AssemblyName = syntaxContext.SemanticModel.Compilation.AssemblyName,
                 MethodDefinitions = GenerateMethodDefinitions(syntaxContext, methods),
                 RootEntryPoint = rootEntryPoint,
                 AttributeModels = attributes,

@@ -1,6 +1,7 @@
 using Hardened.IntegrationTests.WebApp.SUT.Services;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
+using Hardened.Requests.Abstract.Responses;
 using Hardened.Web.Runtime.Attributes;
 using Hardened.Web.Runtime.Conditional;
 using Hardened.Web.Runtime.Headers;
@@ -35,6 +36,7 @@ public class ConditionalController
     }
 
     [Get("/document")]
+    [AnswersHeader(200, KnownHeaders.LastModified, Description = "When the document last changed.")]
     public Document Read(IExecutionContext context)
     {
         var headers = context.Response.Headers;

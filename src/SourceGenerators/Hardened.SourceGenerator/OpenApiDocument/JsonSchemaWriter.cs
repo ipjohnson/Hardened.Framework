@@ -513,6 +513,20 @@ public static class JsonSchemaWriter
             var wireName = WireName(property);
             var (hasDefault, defaultLiteral) = DefaultOf(named, property, compilationAssembly);
 
+            var memberSchema = SchemaConstraintWriter.Apply(
+                SchemaFor(property.Type, components, inProgress, enums, compilationAssembly),
+                property
+            );
+
+            // [Required] refuses null, so a member carrying it publishes without "null" whatever
+            // its type. A member is declared nullable beside [Required] so that a missing value is
+            // refused rather than read as the type's default, and the document said null was
+            // accepted where the server answered 400.
+            if (!SchemaConstraintWriter.IsRequired(property))
+            {
+                memberSchema = Nullable(memberSchema, property.Type);
+            }
+
             properties
                 .Append('"')
                 .Append(Escape(wireName))
@@ -520,22 +534,7 @@ public static class JsonSchemaWriter
                 .Append(
                     WithMessagePackIndex(
                         WithDefault(
-                            Describe(
-                                Nullable(
-                                    SchemaConstraintWriter.Apply(
-                                        SchemaFor(
-                                            property.Type,
-                                            components,
-                                            inProgress,
-                                            enums,
-                                            compilationAssembly
-                                        ),
-                                        property
-                                    ),
-                                    property.Type
-                                ),
-                                DocumentationOf(property)
-                            ),
+                            Describe(memberSchema, DocumentationOf(property)),
                             defaultLiteral
                         ),
                         MessagePackIndex(property)

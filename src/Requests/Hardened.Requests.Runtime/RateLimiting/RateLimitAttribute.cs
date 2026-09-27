@@ -53,6 +53,16 @@ public enum RateLimitScope
     KnownHeaders.RetryAfter,
     Description = "How long to wait before the allowance returns, in seconds."
 )]
+// And the ones it writes before the handler runs, which every response after it carries.
+[AnswersHeader("RateLimit-Limit", Description = "Requests allowed in each window.")]
+[AnswersHeader(
+    "RateLimit-Remaining",
+    Description = "Requests left in the current window. 0 on a refusal."
+)]
+[AnswersHeader(
+    "RateLimit-Reset",
+    Description = "The window's length in seconds, or on a refusal the seconds Retry-After gives."
+)]
 public class RateLimitAttribute : Attribute, IRequestFilterProvider
 {
     /// <summary>Requests allowed per <see cref="WindowSeconds"/>.</summary>
