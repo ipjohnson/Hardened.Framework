@@ -505,6 +505,27 @@ Reported by both routing tables. The described one never called the shared repor
 specification-first application whose `[Handler]` implementation declared `[CacheResponse]` was
 told nothing and found out from a request.
 
+### HRDW009 — a `VaryByQuery` key names no query key the operation binds
+
+A `[CacheResponse<VaryByQuery>]` key that none of the operation's parameters binds. The query keys
+an operation binds are its query parameters and the members of a model it binds from the query
+string, by their wire names. A contract's query parameters count the same way.
+
+```
+'ProductsController.List' keys its cached response on the query key 'cursr', which none of its
+parameters binds, so requests that differ in a key it does bind can get the same entry. The query
+keys it binds are 'category', 'cursor'. [CacheResponse<VaryByQuery>] with no keys varies on all of
+them.
+```
+
+The strategy reads only the keys it names, so a misspelt key reads an empty value on every request
+and the key it was meant to be is left out. The 0.41 trial's catalogue keyed on `cursr`, built clean,
+and served the first page for the second until the entry expired.
+
+A **warning**, because a handler can read a query value it does not bind through the request
+itself, and key on it on purpose. A key is checked when it is a constant string, such as a
+literal or a `const`. Reported per handler by both front ends, from the same code.
+
 ## Timeouts
 
 ### HRDW006 — `[Timeout]` declares no budget

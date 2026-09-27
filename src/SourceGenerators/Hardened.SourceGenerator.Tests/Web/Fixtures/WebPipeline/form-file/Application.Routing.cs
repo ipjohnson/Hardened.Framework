@@ -8,6 +8,7 @@ using Hardened.Web.Runtime.Handlers;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Threading;
 using TestApp.Generated;
 
 namespace TestApp
@@ -62,7 +63,11 @@ namespace TestApp
                         switch (methodString)
                         {
                             case "POST":
-                                return _infoUploadController_Upload_1556 ??= new RequestHandlerInfo(new UploadController_Upload_1556(_rootServiceProvider));
+                                return _infoUploadController_Upload_1556 ?? Interlocked.CompareExchange(
+                                    ref _infoUploadController_Upload_1556,
+                                    new RequestHandlerInfo(new UploadController_Upload_1556(_rootServiceProvider)),
+                                    null
+                                ) ?? _infoUploadController_Upload_1556;
                             default:
                                 return _methodNotAllowedPOST;
                         }

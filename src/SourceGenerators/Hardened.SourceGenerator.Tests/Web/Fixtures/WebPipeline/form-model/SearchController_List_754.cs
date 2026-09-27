@@ -7,7 +7,7 @@ namespace TestApp.Generated
     {
         private static readonly global::Hardened.Requests.Abstract.Execution.IExecutionRequestParameter[] _parameterInfo =         CreateParameterInfo()
 ;
-        private static readonly global::Hardened.Requests.Runtime.Execution.ExecutionRequestHandlerInfo _handlerInfo =         new global::Hardened.Requests.Runtime.Execution.ExecutionRequestHandlerInfo("/list", "GET", typeof(global::TestApp.SearchController), "List", _parameterInfo)
+        private static readonly global::Hardened.Requests.Runtime.Execution.ExecutionRequestHandlerInfo _handlerInfo =         new global::Hardened.Requests.Runtime.Execution.ExecutionRequestHandlerInfo("/list", "GET", typeof(global::TestApp.SearchController), "List", _parameterInfo, queryParameters: new string[] { "page", "size", "sort" })
 ;
 
         public SearchController_List_754(global::System.IServiceProvider serviceProvider, string? routePath = null)

@@ -9,7 +9,18 @@ public record AttributeModel(
     ITypeDefinition TypeDefinition,
     string Arguments,
     string PropertyAssignment
-);
+)
+{
+    /// <summary>
+    /// The positional arguments whose value is a constant string, joined by the unit separator,
+    /// so a diagnostic can read a value such as a query key without parsing
+    /// <see cref="Arguments"/>. An argument that is not a constant is left out.
+    /// </summary>
+    /// <remarks>
+    /// One string rather than a list, so the record's equality still compares values.
+    /// </remarks>
+    public string ConstantStrings { get; init; } = "";
+}
 
 public static class AttributeModelHelper
 {
@@ -63,6 +74,7 @@ public static class AttributeModelHelper
     {
         var arguments = "";
         var propertyAssignment = "";
+        var constantStrings = new List<string>();
 
         if (attribute.ArgumentList != null)
         {
@@ -87,6 +99,14 @@ public static class AttributeModelHelper
                 }
                 else
                 {
+                    if (
+                        semanticModel.GetConstantValue(attributeArgumentSyntax.Expression) is
+                        { HasValue: true, Value: string constant }
+                    )
+                    {
+                        constantStrings.Add(constant);
+                    }
+
                     if (arguments.Length > 0)
                     {
                         arguments += ", ";
@@ -126,7 +146,10 @@ public static class AttributeModelHelper
             );
         }
 
-        return new AttributeModel(type, arguments, propertyAssignment);
+        return new AttributeModel(type, arguments, propertyAssignment)
+        {
+            ConstantStrings = string.Join("\u001f", constantStrings),
+        };
     }
 
     /// <summary>

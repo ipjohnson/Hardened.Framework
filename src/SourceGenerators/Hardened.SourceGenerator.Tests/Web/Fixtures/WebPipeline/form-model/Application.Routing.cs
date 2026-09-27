@@ -8,6 +8,7 @@ using Hardened.Web.Runtime.Handlers;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Threading;
 using TestApp.Generated;
 
 namespace TestApp
@@ -107,7 +108,11 @@ namespace TestApp
                         {
                             case "HEAD":
                             case "GET":
-                                return _infoSearchController_List_754 ??= new RequestHandlerInfo(new SearchController_List_754(_rootServiceProvider));
+                                return _infoSearchController_List_754 ?? Interlocked.CompareExchange(
+                                    ref _infoSearchController_List_754,
+                                    new RequestHandlerInfo(new SearchController_List_754(_rootServiceProvider)),
+                                    null
+                                ) ?? _infoSearchController_List_754;
                             default:
                                 return _methodNotAllowedGETHEAD;
                         }
@@ -127,7 +132,11 @@ namespace TestApp
                         switch (methodString)
                         {
                             case "POST":
-                                return _infoSearchController_Search_754 ??= new RequestHandlerInfo(new SearchController_Search_754(_rootServiceProvider));
+                                return _infoSearchController_Search_754 ?? Interlocked.CompareExchange(
+                                    ref _infoSearchController_Search_754,
+                                    new RequestHandlerInfo(new SearchController_Search_754(_rootServiceProvider)),
+                                    null
+                                ) ?? _infoSearchController_Search_754;
                             default:
                                 return _methodNotAllowedPOST;
                         }

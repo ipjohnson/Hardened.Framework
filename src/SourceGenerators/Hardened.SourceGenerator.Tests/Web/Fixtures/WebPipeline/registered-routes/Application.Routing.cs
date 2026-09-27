@@ -8,6 +8,7 @@ using Hardened.Web.Runtime.Handlers;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Threading;
 using TestApp.Generated;
 
 namespace TestApp
@@ -108,7 +109,11 @@ namespace TestApp
                             _pathTokenNamesTenantController_Get_329,
                             charSpan.Slice(index).ToString()
                         );
-                        return _infoTenantController_Get_329 ??= new RequestHandlerInfo(new TenantController_Get_329(_rootServiceProvider));
+                        return _infoTenantController_Get_329 ?? Interlocked.CompareExchange(
+                            ref _infoTenantController_Get_329,
+                            new RequestHandlerInfo(new TenantController_Get_329(_rootServiceProvider)),
+                            null
+                        ) ?? _infoTenantController_Get_329;
                     default:
                         return _methodNotAllowedGETHEAD;
                 }

@@ -44,6 +44,29 @@ public class ResponseCacheController
     public string Catalog([FromQueryString] string culture) =>
         culture + "-" + _counter.Next("catalog");
 
+    /// <summary>
+    /// Keyed on every query key the operation binds, with none named, which is what the 0.41 trial
+    /// asked for after a misspelt key served page 1 for page 2.
+    /// </summary>
+    [Get("/pages")]
+    [CacheResponse<VaryByQuery>(Duration = 60)]
+    public string Pages([FromQueryString] string category, [FromQueryString] string cursor) =>
+        category + "-" + cursor + "-" + _counter.Next("pages");
+
+    /// <summary>
+    /// Slow enough for concurrent requests to overlap, and coalescing their misses.
+    /// </summary>
+    [Get("/coalesced")]
+    [CacheResponse<VaryByRoute>(Duration = 60, CoalesceMisses = true)]
+    public async Task<string> Coalesced()
+    {
+        var run = _counter.Next("coalesced");
+
+        await Task.Delay(200);
+
+        return "coalesced-" + run;
+    }
+
     /// <summary>A handler that declares nothing, so nothing about it changes.</summary>
     [Get("/uncached")]
     public string Uncached() => _counter.Next("uncached").ToString();

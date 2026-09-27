@@ -87,6 +87,10 @@ public class WebExecutionHandlerCodeGenerator
         // A zero budget compiles, publishes, and fails the first request.
         TimeoutDeclarationDiagnostics.Report(sourceProductionContext, requestHandlerModel);
 
+        // A cache key on a query key the operation does not bind compiles, and serves one entry to
+        // requests that differ in the keys it does bind.
+        VaryByQueryDiagnostics.Report(sourceProductionContext, requestHandlerModel);
+
         // Every diagnostic first, then the decision. Two body parameters are the one case above
         // whose generated file does not compile: the invocation omits an argument the method
         // requires, so a CS7036 in obj/ was reported beside the HRDR009 that already said what was

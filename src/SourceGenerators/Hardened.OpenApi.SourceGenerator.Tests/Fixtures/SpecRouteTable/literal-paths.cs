@@ -96,7 +96,11 @@ namespace Test.Api
                         {
                             case "HEAD":
                             case "GET":
-                                return _infoPetController_ListPets ??= new global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo(new global::Test.Api.Generated.PetController_ListPets(_rootServiceProvider));
+                                return _infoPetController_ListPets ?? global::System.Threading.Interlocked.CompareExchange(
+                                    ref _infoPetController_ListPets,
+                                    new global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo(new global::Test.Api.Generated.PetController_ListPets(_rootServiceProvider)),
+                                    null
+                                ) ?? _infoPetController_ListPets;
                             default:
                                 return _methodNotAllowedGETHEAD;
                         }
@@ -123,7 +127,11 @@ namespace Test.Api
                         {
                             case "HEAD":
                             case "GET":
-                                return _infoPetController_Featured ??= new global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo(new global::Test.Api.Generated.PetController_Featured(_rootServiceProvider));
+                                return _infoPetController_Featured ?? global::System.Threading.Interlocked.CompareExchange(
+                                    ref _infoPetController_Featured,
+                                    new global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo(new global::Test.Api.Generated.PetController_Featured(_rootServiceProvider)),
+                                    null
+                                ) ?? _infoPetController_Featured;
                             default:
                                 return _methodNotAllowedGETHEAD;
                         }
@@ -144,7 +152,11 @@ namespace Test.Api
                         {
                             case "HEAD":
                             case "GET":
-                                return _infoPetController_Store ??= new global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo(new global::Test.Api.Generated.PetController_Store(_rootServiceProvider));
+                                return _infoPetController_Store ?? global::System.Threading.Interlocked.CompareExchange(
+                                    ref _infoPetController_Store,
+                                    new global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo(new global::Test.Api.Generated.PetController_Store(_rootServiceProvider)),
+                                    null
+                                ) ?? _infoPetController_Store;
                             default:
                                 return _methodNotAllowedGETHEAD;
                         }

@@ -2,6 +2,7 @@ using Hardened.Requests.Abstract.Caching;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.PathTokens;
+using Hardened.Requests.Runtime.Execution;
 using Hardened.Requests.Runtime.QueryString;
 using Hardened.Requests.Testing;
 using Hardened.Web.Runtime.Caching;
@@ -114,11 +115,62 @@ public class CacheKeyProviderTests
         Assert.Equal("culture=&", await KeyOf(VaryByQuery.Create(["culture"]), context));
     }
 
+    /// <summary>
+    /// With no names, the keys are the ones the operation binds, which the generator puts on the
+    /// handler info. A query value the operation does not bind stays out of the key.
+    /// </summary>
     [Fact]
-    public void VaryByQueryNeedsAtLeastOneKey()
+    public async Task VaryByQueryWithNoKeysReadsTheKeysTheOperationBinds()
     {
-        Assert.Throws<ArgumentException>(() => VaryByQuery.Create([]));
+        var context = Context(
+            query: new Dictionary<string, string>
+            {
+                { "cursor", "abc" },
+                { "category", "tea" },
+                { "utm_source", "somewhere" },
+            }
+        );
+
+        context.HandlerInfo = Handler(queryParameters: ["category", "cursor"]);
+
+        Assert.Equal("category=tea&cursor=abc&", await KeyOf(VaryByQuery.Create([]), context));
     }
+
+    /// <summary>
+    /// Page 2 is not served page 1's entry, which is what the 0.41 trial saw with a misspelt key.
+    /// </summary>
+    [Fact]
+    public async Task VaryByQueryWithNoKeysTellsTwoPagesApart()
+    {
+        var first = Context(query: new Dictionary<string, string> { { "cursor", "" } });
+        var second = Context(query: new Dictionary<string, string> { { "cursor", "next" } });
+
+        first.HandlerInfo = second.HandlerInfo = Handler(queryParameters: ["cursor"]);
+
+        Assert.NotEqual(
+            await KeyOf(VaryByQuery.Create([]), first),
+            await KeyOf(VaryByQuery.Create([]), second)
+        );
+    }
+
+    [Fact]
+    public async Task VaryByQueryWithNoKeysOnAnOperationBindingNoneKeysAsEmpty()
+    {
+        var context = Context(query: new Dictionary<string, string> { { "page", "2" } });
+
+        context.HandlerInfo = Handler();
+
+        Assert.Equal("", await KeyOf(VaryByQuery.Create([]), context));
+    }
+
+    private static ExecutionRequestHandlerInfo Handler(string[]? queryParameters = null) =>
+        new(
+            "/catalog",
+            "GET",
+            typeof(CacheKeyProviderTests),
+            "Browse",
+            queryParameters: queryParameters
+        );
 
     #endregion
 

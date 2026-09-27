@@ -1074,6 +1074,274 @@ public class ResponseCacheFilterTests
 
     #endregion
 
+    #region Concurrent misses
+
+    private static ResponseCacheFilter Coalescing() =>
+        new([new CacheTestSupport.FixedKey()], "GET /catalog", 0, coalesceMisses: true);
+
+    private static async Task<IExecutionContext> Request(
+        CacheTestSupport.RecordingStore store,
+        IExecutionFilter filter,
+        Func<IExecutionChain, Task> handler
+    )
+    {
+        var context = Context(store);
+
+        await Pipeline.Chain(context, filter, new Pipeline.Inline(handler)).Next();
+
+        return context;
+    }
+
+    /// <summary>
+    /// Polls, because nothing the filter does can be awaited from outside it.
+    /// </summary>
+    private static async Task Until(Func<bool> condition)
+    {
+        var deadline = DateTime.UtcNow.AddSeconds(10);
+
+        while (!condition())
+        {
+            if (DateTime.UtcNow > deadline)
+            {
+                throw new TimeoutException(
+                    "The requests never reached the point the test waits for."
+                );
+            }
+
+            await Task.Delay(10, TestContext.Current.CancellationToken);
+        }
+    }
+
+    /// <summary>
+    /// Five requests miss one key while the first is still running. The handler runs once, and the
+    /// other four are answered with the entry it stored.
+    /// </summary>
+    [Fact]
+    public async Task CoalescedMissesRunTheHandlerOnce()
+    {
+        var store = new CacheTestSupport.RecordingStore();
+        var filter = Coalescing();
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var ran = 0;
+
+        var requests = Enumerable
+            .Range(0, 5)
+            .Select(_ =>
+                Task.Run(
+                    () =>
+                        Request(
+                            store,
+                            filter,
+                            async chain =>
+                            {
+                                Interlocked.Increment(ref ran);
+
+                                await release.Task;
+                                await Write(chain.Context, "catalog");
+                            }
+                        ),
+                    TestContext.Current.CancellationToken
+                )
+            )
+            .ToArray();
+
+        // Five lookups, and the first request's second one before it runs the handler.
+        await Until(() => store.ReadCount == 6);
+
+        release.SetResult();
+
+        var contexts = await Task.WhenAll(requests);
+
+        Assert.Equal(1, ran);
+        Assert.All(contexts, context => Assert.Equal("catalog", BodyOf(context)));
+        Assert.Single(store.Writes);
+    }
+
+    /// <summary>
+    /// The default, which the guide documents: each concurrent miss runs the handler.
+    /// </summary>
+    [Fact]
+    public async Task WithoutCoalescingEachConcurrentMissRunsTheHandler()
+    {
+        var store = new CacheTestSupport.RecordingStore();
+        var filter = Filter();
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var ran = 0;
+
+        var requests = Enumerable
+            .Range(0, 5)
+            .Select(_ =>
+                Task.Run(
+                    () =>
+                        Request(
+                            store,
+                            filter,
+                            async chain =>
+                            {
+                                Interlocked.Increment(ref ran);
+
+                                await release.Task;
+                                await Write(chain.Context, "catalog");
+                            }
+                        ),
+                    TestContext.Current.CancellationToken
+                )
+            )
+            .ToArray();
+
+        await Until(() => Volatile.Read(ref ran) == 5);
+
+        release.SetResult();
+
+        await Task.WhenAll(requests);
+
+        Assert.Equal(5, store.Writes.Count);
+    }
+
+    /// <summary>
+    /// A 500 is not stored, so it is not handed to the requests that waited for it. Each of them
+    /// runs the handler itself.
+    /// </summary>
+    [Fact]
+    public async Task AWaitingRequestRunsTheHandlerWhenTheFirstStoredNothing()
+    {
+        var store = new CacheTestSupport.RecordingStore();
+        var filter = Coalescing();
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var ran = 0;
+
+        var requests = Enumerable
+            .Range(0, 5)
+            .Select(_ =>
+                Task.Run(
+                    () =>
+                        Request(
+                            store,
+                            filter,
+                            async chain =>
+                            {
+                                Interlocked.Increment(ref ran);
+
+                                await release.Task;
+
+                                chain.Context.Response.Status = 500;
+
+                                await Write(chain.Context, "failed");
+                            }
+                        ),
+                    TestContext.Current.CancellationToken
+                )
+            )
+            .ToArray();
+
+        await Until(() => store.ReadCount == 6);
+
+        release.SetResult();
+
+        var contexts = await Task.WhenAll(requests);
+
+        Assert.Equal(5, ran);
+        Assert.All(contexts, context => Assert.Equal(500, context.Response.Status));
+        Assert.Empty(store.Writes);
+    }
+
+    [Fact]
+    public async Task AWaitingRequestThatIsCancelledStopsWaiting()
+    {
+        var store = new CacheTestSupport.RecordingStore();
+        var filter = Coalescing();
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var ran = 0;
+
+        Func<IExecutionChain, Task> handler = async chain =>
+        {
+            Interlocked.Increment(ref ran);
+
+            await release.Task;
+            await Write(chain.Context, "catalog");
+        };
+
+        var first = Task.Run(
+            () => Request(store, filter, handler),
+            TestContext.Current.CancellationToken
+        );
+
+        await Until(() => store.ReadCount == 2);
+
+        using var cancellation = new CancellationTokenSource();
+
+        var waiting = Pipeline.Cancellable(
+            cancellation.Token,
+            configureServices: services => services.AddSingleton<IResponseCacheStore>(store)
+        );
+        var second = Task.Run(
+            () => Pipeline.Chain(waiting, filter, new Pipeline.Inline(handler)).Next(),
+            TestContext.Current.CancellationToken
+        );
+
+        await Until(() => store.ReadCount == 3);
+
+        cancellation.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => second);
+
+        release.SetResult();
+
+        Assert.Equal("catalog", BodyOf(await first));
+        Assert.Equal(1, ran);
+    }
+
+    /// <summary>
+    /// Composed declarations share one key, so one of them asking is enough.
+    /// </summary>
+    [Fact]
+    public async Task CoalescingOnOneComposedDeclarationAppliesToTheKey()
+    {
+        var store = new CacheTestSupport.RecordingStore();
+        var declarations = new ICacheResponseDeclaration[]
+        {
+            new CacheResponseAttribute<CacheTestSupport.FixedKey>(),
+            new CacheResponseAttribute<CacheTestSupport.SecondKey> { CoalesceMisses = true },
+        };
+        var filter = ResponseCacheFilter.Compose(
+            CacheTestSupport.Handler(declarations),
+            declarations
+        );
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var ran = 0;
+
+        var requests = Enumerable
+            .Range(0, 3)
+            .Select(_ =>
+                Task.Run(
+                    () =>
+                        Request(
+                            store,
+                            filter,
+                            async chain =>
+                            {
+                                Interlocked.Increment(ref ran);
+
+                                await release.Task;
+                                await Write(chain.Context, "catalog");
+                            }
+                        ),
+                    TestContext.Current.CancellationToken
+                )
+            )
+            .ToArray();
+
+        await Until(() => store.ReadCount == 4);
+
+        release.SetResult();
+
+        await Task.WhenAll(requests);
+
+        Assert.Equal(1, ran);
+    }
+
+    #endregion
+
     private static Pipeline.Inline Writing(string body, Action? onRun = null) =>
         new(async chain =>
         {

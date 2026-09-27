@@ -5,6 +5,7 @@ using Hardened.Web.Runtime.Handlers;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Threading;
 using Test.Api.Generated;
 using Test.Api.Services;
 
@@ -64,10 +65,14 @@ namespace Test.Api
                         {
                             case "HEAD":
                             case "GET":
-                                return _infoPetController_ListPets ??= new RequestHandlerInfo(new PetController_ListPets(
-                                    _rootServiceProvider,
-                                    "/api/pets"
-                                ));
+                                return _infoPetController_ListPets ?? Interlocked.CompareExchange(
+                                    ref _infoPetController_ListPets,
+                                    new RequestHandlerInfo(new PetController_ListPets(
+                                        _rootServiceProvider,
+                                        "/api/pets"
+                                    )),
+                                    null
+                                ) ?? _infoPetController_ListPets;
                             default:
                                 return _methodNotAllowedGETHEAD;
                         }
@@ -131,10 +136,14 @@ namespace Test.Api
                             _pathTokenNamesPetController_GetPet,
                             charSpan.Slice(index).ToString()
                         );
-                        return _infoPetController_GetPet ??= new RequestHandlerInfo(new PetController_GetPet(
-                            _rootServiceProvider,
-                            "/api/pets/{petId}"
-                        ));
+                        return _infoPetController_GetPet ?? Interlocked.CompareExchange(
+                            ref _infoPetController_GetPet,
+                            new RequestHandlerInfo(new PetController_GetPet(
+                                _rootServiceProvider,
+                                "/api/pets/{petId}"
+                            )),
+                            null
+                        ) ?? _infoPetController_GetPet;
                     default:
                         return _methodNotAllowedGETHEAD;
                 }
