@@ -164,8 +164,8 @@ public class TodoTests
     /// In throws mode this service answers the 404 by returning null, and the message is the
     /// status's reason phrase: Smithy gives an @error's message one meaning, so the runtime fills
     /// it rather than sending the bodiless 404 that used to make the client throw a bare
-    /// ApiException. A handler with something to say throws
-    /// new TodoNotFound("...").AsException() instead.
+    /// ApiException. A handler with something to say throws the framework's NotFound instead, as
+    /// RemoveTodo does, and it goes out as the TodoNotFound the model declares.
     /// </remarks>
 #endif
     [ModuleTest]

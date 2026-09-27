@@ -350,17 +350,21 @@ success type and reaches every other status by throwing:
 throw new NotFound("todo", $"No todo has id {id}.").AsException();
 ```
 
+#if (codeFirst)
 The 404 body is the same one the declared modes return. What is missing is any statement in the
 signature that the route can answer it - so the generated document describes fewer statuses than
 the application actually has, unless the handler declares them with `[Throws<NotFound>]`, which is
 this mode's half of the contract and where its name comes from.
 
-#if (codeFirst)
 A single success status is nameable — `[Post("/todos", SuccessStatus = 201)]` answers 201 and says
 so in the generated document. Creating a todo is left at the default 200 here so the three response
 models differ in one thing at a time. What this mode cannot express is more than one success status.
 #endif
 #if (specFirst)
+The contract declares its own body for the 404, and the build converts the thrown `NotFound` into
+that body, as the declared modes do for a returned one. The detail comes from the record. The
+contract names every status an operation can answer, so the document describes all of them.
+
 The contract still names each operation's success status and the dispatch carries it, so creating a
 todo answers 201. What this mode cannot express is more than one success status.
 #endif

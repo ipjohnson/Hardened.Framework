@@ -168,6 +168,34 @@ public interface IExecutionRequestHandlerInfo
     private static readonly IReadOnlyDictionary<int, object> NoDeclaredErrorBodies =
         new Dictionary<int, object>();
 
+    /// <summary>
+    /// How the framework's record for a status, thrown, becomes the body the operation declares for
+    /// that status.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// One entry per status whose declared body can be built from the record, which is the rule a
+    /// response set's conversion from a returned <c>NotFound</c> follows. The function takes the
+    /// thrown value and answers the declared body, or null where the value is not the record for
+    /// that status. So <c>throw new NotFound("todo", "...").AsException()</c> sends the contract's
+    /// <c>TodoNotFound</c> rather than a problem document the contract never declared.
+    /// </para>
+    /// <para>
+    /// Empty where the operation declares no such body, which leaves a thrown record answering
+    /// itself exactly as it did.
+    /// </para>
+    /// </remarks>
+    IReadOnlyDictionary<int, Func<object, object?>> DeclaredErrorConversions =>
+        NoDeclaredErrorConversions;
+
+    /// <summary>
+    /// What <see cref="DeclaredErrorConversions"/> answers where nothing was declared.
+    /// </summary>
+    private static readonly IReadOnlyDictionary<
+        int,
+        Func<object, object?>
+    > NoDeclaredErrorConversions = new Dictionary<int, Func<object, object?>>();
+
     IReadOnlyList<IExecutionRequestParameter> Parameters { get; }
 
     IReadOnlyList<object> Metadata => Array.Empty<object>();

@@ -97,6 +97,16 @@ public record ResponseInformationModel
     public string? DeclaredErrorBodiesExpression { get; set; }
 
     /// <summary>
+    /// C# converting the framework's record for each declared status into the body declared there,
+    /// or null where no declared body can be built from a record.
+    /// </summary>
+    /// <remarks>
+    /// The dictionary literal the handler info takes, for a record a handler throws. One string for
+    /// the reason <see cref="DeclaredErrorBodiesExpression"/> is one.
+    /// </remarks>
+    public string? DeclaredErrorConversionsExpression { get; set; }
+
+    /// <summary>
     /// Every media type this operation can produce, comma-separated, or null where it said nothing.
     /// </summary>
     /// <remarks>
@@ -304,6 +314,7 @@ public record ResponseInformationModel
             + $":{ReturnsBytesOrText}"
             + $":{StreamFraming}:{ReturnType}"
             + $":{DefaultStatusCode}:{NullResponseBodyExpression}:{DeclaredErrorBodiesExpression}"
+            + $":{DeclaredErrorConversionsExpression}"
             + $":{ProducedContentTypes}:{SuccessContentTypes}:{ErrorContentTypes}"
             + $":{UnionCases}:{DeclaredResponse}:{UnionDiagnostic}:{ThrowsDiagnostic}"
             + $":{ValidationErrorStatus}"

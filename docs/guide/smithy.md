@@ -413,6 +413,10 @@ detail, or its title when the record has no detail. `title` and `status` are fil
 declares them. A shape with another required member has no conversion. The handler returns the case
 instead: `new TodoNotFoundError(new TodoNotFound(...))`.
 
+Under `Throws`, the same record thrown with `AsException()` is sent as the error's shape, filled the
+same way. An operation that declares two errors at one status fills neither, and the record is sent
+as it was thrown.
+
 Under `Throws`, the build generates `AsException()` on the error shape, in `<Model>Errors`. A
 handler throws `new TodoTitleTaken(...).AsException()`. Under `Throws`, a `GET` or `PUT` operation
 that declares an error at 404 returns a nullable payload. When the handler returns null, the
@@ -439,10 +443,12 @@ operation CreateTodo {
 }
 ```
 
-The template's `src/Todos/TodoService.cs` throws the declared errors:
+The template's `src/Todos/TodoService.cs` throws the framework's records, and each is sent as the
+declared error at its status:
 
 ```csharp
 using Hardened.Requests.Abstract.Attributes;
+using Hardened.Web.Runtime.Responses;
 using Todos.Models;
 using Todos.Services;
 
@@ -459,7 +465,7 @@ public class TodoService(ITodoStore store) : ITodosService
     {
         if (await store.TitleExists(body.Title))
         {
-            throw new TodoTitleTaken($"A todo titled '{body.Title}' already exists.").AsException();
+            throw new Conflict($"A todo titled '{body.Title}' already exists.").AsException();
         }
 
         return await store.Add(body.Title);
@@ -469,7 +475,7 @@ public class TodoService(ITodoStore store) : ITodosService
     {
         if (!await store.Remove(id))
         {
-            throw new TodoNotFound($"No todo has id {id}.").AsException();
+            throw new NotFound("todo", $"No todo has id {id}.").AsException();
         }
     }
 }

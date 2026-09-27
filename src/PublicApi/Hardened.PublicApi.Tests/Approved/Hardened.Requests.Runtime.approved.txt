@@ -332,9 +332,11 @@ namespace Hardened.Requests.Runtime.Execution
                     bool streamsResponse = false,
                     System.Collections.Generic.IReadOnlyDictionary<int, object>? declaredErrorBodies = null,
                     bool writesRawBytes = false,
-                    System.Collections.Generic.IReadOnlyList<string>? errorContentTypes = null) { }
+                    System.Collections.Generic.IReadOnlyList<string>? errorContentTypes = null,
+                    System.Collections.Generic.IReadOnlyDictionary<int, System.Func<object, object?>>? declaredErrorConversions = null) { }
         public string? BodyParameterName { get; }
         public System.Collections.Generic.IReadOnlyDictionary<int, object> DeclaredErrorBodies { get; }
+        public System.Collections.Generic.IReadOnlyDictionary<int, System.Func<object, object?>> DeclaredErrorConversions { get; }
         public System.Collections.Generic.IReadOnlyList<string> ErrorContentTypes { get; }
         public System.Type HandlerType { get; }
         public string InvokeMethod { get; }

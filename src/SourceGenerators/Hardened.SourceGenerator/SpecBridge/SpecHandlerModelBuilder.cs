@@ -746,6 +746,11 @@ internal static class SpecHandlerModelBuilder
                     modelsNamespace,
                     specFileName
                 ),
+                DeclaredErrorConversionsExpression = DeclaredErrorConversions(
+                    operation,
+                    schemas,
+                    modelsNamespace
+                ),
             };
         }
 
@@ -793,6 +798,11 @@ internal static class SpecHandlerModelBuilder
                     schemas,
                     modelsNamespace,
                     specFileName
+                ),
+                DeclaredErrorConversionsExpression = DeclaredErrorConversions(
+                    operation,
+                    schemas,
+                    modelsNamespace
                 ),
             };
         }
@@ -906,6 +916,13 @@ internal static class SpecHandlerModelBuilder
                 schemas,
                 modelsNamespace,
                 specFileName
+            ),
+
+            // And how a framework record the handler throws becomes that body.
+            DeclaredErrorConversionsExpression = DeclaredErrorConversions(
+                operation,
+                schemas,
+                modelsNamespace
             ),
 
             // The set the response is negotiated against. Empty means the description said nothing,
@@ -1025,6 +1042,68 @@ internal static class SpecHandlerModelBuilder
 
         return "new global::System.Collections.Generic.Dictionary<int, object> { "
             + string.Join(", ", entries)
+            + " }";
+    }
+
+    /// <summary>
+    /// How the framework's record for each declared status, thrown, becomes the body declared
+    /// there, as the dictionary literal the handler info takes - or null where no declared body can
+    /// be built from a record.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <see cref="ProblemConversion"/> decides which statuses convert and supplies the body's
+    /// arguments, as it does for the operator a response set carries, so a thrown
+    /// <c>NotFound</c> and a returned one send the same body. Only the body is built: the
+    /// exception that carries a thrown record applies the record's headers itself.
+    /// </para>
+    /// <para>
+    /// A status that declares more than one error converts nothing, because there is no saying
+    /// which of the two bodies a thrown record meant.
+    /// </para>
+    /// </remarks>
+    private static string? DeclaredErrorConversions(
+        OperationModel operation,
+        IReadOnlyList<SchemaModel> schemas,
+        string modelsNamespace
+    )
+    {
+        var entries = new SortedDictionary<int, string>();
+
+        foreach (var error in operation.ErrorResponses)
+        {
+            if (
+                operation.ErrorResponses.Count(other => other.StatusCode == error.StatusCode) > 1
+                || ProblemConversion.For(error, schemas) is not { } plan
+            )
+            {
+                continue;
+            }
+
+            var record = "global::" + ShippedResponses.Namespace + "." + plan.BareRecord;
+            var body =
+                "global::" + modelsNamespace + "." + NamingHelper.ToPascalCase(plan.SchemaName);
+            var arguments = string.Join(", ", ProblemConversion.Arguments(plan, schemas, "record"));
+
+            entries[plan.StatusCode] =
+                "{ "
+                + plan.StatusCode.ToString(CultureInfo.InvariantCulture)
+                + ", value => value is "
+                + record
+                + " record ? new "
+                + body
+                + "("
+                + arguments
+                + ") : null }";
+        }
+
+        if (entries.Count == 0)
+        {
+            return null;
+        }
+
+        return "new global::System.Collections.Generic.Dictionary<int, global::System.Func<object, object?>> { "
+            + string.Join(", ", entries.Values)
             + " }";
     }
 

@@ -593,6 +593,10 @@ A handler that throws a generic form declares the body type and the status. A ha
 | `BadRequestException`, or a type derived from it | 400 | The exception's type name and its message: `{"type":"BadRequestException","message":"The filter is malformed.","details":""}` for `new BadRequestException("The filter is malformed.")` |
 | Any other exception | 500 | `{"type":"ServerError","message":"The server could not complete this request.","details":""}` |
 
+A handler generated from a contract answers a problem type without a type argument, such as
+`NotFound`, with the body the contract declares for its status, filled from the record.
+[Generating from OpenAPI](/guide/openapi#throws) and [Smithy](/guide/smithy#errors) cover the rule.
+
 `StatusCodeException` is in `Hardened.Requests.Abstract.Errors`. `BadRequestException` is in
 `Hardened.Requests.Runtime.Errors`.
 

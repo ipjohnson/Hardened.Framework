@@ -124,6 +124,19 @@ public static class HandlerInfoCodeGenerator
             declaredArgs += ", declaredErrorBodies: " + declaredErrorBodies;
         }
 
+        // How a thrown framework record becomes the body declared at its status. A contract's only:
+        // a code-first handler's declared bodies are the records themselves.
+        if (
+            !string.IsNullOrEmpty(
+                handlerModel.ResponseInformation.DeclaredErrorConversionsExpression
+            )
+        )
+        {
+            declaredArgs +=
+                ", declaredErrorConversions: "
+                + handlerModel.ResponseInformation.DeclaredErrorConversionsExpression;
+        }
+
         // The media types this operation produces, as the array negotiation reads. Emitted only when
         // the operation declared some - an empty array and no array mean different things, and the
         // second is what leaves an unannotated handler negotiating exactly as it did.

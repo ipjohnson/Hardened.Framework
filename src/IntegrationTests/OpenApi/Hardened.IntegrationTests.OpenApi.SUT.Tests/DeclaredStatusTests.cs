@@ -1,3 +1,4 @@
+using Hardened.Requests.Abstract.Headers;
 using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.IntegrationTests.OpenApi.SUT.Tests;
@@ -106,6 +107,35 @@ public class DeclaredStatusTests
         var problem = response.Deserialize<Problem>();
 
         Assert.Null(problem!.Detail);
+    }
+
+    /// <summary>
+    /// The framework's <c>NotFound</c>, thrown, answers the <c>Problem</c> the document declares
+    /// for 404, filled from the record.
+    /// </summary>
+    /// <remarks>
+    /// Response mode converts a returned <c>NotFound</c> into the declared case. Throws mode sent
+    /// the record itself, a problem document with a <c>resource</c> member, labelled
+    /// <c>application/problem+json</c>, at a status the document declares as a JSON
+    /// <c>Problem</c>.
+    /// </remarks>
+    [ModuleTest]
+    public async Task GetPet_AThrownNotFoundAnswersTheDeclaredProblem(ITestWebApp testWebApp)
+    {
+        var response = await testWebApp.Get("/pets/rehomed");
+
+        Assert.Equal(404, response.StatusCode);
+        Assert.StartsWith(
+            "application/json",
+            response.Headers[KnownHeaders.ContentType].ToString()
+        );
+
+        var problem = response.Deserialize<Problem>();
+
+        Assert.Equal(Hardened.Web.Runtime.Responses.ProblemTypes.NotFound, problem.Type);
+        Assert.Equal("Not Found", problem.Title);
+        Assert.Equal("Pet rehomed has a new home.", problem.Detail);
+        Assert.DoesNotContain("resource", await response.ReadTextAsync());
     }
 
     /// <summary>The same operation still answers normally for an id that resolves.</summary>
