@@ -141,7 +141,7 @@ Each Firestore value becomes JSON in the body:
 An `integerValue` does not bind to a `string` property. The service answers 400 with this message:
 
 ```text
-The JSON value could not be converted to System.String.
+The value is not a string.
 ```
 
 [Triggers](/guide/triggers) covers how the body binds to the handler's parameter.

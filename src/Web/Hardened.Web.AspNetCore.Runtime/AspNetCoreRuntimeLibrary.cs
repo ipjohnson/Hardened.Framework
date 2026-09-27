@@ -50,5 +50,8 @@ public partial class AspNetCoreRuntime : IServiceCollectionConfiguration
     {
         services.RemoveAll<IResourceNotFoundHandler>();
         services.AddSingleton<IResourceNotFoundHandler, AspNetResourceNotFoundHandler>();
+        services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IExceptionStatusReader, BadHttpRequestStatusReader>()
+        );
     }
 }

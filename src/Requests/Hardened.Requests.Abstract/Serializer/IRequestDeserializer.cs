@@ -52,7 +52,8 @@ public interface IRequestDeserializer
     /// <remarks>
     /// <para>
     /// Separate from <see cref="IsDefaultSerializer"/> on purpose: order decides who is asked
-    /// first; <c>IsDefaultSerializer</c> decides who reads a body nobody claimed.
+    /// first; <c>IsDefaultSerializer</c> decides who reads a body that carries no
+    /// <c>Content-Type</c>. A body whose <c>Content-Type</c> nobody claims is answered 415.
     /// </para>
     /// <para>
     /// Added 2026-08-18. Before it, two deserializers both claiming <c>application/json</c> — which
@@ -64,6 +65,15 @@ public interface IRequestDeserializer
     int Order => (int)RequestDeserializerOrder.Normal;
 
     bool CanProcessContext(IExecutionContext context);
+
+    /// <summary>
+    /// The media types this reads, as a 415 lists them to a request nothing reads.
+    /// </summary>
+    /// <remarks>
+    /// Defaulted to none, so a deserializer written before this existed still compiles. The 415
+    /// then lists what the others read.
+    /// </remarks>
+    IReadOnlyList<string> ContentTypes => Array.Empty<string>();
 
     ValueTask<T?> DeserializeRequestBody<T>(IExecutionContext context);
 }

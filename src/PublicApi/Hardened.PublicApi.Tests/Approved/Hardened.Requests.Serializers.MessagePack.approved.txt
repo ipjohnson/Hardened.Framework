@@ -54,6 +54,7 @@ namespace Hardened.Requests.Serializers.MessagePack.Impl
     public class MessagePackRequestDeserializer : Hardened.Requests.Abstract.Serializer.IRequestDeserializer
     {
         public MessagePackRequestDeserializer(Hardened.Requests.Serializers.MessagePack.Impl.ISharedMessagePackOptions options, Hardened.Shared.Runtime.Collections.IMemoryStreamPool memoryStreamPool) { }
+        public System.Collections.Generic.IReadOnlyList<string> ContentTypes { get; }
         public bool IsDefaultSerializer { get; }
         public int Order { get; }
         public bool CanProcessContext(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }

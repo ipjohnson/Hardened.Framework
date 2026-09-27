@@ -1,6 +1,11 @@
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Hardened.Web.Kestrel.Runtime.Tests")]
 namespace Hardened.Web.Kestrel.Runtime
 {
+    public sealed class BadHttpRequestStatusReader : Hardened.Requests.Abstract.Errors.IExceptionStatusReader
+    {
+        public BadHttpRequestStatusReader() { }
+        public int? StatusOf(System.Exception exception) { }
+    }
     public sealed class HardenedKestrelApplication : System.IAsyncDisposable
     {
         public System.Collections.Generic.IReadOnlyCollection<string> Addresses { get; }

@@ -2,6 +2,7 @@
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.Serializer;
+using Hardened.Requests.Runtime.Errors;
 
 namespace Hardened.Requests.Runtime.Serializer;
 
@@ -9,6 +10,11 @@ namespace Hardened.Requests.Runtime.Serializer;
 public class SerializationLocatorService : ISerializationLocatorService
 {
     private readonly IRequestDeserializer[] _requestDeserializers;
+
+    /// <summary>
+    /// What the request deserializers read, as a 415 lists it.
+    /// </summary>
+    private readonly string _readable;
     private readonly IResponseSerializer[] _responseSerializers;
     private readonly Dictionary<string, IResponseSerializer> _byContentType;
     private readonly IResponseSerializer? _defaultSerializer;
@@ -38,6 +44,13 @@ public class SerializationLocatorService : ISerializationLocatorService
             .Reverse()
             .OrderBy(deserializer => deserializer.Order)
             .ToArray();
+
+        var readable = _requestDeserializers
+            .SelectMany(deserializer => deserializer.ContentTypes)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        _readable = readable.Length == 0 ? KnownContentType.Json : string.Join(", ", readable);
 
         // Reversed, so the last registration under a content type is the first one asked. That is
         // the whole of response-side precedence now: a serializer declares the media type it writes
@@ -104,12 +117,24 @@ public class SerializationLocatorService : ISerializationLocatorService
             }
         }
 
+        var contentType = context.Request.ContentType;
+
+        // A body that says what it is, and is nothing this service reads, is refused rather than
+        // read as JSON. text/plain with a JSON body answered 201, a multipart body a 400 naming a
+        // character JSON did not expect, and a text/plain POST is a request a browser sends
+        // cross-site with no preflight. A body that says nothing is still read by the default, as
+        // a form body with no Content-Type is read as url-encoded.
+        if (!string.IsNullOrEmpty(contentType))
+        {
+            throw new UnsupportedContentTypeException(contentType, _readable);
+        }
+
         if (defaultSerializer != null)
         {
             return defaultSerializer;
         }
 
-        throw new Exception("Could not find serializer: " + context.Request.ContentType);
+        throw new Exception("Could not find a serializer for a request with no Content-Type.");
     }
 
     /// <summary>

@@ -202,8 +202,8 @@ with the route:
 INVOKE /fail request failed System.InvalidOperationException: Order A-1 was refused.
 ```
 
-A body that the parameter cannot bind answers 400. The response body names the field and gives the
-JSON reader's message:
+A body that the parameter cannot bind answers 400. The response body names the field and says what
+kind of value goes there:
 
 ```http
 POST /_triggers/invoke/Process
@@ -214,7 +214,7 @@ Content-Type: application/json
 HTTP/1.1 400 Bad Request
 Content-Type: application/json
 
-{"type":"ValidationError","message":"One or more validation errors occurred.","errors":[{"field":"order.quantity","code":"invalid","message":"The JSON value could not be converted to System.Int32."}]}
+{"type":"ValidationError","message":"One or more validation errors occurred.","errors":[{"field":"order.quantity","code":"invalid","message":"The value is not an integer this field can hold."}]}
 ```
 
 When the project references `ValidationModules.SourceGenerator`, a body that fails a constraint

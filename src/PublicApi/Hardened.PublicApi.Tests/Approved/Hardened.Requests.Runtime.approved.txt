@@ -842,6 +842,7 @@ namespace Hardened.Requests.Runtime.Serializer
     public class AotRequestDeserializer : Hardened.Requests.Abstract.Serializer.IRequestDeserializer
     {
         public AotRequestDeserializer(Microsoft.Extensions.Options.IOptions<Hardened.Requests.Runtime.Configuration.IJsonSerializerConfiguration> configuration, Microsoft.Extensions.Logging.ILogger<Hardened.Requests.Runtime.Serializer.AotRequestDeserializer> logger, System.Collections.Generic.IEnumerable<System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver> resolvers) { }
+        public System.Collections.Generic.IReadOnlyList<string> ContentTypes { get; }
         public bool IsDefaultSerializer { get; }
         public int Order { get; }
         public bool CanProcessContext(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
@@ -874,6 +875,14 @@ namespace Hardened.Requests.Runtime.Serializer
     {
         public NullValueResponseHandler(Microsoft.Extensions.Logging.ILogger<Hardened.Requests.Runtime.Serializer.NullValueResponseHandler> logger, Hardened.Requests.Abstract.Serializer.ISerializationLocatorService serializationLocatorService) { }
         public System.Threading.Tasks.Task Handle(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+    }
+    public sealed class OffsetRequiredDateTimeOffsetConverter : System.Text.Json.Serialization.JsonConverter<System.DateTimeOffset>
+    {
+        public static readonly Hardened.Requests.Runtime.Serializer.OffsetRequiredDateTimeOffsetConverter Instance;
+        public OffsetRequiredDateTimeOffsetConverter() { }
+        public override System.DateTimeOffset Read(ref System.Text.Json.Utf8JsonReader reader, System.Type typeToConvert, System.Text.Json.JsonSerializerOptions options) { }
+        public override void Write(System.Text.Json.Utf8JsonWriter writer, System.DateTimeOffset value, System.Text.Json.JsonSerializerOptions options) { }
+        public static bool StatesOffset(System.ReadOnlySpan<byte> text) { }
     }
     public static class RawBody
     {
@@ -931,6 +940,7 @@ namespace Hardened.Requests.Runtime.Serializer
     public class SystemTextJsonRequestDeserializer : Hardened.Requests.Abstract.Serializer.IRequestDeserializer
     {
         public SystemTextJsonRequestDeserializer(Microsoft.Extensions.Options.IOptions<Hardened.Requests.Runtime.Configuration.IJsonSerializerConfiguration> configuration, System.Collections.Generic.IEnumerable<System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver> resolvers) { }
+        public System.Collections.Generic.IReadOnlyList<string> ContentTypes { get; }
         public bool IsDefaultSerializer { get; }
         public bool CanProcessContext(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
         public System.Threading.Tasks.ValueTask<T?> DeserializeRequestBody<T>(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }

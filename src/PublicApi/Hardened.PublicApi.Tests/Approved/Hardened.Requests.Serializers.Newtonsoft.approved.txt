@@ -26,6 +26,7 @@ namespace Hardened.Requests.Serializers.Newtonsoft.Impl
     public class NewtonsoftDeserializer : Hardened.Requests.Abstract.Serializer.IRequestDeserializer
     {
         public NewtonsoftDeserializer(Hardened.Shared.Runtime.Collections.IMemoryStreamPool memoryStreamPool, Hardened.Requests.Serializers.Newtonsoft.Impl.ISharedSerializer sharedSerializer, Microsoft.Extensions.Logging.ILogger<Hardened.Requests.Serializers.Newtonsoft.Impl.NewtonsoftDeserializer> logger) { }
+        public System.Collections.Generic.IReadOnlyList<string> ContentTypes { get; }
         public bool IsDefaultSerializer { get; }
         public int Order { get; }
         public bool CanProcessContext(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }

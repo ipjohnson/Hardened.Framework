@@ -1883,6 +1883,48 @@
         "x-hardened-timeout": 300000
       }
     },
+    "/binding/window": {
+      "post": {
+        "tags": [
+          "Binding"
+        ],
+        "operationId": "window",
+        "summary": "A body with a date-time member, answered with the offset it was read with.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WindowModel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          }
+        },
+        "x-hardened-timeout": 300000
+      }
+    },
     "/blob-response/bare/{id}": {
       "get": {
         "tags": [
@@ -8765,6 +8807,19 @@
           "bytes": {
             "type": "integer",
             "format": "int64"
+          }
+        }
+      },
+      "WindowModel": {
+        "type": "object",
+        "description": "A body carrying a date-time, which has to state its offset.",
+        "required": [
+          "endsAt"
+        ],
+        "properties": {
+          "endsAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       }

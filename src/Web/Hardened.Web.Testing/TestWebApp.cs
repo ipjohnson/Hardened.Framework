@@ -149,9 +149,11 @@ public class TestWebApp : TestContext, ITestWebApp
 
         var hasBody = testWebRequest.Body != null || bodyValue != null;
 
+        // JSON, which is what the value is serialized as. It was text/js, which is not a JSON type,
+        // and read only because the JSON deserializer used to take any body nothing claimed.
         if (hasBody && !headers.ContainsKey(KnownHeaders.ContentType))
         {
-            headers[KnownHeaders.ContentType] = KnownContentType.Js;
+            headers[KnownHeaders.ContentType] = KnownContentType.Json;
         }
 
         var body =

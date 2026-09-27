@@ -316,7 +316,8 @@ Content-Type: application/json
 ```
 
 The host's own request body limit applies first. On the Kestrel and ASP.NET Core hosts it is
-30,000,000 bytes by default. A body over it answers 500, whatever the cap is.
+30,000,000 bytes by default. A body over it answers 413, whatever the cap is, with the message the
+host wrote: `Request body too large. The max request body size is 30000000 bytes.`
 [Parameter binding](/guide/parameter-binding) covers raising it.
 
 ## Unreadable bodies

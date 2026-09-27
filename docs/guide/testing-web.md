@@ -66,7 +66,7 @@ Each method returns `Task<TestWebResponse>`.
 
 The value comes before the path. The application's own JSON serializer writes the value as JSON, with the application's resolvers. A `string`, a `byte[]` or a `ReadOnlyMemory<byte>` is sent as it is. `Request` sends any method. A null value sends no body.
 
-A request with a body and no `Content-Type` header is sent with `Content-Type: text/js`. The JSON deserializer reads it. A body in another format needs its `Content-Type`, set in the callback or with `RawBody`.
+A request with a body and no `Content-Type` header is sent with `Content-Type: application/json`. A body in another format needs its `Content-Type`, set in the callback or with `RawBody`.
 
 The query string goes in the path. The path is percent-decoded the way Kestrel decodes a path:
 
