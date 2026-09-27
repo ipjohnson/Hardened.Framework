@@ -18,7 +18,7 @@ namespace Hardened.Web.Runtime.Responses;
 /// </para>
 /// </remarks>
 [HttpStatus(504)]
-public sealed record GatewayTimeout(string? Detail = null) : IHttpStatusResponse, IDeclaresStatus
+public sealed record GatewayTimeout(string? Detail = null) : IProblemDetails, IDeclaresStatus
 {
     /// <summary>
     /// The GatewayTimeout with a generic message, for a handler with nothing more to say than the status.

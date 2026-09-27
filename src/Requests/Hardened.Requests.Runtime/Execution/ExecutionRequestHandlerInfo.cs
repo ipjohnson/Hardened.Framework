@@ -22,7 +22,8 @@ public class ExecutionRequestHandlerInfo : IExecutionRequestHandlerInfo
         TimeoutPolicy? timeout = null,
         bool streamsResponse = false,
         IReadOnlyDictionary<int, object>? declaredErrorBodies = null,
-        bool writesRawBytes = false
+        bool writesRawBytes = false,
+        IReadOnlyList<string>? errorContentTypes = null
     )
     {
         Path = path;
@@ -41,6 +42,7 @@ public class ExecutionRequestHandlerInfo : IExecutionRequestHandlerInfo
         StreamsResponse = streamsResponse;
         DeclaredErrorBodies = declaredErrorBodies ?? EmptyDeclaredErrorBodies;
         WritesRawBytes = writesRawBytes;
+        ErrorContentTypes = errorContentTypes ?? Array.Empty<string>();
     }
 
     private static readonly IReadOnlyDictionary<int, object> EmptyDeclaredErrorBodies =
@@ -95,7 +97,8 @@ public class ExecutionRequestHandlerInfo : IExecutionRequestHandlerInfo
             timeout ?? source.Timeout,
             source.StreamsResponse,
             source.DeclaredErrorBodies,
-            source.WritesRawBytes
+            source.WritesRawBytes,
+            source.ErrorContentTypes
         ) { }
 
     public string Path { get; }
@@ -125,6 +128,9 @@ public class ExecutionRequestHandlerInfo : IExecutionRequestHandlerInfo
 
     /// <inheritdoc />
     public IReadOnlyList<string> ProducedContentTypes { get; }
+
+    /// <inheritdoc />
+    public IReadOnlyList<string> ErrorContentTypes { get; }
 
     /// <inheritdoc />
     public string? BodyParameterName { get; }

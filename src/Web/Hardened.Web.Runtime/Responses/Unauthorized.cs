@@ -25,7 +25,7 @@ namespace Hardened.Web.Runtime.Responses;
 /// </remarks>
 [HttpStatus(401)]
 public sealed record Unauthorized(string? Detail = null, AuthorizationChallenge? Challenge = null)
-    : IHttpStatusResponse,
+    : IProblemDetails,
         IProvidesResponseHeaders,
         IDeclaresStatus
 {

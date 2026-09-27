@@ -172,4 +172,27 @@ public class PetServiceImpl : IPetService
 
         return Task.FromResult(string.Join("\n", Enumerable.Repeat(line, copies ?? 1)));
     }
+
+    /// <summary>
+    /// A JSON success beside a 404 the document declares as <c>application/problem+json</c>. The
+    /// null is the declared 404, as it is for <see cref="GetPet"/>.
+    /// </summary>
+    public Task<Pet?> GetPetCheckup(string petId) =>
+        Task.FromResult<Pet?>(petId == "missing" ? null : new Pet(petId, "TestPet"));
+
+    /// <summary>
+    /// A 404 declared as <c>application/problem+json</c> and nothing else, beside a 204 that carries
+    /// no content.
+    /// </summary>
+    public Task ClearPetCheckup(string petId)
+    {
+        if (petId == "missing")
+        {
+            throw new NotFound<Problem>(
+                new Problem { Status = 404, Title = "Not Found" }
+            ).AsException();
+        }
+
+        return Task.CompletedTask;
+    }
 }

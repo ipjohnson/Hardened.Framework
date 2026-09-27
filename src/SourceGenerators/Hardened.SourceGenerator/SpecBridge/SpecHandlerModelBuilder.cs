@@ -600,6 +600,90 @@ internal static class SpecHandlerModelBuilder
         bodyType.IsArray && bodyType.Name is "Byte" or "byte"
         || bodyType is { Namespace: "System.IO", Name: "Stream" };
 
+    /// <summary>
+    /// The media types the contract declares that the framework's own writers do not cover,
+    /// comma-joined, or null.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The same question the attribute-routed transform asks of <c>[Produces]</c>, and a candidate
+    /// here is settled the same way: <c>ContentTypeDiagnostics.Report</c> drops the ones a
+    /// serializer in reach declares. <c>application/json</c> always has a writer.
+    /// <c>application/problem+json</c> has one for a failure, and a contract declaring it for a
+    /// success is refused at run time, so there it is a candidate like any other.
+    /// </para>
+    /// <para>
+    /// A streamed operation is not asked: its media types are the framing's.
+    /// </para>
+    /// </remarks>
+    private static string? UnproducibleContentTypes(
+        OperationModel operation,
+        bool successIsWrittenByTheHandler
+    )
+    {
+        // Nothing negotiated, so nothing refused: a dispatch protocol names one media type for the
+        // document and every response is written by the default serializer.
+        if (operation.ProducedContentTypes.Count == 0)
+        {
+            return null;
+        }
+
+        var candidates = new List<string>();
+
+        if (!successIsWrittenByTheHandler)
+        {
+            foreach (var contentType in operation.SuccessContentTypes)
+            {
+                Consider(contentType, failure: false, candidates);
+            }
+        }
+
+        foreach (var contentType in operation.ErrorContentTypes)
+        {
+            Consider(contentType, failure: true, candidates);
+        }
+
+        return candidates.Count == 0 ? null : string.Join(",", candidates);
+    }
+
+    /// <summary>
+    /// Whether the primary success is a string, which the handler writes as text itself.
+    /// </summary>
+    /// <remarks>
+    /// The reading <see cref="BuildResponseInfo"/> makes of the same fields, for the path that
+    /// builds a response set rather than a single return type.
+    /// </remarks>
+    private static bool PrimarySuccessIsText(OperationModel operation) =>
+        operation.ResponseRef == null
+        && !operation.ResponseIsArray
+        && operation.ResponseType != null
+        && TypeMapper.MapToCSharpType(operation.ResponseType, operation.ResponseFormat) == "string";
+
+    /// <remarks>
+    /// <c>text/html</c> on a success is left to the view check: a view writes it, and a contract
+    /// declaring it for a model is held to having one where the implementation is read.
+    /// </remarks>
+    private static void Consider(string contentType, bool failure, List<string> candidates)
+    {
+        var trimmed = contentType.Trim();
+
+        if (
+            trimmed.Length == 0
+            || trimmed.Equals("application/json", StringComparison.OrdinalIgnoreCase)
+            || (
+                failure
+                && trimmed.Equals("application/problem+json", StringComparison.OrdinalIgnoreCase)
+            )
+            || (!failure && trimmed.Equals("text/html", StringComparison.OrdinalIgnoreCase))
+            || candidates.Contains(trimmed)
+        )
+        {
+            return;
+        }
+
+        candidates.Add(trimmed);
+    }
+
     /// <summary>The list as the model carries it, or null where the contract said nothing.</summary>
     private static string? Joined(List<string> contentTypes) =>
         contentTypes.Count > 0 ? string.Join(",", contentTypes) : null;
@@ -688,6 +772,11 @@ internal static class SpecHandlerModelBuilder
                 ErrorContentTypes = Joined(operation.ErrorContentTypes),
                 ValidationErrorStatus = DeclaredValidationStatus(operation),
                 UnionCases = unionCases,
+                UnproducibleContentTypeDiagnostic = UnproducibleContentTypes(
+                    operation,
+                    successIsWrittenByTheHandler: operation.RawBytesResponse
+                        || PrimarySuccessIsText(operation)
+                ),
 
                 // On this path too, and on the stream above. A declared error is a returned case
                 // here rather than a throw, but the refusals the pipeline raises are neither - an
@@ -773,6 +862,13 @@ internal static class SpecHandlerModelBuilder
             // can go out under the media type this operation declared. A contract answering
             // text/plain returns a string the handler writes itself, so it cannot.
             ReturnsBytesOrText = operation.RawBytesResponse || returnsText,
+
+            // What the contract declares that nothing here may write, for HRDR012. The handler
+            // writes a text or byte success itself, so only its failures can be unwritable.
+            UnproducibleContentTypeDiagnostic = UnproducibleContentTypes(
+                operation,
+                successIsWrittenByTheHandler: operation.RawBytesResponse || returnsText
+            ),
 
             // The payload carries its own headers where the contract binds them to its members,
             // which is Smithy's @httpHeader on an output. There is no response set on this path, so

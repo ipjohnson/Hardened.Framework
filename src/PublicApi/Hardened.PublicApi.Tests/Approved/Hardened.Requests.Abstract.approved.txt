@@ -421,6 +421,7 @@ namespace Hardened.Requests.Abstract.Execution
     {
         string? BodyParameterName { get; }
         System.Collections.Generic.IReadOnlyDictionary<int, object> DeclaredErrorBodies { get; }
+        System.Collections.Generic.IReadOnlyList<string> ErrorContentTypes { get; }
         int? FailureStatus { get; }
         System.Type HandlerType { get; }
         string InvokeMethod { get; }
@@ -581,6 +582,7 @@ namespace Hardened.Requests.Abstract.Headers
         public const string Json = "application/json";
         public const string MultipartFormData = "multipart/form-data";
         public const string NdJson = "application/x-ndjson";
+        public const string ProblemJson = "application/problem+json";
         public static Microsoft.Extensions.Primitives.StringValues CssStringValues;
         public static Microsoft.Extensions.Primitives.StringValues EventStreamStringValues;
         public static Microsoft.Extensions.Primitives.StringValues FormUrlEncodedStringValues;
@@ -823,6 +825,12 @@ namespace Hardened.Requests.Abstract.Responses
     {
         bool HasBody { get; }
         int Status { get; }
+    }
+    public interface IProblemDetails : Hardened.Requests.Abstract.Responses.IHttpStatusResponse
+    {
+        string? Detail { get; }
+        string Title { get; }
+        string Type { get; }
     }
     public interface IProvidesResponseHeaders
     {
@@ -1078,6 +1086,11 @@ namespace Hardened.Requests.Abstract.Serializer
     public class NotAcceptableException : Hardened.Requests.Abstract.Errors.StatusCodeException
     {
         public NotAcceptableException(System.Collections.Generic.IReadOnlyList<string> produced) { }
+    }
+    public static class ProblemJson
+    {
+        public static string ContentTypeFor(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+        public static bool Produces(string mediaType, Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
     }
     public enum RequestDeserializerOrder
     {

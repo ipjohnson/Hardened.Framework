@@ -138,6 +138,19 @@ public static class HandlerInfoCodeGenerator
                 $", producedContentTypes: new string[] {{ {string.Join(", ", quoted)} }}";
         }
 
+        // And the ones a description declared its failures with, where they are not the same set.
+        // A failure negotiates within these, so a contract's problem+json 404 is not answered in
+        // the media type its 200 declares.
+        if (
+            ErrorContentTypes(handlerModel.ResponseInformation) is { } errorContentTypes
+            && errorContentTypes.Length > 0
+        )
+        {
+            var quoted = errorContentTypes.Select(contentType => "\"" + contentType + "\"");
+
+            declaredArgs += $", errorContentTypes: new string[] {{ {string.Join(", ", quoted)} }}";
+        }
+
         // The body parameter's identifier, so a deserialization failure names its fields with the
         // prefix the generated validators use rather than a hardcoded "body".
         foreach (var parameter in handlerModel.RequestParameterInformationList)
@@ -221,4 +234,44 @@ public static class HandlerInfoCodeGenerator
             ComponentModifier.Private | ComponentModifier.Static | ComponentModifier.Readonly;
         metadataField.InitializeValue = NewArray(typeof(object), arguments.ToArray());
     }
+
+    /// <summary>
+    /// The media types a description declared its failures with, or null where there is nothing to
+    /// say apart from the produced set.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Null where they are the whole produced set, which is every contract declaring one media type
+    /// for everything: negotiating a failure within either list gives the same answer, and emitting
+    /// it would change the generated code of every such operation for nothing.
+    /// </para>
+    /// <para>
+    /// Null as well where the operation negotiates nothing. A dispatch protocol such as Smithy's
+    /// <c>awsJson1_0</c> names one media type for the document and leaves the produced set empty,
+    /// so its failures are written by the default serializer, and a set here would send them to a
+    /// media type nothing writes.
+    /// </para>
+    /// </remarks>
+    internal static string[]? ErrorContentTypes(ResponseInformationModel response)
+    {
+        if (
+            string.IsNullOrEmpty(response.ErrorContentTypes)
+            || string.IsNullOrEmpty(response.ProducedContentTypes)
+        )
+        {
+            return null;
+        }
+
+        var failures = Split(response.ErrorContentTypes!);
+        var produced = Split(response.ProducedContentTypes!);
+
+        return failures.SequenceEqual(produced, StringComparer.OrdinalIgnoreCase) ? null : failures;
+    }
+
+    private static string[] Split(string joined) =>
+        joined
+            .Split(',')
+            .Select(contentType => contentType.Trim())
+            .Where(contentType => contentType.Length > 0)
+            .ToArray();
 }

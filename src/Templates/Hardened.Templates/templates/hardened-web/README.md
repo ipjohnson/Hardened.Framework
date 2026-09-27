@@ -325,7 +325,8 @@ Those error bodies arrive as JSON, because `TemplateModuleNameLibrary` asks for 
 `string`, so a binary error body is decoded and re-encoded before any content serializer sees it
 and arrives corrupt. Request bodies and success bodies reach the serializer as real `HttpContent`
 and are unaffected, so sending text for the error path is all it takes - and the published document
-says so, declaring `application/json` alone on every error response.
+says so, declaring JSON alone on every error response: `application/problem+json` where the body is a
+problem record such as `NotFound`, and `application/json` for the rest.
 
 Drop the attribute to answer refusals as MessagePack too, and the client's typed error assertions
 stop working.

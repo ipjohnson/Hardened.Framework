@@ -11,7 +11,7 @@ namespace Hardened.Web.Runtime.Responses;
 /// unchanged is reasonable once the caller has re-read the resource, and is not otherwise.
 /// </remarks>
 [HttpStatus(409)]
-public sealed record Conflict(string? Detail = null) : IHttpStatusResponse, IDeclaresStatus
+public sealed record Conflict(string? Detail = null) : IProblemDetails, IDeclaresStatus
 {
     /// <summary>
     /// The Conflict with a generic message, for a handler with nothing more to say than the status.
