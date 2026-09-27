@@ -147,6 +147,10 @@ A filter uses these members of `Response`:
 | `ShouldSerialize` | False when the response needs no serializing, such as when the handler wrote the body itself |
 | `ResponseStarted` | True once bytes have been sent |
 
+A handler that sets `ShouldSerialize` to false and then throws has not answered. When nothing has
+been sent, the failure is answered as any other is, with its status and the error body. When bytes
+have been sent, the status cannot change, and the failure is logged as a failed request.
+
 The filter at `FilterOrder.Serialization` writes the response after the rest of the chain returns. A filter ordered behind `Serialization` runs before the response is written. After `Next()` returns, it can set a header or replace `ResponseValue`. The response carries the change. The first example's filter sets `Server-Timing` this way.
 
 A filter ordered ahead of `Serialization` gets control back after the response was written. A `ResponseValue` that it sets then is not sent. On Kestrel, setting a header then throws `InvalidOperationException` with the message "Headers are read-only, response has already started." The request is logged as failed. The client receives the response without the header.

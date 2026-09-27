@@ -72,4 +72,15 @@ public class HealthCheckConfiguration
     /// </para>
     /// </remarks>
     public Requirement? Requirement { get; set; }
+
+    /// <summary>
+    /// Serve both probes to any caller, under <c>[RequireAuthorization]</c> as well.
+    /// </summary>
+    /// <remarks>
+    /// Off, which leaves the probes under the application's posture, as <see cref="Requirement"/>
+    /// describes. On, they carry <c>[AllowAnonymous]</c>, so a load balancer or an orchestrator,
+    /// which presents no credential, reaches them under default-deny. A convention can then no
+    /// longer narrow them, and <see cref="Requirement"/> no longer applies.
+    /// </remarks>
+    public bool AllowAnonymous { get; set; }
 }

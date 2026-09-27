@@ -167,4 +167,26 @@ public class KestrelHostTests
         Assert.Equal(500, response.StatusCode);
         Assert.IsType<InvalidOperationException>(response.Failure);
     }
+
+    /// <summary>
+    /// A handler that took over its body and threw before writing any is answered 500, rather than
+    /// the 200 it had set with an empty body.
+    /// </summary>
+    [ModuleTest]
+    public async Task AHandlerThatTookOverItsBodyAndThrewIsAFailure(ITestWebApp app)
+    {
+        var response = await app.Get("/errors/took-over-then-threw");
+
+        Assert.Equal(500, response.StatusCode);
+    }
+
+    [ModuleTest]
+    [PipelineHost]
+    public async Task InProcessAHandlerThatTookOverItsBodyAndThrewIsAFailure(ITestWebApp app)
+    {
+        var response = await app.Get("/errors/took-over-then-threw");
+
+        Assert.Equal(500, response.StatusCode);
+        Assert.IsType<InvalidOperationException>(response.Failure);
+    }
 }

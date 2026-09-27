@@ -3,9 +3,11 @@ using System.Text;
 using Hardened.Requests.Abstract.Authorization;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.PathTokens;
+using Hardened.Requests.Runtime.Authorization;
 using Hardened.Requests.Runtime.Execution;
 using Hardened.Web.Runtime.Handlers;
 using Hardened.Web.Runtime.Responses;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Hardened.Web.Runtime.OpenApi;
 
@@ -202,19 +204,29 @@ public class OpenApiDocumentProvider : IWebExecutionRequestHandlerProvider
 
     private sealed class Handler : BaseExecutionHandler<OpenApiDocumentController>
     {
-        /// <summary>
-        /// Empty, and load bearing. There is deliberately no <c>[AllowAnonymous]</c>: that is the one
-        /// thing a convention cannot narrow, and without it the document inherits the application's
-        /// posture rather than overriding it.
-        /// </summary>
-        private static readonly object[] Metadata = [];
-
         public Handler(
             IServiceProvider serviceProvider,
             byte[] gzipDocument,
             string path,
             string contentType,
             Requirement? requirement
+        )
+            : this(
+                serviceProvider,
+                gzipDocument,
+                path,
+                contentType,
+                requirement,
+                Metadata(serviceProvider)
+            ) { }
+
+        private Handler(
+            IServiceProvider serviceProvider,
+            byte[] gzipDocument,
+            string path,
+            string contentType,
+            Requirement? requirement,
+            object[] metadata
         )
             : base(
                 ExecutionHelper.AsyncStandardFilterEmptyParameters<OpenApiDocumentController>(
@@ -225,14 +237,24 @@ public class OpenApiDocumentProvider : IWebExecutionRequestHandlerProvider
                         typeof(OpenApiDocumentController),
                         nameof(OpenApiDocumentController.Write),
                         [],
-                        Metadata,
+                        metadata,
                         requirement
                     ),
                     // A lambda rather than a static method, because what varies between two published
                     // documents is exactly what it closes over.
                     (context, controller) => controller.Write(context, gzipDocument, contentType),
-                    ExecutionHelper.GetFilterInfo(Metadata)
+                    ExecutionHelper.GetFilterInfo(metadata)
                 )
             ) { }
+
+        /// <summary>
+        /// Empty unless <see cref="OpenApiDocumentConfiguration.AllowAnonymous"/> is on. There is no
+        /// <c>[AllowAnonymous]</c> otherwise: that is the one thing a convention cannot narrow, and
+        /// without it the document inherits the application's posture rather than overriding it.
+        /// </summary>
+        private static object[] Metadata(IServiceProvider serviceProvider) =>
+            serviceProvider.GetService<OpenApiDocumentConfiguration>() is { AllowAnonymous: true }
+                ? [new AllowAnonymousAttribute()]
+                : [];
     }
 }

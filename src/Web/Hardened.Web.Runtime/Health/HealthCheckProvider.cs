@@ -1,6 +1,7 @@
 using Hardened.Requests.Abstract.Authorization;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.PathTokens;
+using Hardened.Requests.Runtime.Authorization;
 using Hardened.Requests.Runtime.Execution;
 using Hardened.Web.Runtime.Handlers;
 
@@ -99,11 +100,12 @@ public class HealthCheckProvider : IWebExecutionRequestHandlerProvider
     private sealed class Handler : BaseExecutionHandler<HealthCheckController>
     {
         /// <summary>
-        /// Empty, and load bearing. There is deliberately no <c>[AllowAnonymous]</c>: that is the one
-        /// thing a convention cannot narrow, and without it a probe inherits the application's
-        /// posture rather than overriding it.
+        /// Empty unless <see cref="HealthCheckConfiguration.AllowAnonymous"/> is on. There is no
+        /// <c>[AllowAnonymous]</c> otherwise: that is the one thing a convention cannot narrow, and
+        /// without it a probe inherits the application's posture rather than overriding it.
         /// </summary>
-        private static readonly object[] Metadata = [];
+        private static object[] Metadata(HealthCheckConfiguration config) =>
+            config.AllowAnonymous ? [new AllowAnonymousAttribute()] : [];
 
         private Handler(ExecutionHandlerSetup setup)
             : base(setup) { }
@@ -124,11 +126,11 @@ public class HealthCheckProvider : IWebExecutionRequestHandlerProvider
                         typeof(HealthCheckController),
                         methodName,
                         [],
-                        Metadata,
+                        Metadata(config),
                         config.Requirement
                     ),
                     (context, controller) => answer(controller, context),
-                    ExecutionHelper.GetFilterInfo(Metadata)
+                    ExecutionHelper.GetFilterInfo(Metadata(config))
                 )
             );
     }

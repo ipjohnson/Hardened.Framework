@@ -488,7 +488,8 @@ The worst result decides the status of `/health/ready`:
 | `Unhealthy` | 503 |
 
 A check that throws, or that runs past its timeout, counts as `Unhealthy`. With no checks
-registered, `/health/ready` answers 200.
+registered, `/health/ready` answers 200. Both endpoints answer a JSON body naming the overall
+result.
 
 On the Kestrel host with this check, `/health/ready` answers 200:
 
@@ -496,7 +497,10 @@ On the Kestrel host with this check, `/health/ready` answers 200:
 GET /health/ready
 
 HTTP/1.1 200 OK
+Content-Type: application/json
 Cache-Control: no-store
+
+{"status":"Healthy"}
 ```
 
 `DELETE /todos/1` removes todo 1:
@@ -513,7 +517,10 @@ HTTP/1.1 204 No Content
 GET /health/ready
 
 HTTP/1.1 503 Service Unavailable
+Content-Type: application/json
 Cache-Control: no-store
+
+{"status":"Unhealthy"}
 ```
 
 `HealthCheckConfiguration` holds the settings for both endpoints:
@@ -524,7 +531,9 @@ Cache-Control: no-store
 | `ReadyPath` | `/health/ready` | The readiness path |
 | `CheckTimeout` | 2 seconds | The time one check may take |
 | `TotalTimeout` | 5 seconds | The time the whole readiness probe may take |
+| `IncludeDetail` | `false` | Each check's name, status and description in the body, under `checks` |
 | `Requirement` | none | A requirement both endpoints add to the application's own |
+| `AllowAnonymous` | `false` | Serves both endpoints to any caller, under `[RequireAuthorization]` as well |
 
 `/health/ready` cancels the token passed to `Check` when either timeout runs out. A configuration
 that the application registers replaces the default one. This registration moves both paths:
@@ -551,8 +560,11 @@ public partial class Application : IServiceCollectionConfiguration
 }
 ```
 
-Neither endpoint carries `[AllowAnonymous]`. Under `[RequireAuthorization]`, both answer 401 to a
-caller with no credentials. [Authorization](/guide/authorization) covers both attributes.
+Neither endpoint carries `[AllowAnonymous]` unless `AllowAnonymous` is set. Under
+`[RequireAuthorization]` both then answer 401 to a caller with no credentials, which is what a load
+balancer or an orchestrator's probe is. `AllowAnonymous = true` serves them to any caller. A
+convention can then no longer narrow them, and `Requirement` no longer applies.
+[Authorization](/guide/authorization) covers both attributes.
 `Requirement` can only narrow what the application already requires. A
 route that the application declares at either path answers in place of the built-in endpoint.
 

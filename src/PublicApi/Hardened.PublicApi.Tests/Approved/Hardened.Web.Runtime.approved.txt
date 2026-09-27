@@ -442,6 +442,7 @@ namespace Hardened.Web.Runtime.Health
     public class HealthCheckConfiguration
     {
         public HealthCheckConfiguration() { }
+        public bool AllowAnonymous { get; set; }
         public System.TimeSpan CheckTimeout { get; set; }
         public bool IncludeDetail { get; set; }
         public string LivePath { get; set; }
@@ -574,6 +575,11 @@ namespace Hardened.Web.Runtime.OpenApi
         string? ScriptIntegrity { get; }
         string ScriptUrl { get; }
         string Title { get; }
+    }
+    public sealed class OpenApiDocumentConfiguration
+    {
+        public OpenApiDocumentConfiguration() { }
+        public bool AllowAnonymous { get; set; }
     }
     public class OpenApiDocumentController
     {

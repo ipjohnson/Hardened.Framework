@@ -77,6 +77,12 @@ public class IoFilter : IExecutionFilter
             {
                 chain.Context.Response.ExceptionValue = exp;
             }
+
+            // Whether the exception arrived here or the invoke filter caught it first.
+            if (chain.Context.Response.ExceptionValue is { } failure)
+            {
+                Unanswered(chain.Context, failure);
+            }
         }
 
         var responseTimestamp = MachineTimestamp.Now;
@@ -102,5 +108,32 @@ public class IoFilter : IExecutionFilter
                 responseTimestamp.GetElapsedMilliseconds()
             );
         }
+    }
+
+    /// <summary>
+    /// A handler that took over its body and then threw, which has not answered.
+    /// </summary>
+    /// <remarks>
+    /// Clearing <c>ShouldSerialize</c> is how a handler says it writes the body itself, and the
+    /// exception was then serialized nowhere and logged nowhere: the caller got the status the
+    /// handler had set with an empty body. A health probe that failed its write answered 200 that
+    /// way. Where nothing reached the wire the failure is answered as any other is. Where the body
+    /// had started, the status can no longer change, and the failure is logged rather than lost.
+    /// </remarks>
+    private static void Unanswered(IExecutionContext context, Exception exp)
+    {
+        if (context.Response.ShouldSerialize)
+        {
+            return;
+        }
+
+        if (!context.Response.ResponseStarted)
+        {
+            context.Response.ShouldSerialize = true;
+
+            return;
+        }
+
+        context.RequestServices.GetRequiredService<IRequestLogger>().RequestFailed(context, exp);
     }
 }

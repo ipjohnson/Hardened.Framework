@@ -386,6 +386,32 @@ public class OpenApiDocumentProviderTests
     }
 
     /// <summary>
+    /// A deployment that keeps its contract public under default-deny says so on the configuration,
+    /// and the document then carries <c>[AllowAnonymous]</c>.
+    /// </summary>
+    [Fact]
+    public void AllowAnonymousOpensTheDocument()
+    {
+        var services = Services(collection =>
+            collection.AddSingleton(new OpenApiDocumentConfiguration { AllowAnonymous = true })
+        );
+
+        var handlerInfo = HandlerInfoFor(new OpenApiDocumentProvider(services, Document), services);
+
+        Assert.Contains(handlerInfo.Metadata, item => item is AllowAnonymousAttribute);
+    }
+
+    [Fact]
+    public void WithoutTheSettingTheDocumentKeepsThePosture()
+    {
+        var services = Services();
+
+        var handlerInfo = HandlerInfoFor(new OpenApiDocumentProvider(services, Document), services);
+
+        Assert.DoesNotContain(handlerInfo.Metadata, item => item is AllowAnonymousAttribute);
+    }
+
+    /// <summary>
     /// A document that wants a policy of its own states it directly, which is what
     /// <c>IExecutionRequestHandlerInfo</c> documents as the supported way for a handler registered
     /// by hand to say what it needs.

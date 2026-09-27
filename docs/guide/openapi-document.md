@@ -183,7 +183,15 @@ A request that sends `Accept-Encoding: gzip` gets the document compressed, with
 
 The document has no `[AllowAnonymous]`. Under `[RequireAuthorization]` on the application module,
 `/openapi.json` answers 401 to a caller with no credentials. [Authorization](/guide/authorization)
-covers both attributes.
+covers both attributes. An `OpenApiDocumentConfiguration` registered with `AllowAnonymous` serves
+the document and the reference page to any caller:
+
+```csharp
+services.AddSingleton(new OpenApiDocumentConfiguration { AllowAnonymous = true });
+```
+
+`OpenApiDocumentConfiguration` is in `Hardened.Web.Runtime.OpenApi`. With it, a convention can no
+longer narrow either one.
 
 The document does not describe `/openapi.json`, the reference page or the health endpoints. It
 answers ahead of a route that the application declares at the same path.
@@ -296,7 +304,8 @@ serve the first. A `Path` written without a leading slash gets one.
 
 The page answers GET and HEAD, as `text/html; charset=utf-8`. Another method answers 405 with
 `Allow: GET, HEAD`. The page has no `[AllowAnonymous]`. Under `[RequireAuthorization]` on the
-application module, `/docs` answers 401 to a caller with no credentials.
+application module, `/docs` answers 401 to a caller with no credentials, unless
+`OpenApiDocumentConfiguration.AllowAnonymous` opens it with the document.
 
 `ScriptUrl` with `ScriptIntegrity = ""` loads the script from that URL with no `integrity`
 attribute. A `ScriptUrl` with `ScriptIntegrity` left unset keeps the default hash. Any other file
