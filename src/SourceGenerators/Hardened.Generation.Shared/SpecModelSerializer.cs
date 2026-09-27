@@ -312,6 +312,7 @@ internal static class SpecModelSerializer
                             Name = record.String("Name"),
                             TypeName = record.String("TypeName"),
                             ExceptionTypeName = record.String("ExceptionTypeName"),
+                            HeadersOnPayload = record.Bool("HeadersOnPayload"),
                         }
                     );
                     lastResponseHeaders = operation
@@ -775,6 +776,7 @@ internal static class SpecModelSerializer
             // second derivation is a switch arm naming a type nothing emitted.
             record2.Add("TypeName", errorResponse.TypeName);
             record2.Add("ExceptionTypeName", errorResponse.ExceptionTypeName);
+            record2.Add("HeadersOnPayload", errorResponse.HeadersOnPayload);
             record2.WriteTo(builder);
 
             WriteResponseHeaders(builder, errorResponse.Headers);

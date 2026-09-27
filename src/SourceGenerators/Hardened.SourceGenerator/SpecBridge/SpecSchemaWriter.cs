@@ -321,6 +321,11 @@ internal static class SpecSchemaWriter
         return builder.Append('}').ToString();
     }
 
+    /// <remarks>
+    /// A member bound to a response header is left out. The serializer never writes it into the
+    /// body, and the response publishes it under its headers, as <see cref="WriteRequired"/> already
+    /// leaves it out of <c>required</c>.
+    /// </remarks>
     private static void WriteProperties(
         StringBuilder builder,
         SchemaModel schema,
@@ -329,16 +334,18 @@ internal static class SpecSchemaWriter
         HashSet<string> seen
     )
     {
-        if (schema.Properties.Count == 0)
+        var properties = schema.Properties.Where(property => !property.IsHeaderBound).ToList();
+
+        if (properties.Count == 0)
         {
             return;
         }
 
         builder.Append(",\"properties\":{");
 
-        for (var i = 0; i < schema.Properties.Count; i++)
+        for (var i = 0; i < properties.Count; i++)
         {
-            var property = schema.Properties[i];
+            var property = properties[i];
 
             if (i > 0)
             {

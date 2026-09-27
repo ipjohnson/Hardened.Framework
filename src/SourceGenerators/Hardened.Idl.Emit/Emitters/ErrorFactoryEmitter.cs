@@ -130,8 +130,11 @@ internal static class ErrorFactoryEmitter
         var arguments = new StringBuilder("body");
 
         // A header the error declares is a value only the thrower knows, so it travels the same way
-        // the body does rather than being invented here.
-        foreach (var header in error.Headers)
+        // the body does rather than being invented here. A Smithy error's header is a member of the
+        // body already.
+        foreach (
+            var header in error.HeadersOnPayload ? new List<ResponseHeaderModel>() : error.Headers
+        )
         {
             var name = NamingHelper.ToParameterName(header.ParameterName);
 

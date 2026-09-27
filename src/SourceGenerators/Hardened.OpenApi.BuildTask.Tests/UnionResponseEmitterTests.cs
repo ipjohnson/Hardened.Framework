@@ -643,4 +643,39 @@ public class UnionResponseEmitterTests
     }
 
     #endregion
+
+    private static ErrorResponseModel WithRetryAfter(ErrorResponseModel error, bool onPayload)
+    {
+        error.Headers.Add(
+            new ResponseHeaderModel { Name = "Retry-After", ParameterName = "RetryAfter" }
+        );
+        error.HeadersOnPayload = onPayload;
+
+        return error;
+    }
+
+    /// <summary>
+    /// A Smithy error case takes the body alone and hands the headers call to it, because the
+    /// header is a member of the error shape.
+    /// </summary>
+    [Fact]
+    public void AnErrorCaseWhoseHeadersAreOnItsPayloadPassesThemOn()
+    {
+        var output = EmitCases(
+            WithRetryAfter(
+                new ErrorResponseModel
+                {
+                    StatusCode = 429,
+                    Ref = "#/components/schemas/Throttled",
+                    Name = "Throttled",
+                    TypeName = "ThrottledError",
+                },
+                onPayload: true
+            )
+        );
+
+        Assert.Contains("IProvidesResponseHeaders", output);
+        Assert.Contains("Body.ApplyHeaders(headers)", output);
+        Assert.DoesNotContain("string RetryAfter", output);
+    }
 }

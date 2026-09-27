@@ -313,6 +313,13 @@
           },
           "429": {
             "description": "Too Many Requests",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -488,13 +495,6 @@
         "properties": {
           "pet": {
             "$ref": "#/components/schemas/Pet"
-          },
-          "location": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "description": "Where the created pet can be read. Bound to a header, so it leaves the body."
           }
         },
         "required": [

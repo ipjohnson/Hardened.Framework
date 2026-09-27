@@ -352,6 +352,31 @@ public class SpecSchemaWriterTests
         Assert.Equal("pet", required[0].GetString());
     }
 
+    /// <summary>
+    /// And it is not one of the body's properties, because the serializer never writes it there.
+    /// </summary>
+    [Fact]
+    public void AHeaderBoundMemberIsNotABodyProperty()
+    {
+        var schemas = new List<SchemaModel>
+        {
+            Object(
+                "Throttled",
+                Property("message"),
+                Property("retryAfter", headerName: "Retry-After")
+            ),
+        };
+
+        var properties = Component(
+                SpecSchemaWriter.ForRef("#/components/schemas/Throttled", schemas)!,
+                "Throttled"
+            )
+            .GetProperty("properties");
+
+        Assert.True(properties.TryGetProperty("message", out _));
+        Assert.False(properties.TryGetProperty("retryAfter", out _));
+    }
+
     [Fact]
     public void AnEnumWritesItsWireValues()
     {

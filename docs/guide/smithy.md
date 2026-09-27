@@ -221,6 +221,32 @@ A trait on each input member decides where the member binds from and how its par
 A query or header parameter is named from the name on the wire, not from the member. `text` bound
 to `@httpQuery("q")` is `q`.
 
+A `@mixin` structure's members, with their binding traits, become members of every structure that
+uses it. The build reads the model with `smithy ast --flatten`, which copies them in. Here every
+operation that uses `FleetScoped` binds the `X-Fleet-Id` header and the `vin` label:
+
+```smithy
+@mixin
+structure FleetScoped {
+    @required
+    @httpHeader("X-Fleet-Id")
+    fleetId: String
+
+    @required
+    @httpLabel
+    vin: String
+}
+
+@readonly
+@http(method: "GET", uri: "/vans/{vin}", code: 200)
+operation GetVan {
+    input := with [FleetScoped] {
+        @httpQuery("verbose")
+        verbose: Boolean
+    }
+}
+```
+
 An `@httpPayload` blob is the raw request body, under the blob's `@mediaType`, or
 `application/octet-stream` without one. The handler receives the bytes as `byte[]`, and the served
 document declares the body as `format: binary`.
@@ -403,7 +429,8 @@ A streamed union is sent as server-sent events, with each item's member name as 
 
 ## Errors
 
-A structure with `@error` in an operation's `errors` is a declared error. Its status is its
+A structure with `@error` in an operation's `errors` is a declared error. So is one in the
+service's `errors`, which applies to every operation in the service. Its status is its
 `@httpError`. Without one, `@error("client")` is 400 and `@error("server")` is 500.
 
 The build generates a type for every error, named for the shape. Under `Throws` it is
@@ -420,6 +447,25 @@ instead: `new TodoNotFoundError(new TodoNotFound(...))`.
 Under `Throws`, the same record thrown with `AsException()` is sent as the error's shape, filled the
 same way. An operation that declares two errors at one status fills neither, and the record is sent
 as it was thrown.
+
+A member of an error shape with `@httpHeader` is sent as that response header, and the served
+document declares it under the error response's `headers`. The member stays on the shape's record
+and is not in the JSON body:
+
+```smithy
+@error("client")
+@httpError(429)
+structure Throttled {
+    message: String
+
+    @httpHeader("Retry-After")
+    retryAfter: String
+}
+```
+
+`throw new Throttled("Slow down.", RetryAfter: "30").AsException()` answers 429 with
+`Retry-After: 30` and the body `{"message":"Slow down."}`. Under an awsJson protocol, which
+ignores HTTP binding traits, the member stays in the body.
 
 Under `Throws`, the build generates `AsException()` on the error shape, in `<Model>Errors`. A
 handler throws `new TodoTitleTaken(...).AsException()`. Under `Throws`, a `GET` or `PUT` operation

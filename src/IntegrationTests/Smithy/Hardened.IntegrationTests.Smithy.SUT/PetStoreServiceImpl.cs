@@ -76,7 +76,7 @@ public class PetStoreServiceImpl : IPetStoreService
         // the shape is named once.
         if (petId == "throttled")
         {
-            throw new Throttled("Slow down.").AsException();
+            throw new Throttled("Slow down.", RetryAfter: "30").AsException();
         }
 
         // The framework's own NotFound, thrown. The model declares PetNotFound at 404, so the

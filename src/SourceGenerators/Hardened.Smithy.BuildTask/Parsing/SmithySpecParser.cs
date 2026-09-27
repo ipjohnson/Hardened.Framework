@@ -242,6 +242,10 @@ internal static class SmithySpecParser
 
         var securityScheme = DeclaredScheme(context, service);
 
+        // Smithy binds a service's errors to every operation in it, so each operation declares them
+        // beside its own.
+        var serviceErrors = SmithyAst.TargetList(service, "errors").ToList();
+
         foreach (var operationId in Operations(context, service))
         {
             if (!context.Ast.TryGetShape(operationId, out var operation))
@@ -258,6 +262,7 @@ internal static class SmithySpecParser
                 tag,
                 protocol,
                 RequiresAuth(service),
+                serviceErrors,
                 securityScheme
             );
 
@@ -460,6 +465,7 @@ internal static class SmithySpecParser
         string tag,
         ProtocolBinding protocol,
         bool serviceRequiresAuth,
+        IReadOnlyList<string> serviceErrors,
         string? securityScheme = null
     )
     {
@@ -626,7 +632,7 @@ internal static class SmithySpecParser
 
         model.SuccessResponses.Add(success);
 
-        ParseErrors(context, operation, model, protocol);
+        ParseErrors(context, operation, model, protocol, serviceErrors);
 
         // The set the response is negotiated against, mirroring what the OpenAPI parser collects
         // from a content map. Success first and errors after, because the set is negotiated
@@ -1147,10 +1153,21 @@ internal static class SmithySpecParser
         ParseContext context,
         JsonElement operation,
         OperationModel model,
-        ProtocolBinding protocol
+        ProtocolBinding protocol,
+        IReadOnlyList<string> serviceErrors
     )
     {
-        foreach (var errorId in SmithyAst.TargetList(operation, "errors"))
+        var errorIds = new List<string>(SmithyAst.TargetList(operation, "errors"));
+
+        foreach (var serviceError in serviceErrors)
+        {
+            if (!errorIds.Contains(serviceError))
+            {
+                errorIds.Add(serviceError);
+            }
+        }
+
+        foreach (var errorId in errorIds)
         {
             if (!context.Ast.TryGetShape(errorId, out var error))
             {
@@ -1193,25 +1210,83 @@ internal static class SmithySpecParser
                 AddTypeDiscriminator(context, errorId);
             }
 
-            model.ErrorResponses.Add(
-                new ErrorResponseModel
-                {
-                    StatusCode = status,
-                    Ref = reference,
-                    Description = Text(error, SmithyTraits.Documentation),
+            var errorModel = new ErrorResponseModel
+            {
+                StatusCode = status,
+                Ref = reference,
+                Description = Text(error, SmithyTraits.Documentation),
 
-                    // The shape's own name, which is the thing this front end knows and OpenAPI
-                    // usually does not. An error in Smithy is a named shape bound to operations -
-                    // bank.smithy declares AccountNotFound once and binds it to two - so the generated
-                    // type is named after it, once, shared by both. That is what every other Smithy
-                    // code generator emits from the same model, and it is why the status is no longer
-                    // enough to key a type on: two @error("client") shapes both default to 400.
-                    Name = SmithyPrelude.LocalName(errorId),
-                }
-            );
+                // The shape's own name, which is the thing this front end knows and OpenAPI
+                // usually does not. An error in Smithy is a named shape bound to operations -
+                // bank.smithy declares AccountNotFound once and binds it to two - so the generated
+                // type is named after it, once, shared by both. That is what every other Smithy
+                // code generator emits from the same model, and it is why the status is no longer
+                // enough to key a type on: two @error("client") shapes both default to 400.
+                Name = SmithyPrelude.LocalName(errorId),
+            };
+
+            // Not under a dispatch protocol, which ignores every HTTP binding trait.
+            if (!protocol.Dispatches)
+            {
+                BindErrorHeaders(context, errorId, error, errorModel);
+            }
+
+            model.ErrorResponses.Add(errorModel);
         }
 
         model.ErrorResponses.Sort((left, right) => left.StatusCode.CompareTo(right.StatusCode));
+    }
+
+    /// <summary>
+    /// The error shape's <c>@httpHeader</c> members, as the error response's headers.
+    /// </summary>
+    /// <remarks>
+    /// The same binding an output member gets: the member stays on the record, leaves the body, and
+    /// the record sends it as a header through <c>IProvidesResponseHeaders</c>. Read as a body
+    /// member, a <c>Retry-After</c> on a 429 went out in the JSON and never as the header the
+    /// document declared.
+    /// </remarks>
+    private static void BindErrorHeaders(
+        ParseContext context,
+        string errorId,
+        JsonElement error,
+        ErrorResponseModel errorModel
+    )
+    {
+        var bound = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        foreach (var member in SmithyAst.Members(error))
+        {
+            if (!SmithyAst.TryGetTrait(member.Value, SmithyTraits.HttpHeader, out var header))
+            {
+                continue;
+            }
+
+            var wireName =
+                header.ValueKind == JsonValueKind.String
+                    ? header.GetString() ?? member.Key
+                    : member.Key;
+
+            errorModel.Headers.Add(
+                new ResponseHeaderModel
+                {
+                    Name = wireName,
+                    ParameterName = NamingHelper.ToPascalCase(wireName),
+                    Description = Text(member.Value, SmithyTraits.Documentation),
+                }
+            );
+
+            bound[JsonName(member.Value) ?? member.Key] = wireName;
+        }
+
+        if (bound.Count == 0)
+        {
+            return;
+        }
+
+        errorModel.HeadersOnPayload = true;
+
+        MarkHeaderBound(context, errorId, bound);
     }
 
     /// <summary>

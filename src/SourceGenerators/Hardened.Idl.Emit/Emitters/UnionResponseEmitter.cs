@@ -186,7 +186,8 @@ internal static class UnionResponseEmitter
                     // every operation that declares the error.
                     $"The {error.StatusCode} response the description declares"
                         + (error.Name == null ? "." : $" as '{error.Name}'."),
-                    error.Headers
+                    error.HeadersOnPayload ? null : error.Headers,
+                    error.HeadersOnPayload
                 )
             );
         }
@@ -262,7 +263,8 @@ internal static class UnionResponseEmitter
         ITypeDefinition? payload,
         string? description,
         string fallbackComment,
-        IReadOnlyList<ResponseHeaderModel>? headers = null
+        IReadOnlyList<ResponseHeaderModel>? headers = null,
+        bool headersOnPayload = false
     )
     {
         var definition = container.AddClass(name);
@@ -353,9 +355,47 @@ internal static class UnionResponseEmitter
             }
         );
 
-        EmitApplyHeaders(definition, headerParameters);
+        if (headersOnPayload)
+        {
+            EmitDelegatedApplyHeaders(definition);
+        }
+        else
+        {
+            EmitApplyHeaders(definition, headerParameters);
+        }
 
         return definition;
+    }
+
+    /// <summary>
+    /// The interface the shared dispatch calls, passed on to the payload.
+    /// </summary>
+    /// <remarks>
+    /// A Smithy error binds its headers to members of the error shape, so the payload record holds
+    /// the values and implements the interface itself. The case takes no value of its own.
+    /// </remarks>
+    private static void EmitDelegatedApplyHeaders(ClassDefinition definition)
+    {
+        definition.AddBaseType(
+            TypeDefinition.Get(ShippedResponses.ContractNamespace, "IProvidesResponseHeaders")
+        );
+
+        var method = definition.AddMethod("ApplyHeaders");
+
+        method.Modifiers |= ComponentModifier.Public;
+        method.AddParameter(
+            new GenericTypeDefinition(
+                typeof(IDictionary<,>),
+                new ITypeDefinition[]
+                {
+                    TypeDefinition.Get(typeof(string)),
+                    TypeDefinition.Get("Microsoft.Extensions.Primitives", "StringValues"),
+                }
+            ),
+            "headers"
+        );
+
+        method.AddIndentedStatement("Body.ApplyHeaders(headers)");
     }
 
     /// <summary>

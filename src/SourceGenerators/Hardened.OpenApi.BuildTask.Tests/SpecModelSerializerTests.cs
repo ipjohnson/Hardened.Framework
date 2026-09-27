@@ -451,6 +451,7 @@ public class SpecModelSerializerTests
                     StatusCode = 404,
                     Ref = "#/components/schemas/ApiError",
                     Description = "Gone.",
+                    HeadersOnPayload = true,
                 },
                 new ErrorResponseModel { StatusCode = 503 },
             },

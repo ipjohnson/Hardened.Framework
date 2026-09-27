@@ -243,4 +243,53 @@ public class ErrorResponseEmitterTests
     }
 
     #endregion
+
+    private static ErrorResponseModel WithRetryAfter(ErrorResponseModel error, bool onPayload)
+    {
+        error.Headers.Add(
+            new ResponseHeaderModel { Name = "Retry-After", ParameterName = "RetryAfter" }
+        );
+        error.HeadersOnPayload = onPayload;
+
+        return error;
+    }
+
+    /// <summary>
+    /// A header declared beside the body is a value the thrower passes, and the exception sends it.
+    /// </summary>
+    [Fact]
+    public void AHeaderDeclaredBesideTheBodyIsAConstructorParameter()
+    {
+        var output = Emit(
+            WithRetryAfter(
+                Error(429, "#/components/schemas/Problem", exceptionTypeName: "ThrottledException"),
+                onPayload: false
+            )
+        );
+
+        Assert.Contains("string retryAfter", output);
+        Assert.Contains("headers[\"Retry-After\"] = RetryAfter", output);
+    }
+
+    /// <summary>
+    /// A Smithy error's header is a member of its shape, so the exception takes the body alone and
+    /// passes the call on to it.
+    /// </summary>
+    [Fact]
+    public void AHeaderOnThePayloadIsPassedOnToIt()
+    {
+        var output = Emit(
+            WithRetryAfter(
+                Error(
+                    429,
+                    "#/components/schemas/Throttled",
+                    exceptionTypeName: "ThrottledException"
+                ),
+                onPayload: true
+            )
+        );
+
+        Assert.Contains("Body.ApplyHeaders(headers)", output);
+        Assert.DoesNotContain("string retryAfter", output);
+    }
 }
