@@ -661,6 +661,11 @@ both declare one.
 
 A `@pattern` member has a match timeout of 2,000 milliseconds, as an OpenAPI `pattern` does.
 
+`@pattern` on an `@httpLabel` member is checked like any other constraint. A label value that does
+not match answers 400 naming the member, as it does on a body member. The pattern is part of the
+route only where two operations under one method have URIs that are the same apart from the names
+of their labels. [Generating from OpenAPI](/guide/openapi#constraints) covers that case.
+
 The checks run before the handler, as for an OpenAPI document.
 [Generating from OpenAPI](/guide/openapi) covers the parameter interfaces and the 422.
 [Validation](/guide/validation) covers the 400 body.

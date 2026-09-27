@@ -1,3 +1,4 @@
+using Hardened.Requests.Runtime.Validation;
 using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.IntegrationTests.Smithy.SUT.Tests;
@@ -46,36 +47,25 @@ public class PetStoreRoutingTests
     }
 
     /// <summary>
-    /// <c>@pattern</c> on a path label narrows which URLs name a resource, so a value violating it
-    /// does not match the route and the answer is 404.
+    /// <c>@pattern</c> on a path label is validation, as it is on a body member: a value violating
+    /// it answers 400 naming the label.
     /// </summary>
     /// <remarks>
-    /// <para>
-    /// This asserted 400 until the front-end conformance suite showed the three front-ends
-    /// disagreeing about it: code-first compiled <c>{petId:slug}</c> into the routing table and
-    /// answered 404, while both described paths treated the same declared constraint as validation
-    /// on a route that had already matched, and answered 400. One declaration cannot have two
-    /// answers, and a client cannot tell which it will get.
-    /// </para>
-    /// <para>
-    /// 404 is the settled answer because it is the one already given for the degenerate case:
-    /// <c>/pets/</c> against <c>/pets/{petId}</c> is a 404 rather than a 400 about a URL that names
-    /// no resource. The pattern still reaches the generated validator as a
-    /// <c>[GeneratedRegex]</c> - which a source generator cannot emit for itself, and works here
-    /// because the build task writes the file before the compiler runs - and now also backs a
-    /// <c>[RouteConstraint]</c> the routing table compiles in.
-    /// </para>
-    /// <para>
-    /// Query, header and body constraints are unaffected. Those judge a request that did name a
-    /// resource, and still answer 400.
-    /// </para>
+    /// This answered 404 with no body while the pattern was compiled into the route, under an
+    /// operation whose model declares its 404 with a <c>PetNotFound</c> body. A generated client
+    /// read that 404 as a <c>PetNotFound</c> and failed. The pattern stays in the route only where
+    /// two operations share a route's shape and it is what tells them apart.
     /// </remarks>
     [ModuleTest]
-    public async Task GetPet_DoesNotMatchAPathLabelFailingThePattern(ITestWebApp app)
+    public async Task GetPet_RefusesAPathLabelFailingThePattern(ITestWebApp app)
     {
         var response = await app.Get("/pets/NOT_VALID");
 
-        response.Assert.NotFound();
+        response.Assert.BadRequest();
+
+        var error = response.Deserialize<RequestValidationError>();
+
+        Assert.Contains(error!.Errors, e => e.Field == "petId" && e.Code == "pattern");
     }
 
     [ModuleTest]

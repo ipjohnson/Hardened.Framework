@@ -105,6 +105,41 @@ public class ValidationTests
     }
 
     /// <summary>
+    /// A <c>pattern</c> on a path parameter is validation, as it is on a body member. The value
+    /// reached a real operation, so the answer is 400 naming the parameter, not a 404 with no body
+    /// under an operation whose document declares its 404 with a <c>Problem</c>.
+    /// </summary>
+    [ModuleTest]
+    public async Task GetPet_IdViolatesPattern_Returns400(ITestWebApp testWebApp)
+    {
+        var response = await testWebApp.Get("/pets/NOT_VALID");
+
+        response.Assert.BadRequest();
+
+        var error = response.Deserialize<RequestValidationError>();
+
+        Assert.Contains(error!.Errors, e => e.Field == "petId" && e.Code == "pattern");
+    }
+
+    /// <summary>
+    /// The pattern is <c>getPet</c>'s alone. <c>replacePet</c> declares none on the same path, and
+    /// takes a value <c>getPet</c> refuses.
+    /// </summary>
+    /// <remarks>
+    /// A route constraint holds every method at its token, so while the pattern was compiled into
+    /// the route this answered 404, a status <c>replacePet</c> does not declare.
+    /// </remarks>
+    [ModuleTest]
+    public async Task ReplacePet_IsNotHeldToGetPetsPattern(ITestWebApp testWebApp)
+    {
+        var response = await testWebApp.Put(new CreatePetRequest("Whiskers"), "/pets/NOT_VALID");
+
+        response.Assert.Ok();
+
+        Assert.Equal("NOT_VALID", response.Deserialize<Pet>()!.Id);
+    }
+
+    /// <summary>
     /// A query parameter, which stays bare. Path and query are both the URL as far as a caller is
     /// concerned, so making them say which they came from would be a distinction to decode without
     /// wanting it.

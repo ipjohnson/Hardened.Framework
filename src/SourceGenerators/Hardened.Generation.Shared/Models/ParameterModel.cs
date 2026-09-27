@@ -74,11 +74,10 @@ internal class ParameterModel : IEquatable<ParameterModel>, IConstraintFacets
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Set only for <c>path</c> parameters. A constraint on a path segment narrows which URLs name
-    /// a resource, so a violation means the route did not match and the answer is 404 - the same
-    /// reasoning that makes <c>/pets/</c> a 404 against <c>/pets/{petId}</c> rather than a 400 from
-    /// the binder. A constraint on a query, header or body parameter is a judgement about a request
-    /// that did name a resource, stays on the validation path, and answers 400.
+    /// Set only for a <c>path</c> parameter's pattern, and only where another operation answers the
+    /// same verb on the same shape of path, so that the pattern is what routes a value to one or the
+    /// other. Everywhere else the pattern stays on the validation path, and a value that fails it
+    /// answers 400 naming the parameter. <c>RouteConstraintEmitter</c> decides which.
     /// </para>
     /// <para>
     /// Additive to the serialized model rather than a version bump: an older file yields null,

@@ -469,8 +469,18 @@
               }
             }
           },
+          "400": {
+            "description": "The request failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          },
           "404": {
-            "description": "No pet with that id. A token that fails its route constraint answers this status too, before the handler and with no body.",
+            "description": "No pet with that id",
             "content": {
               "application/json": {
                 "schema": {

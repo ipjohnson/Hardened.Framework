@@ -2,6 +2,7 @@ using Hardened.Requests.Abstract.Responses;
 using Hardened.Requests.Runtime.Authorization;
 using Hardened.Web.Runtime.Attributes;
 using Hardened.Web.Runtime.Responses;
+using ValidationModules.Constraints;
 
 namespace Hardened.IntegrationTests.Conformance.CodeFirst.SUT;
 
@@ -16,9 +17,14 @@ public class PetController
     public Task<List<Pet>> ListPets() => Task.FromResult(Pets.ToList());
 
     /// <summary>Null for an absent pet, which the framework answers as 404.</summary>
-    [Get("/pets/{petId:slug}")]
+    /// <remarks>
+    /// <c>[Pattern]</c> is the code-first spelling of the <c>pattern</c> the OpenAPI and Smithy
+    /// petstores declare on the id. <c>{petId:slug}</c> would be a route constraint instead, which
+    /// answers a value that fails it with 404 rather than 400.
+    /// </remarks>
+    [Get("/pets/{petId}")]
     [Throws<RateLimited>]
-    public Task<Pet?> GetPet(string petId)
+    public Task<Pet?> GetPet([Pattern("^[a-z0-9-]+$")] string petId)
     {
         // Code-first declares an error by throwing one of the built-in response types. The
         // described front-ends generate an exception per operation and status; both land on
