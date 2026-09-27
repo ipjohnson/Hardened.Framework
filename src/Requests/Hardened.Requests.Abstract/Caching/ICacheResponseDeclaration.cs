@@ -44,6 +44,16 @@ public interface ICacheResponseDeclaration
     IReadOnlyList<string> Tags => [];
 
     /// <summary>
+    /// Whether requests that miss the same key while its response is being produced wait for that
+    /// response rather than each running the handler.
+    /// </summary>
+    /// <remarks>
+    /// Defaulted to false, so a declaration written before this existed still compiles and runs
+    /// the handler once per concurrent miss, as it always did.
+    /// </remarks>
+    bool CoalesceMisses => false;
+
+    /// <summary>
     /// The strategy this declaration names, built from the values it carries.
     /// </summary>
     /// <remarks>

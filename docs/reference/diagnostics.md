@@ -204,6 +204,7 @@ attribute. Handlers that several applications share go in a project with its own
 | `HRDW006` | Error | A `[Timeout]` that covers a handler declares zero milliseconds or less | Generator | [Request timeouts](/guide/request-timeouts) |
 | `HRDW007` | Error | A `[FromQueryString]` or `[FromForm]` model cannot be built from fields | Generator | [Parameter binding](/guide/parameter-binding) |
 | `HRDW008` | Error | An `IFormFile` parameter is bound from anywhere but `[FromForm]` | Generator | [Forms and files](/guide/forms) |
+| `HRDW009` | Warning | A `[CacheResponse<VaryByQuery>]` key names no query key the operation binds | Generator | [Response caching](/guide/response-caching) |
 
 ## HRDRM
 

@@ -25,7 +25,8 @@ public class ExecutionRequestHandlerInfo : IExecutionRequestHandlerInfo
         bool writesRawBytes = false,
         IReadOnlyList<string>? errorContentTypes = null,
         IReadOnlyDictionary<int, Func<object, object?>>? declaredErrorConversions = null,
-        IReadOnlyList<string>? requestHeaders = null
+        IReadOnlyList<string>? requestHeaders = null,
+        IReadOnlyList<string>? queryParameters = null
     )
     {
         Path = path;
@@ -47,6 +48,7 @@ public class ExecutionRequestHandlerInfo : IExecutionRequestHandlerInfo
         ErrorContentTypes = errorContentTypes ?? Array.Empty<string>();
         DeclaredErrorConversions = declaredErrorConversions ?? EmptyDeclaredErrorConversions;
         RequestHeaders = requestHeaders ?? Array.Empty<string>();
+        QueryParameters = queryParameters ?? Array.Empty<string>();
     }
 
     private static readonly IReadOnlyDictionary<int, object> EmptyDeclaredErrorBodies =
@@ -109,7 +111,8 @@ public class ExecutionRequestHandlerInfo : IExecutionRequestHandlerInfo
             source.WritesRawBytes,
             source.ErrorContentTypes,
             source.DeclaredErrorConversions,
-            source.RequestHeaders
+            source.RequestHeaders,
+            source.QueryParameters
         ) { }
 
     public string Path { get; }
@@ -163,6 +166,9 @@ public class ExecutionRequestHandlerInfo : IExecutionRequestHandlerInfo
 
     /// <inheritdoc />
     public IReadOnlyList<string> RequestHeaders { get; }
+
+    /// <inheritdoc />
+    public IReadOnlyList<string> QueryParameters { get; }
 
     /// <inheritdoc />
     /// <remarks>

@@ -98,19 +98,31 @@ namespace Test.Api
                             _pathTokenNamesPetController_GetPet,
                             charSpan.Slice(index).ToString()
                         );
-                        return _infoPetController_GetPet ??= new global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo(new global::Test.Api.Generated.PetController_GetPet(_rootServiceProvider));
+                        return _infoPetController_GetPet ?? global::System.Threading.Interlocked.CompareExchange(
+                            ref _infoPetController_GetPet,
+                            new global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo(new global::Test.Api.Generated.PetController_GetPet(_rootServiceProvider)),
+                            null
+                        ) ?? _infoPetController_GetPet;
                     case "PUT":
                         pathTokens = new global::Hardened.Requests.Abstract.PathTokens.PathTokenCollection(
                             _pathTokenNamesPetController_UpdatePet,
                             charSpan.Slice(index).ToString()
                         );
-                        return _infoPetController_UpdatePet ??= new global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo(new global::Test.Api.Generated.PetController_UpdatePet(_rootServiceProvider));
+                        return _infoPetController_UpdatePet ?? global::System.Threading.Interlocked.CompareExchange(
+                            ref _infoPetController_UpdatePet,
+                            new global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo(new global::Test.Api.Generated.PetController_UpdatePet(_rootServiceProvider)),
+                            null
+                        ) ?? _infoPetController_UpdatePet;
                     case "DELETE":
                         pathTokens = new global::Hardened.Requests.Abstract.PathTokens.PathTokenCollection(
                             _pathTokenNamesPetController_DeletePet,
                             charSpan.Slice(index).ToString()
                         );
-                        return _infoPetController_DeletePet ??= new global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo(new global::Test.Api.Generated.PetController_DeletePet(_rootServiceProvider));
+                        return _infoPetController_DeletePet ?? global::System.Threading.Interlocked.CompareExchange(
+                            ref _infoPetController_DeletePet,
+                            new global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo(new global::Test.Api.Generated.PetController_DeletePet(_rootServiceProvider)),
+                            null
+                        ) ?? _infoPetController_DeletePet;
                     default:
                         return _methodNotAllowedDELETEGETHEADPUT;
                 }

@@ -8,6 +8,7 @@ using Hardened.Web.Runtime.Handlers;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Threading;
 using TestApp.Generated;
 
 namespace TestApp
@@ -62,7 +63,11 @@ namespace TestApp
                         switch (methodString)
                         {
                             case "POST":
-                                return _infoSignUpController_SignUp_1911 ??= new RequestHandlerInfo(new SignUpController_SignUp_1911(_rootServiceProvider));
+                                return _infoSignUpController_SignUp_1911 ?? Interlocked.CompareExchange(
+                                    ref _infoSignUpController_SignUp_1911,
+                                    new RequestHandlerInfo(new SignUpController_SignUp_1911(_rootServiceProvider)),
+                                    null
+                                ) ?? _infoSignUpController_SignUp_1911;
                             default:
                                 return _methodNotAllowedPOST;
                         }

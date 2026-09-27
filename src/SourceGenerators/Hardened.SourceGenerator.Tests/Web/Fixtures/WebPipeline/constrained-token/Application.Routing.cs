@@ -8,6 +8,7 @@ using Hardened.Web.Runtime.Handlers;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Threading;
 using TestApp.Generated;
 
 namespace TestApp
@@ -150,7 +151,11 @@ namespace TestApp
                             _pathTokenNamesItemController_Get_329,
                             charSpan.Slice(index).ToString()
                         );
-                        return _infoItemController_Get_329 ??= new RequestHandlerInfo(new ItemController_Get_329(_rootServiceProvider));
+                        return _infoItemController_Get_329 ?? Interlocked.CompareExchange(
+                            ref _infoItemController_Get_329,
+                            new RequestHandlerInfo(new ItemController_Get_329(_rootServiceProvider)),
+                            null
+                        ) ?? _infoItemController_Get_329;
                     default:
                         return _methodNotAllowedGETHEAD;
                 }
@@ -209,7 +214,11 @@ namespace TestApp
                             _pathTokenNamesItemController_BySlug_541,
                             charSpan.Slice(index).ToString()
                         );
-                        return _infoItemController_BySlug_541 ??= new RequestHandlerInfo(new ItemController_BySlug_541(_rootServiceProvider));
+                        return _infoItemController_BySlug_541 ?? Interlocked.CompareExchange(
+                            ref _infoItemController_BySlug_541,
+                            new RequestHandlerInfo(new ItemController_BySlug_541(_rootServiceProvider)),
+                            null
+                        ) ?? _infoItemController_BySlug_541;
                     default:
                         return _methodNotAllowedGETHEAD;
                 }

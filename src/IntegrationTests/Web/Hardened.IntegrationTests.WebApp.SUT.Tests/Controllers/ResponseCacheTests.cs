@@ -43,6 +43,54 @@ public class ResponseCacheTests
     }
 
     /// <summary>
+    /// With no keys named, the key is every query key the operation binds. Another cursor is
+    /// another entry, the same cursor is a hit, and a query value the operation does not bind is
+    /// left out of the key.
+    /// </summary>
+    [ModuleTest]
+    public async Task NoNamedKeysVariesOnEveryQueryKeyTheOperationBinds(
+        [Shared] ITestWebApp testWebApp
+    )
+    {
+        var first = await testWebApp.Get("/response-cache/pages?category=tea&cursor=a");
+        var second = await testWebApp.Get("/response-cache/pages?category=tea&cursor=b");
+        var again = await testWebApp.Get(
+            "/response-cache/pages?category=tea&cursor=a&utm_source=mail"
+        );
+
+        Assert.Equal("tea-a-1", first.Deserialize<string>());
+        Assert.Equal("tea-b-2", second.Deserialize<string>());
+        Assert.Equal("tea-a-1", again.Deserialize<string>());
+    }
+
+    /// <summary>
+    /// Five concurrent first requests run a coalescing handler once. They can reach the routing
+    /// table before it has built the handler, which is the case that used to give each request a
+    /// handler, and a cache filter, of its own.
+    /// </summary>
+    [ModuleTest]
+    public async Task ConcurrentFirstRequestsRunACoalescingHandlerOnce(
+        [Shared] ITestWebApp testWebApp
+    )
+    {
+        var responses = await Task.WhenAll(
+            Enumerable
+                .Range(0, 5)
+                .Select(_ =>
+                    Task.Run(
+                        () => testWebApp.Get("/response-cache/coalesced"),
+                        TestContext.Current.CancellationToken
+                    )
+                )
+        );
+
+        Assert.All(
+            responses,
+            response => Assert.Equal("coalesced-1", response.Deserialize<string>())
+        );
+    }
+
+    /// <summary>
     /// A handler that declares nothing is untouched, so the filter costs nothing where it was not
     /// asked for.
     /// </summary>

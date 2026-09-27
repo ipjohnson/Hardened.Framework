@@ -39,9 +39,17 @@ namespace Test.Api
                     switch (dispatchValues.ToString())
                     {
                         case "Bank.GetBalance":
-                            return _infoPetController_GetBalance ??= new global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo(new global::Test.Api.Generated.PetController_GetBalance(_rootServiceProvider));
+                            return _infoPetController_GetBalance ?? global::System.Threading.Interlocked.CompareExchange(
+                                ref _infoPetController_GetBalance,
+                                new global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo(new global::Test.Api.Generated.PetController_GetBalance(_rootServiceProvider)),
+                                null
+                            ) ?? _infoPetController_GetBalance;
                         case "Bank.Transfer":
-                            return _infoPetController_Transfer ??= new global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo(new global::Test.Api.Generated.PetController_Transfer(_rootServiceProvider));
+                            return _infoPetController_Transfer ?? global::System.Threading.Interlocked.CompareExchange(
+                                ref _infoPetController_Transfer,
+                                new global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo(new global::Test.Api.Generated.PetController_Transfer(_rootServiceProvider)),
+                                null
+                            ) ?? _infoPetController_Transfer;
                     }
                 }
                 var pathSpan = context.Request.Path.AsSpan();
@@ -65,7 +73,11 @@ namespace Test.Api
                         {
                             case "HEAD":
                             case "GET":
-                                return _infoPetController_Health ??= new global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo(new global::Test.Api.Generated.PetController_Health(_rootServiceProvider));
+                                return _infoPetController_Health ?? global::System.Threading.Interlocked.CompareExchange(
+                                    ref _infoPetController_Health,
+                                    new global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo(new global::Test.Api.Generated.PetController_Health(_rootServiceProvider)),
+                                    null
+                                ) ?? _infoPetController_Health;
                             default:
                                 return _methodNotAllowedGETHEAD;
                         }

@@ -133,6 +133,16 @@ public static class HandlerInfoCodeGenerator
                 + " }";
         }
 
+        // The query keys the operation binds, which VaryByQuery with no keys varies a cached
+        // response on.
+        if (QueryParameters(handlerModel) is { Count: > 0 } queryParameters)
+        {
+            declaredArgs +=
+                ", queryParameters: new string[] { "
+                + string.Join(", ", queryParameters.Select(Quote))
+                + " }";
+        }
+
         // How a thrown framework record becomes the body declared at its status. A contract's only:
         // a code-first handler's declared bodies are the records themselves.
         if (
@@ -345,11 +355,7 @@ public static class HandlerInfoCodeGenerator
         {
             if (parameter.BindingType == ParameterBindType.Header)
             {
-                Add(
-                    string.IsNullOrEmpty(parameter.BindingName)
-                        ? parameter.Name
-                        : parameter.BindingName
-                );
+                Add(WireName(parameter));
             }
         }
 
@@ -368,6 +374,48 @@ public static class HandlerInfoCodeGenerator
             }
         }
     }
+
+    /// <summary>
+    /// The wire names of the query keys the operation binds, each once, in declaration order. A
+    /// model bound from the query string contributes its members, as the document lists them.
+    /// </summary>
+    public static List<string> QueryParameters(RequestHandlerModel handlerModel)
+    {
+        var keys = new List<string>();
+
+        foreach (var parameter in handlerModel.RequestParameterInformationList)
+        {
+            if (parameter.BindingType != ParameterBindType.QueryString)
+            {
+                continue;
+            }
+
+            if (parameter.Model is { Problem: null } model)
+            {
+                foreach (var member in model.Members)
+                {
+                    Add(WireName(member.Value));
+                }
+            }
+            else
+            {
+                Add(WireName(parameter));
+            }
+        }
+
+        return keys;
+
+        void Add(string name)
+        {
+            if (!keys.Contains(name, System.StringComparer.Ordinal))
+            {
+                keys.Add(name);
+            }
+        }
+    }
+
+    private static string WireName(RequestParameterInformation parameter) =>
+        string.IsNullOrEmpty(parameter.BindingName) ? parameter.Name : parameter.BindingName;
 
     private static string Quote(string value) =>
         "\"" + value.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
