@@ -21,7 +21,7 @@
         <!-- This file sits in src/SourceGenerators, so three levels up is beside this repository. -->
         <ValidationModulesRoot Condition="'$(ValidationModulesRoot)' == ''">$(MSBuildThisFileDirectory)..\..\..\ValidationModules</ValidationModulesRoot>
         <ValidationModulesImplProject>$(ValidationModulesRoot)\src\ValidationModules.SourceGenerator.Impl\ValidationModules.SourceGenerator.Impl.csproj</ValidationModulesImplProject>
-        <UseLocalValidationModules Condition="'$(UseLocalValidationModules)' == '' And Exists('$(ValidationModulesImplProject)')">true</UseLocalValidationModules>
+        <UseLocalValidationModules Condition="'$(UseLocalValidationModules)' == '' And '$(UseSiblingCheckouts)' != 'false' And Exists('$(ValidationModulesImplProject)')">true</UseLocalValidationModules>
     </PropertyGroup>
 
     <ItemGroup Condition="'$(UseLocalValidationModules)' == 'true'">

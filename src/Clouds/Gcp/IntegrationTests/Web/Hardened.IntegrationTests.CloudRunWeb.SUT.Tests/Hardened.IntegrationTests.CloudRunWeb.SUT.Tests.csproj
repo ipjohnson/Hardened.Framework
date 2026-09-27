@@ -7,10 +7,10 @@
     <ItemGroup>
         <ProjectReference Include="..\Hardened.IntegrationTests.CloudRunWeb.SUT\Hardened.IntegrationTests.CloudRunWeb.SUT.csproj"/>
         <ProjectReference Include="..\..\..\..\..\Web\Hardened.Web.Kestrel.Testing\Hardened.Web.Kestrel.Testing.csproj"/>
-        <ProjectReference Include="..\..\..\..\..\..\..\DependencyModules\src\DependencyModules.xUnit4\DependencyModules.xUnit4.csproj"
-                          Condition="Exists('..\..\..\..\..\..\..\DependencyModules\src\DependencyModules.xUnit4\DependencyModules.xUnit4.csproj')"/>
+        <ProjectReference Include="$(DependencyModulesRoot)\src\DependencyModules.xUnit4\DependencyModules.xUnit4.csproj"
+                          Condition="'$(UseLocalDependencyModules)' == 'true'"/>
         <PackageReference Include="DependencyModules.xUnit4"
-                          Condition="!Exists('..\..\..\..\..\..\..\DependencyModules\src\DependencyModules.xUnit4\DependencyModules.xUnit4.csproj')"/>
+                          Condition="'$(UseLocalDependencyModules)' != 'true'"/>
     </ItemGroup>
 
 </Project>

@@ -154,6 +154,14 @@ analyzer is loaded by the compiler with no probing path of its own and a sibling
 `~/CSharpAuthor`, `~/ValidationModules` — which is why a coverage baseline written locally is not
 reproducible in CI.
 
+**Three sibling checkouts replace packages when they exist: CSharpAuthor, ValidationModules and
+DependencyModules.** `UseLocalCSharpAuthor`, `UseLocalValidationModules` and
+`UseLocalDependencyModules` set to `false` use the package with the checkout present.
+`CSharpAuthorRoot`, `ValidationModulesRoot` and `DependencyModulesRoot` point at a checkout
+somewhere else. `-p:UseSiblingCheckouts=false` turns all three off, which is how a local build uses
+what CI uses. `src/DependencyModules.props`, imported by `src/Directory.Build.props`, holds the
+DependencyModules switch for every project under `src`.
+
 **`CS8785` is an error here, locally as well as in CI.** A generator that throws mid-run has emitted
 some of its output and none of the rest, and Roslyn reports that as a warning.
 

@@ -4,12 +4,6 @@
     <Import Project="../SourceGenerator.props"/>
 
     <PropertyGroup>
-        <_DependencyModulesRoot>$(MSBuildThisFileDirectory)../../../../DependencyModules</_DependencyModulesRoot>
-        <_DependencyModulesImplProject>$(_DependencyModulesRoot)/src/DependencyModules.SourceGenerator.Impl/DependencyModules.SourceGenerator.Impl.csproj</_DependencyModulesImplProject>
-        <UseLocalDependencyModules Condition="Exists('$(_DependencyModulesImplProject)')">true</UseLocalDependencyModules>
-    </PropertyGroup>
-
-    <PropertyGroup>
         <Description>Source generator for Hardened module wiring: processes [HardenedModule] and emits PopulateServiceCollection.</Description>
         <IsRoslynComponent>true</IsRoslynComponent>
         <!--
@@ -67,11 +61,11 @@
     </ItemGroup>
 
     <ItemGroup Condition="'$(UseLocalDependencyModules)' == 'true'">
-        <Compile Include="$(_DependencyModulesRoot)/src/DependencyModules.SourceGenerator.Impl/**/*.cs" Exclude="$(_DependencyModulesRoot)/src/DependencyModules.SourceGenerator.Impl/obj/**/*">
+        <Compile Include="$(DependencyModulesRoot)/src/DependencyModules.SourceGenerator.Impl/**/*.cs" Exclude="$(DependencyModulesRoot)/src/DependencyModules.SourceGenerator.Impl/obj/**/*">
             <Link>Impl\%(RecursiveDir)/%(FileName)%(Extension)</Link>
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Compile>
-        <Compile Include="$(_DependencyModulesRoot)/src/DependencyModules.SourceGenerator/ServiceSourceGenerator.cs">
+        <Compile Include="$(DependencyModulesRoot)/src/DependencyModules.SourceGenerator/ServiceSourceGenerator.cs">
             <Link>ServiceSourceGenerator.cs</Link>
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Compile>
@@ -80,7 +74,7 @@
           owning both, because a generic decorator has to be closed over the type arguments each
           registration used. Packed as a tree - it depends on its own Models and Utilities.
         -->
-        <Compile Include="$(_DependencyModulesRoot)/src/DependencyModules.SourceGenerator/Conventions/**/*.cs">
+        <Compile Include="$(DependencyModulesRoot)/src/DependencyModules.SourceGenerator/Conventions/**/*.cs">
             <Link>Conventions\%(RecursiveDir)/%(FileName)%(Extension)</Link>
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Compile>
