@@ -8,6 +8,7 @@ using Hardened.Web.Runtime.Handlers;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Threading;
 using TestApp.Generated;
 
 namespace TestApp
@@ -67,7 +68,11 @@ namespace TestApp
                         switch (methodString)
                         {
                             case "POST":
-                                return _infoWidgetController_Create ??= new RequestHandlerInfo(new WidgetController_Create(_rootServiceProvider));
+                                return _infoWidgetController_Create ?? Interlocked.CompareExchange(
+                                    ref _infoWidgetController_Create,
+                                    new RequestHandlerInfo(new WidgetController_Create(_rootServiceProvider)),
+                                    null
+                                ) ?? _infoWidgetController_Create;
                             default:
                                 return _methodNotAllowedPOST;
                         }
@@ -131,7 +136,11 @@ namespace TestApp
                             _pathTokenNamesWidgetController_Find_329,
                             charSpan.Slice(index).ToString()
                         );
-                        return _infoWidgetController_Find_329 ??= new RequestHandlerInfo(new WidgetController_Find_329(_rootServiceProvider));
+                        return _infoWidgetController_Find_329 ?? Interlocked.CompareExchange(
+                            ref _infoWidgetController_Find_329,
+                            new RequestHandlerInfo(new WidgetController_Find_329(_rootServiceProvider)),
+                            null
+                        ) ?? _infoWidgetController_Find_329;
                     default:
                         return _methodNotAllowedGETHEAD;
                 }

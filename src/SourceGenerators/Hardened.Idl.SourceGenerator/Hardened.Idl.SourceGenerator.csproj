@@ -113,6 +113,9 @@
         <Compile Include="../Hardened.SourceGenerator/Web/TimeoutDeclarationDiagnostics.cs">
             <Link>Web\TimeoutDeclarationDiagnostics.cs</Link>
         </Compile>
+        <Compile Include="../Hardened.SourceGenerator/Web/VaryByQueryDiagnostics.cs">
+            <Link>Web\VaryByQueryDiagnostics.cs</Link>
+        </Compile>
     </ItemGroup>
 
     <!--

@@ -8,6 +8,7 @@ using Hardened.Web.Runtime.Handlers;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Threading;
 using TestApp.Generated;
 
 namespace TestApp
@@ -102,7 +103,11 @@ namespace TestApp
                             _pathTokenNamesSearchController_Search_1653,
                             charSpan.Slice(index).ToString()
                         );
-                        return _infoSearchController_Search_1653 ??= new RequestHandlerInfo(new SearchController_Search_1653(_rootServiceProvider));
+                        return _infoSearchController_Search_1653 ?? Interlocked.CompareExchange(
+                            ref _infoSearchController_Search_1653,
+                            new RequestHandlerInfo(new SearchController_Search_1653(_rootServiceProvider)),
+                            null
+                        ) ?? _infoSearchController_Search_1653;
                     default:
                         return _methodNotAllowedGETHEAD;
                 }

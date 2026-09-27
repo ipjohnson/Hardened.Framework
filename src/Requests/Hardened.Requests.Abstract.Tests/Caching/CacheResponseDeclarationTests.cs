@@ -7,10 +7,12 @@ namespace Hardened.Requests.Abstract.Tests.Caching;
 /// What a declaration that answers only what the interface always asked for means.
 /// </summary>
 /// <remarks>
-/// <see cref="ICacheResponseDeclaration.Scope"/> and <see cref="ICacheResponseDeclaration.Tags"/>
-/// have default implementations so that a declaration written before either existed still compiles.
-/// These pin what that compiles to: nothing said about who the answer is for, which is a failure
-/// naming the handler on anything guarded, and no tag, which is an entry only its duration removes.
+/// <see cref="ICacheResponseDeclaration.Scope"/>, <see cref="ICacheResponseDeclaration.Tags"/> and
+/// <see cref="ICacheResponseDeclaration.CoalesceMisses"/> have default implementations so that a
+/// declaration written before any of them existed still compiles. These pin what that compiles to:
+/// nothing said about who the answer is for, which is a failure naming the handler on anything
+/// guarded, no tag, which is an entry only its duration removes, and a handler run for each
+/// concurrent miss.
 /// </remarks>
 public class CacheResponseDeclarationTests
 {
@@ -30,6 +32,12 @@ public class CacheResponseDeclarationTests
     public void ADeclarationThatNamesNoTagsHasNone()
     {
         Assert.Empty(Minimal.Tags);
+    }
+
+    [Fact]
+    public void ADeclarationThatSaysNothingAboutMissesDoesNotCoalesceThem()
+    {
+        Assert.False(Minimal.CoalesceMisses);
     }
 
     /// <summary>

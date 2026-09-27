@@ -10,6 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Threading;
 using TestApp.Generated;
 
 namespace TestApp
@@ -69,7 +70,11 @@ namespace TestApp
                         {
                             case "HEAD":
                             case "GET":
-                                return _infoFeedController_Feed ??= new RequestHandlerInfo(new FeedController_Feed(_rootServiceProvider));
+                                return _infoFeedController_Feed ?? Interlocked.CompareExchange(
+                                    ref _infoFeedController_Feed,
+                                    new RequestHandlerInfo(new FeedController_Feed(_rootServiceProvider)),
+                                    null
+                                ) ?? _infoFeedController_Feed;
                             default:
                                 return _methodNotAllowedGETHEAD;
                         }

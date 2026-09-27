@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Collections.Frozen;
 using System.Text;
 using Hardened.Requests.Abstract.Authorization;
@@ -38,6 +39,11 @@ namespace Hardened.Requests.Runtime.Caching;
 /// generator choosing <c>AsyncEnumerableIoFilter</c>, and it is not on
 /// <see cref="IExecutionRequestHandlerInfo"/>, so there is nothing here to read the way
 /// <c>[CacheResponse]</c> reads the requirement.
+/// </para>
+/// <para>
+/// <b>Concurrent misses each run the handler unless the declaration coalesces them.</b> With
+/// <see cref="ICacheResponseDeclaration.CoalesceMisses"/>, a miss on a key whose response another
+/// request is producing waits for it and is answered with the entry that request stored.
 /// </para>
 /// </remarks>
 public sealed class ResponseCacheFilter : IExecutionFilter
@@ -149,6 +155,12 @@ public sealed class ResponseCacheFilter : IExecutionFilter
     /// </summary>
     private IResponseCacheStore? _store;
 
+    /// <summary>
+    /// The responses being produced for a key, which a concurrent miss on that key waits for, or
+    /// null when the declaration does not coalesce misses.
+    /// </summary>
+    private readonly ConcurrentDictionary<string, Task<CachedResponse?>>? _inFlight;
+
     /// <param name="scope">
     /// Who a stored response may be served to. <see cref="CacheScope.Unstated"/> is taken as
     /// <see cref="CacheScope.AllCallers"/> here: whether leaving it unstated is allowed at all is
@@ -162,13 +174,18 @@ public sealed class ResponseCacheFilter : IExecutionFilter
     /// What the operation says it produces, so an entry is keyed on the representation it holds.
     /// Empty where the operation declared nothing, which keys as it always did.
     /// </param>
+    /// <param name="coalesceMisses">
+    /// Whether a miss on a key whose response is already being produced waits for it rather than
+    /// running the chain again.
+    /// </param>
     public ResponseCacheFilter(
         ICacheKeyProvider[] keyProviders,
         string handlerKey,
         int duration,
         CacheScope scope = CacheScope.AllCallers,
         string[]? tags = null,
-        IReadOnlyList<string>? declared = null
+        IReadOnlyList<string>? declared = null,
+        bool coalesceMisses = false
     )
     {
         _keyProviders = keyProviders;
@@ -177,6 +194,9 @@ public sealed class ResponseCacheFilter : IExecutionFilter
         _scope = scope;
         _tags = tags ?? [];
         _declared = declared ?? [];
+        _inFlight = coalesceMisses
+            ? new ConcurrentDictionary<string, Task<CachedResponse?>>(StringComparer.Ordinal)
+            : null;
     }
 
     /// <summary>
@@ -196,6 +216,7 @@ public sealed class ResponseCacheFilter : IExecutionFilter
         var providers = new ICacheKeyProvider[declarations.Count];
         var duration = 0;
         var scope = CacheScope.Unstated;
+        var coalesceMisses = false;
         List<string>? tags = null;
 
         for (var i = 0; i < declarations.Count; i++)
@@ -238,6 +259,8 @@ public sealed class ResponseCacheFilter : IExecutionFilter
 
                 scope = declaration.Scope;
             }
+
+            coalesceMisses |= declaration.CoalesceMisses;
 
             if (declaration.Duration == 0)
             {
@@ -282,7 +305,8 @@ public sealed class ResponseCacheFilter : IExecutionFilter
             duration,
             scope,
             tags?.ToArray(),
-            handlerInfo.ProducedContentTypes
+            handlerInfo.ProducedContentTypes,
+            coalesceMisses
         );
     }
 
@@ -339,7 +363,82 @@ public sealed class ResponseCacheFilter : IExecutionFilter
             return;
         }
 
-        await CaptureAndStore(chain, store, key);
+        if (_inFlight == null)
+        {
+            await CaptureAndStore(chain, store, key);
+
+            return;
+        }
+
+        await Coalesce(chain, store, key, _inFlight);
+    }
+
+    /// <summary>
+    /// A miss on a key whose response another request is producing waits for that response. The
+    /// first miss produces it, as any miss does.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A waiting request whose first stored nothing, because it answered anything but a 200 or
+    /// failed, runs the chain itself. Handing it a refusal or an error produced for another request
+    /// would be the defect storing one would be.
+    /// </para>
+    /// <para>
+    /// <b>The store is asked again once this request is first.</b> A request that missed just as
+    /// the previous first finished would otherwise run the handler for an entry already stored. The
+    /// in-flight task is removed only after its result is set, and the result only after the store
+    /// holds it, so every request finds the entry in one place or the other.
+    /// </para>
+    /// </remarks>
+    private async Task Coalesce(
+        IExecutionChain chain,
+        IResponseCacheStore store,
+        string key,
+        ConcurrentDictionary<string, Task<CachedResponse?>> inFlight
+    )
+    {
+        var context = chain.Context;
+        var mine = new TaskCompletionSource<CachedResponse?>(
+            TaskCreationOptions.RunContinuationsAsynchronously
+        );
+        var running = inFlight.GetOrAdd(key, mine.Task);
+
+        if (running != mine.Task)
+        {
+            var produced = await running.WaitAsync(context.CancellationToken);
+
+            if (produced != null)
+            {
+                await Replay(context, produced);
+
+                return;
+            }
+
+            await CaptureAndStore(chain, store, key);
+
+            return;
+        }
+
+        CachedResponse? stored = null;
+
+        try
+        {
+            stored = await store.Get(key, context.CancellationToken);
+
+            if (stored != null)
+            {
+                await Replay(context, stored);
+
+                return;
+            }
+
+            stored = await CaptureAndStore(chain, store, key);
+        }
+        finally
+        {
+            mine.SetResult(stored);
+            inFlight.TryRemove(new KeyValuePair<string, Task<CachedResponse?>>(key, mine.Task));
+        }
     }
 
     /// <summary>
@@ -529,7 +628,8 @@ public sealed class ResponseCacheFilter : IExecutionFilter
     }
 
     /// <summary>
-    /// Runs the chain with the response buffered, then writes the buffer out and keeps a copy.
+    /// Runs the chain with the response buffered, then writes the buffer out and keeps a copy. The
+    /// copy is returned, or null when the response was not one to store.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -545,7 +645,11 @@ public sealed class ResponseCacheFilter : IExecutionFilter
     /// body. Only the storing half is conditional.
     /// </para>
     /// </remarks>
-    private async Task CaptureAndStore(IExecutionChain chain, IResponseCacheStore store, string key)
+    private async Task<CachedResponse?> CaptureAndStore(
+        IExecutionChain chain,
+        IResponseCacheStore store,
+        string key
+    )
     {
         var context = chain.Context;
         var response = context.Response;
@@ -594,10 +698,12 @@ public sealed class ResponseCacheFilter : IExecutionFilter
 
         if (entry == null)
         {
-            return;
+            return null;
         }
 
         await store.Set(key, entry, _duration, context.CancellationToken);
+
+        return entry;
     }
 
     /// <summary>

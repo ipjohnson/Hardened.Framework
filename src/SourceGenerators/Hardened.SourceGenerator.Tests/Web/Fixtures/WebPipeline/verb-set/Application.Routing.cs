@@ -8,6 +8,7 @@ using Hardened.Web.Runtime.Handlers;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Threading;
 using TestApp.Generated;
 
 namespace TestApp
@@ -108,19 +109,31 @@ namespace TestApp
                             _pathTokenNamesTicketController_Get_329,
                             charSpan.Slice(index).ToString()
                         );
-                        return _infoTicketController_Get_329 ??= new RequestHandlerInfo(new TicketController_Get_329(_rootServiceProvider));
+                        return _infoTicketController_Get_329 ?? Interlocked.CompareExchange(
+                            ref _infoTicketController_Get_329,
+                            new RequestHandlerInfo(new TicketController_Get_329(_rootServiceProvider)),
+                            null
+                        ) ?? _infoTicketController_Get_329;
                     case "PUT":
                         pathTokens = new PathTokenCollection(
                             _pathTokenNamesTicketController_Replace_329,
                             charSpan.Slice(index).ToString()
                         );
-                        return _infoTicketController_Replace_329 ??= new RequestHandlerInfo(new TicketController_Replace_329(_rootServiceProvider));
+                        return _infoTicketController_Replace_329 ?? Interlocked.CompareExchange(
+                            ref _infoTicketController_Replace_329,
+                            new RequestHandlerInfo(new TicketController_Replace_329(_rootServiceProvider)),
+                            null
+                        ) ?? _infoTicketController_Replace_329;
                     case "DELETE":
                         pathTokens = new PathTokenCollection(
                             _pathTokenNamesTicketController_Remove_329,
                             charSpan.Slice(index).ToString()
                         );
-                        return _infoTicketController_Remove_329 ??= new RequestHandlerInfo(new TicketController_Remove_329(_rootServiceProvider));
+                        return _infoTicketController_Remove_329 ?? Interlocked.CompareExchange(
+                            ref _infoTicketController_Remove_329,
+                            new RequestHandlerInfo(new TicketController_Remove_329(_rootServiceProvider)),
+                            null
+                        ) ?? _infoTicketController_Remove_329;
                     default:
                         return _methodNotAllowedDELETEGETHEADPUT;
                 }

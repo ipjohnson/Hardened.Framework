@@ -317,9 +317,11 @@ public class GeneratedCodeRegressionTests
             )
             .AssertNoErrors();
 
-        // The header a CORS preflight allows for this operation follows the metadata.
+        // The header a CORS preflight allows for this operation follows the metadata, and then the
+        // query key VaryByQuery with no keys varies on, by its wire name.
         Assert.Contains(
-            "_parameterInfo, _metadata, requestHeaders: new string[] { \"X-Tenant\" })",
+            "_parameterInfo, _metadata, requestHeaders: new string[] { \"X-Tenant\" }, "
+                + "queryParameters: new string[] { \"q\" })",
             result.SourceContaining("Search")
         );
         Assert.Contains("null, _metadata)", result.SourceContaining("Health"));

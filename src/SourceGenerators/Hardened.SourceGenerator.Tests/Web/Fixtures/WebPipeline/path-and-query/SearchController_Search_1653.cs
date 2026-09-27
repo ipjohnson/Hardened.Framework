@@ -7,7 +7,7 @@ namespace TestApp.Generated
     {
         private static readonly global::Hardened.Requests.Abstract.Execution.IExecutionRequestParameter[] _parameterInfo =         CreateParameterInfo()
 ;
-        private static readonly global::Hardened.Requests.Runtime.Execution.ExecutionRequestHandlerInfo _handlerInfo =         new global::Hardened.Requests.Runtime.Execution.ExecutionRequestHandlerInfo("/search/{category}", "GET", typeof(global::TestApp.SearchController), "Search", _parameterInfo)
+        private static readonly global::Hardened.Requests.Runtime.Execution.ExecutionRequestHandlerInfo _handlerInfo =         new global::Hardened.Requests.Runtime.Execution.ExecutionRequestHandlerInfo("/search/{category}", "GET", typeof(global::TestApp.SearchController), "Search", _parameterInfo, queryParameters: new string[] { "limit" })
 ;
 
         public SearchController_Search_1653(global::System.IServiceProvider serviceProvider, string? routePath = null)

@@ -152,6 +152,7 @@ The message names the application module. In a project whose tests build the lib
 | `Duration` | `int` | `0`, which means 60 | Seconds the store keeps the entry |
 | `Scope` | `CacheScope` | `CacheScope.Unstated` | Who a stored response may be served to |
 | `Tags` | `string[]` | Empty | Names that evict the entry |
+| `CoalesceMisses` | `bool` | `false` | Whether a request that misses waits for the response another request is producing for the same key. [Concurrent misses](#concurrent-misses) covers it |
 
 ## Keys and strategies
 
@@ -168,13 +169,30 @@ Hardened supplies these strategies:
 | Strategy | Namespace | Arguments | Keys on |
 |---|---|---|---|
 | `VaryByRoute` | `Hardened.Web.Runtime.Caching` | None | Every token in the route template |
-| `VaryByQuery` | `Hardened.Web.Runtime.Caching` | One or more query keys | The named query values |
+| `VaryByQuery` | `Hardened.Web.Runtime.Caching` | Query keys, or none | The named query values, or every query key the operation binds |
 | `VaryByHeader` | `Hardened.Web.Runtime.Caching` | One or more header names | The named request headers |
 | `ByPayload` | `Hardened.Requests.Runtime.Caching` | None | The SHA-256 of the request body |
 
 `VaryByRoute` reads every token that the route declares, including a token that the handler does not bind. A route with no token has one entry.
 
 `VaryByQuery` reads only the keys it names. A request with another query parameter gets the same entry. An absent key and an empty value are the same entry.
+
+`VaryByQuery` with no keys reads every query key the operation binds. Those are its query parameters and the members of a model it binds from the query string, by the names a caller sends. A contract's query parameters count the same way, so the key follows the contract:
+
+```csharp
+[Get("/products")]
+[CacheResponse<VaryByQuery>(Duration = 10)]
+public Task<ProductPage> List([FromQueryString] string category, [FromQueryString] string cursor) =>
+    _catalog.Page(category, cursor);
+```
+
+The build warns `HRDW009` when a key names no query key the operation binds. Such a key reads an empty value on every request, and the key it was meant to be is left out. A handler with `cursr` written for `cursor` builds with this warning:
+
+```console
+CSC : warning HRDW009: 'ProductsController.List' keys its cached response on the query key 'cursr', which none of its parameters binds, so requests that differ in a key it does bind can get the same entry. The query keys it binds are 'category', 'cursor'. [CacheResponse<VaryByQuery>] with no keys varies on all of them.
+```
+
+A handler that reads a query value through the request itself, and keys on it on purpose, can suppress the warning.
 
 `VaryByHeader` adds each header it names to the response's `Vary` header. It matches the header name in any case. A request without the header is one more entry. [Compression](/guide/compression) covers how this `Vary` header is merged with the one that compression writes.
 
@@ -839,9 +857,23 @@ The in-memory store holds the entries of one process. On Lambda, each execution 
 
 [Triggers](/guide/triggers) covers function handlers.
 
+## Concurrent misses
+
+Requests that miss the same key at the same time each run the handler. The one that finishes last leaves its response in the store. `CoalesceMisses = true` makes them wait for the first one instead:
+
+```csharp
+[Get("/rates")]
+[CacheResponse<VaryByRoute>(Duration = 10, CoalesceMisses = true)]
+public Task<IReadOnlyList<Rate>> Rates() => _rates.All();
+```
+
+The first request that misses runs the handler. A request that misses the same key while it runs waits, and is answered with the entry the first one stored, as a hit is. When the first one stores nothing, because it answered anything but a 200 or failed, each waiting request runs the handler itself. A waiting request that is cancelled stops waiting. With several `[CacheResponse]` declarations on one handler, setting it on one of them is enough.
+
+Requests wait only for another request in the same process. On Lambda, each execution environment coalesces its own requests.
+
 ## Limits
 
-Two requests that miss at the same time both run the handler. The one that finishes last leaves its response in the store.
+Two requests that miss at the same time both run the handler, unless the declaration sets `CoalesceMisses`. The one that finishes last leaves its response in the store.
 
 The cache does not read the request's `Cache-Control` or `Pragma` header. A request with `Cache-Control: no-cache`, `no-store` or `max-age=0` gets the stored response.
 

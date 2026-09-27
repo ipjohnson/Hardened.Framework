@@ -207,6 +207,16 @@ public interface IExecutionRequestHandlerInfo
     /// </remarks>
     IReadOnlyList<string> RequestHeaders => Array.Empty<string>();
 
+    /// <summary>
+    /// The query keys the operation binds, by their wire names: its query parameters and the
+    /// members of a model it binds from the query string.
+    /// </summary>
+    /// <remarks>
+    /// What <c>VaryByQuery</c> with no keys varies a cached response on, so the key follows the
+    /// contract instead of a list restated by hand.
+    /// </remarks>
+    IReadOnlyList<string> QueryParameters => Array.Empty<string>();
+
     IReadOnlyList<IExecutionRequestParameter> Parameters { get; }
 
     IReadOnlyList<object> Metadata => Array.Empty<object>();

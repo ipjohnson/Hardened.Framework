@@ -5,6 +5,7 @@ using Hardened.Web.Runtime.Handlers;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Threading;
 using Test.Api.Generated;
 using Test.Api.Services;
 
@@ -106,19 +107,31 @@ namespace Test.Api
                             _pathTokenNamesPetController_GetPet,
                             charSpan.Slice(index).ToString()
                         );
-                        return _infoPetController_GetPet ??= new RequestHandlerInfo(new PetController_GetPet(_rootServiceProvider));
+                        return _infoPetController_GetPet ?? Interlocked.CompareExchange(
+                            ref _infoPetController_GetPet,
+                            new RequestHandlerInfo(new PetController_GetPet(_rootServiceProvider)),
+                            null
+                        ) ?? _infoPetController_GetPet;
                     case "PUT":
                         pathTokens = new PathTokenCollection(
                             _pathTokenNamesPetController_UpdatePet,
                             charSpan.Slice(index).ToString()
                         );
-                        return _infoPetController_UpdatePet ??= new RequestHandlerInfo(new PetController_UpdatePet(_rootServiceProvider));
+                        return _infoPetController_UpdatePet ?? Interlocked.CompareExchange(
+                            ref _infoPetController_UpdatePet,
+                            new RequestHandlerInfo(new PetController_UpdatePet(_rootServiceProvider)),
+                            null
+                        ) ?? _infoPetController_UpdatePet;
                     case "DELETE":
                         pathTokens = new PathTokenCollection(
                             _pathTokenNamesPetController_DeletePet,
                             charSpan.Slice(index).ToString()
                         );
-                        return _infoPetController_DeletePet ??= new RequestHandlerInfo(new PetController_DeletePet(_rootServiceProvider));
+                        return _infoPetController_DeletePet ?? Interlocked.CompareExchange(
+                            ref _infoPetController_DeletePet,
+                            new RequestHandlerInfo(new PetController_DeletePet(_rootServiceProvider)),
+                            null
+                        ) ?? _infoPetController_DeletePet;
                     default:
                         return _methodNotAllowedDELETEGETHEADPUT;
                 }

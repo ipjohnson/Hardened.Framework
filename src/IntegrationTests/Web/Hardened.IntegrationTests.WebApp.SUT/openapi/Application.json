@@ -6029,6 +6029,38 @@
         "x-hardened-timeout": 300000
       }
     },
+    "/response-cache/coalesced": {
+      "get": {
+        "tags": [
+          "ResponseCache"
+        ],
+        "operationId": "coalesced",
+        "summary": "Slow enough for concurrent requests to overlap, and coalescing their misses.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          }
+        },
+        "x-hardened-timeout": 300000
+      }
+    },
     "/response-cache/composed": {
       "get": {
         "tags": [
@@ -6327,6 +6359,56 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          }
+        },
+        "x-hardened-timeout": 300000
+      }
+    },
+    "/response-cache/pages": {
+      "get": {
+        "tags": [
+          "ResponseCache"
+        ],
+        "operationId": "pages",
+        "summary": "Keyed on every query key the operation binds, with none named, which is what the 0.41 trial asked for after a misspelt key served page 1 for page 2.",
+        "parameters": [
+          {
+            "name": "category",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
                 }
               }
             }

@@ -37,6 +37,9 @@ internal static class CacheTestSupport
     /// <summary>
     /// A store that keeps what it was given and records what it was asked.
     /// </summary>
+    /// <remarks>
+    /// Locked, because the tests of concurrent misses send several requests at once.
+    /// </remarks>
     public sealed class RecordingStore : IResponseCacheStore
     {
         private readonly Dictionary<string, CachedResponse> _entries = new(StringComparer.Ordinal);
@@ -47,13 +50,27 @@ internal static class CacheTestSupport
 
         public List<string> Evictions { get; } = [];
 
+        public int ReadCount
+        {
+            get
+            {
+                lock (_entries)
+                {
+                    return Reads.Count;
+                }
+            }
+        }
+
         public ValueTask<CachedResponse?> Get(string key, CancellationToken cancellationToken)
         {
-            Reads.Add(key);
+            lock (_entries)
+            {
+                Reads.Add(key);
 
-            return new ValueTask<CachedResponse?>(
-                _entries.TryGetValue(key, out var entry) ? entry : null
-            );
+                return new ValueTask<CachedResponse?>(
+                    _entries.TryGetValue(key, out var entry) ? entry : null
+                );
+            }
         }
 
         public ValueTask Set(
@@ -63,8 +80,11 @@ internal static class CacheTestSupport
             CancellationToken cancellationToken
         )
         {
-            Writes.Add((key, duration));
-            _entries[key] = response;
+            lock (_entries)
+            {
+                Writes.Add((key, duration));
+                _entries[key] = response;
+            }
 
             return default;
         }
@@ -75,11 +95,14 @@ internal static class CacheTestSupport
         /// </summary>
         public ValueTask EvictByTag(string tag, CancellationToken cancellationToken)
         {
-            Evictions.Add(tag);
-
-            foreach (var entry in _entries.Where(e => e.Value.Tags.Contains(tag)).ToList())
+            lock (_entries)
             {
-                _entries.Remove(entry.Key);
+                Evictions.Add(tag);
+
+                foreach (var entry in _entries.Where(e => e.Value.Tags.Contains(tag)).ToList())
+                {
+                    _entries.Remove(entry.Key);
+                }
             }
 
             return default;

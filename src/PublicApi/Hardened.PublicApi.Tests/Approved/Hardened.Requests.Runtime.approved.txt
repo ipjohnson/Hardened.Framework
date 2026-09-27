@@ -121,6 +121,7 @@ namespace Hardened.Requests.Runtime.Caching
         where TProvider : Hardened.Requests.Abstract.Caching.ICacheKeyProvider
     {
         public CacheResponseAttribute(params string[] values) { }
+        public bool CoalesceMisses { get; set; }
         public int Duration { get; set; }
         public Hardened.Requests.Abstract.Caching.CacheScope Scope { get; set; }
         public string[] Tags { get; set; }
@@ -136,7 +137,7 @@ namespace Hardened.Requests.Runtime.Caching
     public sealed class ResponseCacheFilter : Hardened.Requests.Abstract.Execution.IExecutionFilter
     {
         public const int DefaultDuration = 60;
-        public ResponseCacheFilter(Hardened.Requests.Abstract.Caching.ICacheKeyProvider[] keyProviders, string handlerKey, int duration, Hardened.Requests.Abstract.Caching.CacheScope scope = 1, string[]? tags = null, System.Collections.Generic.IReadOnlyList<string>? declared = null) { }
+        public ResponseCacheFilter(Hardened.Requests.Abstract.Caching.ICacheKeyProvider[] keyProviders, string handlerKey, int duration, Hardened.Requests.Abstract.Caching.CacheScope scope = 1, string[]? tags = null, System.Collections.Generic.IReadOnlyList<string>? declared = null, bool coalesceMisses = false) { }
         public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
         public static Hardened.Requests.Runtime.Caching.ResponseCacheFilter Compose(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo, System.Collections.Generic.IReadOnlyList<Hardened.Requests.Abstract.Caching.ICacheResponseDeclaration> declarations) { }
     }
@@ -334,7 +335,8 @@ namespace Hardened.Requests.Runtime.Execution
                     bool writesRawBytes = false,
                     System.Collections.Generic.IReadOnlyList<string>? errorContentTypes = null,
                     System.Collections.Generic.IReadOnlyDictionary<int, System.Func<object, object?>>? declaredErrorConversions = null,
-                    System.Collections.Generic.IReadOnlyList<string>? requestHeaders = null) { }
+                    System.Collections.Generic.IReadOnlyList<string>? requestHeaders = null,
+                    System.Collections.Generic.IReadOnlyList<string>? queryParameters = null) { }
         public string? BodyParameterName { get; }
         public System.Collections.Generic.IReadOnlyDictionary<int, object> DeclaredErrorBodies { get; }
         public System.Collections.Generic.IReadOnlyDictionary<int, System.Func<object, object?>> DeclaredErrorConversions { get; }
@@ -347,6 +349,7 @@ namespace Hardened.Requests.Runtime.Execution
         public System.Collections.Generic.IReadOnlyList<Hardened.Requests.Abstract.Execution.IExecutionRequestParameter> Parameters { get; }
         public string Path { get; }
         public System.Collections.Generic.IReadOnlyList<string> ProducedContentTypes { get; }
+        public System.Collections.Generic.IReadOnlyList<string> QueryParameters { get; }
         public System.Collections.Generic.IReadOnlyList<string> RequestHeaders { get; }
         public Hardened.Requests.Abstract.Authorization.Requirement? Requirement { get; }
         public bool StreamsResponse { get; }
