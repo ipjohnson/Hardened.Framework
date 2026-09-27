@@ -2693,6 +2693,10 @@ internal static class OpenApiSpecParser
                     opModel.RequestBodyRef = SchemaRef(bodySchema);
                     opModel.RequestBodyType = SchemaType(bodySchema);
 
+                    // As the response side keeps it. Dropped, a format: binary body mapped to a
+                    // string parameter, and the bytes went to the JSON reader.
+                    opModel.RequestBodyFormat = bodySchema.Format;
+
                     // Resolve body schema properties for validation
                     var resolvedSchema = ResolveSchema(bodySchema);
                     if (resolvedSchema != null)

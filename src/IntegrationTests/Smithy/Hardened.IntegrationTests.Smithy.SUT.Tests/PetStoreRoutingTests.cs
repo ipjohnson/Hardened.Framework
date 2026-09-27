@@ -1,3 +1,4 @@
+using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Runtime.Validation;
 using Hardened.Web.Runtime.Responses;
 
@@ -230,5 +231,29 @@ public class PetStoreRoutingTests
 
         Assert.Equal("Pet rehomed has a new home.", response.Deserialize<PetNotFound>().Message);
         Assert.DoesNotContain("resource", await response.ReadTextAsync());
+    }
+
+    /// <summary>
+    /// An <c>@httpPayload</c> blob is the raw request body, so bytes that are not JSON reach the
+    /// handler unchanged.
+    /// </summary>
+    /// <remarks>
+    /// The payload was read as a base64 JSON string, so these bytes answered 400 while the served
+    /// document declared a binary body.
+    /// </remarks>
+    [ModuleTest]
+    public async Task PutPetPhoto_ReadsTheRawBytes(ITestWebApp app)
+    {
+        byte[] photo = [0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x7F, 0x91, 0xC3];
+
+        var response = await app.Put(
+            photo,
+            "/pets/1/photo",
+            request => request.Headers[KnownHeaders.ContentType] = "image/jpeg"
+        );
+
+        response.Assert.Ok();
+
+        Assert.Equal(photo.Length, response.Deserialize<PutPetPhotoOutput>().ByteCount);
     }
 }

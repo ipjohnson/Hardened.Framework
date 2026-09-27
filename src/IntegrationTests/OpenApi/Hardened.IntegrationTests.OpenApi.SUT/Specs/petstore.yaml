@@ -459,6 +459,32 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  # A binary request body: the bytes themselves, not a base64 string inside JSON.
+  /pets/{petId}/photo:
+    put:
+      tags:
+        - Pet
+      operationId: putPetPhoto
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+      responses:
+        '200':
+          description: How many bytes arrived
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhotoReceipt'
   /stores:
     get:
       tags:
@@ -506,6 +532,14 @@ components:
       name: X-Api-Key
       in: header
   schemas:
+    PhotoReceipt:
+      type: object
+      required:
+        - byteCount
+      properties:
+        byteCount:
+          type: integer
+          format: int32
     # readOnly and writeOnly, which make one schema describe two directions: the server assigns
     # the id and never accepts one, and the password is accepted and never returned.
     Account:

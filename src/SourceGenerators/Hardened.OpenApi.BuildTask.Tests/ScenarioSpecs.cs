@@ -221,6 +221,25 @@ internal static class ScenarioSpecs
           schemas: {}
         """;
 
+    /// <summary>A body that is the bytes themselves.</summary>
+    public const string BinaryBody = """
+        openapi: "3.1.0"
+        info: { title: Scenario, version: "1.0" }
+        paths:
+          /photos:
+            put:
+              tags: [Photo]
+              operationId: putPhoto
+              requestBody:
+                content:
+                  application/octet-stream:
+                    schema: { type: string, format: binary }
+              responses:
+                '204': { description: stored }
+        components:
+          schemas: {}
+        """;
+
     /// <summary>
     /// 3.1's <c>webhooks</c>, which this generator does not implement.
     /// </summary>

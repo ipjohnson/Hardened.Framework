@@ -159,6 +159,20 @@ public class ScenarioTests
         Assert.Equal("List<JsonElement>", TypeOf(model, "Thing", "matrix"));
     }
 
+    /// <summary>
+    /// A binary body keeps its format, which is what makes it <c>byte[]</c> rather than
+    /// <c>string</c>.
+    /// </summary>
+    [Fact]
+    public void ABinaryBodyKeepsItsFormat()
+    {
+        var operation = Assert.Single(Parse(ScenarioSpecs.BinaryBody).Services[0].Operations);
+
+        Assert.Equal("application/octet-stream", operation.RequestBodyContentType);
+        Assert.Equal("string", operation.RequestBodyType);
+        Assert.Equal("binary", operation.RequestBodyFormat);
+    }
+
     /// <summary>A body that is not JSON is still a body.</summary>
     [Fact]
     public void AMultipartBodyIsReadRatherThanSkipped()

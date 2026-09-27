@@ -102,13 +102,18 @@ operation PutPetPhoto {
 
         @required
         @httpPayload
-        photo: Blob
+        photo: PetPhoto
     }
     output := {
         @required
         byteCount: Integer
     }
 }
+
+// A named blob with a media type, which is how a model says what the bytes are. The payload is read
+// as the raw request body under it, not as a base64 JSON string.
+@mediaType("image/jpeg")
+blob PetPhoto
 
 @auth([])
 @http(method: "POST", uri: "/pets", code: 201)

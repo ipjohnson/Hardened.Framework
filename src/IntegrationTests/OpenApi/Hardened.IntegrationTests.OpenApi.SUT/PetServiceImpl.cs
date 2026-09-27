@@ -151,6 +151,10 @@ public class PetServiceImpl : IPetService
         return Task.CompletedTask;
     }
 
+    /// <summary>The body is the bytes the caller sent, so the count is theirs.</summary>
+    public Task<PhotoReceipt> PutPetPhoto(string petId, byte[] body) =>
+        Task.FromResult(new PhotoReceipt(body.Length));
+
     /// <summary>
     /// Declared as <c>text/plain</c> in the spec, which is what makes the generated handler write
     /// this string straight to the body instead of handing it to the JSON serializer.

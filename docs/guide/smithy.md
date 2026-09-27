@@ -221,6 +221,10 @@ A trait on each input member decides where the member binds from and how its par
 A query or header parameter is named from the name on the wire, not from the member. `text` bound
 to `@httpQuery("q")` is `q`.
 
+An `@httpPayload` blob is the raw request body, under the blob's `@mediaType`, or
+`application/octet-stream` without one. The handler receives the bytes as `byte[]`, and the served
+document declares the body as `format: binary`.
+
 `SearchTodos`, added to the service's `operations`, binds a query value and a header:
 
 ```smithy
@@ -738,8 +742,6 @@ lists every code.
 
 ::: v-pre
 
-- An `@httpPayload` blob in the input is read as JSON. The body has to be a base64 JSON string. Raw
-  bytes answer 400. The served document declares `application/octet-stream`.
 - A `union` is read and written as the member's value alone. The object that Smithy's JSON
   protocols send, `{"circle": {...}}`, answers 400.
 - `@timestampFormat` is not applied. A `Timestamp` is an RFC 3339 string whatever the trait says.
