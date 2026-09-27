@@ -1,3 +1,4 @@
+using Hardened.Generation;
 using Hardened.Generation.Models;
 using Hardened.Smithy.BuildTask.Parsing;
 using Xunit;
@@ -76,7 +77,7 @@ public class SmithyBlobPayloadTests
     }
 
     /// <summary>
-    /// The pair that has to agree, and did not.
+    /// The pair that has to agree, and did not: both directions are <c>byte[]</c>.
     /// </summary>
     /// <remarks>
     /// <c>OperationModel</c> had a <c>ResponseFormat</c> and no request equivalent, so the same
@@ -84,15 +85,31 @@ public class SmithyBlobPayloadTests
     /// <c>byte[]</c> and <c>string</c> once mapped.
     /// </remarks>
     [Fact]
-    public void ABlobPayloadCarriesItsFormatInBothDirections()
+    public void ABlobPayloadIsBytesInBothDirections()
     {
         var (put, get) = Parse();
 
-        Assert.Equal("string", put.RequestBodyType);
-        Assert.Equal("byte", put.RequestBodyFormat);
+        Assert.Equal(
+            "byte[]",
+            TypeMapper.MapToCSharpType(put.RequestBodyType, put.RequestBodyFormat)
+        );
+        Assert.Equal("byte[]", TypeMapper.MapToCSharpType(get.ResponseType, get.ResponseFormat));
+    }
 
-        Assert.Equal("string", get.ResponseType);
-        Assert.Equal("byte", get.ResponseFormat);
+    /// <summary>
+    /// A blob payload in the input is the bytes themselves, which the description calls binary.
+    /// </summary>
+    /// <remarks>
+    /// It was <c>byte</c>, the format of a blob inside a JSON document. The server read it as a
+    /// base64 JSON string and refused raw bytes, and the document published base64 text.
+    /// </remarks>
+    [Fact]
+    public void ABlobPayloadIsBinaryOnTheWayIn()
+    {
+        var (put, _) = Parse();
+
+        Assert.Equal("string", put.RequestBodyType);
+        Assert.Equal("binary", put.RequestBodyFormat);
     }
 
     /// <summary>
@@ -126,7 +143,7 @@ public class SmithyBlobPayloadTests
 
         Assert.Equal("application/pdf", put.RequestBodyContentType);
         Assert.Equal("application/pdf", get.ResponseContentType);
-        Assert.Equal("byte", put.RequestBodyFormat);
+        Assert.Equal("binary", put.RequestBodyFormat);
     }
 
     /// <summary>

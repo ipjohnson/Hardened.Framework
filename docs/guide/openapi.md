@@ -289,6 +289,10 @@ Each schema becomes a C# type:
 | `allOf` | One record with the properties of every branch |
 | A schema with no `type` | `JsonElement` |
 
+A request body declared `format: binary` is the raw request body, and the handler receives the bytes
+as `byte[]`. So is a `format: byte` body under a media type other than JSON. Under
+`application/json`, a `format: byte` body is a base64 string, and the build decodes it.
+
 A property that is not in `required` becomes a nullable member whose parameter defaults to
 `default`. A property that is `required` and nullable becomes a nullable member with no default. The
 record's parameters without a default come first. A required member carries `[JsonRequired]`. A
@@ -893,8 +897,6 @@ keys. [MessagePack](/guide/message-pack) covers them.
 
 - A request body declared `application/x-www-form-urlencoded` or `multipart/form-data` is read as
   JSON. The served document still declares the form. See [Forms and files](/guide/forms).
-- A binary request body is read as JSON. A body declared `application/octet-stream` with
-  `format: binary` generates a `string` parameter. Raw bytes answer 400.
 - A route attribute in a project that holds a document is not served. The build reports nothing.
   Code-first handlers go in another project.
 - Two documents in one project that declare a schema of the same name fail the build with `CS0579`

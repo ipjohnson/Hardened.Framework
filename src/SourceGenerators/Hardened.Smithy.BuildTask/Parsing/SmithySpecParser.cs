@@ -782,7 +782,10 @@ internal static class SmithySpecParser
                         // The format the response side has always kept. Dropped here, a blob became
                         // a string parameter that cannot take a binary body, and neither the
                         // generated signature nor the published document said so.
-                        model.RequestBodyFormat = format;
+                        //
+                        // A blob payload is the bytes themselves, which OpenAPI calls binary. The
+                        // byte format is a blob inside a JSON document, sent as base64.
+                        model.RequestBodyFormat = format == "byte" ? "binary" : format;
                     }
                     else
                     {

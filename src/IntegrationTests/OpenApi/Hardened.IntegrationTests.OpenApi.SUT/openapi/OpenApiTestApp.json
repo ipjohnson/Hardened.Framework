@@ -765,6 +765,47 @@
         }
       }
     },
+    "/pets/{petId}/photo": {
+      "put": {
+        "tags": [
+          "Pet"
+        ],
+        "operationId": "putPetPhoto",
+        "parameters": [
+          {
+            "name": "petId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "How many bytes arrived",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoReceipt"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/secured/either": {
       "get": {
         "tags": [
@@ -1122,6 +1163,18 @@
           "dog",
           "cat",
           "guinea-pig"
+        ]
+      },
+      "PhotoReceipt": {
+        "type": "object",
+        "properties": {
+          "byteCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "required": [
+          "byteCount"
         ]
       },
       "Problem": {

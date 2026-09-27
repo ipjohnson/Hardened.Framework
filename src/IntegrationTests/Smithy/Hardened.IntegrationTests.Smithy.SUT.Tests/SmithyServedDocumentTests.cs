@@ -276,4 +276,29 @@ public class SmithyServedDocumentTests
             tags.GetProperty("additionalProperties").GetProperty("type").GetString()
         );
     }
+
+    /// <summary>
+    /// An <c>@httpPayload</c> blob is published as the binary body it is read as, under the media
+    /// type its shape declares.
+    /// </summary>
+    /// <remarks>
+    /// It was published as <c>format: byte</c>, which is base64 text, while the server read a
+    /// base64 JSON string and refused raw bytes.
+    /// </remarks>
+    [ModuleTest]
+    public async Task ABlobPayloadIsPublishedAsBinaryUnderItsMediaType(ITestWebApp app)
+    {
+        var content = (await Document(app))
+            .GetProperty("paths")
+            .GetProperty("/pets/{petId}/photo")
+            .GetProperty("put")
+            .GetProperty("requestBody")
+            .GetProperty("content");
+
+        var schema = content.GetProperty("image/jpeg").GetProperty("schema");
+
+        Assert.Equal("string", schema.GetProperty("type").GetString());
+        Assert.Equal("binary", schema.GetProperty("format").GetString());
+        Assert.Single(content.EnumerateObject());
+    }
 }

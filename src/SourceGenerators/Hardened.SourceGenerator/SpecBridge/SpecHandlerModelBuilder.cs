@@ -525,7 +525,14 @@ internal static class SpecHandlerModelBuilder
                 operation.RequestBodyFormat
             );
 
-            var bodyType = TypeMapper.GetTypeDefinition(modelsNamespace, csType, false);
+            var isRawBody = IsRawDescribedBody(operation, csType);
+
+            // The array type itself for a raw body, because the binder reads the bytes where the
+            // parameter type is an array and hands over the stream otherwise. TypeMapper spells
+            // byte[] as a type named Byte[], which is not an array.
+            var bodyType = isRawBody
+                ? TypeDefinition.Get(typeof(byte[]))
+                : TypeMapper.GetTypeDefinition(modelsNamespace, csType, false);
 
             parameters.Add(
                 new RequestParameterInformation(
@@ -538,9 +545,9 @@ internal static class SpecHandlerModelBuilder
                     index++
                 )
                 {
-                    // A contract's blob payload maps to byte[] here and reaches the same binder a
-                    // code-first byte[] does, so both read the bytes rather than the JSON.
-                    IsRawBody = IsRawBodyType(bodyType),
+                    // A contract's blob payload reaches the same binder a code-first byte[] does,
+                    // so both read the bytes rather than the JSON.
+                    IsRawBody = isRawBody,
                 }
             );
         }
@@ -590,6 +597,36 @@ internal static class SpecHandlerModelBuilder
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Whether a described scalar body is the bytes themselves rather than a JSON document.
+    /// </summary>
+    /// <remarks>
+    /// A <c>byte[]</c> body is raw where the description says <c>binary</c>, which is what a Smithy
+    /// <c>@httpPayload</c> blob and an OpenAPI <c>format: binary</c> body are, or where its media
+    /// type is not JSON. Under a JSON media type a <c>byte</c> body is a base64 string, and the JSON
+    /// reader decodes it.
+    /// </remarks>
+    private static bool IsRawDescribedBody(OperationModel operation, string csType)
+    {
+        if (csType != "byte[]")
+        {
+            return false;
+        }
+
+        if (operation.RequestBodyFormat == "binary")
+        {
+            return true;
+        }
+
+        var mediaType = operation.RequestBodyContentType?.Split(';')[0].Trim() ?? "";
+
+        return !(
+            mediaType.Length == 0
+            || mediaType.Equals("application/json", StringComparison.OrdinalIgnoreCase)
+            || mediaType.EndsWith("+json", StringComparison.OrdinalIgnoreCase)
+        );
     }
 
     /// <summary>
