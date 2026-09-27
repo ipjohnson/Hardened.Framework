@@ -163,6 +163,14 @@ public static class HandlerValidationGenerator
         CancellationToken cancellationToken
     )
     {
+        // A handler that is not generated has no Parameters class for a validator to name. Its
+        // validator failed the build with a CS0234 inside obj/, beside the HOAG010 or HRDR009 that
+        // already said why the handler was skipped, and HOAG010 alone is only a warning.
+        if (candidate.Handler.CannotBeEmitted())
+        {
+            return new Resolved(candidate.Handler, null, ImmutableArray<Diagnostic>.Empty);
+        }
+
         var built = HandlerValidationFrontEnd.Build(
             candidate.Handler,
             candidate.Parameters,

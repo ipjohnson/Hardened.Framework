@@ -241,7 +241,8 @@ as bodyless, for the reason HRDR005 gives.
 
 ### HRDR011 — handler answers with bytes and declares no content type
 
-A handler answering with `byte[]` or `Stream` and carrying no `[Produces]`.
+A handler answering with `byte[]` or `Stream` and carrying no `[Produces]`. It is reported at
+the handler's name.
 
 ```
 'ReportController.Report' answers with byte[] or Stream and carries no [Produces], so nothing says
@@ -411,7 +412,8 @@ error alone.
 
 ### HRDW008 — a file is bound from somewhere other than the form
 
-An `IFormFile`, or a collection of them, is bound by anything but `[FromForm]`.
+An `IFormFile`, or a collection of them, is bound by anything but `[FromForm]`. It is reported at
+the parameter.
 
 ```
 'UploadController.Upload' binds 'file', a file, from the container. A file only arrives as a part

@@ -145,6 +145,61 @@ public class UnresolvableTypeTests
     }
 
     /// <summary>
+    /// A skipped handler whose other parameters carry constraints. Its validator named the handler's
+    /// <c>Parameters</c> class, which was never written, so the build failed on a <c>CS0234</c> in
+    /// <c>obj/</c> where the warning says only the handler is lost.
+    /// </summary>
+    [Fact]
+    public void ASkippedHandlerGetsNoValidator()
+    {
+        var result = GenerateValidated(
+            "public string Get([Range(Min = 1)] int id, NotDeclaredAnywhere other) => \"\";"
+        );
+
+        Assert.DoesNotContain(
+            result.GeneratedSources.Keys,
+            key => key.Contains("ParametersValidator")
+        );
+        Assert.DoesNotContain(
+            result.Compilation.GetDiagnostics(TestContext.Current.CancellationToken),
+            diagnostic => diagnostic.Id == "CS0234"
+        );
+    }
+
+    /// <summary>The same handler with every parameter resolved gets its validator.</summary>
+    [Fact]
+    public void AGeneratedHandlerGetsItsValidator()
+    {
+        var result = GenerateValidated("public string Get([Range(Min = 1)] int id) => \"\";")
+            .AssertNoErrors();
+
+        Assert.Contains(result.GeneratedSources.Keys, key => key.Contains("ParametersValidator"));
+    }
+
+    /// <summary>
+    /// One constrained handler, with the build property ValidationModules' package sets, so the
+    /// parameters validator is emitted.
+    /// </summary>
+    private static GeneratorResult GenerateValidated(string handler) =>
+        RequestGeneratorHarness.Generate(
+            new Dictionary<string, string>
+            {
+                ["Test.cs"] = $$"""
+                using Hardened.Web.Runtime.Attributes;
+                using ValidationModules.Constraints;
+
+                namespace TestApp;
+
+                public class TestController {
+                    [Get("/orders/{id}")]
+                    {{handler}}
+                }
+                """,
+            },
+            new Dictionary<string, string> { ["ValidationModules_Registration"] = "" }
+        );
+
+    /// <summary>
     /// It is reported once, not once per handler in the assembly - the per-handler output stage
     /// reports it, and the routing table skips silently.
     /// </summary>

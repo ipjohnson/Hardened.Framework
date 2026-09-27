@@ -95,11 +95,25 @@ a JSON string. To send JSON, return a model or declare nothing.
 A handler that returns `byte[]` or `Stream` must declare its media type on the method or on its
 class. Without one, the build fails with `HRDR011`. `[assembly: Produces]` does not satisfy the
 check. The check applies to the success case of a response set. `Response<byte[], NotFound>` needs
-`[Produces]` too. For a handler `ExportController.Export` that returns `byte[]` and declares
-nothing, the build reports:
+`[Produces]` too. This handler in `src/Todos/ExportController.cs` returns `byte[]` and declares
+nothing:
+
+```csharp
+using Hardened.Web.Runtime.Attributes;
+
+namespace Todos;
+
+public class ExportController
+{
+    [Get("/export")]
+    public byte[] Export() => [];
+}
+```
+
+The build reports the error at the handler's name:
 
 ```text
-CSC : error HRDR011: 'ExportController.Export' answers with byte[] or Stream and carries no [Produces], so nothing says what the bytes are. Answering with either means the handler writes its own response, and no serializer is consulted - declare the media type with [Produces("application/pdf")] or answer with a model.
+src/Todos/ExportController.cs(8,19): error HRDR011: 'ExportController.Export' answers with byte[] or Stream and carries no [Produces], so nothing says what the bytes are. Answering with either means the handler writes its own response, and no serializer is consulted - declare the media type with [Produces("application/pdf")] or answer with a model.
 ```
 
 A handler that returns `byte[]` or `Stream` and declares two or more media types is not negotiated.
