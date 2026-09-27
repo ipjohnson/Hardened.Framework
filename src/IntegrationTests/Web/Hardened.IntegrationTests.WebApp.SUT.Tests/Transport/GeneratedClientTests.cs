@@ -139,23 +139,21 @@ public class GeneratedClientTests
     /// status on it.
     /// </summary>
     /// <remarks>
-    /// <c>/authorization/pets-unstated</c> rather than <c>/pets</c>, which used to be the example.
-    /// A 401 is published from the operation's security requirement, and <c>/pets</c> names a
-    /// scheme now, so its 401 is typed - see
-    /// <see cref="AnAuthenticationRefusalIsTypedWhereTheOperationNamesAScheme"/>. This handler
-    /// requires a grant and names no scheme, which the generator cannot describe, so the status
-    /// the runtime answers is still undeclared and this is still what a client sees.
+    /// <c>/errors/bad-request</c>, whose handler throws a 400 its document entry does not list. It
+    /// was <c>/authorization/pets-unstated</c>, until a guarded operation published its 401 whether
+    /// or not it named a scheme.
     /// </remarks>
     [ModuleTest]
     public async Task AnUndeclaredRefusalIsABareApiException(WebAppClient client)
     {
         var refusal = await Assert.ThrowsAsync<ApiException>(() =>
-            client.Authorization.PetsUnstated.GetAsync(
+            client.Errors.BadRequest.GetAsync(
                 cancellationToken: TestContext.Current.CancellationToken
             )
         );
 
-        Assert.Equal(401, refusal.ResponseStatusCode);
+        Assert.Equal(typeof(ApiException), refusal.GetType());
+        Assert.Equal(400, refusal.ResponseStatusCode);
     }
 
     /// <summary>

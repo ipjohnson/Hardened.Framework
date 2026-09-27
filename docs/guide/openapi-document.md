@@ -718,8 +718,8 @@ assembly.
 
 | Declaration | Publishes |
 |---|---|
-| `[AuthorizeGrants]`, or any attribute implementing `IAuthorizeAttribute` | A 403, "The caller does not hold what this operation requires." |
-| `[Authorize<TScheme>]` | A `security` requirement naming `TScheme`, the scheme under `components.securitySchemes`, a 401 with a `WWW-Authenticate` header, and the 403 |
+| `[AuthorizeGrants]`, or any attribute implementing `IAuthorizeAttribute` | A 401 and a 403, each with a `WWW-Authenticate` header. The 403's description is "The caller does not hold what this operation requires." |
+| `[Authorize<TScheme>]` | A `security` requirement naming `TScheme`, the scheme under `components.securitySchemes`, the 401 and the 403 |
 | `[RateLimit]` | A 429 with a `Retry-After` header |
 | `[Timeout]` | A 504, or the `Status` it sets, and `x-hardened-timeout` |
 | `[ConditionalGet]` | A 304 with an `ETag` header, an `ETag` header on the 200, and optional `If-None-Match` and `If-Modified-Since` header parameters |
@@ -733,6 +733,11 @@ or a `RetryAfterSeconds`, it is an object:
 `[Authorize<TScheme>]` with `[AuthorizeGrants("todos:read")]` on an OAuth2 scheme lists
 `todos:read` as the requirement's scope. [Authentication](/guide/authentication) covers the scheme
 attributes.
+
+An operation whose requirement names no scheme, such as `[AuthorizeGrants]` alone, is published
+under the application's scheme when the document declares exactly one. Its grants become that
+scheme's scopes when it is OAuth2 or OpenID Connect. When the document declares several schemes,
+or none, the operation publishes its 401 and 403 and no `security`.
 
 A filter attribute on the implementation of a contract publishes the same way. The 504 of a
 `[Timeout]` there comes without `x-hardened-timeout`. Only a budget declared in the contract writes
@@ -868,7 +873,6 @@ The document and the service also disagree in these cases:
 |---|---|---|
 | An operation whose only input is a JSON body with no constraint | Lists no 400 | Answers 400 to an empty or malformed body |
 | A GET handler that returns null, or returns nothing | Lists no 404 unless the handler declares one | Answers 404 |
-| `[AuthorizeGrants]` without `[Authorize<TScheme>]` | Lists a 403 and no 401 | Answers 401 to a caller with no credentials |
 | A filter attribute that declares its own 400 with `[AnswersStatus]` | Lists that 400 in place of the validation 400 | Answers `RequestValidationError` to a failed constraint on the operation |
 | A `[ValidationMode]` on the implementation of a contract operation that declares no mode | Lists no `x-hardened-validation`, or `collect-all` under a module's `[ValidationMode(ValidationStopMode.CollectAll)]` | Answers in the implementation's mode, such as with the first failure only |
 

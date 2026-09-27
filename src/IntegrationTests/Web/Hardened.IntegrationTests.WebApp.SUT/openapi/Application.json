@@ -129,12 +129,45 @@
         ],
         "operationId": "declaredForbidden",
         "summary": "A 403 the handler declares, which the authorization filter's refusal is written as.",
+        "security": [
+          {
+            "PetsOAuth": [
+              "pets:read"
+            ]
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK"
           },
+          "401": {
+            "description": "Authentication required.",
+            "headers": {
+              "WWW-Authenticate": {
+                "description": "The challenge naming the scheme to authenticate with.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
           "403": {
             "description": "Forbidden",
+            "headers": {
+              "WWW-Authenticate": {
+                "description": "The challenge naming what the caller lacks, as error=\"insufficient_scope\".",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -201,6 +234,14 @@
           },
           "403": {
             "description": "The caller does not hold what this operation requires.",
+            "headers": {
+              "WWW-Authenticate": {
+                "description": "The challenge naming what the caller lacks, as error=\"insufficient_scope\".",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -299,6 +340,14 @@
           },
           "403": {
             "description": "The caller does not hold what this operation requires.",
+            "headers": {
+              "WWW-Authenticate": {
+                "description": "The challenge naming what the caller lacks, as error=\"insufficient_scope\".",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -367,6 +416,14 @@
           },
           "403": {
             "description": "The caller does not hold what this operation requires.",
+            "headers": {
+              "WWW-Authenticate": {
+                "description": "The challenge naming what the caller lacks, as error=\"insufficient_scope\".",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -395,7 +452,14 @@
           "Authorization"
         ],
         "operationId": "unstated",
-        "summary": "The same grant with no scheme named, which is guarded and undescribable.",
+        "summary": "The same grant with no scheme named.",
+        "security": [
+          {
+            "PetsOAuth": [
+              "pets:read"
+            ]
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK",
@@ -407,8 +471,34 @@
               }
             }
           },
+          "401": {
+            "description": "Authentication required.",
+            "headers": {
+              "WWW-Authenticate": {
+                "description": "The challenge naming the scheme to authenticate with.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
           "403": {
             "description": "The caller does not hold what this operation requires.",
+            "headers": {
+              "WWW-Authenticate": {
+                "description": "The challenge naming what the caller lacks, as error=\"insufficient_scope\".",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -478,6 +568,14 @@
           },
           "403": {
             "description": "The caller does not hold what this operation requires.",
+            "headers": {
+              "WWW-Authenticate": {
+                "description": "The challenge naming what the caller lacks, as error=\"insufficient_scope\".",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -553,6 +651,14 @@
           },
           "403": {
             "description": "The caller does not hold what this operation requires.",
+            "headers": {
+              "WWW-Authenticate": {
+                "description": "The challenge naming what the caller lacks, as error=\"insufficient_scope\".",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -5899,6 +6005,13 @@
         "operationId": "granted",
         "summary": "Guarded by grants alone, which settle before serialization and so ahead of the cache, and the case the resource-scoped rule must not also refuse.",
         "description": "This comment used to say \"safe to cache behind\" and stopped there, which is how the authorization bypass shipped. Settling ahead of the cache is not by itself what makes it safe: a refusal ahead of serialization is recorded and travels on, so the cache has to read it. AWarmCacheStillRefusesTheGrantlessCaller is the test that says so.",
+        "security": [
+          {
+            "PetsOAuth": [
+              "pets:read"
+            ]
+          }
+        ],
         "parameters": [
           {
             "name": "If-None-Match",
@@ -5949,8 +6062,34 @@
               }
             }
           },
+          "401": {
+            "description": "Authentication required.",
+            "headers": {
+              "WWW-Authenticate": {
+                "description": "The challenge naming the scheme to authenticate with.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
           "403": {
             "description": "The caller does not hold what this operation requires.",
+            "headers": {
+              "WWW-Authenticate": {
+                "description": "The challenge naming what the caller lacks, as error=\"insufficient_scope\".",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -5981,6 +6120,13 @@
         "operationId": "ownedBySubject",
         "summary": "The shape three trial arms found one caller's data in: an authenticated read whose ownership check is the handler's own code, cached.",
         "description": "Nothing on the handler distinguishes this from Granted. A description can say \"the caller must be authenticated\" and cannot say \"and the row must be theirs\", so the check is here, answering 404 rather than 403 so the row's existence is not disclosed - and that is invisible to anything reading the requirement. CacheScope.PerCaller is the author saying what the metadata cannot.",
+        "security": [
+          {
+            "PetsOAuth": [
+              "pets:read"
+            ]
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK",
@@ -5992,8 +6138,34 @@
               }
             }
           },
+          "401": {
+            "description": "Authentication required.",
+            "headers": {
+              "WWW-Authenticate": {
+                "description": "The challenge naming the scheme to authenticate with.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
           "403": {
             "description": "The caller does not hold what this operation requires.",
+            "headers": {
+              "WWW-Authenticate": {
+                "description": "The challenge naming what the caller lacks, as error=\"insufficient_scope\".",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -6023,6 +6195,11 @@
         ],
         "operationId": "owned",
         "summary": "Guarded by a requirement that reads the request, which runs after the cache would have answered. The framework declines to install the filter rather than serving one caller's answer to another.",
+        "security": [
+          {
+            "PetsOAuth": []
+          }
+        ],
         "parameters": [
           {
             "name": "ownerId",
@@ -6044,8 +6221,34 @@
               }
             }
           },
+          "401": {
+            "description": "Authentication required.",
+            "headers": {
+              "WWW-Authenticate": {
+                "description": "The challenge naming the scheme to authenticate with.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
           "403": {
             "description": "The caller does not hold what this operation requires.",
+            "headers": {
+              "WWW-Authenticate": {
+                "description": "The challenge naming what the caller lacks, as error=\"insufficient_scope\".",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -6172,6 +6375,13 @@
         ],
         "operationId": "unstatedScope",
         "summary": "The same read with nothing said about who may be served it, so the first request to it fails naming the handler rather than serving one caller's answer to another.",
+        "security": [
+          {
+            "PetsOAuth": [
+              "pets:read"
+            ]
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK",
@@ -6183,8 +6393,34 @@
               }
             }
           },
+          "401": {
+            "description": "Authentication required.",
+            "headers": {
+              "WWW-Authenticate": {
+                "description": "The challenge naming the scheme to authenticate with.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
           "403": {
             "description": "The caller does not hold what this operation requires.",
+            "headers": {
+              "WWW-Authenticate": {
+                "description": "The challenge naming what the caller lacks, as error=\"insufficient_scope\".",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -6569,6 +6805,13 @@
         ],
         "operationId": "eventsGuarded",
         "summary": "A guarded event stream, for what a refusal on one looks like on the wire.",
+        "security": [
+          {
+            "PetsOAuth": [
+              "events:read"
+            ]
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK",
@@ -6586,8 +6829,34 @@
               }
             }
           },
+          "401": {
+            "description": "Authentication required.",
+            "headers": {
+              "WWW-Authenticate": {
+                "description": "The challenge naming the scheme to authenticate with.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
           "403": {
             "description": "The caller does not hold what this operation requires.",
+            "headers": {
+              "WWW-Authenticate": {
+                "description": "The challenge naming what the caller lacks, as error=\"insufficient_scope\".",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -6858,6 +7127,13 @@
         ],
         "operationId": "modelsGuarded",
         "summary": "The newline-delimited twin of EventsGuarded.",
+        "security": [
+          {
+            "PetsOAuth": [
+              "events:read"
+            ]
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK",
@@ -6875,8 +7151,34 @@
               }
             }
           },
+          "401": {
+            "description": "Authentication required.",
+            "headers": {
+              "WWW-Authenticate": {
+                "description": "The challenge naming the scheme to authenticate with.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
           "403": {
             "description": "The caller does not hold what this operation requires.",
+            "headers": {
+              "WWW-Authenticate": {
+                "description": "The challenge naming what the caller lacks, as error=\"insufficient_scope\".",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {

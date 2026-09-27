@@ -116,6 +116,14 @@ public static class OpenApiDocumentGenerator
         handlers = WithEntryPointSecurity(appModel, handlers);
         registered = WithEntryPointSecurity(appModel, registered);
 
+        // And an operation guarded by a requirement that names no scheme is published under the
+        // application's scheme, where the document declares exactly one.
+        if (SoleScheme(identity, Union(handlers, registered)) is { } soleScheme)
+        {
+            handlers = UnderSoleScheme(soleScheme, handlers);
+            registered = UnderSoleScheme(soleScheme, registered);
+        }
+
         // And [ErrorBodies(Json)] narrows every refusal, before any of them is written. Here rather
         // than inside ErrorContentTypes because the rule is about the service and the handlers are
         // already rewritten once at this point - threading a flag down to two call sites would put
@@ -472,11 +480,100 @@ public static class OpenApiDocumentGenerator
             copy.DeclaredSecuritySchemes = schemes;
             copy.DeclaredGrants = grants;
             copy.SecurityRequirements = requirements;
+            copy.RequiresAuthorization = true;
 
             secured.Add(copy);
         }
 
         return secured;
+    }
+
+    /// <summary>
+    /// The one scheme the document declares, or null where it declares none or several.
+    /// </summary>
+    /// <remarks>
+    /// With one, a requirement that names no scheme can only be met through it, so the operation is
+    /// published under it. With several there is no telling which, and the operation keeps its 401
+    /// with no <c>security</c>.
+    /// </remarks>
+    private static SecuritySchemeDeclaration? SoleScheme(
+        DocumentIdentity? identity,
+        IEnumerable<RequestHandlerModel> handlers
+    )
+    {
+        var schemes = new Dictionary<string, SecuritySchemeDeclaration>(
+            System.StringComparer.Ordinal
+        );
+
+        if (identity != null)
+        {
+            foreach (var (name, json) in identity.SecuritySchemes)
+            {
+                schemes[name] = new SecuritySchemeDeclaration(name, json, CarriesScopes(json));
+            }
+        }
+
+        foreach (var handler in handlers)
+        {
+            foreach (var declared in handler.DeclaredSecuritySchemes)
+            {
+                if (!schemes.ContainsKey(declared.Name))
+                {
+                    schemes[declared.Name] = declared;
+                }
+            }
+        }
+
+        return schemes.Count == 1 ? schemes.Values.First() : null;
+    }
+
+    /// <summary>Whether a contract's scheme is a kind that carries scopes.</summary>
+    private static bool CarriesScopes(string json)
+    {
+        var compact = json.Replace(" ", "");
+
+        return compact.Contains("\"type\":\"oauth2\"")
+            || compact.Contains("\"type\":\"openIdConnect\"");
+    }
+
+    /// <summary>
+    /// Every guarded handler that names no scheme, under <paramref name="scheme"/>.
+    /// </summary>
+    /// <remarks>
+    /// Copies, for the reason <see cref="WithEntryPointSecurity"/> gives: the routing table reads
+    /// the same models and must not change. The grants become scopes where the scheme carries them.
+    /// </remarks>
+    private static IReadOnlyList<RequestHandlerModel> UnderSoleScheme(
+        SecuritySchemeDeclaration scheme,
+        IReadOnlyList<RequestHandlerModel> handlers
+    )
+    {
+        var published = new List<RequestHandlerModel>(handlers.Count);
+
+        foreach (var handler in handlers)
+        {
+            if (
+                !handler.RequiresAuthorization
+                || handler.NamesAScheme
+                || handler.SecurityRequirements.Count > 0
+            )
+            {
+                published.Add(handler);
+
+                continue;
+            }
+
+            var copy = handler.WithFilters(handler.Filters);
+
+            copy.SecurityRequirements = new[]
+            {
+                SecurityDeclarationSelector.RequirementJson(scheme, handler.DeclaredGrants),
+            };
+
+            published.Add(copy);
+        }
+
+        return published;
     }
 
     /// <summary>Whether the handler's method or class carries <c>[AllowAnonymous]</c>.</summary>
@@ -1532,7 +1629,10 @@ public static class OpenApiDocumentGenerator
         responses[403] = Envelope(
             handler,
             "The caller does not hold what this operation requires.",
-            ErrorModelRef
+            ErrorModelRef,
+            "\"headers\":{\"WWW-Authenticate\":{"
+                + "\"description\":\"The challenge naming what the caller lacks, as error=\\\"insufficient_scope\\\".\","
+                + "\"schema\":{\"type\":\"string\"}}}"
         );
     }
 
@@ -2131,14 +2231,19 @@ public static class OpenApiDocumentGenerator
         + "\"details\":{\"type\":\"string\"}}}";
 
     /// <summary>
-    /// The 401 an operation with security requirements can answer, declared rather than implied.
+    /// The 401 a guarded operation can answer, declared rather than implied.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// <c>AuthorizationFilter</c> refuses an unauthenticated caller before the handler runs, with
-    /// a <c>WWW-Authenticate</c> challenge and the standard error body. The requirement itself was
-    /// already published under <c>security</c>; this is the status enforcing it produces, which
-    /// the document promised nothing about. Skipped where the operation declared its own 401,
-    /// whose description then wins.
+    /// a <c>WWW-Authenticate</c> challenge and the standard error body. Skipped where the operation
+    /// declared its own 401, whose description then wins.
+    /// </para>
+    /// <para>
+    /// Keyed on the operation being guarded as well as on its <c>security</c>. A requirement that
+    /// names no scheme, <c>[AuthorizeGrants]</c> alone, publishes no <c>security</c> unless the
+    /// document declares a single scheme, and it is answered 401 all the same.
+    /// </para>
     /// </remarks>
     private static void WriteAuthenticationResponse(
         SortedDictionary<int, string> responses,
@@ -2146,7 +2251,7 @@ public static class OpenApiDocumentGenerator
         SortedDictionary<string, string> components
     )
     {
-        if (handler.SecurityRequirements.Count == 0)
+        if (handler.SecurityRequirements.Count == 0 && !handler.RequiresAuthorization)
         {
             return;
         }

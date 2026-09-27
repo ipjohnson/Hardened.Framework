@@ -93,6 +93,22 @@ internal static class SecurityDeclarationSelector
             return;
         }
 
+        var declaringClass = method.Ancestors().OfType<ClassDeclarationSyntax>().FirstOrDefault();
+
+        model.RequiresAuthorization =
+            Guarded(context, method.AttributeLists, cancellationToken)
+            || (
+                declaringClass != null
+                && Guarded(context, declaringClass.AttributeLists, cancellationToken)
+            );
+
+        model.NamesAScheme =
+            NamesScheme(context, method.AttributeLists, cancellationToken)
+            || (
+                declaringClass != null
+                && NamesScheme(context, declaringClass.AttributeLists, cancellationToken)
+            );
+
         if (grants.Count > 0)
         {
             model.DeclaredGrants = grants;
@@ -264,6 +280,58 @@ internal static class SecurityDeclarationSelector
             if (contract.ToDisplayString() == RequirementInterface)
             {
                 return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>Whether any of these attributes imposes a requirement.</summary>
+    private static bool Guarded(
+        GeneratorSyntaxContext context,
+        SyntaxList<AttributeListSyntax> attributeLists,
+        CancellationToken cancellationToken
+    )
+    {
+        foreach (var attributeList in attributeLists)
+        {
+            foreach (var attribute in attributeList.Attributes)
+            {
+                if (
+                    IsRequirement(
+                        context.SemanticModel.GetTypeInfo(attribute, cancellationToken).Type
+                            as INamedTypeSymbol
+                    )
+                )
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>Whether any of these attributes is <c>[Authorize&lt;TScheme&gt;]</c>.</summary>
+    private static bool NamesScheme(
+        GeneratorSyntaxContext context,
+        SyntaxList<AttributeListSyntax> attributeLists,
+        CancellationToken cancellationToken
+    )
+    {
+        foreach (var attributeList in attributeLists)
+        {
+            foreach (var attribute in attributeList.Attributes)
+            {
+                if (
+                    context.SemanticModel.GetTypeInfo(attribute, cancellationToken).Type
+                        is INamedTypeSymbol type
+                    && type.OriginalDefinition.ToDisplayString()
+                        .StartsWith(AuthorizeAttributeName + "<", System.StringComparison.Ordinal)
+                )
+                {
+                    return true;
+                }
             }
         }
 

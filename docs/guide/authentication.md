@@ -88,7 +88,7 @@ the operation. [The OpenAPI document](/guide/openapi-document) covers what an op
 A scheme reaches the document only when a handler names it in `[Authorize<TScheme>]`. A scheme class
 without one of the three attributes is still enforced: `[Authorize<TScheme>]` answers 401 to an
 anonymous caller. The document gets no entry for it. The operation of a handler that names it lists
-no `security` and no 401.
+the 401 and no `security`.
 
 One of the three attributes on a handler method, a controller class or a module class publishes
 nothing and enforces nothing. The build reports warning `HRDSC001`.
