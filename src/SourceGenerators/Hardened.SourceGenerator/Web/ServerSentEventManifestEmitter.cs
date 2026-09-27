@@ -52,17 +52,27 @@ internal static class ServerSentEventManifestEmitter
     /// contract.
     /// </para>
     /// </remarks>
-    public static IReadOnlyList<string> Collect(IReadOnlyList<RequestHandlerModel> handlers) =>
+    public static IReadOnlyList<string> Collect(
+        IReadOnlyList<RequestHandlerModel> handlers,
+        string? basePath
+    ) =>
         handlers
             .Where(handler =>
                 handler.ResponseInformation.StreamFraming == StreamFramingNames.ServerSentEvents
             )
-            .Select(handler =>
-                handler.Name.Method + " " + RouteTemplate.NamesOnly(handler.Name.Path)
-            )
+            .Select(handler => Name(handler, basePath))
             .Distinct()
             .OrderBy(name => name, System.StringComparer.Ordinal)
             .ToList();
+
+    /// <summary>
+    /// The verb and the route a request uses, which starts with the entry point's
+    /// <c>[BasePath]</c>. The handler's own template does not.
+    /// </summary>
+    public static string Name(RequestHandlerModel handler, string? basePath) =>
+        handler.Name.Method
+        + " "
+        + RouteTemplate.NamesOnly(RoutePath.Combine(basePath, handler.Name.Path));
 
     public static void Emit(ClassDefinition appClass, IReadOnlyList<string> handlers)
     {

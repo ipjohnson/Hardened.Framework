@@ -286,4 +286,28 @@ public class EnvironmentMatchingTests
     {
         Assert.True(new EnvironmentImpl("test").MatchesVariable("FEATURE", ""));
     }
+
+    /// <summary>
+    /// A function the Lambda service started, with no <c>HARDENED_ENVIRONMENT</c>, is production.
+    /// It was development, and served <c>/docs</c>. Read through a delegate, because setting the
+    /// process's own variable would race every other test that builds an environment.
+    /// </summary>
+    [Fact]
+    public void AProcessTheLambdaServiceStartedDefaultsToProduction()
+    {
+        Assert.Equal(
+            "production",
+            EnvironmentImpl.DefaultName(name =>
+                name == "AWS_LAMBDA_RUNTIME_API" ? "127.0.0.1:9001" : null
+            )
+        );
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    public void AnyOtherProcessDefaultsToDevelopment(string? runtimeApi)
+    {
+        Assert.Equal("development", EnvironmentImpl.DefaultName(_ => runtimeApi));
+    }
 }

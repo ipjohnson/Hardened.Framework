@@ -742,6 +742,13 @@ namespace Hardened.Requests.Abstract.QueryString
         Microsoft.Extensions.Primitives.StringValues Get(string key);
     }
 }
+namespace Hardened.Requests.Abstract.RateLimiting
+{
+    public interface IRateLimitManifest
+    {
+        System.Collections.Generic.IReadOnlyList<string> Handlers { get; }
+    }
+}
 namespace Hardened.Requests.Abstract.RequestFilter
 {
     public static class FilterOrder

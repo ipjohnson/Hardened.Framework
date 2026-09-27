@@ -38,7 +38,8 @@ var port = int.TryParse(Environment.GetEnvironmentVariable("PORT"), out var conf
 #endif
 
 // Registered by the application, not the framework: only the application knows where its
-// environment name and arguments come from. HARDENED_ENVIRONMENT names it, or "development".
+// environment name and arguments come from. HARDENED_ENVIRONMENT names it. Unset, it is
+// "production" where the AWS Lambda service started the process and "development" elsewhere.
 var environment = new EnvironmentImpl(arguments: args);
 
 #if (kestrel)

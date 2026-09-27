@@ -1,6 +1,7 @@
 using DependencyModules.Runtime.Attributes;
 using DependencyModules.Runtime.Interfaces;
 using Hardened.Aws.Lambda.Runtime.Hosting;
+using Hardened.Aws.Lambda.Runtime.RateLimiting;
 using Hardened.Aws.Lambda.Runtime.Streaming;
 using Hardened.Requests.Runtime.DependencyInjection;
 using Hardened.Shared.Runtime.Application;
@@ -71,5 +72,6 @@ public partial class LambdaRuntimeModule : IServiceCollectionConfiguration
         // Enumerable rather than Try, because a startup service is one of many and replacing the
         // set is not what registering another one means.
         services.AddSingleton<IStartupService, ServerSentEventsResponseModeStartupService>();
+        services.AddSingleton<IStartupService, InProcessRateLimitStartupService>();
     }
 }

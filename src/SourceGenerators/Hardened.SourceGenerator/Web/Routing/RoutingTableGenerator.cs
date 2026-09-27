@@ -385,9 +385,17 @@ public static class RoutingTableGenerator
 
         EnumWireConverterEmitter.Emit(appClass, enums);
 
-        var eventStreams = ServerSentEventManifestEmitter.Collect(endPointModels);
+        var eventStreams = ServerSentEventManifestEmitter.Collect(endPointModels, _basePath);
 
         ServerSentEventManifestEmitter.Emit(appClass, eventStreams);
+
+        var rateLimited = RateLimitManifestEmitter.Collect(
+            endPointModels,
+            appModel.FilterDeclarations,
+            _basePath
+        );
+
+        RateLimitManifestEmitter.Emit(appClass, rateLimited);
 
         ApplicationFilterEmitter.Emit(appClass, appModel.FilterDeclarations);
 
@@ -398,6 +406,7 @@ public static class RoutingTableGenerator
             endPointModels,
             enums,
             eventStreams,
+            rateLimited,
             cancellationToken,
             options
         );
@@ -439,6 +448,7 @@ public static class RoutingTableGenerator
         IReadOnlyList<RequestHandlerModel> webEndPointModels,
         IReadOnlyList<EnumVocabulary> enums,
         IReadOnlyList<string> eventStreams,
+        IReadOnlyList<string> rateLimited,
         CancellationToken cancellationToken,
         RoutingTableOptions options
     )
@@ -523,6 +533,26 @@ public static class RoutingTableGenerator
                             applicationModel.EntryPointType.Name
                                 + "."
                                 + ServerSentEventManifestEmitter.ContainerName
+                        ),
+                    }
+                )
+            );
+        }
+
+        // Only where a handler is rate limited, for the same reason.
+        if (rateLimited.Count > 0)
+        {
+            diMethod.AddIndentedStatement(
+                serviceCollection.InvokeGeneric(
+                    "AddSingleton",
+                    new[]
+                    {
+                        KnownTypes.Requests.IRateLimitManifest,
+                        TypeDefinition.Get(
+                            applicationModel.EntryPointType.Namespace,
+                            applicationModel.EntryPointType.Name
+                                + "."
+                                + RateLimitManifestEmitter.ContainerName
                         ),
                     }
                 )
