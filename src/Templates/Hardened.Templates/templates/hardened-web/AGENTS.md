@@ -325,6 +325,8 @@ The default is camelCase: `InProgress` goes out as `"inProgress"`. To choose som
 for the assembly, for one enum, or both:
 
 ```csharp
+using Hardened.Requests.Abstract.Attributes;
+
 [assembly: JsonEnumNaming(EnumNaming.KebabCaseLower)]   // "in-progress"
 
 [JsonEnumNaming(EnumNaming.MemberName)]                 // opts out: "AB12"
