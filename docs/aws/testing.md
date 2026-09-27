@@ -250,7 +250,10 @@ Instances of abstract classes cannot be created.
 Without `ResponseMode`, the function answers in `buffered` mode. Each request runs in a container of
 its own. [Writing a test](/guide/testing) covers containers and `[Shared]`. A path with no route
 answers 404. The invocation's Lambda context reports 30 seconds remaining, so a handler's
-`CancellationToken` is cancelled about 29.5 seconds into a request.
+`CancellationToken` is cancelled about 29.5 seconds into a request. `RemainingTimeMilliseconds` sets
+another remaining time. `[LambdaWebTesting(RemainingTimeMilliseconds = 700)]` on a test method
+cancels its handlers' tokens about 200 milliseconds into each request, which is how a test reaches
+what a handler does when its time runs out.
 
 The attribute builds this event from each request:
 
@@ -290,12 +293,8 @@ A request sent with `Accept-Encoding: identity` gets the body uncompressed.
 `[Grants]` and `[Subject]` are not applied. A test marked `[Grants("todos:read")]` gets 401 from an
 `[AuthorizeGrants("todos:read")]` handler. `LastResponse` is not recorded.
 
-A response read through an `HttpClient` has no `Content-Type`, so a typed client fails. The
-`hardened-web` template's Kiota test fails with this message:
-
-```text
-The response declares a body of List`1 and carried none.
-```
+A client built over the host's `HttpClient` sends its content headers, `Content-Type` among them,
+and reads the response's content headers from the response content, so a typed client works.
 
 [Test hosts](/guide/testing-hosts) covers these limits with the other hosts.
 

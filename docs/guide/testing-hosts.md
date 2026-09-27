@@ -331,10 +331,6 @@ The same request gets 200 when the test sets the `X-Test-Grants` header by hand.
 Neither host records `LastResponse`. Reading it after a request throws, as it does before any
 request.
 
-Under `[LambdaWebTesting]`, a response read through an `HttpClient` has no `Content-Type`, so a
-typed client fails. The template's Kiota tests fail under it with
-``The response declares a body of List`1 and carried none.``
-
 ## Next
 
 | Page | Covers |

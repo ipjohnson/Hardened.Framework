@@ -35,6 +35,49 @@ public class HostClientTests
     }
 
     /// <summary>
+    /// <c>Content-Type</c> reaches the client, on the content where a client reads it. It was
+    /// dropped, and a generated client took the missing type to mean there was no body.
+    /// </summary>
+    [ModuleTest]
+    public async Task AResponseCarriesItsContentType(HttpClient client)
+    {
+        using var response = await client.GetAsync(
+            "/orders/c-1",
+            TestContext.Current.CancellationToken
+        );
+
+        Assert.Equal("application/json", response.Content.Headers.ContentType?.MediaType);
+    }
+
+    /// <summary>
+    /// A request's <c>Content-Type</c> reaches the function too. A multipart body is unreadable
+    /// without the boundary the type carries, and binary content is sent as base64 only when its
+    /// type says it is not text.
+    /// </summary>
+    [ModuleTest]
+    public async Task ARequestKeepsItsContentType(HttpClient client)
+    {
+        using var file = new ByteArrayContent([0x00, 0xFF, 0x10, 0x80]);
+
+        file.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(
+            "application/octet-stream"
+        );
+
+        using var form = new MultipartFormDataContent { { file, "file", "bytes.bin" } };
+
+        using var response = await client.PostAsync(
+            "/uploads",
+            form,
+            TestContext.Current.CancellationToken
+        );
+
+        Assert.Equal(
+            "\"00FF1080\"",
+            await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken)
+        );
+    }
+
+    /// <summary>
     /// Every request builds an environment of its own, which is what a deployed function is not
     /// promised to avoid.
     /// </summary>
