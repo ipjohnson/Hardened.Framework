@@ -21,9 +21,7 @@ namespace Hardened.Web.Runtime.Responses;
 /// </para>
 /// </remarks>
 [HttpStatus(422)]
-public sealed record UnprocessableContent(string? Detail = null)
-    : IHttpStatusResponse,
-        IDeclaresStatus
+public sealed record UnprocessableContent(string? Detail = null) : IProblemDetails, IDeclaresStatus
 {
     /// <summary>
     /// The UnprocessableContent with a generic message, for a handler with nothing more to say than the status.

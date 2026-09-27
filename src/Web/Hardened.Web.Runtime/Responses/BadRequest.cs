@@ -20,7 +20,7 @@ namespace Hardened.Web.Runtime.Responses;
 /// </para>
 /// </remarks>
 [HttpStatus(400)]
-public sealed record BadRequest(string? Detail = null) : IHttpStatusResponse, IDeclaresStatus
+public sealed record BadRequest(string? Detail = null) : IProblemDetails, IDeclaresStatus
 {
     /// <summary>
     /// The BadRequest with a generic message, for a handler with nothing more to say than the status.

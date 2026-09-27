@@ -82,7 +82,7 @@ The document lists the operation under `/todos/{id}`:
     "404": {
       "description": "Not Found",
       "content": {
-        "application/json": {
+        "application/problem+json": {
           "schema": {
             "$ref": "#/components/schemas/NotFound"
           }
@@ -613,6 +613,12 @@ A handler that returns nothing publishes a 200 with no `content`. A 204 or 304 r
 The document publishes the body under each media type in `[Produces]`, in that order. Without
 `[Produces]`, it publishes the body under `application/json`.
 [Content negotiation](/guide/content-negotiation) covers `[Produces]`.
+
+A status of 400 or above whose body is a problem type, such as `NotFound`, is published under
+`application/problem+json` in place of `application/json`, because that is how a JSON serializer
+sends it. A status with two bodies, one of them a problem type, lists both media types. The generic
+forms, such as `NotFound<T>`, send a body of your own type and stay `application/json`.
+[Declared responses](/guide/responses#built-in-response-types) covers the problem types.
 
 A handler that returns `IAsyncEnumerable<T>` publishes the stream's media type, with the items as
 an array under `schema` and one item under `itemSchema`. [Streaming responses](/guide/streaming)

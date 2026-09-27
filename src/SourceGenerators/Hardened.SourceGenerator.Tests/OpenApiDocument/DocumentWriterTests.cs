@@ -567,4 +567,93 @@ public class DocumentWriterTests
     }
 
     #endregion
+
+    #region problem records
+
+    private static ResponseSchemaModel Problem(int status, string name) =>
+        new(status, "A problem", Schema(name)) { IsProblem = true };
+
+    private static string[] MediaTypes(RequestHandlerModel handler, int status) =>
+        Responses(handler)
+            .GetProperty(status.ToString())
+            .GetProperty("content")
+            .EnumerateObject()
+            .Select(mediaType => mediaType.Name)
+            .ToArray();
+
+    /// <summary>
+    /// A problem record is written as application/problem+json, so the status it answers is
+    /// published that way rather than as the application/json the rest of the operation uses.
+    /// </summary>
+    [Fact]
+    public void AFailureWhoseBodyIsAProblemRecordIsPublishedAsProblemJson()
+    {
+        var handler = Handler(responses: [Problem(404, "NotFound"), Problem(409, "Conflict")]);
+
+        Assert.Equal(["application/problem+json"], MediaTypes(handler, 404));
+        Assert.Equal(["application/problem+json"], MediaTypes(handler, 409));
+    }
+
+    [Fact]
+    public void AFailureWhoseBodyIsTheHandlersOwnStaysJson()
+    {
+        var handler = Handler(
+            responses: [new ResponseSchemaModel(404, "No such todo", Schema("ApiError"))]
+        );
+
+        Assert.Equal(["application/json"], MediaTypes(handler, 404));
+    }
+
+    /// <summary>
+    /// Two bodies under one status, one of them a problem record, go out under two media types, so
+    /// both are listed.
+    /// </summary>
+    [Fact]
+    public void AStatusMixingAProblemAndAnotherBodyListsBoth()
+    {
+        var handler = Handler(
+            responses:
+            [
+                Problem(409, "Conflict"),
+                new ResponseSchemaModel(409, "Taken", Schema("Taken")),
+            ]
+        );
+
+        Assert.Equal(["application/json", "application/problem+json"], MediaTypes(handler, 409));
+    }
+
+    /// <summary>
+    /// Only the JSON entry changes. A MessagePack client is answered a problem in MessagePack.
+    /// </summary>
+    [Fact]
+    public void AProblemRecordKeepsTheOperationsOtherMediaTypes()
+    {
+        var handler = Handler(responses: [Problem(404, "NotFound")]);
+
+        handler = handler.WithFilters(
+            handler.Filters,
+            handler.ResponseInformation with
+            {
+                ProducedContentTypes = "application/x-msgpack",
+            }
+        );
+
+        Assert.Equal(
+            ["application/x-msgpack", "application/problem+json"],
+            MediaTypes(handler, 404)
+        );
+    }
+
+    /// <summary>
+    /// A success is never a problem, whatever its body implements.
+    /// </summary>
+    [Fact]
+    public void ASuccessIsNotPublishedAsAProblem()
+    {
+        var handler = Handler(responses: [Problem(200, "Todo")]);
+
+        Assert.Equal(["application/json"], MediaTypes(handler, 200));
+    }
+
+    #endregion
 }

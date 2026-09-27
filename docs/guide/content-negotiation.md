@@ -235,6 +235,18 @@ At run time, when no serializer is registered for the media type, a request to s
 gets a 500 with an empty body. The log names `ContentTypeNotProducibleException`: "This operation
 declares text/csv and no registered serializer can produce any of them."
 
+The build makes the same check for an operation that an OpenAPI or Smithy contract describes. It
+warns for each media type in the contract's responses that nothing writes:
+
+```text
+CSC : warning HRDR012: 'ITodosService.GetTodo' is declared by its contract as answering application/xml, and nothing here writes a model as that media type. Register an IResponseSerializer declaring it, or reference the package that writes it. A host that registers one makes this correct, which is why it is a warning.
+```
+
+`application/problem+json` is known for a failure, because the JSON serializers write it for a
+status of 400 or above. For a success it is not, so a contract that declares a success as
+`application/problem+json` gets `HRDR012`. A success that the handler writes as text or bytes is not
+checked, and neither is `text/html` on a success, which a view writes.
+
 ## Error bodies
 
 When an operation negotiates, a failed request gets its error body in the representation that the
@@ -291,6 +303,17 @@ id,title,done
 
 A handler that returns `string`, `byte[]` or `Stream` answers its failures as JSON.
 
+A failure whose body is a problem type, such as `NotFound`, and that is written as JSON goes out as
+`application/problem+json`. [Responses](/guide/responses#built-in-response-types) covers the problem
+types and RFC 9457.
+
+A contract can declare its failures in media types of their own. For example, `application/json`
+for a 200 and `application/problem+json` for the 404. A failure is then negotiated within the media
+types the contract declares for failures. A client that asks for `application/json` gets the 404 as
+`application/problem+json`, because a problem document is JSON. The JSON serializers write
+`application/problem+json` for a failure only, so a client that asks for it on the 200 gets a 406
+under the strict mode and `application/json` under the lenient one.
+
 `[JsonErrorBodies]` answers every response with a status of 400 or more as JSON, whatever the
 request negotiated. Successes are unchanged. The attribute is in
 `Hardened.Requests.Abstract.Attributes`. Put it on the module that declares the routes, which is
@@ -330,7 +353,7 @@ GET /todos/99
 Accept: text/csv
 
 HTTP/1.1 404 Not Found
-Content-Type: application/json
+Content-Type: application/problem+json
 
 {"resource":"todo","detail":"No todo has id 99.","type":"urn:hardened:problem:not-found","title":"Not Found","status":404}
 ```
@@ -365,14 +388,15 @@ In the OpenAPI document, the error responses of an operation list these media ty
 | Any other handler | Its declared media types, in order, then `application/json` when it is not one of them |
 
 The document lists media types this way for the error statuses that the handler declares and for
-the ones that the pipeline adds, such as the validation 400. Without `[JsonErrorBodies]`, the
-document lists the 404 of `GET /todos/{id}` like this:
+the ones that the pipeline adds, such as the validation 400. Where the body at a status is a problem
+type, `application/problem+json` takes the place of `application/json`. Without `[JsonErrorBodies]`,
+the document lists the 404 of `GET /todos/{id}` like this:
 
 ```json
 "404": {
   "description": "Not Found",
   "content": {
-    "application/json": {
+    "application/problem+json": {
       "schema": {
         "$ref": "#/components/schemas/NotFound"
       }

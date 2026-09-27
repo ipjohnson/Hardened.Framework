@@ -48,7 +48,7 @@ Content-Type: application/json
 GET /todos/99
 
 HTTP/1.1 404 Not Found
-Content-Type: application/json
+Content-Type: application/problem+json
 
 {"resource":"todo","detail":"No todo has id 99.","type":"urn:hardened:problem:not-found","title":"Not Found","status":404}
 ```
@@ -187,6 +187,18 @@ its constructor members first, then `type`, `title` and `status`. The 404 at the
 shows that order. `type` is `urn:hardened:problem:` followed by the record's name in lower case with
 hyphens. `NotFound` sends `urn:hardened:problem:not-found`. `RateLimited` sends
 `urn:hardened:problem:rate-limited`. A `Detail` that is not given is sent as `"detail":null`.
+
+A problem type's body is a problem details object as RFC 9457 defines it. `type`, `title`, `status`
+and `detail` are RFC 9457's members, and the rest, such as `resource`, are extension members. Sent as
+JSON, a problem type goes out as `application/problem+json`, the media type RFC 9457 registers for
+it. The OpenAPI document declares that media type for each status a problem type answers. The
+generic forms send a body of your own type, so they go out as `application/json`. So do the
+framework's own refusals, such as the 401 and the validation 400, whose bodies are not in RFC
+9457's shape.
+
+Every problem type implements `IProblemDetails`, in `Hardened.Requests.Abstract.Responses`. A record
+of your own that implements it is sent as `application/problem+json` too, when it answers a status
+of 400 or above.
 
 `RateLimited` also sends its wait in the body, as a time span: `"retryAfter":"00:00:30"`.
 `ServiceUnavailable` sends `"after"` the same way. `Unauthorized` sends `"challenge"` in its body.
@@ -549,7 +561,7 @@ public class TodoController
 GET /todos/99
 
 HTTP/1.1 404 Not Found
-Content-Type: application/json
+Content-Type: application/problem+json
 
 {"resource":"todo","detail":"No todo has id 99.","type":"urn:hardened:problem:not-found","title":"Not Found","status":404}
 ```

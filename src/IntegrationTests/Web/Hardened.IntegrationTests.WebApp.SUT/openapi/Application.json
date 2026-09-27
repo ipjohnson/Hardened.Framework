@@ -1745,7 +1745,7 @@
           "404": {
             "description": "Not Found. A token that fails its route constraint answers this status too, before the handler and with no body.",
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/NotFound"
                 }
@@ -1799,7 +1799,7 @@
           "404": {
             "description": "Not Found. A token that fails its route constraint answers this status too, before the handler and with no body.",
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/NotFound"
                 }
@@ -4681,7 +4681,7 @@
           "404": {
             "description": "Not Found",
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/NotFound"
                 }
@@ -7421,7 +7421,7 @@
           "400": {
             "description": "Bad Request",
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/BadRequest"
                 }

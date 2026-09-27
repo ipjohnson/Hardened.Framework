@@ -22,7 +22,7 @@ namespace Hardened.Web.Runtime.Responses;
 /// </remarks>
 [HttpStatus(404)]
 public sealed record NotFound(string Resource, string? Detail = null)
-    : IHttpStatusResponse,
+    : IProblemDetails,
         IDeclaresStatus
 {
     /// <summary>

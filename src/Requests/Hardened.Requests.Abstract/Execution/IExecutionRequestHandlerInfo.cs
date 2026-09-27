@@ -82,6 +82,25 @@ public interface IExecutionRequestHandlerInfo
     IReadOnlyList<string> ProducedContentTypes => Array.Empty<string>();
 
     /// <summary>
+    /// The media types this operation's failures are declared with, where a description declared
+    /// them.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A contract can declare a failure as <c>application/problem+json</c> beside a success declared
+    /// as <c>application/json</c>. <see cref="ProducedContentTypes"/> carries both, because either
+    /// may be answered, so a failure negotiated within it went out as the first one the client
+    /// accepted: the success's media type, under the status the document declares otherwise. A
+    /// response of 400 or above is negotiated within these instead.
+    /// </para>
+    /// <para>
+    /// Empty means nothing declared them apart, and a failure negotiates within
+    /// <see cref="ProducedContentTypes"/> as a success does.
+    /// </para>
+    /// </remarks>
+    IReadOnlyList<string> ErrorContentTypes => Array.Empty<string>();
+
+    /// <summary>
     /// The identifier of the parameter bound from the request body, or null when the handler
     /// takes none.
     /// </summary>
