@@ -236,6 +236,27 @@ public class OpenApiDocumentProviderTests
     }
 
     /// <summary>
+    /// Both answers depend on <c>Accept-Encoding</c>. A shared cache that stored either one without
+    /// being told so could hand the gzip bytes to a client that cannot inflate them.
+    /// </summary>
+    [Theory]
+    [InlineData("gzip")]
+    [InlineData("identity")]
+    [InlineData(null)]
+    public async Task Handle_VariesOnAcceptEncodingWhicheverItAnswers(string? acceptEncoding)
+    {
+        var context = await Serve(
+            new OpenApiDocumentProvider(Services(), Document),
+            Context(acceptEncoding: acceptEncoding)
+        );
+
+        Assert.Equal(
+            KnownHeaders.AcceptEncoding,
+            context.Response.Headers[KnownHeaders.Vary].ToString()
+        );
+    }
+
+    /// <summary>
     /// Serialization off, because the document already is JSON: through a serializer it would come
     /// back as a JSON-encoded string of a document.
     /// </summary>

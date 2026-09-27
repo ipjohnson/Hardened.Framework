@@ -30,13 +30,15 @@ Vary: Accept-Encoding
 
 The body is the `hardened-web` template's two todos as JSON, compressed with gzip. The compressed
 response carries `Content-Encoding` and `Vary: Accept-Encoding`. The same request without
-`Accept-Encoding` gets the JSON uncompressed:
+`Accept-Encoding` gets the JSON uncompressed. It carries `Vary: Accept-Encoding` as well, because
+that header decided its encoding:
 
 ```http
 GET /todos
 
 HTTP/1.1 200 OK
 Content-Type: application/json
+Vary: Accept-Encoding
 
 [{"id":1,"title":"Read the generated code","done":true},{"id":2,"title":"Add an endpoint","done":false}]
 ```
@@ -311,8 +313,15 @@ The filter sets or changes these headers on a response that it compresses:
 | `Content-Length` | Removed. The host frames the compressed body |
 | `ETag` | A strong tag becomes weak: `"7"` is sent as `W/"7"` |
 
-A response that the filter does not compress keeps its headers. It gets no `Vary: Accept-Encoding`.
-A strong `ETag` on it stays strong.
+A response that the filter would compress for a request that accepts gzip or Brotli carries
+`Vary: Accept-Encoding` even when it goes out uncompressed. Its encoding depends on the request
+either way. A shared cache that stored the uncompressed response without `Vary` would treat the
+resource as the same for every coding. The response's other headers are kept, and a strong `ETag`
+on it stays strong.
+
+A response that no request would get compressed gets no `Vary: Accept-Encoding`. That is a media
+type outside the list, a response that a predicate declined, a response that already carries
+`Content-Encoding`, and a 204, 206 or 304 that the handler answers.
 
 CORS and `VaryByHeader` add to `Vary` the same way, so each value appears once. [CORS](/guide/cors)
 and [Response caching](/guide/response-caching) cover those.
@@ -453,11 +462,13 @@ decides for each request whether to compress a cache hit. A cache hit has no han
 predicate is not asked. The media-type rule decides instead. A response that the predicate declined
 on the miss is compressed on the hit.
 
-The response cache stores the headers of the response that filled it, after the filter changed them.
-When a compressed response fills the entry, every hit carries the weak `ETag` and
-`Vary: Accept-Encoding`. The hits that go out uncompressed carry them too.
+The response cache takes the entry's headers before the filter changes them, so the entry keeps
+the strong `ETag` whichever response filled it. A hit that goes out compressed carries the weak
+`ETag` and `Vary: Accept-Encoding`. A hit that goes out uncompressed carries the strong `ETag`. It
+carries `Vary: Accept-Encoding` when its media type is one the filter compresses.
 
-A 304 is not compressed. It keeps `Vary: Accept-Encoding`.
+A 304 from `[ConditionalGet]` is not compressed. It keeps the `Vary: Accept-Encoding` of the 200
+that it stands for.
 
 `[ConditionalGet]` sees the compressed bytes, so the tag that it computes differs for gzip, Brotli
 and an uncompressed response of the same content. A request gets a 304 only for the tag of its own

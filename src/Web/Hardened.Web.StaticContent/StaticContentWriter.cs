@@ -22,11 +22,6 @@ namespace Hardened.Web.StaticContent;
 public static class StaticContentWriter
 {
     /// <summary>
-    /// What a compressed representation's response depends on. One instance: it never varies.
-    /// </summary>
-    private static readonly StringValues VaryOnAcceptEncoding = new(KnownHeaders.AcceptEncoding);
-
-    /// <summary>
     /// Answers with <paramref name="entry"/>, in whichever representation the request admits.
     /// </summary>
     /// <remarks>
@@ -81,7 +76,7 @@ public static class StaticContentWriter
         // client that cannot inflate them the ones that need it.
         if (entry.IsEncoded)
         {
-            headers[KnownHeaders.Vary] = VaryOnAcceptEncoding;
+            VaryHeader.Add(headers, KnownHeaders.AcceptEncoding);
         }
 
         if (entry.LastModifiedHeader != null)

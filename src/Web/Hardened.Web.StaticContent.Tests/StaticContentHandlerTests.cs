@@ -728,6 +728,26 @@ public class StaticContentHandlerTests : IDisposable
     }
 
     /// <summary>
+    /// The CORS filter runs before the file is written and says <c>Origin</c>. The file adds to
+    /// that rather than replacing it.
+    /// </summary>
+    [Fact]
+    public async Task ACompressedRepresentationKeepsTheVaryAFilterWrote()
+    {
+        WriteGZipFile("app.js.gz", "console.log('hi');");
+
+        var (context, _, _, headers) = Context(
+            "/app.js",
+            (KnownHeaders.AcceptEncoding, "gzip, deflate, br")
+        );
+
+        headers[KnownHeaders.Vary] = KnownHeaders.Origin;
+
+        Assert.True(await Handler().Handle(context));
+        Assert.Equal("Origin, Accept-Encoding", headers[KnownHeaders.Vary].ToString());
+    }
+
+    /// <summary>
     /// A resource stored one way does not vary, and says so by omission. Declaring it anyway would
     /// have a CDN store a copy per coding of a file that is byte-identical for all of them.
     /// </summary>
