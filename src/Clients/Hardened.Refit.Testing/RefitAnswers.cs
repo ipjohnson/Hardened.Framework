@@ -51,14 +51,28 @@ internal static class RefitAnswers
 
         if (thrown == null && result is IApiResponse response)
         {
-            var body = response.Error is { } error
+            // A request that never received a response carries its failure as an
+            // ApiRequestException and has no status to assert, so the failure is what surfaces.
+            if (response.StatusCode is not { } status)
+            {
+                if (response.Error is { } requestError)
+                {
+                    System
+                        .Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(requestError)
+                        .Throw();
+                }
+
+                return null;
+            }
+
+            var body = response.Error is ApiException error
                 ? await ErrorBody(error, bodyType)
                 : Content(response);
 
             return new ClientAnswer(
-                (int)response.StatusCode,
+                (int)status,
                 body,
-                Flatten(response.Headers, response.ContentHeaders)
+                Flatten(response.Headers!, response.ContentHeaders)
             );
         }
 

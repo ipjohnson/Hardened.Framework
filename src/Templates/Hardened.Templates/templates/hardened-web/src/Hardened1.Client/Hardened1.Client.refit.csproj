@@ -106,7 +106,7 @@
 
     <Error Condition="'$(_RefitterRestoreExitCode)' != '0'"
            Code="HTPL004"
-           Text="The Refitter tool could not be restored, so the client cannot be generated. The pin is refitter in .config/dotnet-tools.json; a fresh machine needs network for the first restore, and `dotnet tool restore` in the solution folder shows what NuGet said." />
+           Text="The Refitter tool could not be restored, so the client cannot be generated. The pin is refitter in .config/dotnet-tools.json; a fresh machine needs network for the first restore, and two builds restoring at once on one machine can fail it, each holding a file the other needs. `dotnet tool restore` in the solution folder shows what NuGet said." />
   </Target>
 
   <!--

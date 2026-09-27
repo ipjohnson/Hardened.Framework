@@ -68,7 +68,7 @@
       writes for, so nothing checks this pair at build. They follow Refit's release line rather
       than Hardened's.
     -->
-    <PackageVersion Include="Refit" Version="8.0.0" />
+    <PackageVersion Include="Refit" Version="16.3.0" />
 <!--#if (messagePack) -->
     <!--
       MessagePack itself, for the generated client. The two Liquid templates beside .refitter put

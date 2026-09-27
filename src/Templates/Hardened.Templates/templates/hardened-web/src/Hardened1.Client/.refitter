@@ -8,6 +8,10 @@
   },
   "returnIApiResponse": true,
   "useCancellationTokens": true,
+  // An operation's optional parameters become optional C# parameters. Without this every one was a
+  // required, non-nullable argument, so adding an optional header to the contract, as
+  // [ConditionalGet] adds If-None-Match, broke every existing call.
+  "optionalParameters": true,
   "generateXmlDocCodeComments": true,
   "generateStatusCodeComments": true,
   //#if (messagePack)
