@@ -19,8 +19,8 @@ public partial class HardenedCoreModule : IServiceCollectionConfiguration
                 new[]
                 {
                     new NewConfigurationValueProvider<
-                        IJsonSerializerConfiguration,
-                        JsonSerializerConfiguration
+                        ISharedJsonConfiguration,
+                        SharedJsonConfiguration
                     >(null),
                 },
                 Array.Empty<IConfigurationValueAmender>()
@@ -30,7 +30,7 @@ public partial class HardenedCoreModule : IServiceCollectionConfiguration
             Microsoft.Extensions.Options.Options.Create(
                 serviceProvider
                     .GetRequiredService<IConfigurationManager>()
-                    .GetConfiguration<IJsonSerializerConfiguration>()
+                    .GetConfiguration<ISharedJsonConfiguration>()
             )
         );
 

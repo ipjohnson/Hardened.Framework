@@ -11,12 +11,12 @@ using System.Threading.Tasks;
 
 namespace Hardened.Shared.Runtime.Json;
 
-public interface IJsonSerializerConfiguration
+public interface ISharedJsonConfiguration
 {
     JsonSerializerOptions Options { get; }
 }
 
-public class JsonSerializerConfiguration : IJsonSerializerConfiguration
+public class SharedJsonConfiguration : ISharedJsonConfiguration
 {
     public JsonSerializerOptions Options { get; set; } = DefaultConfiguration();
 

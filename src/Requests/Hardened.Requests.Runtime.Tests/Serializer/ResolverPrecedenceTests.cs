@@ -13,8 +13,6 @@ using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 using NSubstitute;
 using Xunit;
-using IRequestsJsonConfiguration = Hardened.Requests.Runtime.Configuration.IJsonSerializerConfiguration;
-using RequestsJsonConfiguration = Hardened.Requests.Runtime.Configuration.JsonSerializerConfiguration;
 
 namespace Hardened.Requests.Runtime.Tests.Serializer;
 
@@ -39,11 +37,8 @@ namespace Hardened.Requests.Runtime.Tests.Serializer;
 /// </remarks>
 public class ResolverPrecedenceTests
 {
-    // Aliased because two public types share this name - see D10. Hardened.Shared.Runtime.Json
-    // has an IJsonSerializerConfiguration too, and importing both namespaces is enough to stop the
-    // file compiling.
-    private static IOptions<IRequestsJsonConfiguration> Config() =>
-        Options.Create<IRequestsJsonConfiguration>(new RequestsJsonConfiguration());
+    private static IOptions<IJsonSerializerConfiguration> Config() =>
+        Options.Create<IJsonSerializerConfiguration>(new JsonSerializerConfiguration());
 
     private static IExecutionContext ResponseContext(object value, out MemoryStream body)
     {
@@ -223,7 +218,7 @@ public class ResolverPrecedenceTests
     [Fact]
     public void SharedJsonSerializerConfiguration_CarriesNoReflectionResolver()
     {
-        var options = new Hardened.Shared.Runtime.Json.JsonSerializerConfiguration().Options;
+        var options = new Hardened.Shared.Runtime.Json.SharedJsonConfiguration().Options;
 
         Assert.DoesNotContain(options.TypeInfoResolverChain, r => r is DefaultJsonTypeInfoResolver);
     }

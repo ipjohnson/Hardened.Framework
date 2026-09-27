@@ -222,9 +222,9 @@ public class TestWebApp : TestContext, ITestWebApp
         }
 
         // Resolve IJsonSerializer first so its constructor populates the
-        // shared JsonSerializerConfiguration.Options TypeInfoResolverChain
+        // shared SharedJsonConfiguration.Options TypeInfoResolverChain
         // with the source-gen contexts the application has registered. The
-        // options instance held by IJsonSerializerConfiguration is the same
+        // options instance held by ISharedJsonConfiguration is the same
         // one mutated by AotJsonSerializer/JsonSerializerImpl on construction.
         var serializer = _applicationRoot.Provider.GetRequiredService<IJsonSerializer>();
         var memoryStream = new MemoryStream();
