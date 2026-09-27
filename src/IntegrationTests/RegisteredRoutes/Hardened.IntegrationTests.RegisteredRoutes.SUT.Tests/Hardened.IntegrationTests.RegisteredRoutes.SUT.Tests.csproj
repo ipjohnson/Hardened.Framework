@@ -8,10 +8,10 @@
         <ProjectReference Include="..\..\..\Web\Hardened.Web.Testing\Hardened.Web.Testing.csproj" />
         <ProjectReference Include="..\Hardened.IntegrationTests.RegisteredRoutes.SUT\Hardened.IntegrationTests.RegisteredRoutes.SUT.csproj" />
           <!-- [ModuleTest] and the running-test seam, for xunit.v3 4.x. -->
-      <ProjectReference Include="..\..\..\..\..\DependencyModules\src\DependencyModules.xUnit4\DependencyModules.xUnit4.csproj"
-                        Condition="Exists('..\..\..\..\..\DependencyModules\src\DependencyModules.xUnit4\DependencyModules.xUnit4.csproj')"/>
+      <ProjectReference Include="$(DependencyModulesRoot)\src\DependencyModules.xUnit4\DependencyModules.xUnit4.csproj"
+                        Condition="'$(UseLocalDependencyModules)' == 'true'"/>
       <PackageReference Include="DependencyModules.xUnit4"
-                        Condition="!Exists('..\..\..\..\..\DependencyModules\src\DependencyModules.xUnit4\DependencyModules.xUnit4.csproj')"/>
+                        Condition="'$(UseLocalDependencyModules)' != 'true'"/>
     </ItemGroup>
 
 </Project>

@@ -1,0 +1,29 @@
+<Project>
+
+    <!--
+        How the projects in this repository consume DependencyModules: a checkout beside the
+        repository when there is one, the packages otherwise.
+
+        Imported by src/Directory.Build.props, so every project under src sees the two properties
+        below. The generator compiles DependencyModules.SourceGenerator.Impl's sources in, and the
+        testing packages and the test projects reference DependencyModules.Testing, .xUnit4, .NUnit
+        and .NSubstitute.
+
+        Each of those projects used to pair a ProjectReference with a PackageReference on a bare
+        Exists condition, with a relative path of its own depth, and nothing turned the checkout
+        off. A local build, test run or release dry run of a shipped package then used the
+        checkout's source instead of DependencyModulesVersion whatever was passed.
+
+        DependencyModulesRoot points at a checkout anywhere. UseLocalDependencyModules set to false
+        builds against the packages with a checkout beside the repository. UseSiblingCheckouts set
+        to false does that for CSharpAuthor and ValidationModules as well, so a package-only local
+        build is one flag.
+    -->
+    <PropertyGroup>
+        <!-- This file sits in src, so two levels up is beside this repository. -->
+        <DependencyModulesRoot Condition="'$(DependencyModulesRoot)' == ''">$(MSBuildThisFileDirectory)..\..\DependencyModules</DependencyModulesRoot>
+        <UseLocalDependencyModules Condition="'$(UseLocalDependencyModules)' == '' And '$(UseSiblingCheckouts)' != 'false' And Exists('$(DependencyModulesRoot)\src\DependencyModules.Testing\DependencyModules.Testing.csproj')">true</UseLocalDependencyModules>
+        <UseLocalDependencyModules Condition="'$(UseLocalDependencyModules)' == ''">false</UseLocalDependencyModules>
+    </PropertyGroup>
+
+</Project>
