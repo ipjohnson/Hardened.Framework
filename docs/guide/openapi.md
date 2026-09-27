@@ -380,6 +380,12 @@ exception. The handler throws a generated exception type with `new`. The method'
 what it may throw, such as `Throws NotFound<Problem>.` Where one schema is the body of only one
 generated error, the build also generates `AsException()` on that schema, in `<File>Errors`.
 
+A thrown shipped record without a type argument, such as `new NotFound("todo", "...")`, answers with
+the body the operation declares for its status, filled from the record. The rule for which bodies
+can be filled is the one [Response and Union](#response-and-union) gives for a returned record. An
+operation that declares two errors at one status fills neither. Where the body cannot be filled, the
+record is sent as it was thrown.
+
 Without `HardenedResponseModel` in its project file, the example's `GetTodo` returns `Task<Todo?>`:
 
 ```csharp

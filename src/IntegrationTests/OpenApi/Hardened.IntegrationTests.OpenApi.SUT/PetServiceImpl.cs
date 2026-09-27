@@ -126,6 +126,13 @@ public class PetServiceImpl : IPetService
             ).AsException();
         }
 
+        // The framework's own NotFound, thrown. The document declares a Problem at 404, so the
+        // record goes out as that Problem, filled from the record.
+        if (petId == "rehomed")
+        {
+            throw new NotFound("pet", "Pet rehomed has a new home.").AsException();
+        }
+
         return Task.FromResult<Pet?>(petId == "missing" ? null : new Pet(petId, "TestPet"));
     }
 

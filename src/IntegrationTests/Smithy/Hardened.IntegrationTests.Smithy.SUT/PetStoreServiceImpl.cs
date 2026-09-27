@@ -79,6 +79,13 @@ public class PetStoreServiceImpl : IPetStoreService
             throw new Throttled("Slow down.").AsException();
         }
 
+        // The framework's own NotFound, thrown. The model declares PetNotFound at 404, so the
+        // record goes out as that shape, with its detail as the message.
+        if (petId == "rehomed")
+        {
+            throw new NotFound("pet", "Pet rehomed has a new home.").AsException();
+        }
+
         var pet = Pets.FirstOrDefault(p => p.Id == petId);
 
         if (pet == null)

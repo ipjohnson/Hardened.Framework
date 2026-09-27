@@ -23,7 +23,8 @@ public class ExecutionRequestHandlerInfo : IExecutionRequestHandlerInfo
         bool streamsResponse = false,
         IReadOnlyDictionary<int, object>? declaredErrorBodies = null,
         bool writesRawBytes = false,
-        IReadOnlyList<string>? errorContentTypes = null
+        IReadOnlyList<string>? errorContentTypes = null,
+        IReadOnlyDictionary<int, Func<object, object?>>? declaredErrorConversions = null
     )
     {
         Path = path;
@@ -43,10 +44,16 @@ public class ExecutionRequestHandlerInfo : IExecutionRequestHandlerInfo
         DeclaredErrorBodies = declaredErrorBodies ?? EmptyDeclaredErrorBodies;
         WritesRawBytes = writesRawBytes;
         ErrorContentTypes = errorContentTypes ?? Array.Empty<string>();
+        DeclaredErrorConversions = declaredErrorConversions ?? EmptyDeclaredErrorConversions;
     }
 
     private static readonly IReadOnlyDictionary<int, object> EmptyDeclaredErrorBodies =
         new Dictionary<int, object>();
+
+    private static readonly IReadOnlyDictionary<
+        int,
+        Func<object, object?>
+    > EmptyDeclaredErrorConversions = new Dictionary<int, Func<object, object?>>();
 
     /// <summary>
     /// A copy of <paramref name="source"/> with the named members replaced.
@@ -98,7 +105,8 @@ public class ExecutionRequestHandlerInfo : IExecutionRequestHandlerInfo
             source.StreamsResponse,
             source.DeclaredErrorBodies,
             source.WritesRawBytes,
-            source.ErrorContentTypes
+            source.ErrorContentTypes,
+            source.DeclaredErrorConversions
         ) { }
 
     public string Path { get; }
@@ -146,6 +154,9 @@ public class ExecutionRequestHandlerInfo : IExecutionRequestHandlerInfo
 
     /// <inheritdoc />
     public IReadOnlyDictionary<int, object> DeclaredErrorBodies { get; }
+
+    /// <inheritdoc />
+    public IReadOnlyDictionary<int, Func<object, object?>> DeclaredErrorConversions { get; }
 
     /// <inheritdoc />
     /// <remarks>

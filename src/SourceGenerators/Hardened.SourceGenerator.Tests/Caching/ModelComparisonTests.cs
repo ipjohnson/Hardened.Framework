@@ -267,6 +267,8 @@ public class ModelComparisonTests
             NullResponseBodyExpression = "Models.DefaultErrorBodies.NotFoundProblem",
             DeclaredErrorBodiesExpression =
                 "new Dictionary<int, object> { { 401, Models.DefaultErrorBodies.UnauthorizedProblem } }",
+            DeclaredErrorConversionsExpression =
+                "new Dictionary<int, Func<object, object?>> { { 404, value => null } }",
             ProducedContentTypes = "text/plain,text/csv",
             SuccessContentTypes = "text/plain",
             ErrorContentTypes = "application/json",
@@ -285,6 +287,7 @@ public class ModelComparisonTests
             "True:System.Fortunes:text/csv:True:True:sse:System.String:201:"
                 + "Models.DefaultErrorBodies.NotFoundProblem:"
                 + "new Dictionary<int, object> { { 401, Models.DefaultErrorBodies.UnauthorizedProblem } }:"
+                + "new Dictionary<int, Func<object, object?>> { { 404, value => null } }:"
                 + "text/plain,text/csv:text/plain:application/json:"
                 + "global::App.Todo|201|01;global::App.NotFound|404|01:"
                 + "global::App.Created|201|111|global::App.Todo::OutOfStock:422:sse:True:text/csv",

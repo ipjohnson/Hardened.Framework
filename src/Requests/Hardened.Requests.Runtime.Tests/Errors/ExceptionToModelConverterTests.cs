@@ -31,7 +31,8 @@ public class ExceptionToModelConverterTests
     /// </param>
     private static IExecutionContext Context(
         int? validationErrorStatus = null,
-        IReadOnlyDictionary<int, object>? declaredErrorBodies = null
+        IReadOnlyDictionary<int, object>? declaredErrorBodies = null,
+        IReadOnlyDictionary<int, Func<object, object?>>? declaredErrorConversions = null
     )
     {
         var response = Substitute.For<IExecutionResponse>();
@@ -40,7 +41,11 @@ public class ExceptionToModelConverterTests
         var context = Substitute.For<IExecutionContext>();
         context.Response.Returns(response);
 
-        if (validationErrorStatus != null || declaredErrorBodies != null)
+        if (
+            validationErrorStatus != null
+            || declaredErrorBodies != null
+            || declaredErrorConversions != null
+        )
         {
             // The type the pipeline carries, rather than a substitute: ValidationErrorStatus is a
             // default interface member, and a stub for it would prove the stub works.
@@ -51,7 +56,8 @@ public class ExceptionToModelConverterTests
                     typeof(ExceptionToModelConverterTests),
                     "Handle",
                     validationErrorStatus: validationErrorStatus,
-                    declaredErrorBodies: declaredErrorBodies
+                    declaredErrorBodies: declaredErrorBodies,
+                    declaredErrorConversions: declaredErrorConversions
                 )
             );
         }
@@ -501,6 +507,68 @@ public class ExceptionToModelConverterTests
     }
 
     /// <summary>
+    /// A record thrown at a status whose declared body can be built from it answers that body.
+    /// </summary>
+    /// <remarks>
+    /// What a handler in throws mode writes as <c>throw new NotFound("pet", "...").AsException()</c>
+    /// under a contract declaring its own 404 body. The conversion is the generated one; any
+    /// function stands in for it here, because choosing the body is the generator's part.
+    /// </remarks>
+    [Fact]
+    public void AThrownRecordAnswersTheBodyDeclaredAtItsStatus()
+    {
+        var (status, model) = Converter.ConvertExceptionToModel(
+            Context(declaredErrorConversions: Conversions),
+            new StatusCodeException(404, new Thrown("No pet has id 7."))
+        );
+
+        Assert.Equal(404, status);
+        Assert.Equal("No pet has id 7.", Assert.IsType<DeclaredBody>(model).Message);
+    }
+
+    /// <summary>
+    /// A body the conversion does not recognise, such as the contract's own type already, goes out
+    /// as it was thrown.
+    /// </summary>
+    [Fact]
+    public void AThrownBodyTheConversionDoesNotTakeIsSentAsThrown()
+    {
+        var own = new DeclaredBody("written by the handler");
+
+        var (_, model) = Converter.ConvertExceptionToModel(
+            Context(declaredErrorConversions: Conversions),
+            new StatusCodeException(404, own)
+        );
+
+        Assert.Same(own, model);
+    }
+
+    /// <summary>And a record thrown at a status with no conversion goes out as it was thrown.</summary>
+    [Fact]
+    public void AThrownRecordAtAStatusWithNoConversionIsSentAsThrown()
+    {
+        var thrown = new Thrown("taken");
+
+        var (status, model) = Converter.ConvertExceptionToModel(
+            Context(declaredErrorConversions: Conversions),
+            new StatusCodeException(409, thrown)
+        );
+
+        Assert.Equal(409, status);
+        Assert.Same(thrown, model);
+    }
+
+    private sealed record Thrown(string Detail);
+
+    private sealed record DeclaredBody(string Message);
+
+    private static readonly IReadOnlyDictionary<int, Func<object, object?>> Conversions =
+        new Dictionary<int, Func<object, object?>>
+        {
+            { 404, value => value is Thrown record ? new DeclaredBody(record.Detail) : null },
+        };
+
+    /// <summary>
     /// An implementation that predates the member reads as declaring nothing.
     /// </summary>
     /// <remarks>
@@ -516,6 +584,7 @@ public class ExceptionToModelConverterTests
         IExecutionRequestHandlerInfo handlerInfo = new MinimalHandlerInfo();
 
         Assert.Empty(handlerInfo.DeclaredErrorBodies);
+        Assert.Empty(handlerInfo.DeclaredErrorConversions);
 
         var context = Substitute.For<IExecutionContext>();
         var response = Substitute.For<IExecutionResponse>();

@@ -421,6 +421,7 @@ namespace Hardened.Requests.Abstract.Execution
     {
         string? BodyParameterName { get; }
         System.Collections.Generic.IReadOnlyDictionary<int, object> DeclaredErrorBodies { get; }
+        System.Collections.Generic.IReadOnlyDictionary<int, System.Func<object, object?>> DeclaredErrorConversions { get; }
         System.Collections.Generic.IReadOnlyList<string> ErrorContentTypes { get; }
         int? FailureStatus { get; }
         System.Type HandlerType { get; }

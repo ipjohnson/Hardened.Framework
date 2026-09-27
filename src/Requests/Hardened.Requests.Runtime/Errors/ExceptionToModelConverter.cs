@@ -65,7 +65,9 @@ public class ExceptionToModelConverter : IExceptionToModelConverter
         {
             statusCodeException.ApplyHeaders(context.Response.Headers);
 
-            var ownValue = exp is StatusCodeException { Value: { } value } ? value : null;
+            var ownValue = exp is StatusCodeException { Value: { } value }
+                ? Converted(context, statusCodeException.StatusCode, value)
+                : null;
 
             // The 406 is the one refusal the framework raises with a body of its own, naming what
             // the operation produces. A body the operation declares for 406 still wins over it.
@@ -223,6 +225,22 @@ public class ExceptionToModelConverter : IExceptionToModelConverter
         && handlerInfo.DeclaredErrorBodies.TryGetValue(statusCode, out var body)
             ? body
             : null;
+
+    /// <summary>
+    /// A thrown body as the one the operation declares for <paramref name="statusCode"/>, where it
+    /// is the framework's record for that status and the declared body can be built from it.
+    /// </summary>
+    /// <remarks>
+    /// Response mode converts a returned <c>NotFound</c> into the body the contract declares at 404.
+    /// This is the same conversion for a thrown one, so the body sent is the one the document
+    /// describes at that status. Any other body is sent as it was thrown.
+    /// </remarks>
+    private static object Converted(IExecutionContext context, int statusCode, object value) =>
+        context.HandlerInfo is { } handlerInfo
+        && handlerInfo.DeclaredErrorConversions.TryGetValue(statusCode, out var convert)
+        && convert(value) is { } converted
+            ? converted
+            : value;
 
     /// <summary>
     /// The whole of what a caller learns from an unhandled exception.

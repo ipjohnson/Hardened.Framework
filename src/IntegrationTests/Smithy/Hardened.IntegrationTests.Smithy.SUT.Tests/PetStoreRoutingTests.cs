@@ -211,4 +211,24 @@ public class PetStoreRoutingTests
         Assert.NotNull(error);
         Assert.Equal("Not Found", error.Message);
     }
+
+    /// <summary>
+    /// The framework's <c>NotFound</c>, thrown, answers the shape the model declares for 404, with
+    /// the record's detail as its message.
+    /// </summary>
+    /// <remarks>
+    /// Response mode converts a returned <c>NotFound</c> into the declared case. Throws mode sent
+    /// the framework's problem document instead, which the model does not declare at 404, so a
+    /// generated client read a <c>PetNotFound</c> whose message was null.
+    /// </remarks>
+    [ModuleTest]
+    public async Task GetPet_AThrownNotFoundAnswersTheDeclaredErrorShape(ITestWebApp app)
+    {
+        var response = await app.Get("/pets/rehomed");
+
+        response.Assert.NotFound();
+
+        Assert.Equal("Pet rehomed has a new home.", response.Deserialize<PetNotFound>().Message);
+        Assert.DoesNotContain("resource", await response.ReadTextAsync());
+    }
 }
