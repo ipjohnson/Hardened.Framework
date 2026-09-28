@@ -221,6 +221,41 @@ public class AuthorizationFilterTests
     }
 
     /// <summary>
+    /// A credential its source refused: still anonymous, but told the token was invalid, so the
+    /// client replaces its token rather than obtaining one.
+    /// </summary>
+    [Fact]
+    public async Task ACallerWhoseCredentialWasRejectedIsToldTheTokenIsInvalid()
+    {
+        var context = Context(AnonymousCallerPrincipal.Rejected("The token expired."));
+
+        await Run(context, Requirement.Grant("pets:read"));
+
+        var challenge = Refusal(context).Challenge;
+
+        Assert.Equal(401, challenge.StatusCode);
+        Assert.Equal("invalid_token", challenge.Error);
+        Assert.Equal("The token expired.", challenge.Description);
+        Assert.Equal(
+            "Bearer error=\"invalid_token\", error_description=\"The token expired.\"",
+            challenge.HeaderValue
+        );
+    }
+
+    [Fact]
+    public async Task ARejectionWithoutAReasonSendsNoDescription()
+    {
+        var context = Context(AnonymousCallerPrincipal.Rejected());
+
+        await Run(context, Requirement.Grant("pets:read"));
+
+        var challenge = Refusal(context).Challenge;
+
+        Assert.Equal("invalid_token", challenge.Error);
+        Assert.Null(challenge.Description);
+    }
+
+    /// <summary>
     /// Authenticated but short of grants: 403, naming what would have worked.
     /// </summary>
     [Fact]

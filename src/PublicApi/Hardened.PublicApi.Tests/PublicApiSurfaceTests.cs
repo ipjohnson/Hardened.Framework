@@ -70,6 +70,8 @@ public class PublicApiSurfaceTests
         "Hardened.Refit.Testing",
         "Hardened.Requests.Abstract",
         "Hardened.Requests.Caching.Memory",
+        "Hardened.Requests.Jwt",
+        "Hardened.Requests.Jwt.Testing",
         "Hardened.Requests.Runtime",
         "Hardened.Requests.Serializers.MessagePack",
         "Hardened.Requests.Serializers.Newtonsoft",

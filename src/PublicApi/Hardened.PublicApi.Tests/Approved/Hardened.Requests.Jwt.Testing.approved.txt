@@ -1,0 +1,29 @@
+namespace Hardened.Requests.Jwt.Testing
+{
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method, AllowMultiple=false)]
+    public sealed class JwtTestIssuerAttribute : System.Attribute, Hardened.Shared.Testing.Attributes.IHardenedOrderedAttribute, Hardened.Shared.Testing.Attributes.IHardenedTestDependencyRegistrationAttribute
+    {
+        public JwtTestIssuerAttribute() { }
+        public void RegisterDependencies(Hardened.Shared.Testing.Attributes.AttributeCollection attributeCollection, System.Reflection.MethodInfo methodInfo, Hardened.Shared.Runtime.Application.IHardenedEnvironment environment, Microsoft.Extensions.DependencyInjection.IServiceCollection serviceCollection) { }
+    }
+    public sealed class TestJwt
+    {
+        public TestJwt() { }
+        public string Audience { get; set; }
+        public System.Collections.Generic.IDictionary<string, object> Claims { get; }
+        public System.DateTime? Expires { get; set; }
+        public System.Collections.Generic.IList<string> Grants { get; set; }
+        public string Issuer { get; set; }
+        public System.DateTime? NotBefore { get; set; }
+        public bool SignedByUntrustedKey { get; set; }
+        public string? Subject { get; set; }
+    }
+    public sealed class TestJwtIssuer : Hardened.Requests.Jwt.IJwtSigningKeySource
+    {
+        public const string DefaultAudience = "hardened-test";
+        public const string DefaultIssuer = "https://issuer.hardened.test";
+        public TestJwtIssuer(Microsoft.Extensions.Options.IOptions<Hardened.Requests.Jwt.IJwtBearerConfiguration> configuration) { }
+        public System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Microsoft.IdentityModel.Tokens.SecurityKey>> GetKeys(string? keyId, System.Threading.CancellationToken cancellationToken) { }
+        public string Token(System.Action<Hardened.Requests.Jwt.Testing.TestJwt>? shape = null) { }
+    }
+}

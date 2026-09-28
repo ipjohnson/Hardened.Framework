@@ -42,6 +42,9 @@ public static class KnownHeaders
 
     public const string ContentLength = "Content-Length";
 
+    /// <summary>The credential a request presents, such as <c>Bearer</c> and a token.</summary>
+    public const string Authorization = "Authorization";
+
     public const string Cookie = "Cookie";
 
     /// <summary>

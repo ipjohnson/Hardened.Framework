@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>$(HardenedTargetFramework)</TargetFramework>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="NSubstitute"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Hardened.Requests.Jwt\Hardened.Requests.Jwt.csproj"/>
+        <ProjectReference Include="..\Hardened.Requests.Jwt.Testing\Hardened.Requests.Jwt.Testing.csproj"/>
+    </ItemGroup>
+
+</Project>

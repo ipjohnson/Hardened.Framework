@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>$(HardenedTargetFramework)</TargetFramework>
+        <Description>A JWT bearer principal source for Hardened applications: validates a token's signature, issuer, audience and lifetime against keys read from a JWKS, and maps its scopes to grants.</Description>
+        <IsAotCompatible>true</IsAotCompatible>
+        <IsPackable>true</IsPackable>
+        <PackageTags>Hardened;Hardened.Framework;jwt;bearer;authentication</PackageTags>
+    </PropertyGroup>
+
+    <!--
+      The only package that references Microsoft.IdentityModel. Everything the JWT source needs
+      from the framework is in Hardened.Requests.Runtime, which references none of it, so an
+      application that does not reference this package does not get IdentityModel either.
+    -->
+    <ItemGroup>
+        <ProjectReference Include="..\..\SourceGenerators\Hardened.DependencyModules.SourceGenerator\Hardened.DependencyModules.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all"/>
+        <ProjectReference Include="..\..\SourceGenerators\Hardened.Library.SourceGenerator\Hardened.Library.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all"/>
+        <ProjectReference Include="..\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj"/>
+        <ProjectReference Include="..\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.IdentityModel.JsonWebTokens"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="Hardened.Requests.Jwt.Tests"/>
+    </ItemGroup>
+
+</Project>

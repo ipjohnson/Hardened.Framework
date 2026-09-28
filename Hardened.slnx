@@ -184,6 +184,10 @@
     <Project Path="src/IntegrationTests/Conformance/Hardened.IntegrationTests.Conformance.CodeFirst.SUT.Tests/Hardened.IntegrationTests.Conformance.CodeFirst.SUT.Tests.csproj" />
     <Project Path="src/IntegrationTests/Conformance/Hardened.IntegrationTests.Conformance.CodeFirst.SUT/Hardened.IntegrationTests.Conformance.CodeFirst.SUT.csproj" />
   </Folder>
+  <Folder Name="/IntegrationTests/Jwt/">
+    <Project Path="src/IntegrationTests/Jwt/Hardened.IntegrationTests.Jwt.SUT.Tests/Hardened.IntegrationTests.Jwt.SUT.Tests.csproj" />
+    <Project Path="src/IntegrationTests/Jwt/Hardened.IntegrationTests.Jwt.SUT/Hardened.IntegrationTests.Jwt.SUT.csproj" />
+  </Folder>
   <Folder Name="/IntegrationTests/Kestrel/">
     <Project Path="src/IntegrationTests/Kestrel/Hardened.IntegrationTests.Kestrel.SUT.Tests/Hardened.IntegrationTests.Kestrel.SUT.Tests.csproj" />
     <Project Path="src/IntegrationTests/Kestrel/Hardened.IntegrationTests.Kestrel.SUT/Hardened.IntegrationTests.Kestrel.SUT.csproj" />
@@ -235,6 +239,9 @@
     <Project Path="src/Requests/Hardened.Requests.Abstract/Hardened.Requests.Abstract.csproj" />
     <Project Path="src/Requests/Hardened.Requests.Caching.Memory.Tests/Hardened.Requests.Caching.Memory.Tests.csproj" />
     <Project Path="src/Requests/Hardened.Requests.Caching.Memory/Hardened.Requests.Caching.Memory.csproj" />
+    <Project Path="src/Requests/Hardened.Requests.Jwt.Testing/Hardened.Requests.Jwt.Testing.csproj" />
+    <Project Path="src/Requests/Hardened.Requests.Jwt.Tests/Hardened.Requests.Jwt.Tests.csproj" />
+    <Project Path="src/Requests/Hardened.Requests.Jwt/Hardened.Requests.Jwt.csproj" />
     <Project Path="src/Requests/Hardened.Requests.Runtime.Tests/Hardened.Requests.Runtime.Tests.csproj" />
     <Project Path="src/Requests/Hardened.Requests.Runtime/Hardened.Requests.Runtime.csproj" />
     <Project Path="src/Requests/Hardened.Requests.Testing/Hardened.Requests.Testing.csproj" />

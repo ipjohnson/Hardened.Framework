@@ -138,13 +138,20 @@ public class AuthorizationFilter : IExecutionFilter
     /// told which ones. The case it cannot decide is a valid credential that is too weak, which is
     /// why that answer travels on the decision rather than being inferred here.
     /// </para>
+    /// <para>
+    /// An anonymous caller whose credential its source refused is told the token was invalid,
+    /// rather than to authenticate: RFC 6750 §3 keeps <c>error</c> off a challenge only when no
+    /// credential was presented.
+    /// </para>
     /// </remarks>
     private Task Refuse(IExecutionChain chain, AuthorizationDecision refusal)
     {
         var context = chain.Context;
 
         var challenge =
-            !context.CallerPrincipal.IsAuthenticated
+            context.CallerPrincipal is AnonymousCallerPrincipal { CredentialRejected: true } refused
+                ? AuthorizationChallenge.InvalidToken(description: refused.RejectionDescription)
+            : !context.CallerPrincipal.IsAuthenticated
                 ? AuthorizationChallenge.AuthenticationRequired()
             : refusal == AuthorizationDecision.DenyInsufficientAuthentication
                 ? AuthorizationChallenge.InsufficientAuthentication()

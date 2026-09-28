@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>$(HardenedTargetFramework)</TargetFramework>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\Requests\Hardened.Requests.Jwt.Testing\Hardened.Requests.Jwt.Testing.csproj" />
+        <ProjectReference Include="..\..\..\Web\Hardened.Web.Testing\Hardened.Web.Testing.csproj" />
+        <ProjectReference Include="..\Hardened.IntegrationTests.Jwt.SUT\Hardened.IntegrationTests.Jwt.SUT.csproj" />
+        <!-- [ModuleTest] and the running-test seam, for xunit.v3 4.x. -->
+        <ProjectReference Include="$(DependencyModulesRoot)\src\DependencyModules.xUnit4\DependencyModules.xUnit4.csproj"
+                          Condition="'$(UseLocalDependencyModules)' == 'true'"/>
+        <PackageReference Include="DependencyModules.xUnit4"
+                          Condition="'$(UseLocalDependencyModules)' != 'true'"/>
+    </ItemGroup>
+
+</Project>

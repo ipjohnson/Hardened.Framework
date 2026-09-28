@@ -290,7 +290,8 @@ jobs:
           # Still 66 when the hand-kept list gave way to packing the solution (#417).
           # 65 without Hardened.Validation.SourceGenerator. Applications reference
           # ValidationModules.SourceGenerator, which also reads rules classes.
-          EXPECTED=65
+          # 67 with Hardened.Requests.Jwt and Hardened.Requests.Jwt.Testing.
+          EXPECTED=67
           ACTUAL=$(ls -1 ./artifacts/*.nupkg 2>/dev/null | wc -l | tr -d ' ')
 
           if [ "$ACTUAL" != "$EXPECTED" ]; then
@@ -361,6 +362,43 @@ jobs:
             exit 1
           fi
           echo "None of the $CHECKED generator packages declares a dependency outside the generators."
+
+      # Microsoft.IdentityModel brings Microsoft.Bcl.Cryptography, and a System.Formats.Asn1 that
+      # replaces the shared framework's copy. It reaches an application only through the package that
+      # validates JWTs, which the application asked for by name.
+      - name: Verify only the JWT package depends on IdentityModel
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+
+          VERSION="${{ steps.version.outputs.version }}"
+          CHECKED=0
+          FOUND=""
+
+          for package in ./artifacts/Hardened.*."$VERSION".nupkg; do
+            id=$(basename "$package" ".$VERSION.nupkg")
+            nuspec=$(unzip -p "$package" "$id.nuspec")
+            CHECKED=$((CHECKED + 1))
+
+            while read -r dependency; do
+              case "$id:$dependency" in
+                Hardened.Requests.Jwt:Microsoft.IdentityModel.*) ;;
+                Hardened.Requests.Jwt.Testing:Hardened.Requests.Jwt) ;;
+                *:Microsoft.IdentityModel.* | *:Hardened.Requests.Jwt) FOUND="$FOUND $id:$dependency" ;;
+              esac
+            done < <(grep -o '<dependency id="[^"]*"' <<< "$nuspec" | sed 's/.*id="//; s/"$//')
+          done
+
+          if [ "$CHECKED" = 0 ]; then
+            echo "::error::No package was found to check."
+            exit 1
+          fi
+
+          if [ -n "$FOUND" ]; then
+            echo "::error::Only Hardened.Requests.Jwt may depend on Microsoft.IdentityModel, and only Hardened.Requests.Jwt.Testing on Hardened.Requests.Jwt:$FOUND"
+            exit 1
+          fi
+          echo "Of the $CHECKED packages, only Hardened.Requests.Jwt depends on Microsoft.IdentityModel."
 
       - uses: actions/upload-artifact@v4
         with:

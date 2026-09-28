@@ -138,11 +138,147 @@ covered by a library module's attribute. The framework's own routes, such as the
 and `/openapi.json`, are not covered either. [Authorization](/guide/authorization) lists the places
 where the build does not read an authorization attribute.
 
+## JWT bearer tokens
+
+`Hardened.Requests.Jwt` authenticates a bearer token as a JWT. `[JwtBearerAuthentication<TScheme>]`
+on the application module turns it on for a scheme:
+
+```csharp
+using Hardened.Requests.Jwt;
+using Hardened.Shared.Runtime.Attributes;
+
+namespace Todos.Host;
+
+[HardenedModule]
+[JwtBearerAuthentication<BearerAuth>]
+public partial class Application;
+```
+
+The package is the only one that brings `Microsoft.IdentityModel.JsonWebTokens` and its
+dependencies, so an application that does not reference it does not get them.
+
+These environment variables configure it. `JwtBearerConfiguration`, in `Hardened.Requests.Jwt`, is
+the configuration model, so an application can amend each value in code:
+
+| Variable | Default | What it sets |
+|---|---|---|
+| `JWT_ISSUER` | Required | The `iss` a token must carry |
+| `JWT_AUDIENCE` | Required | The `aud` a token must carry |
+| `JWT_AUTHORITY` | None | An OpenID Connect issuer. The signing keys are read from the `jwks_uri` its `/.well-known/openid-configuration` names |
+| `JWT_JWKS_URL` | None | The JWKS the signing keys are read from, when `JWT_AUTHORITY` is not set |
+| `JWT_GRANT_CLAIM` | `scope` | The claim a caller's grants are read from. A string value is split on spaces, and an array gives one grant for each element |
+| `JWT_CLOCK_SKEW_SECONDS` | `60` | How far a token's `exp` and `nbf` may be off |
+
+An application without `JWT_ISSUER`, `JWT_AUDIENCE`, or one of `JWT_AUTHORITY` and `JWT_JWKS_URL`
+stops at startup, with a message that names what is missing. So does one whose `JWT_AUTHORITY` or
+`JWT_JWKS_URL` is not `https`. A loopback address may use `http`.
+
+A token is accepted when all of these hold:
+
+- Its signature verifies against a key from the JWKS, with an `RS`, `PS` or `ES` algorithm. A token
+  signed with an `HS` algorithm, or not signed, is refused.
+- Its `iss` and `aud` are the configured ones.
+- It carries an `exp`, and its `exp` and `nbf` hold within the skew.
+
+An accepted token becomes a `CallerPrincipal`. Its scheme is `bearer`, its subject is the `sub`,
+its issuer is the `iss`, and its grants come from the `JWT_GRANT_CLAIM` claim. `TryGetClaim` reads
+every other claim.
+
+A refused token leaves the request anonymous, as [Rejecting a credential](#rejecting-a-credential)
+describes. A handler that requires a caller answers 401, and the challenge says why:
+
+```http
+POST /todos
+Authorization: Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6...
+Content-Type: application/json
+
+{"title":"Write the docs"}
+
+HTTP/1.1 401 Unauthorized
+Content-Type: application/json
+WWW-Authenticate: Bearer error="invalid_token", error_description="The token expired at 2026-09-28T14:52:00.0000000Z."
+
+{"type":"AuthorizationException","message":"This request requires authentication.","details":""}
+```
+
+A handler that requires nothing runs with an anonymous caller, as it does for a request with no
+token.
+
+| The token | `error_description` |
+|---|---|
+| Has expired | `The token expired at <time>.` |
+| Is not valid yet | `The token is not valid until <time>.` |
+| Has no `exp` | `The token has no expiry.` |
+| Is for another audience | `The token is not for this audience.` |
+| Is from another issuer | `The token's issuer is not accepted.` |
+| Has a `kid` the JWKS does not hold, or has no `kid` and no key verifies it | `No known key signed the token.` |
+| Has a `kid` the JWKS holds, and that key does not verify it | `The token's signature is invalid.` |
+| Is not signed | `The token's signature is invalid.` |
+| Is not a JWT | `The token is not a JWT.` |
+| Has three segments like a JWT, but they do not decode | `The token is malformed.` |
+
+The signing keys are fetched at startup and kept for 24 hours. A token that names a key the set does
+not hold fetches them again, at most once a minute, which is how a rotated key is picked up. A fetch
+that fails keeps the keys already held.
+
+A fetch that fails at startup logs a warning, and the application starts. Until a fetch succeeds, a
+request that carries a token fails with 500, and the keys are fetched again at most once a minute. A
+request with no token does not need the keys.
+
+### Testing with tokens
+
+`Hardened.Requests.Jwt.Testing` signs tokens for a test. `[JwtTestIssuer]` makes the application
+under test trust the test's key in place of its JWKS, so a test runs the real validator. Where the
+application sets no `JWT_ISSUER` or `JWT_AUDIENCE`, the attribute sets `https://issuer.hardened.test`
+and `hardened-test`. No JWKS is fetched.
+
+A test takes `TestJwtIssuer` as a parameter. `Token` signs a token the application accepts, and its
+optional argument changes what the test is testing:
+
+```csharp
+using Hardened.Requests.Abstract.Headers;
+using Hardened.Requests.Jwt.Testing;
+
+[assembly: JwtTestIssuer]
+
+namespace Todos.Tests;
+
+public class TodoAuthenticationTests
+{
+    [ModuleTest]
+    public async Task AnExpiredTokenIsToldItIsInvalid(ITestWebApp app, TestJwtIssuer issuer)
+    {
+        var token = issuer.Token(jwt => jwt.Expires = DateTime.UtcNow.AddMinutes(-10));
+
+        var response = await app.Post(
+            new NewTodo("Write the docs"),
+            "/todos",
+            request => request.Headers[KnownHeaders.Authorization] = "Bearer " + token
+        );
+
+        Assert.Equal(401, response.StatusCode);
+    }
+}
+```
+
+`TestJwt` has these members:
+
+| Member | Starts as |
+|---|---|
+| `Subject` | `integration-test`. Null leaves out `sub` |
+| `Grants` | Empty. Written into the `JWT_GRANT_CLAIM` claim, joined with spaces |
+| `Claims` | Empty. Any other claims |
+| `Issuer`, `Audience` | The ones the application accepts |
+| `Expires` | An hour from now |
+| `NotBefore` | Now, or an hour before `Expires` when that has passed |
+| `SignedByUntrustedKey` | `false`. `true` signs with a key the application does not trust |
+
 ## Writing a principal source
 
 `IPrincipalSource<TScheme>` has one method, `Authenticate(IExecutionContext context)`, which returns
 `ValueTask<ICallerPrincipal?>`. A source returns a `CallerPrincipal` for a credential that it
-accepts. It returns null for a request that carries no credential it reads.
+accepts, and `AnonymousCallerPrincipal.Rejected` for one that it refuses. It returns null for a
+request that carries no credential it reads.
 
 ```csharp
 using DependencyModules.Runtime.Attributes;
@@ -172,7 +308,7 @@ public class BearerPrincipalSource(ITokenValidator tokens) : IPrincipalSource<Be
 
         if (token is null)
         {
-            return null;
+            return AnonymousCallerPrincipal.Rejected("The token is not valid.");
         }
 
         return new CallerPrincipal("bearer", token.Scopes, token.Subject, token.Issuer);
@@ -237,11 +373,32 @@ they are registered with.
 A source runs for every request, before routing, including a request that no route matches, a CORS
 preflight and a request to a health endpoint. `context.HandlerInfo` is null when a source runs.
 
+`BearerPrincipalSource<TScheme>`, in `Hardened.Requests.Runtime.Authorization`, reads the
+`Authorization` header the way the example does and passes the token to a delegate. The delegate
+returns the caller, or null for a token it refuses, which becomes `AnonymousCallerPrincipal.Rejected`.
+A request with no bearer token is not the source's, and the next source is asked:
+
+```csharp
+services.AddSingleton<IPrincipalSource<BearerAuth>>(provider =>
+{
+    var tokens = provider.GetRequiredService<ITokenValidator>();
+
+    return new BearerPrincipalSource<BearerAuth>(async (token, _) =>
+        await tokens.Validate(token) is { } valid
+            ? new CallerPrincipal("bearer", valid.Scopes, valid.Subject, valid.Issuer)
+            : null
+    );
+});
+```
+
+The [JWT source](#jwt-bearer-tokens) is this source with a JWT validator as its delegate.
+
 ## Rejecting a credential
 
-A source returns null for a credential that it rejects, such as an expired token. The request
-continues as anonymous. If the handler requires a caller, the request gets 401 with
-`WWW-Authenticate: Bearer`, as a request with no credential does:
+A source returns `AnonymousCallerPrincipal.Rejected(description)` for a credential that it
+rejects, such as an expired token. The request continues as anonymous. If the handler requires a
+caller, the request gets 401 with `error="invalid_token"`, and the description as
+`error_description`:
 
 ```http
 POST /todos
@@ -252,12 +409,15 @@ Content-Type: application/json
 
 HTTP/1.1 401 Unauthorized
 Content-Type: application/json
-WWW-Authenticate: Bearer
+WWW-Authenticate: Bearer error="invalid_token", error_description="The token is not valid."
 
 {"type":"AuthorizationException","message":"This request requires authentication.","details":""}
 ```
 
-A handler that requires nothing runs with an anonymous caller.
+A handler that requires nothing runs with an anonymous caller. The rejection is an answer, so no
+later source is asked. A source that returns null for a credential it rejects leaves the next source
+to answer, and the request gets the plain `WWW-Authenticate: Bearer` of a request with no
+credential.
 
 A source cannot refuse a request itself. Any exception from a source fails the request,
 `AuthorizationException` included. The caller gets 500 with an empty body. The request is logged as
@@ -395,9 +555,9 @@ each challenge:
 
 | Factory | Status | `WWW-Authenticate` | Hardened sends it when |
 |---|---|---|---|
-| `AuthenticationRequired()` | 401 | `Bearer` | The caller is anonymous |
+| `AuthenticationRequired()` | 401 | `Bearer` | The caller is anonymous, and no source rejected its credential |
 | `InsufficientAuthentication()` | 401 | `Bearer error="insufficient_user_authentication"` | A grant handler refuses an authenticated caller with `DenyInsufficientAuthentication` |
-| `InvalidToken()` | 401 | `Bearer error="invalid_token"` | Never |
+| `InvalidToken()` | 401 | `Bearer error="invalid_token"` | The caller's source returned `AnonymousCallerPrincipal.Rejected`. Its description is the `error_description` |
 | `InsufficientScope(grants)` | 403 | `Bearer error="insufficient_scope", scope="todos:admin"` | An authenticated caller lacks a grant |
 
 Each factory takes an optional `realm`. `InvalidToken` and `InsufficientAuthentication` also take a
@@ -570,11 +730,11 @@ is not sent by the browser on its own, and none of this applies to it.
 
 ## Limits
 
-Hardened ships no principal source for production credentials: no JWT, cookie or API-key reader. The
-application writes its own.
+Hardened ships one principal source for production credentials, the JWT source in
+`Hardened.Requests.Jwt`. It has no cookie or API-key reader, and the application writes its own.
 
-A source cannot answer with a challenge of its own, such as `error="invalid_token"`. A rejected
-credential gets the same 401 as a missing one.
+The JWT source reads one configuration. Two schemes named with `[JwtBearerAuthentication<TScheme>]`
+accept the same issuer and audience. It cannot verify a token signed with a shared secret.
 
 ## Next
 

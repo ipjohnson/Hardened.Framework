@@ -84,6 +84,12 @@ namespace Hardened.Requests.Runtime.Authorization
         public System.Collections.Generic.IReadOnlyList<string> Grants { get; }
         public Hardened.Requests.Abstract.Authorization.Requirement Requirement { get; }
     }
+    public sealed class BearerPrincipalSource<TScheme> : Hardened.Requests.Abstract.Authorization.IPrincipalSource, Hardened.Requests.Abstract.Authorization.IPrincipalSource<TScheme>
+        where TScheme : Hardened.Requests.Abstract.Authorization.IAuthenticationScheme
+    {
+        public BearerPrincipalSource(System.Func<string, Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.ValueTask<Hardened.Requests.Abstract.Authorization.ICallerPrincipal?>> validate) { }
+        public System.Threading.Tasks.ValueTask<Hardened.Requests.Abstract.Authorization.ICallerPrincipal?> Authenticate(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+    }
     public sealed class DescribedAuthorization : Hardened.Requests.Abstract.Authorization.IAuthorizeAttribute
     {
         public DescribedAuthorization(Hardened.Requests.Abstract.Authorization.Requirement requirement) { }

@@ -1,0 +1,73 @@
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Hardened.Requests.Jwt.Tests")]
+namespace Hardened.Requests.Jwt
+{
+    public interface IJwtBearerConfiguration
+    {
+        string Audience { get; }
+        string Authority { get; }
+        int ClockSkewSeconds { get; }
+        string GrantClaim { get; }
+        string Issuer { get; }
+        string JwksUrl { get; }
+    }
+    public interface IJwtSigningKeySource
+    {
+        System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Microsoft.IdentityModel.Tokens.SecurityKey>> GetKeys(string? keyId, System.Threading.CancellationToken cancellationToken);
+    }
+    public sealed class JwksSigningKeySource : Hardened.Requests.Jwt.IJwtSigningKeySource, System.IDisposable
+    {
+        public JwksSigningKeySource(Hardened.Requests.Jwt.IJwtBearerConfiguration configuration) { }
+        public void Dispose() { }
+        public System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Microsoft.IdentityModel.Tokens.SecurityKey>> GetKeys(string? keyId, System.Threading.CancellationToken cancellationToken) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Class)]
+    public sealed class JwtBearerAuthenticationAttribute<TScheme> : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
+        where TScheme : Hardened.Requests.Abstract.Authorization.IAuthenticationScheme
+    {
+        public JwtBearerAuthenticationAttribute() { }
+        public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
+    }
+    [Hardened.Shared.Runtime.Attributes.ConfigurationModel]
+    public class JwtBearerConfiguration : Hardened.Requests.Jwt.IJwtBearerConfiguration
+    {
+        public JwtBearerConfiguration() { }
+        public string Audience { get; set; }
+        public string Authority { get; set; }
+        public int ClockSkewSeconds { get; set; }
+        public string GrantClaim { get; set; }
+        public string Issuer { get; set; }
+        public string JwksUrl { get; set; }
+    }
+    [Hardened.Shared.Runtime.Attributes.HardenedModule]
+    public class JwtBearerModule : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
+    {
+        public JwtBearerModule() { }
+        public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+        public Microsoft.Extensions.DependencyInjection.ServiceProvider CreateServiceProvider(Hardened.Shared.Runtime.Application.IHardenedEnvironment environment, System.Action<Hardened.Shared.Runtime.Application.IHardenedEnvironment, Microsoft.Extensions.DependencyInjection.IServiceCollection>? overrideDependencies, System.Action<Microsoft.Extensions.Logging.ILoggingBuilder>? loggingBuilderAction, System.Action<Hardened.Shared.Runtime.Application.IHardenedEnvironment, Microsoft.Extensions.DependencyInjection.IServiceCollection>? initDependencies = null) { }
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+        public override bool Equals(object? obj) { }
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+        public override int GetHashCode() { }
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+        public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+        public class ConfigurationProvider : Hardened.Shared.Runtime.Configuration.IConfigurationPackage
+        {
+            public ConfigurationProvider() { }
+            public System.Collections.Generic.IEnumerable<Hardened.Shared.Runtime.Configuration.IConfigurationValueAmender> ConfigurationValueAmenders(Hardened.Shared.Runtime.Application.IHardenedEnvironment environment) { }
+            public System.Collections.Generic.IEnumerable<Hardened.Shared.Runtime.Configuration.IConfigurationValueProvider> ConfigurationValueProviders(Hardened.Shared.Runtime.Application.IHardenedEnvironment environment) { }
+        }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter, AllowMultiple=true)]
+    public class JwtBearerModuleAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
+    {
+        public JwtBearerModuleAttribute() { }
+        [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+        public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
+    }
+    public sealed class JwtBearerValidator
+    {
+        public const string SchemeName = "bearer";
+        public JwtBearerValidator(Microsoft.Extensions.Options.IOptions<Hardened.Requests.Jwt.IJwtBearerConfiguration> configuration, Hardened.Requests.Jwt.IJwtSigningKeySource keys) { }
+        public System.Threading.Tasks.ValueTask<Hardened.Requests.Abstract.Authorization.ICallerPrincipal?> Validate(string token, Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+    }
+}
