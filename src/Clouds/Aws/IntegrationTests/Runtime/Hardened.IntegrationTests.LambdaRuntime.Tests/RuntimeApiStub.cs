@@ -16,7 +16,7 @@ namespace Hardened.IntegrationTests.LambdaRuntime.Tests;
 /// which never exercises the bootstrap, the runtime client, or the deadline the headers carry.
 /// </para>
 /// <para>
-/// <see cref="HttpListener"/> rather than a web framework, because the whole protocol is three
+/// <see cref="HttpListener"/> rather than a web framework, because the whole protocol is four
 /// routes and this project should not need a server to test a client.
 /// </para>
 /// </remarks>
@@ -24,6 +24,7 @@ public sealed class RuntimeApiStub : IDisposable
 {
     private readonly HttpListener _listener = new();
     private readonly TaskCompletionSource<Answer> _answered = new();
+    private readonly TaskCompletionSource<string> _initFailed = new();
     private readonly string _payload;
     private readonly CancellationTokenSource _stopping = new();
 
@@ -46,6 +47,12 @@ public sealed class RuntimeApiStub : IDisposable
 
     /// <summary>What the function posted back, once it has posted anything.</summary>
     public Task<Answer> Answered => _answered.Task;
+
+    /// <summary>
+    /// The body posted to <c>/runtime/init/error</c>, which is how a function that failed to start
+    /// tells Lambda why.
+    /// </summary>
+    public Task<string> InitFailed => _initFailed.Task;
 
     /// <param name="Failed">
     /// True when the function posted to <c>/error</c> rather than <c>/response</c>, which is how a
@@ -78,6 +85,15 @@ public sealed class RuntimeApiStub : IDisposable
             if (path.EndsWith("/invocation/next", StringComparison.Ordinal))
             {
                 Next(context.Response);
+            }
+            // Before the invocation's own /error, which it would otherwise match.
+            else if (path.EndsWith("/init/error", StringComparison.Ordinal))
+            {
+                using var reader = new StreamReader(context.Request.InputStream);
+
+                _initFailed.TrySetResult(await reader.ReadToEndAsync());
+
+                Accepted(context.Response);
             }
             else if (
                 path.EndsWith("/response", StringComparison.Ordinal)

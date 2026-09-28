@@ -22,6 +22,7 @@ namespace Hardened.Aws.Lambda.Runtime.Development
         public const int DefaultGatewayPort = 5080;
         public const string EmulatorPortVariable = "HARDENED_LAMBDA_EMULATOR_PORT";
         public const string GatewayPortVariable = "PORT";
+        public const string LogFormatVariable = "AWS_LAMBDA_LOG_FORMAT";
         public const string RuntimeApiVariable = "AWS_LAMBDA_RUNTIME_API";
         public static System.Threading.Tasks.Task<Hardened.Aws.Lambda.Runtime.Development.LambdaEmulatorSession> Start(Hardened.Aws.Lambda.Runtime.Development.LambdaEmulatorPlan plan) { }
         public static System.Threading.Tasks.Task<Hardened.Aws.Lambda.Runtime.Development.LambdaEmulatorSession> StartIfLocal(System.Type applicationType, bool apiGateway = false) { }
