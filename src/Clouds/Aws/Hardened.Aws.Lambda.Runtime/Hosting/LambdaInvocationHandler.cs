@@ -4,7 +4,9 @@ using Hardened.Aws.Lambda.Runtime.Adapters;
 using Hardened.Aws.Lambda.Runtime.Execution;
 using Hardened.Aws.Lambda.Runtime.Streaming;
 using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.Middleware;
+using Hardened.Requests.Abstract.Serializer;
 using Hardened.Shared.Runtime.Metrics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -95,11 +97,26 @@ public class LambdaInvocationHandler
         using var scope = _rootServiceProvider.CreateScope();
 
         // The mode is the deployment's, and whether it can be honoured is the adapter's. A function
-        // whose source has no caller holding a connection stays buffered under a stream-mode
-        // variable rather than failing, because the variable describes a front door it does not have.
-        return _mode == LambdaResponseMode.Stream && adapter is IStreamingPayloadAdapter streaming
-            ? await Streamed(streaming, payload, lambdaContext, scope, deadline.Token)
-            : await Buffered(adapter, payload, lambdaContext, scope, deadline.Token);
+        // whose source has no caller holding a connection stays buffered under either streaming
+        // mode rather than failing, because the variable describes a front door it does not have.
+        return (_mode, adapter) switch
+        {
+            (LambdaResponseMode.Stream, IStreamingPayloadAdapter streaming) => await Streamed(
+                streaming,
+                payload,
+                lambdaContext,
+                scope,
+                deadline.Token
+            ),
+            (LambdaResponseMode.Mixed, IStreamingPayloadAdapter streaming) => await Mixed(
+                streaming,
+                payload,
+                lambdaContext,
+                scope,
+                deadline.Token
+            ),
+            _ => await Buffered(adapter, payload, lambdaContext, scope, deadline.Token),
+        };
     }
 
     /// <summary>
@@ -114,20 +131,26 @@ public class LambdaInvocationHandler
         CancellationToken deadline
     )
     {
-        var body = new MemoryStream();
-        var output = new MemoryStream();
-
         var context = Context(
             adapter,
             payload,
             lambdaContext,
             scope,
             deadline,
-            adapter.CreateResponse(body)
+            adapter.CreateResponse(new MemoryStream())
         );
 
         await _executor.Run(context, adapter.FailurePolicy);
 
+        return await Payload(adapter, context);
+    }
+
+    /// <summary>
+    /// What the runtime posts back for an answer that did not stream, from a response whose body is
+    /// the <see cref="MemoryStream"/> it was written into.
+    /// </summary>
+    private static async Task<Stream> Payload(IPayloadAdapter adapter, IExecutionContext context)
+    {
         // A failure is a value, not a throw. The invoke filters catch what a handler raised and
         // record it on the response, so the executor's rethrow never sees it. The batch filter reads
         // that value back for a batched source and rethrows when the transport cannot report per
@@ -141,6 +164,8 @@ public class LambdaInvocationHandler
         {
             ExceptionDispatchInfo.Capture(failure).Throw();
         }
+
+        var output = new MemoryStream();
 
         await adapter.WriteResponse(context, output);
 
@@ -218,6 +243,84 @@ public class LambdaInvocationHandler
         // one: the empty case wrote a newline above.
         return Stream.Null;
     }
+
+    /// <summary>
+    /// A stream's answer as a Lambda response stream, and every other answer as one payload.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The body decides at its first byte, from the content type the response carries by then. The
+    /// stream filter commits <c>text/event-stream</c> or <c>application/x-ndjson</c> before a
+    /// stream's first item. That answer goes out as <see cref="Streamed"/> sends every answer, and
+    /// anything else goes out as <see cref="Buffered"/> sends it. An answer that writes nothing is
+    /// never decided, so a 204, a 304 and a HEAD answer carry no body.
+    /// </para>
+    /// <para>
+    /// A throw before the stream opens is a failed invocation, as in the other two modes. A throw
+    /// after it keeps what was written, and the bootstrap writes the failure as trailers.
+    /// </para>
+    /// </remarks>
+    private async Task<Stream> Mixed(
+        IStreamingPayloadAdapter adapter,
+        LambdaPayload payload,
+        ILambdaContext lambdaContext,
+        IServiceScope scope,
+        CancellationToken deadline
+    )
+    {
+        IExecutionResponse? response = null;
+
+        var body = new MixedResponseStream(
+            new ResponseStream(() => _streams.CreateHttpStream(adapter.CreatePrelude(response!))),
+            () => Streams(response!.ContentType)
+        );
+
+        response = adapter.CreateResponse(body);
+
+        var context = Context(adapter, payload, lambdaContext, scope, deadline, response);
+
+        try
+        {
+            await _executor.Run(context, adapter.FailurePolicy);
+
+            // Opened by a flush with nothing written, which is how a handler writing its own event
+            // stream sends the headers ahead of the first event.
+            if (body.Streamed && body.Length == 0)
+            {
+                await body.WriteAsync(EmptyStreamedBody);
+            }
+
+            await body.CompleteAsync();
+        }
+        catch
+        {
+            // For the reasons Streamed gives: what was written still goes, and the failure in flight
+            // is the one to surface.
+            try
+            {
+                await body.CompleteAsync();
+            }
+            catch { }
+
+            throw;
+        }
+
+        if (body.Streamed)
+        {
+            return Stream.Null;
+        }
+
+        response.Body = body.Collected;
+
+        return await Payload(adapter, context);
+    }
+
+    /// <summary>
+    /// Whether a response with this content type is one the stream filter is writing.
+    /// </summary>
+    private static bool Streams(string? contentType) =>
+        MediaType.Matches(KnownContentType.EventStream, contentType)
+        || MediaType.Matches(KnownContentType.NdJson, contentType);
 
     private LambdaExecutionContext Context(
         IPayloadAdapter adapter,

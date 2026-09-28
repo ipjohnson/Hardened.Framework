@@ -51,7 +51,12 @@ public sealed class RuntimeApiStub : IDisposable
     /// True when the function posted to <c>/error</c> rather than <c>/response</c>, which is how a
     /// failed invocation reaches AWS - and what makes a queue redeliver.
     /// </param>
-    public record Answer(bool Failed, string Body);
+    /// <param name="Streamed">
+    /// True when the function posted a streamed response, which it says with
+    /// <c>Lambda-Runtime-Function-Response-Mode: streaming</c>. The body is then the prelude, eight
+    /// null bytes and what was written after them.
+    /// </param>
+    public record Answer(bool Failed, string Body, bool Streamed = false);
 
     private async Task Serve()
     {
@@ -84,7 +89,9 @@ public sealed class RuntimeApiStub : IDisposable
                 _answered.TrySetResult(
                     new Answer(
                         path.EndsWith("/error", StringComparison.Ordinal),
-                        await reader.ReadToEndAsync()
+                        await reader.ReadToEndAsync(),
+                        context.Request.Headers["Lambda-Runtime-Function-Response-Mode"]
+                            == "streaming"
                     )
                 );
 

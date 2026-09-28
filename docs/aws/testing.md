@@ -271,18 +271,20 @@ The attribute builds this event from each request:
 
 A `Cookie` header set in the test goes into the event's `headers` and not into `cookies`, so
 `[FromCookie]` binds nothing. In `buffered` mode the test host reads `statusCode`, `headers` and
-`body` from the function's answer. It does not read `cookies` or `isBase64Encoded`.
+`body` from the function's answer. It does the same for a response that `mixed` mode sends as one
+payload. It does not read `cookies` or `isBase64Encoded`.
 
-A test sees these differences between the two modes:
+A test sees these differences between the modes:
 
-| | `buffered`, the default | `ResponseMode = LambdaResponseMode.Stream` |
-|---|---|---|
-| A cookie the handler sets | Missing from the response | `Set-Cookie` |
-| A body marked binary, a compressed body among them | Its base64 text | The bytes the handler wrote |
-| An `IResponseStreamFactory` parameter | `RuntimeResponseStreamFactory` | `StreamedResponseCapture` |
+| | `buffered`, the default | `ResponseMode = LambdaResponseMode.Stream` | `ResponseMode = LambdaResponseMode.Mixed` |
+|---|---|---|---|
+| A cookie the handler sets | Missing from the response | `Set-Cookie` | `Set-Cookie` on an event stream or NDJSON response, and missing from any other |
+| A body marked binary, a compressed body among them | Its base64 text | The bytes the handler wrote | The bytes on an event stream or NDJSON response, and its base64 text on any other |
+| An `IResponseStreamFactory` parameter | `RuntimeResponseStreamFactory` | `StreamedResponseCapture` | `StreamedResponseCapture` |
 
-A response compressed by `[Compress]` is marked binary, so in `buffered` mode `Deserialize<T>()` on
-it throws `InvalidDataException` with this message:
+A response compressed by `[Compress]` is marked binary. In `buffered` mode, and in `mixed` mode for a
+response that is not a stream, `Deserialize<T>()` on it throws `InvalidDataException` with this
+message:
 
 ```text
 The archive entry was compressed using an unsupported compression method.
@@ -308,6 +310,10 @@ In this mode the attribute registers a `StreamedResponseCapture` as the applicat
 `IResponseStreamFactory`. The invocation writes the response to the capture. The test host builds
 the test's response from the capture: the status, headers and cookies the stream opened with, and
 the bytes written to it. A test takes `IResponseStreamFactory` as a parameter to read the capture.
+
+`[LambdaWebTesting(ResponseMode = LambdaResponseMode.Mixed)]` runs each invocation in `mixed` mode
+and registers the same capture. The test host reads a response from the capture when its invocation
+opened a stream, and from the function's answer when it did not.
 
 A test reads these members of the capture:
 

@@ -16,6 +16,7 @@
     -->
     <ItemGroup>
         <ProjectReference Include="..\..\Sqs\Hardened.IntegrationTests.Sqs.SUT\Hardened.IntegrationTests.Sqs.SUT.csproj"/>
+        <ProjectReference Include="..\..\LambdaHttp\Hardened.IntegrationTests.LambdaHttp.SUT\Hardened.IntegrationTests.LambdaHttp.SUT.csproj"/>
         <ProjectReference Include="..\..\..\..\..\Shared\Hardened.Shared.Testing\Hardened.Shared.Testing.csproj"/>
         <ProjectReference Include="$(DependencyModulesRoot)\src\DependencyModules.xUnit4\DependencyModules.xUnit4.csproj"
                           Condition="'$(UseLocalDependencyModules)' == 'true'"/>

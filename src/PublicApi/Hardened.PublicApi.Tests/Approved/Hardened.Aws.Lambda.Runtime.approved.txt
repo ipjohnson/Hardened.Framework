@@ -170,11 +170,13 @@ namespace Hardened.Aws.Lambda.Runtime.Streaming
     {
         Buffered = 0,
         Stream = 1,
+        Mixed = 2,
     }
     public class LambdaResponseModeConfiguration : Hardened.Aws.Lambda.Runtime.Streaming.ILambdaResponseModeConfiguration
     {
         public const string BufferedValue = "buffered";
         public const string EnvironmentVariable = "HARDENED_LAMBDA_RESPONSE_MODE";
+        public const string MixedValue = "mixed";
         public const string StreamValue = "stream";
         public LambdaResponseModeConfiguration() { }
         public Hardened.Aws.Lambda.Runtime.Streaming.LambdaResponseMode Mode { get; set; }

@@ -42,16 +42,18 @@ public sealed class LambdaWebTestingAttribute : TestHostAttribute
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <c>Stream</c> is what a function URL in <c>RESPONSE_STREAM</c> invoke mode runs as, and it is
-    /// the mode <c>[ServerSentEvents]</c> handlers have to be deployed in - buffered, every event
-    /// arrives when the invocation ends, or never if it times out first. So it is the mode an event
-    /// stream has to be tested in, and until this existed there was no way to ask for it: the host
-    /// read the invocation's output stream, and a streamed invocation writes nothing there.
+    /// <c>Stream</c> is what a function URL in <c>RESPONSE_STREAM</c> invoke mode runs as, and it or
+    /// <c>Mixed</c> is the mode <c>[ServerSentEvents]</c> handlers have to be deployed in - buffered,
+    /// every event arrives when the invocation ends, or never if it times out first. So those are the
+    /// modes an event stream has to be tested in, and until this existed there was no way to ask for
+    /// one: the host read the invocation's output stream, and a streamed invocation writes nothing
+    /// there.
     /// </para>
     /// <para>
-    /// Setting it registers <see cref="StreamedResponseCapture"/> over the runtime's stream factory
-    /// and amends the mode, so the test drives the same <c>Streamed</c> path a deployed function
-    /// takes and reads what it wrote.
+    /// Setting either registers <see cref="StreamedResponseCapture"/> over the runtime's stream
+    /// factory and amends the mode, so the test drives the same path a deployed function takes and
+    /// reads what it wrote. Under <c>Mixed</c> an invocation is read from the capture when it opened
+    /// a stream and from the proxy envelope when it did not.
     /// </para>
     /// </remarks>
     /// <example>
@@ -84,8 +86,9 @@ public sealed class LambdaWebTestingAttribute : TestHostAttribute
     public override ITestHost CreateHost(ITestMethodContext testMethod, IServiceCollection services)
     {
         var remaining = TimeSpan.FromMilliseconds(RemainingTimeMilliseconds);
+        var responseMode = ResponseMode;
 
-        if (ResponseMode != LambdaResponseMode.Stream)
+        if (responseMode == LambdaResponseMode.Buffered)
         {
             return new LambdaWebHost { RemainingTime = remaining };
         }
@@ -98,7 +101,7 @@ public sealed class LambdaWebTestingAttribute : TestHostAttribute
         // accident, the way [WebTesting] removes the resource-not-found handler it replaces.
         services.RemoveAll<IResponseStreamFactory>();
         services.AddSingleton<IResponseStreamFactory>(capture);
-        services.ConfigureLambdaResponseMode(mode => mode.Mode = LambdaResponseMode.Stream);
+        services.ConfigureLambdaResponseMode(mode => mode.Mode = responseMode);
 
         return new LambdaWebHost(capture) { RemainingTime = remaining };
     }
@@ -227,8 +230,8 @@ public sealed class LambdaWebHost : ITestHost
 
         // A streamed invocation returns Stream.Null and wrote its answer to the response stream, so
         // the capture is the response. An adapter that cannot stream stays buffered under the same
-        // mode, and that invocation opened nothing - so this asks what happened rather than assuming
-        // the mode decided it.
+        // mode, and under Mixed so does every answer that is not a stream. Those invocations opened
+        // nothing, so this asks what happened rather than assuming the mode decided it.
         if (_capture is { Opened: true })
         {
             return new TestWebResponse(Streamed(_capture));
