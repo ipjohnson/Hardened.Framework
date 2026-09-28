@@ -164,33 +164,6 @@ public class UnmappedTraitTests
     }
 
     /// <summary>
-    /// <c>@paginated</c> was ignorable as a client concern, and it is not one: it promises the
-    /// operation honours a paging protocol, and the generated server receives the named members
-    /// with nothing enforcing it. The model builds and the weakening is said out loud.
-    /// </summary>
-    [Fact]
-    public void PaginatedIsReportedAsADegrade()
-    {
-        var ast = Ast.Replace(
-            "\"smithy.api#http\": { \"method\": \"POST\", \"uri\": \"/products\", \"code\": 201 }",
-            "\"smithy.api#http\": { \"method\": \"POST\", \"uri\": \"/products\", \"code\": 201 },\n"
-                + "                \"smithy.api#paginated\": { \"inputToken\": \"nextToken\", \"outputToken\": \"nextToken\" }"
-        );
-
-        // The replacement has to have happened, or this asserts nothing.
-        Assert.Contains("paginated", ast);
-
-        var diagnostics = new List<string>();
-        var model = SmithySpecParser.Parse(ast, "depot", diagnostics);
-
-        Assert.NotNull(model);
-        Assert.Contains(
-            diagnostics,
-            d => d.Contains("smithy.api#paginated") && d.Contains("no equivalent")
-        );
-    }
-
-    /// <summary>
     /// A model declaring neither is silent. Without this the check could pass everything above by
     /// firing unconditionally.
     /// </summary>

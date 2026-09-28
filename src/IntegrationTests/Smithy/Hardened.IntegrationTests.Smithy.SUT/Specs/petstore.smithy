@@ -58,6 +58,9 @@ operation GetPet {
 @http(method: "GET", uri: "/pets", code: 200)
 @auth([])
 @readonly
+// The members it names are ordinary members. The handler pages with IPageTokens, and the build
+// checks the names and shapes here.
+@paginated(inputToken: "nextToken", outputToken: "nextToken", pageSize: "limit", items: "pets")
 operation ListPets {
     input := {
         @httpQuery("limit")
@@ -69,6 +72,9 @@ operation ListPets {
         // builder never resolved it against the schema list.
         @httpQuery("kind")
         kind: PetKind
+
+        @httpQuery("nextToken")
+        nextToken: String
     }
     output := {
         @required

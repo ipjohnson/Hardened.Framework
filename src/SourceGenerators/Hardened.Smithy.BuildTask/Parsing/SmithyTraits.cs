@@ -96,6 +96,12 @@ internal static class SmithyTraits
     internal const string Mixin = "smithy.api#mixin";
 
     /// <summary>
+    /// That an operation pages its output. It is read to check the members it names, which
+    /// generate as ordinary members.
+    /// </summary>
+    internal const string Paginated = "smithy.api#paginated";
+
+    /// <summary>
     /// The auth traits, which say whether a caller must be someone - and nothing about what they
     /// must hold.
     /// </summary>
@@ -173,6 +179,7 @@ internal static class SmithyTraits
         Validation,
         Narrowed,
         Streaming,
+        Paginated,
     };
 
     /// <summary>
@@ -230,19 +237,11 @@ internal static class SmithyTraits
     /// Traits that change the contract and have no IR equivalent, so the code is weaker than the
     /// model. Warned rather than dropped.
     /// </summary>
-    /// <remarks>
-    /// <c>paginated</c> was <see cref="Ignorable"/> as a client concern, and it is not one: it
-    /// promises the operation honours a paging protocol - this input is the cursor, that output
-    /// member continues it - and the generated server receives those as ordinary members with
-    /// nothing enforcing the protocol between them. The handler author implements paging by hand
-    /// or the contract overstates what the service does, and either way it has to be said.
-    /// </remarks>
     internal static readonly HashSet<string> Degrades = new(StringComparer.Ordinal)
     {
         HttpResponseCode,
         HttpPrefixHeaders,
         HttpQueryParams,
-        "smithy.api#paginated",
     };
 
     /// <summary>

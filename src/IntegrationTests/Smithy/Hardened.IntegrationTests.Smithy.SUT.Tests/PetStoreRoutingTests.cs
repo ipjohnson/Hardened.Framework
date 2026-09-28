@@ -101,6 +101,48 @@ public class PetStoreRoutingTests
     }
 
     /// <summary>
+    /// <c>@paginated</c> names <c>nextToken</c> on both sides and <c>limit</c> as the page size.
+    /// The output's token goes back as the input's, and the last page carries none.
+    /// </summary>
+    [ModuleTest]
+    public async Task ListPets_PagesThroughTheTokenTheModelNames(ITestWebApp app)
+    {
+        var first = await app.Get("/pets?limit=1");
+
+        first.Assert.Ok();
+
+        var firstPage = first.Deserialize<ListPetsOutput>()!;
+
+        Assert.Equal("1", Assert.Single(firstPage.Pets).Id);
+        Assert.NotNull(firstPage.NextToken);
+
+        var second = await app.Get(
+            "/pets?limit=1&nextToken=" + Uri.EscapeDataString(firstPage.NextToken)
+        );
+
+        second.Assert.Ok();
+
+        var secondPage = second.Deserialize<ListPetsOutput>()!;
+
+        Assert.Equal("2", Assert.Single(secondPage.Pets).Id);
+        Assert.Null(secondPage.NextToken);
+    }
+
+    /// <summary>Named as the model's member, which the handler passed to IPageTokens.</summary>
+    [ModuleTest]
+    public async Task ListPets_RefusesATokenItDidNotWrite(ITestWebApp app)
+    {
+        var response = await app.Get("/pets?nextToken=not.a.token");
+
+        response.Assert.BadRequest();
+
+        var error = Assert.Single(response.Deserialize<RequestValidationError>()!.Errors);
+
+        Assert.Equal("nextToken", error.Field);
+        Assert.Equal("invalid", error.Code);
+    }
+
+    /// <summary>
     /// Every member of the input structure carries no binding trait, so the whole structure is the
     /// JSON body - the case OpenAPI needs a synthesised schema for and Smithy names itself.
     /// </summary>

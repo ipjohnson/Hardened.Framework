@@ -426,8 +426,10 @@ interface that the `Response` model generates.
 | `032` | Warning | An OpenAPI 3.1 or later document declares `nullable` | Build task | `HOAT032`: [Generating from OpenAPI](/guide/openapi). `HSMT032`: none |
 | `033` | Error | Under `HardenedSerializer` `MessagePackKeyed`, a property has no `x-message-pack-index`, or two properties share one | Build task | `HOAT033`: [MessagePack](/guide/message-pack). `HSMT033`: none |
 | `034` | Warning | A `oneOf` schema under a MessagePack serializer | Build task | `HOAT034`: [MessagePack](/guide/message-pack). `HSMT034`: none |
+| `035` | Error | A committed AST's `@paginated` names a member the operation does not have, or one of the wrong type | Build task | `HSMT035`: [Generating from Smithy](/guide/smithy#paging). `HOAT035`: none |
 
-No build reports `HSMT032`, because only the OpenAPI reader records `nullable`.
+No build reports `HSMT032`, because only the OpenAPI reader records `nullable`. No build reports
+`HOAT035`, because only the Smithy reader records `@paginated`.
 
 ### Writing the served document to a file
 

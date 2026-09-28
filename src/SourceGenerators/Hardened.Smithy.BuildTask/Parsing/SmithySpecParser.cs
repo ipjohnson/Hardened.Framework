@@ -246,6 +246,15 @@ internal static class SmithySpecParser
         // beside its own.
         var serviceErrors = SmithyAst.TargetList(service, "errors").ToList();
 
+        // A service's @paginated pages nothing itself. It fills in what an operation's own leaves out.
+        JsonElement? servicePaging = SmithyAst.TryGetTrait(
+            service,
+            SmithyTraits.Paginated,
+            out var paging
+        )
+            ? paging
+            : null;
+
         foreach (var operationId in Operations(context, service))
         {
             if (!context.Ast.TryGetShape(operationId, out var operation))
@@ -263,7 +272,8 @@ internal static class SmithySpecParser
                 protocol,
                 RequiresAuth(service),
                 serviceErrors,
-                securityScheme
+                securityScheme,
+                servicePaging
             );
 
             if (parsed != null)
@@ -466,7 +476,8 @@ internal static class SmithySpecParser
         ProtocolBinding protocol,
         bool serviceRequiresAuth,
         IReadOnlyList<string> serviceErrors,
-        string? securityScheme = null
+        string? securityScheme = null,
+        JsonElement? servicePaging = null
     )
     {
         Note(context, operation);
@@ -592,6 +603,8 @@ internal static class SmithySpecParser
             }
         }
 
+        CheckPagination(context, operation, name, servicePaging);
+
         ParseInput(context, operation, model, name, protocol);
 
         var responseHeaders = ParseOutput(
@@ -679,6 +692,245 @@ internal static class SmithySpecParser
 
         return model;
     }
+
+    /// <summary>
+    /// Checks the members an operation's <c>@paginated</c> names, with its service's trait filling
+    /// in what the operation's leaves out.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// These are the rules the Smithy CLI reports as errors, and no others, so nothing the CLI
+    /// accepts is refused here. The CLI checks a model built from <c>.smithy</c> sources before
+    /// this runs, so what this finds is a committed AST.
+    /// </para>
+    /// <para>
+    /// Nothing is generated from the trait. The token and page-size members are ordinary members,
+    /// which the handler reads and writes.
+    /// </para>
+    /// </remarks>
+    private static void CheckPagination(
+        ParseContext context,
+        JsonElement operation,
+        string operationName,
+        JsonElement? servicePaging
+    )
+    {
+        if (!SmithyAst.TryGetTrait(operation, SmithyTraits.Paginated, out var paging))
+        {
+            return;
+        }
+
+        var input = IoStructure(context, operation, "input");
+        var output = IoStructure(context, operation, "output");
+        var inputToken = PagingSetting(paging, servicePaging, "inputToken");
+        var outputToken = PagingSetting(paging, servicePaging, "outputToken");
+        var pageSize = PagingSetting(paging, servicePaging, "pageSize");
+        var items = PagingSetting(paging, servicePaging, "items");
+
+        if (inputToken == null)
+        {
+            Mismatch(context, operationName, "no inputToken is named on it or on its service");
+        }
+        else if (
+            CheckPagingMember(
+                context,
+                operationName,
+                "inputToken",
+                inputToken,
+                input,
+                "input",
+                TokenTypes,
+                "a token is a string or a map"
+            )
+                is { } member
+            && SmithyAst.HasTrait(member, SmithyTraits.Required)
+        )
+        {
+            Mismatch(
+                context,
+                operationName,
+                $"its inputToken '{inputToken}' is @required, so a first request has no token to send"
+            );
+        }
+
+        if (outputToken == null)
+        {
+            Mismatch(context, operationName, "no outputToken is named on it or on its service");
+        }
+        else
+        {
+            CheckPagingMember(
+                context,
+                operationName,
+                "outputToken",
+                outputToken,
+                output,
+                "output",
+                TokenTypes,
+                "a token is a string or a map"
+            );
+        }
+
+        if (pageSize != null)
+        {
+            CheckPagingMember(
+                context,
+                operationName,
+                "pageSize",
+                pageSize,
+                input,
+                "input",
+                PageSizeTypes,
+                "a page size is a byte, short, integer or long"
+            );
+        }
+
+        if (items != null)
+        {
+            CheckPagingMember(
+                context,
+                operationName,
+                "items",
+                items,
+                output,
+                "output",
+                ItemTypes,
+                "the items are a list or a map"
+            );
+        }
+    }
+
+    /// <summary>
+    /// The shape types a paging member may target, as Smithy spells them. An <c>enum</c> is a
+    /// string and an <c>intEnum</c> an integer, and a <c>set</c> is a list.
+    /// </summary>
+    private static readonly HashSet<string> TokenTypes = new(StringComparer.Ordinal)
+    {
+        "string",
+        "enum",
+        "map",
+    };
+
+    private static readonly HashSet<string> PageSizeTypes = new(StringComparer.Ordinal)
+    {
+        "byte",
+        "short",
+        "integer",
+        "intEnum",
+        "long",
+    };
+
+    private static readonly HashSet<string> ItemTypes = new(StringComparer.Ordinal)
+    {
+        "list",
+        "set",
+        "map",
+    };
+
+    /// <summary>A setting from the operation's trait, or from the service's where it has none.</summary>
+    private static string? PagingSetting(
+        JsonElement paging,
+        JsonElement? servicePaging,
+        string property
+    ) =>
+        String(paging, property)
+        ?? (servicePaging is { } service ? String(service, property) : null);
+
+    /// <summary>The structure an operation's input or output targets, or null for none.</summary>
+    private static JsonElement? IoStructure(
+        ParseContext context,
+        JsonElement operation,
+        string property
+    ) =>
+        operation.TryGetProperty(property, out var reference)
+        && SmithyAst.Target(reference) is { } target
+        && context.Ast.TryGetShape(target, out var structure)
+            ? structure
+            : null;
+
+    /// <summary>
+    /// Finds the member a paging setting names and checks what it targets, recording a mismatch
+    /// when either fails. Returns the member when it exists.
+    /// </summary>
+    /// <remarks>
+    /// An output setting is a path, <c>page.nextToken</c>, through nested structures. An input
+    /// setting names a member of the input itself, as the trait defines it. A target the model does
+    /// not declare is left to the dangling-reference check.
+    /// </remarks>
+    private static JsonElement? CheckPagingMember(
+        ParseContext context,
+        string operationName,
+        string setting,
+        string value,
+        JsonElement? structure,
+        string side,
+        HashSet<string> allowed,
+        string rule
+    )
+    {
+        var steps = side == "output" ? value.Split('.') : new[] { value };
+        JsonElement? member = null;
+        var current = structure;
+
+        foreach (var step in steps)
+        {
+            if (current is not { } shape || !SmithyAst.TryGetMember(shape, step, out var found))
+            {
+                Mismatch(
+                    context,
+                    operationName,
+                    $"its {setting} '{value}' names no member of its {side}"
+                );
+
+                return null;
+            }
+
+            member = found;
+            current =
+                SmithyAst.Target(found) is { } next
+                && context.Ast.TryGetShape(next, out var nested)
+                && SmithyAst.Kind(nested) == "structure"
+                    ? nested
+                    : null;
+        }
+
+        var type = ShapeType(context, SmithyAst.Target(member!.Value) ?? "");
+
+        if (type != null && !allowed.Contains(type))
+        {
+            Mismatch(
+                context,
+                operationName,
+                $"its {setting} '{value}' targets {type}, where {rule}"
+            );
+        }
+
+        return member;
+    }
+
+    /// <summary>
+    /// The Smithy type of a target, prelude shapes included, or null for a target that names no
+    /// shape.
+    /// </summary>
+    private static string? ShapeType(ParseContext context, string target)
+    {
+        if (SmithyPrelude.IsPrelude(target))
+        {
+            var name = SmithyPrelude.LocalName(target);
+
+            if (name.StartsWith("Primitive", StringComparison.Ordinal))
+            {
+                name = name.Substring("Primitive".Length);
+            }
+
+            return name.Length == 0 ? null : char.ToLowerInvariant(name[0]) + name.Substring(1);
+        }
+
+        return context.Ast.TryGetShape(target, out var shape) ? SmithyAst.Kind(shape) : null;
+    }
+
+    private static void Mismatch(ParseContext context, string operationName, string detail) =>
+        context.Model.PaginationMismatches.Add(new PaginationMismatchModel(operationName, detail));
 
     /// <summary>
     /// Splits an operation's input structure into route bindings and a body.

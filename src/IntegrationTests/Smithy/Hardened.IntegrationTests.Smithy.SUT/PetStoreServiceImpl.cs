@@ -1,6 +1,7 @@
 using Hardened.IntegrationTests.Smithy.SUT.Models;
 using Hardened.IntegrationTests.Smithy.SUT.Services;
 using Hardened.Requests.Abstract.Attributes;
+using Hardened.Requests.Abstract.Paging;
 using Hardened.Requests.Abstract.Responses;
 using Hardened.Web.Runtime.Responses;
 
@@ -23,7 +24,7 @@ namespace Hardened.IntegrationTests.Smithy.SUT;
 /// </para>
 /// </remarks>
 [Handler]
-public class PetStoreServiceImpl : IPetStoreService
+public class PetStoreServiceImpl(IPageTokens pageTokens) : IPetStoreService
 {
     private static readonly List<Pet> Pets =
     [
@@ -98,10 +99,20 @@ public class PetStoreServiceImpl : IPetStoreService
         );
     }
 
-    public Task<ListPetsOutput> ListPets(int? limit, PetKind? kind) =>
-        Task.FromResult(
-            new ListPetsOutput(limit.HasValue ? Pets.Take(limit.Value).ToList() : Pets.ToList())
-        );
+    /// <summary>
+    /// Pages by id. The model's <c>@paginated</c> names <c>nextToken</c> on both sides,
+    /// <c>limit</c> as the page size and <c>pets</c> as the items, and the build checked those
+    /// members. The paging itself is written here.
+    /// </summary>
+    public Task<ListPetsOutput> ListPets(int? limit, PetKind? kind, string? nextToken)
+    {
+        var after = pageTokens.Decode<string>(nextToken);
+        var rows = Pets.Where(pet => after == null || string.CompareOrdinal(pet.Id, after) > 0)
+            .ToList();
+        var page = Page.From(rows, limit ?? 100, last => pageTokens.Encode(last.Id));
+
+        return Task.FromResult(new ListPetsOutput(page.Items.ToList(), page.NextPageToken));
+    }
 
     /// <summary>
     /// Reached only by an authenticated caller — the service declares @httpBearerAuth and this

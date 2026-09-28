@@ -183,6 +183,23 @@ internal sealed class SmithyAst
         }
     }
 
+    /// <summary>One of a shape's members, by name.</summary>
+    internal static bool TryGetMember(JsonElement shape, string name, out JsonElement member)
+    {
+        if (
+            shape.TryGetProperty("members", out var members)
+            && members.ValueKind == JsonValueKind.Object
+            && members.TryGetProperty(name, out member)
+        )
+        {
+            return true;
+        }
+
+        member = default;
+
+        return false;
+    }
+
     /// <summary>The targets in a shape's array-valued property - a service's operations, an operation's errors.</summary>
     internal static IEnumerable<string> TargetList(JsonElement shape, string property)
     {
