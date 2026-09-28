@@ -2,12 +2,14 @@ using System.Text.Json;
 using DependencyModules.Testing.Attributes;
 using DependencyModules.xUnit.Attributes;
 using Hardened.Aws.Lambda.Runtime.Hosting;
+using Hardened.Aws.Lambda.Runtime.Streaming;
 using Hardened.IntegrationTests.Sqs.SUT;
 using Hardened.Shared.Runtime.Application;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Xunit;
+using LambdaHttpTestApp = Hardened.IntegrationTests.LambdaHttp.SUT.LambdaHttpTestApp;
 
 namespace Hardened.IntegrationTests.LambdaRuntime.Tests;
 
@@ -174,5 +176,88 @@ public class LambdaRuntimeLoopTests
         await Serve(services.BuildServiceProvider(), OneOrder);
 
         Assert.True(probe.Ran);
+    }
+
+    /// <summary>
+    /// One HTTP function in mixed mode, as the Runtime API receives it from AWS's own runtime client:
+    /// an event stream posted as a streamed response, and an order posted as one payload.
+    /// </summary>
+    /// <remarks>
+    /// The invocation handler's tests stop at <c>IResponseStreamFactory</c>. This is what the runtime
+    /// client does on either side of it, which is what a front door taking both kinds of answer has
+    /// to read.
+    /// </remarks>
+    [Fact]
+    public async Task InMixedModeAnEventStreamIsPostedStreamedAndAnOrderAsOnePayload()
+    {
+        var provider = HttpFunction(LambdaResponseMode.Mixed);
+
+        var events = await Serve(provider, HttpEvent("/orders/live"));
+        var order = await Serve(provider, HttpEvent("/orders/o-1"));
+
+        Assert.True(events.Streamed);
+
+        var (prelude, body) = Split(events.Body);
+
+        Assert.Equal(200, prelude.RootElement.GetProperty("statusCode").GetInt32());
+        Assert.Contains("text/event-stream", prelude.RootElement.GetProperty("headers").ToString());
+        Assert.Equal("data: {\"id\":\"live-1\",\"quantity\":1}\n\n", body);
+
+        Assert.False(order.Streamed);
+
+        using var envelope = JsonDocument.Parse(order.Body);
+
+        Assert.Equal(200, envelope.RootElement.GetProperty("statusCode").GetInt32());
+        Assert.Contains("\"o-1\"", envelope.RootElement.GetProperty("body").GetString());
+    }
+
+    /// <summary>
+    /// The control: in stream mode the same order is posted as a streamed response.
+    /// </summary>
+    [Fact]
+    public async Task InStreamModeAnOrderIsPostedStreamed()
+    {
+        var order = await Serve(HttpFunction(LambdaResponseMode.Stream), HttpEvent("/orders/o-1"));
+
+        Assert.True(order.Streamed);
+        Assert.Contains("\"o-1\"", Split(order.Body).Body);
+    }
+
+    /// <summary>
+    /// The HTTP fixture built the way its <c>Program.cs</c> builds it, in the given mode.
+    /// </summary>
+    private static IServiceProvider HttpFunction(LambdaResponseMode mode)
+    {
+        var services = new ServiceCollection();
+
+        services.AddLogging(builder => builder.SetMinimumLevel(LogLevel.None));
+        services.AddTransient<IHardenedEnvironment>(_ => new EnvironmentImpl("test"));
+
+        new LambdaHttpTestApp().PopulateServiceCollection(services);
+
+        services.ConfigureLambdaResponseMode(configuration => configuration.Mode = mode);
+
+        return services.BuildServiceProvider();
+    }
+
+    /// <summary>A GET as a function URL delivers it, in payload format 2.0.</summary>
+    private static string HttpEvent(string path) =>
+        $$"""
+            {"version":"2.0","rawPath":"{{path}}","rawQueryString":"","headers":{},
+             "requestContext":{"domainName":"function.test",
+              "http":{"method":"GET","path":"{{path}}","protocol":"HTTP/1.1","sourceIp":"203.0.113.7"} },
+             "isBase64Encoded":false}
+            """;
+
+    /// <summary>
+    /// A streamed HTTP response's prelude and body, which the eight null bytes separate.
+    /// </summary>
+    private static (JsonDocument Prelude, string Body) Split(string streamed)
+    {
+        var separator = streamed.IndexOf("\0\0\0\0\0\0\0\0", StringComparison.Ordinal);
+
+        Assert.True(separator > 0, "the streamed response has no prelude");
+
+        return (JsonDocument.Parse(streamed[..separator]), streamed[(separator + 8)..]);
     }
 }

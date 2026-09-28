@@ -136,9 +136,9 @@ $ curl -s http://localhost:5080/todos/badge | xxd
 
 ::: warning
 A handler that returns `byte[]` or `Stream` does not mark its response binary. The handler still
-answers 200. In `buffered` [response mode](#response-mode), the default, each byte of the body that
-is not valid UTF-8 reaches the client as the three bytes `EF BF BD`, the Unicode replacement
-character. An image or a PDF arrives corrupted, with no error. Set
+answers 200. In `buffered` [response mode](#response-mode), the default, and in `mixed`, each byte
+of the body that is not valid UTF-8 reaches the client as the three bytes `EF BF BD`, the Unicode
+replacement character. An image or a PDF arrives corrupted, with no error. Set
 `context.Response.IsBinary = true` in such a handler.
 :::
 
@@ -162,13 +162,21 @@ HTTP API or function URL in front of the function:
 |---|---|---|
 | `buffered`, the default | As one payload format 2.0 answer when the handler finishes | An HTTP API, or a function URL in `BUFFERED` invoke mode |
 | `stream` | As a Lambda response stream that opens at the first byte of the body | A function URL in `RESPONSE_STREAM` invoke mode |
+| `mixed` | As a Lambda response stream when the body is an event stream or NDJSON, and otherwise as one payload format 2.0 answer when the handler finishes | A front door that takes a streamed or a buffered answer from each invocation |
+
+Under `mixed`, each invocation decides at the first byte of the body. A body whose `Content-Type` is
+`text/event-stream` or `application/x-ndjson` opens a Lambda response stream. Any other body goes
+out as one payload. An answer with no body never opens a stream, so it goes out as one payload with
+no body. The Lambda Runtime API takes either kind of answer from any invocation. Whether a function URL
+in `RESPONSE_STREAM` invoke mode reads an answer sent as one payload has not been checked, so
+`stream` is the value for one.
 
 The variable is read once, at startup. Case and surrounding spaces are ignored. An unset or empty
 variable means `buffered`. Any other value stops the application at startup, before the first
 request:
 
 ```text
-Unhandled exception. System.InvalidOperationException: HARDENED_LAMBDA_RESPONSE_MODE is 'streaming'. It must be 'buffered' or 'stream'. A function URL in RESPONSE_STREAM invoke mode takes 'stream'; every other deployment takes 'buffered'.
+Unhandled exception. System.InvalidOperationException: HARDENED_LAMBDA_RESPONSE_MODE is 'streaming'. It must be 'buffered', 'stream' or 'mixed'. A function URL in RESPONSE_STREAM invoke mode takes 'stream'. A front door that takes a streamed or a buffered answer from each invocation takes 'mixed'. Every other deployment takes 'buffered'.
 ```
 
 `ConfigureLambdaResponseMode`, in `Hardened.Aws.Lambda.Runtime.Streaming`, sets the mode in code.
@@ -193,21 +201,22 @@ public partial class Application : IServiceCollectionConfiguration
 
 The table compares what the client receives in each mode:
 
-| | `buffered` | `stream` |
-|---|---|---|
-| Status, headers and cookies are sent | When the handler finishes | With the first byte of the body |
-| A status or header set after a stream's first item | Is sent | Is not sent |
-| A refusal or an exception before the first byte | Sent with its status and error body | Sent with its status and error body |
-| A `byte[]` body not marked binary | Bytes that are not valid UTF-8 are replaced | Sent as written |
-| A response with no body, such as a 204 | No body | A body of one newline |
+| | `buffered` | `stream` | `mixed` |
+|---|---|---|---|
+| Status, headers and cookies are sent | When the handler finishes | With the first byte of the body | With the first byte of an event stream or NDJSON body, and otherwise when the handler finishes |
+| A status or header set after a stream's first item | Is sent | Is not sent | Is not sent |
+| A refusal or an exception before the first byte | Sent with its status and error body | Sent with its status and error body | Sent with its status and error body |
+| A `byte[]` body not marked binary | Bytes that are not valid UTF-8 are replaced | Sent as written | Bytes that are not valid UTF-8 are replaced |
+| A response with no body, such as a 204 | No body | A body of one newline | No body |
 
-Under `stream`, only a function that serves routes answers with a stream. A function that serves a
-trigger or `[HardenedFunction]` answers buffered.
+Under `stream` and `mixed`, only a function that serves routes answers with a stream. A function
+that serves a trigger or `[HardenedFunction]` answers buffered.
 
 The [AWS Lambda Test Tool](#running-it-locally) cannot run `stream`. The first request gets no
 answer. After 30 seconds the process exits with
-`FormatException: The input string '5050/Todos.Host' was not in a correct format.` The AWS
-[Testing](/aws/testing) page covers running `stream` in a test.
+`FormatException: The input string '5050/Todos.Host' was not in a correct format.` Under `mixed`,
+a route that answers an event stream or NDJSON gets no answer, and the other routes answer. The AWS
+[Testing](/aws/testing) page covers running `stream` and `mixed` in a test.
 
 ### Server-sent events in buffered mode
 
@@ -218,7 +227,7 @@ mode, an application that has any of them logs a warning that names them. For a 
 `/todos/events` in the template, the local run prints:
 
 ```text
-Warning: [Warning] Hardened.Aws.Lambda.Runtime.Streaming.ServerSentEventsResponseModeStartupService: HARDENED_LAMBDA_RESPONSE_MODE is buffered and 1 handler(s) answer text/event-stream: GET /events. Their events are delivered when the invocation ends, or never if it times out first. Deploy behind a function URL in RESPONSE_STREAM invoke mode with HARDENED_LAMBDA_RESPONSE_MODE=stream, or stop answering them as event streams: remove [ServerSentEvents] from a handler written in C#, or the event stream from the operation in its contract.
+Warning: [Warning] Hardened.Aws.Lambda.Runtime.Streaming.ServerSentEventsResponseModeStartupService: HARDENED_LAMBDA_RESPONSE_MODE is buffered and 1 handler(s) answer text/event-stream: GET /events. Their events are delivered when the invocation ends, or never if it times out first. Deploy behind a function URL in RESPONSE_STREAM invoke mode with HARDENED_LAMBDA_RESPONSE_MODE=stream, or behind a front door that takes a streamed or a buffered answer from each invocation with HARDENED_LAMBDA_RESPONSE_MODE=mixed, or stop answering them as event streams: remove [ServerSentEvents] from a handler written in C#, or the event stream from the operation in its contract.
 ```
 
 The warning names each handler by its verb and its path without the module's base path. A handler
@@ -244,7 +253,8 @@ receives no `Set-Cookie`.
 Without `apiGateway: true`, the tool starts without the emulator. The application prints only
 `Started the AWS Lambda Test Tool on http://localhost:5050`. Nothing listens on 5080.
 
-`stream` does not run locally, as [Response mode](#response-mode) describes.
+`stream` does not run locally, and `mixed` runs only the routes that do not stream, as
+[Response mode](#response-mode) describes.
 
 ## Deploying
 

@@ -53,7 +53,8 @@ internal class ServerSentEventsResponseModeStartupService : IStartupService
 
         if (
             rootProvider.GetRequiredService<IOptions<ILambdaResponseModeConfiguration>>().Value.Mode
-            == LambdaResponseMode.Stream
+            is LambdaResponseMode.Stream
+                or LambdaResponseMode.Mixed
         )
         {
             return Task.FromResult(true);
@@ -67,11 +68,14 @@ internal class ServerSentEventsResponseModeStartupService : IStartupService
             "{Variable} is buffered and {Count} handler(s) answer text/event-stream: {Handlers}. "
                 + "Their events are delivered when the invocation ends, or never if it times out first. "
                 + "Deploy behind a function URL in RESPONSE_STREAM invoke mode with {Variable}=stream, or "
-                + "stop answering them as event streams: remove [ServerSentEvents] from a handler written in "
-                + "C#, or the event stream from the operation in its contract.",
+                + "behind a front door that takes a streamed or a buffered answer from each invocation "
+                + "with {Variable}=mixed, or stop answering them as event streams: remove "
+                + "[ServerSentEvents] from a handler written in C#, or the event stream from the operation "
+                + "in its contract.",
             LambdaResponseModeConfiguration.EnvironmentVariable,
             handlers.Length,
             string.Join(", ", handlers),
+            LambdaResponseModeConfiguration.EnvironmentVariable,
             LambdaResponseModeConfiguration.EnvironmentVariable
         );
 

@@ -63,18 +63,20 @@ selects REST API payload format 1.0, which is not implemented and is a build err
 
 ## Response mode
 
-Every response leaves the function in one of two ways, and the deployment decides which.
+Every response leaves the function in one of two ways. The deployment decides which, or under
+`mixed` it lets each response decide.
 
 | `HARDENED_LAMBDA_RESPONSE_MODE` | The function sends | Front doors that accept it |
 |---|---|---|
 | `buffered` (default) | The payload format 2.0 JSON, when the handler returns | API Gateway HTTP API; a function URL in `BUFFERED` invoke mode |
 | `stream` | A prelude of status, headers and cookies, then the body as it is produced | A function URL in `RESPONSE_STREAM` invoke mode, with or without CloudFront in front |
+| `mixed` | What `stream` sends for an event stream or NDJSON, and what `buffered` sends for anything else | A front door that takes either from each invocation. Whether a function URL in `RESPONSE_STREAM` invoke mode reads a plain payload has not been checked |
 
 The variable is read once, at startup. It is a deployment setting rather than an attribute because
-the front doors are strict and the function cannot tell them apart: a `RESPONSE_STREAM` URL answers
-a plain payload with a 500, a buffered front door drops the body of a streamed response, and the
-event is the same document either way. An unrecognised value fails the application at startup.
-An application can also set it in code:
+the front doors are strict and the function cannot tell them apart. API Gateway's streaming
+integration answers a plain payload with a 500. A buffered front door drops the body of a streamed
+response, and the event is the same document either way. An unrecognised value fails the
+application at startup. An application can also set it in code:
 
 ```csharp
 private void Configure(IAppConfig config) {
@@ -96,6 +98,13 @@ that byte opens the stream with the error's status: the client gets a complete, 
 response. After the first byte the exception reaches the bootstrap, which writes it as trailers
 and records the invocation as failed; the client sees a truncated stream and, for an event stream,
 reconnects with `Last-Event-ID`.
+
+Under `mixed` the body decides at its first byte, from the content type the pipeline has set by
+then. The stream filter commits `text/event-stream` or `application/x-ndjson` before a stream's
+first item, and that body opens the Lambda response stream as under `stream`. Any other body is
+collected and sent as the payload format 2.0 JSON when the handler returns, so a response with
+nothing written has no body and needs no newline. The Runtime API takes either answer from any
+invocation, and the front door has to read both.
 
 An application with `[ServerSentEvents]` handlers deployed in buffered mode logs a warning at
 startup naming them. Their events would be delivered when the invocation ends, which is not an

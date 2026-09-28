@@ -21,6 +21,9 @@ public class LambdaResponseModeConfigurationTests
     [InlineData("stream", LambdaResponseMode.Stream)]
     [InlineData("STREAM", LambdaResponseMode.Stream)]
     [InlineData(" stream ", LambdaResponseMode.Stream)]
+    [InlineData("mixed", LambdaResponseMode.Mixed)]
+    [InlineData("MIXED", LambdaResponseMode.Mixed)]
+    [InlineData(" mixed ", LambdaResponseMode.Mixed)]
     public void TheSettingParsesCaseInsensitivelyWithBufferedAsTheDefault(
         string? value,
         LambdaResponseMode expected
@@ -48,6 +51,7 @@ public class LambdaResponseModeConfigurationTests
         Assert.Contains(value, failure.Message);
         Assert.Contains("'buffered'", failure.Message);
         Assert.Contains("'stream'", failure.Message);
+        Assert.Contains("'mixed'", failure.Message);
     }
 
     /// <summary>
@@ -57,6 +61,7 @@ public class LambdaResponseModeConfigurationTests
     [Theory]
     [InlineData(LambdaResponseMode.Buffered)]
     [InlineData(LambdaResponseMode.Stream)]
+    [InlineData(LambdaResponseMode.Mixed)]
     public void TheWrittenValueParsesBackToTheMode(LambdaResponseMode mode)
     {
         Assert.Equal(

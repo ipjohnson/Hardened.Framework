@@ -26,15 +26,20 @@ public class ServerSentEventsResponseModeStartupServiceTests
         Assert.Contains("GET /orders/live", warning);
         Assert.Contains("GET /prices/live", warning);
         Assert.Contains("RESPONSE_STREAM", warning);
+        Assert.Contains($"{LambdaResponseModeConfiguration.EnvironmentVariable}=stream", warning);
+        Assert.Contains($"{LambdaResponseModeConfiguration.EnvironmentVariable}=mixed", warning);
     }
 
     /// <summary>
-    /// The combination the warning exists to catch is the only one it fires on.
+    /// The combination the warning exists to catch is the only one it fires on. Both streaming
+    /// modes send an event stream as it is written.
     /// </summary>
-    [Fact]
-    public async Task StreamModeWithEventHandlersIsSilent()
+    [Theory]
+    [InlineData(LambdaResponseMode.Stream)]
+    [InlineData(LambdaResponseMode.Mixed)]
+    public async Task AStreamingModeWithEventHandlersIsSilent(LambdaResponseMode mode)
     {
-        var log = await Run(LambdaResponseMode.Stream, "GET /orders/live");
+        var log = await Run(mode, "GET /orders/live");
 
         Assert.Empty(log.Warnings);
     }

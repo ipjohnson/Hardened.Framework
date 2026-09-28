@@ -539,19 +539,22 @@ contract carries no `id:` and no `retry:`.
 | Google Cloud Run | Yes |
 | Google Cloud Functions | Yes |
 | AWS Lambda, with `HARDENED_LAMBDA_RESPONSE_MODE=stream` | Yes |
+| AWS Lambda, with `HARDENED_LAMBDA_RESPONSE_MODE=mixed` | Yes |
 | AWS Lambda, buffered, which is the default | No. They arrive together when the handler finishes |
 | Azure Functions | No. They arrive together when the handler finishes |
 
 A buffered host sends the same framing and headers, all at once.
 
-On Lambda, a response streams only with `HARDENED_LAMBDA_RESPONSE_MODE=stream`, behind a function
-URL in `RESPONSE_STREAM` invoke mode. The AWS [Web applications](/aws/lambda-web) page covers the
-setting. In that mode, the invocation opens a Lambda response stream at the first byte and writes
-the items to it.
+On Lambda, a response streams only with `HARDENED_LAMBDA_RESPONSE_MODE=stream` or `mixed`. The
+invocation opens a Lambda response stream at the first byte and writes the items to it. `stream`
+sends every response of the function that way, behind a function URL in `RESPONSE_STREAM` invoke
+mode. `mixed` sends only a stream that way, and sends every other response as one payload. It needs
+a front door that takes either kind of answer from each invocation. The AWS
+[Web applications](/aws/lambda-web) page covers the setting.
 
-The AWS Lambda Test Tool, which the template starts for a local run, cannot run the stream mode. The
-AWS [Web applications](/aws/lambda-web) page covers what it does, and the AWS
-[Testing](/aws/testing) page covers testing the stream mode in process.
+The AWS Lambda Test Tool, which the template starts for a local run, cannot run a stream in either
+mode. The AWS [Web applications](/aws/lambda-web) page covers what it does, and the AWS
+[Testing](/aws/testing) page covers testing both modes in process.
 
 ## Limits
 

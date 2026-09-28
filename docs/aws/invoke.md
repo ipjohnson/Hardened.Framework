@@ -111,7 +111,8 @@ parameter. That interface is in `Hardened.Requests.Abstract.Execution`.
 
 An invocation has no query string, no cookies and no `Content-Type`.
 
-The response is never streamed. `HARDENED_LAMBDA_RESPONSE_MODE=stream` leaves it buffered.
+The response is never streamed. `HARDENED_LAMBDA_RESPONSE_MODE=stream` or `mixed` leaves it
+buffered.
 [Web applications](/aws/lambda-web) covers the setting.
 
 ## Failures

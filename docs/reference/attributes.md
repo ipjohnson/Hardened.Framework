@@ -315,7 +315,7 @@ Without a cloud's testing attribute, a façade call is built as a request. The r
 | `[DynamoDbClientModule]` | Module attribute | `Hardened.Aws.DynamoDbClient` in `Hardened.Aws.DynamoDbClient` | Registers `IDynamoDbClientProvider`, on any host | [DynamoDB client](/aws/dynamodb) |
 | `[LocalDynamoDb]` | Any | `Hardened.Aws.DynamoDbClient.Testing` in `Hardened.Aws.DynamoDbClient.Testing` | On a test: points `IDynamoDbClientProvider` at DynamoDB Local in a Docker container. A derived class creates the tables<br>Property: `Image` (`amazon/dynamodb-local:latest`) | [DynamoDB client](/aws/dynamodb) |
 
-`LambdaResponseMode` is in `Hardened.Aws.Lambda.Runtime.Streaming`. Its values are `Buffered` and `Stream`. `[LambdaTesting]` is under [Testing functions](#testing-functions).
+`LambdaResponseMode` is in `Hardened.Aws.Lambda.Runtime.Streaming`. Its values are `Buffered`, `Stream` and `Mixed`. `[LambdaTesting]` is under [Testing functions](#testing-functions).
 
 ## Google Cloud
 

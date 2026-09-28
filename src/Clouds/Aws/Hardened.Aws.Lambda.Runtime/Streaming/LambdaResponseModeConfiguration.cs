@@ -30,6 +30,8 @@ public class LambdaResponseModeConfiguration : ILambdaResponseModeConfiguration
 
     public const string StreamValue = "stream";
 
+    public const string MixedValue = "mixed";
+
     public LambdaResponseMode Mode { get; set; } = LambdaResponseMode.Buffered;
 
     /// <summary>
@@ -47,10 +49,16 @@ public class LambdaResponseModeConfiguration : ILambdaResponseModeConfiguration
             return LambdaResponseMode.Stream;
         }
 
+        if (Matches(value!, MixedValue))
+        {
+            return LambdaResponseMode.Mixed;
+        }
+
         throw new InvalidOperationException(
-            $"{EnvironmentVariable} is '{value}'. It must be '{BufferedValue}' or '{StreamValue}'. "
-                + "A function URL in RESPONSE_STREAM invoke mode takes 'stream'; every other deployment "
-                + "takes 'buffered'."
+            $"{EnvironmentVariable} is '{value}'. It must be '{BufferedValue}', '{StreamValue}' or "
+                + $"'{MixedValue}'. A function URL in RESPONSE_STREAM invoke mode takes 'stream'. A front "
+                + "door that takes a streamed or a buffered answer from each invocation takes 'mixed'. "
+                + "Every other deployment takes 'buffered'."
         );
     }
 
@@ -58,7 +66,12 @@ public class LambdaResponseModeConfiguration : ILambdaResponseModeConfiguration
     /// The value a mode is written as, which is what the CDK puts in the environment.
     /// </summary>
     public static string ValueOf(LambdaResponseMode mode) =>
-        mode == LambdaResponseMode.Stream ? StreamValue : BufferedValue;
+        mode switch
+        {
+            LambdaResponseMode.Stream => StreamValue,
+            LambdaResponseMode.Mixed => MixedValue,
+            _ => BufferedValue,
+        };
 
     public static void FromEnvironment(
         IHardenedEnvironment environment,

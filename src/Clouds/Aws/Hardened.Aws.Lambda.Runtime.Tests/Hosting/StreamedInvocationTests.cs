@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text;
+using System.Text.Json;
 using Amazon.Lambda.Core;
 using Hardened.Aws.Lambda.Http;
 using Hardened.Aws.Lambda.Runtime.Adapters;
@@ -8,6 +9,7 @@ using Hardened.Aws.Lambda.Runtime.Streaming;
 using Hardened.Aws.Lambda.Runtime.Tests.Infrastructure;
 using Hardened.Aws.Lambda.Sqs;
 using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.Middleware;
 using Hardened.Requests.Runtime.Middleware;
 using Hardened.Shared.Runtime.Metrics;
@@ -18,8 +20,8 @@ using Xunit;
 namespace Hardened.Aws.Lambda.Runtime.Tests.Hosting;
 
 /// <summary>
-/// The invocation loop in stream mode: when it opens a Lambda response stream, what the prelude
-/// carries when it does, and which functions are left buffered under the same variable.
+/// The invocation loop in stream and mixed modes: when it opens a Lambda response stream, what the
+/// prelude carries when it does, and which functions and answers are left buffered.
 /// </summary>
 /// <remarks>
 /// The AWS stream is never reached. <c>LambdaResponseStreamFactory</c> is static and its setter is
@@ -227,10 +229,176 @@ public class StreamedInvocationTests
         Assert.Empty(streams.Preludes);
     }
 
+    // ------------------------------------------------------------------ mixed mode
+
+    [Theory]
+    [InlineData(KnownContentType.EventStream, "data: 1\n\n")]
+    [InlineData(KnownContentType.NdJson, "{\"id\":1}\n")]
+    [InlineData("text/event-stream; charset=utf-8", "data: 1\n\n")]
+    public async Task MixedModeStreamsAStream(string contentType, string body)
+    {
+        var (handler, executor, streams) = Build(LambdaResponseMode.Mixed, new LambdaHttpAdapter());
+
+        executor.Body = Answers(contentType, body);
+
+        var output = await handler.Invoke(Input(Payloads.HttpJson), Context());
+
+        Assert.Equal(contentType, streams.Prelude.Headers[KnownHeaders.ContentType]);
+        Assert.Equal(body, streams.Target.Text);
+        Assert.Same(Stream.Null, output);
+    }
+
+    /// <summary>
+    /// Any other answer is the envelope buffered mode writes, and opens nothing.
+    /// </summary>
+    [Fact]
+    public async Task MixedModeSendsAnyOtherAnswerAsOnePayload()
+    {
+        var (handler, executor, streams) = Build(LambdaResponseMode.Mixed, new LambdaHttpAdapter());
+
+        executor.Body = Answers(KnownContentType.Json, "{\"id\":1}");
+
+        var envelope = await Envelope(await handler.Invoke(Input(Payloads.HttpJson), Context()));
+
+        Assert.Empty(streams.Preludes);
+        Assert.Equal(200, envelope.GetProperty("statusCode").GetInt32());
+        Assert.Equal("{\"id\":1}", envelope.GetProperty("body").GetString());
+    }
+
+    /// <summary>
+    /// An answer that writes nothing is never decided, so it goes back as one payload without the
+    /// newline stream mode sends.
+    /// </summary>
+    [Fact]
+    public async Task MixedModeSendsAnAnswerWithNoBodyWithoutANewline()
+    {
+        var (handler, executor, streams) = Build(LambdaResponseMode.Mixed, new LambdaHttpAdapter());
+
+        executor.Body = context =>
+        {
+            context.Response.Status = 204;
+
+            return Task.CompletedTask;
+        };
+
+        var envelope = await Envelope(await handler.Invoke(Input(Payloads.HttpJson), Context()));
+
+        Assert.Empty(streams.Preludes);
+        Assert.Equal(204, envelope.GetProperty("statusCode").GetInt32());
+        Assert.Equal("", envelope.GetProperty("body").GetString());
+    }
+
+    /// <summary>
+    /// Decided at the first byte. A stream's content type set after that does not move the answer
+    /// onto a stream, because the bytes before it are already in the payload.
+    /// </summary>
+    [Fact]
+    public async Task MixedModeDecidesAtTheFirstByte()
+    {
+        var (handler, executor, streams) = Build(LambdaResponseMode.Mixed, new LambdaHttpAdapter());
+
+        executor.Body = async context =>
+        {
+            context.Response.ContentType = KnownContentType.Json;
+            await context.Response.Body.WriteAsync("{"u8.ToArray());
+
+            context.Response.ContentType = KnownContentType.EventStream;
+            await context.Response.Body.WriteAsync("}"u8.ToArray());
+        };
+
+        var envelope = await Envelope(await handler.Invoke(Input(Payloads.HttpJson), Context()));
+
+        Assert.Empty(streams.Preludes);
+        Assert.Equal("{}", envelope.GetProperty("body").GetString());
+    }
+
+    /// <summary>
+    /// A handler writing its own event stream can flush before its first event to send the headers.
+    /// That opens the stream, and a stream that then writes nothing still ends with a newline.
+    /// </summary>
+    [Fact]
+    public async Task MixedModeOpensAStreamAtAFlushAndEndsAnEmptyOneWithANewline()
+    {
+        var (handler, executor, streams) = Build(LambdaResponseMode.Mixed, new LambdaHttpAdapter());
+
+        executor.Body = async context =>
+        {
+            context.Response.ContentType = KnownContentType.EventStream;
+
+            await context.Response.Body.FlushAsync();
+        };
+
+        await handler.Invoke(Input(Payloads.HttpJson), Context());
+
+        Assert.Single(streams.Preludes);
+        Assert.Equal("\n", streams.Target.Text);
+    }
+
+    [Fact]
+    public async Task MixedModeKeepsWhatAStreamWroteBeforeAThrow()
+    {
+        var (handler, executor, streams) = Build(LambdaResponseMode.Mixed, new LambdaHttpAdapter());
+
+        executor.Body = async context =>
+        {
+            context.Response.ContentType = KnownContentType.EventStream;
+            await context.Response.Body.WriteAsync("data: 1\n\n"u8.ToArray());
+
+            throw new InvalidOperationException("the stream broke");
+        };
+
+        var failure = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            handler.Invoke(Input(Payloads.HttpJson), Context())
+        );
+
+        Assert.Equal("the stream broke", failure.Message);
+        Assert.Equal("data: 1\n\n", streams.Target.Text);
+    }
+
+    [Fact]
+    public async Task MixedModeOpensNoStreamForAThrowBeforeTheFirstByte()
+    {
+        var (handler, executor, streams) = Build(LambdaResponseMode.Mixed, new LambdaHttpAdapter());
+
+        executor.Body = _ => throw new InvalidOperationException("nothing to answer");
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            handler.Invoke(Input(Payloads.HttpJson), Context())
+        );
+
+        Assert.Empty(streams.Preludes);
+    }
+
+    [Fact]
+    public async Task AnAdapterThatCannotStreamStaysBufferedUnderMixedMode()
+    {
+        var (handler, _, streams) = Build(LambdaResponseMode.Mixed, new SqsAdapter());
+
+        await handler.Invoke(Input(Payloads.SqsJson), Context());
+
+        Assert.Empty(streams.Preludes);
+    }
+
     // ------------------------------------------------------------------ harness
 
     private static Func<IExecutionContext, Task> Writes(string body) =>
         async context => await context.Response.Body.WriteAsync(Encoding.UTF8.GetBytes(body));
+
+    private static Func<IExecutionContext, Task> Answers(string contentType, string body) =>
+        async context =>
+        {
+            context.Response.ContentType = contentType;
+
+            await context.Response.Body.WriteAsync(Encoding.UTF8.GetBytes(body));
+        };
+
+    /// <summary>The proxy envelope a buffered answer went back as.</summary>
+    private static async Task<JsonElement> Envelope(Stream output)
+    {
+        using var document = JsonDocument.Parse(await Text(output));
+
+        return document.RootElement.Clone();
+    }
 
     private static async Task<string> Text(Stream output)
     {
