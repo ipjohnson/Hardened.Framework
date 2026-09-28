@@ -1,9 +1,10 @@
 # A shipped bearer principal source
 
-> **Status.** Design, not built. The seam it plugs into shipped with the authentication
-> middleware: `IPrincipalSource`, run ahead of the handler chain, first answer onto
-> `IExecutionContext.CallerPrincipal`. This document describes the first source the framework
-> would ship. Nothing here is API until it is.
+> **Status.** Built for #462. `BearerPrincipalSource<TScheme>` is in `Hardened.Requests.Runtime`,
+> and `Hardened.Requests.Jwt` is the JWT package this document said could follow. Two things
+> changed on the way. A refused token is `AnonymousCallerPrincipal.Rejected`, which
+> `AuthorizationFilter` answers with `error="invalid_token"`, so a source can say a token was bad
+> without refusing the request itself. And the open questions below are answered in place.
 
 ## Why ship one at all
 
@@ -33,12 +34,11 @@ public sealed class BearerPrincipalSource<TScheme> : IPrincipalSource<TScheme>
   source is asked and an anonymous request stays anonymous.
 - A present token goes to the delegate. The delegate owns validation entirely: parse it as a JWT,
   introspect it against an issuer, look it up in a table. The framework never learns which.
-- The delegate's null means the credential was refused; the request continues anonymously and
-  authorization refuses it with the challenge it already composes. A source cannot give the
-  RFC 6750 `error="invalid_token"` answer today. It runs before routing, where nothing answers an
-  exception, so an `AuthorizationException` thrown there fails the request with a 500 and an
-  empty body. Answering it would need `AuthenticationMiddleware` to turn such an exception into
-  its challenge.
+- The delegate's null means the credential was refused. The source answers
+  `AnonymousCallerPrincipal.Rejected()`, so the request continues anonymously and a requirement
+  refuses it with `error="invalid_token"`. A route that requires no caller serves it, as ASP.NET
+  Core's `JwtBearer` does. `AuthenticationMiddleware` is unchanged: a source still cannot refuse a
+  request itself.
 
 Registration is one line beside the scheme declaration the document already reads:
 
@@ -71,10 +71,11 @@ requirement to the code that terminates its credential. The runtime does not dis
 1. The principal's `AuthenticationScheme` string: the wire word (`"bearer"`, matching the
    scheme attribute's argument) or the type name (`"ApiBearer"`, matching the document key).
    The testing source says `"test"` and nothing reads the value yet; whichever ships becomes
-   API.
+   API. **Answered:** the JWT package's principal says `"bearer"`
+   (`JwtBearerValidator.SchemeName`). The delegate source leaves it to the delegate.
 2. Whether `AuthorizationFilter`'s `AuthenticationRequired()` challenge should name the wire
    scheme of the operation's declared scheme type rather than defaulting to `Bearer`. It is
    right by accident today for the only source this document proposes.
 3. Whether the delegate receives the raw header value or the token with the scheme word
    stripped. Stripped is proposed above; a source for a proprietary header shape is a different
-   source.
+   source. **Answered:** stripped, and trimmed.

@@ -89,10 +89,13 @@ namespace Hardened.Requests.Abstract.Authorization
     {
         public static readonly Hardened.Requests.Abstract.Authorization.ICallerPrincipal Instance;
         public string? AuthenticationScheme { get; }
+        public bool CredentialRejected { get; }
         public System.Collections.Generic.IReadOnlySet<string> Grants { get; }
         public string? Issuer { get; }
+        public string? RejectionDescription { get; }
         public string? Subject { get; }
         public bool TryGetClaim(string name, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out string value) { }
+        public static Hardened.Requests.Abstract.Authorization.ICallerPrincipal Rejected(string? description = null) { }
     }
     [System.AttributeUsage(System.AttributeTargets.Class)]
     public sealed class ApiKeyAuthenticationSchemeAttribute : System.Attribute
@@ -614,6 +617,7 @@ namespace Hardened.Requests.Abstract.Headers
         public const string AcceptEncoding = "Accept-Encoding";
         public const string AcceptRanges = "Accept-Ranges";
         public const string Allow = "Allow";
+        public const string Authorization = "Authorization";
         public const string CacheControl = "Cache-Control";
         public const string Connection = "Connection";
         public const string ContentEncoding = "Content-Encoding";

@@ -65,6 +65,25 @@ public class AuthenticationMiddlewareTests
     }
 
     /// <summary>
+    /// A rejected credential is an answer. The source that read the credential decided, so a later
+    /// source does not get to authenticate the request some other way.
+    /// </summary>
+    [Fact]
+    public async Task ARejectedCredentialIsAnAnswer()
+    {
+        var context = Pipeline.Context();
+        var rejects = Source(AnonymousCallerPrincipal.Rejected("The token expired."));
+        var second = Source(new CallerPrincipal("test", subject: "two"));
+
+        await new AuthenticationMiddleware([rejects, second]).Execute(Chain(context));
+
+        var caller = Assert.IsType<AnonymousCallerPrincipal>(context.CallerPrincipal);
+
+        Assert.True(caller.CredentialRejected);
+        await second.DidNotReceive().Authenticate(Arg.Any<IExecutionContext>());
+    }
+
+    /// <summary>
     /// A request no source answers for is left exactly as it started, and still reaches the
     /// handler chain - refusing it is authorization's decision, not this middleware's.
     /// </summary>

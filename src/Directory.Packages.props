@@ -83,6 +83,12 @@
         <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="8.0.1" />
         <PackageVersion Include="Microsoft.Extensions.Options" Version="8.0.2" />
         <PackageVersion Include="Microsoft.Extensions.Primitives" Version="8.0.0" />
+        <!--
+          Hardened.Requests.Jwt only. It brings Microsoft.IdentityModel.Tokens, .Logging and
+          .Abstractions, Microsoft.Bcl.Cryptography and System.Formats.Asn1 10.x with it, which is why
+          no other package may reference it; release.yaml checks that before the push.
+        -->
+        <PackageVersion Include="Microsoft.IdentityModel.JsonWebTokens" Version="8.23.0" />
         <PackageVersion Include="System.IO.Pipelines" Version="8.0.0" />
         <PackageVersion Include="System.Memory" Version="4.5.5" />
         <PackageVersion Include="System.Reflection.Metadata" Version="8.0.0" />

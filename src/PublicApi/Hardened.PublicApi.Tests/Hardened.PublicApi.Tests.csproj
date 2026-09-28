@@ -35,6 +35,8 @@
         <ProjectReference Include="..\..\Clouds\Aws\Hardened.Aws.Lambda.Testing\Hardened.Aws.Lambda.Testing.csproj"/>
         <ProjectReference Include="..\..\Clients\Hardened.Refit.Testing\Hardened.Refit.Testing.csproj"/>
         <ProjectReference Include="..\..\Requests\Hardened.Requests.Caching.Memory\Hardened.Requests.Caching.Memory.csproj"/>
+        <ProjectReference Include="..\..\Requests\Hardened.Requests.Jwt\Hardened.Requests.Jwt.csproj"/>
+        <ProjectReference Include="..\..\Requests\Hardened.Requests.Jwt.Testing\Hardened.Requests.Jwt.Testing.csproj"/>
         <ProjectReference Include="..\..\Requests\Serializers\Hardened.Requests.Serializers.MessagePack\Hardened.Requests.Serializers.MessagePack.csproj"/>
         <ProjectReference Include="..\..\Requests\Serializers\Hardened.Requests.Serializers.Newtonsoft\Hardened.Requests.Serializers.Newtonsoft.csproj"/>
         <ProjectReference Include="..\..\SourceGenerators\Hardened.SourceGeneration.Testing\Hardened.SourceGeneration.Testing.csproj"/>

@@ -67,6 +67,8 @@ fails with `HRDR008`. The build also reports `CS0102` and `CS0111` on the genera
 | `Hardened.Requests.Runtime` | The pipeline: filters, serialization, validation and error handling, and `[RequireAuthorization]`, `[CacheResponse<T>]`, `[RateLimit]`, `[Timeout]` and `[Retry]` | | [The execution pipeline](/guide/execution-pipeline) |
 | `Hardened.Requests.Testing` | Test doubles for the pipeline, and the conformance tests for an `IExecutionRequest` implementation. `Hardened.Web.Testing` and `Hardened.Functions.Testing` bring it | | None |
 | `Hardened.Requests.Caching.Memory` | An in-process store for `[CacheResponse<T>]` | `[HardenedMemoryResponseCache]` | [Response caching](/guide/response-caching) |
+| `Hardened.Requests.Jwt` | A principal source for JWT bearer tokens. It checks a token against the issuer's JWKS and maps its scopes to grants. It is the only package that brings `Microsoft.IdentityModel` | `[JwtBearerAuthentication<TScheme>]` | [Authentication](/guide/authentication#jwt-bearer-tokens) |
+| `Hardened.Requests.Jwt.Testing` | `TestJwtIssuer`, which signs tokens with a key the application under test trusts | `[JwtTestIssuer]` | [Authentication](/guide/authentication#testing-with-tokens) |
 | `Hardened.Requests.Serializers.MessagePack` | A MessagePack reader and writer | `[MessagePackSerializerLibrary]` | [MessagePack](/guide/message-pack) |
 | `Hardened.Requests.Serializers.Newtonsoft` | A Newtonsoft.Json serializer for requests and responses | None. See [Limits](#limits) | None |
 

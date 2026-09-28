@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>$(HardenedTargetFramework)</TargetFramework>
+        <Description>A test issuer for Hardened.Requests.Jwt: signs tokens with a key generated for the test run, which the application under test trusts in place of its JWKS.</Description>
+        <IsPackable>true</IsPackable>
+    </PropertyGroup>
+
+    <!--
+      Its own package rather than part of Hardened.Requests.Testing, because signing a token needs
+      Microsoft.IdentityModel, and every test project that references Hardened.Requests.Testing would
+      otherwise pull it in.
+    -->
+    <ItemGroup>
+        <ProjectReference Include="..\..\Shared\Hardened.Shared.Testing\Hardened.Shared.Testing.csproj"/>
+        <ProjectReference Include="..\Hardened.Requests.Jwt\Hardened.Requests.Jwt.csproj"/>
+    </ItemGroup>
+
+</Project>

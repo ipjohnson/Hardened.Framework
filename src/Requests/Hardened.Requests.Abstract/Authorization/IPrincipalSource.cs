@@ -17,11 +17,12 @@ namespace Hardened.Requests.Abstract.Authorization;
 /// </para>
 /// <para>
 /// Null means "this request carries nothing of mine" - no <c>Authorization</c> header, no cookie,
-/// whatever the source reads - and the next source is asked. Return null for a credential that is
-/// present and <em>invalid</em> as well: the request continues anonymously, and a requirement
-/// refuses it with a fresh challenge. A source cannot refuse a request itself. It runs before
-/// routing, where nothing answers an exception, so anything it throws fails the request with a 500
-/// and an empty body, <see cref="AuthorizationException"/> included.
+/// whatever the source reads - and the next source is asked. For a credential that is present and
+/// <em>invalid</em>, return <see cref="AnonymousCallerPrincipal.Rejected"/>: the request continues
+/// anonymously, and a requirement refuses it with <c>error="invalid_token"</c>. A source cannot
+/// refuse a request itself. It runs before routing, where nothing answers an exception, so anything
+/// it throws fails the request with a 500 and an empty body, <see cref="AuthorizationException"/>
+/// included.
 /// </para>
 /// <para>
 /// Establishing the caller is all this does. What the caller may do stays where it was:

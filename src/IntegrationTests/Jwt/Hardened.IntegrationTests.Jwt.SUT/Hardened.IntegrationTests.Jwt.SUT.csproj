@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>$(HardenedTargetFramework)</TargetFramework>
+        <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\Requests\Hardened.Requests.Jwt\Hardened.Requests.Jwt.csproj"/>
+        <ProjectReference Include="..\..\..\Web\Hardened.Web.Runtime\Hardened.Web.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\SourceGenerators\Hardened.Library.SourceGenerator\Hardened.Library.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\..\SourceGenerators\Hardened.Web.SourceGenerator\Hardened.Web.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\..\SourceGenerators\Hardened.DependencyModules.SourceGenerator\Hardened.DependencyModules.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+    </ItemGroup>
+
+</Project>
