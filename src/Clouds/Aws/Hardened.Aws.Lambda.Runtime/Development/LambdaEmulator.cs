@@ -33,6 +33,12 @@ public static class LambdaEmulator
 {
     public const string RuntimeApiVariable = "AWS_LAMBDA_RUNTIME_API";
 
+    /// <summary>
+    /// The variable Lambda sets from a function's log format. The runtime writes JSON when it is
+    /// <c>JSON</c>, and text otherwise.
+    /// </summary>
+    public const string LogFormatVariable = "AWS_LAMBDA_LOG_FORMAT";
+
     public const string EmulatorPortVariable = "HARDENED_LAMBDA_EMULATOR_PORT";
 
     /// <summary>The same variable the Kestrel and ASP.NET hosts listen on.</summary>
@@ -60,10 +66,11 @@ public static class LambdaEmulator
     /// function, which is invoked from the tool's UI or an event source.
     /// </param>
     /// <remarks>
-    /// <b>It sets <c>AWS_LAMBDA_RUNTIME_API</c> on this process, and that is the whole of the
-    /// wiring.</b> The Lambda service sets it for a deployed function, so an emulator standing in
-    /// for the service should present the same interface - which leaves the bootstrap reading the
-    /// environment exactly as it does in production, with no local branch anywhere in the host.
+    /// <b>It sets <c>AWS_LAMBDA_RUNTIME_API</c> on this process, and <c>AWS_LAMBDA_LOG_FORMAT</c>
+    /// when nothing has set it, and that is the whole of the wiring.</b> The Lambda service sets both
+    /// for a deployed function, so an emulator standing in for the service should present the same
+    /// interface - which leaves the bootstrap reading the environment exactly as it does in
+    /// production, with no local branch anywhere in the host.
     /// </remarks>
     public static Task<LambdaEmulatorSession> StartIfLocal(
         Type applicationType,
@@ -197,10 +204,29 @@ public static class LambdaEmulator
     }
 
     /// <summary>
-    /// Points the bootstrap at the tool by setting the variable the Lambda service would have set.
+    /// Points the bootstrap at the tool by setting the variables the Lambda service would have set.
     /// </summary>
     private static void Point(LambdaEmulatorPlan plan) =>
-        Environment.SetEnvironmentVariable(RuntimeApiVariable, plan.RuntimeApiEndpoint);
+        Point(plan, Environment.GetEnvironmentVariable, Environment.SetEnvironmentVariable);
+
+    /// <remarks>
+    /// The log format is <c>JSON</c>, which is what Lambda sets for a function deployed with its log
+    /// format as JSON, so a local run writes the entries a deployed one does. A value that is already
+    /// set is kept, which is how a local run asks for text.
+    /// </remarks>
+    internal static void Point(
+        LambdaEmulatorPlan plan,
+        Func<string, string?> read,
+        Action<string, string?> write
+    )
+    {
+        write(RuntimeApiVariable, plan.RuntimeApiEndpoint);
+
+        if (string.IsNullOrEmpty(read(LogFormatVariable)))
+        {
+            write(LogFormatVariable, "JSON");
+        }
+    }
 
     // Plain lines rather than the structured logger: the reader is a person at a console, and the
     // Kestrel host prints the same "Listening on" line.

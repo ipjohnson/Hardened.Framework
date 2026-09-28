@@ -5,6 +5,8 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <!-- The logger the templates install, so the log tests read what a deployed function writes. -->
+        <PackageReference Include="Amazon.Lambda.Logging.AspNetCore"/>
         <PackageReference Include="DependencyModules.NSubstitute"/>
         <PackageReference Include="NSubstitute"/>
     </ItemGroup>

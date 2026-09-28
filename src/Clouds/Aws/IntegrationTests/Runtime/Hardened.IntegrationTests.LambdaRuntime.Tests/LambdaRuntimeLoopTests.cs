@@ -52,6 +52,20 @@ public class LambdaRuntimeLoopTests
     {
         using var runtime = new RuntimeApiStub(payload);
 
+        PointAt(runtime);
+
+        using var giveUp = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+
+        await HardenedLambdaBootstrap.Run(provider, giveUp.Token);
+
+        return await runtime.Answered.WaitAsync(giveUp.Token);
+    }
+
+    /// <summary>
+    /// Sets what the Lambda service sets for a function, with the stub as its Runtime API.
+    /// </summary>
+    private static void PointAt(RuntimeApiStub runtime)
+    {
         Environment.SetEnvironmentVariable("AWS_LAMBDA_RUNTIME_API", runtime.Address);
         Environment.SetEnvironmentVariable("AWS_LAMBDA_DOTNET_DEBUG_RUN_ONCE", "true");
         Environment.SetEnvironmentVariable("AWS_LAMBDA_FUNCTION_NAME", "orders-function");
@@ -62,12 +76,6 @@ public class LambdaRuntimeLoopTests
             "/aws/lambda/orders-function"
         );
         Environment.SetEnvironmentVariable("AWS_LAMBDA_LOG_STREAM_NAME", "stream");
-
-        using var giveUp = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-
-        await HardenedLambdaBootstrap.Run(provider, giveUp.Token);
-
-        return await runtime.Answered.WaitAsync(giveUp.Token);
     }
 
     /// <summary>
@@ -259,5 +267,151 @@ public class LambdaRuntimeLoopTests
         Assert.True(separator > 0, "the streamed response has no prelude");
 
         return (JsonDocument.Parse(streamed[..separator]), streamed[(separator + 8)..]);
+    }
+
+    /// <summary>A startup service that logs one entry, with one value in its message.</summary>
+    private sealed class Warmer(ILogger<Warmer> logger) : IStartupService
+    {
+        public Task<bool> Startup(IServiceProvider rootProvider)
+        {
+            logger.LogInformation("Warmed {Count} caches", 3);
+
+            return Task.FromResult(true);
+        }
+    }
+
+    /// <summary>A startup service that fails.</summary>
+    private sealed class Refuser : IStartupService
+    {
+        public Task<bool> Startup(IServiceProvider rootProvider) =>
+            throw new InvalidOperationException("the cache would not warm");
+    }
+
+    /// <summary>
+    /// The function the way the templates build it: a container of its own, logging through the
+    /// Lambda logger.
+    /// </summary>
+    private static IServiceProvider Function(Action<IServiceCollection> add)
+    {
+        var services = new ServiceCollection();
+
+        services.AddLogging(builder =>
+            builder.AddLambdaLogger(new LambdaLoggerOptions { IncludeException = true })
+        );
+        services.AddTransient<IHardenedEnvironment>(_ => new EnvironmentImpl("test"));
+        services.AddSingleton(Substitute.For<IOrderStore>());
+
+        add(services);
+
+        new SqsTestApp().PopulateServiceCollection(services);
+
+        return services.BuildServiceProvider();
+    }
+
+    /// <summary>
+    /// Serves one invocation with the function's log format set to <paramref name="logFormat"/>,
+    /// and returns the lines the runtime wrote.
+    /// </summary>
+    /// <remarks>
+    /// <c>AWS_LAMBDA_DOTNET_DISABLE_CONSOLE_CAPTURE</c> is the runtime client's own switch for
+    /// leaving <c>Console.Out</c> alone. Its writer then writes to the <c>Console.Out</c> it found
+    /// when the bootstrap was built, which is the writer set here.
+    /// </remarks>
+    private static async Task<string[]> ServeAndRead(IServiceProvider provider, string? logFormat)
+    {
+        var console = Console.Out;
+        using var log = new StringWriter();
+
+        Environment.SetEnvironmentVariable("AWS_LAMBDA_LOG_FORMAT", logFormat);
+        Environment.SetEnvironmentVariable("AWS_LAMBDA_DOTNET_DISABLE_CONSOLE_CAPTURE", "true");
+        Console.SetOut(log);
+
+        try
+        {
+            await Serve(provider, OneOrder);
+        }
+        finally
+        {
+            Console.SetOut(console);
+            Environment.SetEnvironmentVariable("AWS_LAMBDA_LOG_FORMAT", null);
+            Environment.SetEnvironmentVariable("AWS_LAMBDA_DOTNET_DISABLE_CONSOLE_CAPTURE", null);
+        }
+
+        return log.ToString().Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries);
+    }
+
+    /// <summary>
+    /// A startup service's entry is written by the runtime, in the function's log format.
+    /// </summary>
+    /// <remarks>
+    /// Building the bootstrap is what installs the runtime's writer. A startup service that runs
+    /// before then logs through Amazon.Lambda.Core's fallback, which writes a text line with
+    /// <c>{Count}</c> unfilled even on a JSON function, and this test then finds no record.
+    /// </remarks>
+    [Fact]
+    public async Task AStartupServiceLogsInTheFunctionsLogFormat()
+    {
+        var lines = await ServeAndRead(
+            Function(services => services.AddSingleton<IStartupService, Warmer>()),
+            "JSON"
+        );
+
+        var entry = lines
+            .Where(line => line.StartsWith('{'))
+            .Select(line => JsonSerializer.Deserialize<JsonElement>(line))
+            .Single(entry => entry.TryGetProperty("Count", out _));
+
+        Assert.Equal("Information", entry.GetProperty("level").GetString());
+        Assert.Equal(3, entry.GetProperty("Count").GetInt32());
+        Assert.Contains("Warmed 3 caches", entry.GetProperty("message").GetString());
+    }
+
+    [Fact]
+    public async Task AFunctionThatLogsTextIsWarnedAtStartup()
+    {
+        var lines = await ServeAndRead(Function(_ => { }), logFormat: null);
+
+        Assert.Contains(
+            lines,
+            line =>
+                line.Contains(
+                    "This function logs in Lambda's text format, because AWS_LAMBDA_LOG_FORMAT is not set."
+                )
+        );
+    }
+
+    [Fact]
+    public async Task AFunctionThatLogsJsonIsNotWarned()
+    {
+        var lines = await ServeAndRead(Function(_ => { }), "JSON");
+
+        Assert.DoesNotContain(lines, line => line.Contains("logs in Lambda's text format"));
+    }
+
+    /// <summary>
+    /// A startup service that throws is reported to Lambda as an init error, not only thrown in this
+    /// process.
+    /// </summary>
+    [Fact]
+    public async Task AStartupServiceThatThrowsIsReportedAsAnInitError()
+    {
+        var provider = Function(services => services.AddSingleton<IStartupService, Refuser>());
+
+        using var runtime = new RuntimeApiStub(OneOrder);
+
+        PointAt(runtime);
+
+        using var giveUp = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            HardenedLambdaBootstrap.Run(provider, giveUp.Token)
+        );
+
+        // The runtime client posts the error before it rethrows, so it has arrived by now.
+        Assert.True(runtime.InitFailed.IsCompleted, "Nothing was posted to /runtime/init/error.");
+        Assert.Contains(
+            "the cache would not warm",
+            await runtime.InitFailed.WaitAsync(giveUp.Token)
+        );
     }
 }

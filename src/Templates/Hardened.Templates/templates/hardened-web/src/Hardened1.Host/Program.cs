@@ -126,9 +126,15 @@ var services = new ServiceCollection();
 // writing from its own background thread is a second party on that lock, and the two can deadlock:
 // the handler's exception is never reported, and the invocation hangs until the function times out
 // rather than failing fast. This provider writes through Amazon.Lambda.Core's LambdaLogger, which
-// is the single-lock path, and it keeps the request id on every line and the JSON shape
-// AWS_LAMBDA_LOG_FORMAT asks for.
-services.AddLogging(logging => logging.AddLambdaLogger());
+// is the single-lock path, and it keeps the request id on every line.
+//
+// Deploy the function with its log format set to JSON. Each entry is then one JSON record, and the
+// values in its message are fields of their own. A local run under the emulator above logs the same
+// way. IncludeException is for a function left on Lambda's text format, where this provider leaves
+// a logged exception out of the line unless told otherwise.
+services.AddLogging(logging =>
+    logging.AddLambdaLogger(new LambdaLoggerOptions { IncludeException = true })
+);
 
 services.AddHardenedEnvironment(environment);
 

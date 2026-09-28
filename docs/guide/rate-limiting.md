@@ -190,8 +190,8 @@ every instance needs a store of the application's own. See [Stores](#stores).
 On AWS Lambda, a function that declares a rate limit and counts it in process logs a warning at
 startup that names the limited handlers:
 
-```text
-Warning: [Warning] Hardened.Aws.Lambda.Runtime.RateLimiting.InProcessRateLimitStartupService: 1 handler(s) declare a rate limit and InProcessRateLimitStore counts it: GET /quotes. It counts per execution environment, and Lambda runs as many as traffic needs, so a caller gets the limit from each of them. Count in an API Gateway usage plan or AWS WAF, or register an IRateLimitStore that counts somewhere shared.
+```json
+{"timestamp":"2026-09-28T00:25:41.374Z","level":"Warning","message":"[Hardened.Aws.Lambda.Runtime.RateLimiting.InProcessRateLimitStartupService] 1 handler(s) declare a rate limit and InProcessRateLimitStore counts it: GET /quotes. It counts per execution environment, and Lambda runs as many as traffic needs, so a caller gets the limit from each of them. Count in an API Gateway usage plan or AWS WAF, or register an IRateLimitStore that counts somewhere shared.","Count":1,"Handlers":"GET /quotes"}
 ```
 
 A function that registers a store of its own gets no warning.

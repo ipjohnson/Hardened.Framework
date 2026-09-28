@@ -38,7 +38,11 @@ var services = new ServiceCollection();
 // background thread through the Console.Out that Amazon.Lambda.RuntimeSupport replaced with a
 // writer it locks on, and it takes that lock to print an unhandled exception before reporting the
 // invocation failed. The two deadlock, and the invocation then hangs rather than failing.
-services.AddLogging(builder => builder.AddLambdaLogger().SetMinimumLevel(LogLevel.Warning));
+services.AddLogging(builder =>
+    builder
+        .AddLambdaLogger(new LambdaLoggerOptions { IncludeException = true })
+        .SetMinimumLevel(LogLevel.Warning)
+);
 services.AddTransient<IHardenedEnvironment>(_ => new EnvironmentImpl(arguments: args));
 
 // What AotSerializerModule resolves models through. Without it the serializers throw rather than

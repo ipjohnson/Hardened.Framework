@@ -281,7 +281,9 @@ using var emulator = await LambdaEmulator.StartIfLocal(typeof(Application), apiG
 
 var services = new ServiceCollection();
 
-services.AddLogging(logging => logging.AddLambdaLogger());
+services.AddLogging(logging =>
+    logging.AddLambdaLogger(new LambdaLoggerOptions { IncludeException = true })
+);
 
 services.AddHardenedEnvironment(environment);
 
@@ -297,9 +299,10 @@ function URL send.
 `HardenedLambdaBootstrap.Run` runs the startup services. It then takes invocations from the Lambda
 Runtime API until the sandbox shuts down. The deployed function has no server and no port.
 
-The template logs through `AddLambdaLogger()` from `Amazon.Lambda.Logging.AspNetCore`. A console
+The template logs through `AddLambdaLogger` from `Amazon.Lambda.Logging.AspNetCore`. A console
 provider can deadlock an invocation that throws. That invocation then hangs until the function
-times out.
+times out. Deploy the function with its log format set to JSON, so that each entry is one JSON
+record. [Logging](/aws/#logging) covers the records and the setting.
 
 `LambdaEmulator.StartIfLocal` does nothing when `AWS_LAMBDA_RUNTIME_API` is set. The Lambda service
 sets it. Otherwise, it starts the AWS Lambda Test Tool with the tool's API Gateway emulator in front

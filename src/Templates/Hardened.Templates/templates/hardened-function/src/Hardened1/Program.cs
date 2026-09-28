@@ -26,8 +26,17 @@ var services = new ServiceCollection();
 // the handler's exception is never reported, and the invocation hangs until the function times out
 // rather than failing fast. This provider writes through Amazon.Lambda.Core's LambdaLogger, which
 // is the single-lock path, and it keeps what the console provider loses on the way - the request id
-// on every line, and the JSON shape AWS_LAMBDA_LOG_FORMAT asks for.
-services.AddLogging(builder => builder.AddLambdaLogger().SetMinimumLevel(LogLevel.Information));
+// on every line.
+//
+// Deploy the function with its log format set to JSON. Each entry is then one JSON record, and the
+// values in its message are fields of their own. A local run under the emulator above logs the same
+// way. IncludeException is for a function left on Lambda's text format, where this provider leaves
+// a logged exception out of the line unless told otherwise.
+services.AddLogging(builder =>
+    builder
+        .AddLambdaLogger(new LambdaLoggerOptions { IncludeException = true })
+        .SetMinimumLevel(LogLevel.Information)
+);
 
 // What the framework reads configuration and the environment through. A deployed function gets its
 // settings from the environment, so this is where the process arguments enter.

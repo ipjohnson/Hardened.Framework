@@ -149,7 +149,11 @@ using var emulator = await LambdaEmulator.StartIfLocal(typeof(Application));
 
 var services = new ServiceCollection();
 
-services.AddLogging(builder => builder.AddLambdaLogger().SetMinimumLevel(LogLevel.Information));
+services.AddLogging(builder =>
+    builder
+        .AddLambdaLogger(new LambdaLoggerOptions { IncludeException = true })
+        .SetMinimumLevel(LogLevel.Information)
+);
 
 services.AddHardenedEnvironment(new EnvironmentImpl(arguments: args));
 
@@ -164,7 +168,8 @@ handler is the assembly's name only when the assembly has an entry point.
 In a function, `LambdaEmulator.StartIfLocal` takes the application's type and no `apiGateway`
 argument, so the AWS Lambda Test Tool runs without its API Gateway emulator.
 [Hosts](/guide/hosts) covers `LambdaEmulator.StartIfLocal`, `AddLambdaLogger` and
-`HardenedLambdaBootstrap.Run`. [Environments](/guide/environments) covers `AddHardenedEnvironment`.
+`HardenedLambdaBootstrap.Run`. [Logging](#logging) covers what the function logs.
+[Environments](/guide/environments) covers `AddHardenedEnvironment`.
 
 The function starts without creating any handler. When a handler needs a service that nothing
 registers, the function still starts. The first invocation that reaches that handler fails. A
@@ -246,6 +251,42 @@ the response and covers the mapping.
 
 [Triggers](/guide/triggers) covers what a batch does when one item fails, and `BatchFailureMode`.
 
+## Logging
+
+The template's `Program.cs` logs through `AddLambdaLogger` from `Amazon.Lambda.Logging.AspNetCore`.
+Deploy the function with its log format set to JSON. Each entry is then one JSON record, and the
+values in the entry's message are fields of their own. An invocation of the `Orders` function writes
+this record when it starts:
+
+```json
+{"timestamp":"2026-09-28T00:26:23.843Z","level":"Information","requestId":"8476a536-e9f4-11e8-9739-2dfe598c3fcd","message":"[Hardened.Requests.Runtime.Logging.RequestLogger] QUEUE /orders started","httpMethod":"QUEUE","path":"/orders"}
+```
+
+A record that logs an exception also has `errorType`, `errorMessage` and `stackTrace`. A record
+written at startup, before the first invocation, has no `requestId`.
+
+The log format is a setting of the function. Lambda passes it to the function as
+`AWS_LAMBDA_LOG_FORMAT`, and the Lambda runtime and the logger both read that variable.
+[Deploying](#deploying) sets it with `--logging-config LogFormat=JSON`. In CloudFormation it is
+`LogFormat` in the function's `LoggingConfig`. In the CDK it is `loggingFormat`.
+
+A function left on Lambda's default text format writes each entry as a line of text. It logs this
+warning at startup:
+
+```text
+2026-09-28T00:23:33.637Z		warn	[Warning] Hardened.Aws.Lambda.Runtime.Hosting.HardenedLambdaBootstrap: This function logs in Lambda's text format, because AWS_LAMBDA_LOG_FORMAT is not set. Each entry reaches CloudWatch as a line of text, and the values in a message are not fields of their own. Set the function's log format to JSON: LogFormat in its LoggingConfig, loggingFormat in the CDK, or --logging-config LogFormat=JSON with the AWS CLI.
+```
+
+In the text format, the logger leaves an exception out of the line unless `IncludeException` is
+set. The template sets it.
+
+`LambdaEmulator.StartIfLocal` sets `AWS_LAMBDA_LOG_FORMAT` to `JSON` for a local run, so a local run
+writes the same records. Set `AWS_LAMBDA_LOG_FORMAT` to `Text` before the run to see lines of text.
+
+The startup services run after the Lambda runtime has installed its log writer, so what they log is
+written in the function's format. A startup service that throws stops the function, and the runtime
+reports the exception to Lambda as an init error.
+
 ## Deploying
 
 Hardened has no package for deploying to AWS. The AWS packages are the ones under
@@ -255,8 +296,9 @@ A function runs on Lambda's managed .NET 8 runtime, `dotnet8`. Its handler is th
 alone, such as `Orders`. `dotnet publish -c Release` writes `Orders.dll`,
 `Orders.runtimeconfig.json`, `Orders.deps.json` and the package assemblies. A zip of the publish
 output, with those files at its root, is the deployment package. `aws lambda create-function`
-creates the function from it with `--runtime dotnet8` and `--handler Orders`. From the solution
-directory, these commands publish the function, zip the output and create the function:
+creates the function from it with `--runtime dotnet8` and `--handler Orders`.
+`--logging-config LogFormat=JSON` sets its log format, which [Logging](#logging) covers. From the
+solution directory, these commands publish the function, zip the output and create the function:
 
 ```bash
 dotnet publish src/Orders -c Release -o publish
@@ -264,6 +306,7 @@ cd publish && zip -r ../function.zip . && cd ..
 aws lambda create-function --function-name Orders \
     --runtime dotnet8 --handler Orders \
     --role arn:aws:iam::123456789012:role/orders-function \
+    --logging-config LogFormat=JSON \
     --zip-file fileb://function.zip
 ```
 
