@@ -387,6 +387,60 @@ public class OperationParametersTests
         );
     }
 
+    /// <summary>A body member referring to another model, with no constraint of its own.</summary>
+    private static PropertyModel ReceiptMember() =>
+        new() { Name = "receipt", Ref = "#/components/schemas/Receipt" };
+
+    private static SchemaModel Receipt(params PropertyModel[] properties) =>
+        new()
+        {
+            Name = "Receipt",
+            Kind = SchemaKind.Object,
+            Properties = new List<PropertyModel>(properties),
+        };
+
+    /// <summary>
+    /// A body whose only constraints are one model down is validated. The #494 repro: with no
+    /// constraint of its own, the body got no <c>[ValidateNested]</c> and the operation no
+    /// interface, so <c>payload</c>'s bound was never checked and a missing one reached the handler.
+    /// </summary>
+    [Fact]
+    public void ABodyWhoseOnlyConstraintsAreOneModelDownCarriesValidateNested()
+    {
+        var operation = PostWithBody();
+
+        var model = OperationParameters.Build(
+            operation,
+            Spec(operation, Body(ReceiptMember()), Receipt(BodyProperty("payload", minLength: 1))),
+            EmitterHarness.ModelsNamespace,
+            Patterns()
+        );
+
+        Assert.NotNull(model);
+        Assert.Equal(
+            "ValidateNestedAttribute",
+            Assert.Single(Assert.Single(model!.Members).Attributes).Type.Name
+        );
+    }
+
+    /// <summary>
+    /// The same shape with nothing to check one model down still produces no interface.
+    /// </summary>
+    [Fact]
+    public void ABodyWhoseNestedModelHasNothingToCheckProducesNoInterface()
+    {
+        var operation = PostWithBody();
+
+        Assert.Null(
+            OperationParameters.Build(
+                operation,
+                Spec(operation, Body(ReceiptMember()), Receipt(BodyProperty("payload"))),
+                EmitterHarness.ModelsNamespace,
+                Patterns()
+            )
+        );
+    }
+
     /// <summary>
     /// A read-only property's constraints are never emitted, so a body whose only constrained
     /// property is read-only has nothing to descend into.

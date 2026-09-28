@@ -64,6 +64,8 @@
             application serves one document for every contract it composes, from the item above.
         -->
         <HardenedOpenApiSpec Include="Specs\events.yaml" />
+        <!-- Constraints reachable only through a nested model; the file says why. -->
+        <HardenedOpenApiSpec Include="Specs\receipts.yaml" />
     </ItemGroup>
 
     <!--

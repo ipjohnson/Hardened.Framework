@@ -21,9 +21,12 @@ namespace Hardened.Idl.Validation;
 /// from one place to stay in step." This is that place.
 /// </para>
 /// <para>
-/// <b>Per property, not by traversal.</b> A nested model's own nested members are marked when that
-/// schema is emitted, by this same rule - so descent composes without this file walking anything,
-/// and a schema that refers to itself needs no cycle guard because there is no walk to cycle.
+/// <b>Marked per property, answered by a walk.</b> A nested model's own nested members are marked
+/// when that schema is emitted, by this same rule. Whether a schema has a validator at all depends
+/// on what it reaches, though: <c>ValidationModules</c> generates one for a type whose only checked
+/// member is a <c>[ValidateNested]</c> one. So <c>HasGeneratedValidator</c> walks the members it
+/// would descend into, and a schema already on the walk counts as nothing to check, which is what
+/// ends a cycle.
 /// </para>
 /// <para>
 /// The descent itself is <c>ValidationModules</c>': <c>ValidateNestedAttribute</c> validates an
@@ -40,6 +43,13 @@ internal static class NestedValidation
         PropertyModel property,
         IReadOnlyList<SchemaModel>? allSchemas,
         PatternRegistry patterns
+    ) => Descends(property, allSchemas, patterns, new HashSet<string>());
+
+    private static bool Descends(
+        PropertyModel property,
+        IReadOnlyList<SchemaModel>? allSchemas,
+        PatternRegistry patterns,
+        HashSet<string> walked
     )
     {
         if (!property.Constrained)
@@ -49,7 +59,7 @@ internal static class NestedValidation
 
         var nested = Nested(property, allSchemas);
 
-        return nested != null && HasGeneratedValidator(nested, allSchemas, patterns);
+        return nested != null && HasGeneratedValidator(nested, allSchemas, patterns, walked);
     }
 
     /// <summary>
@@ -98,24 +108,45 @@ internal static class NestedValidation
     /// Whether the validation generator will emit a validator for this schema.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// Asked by building the attributes rather than by re-deriving the rule that produces them. A
     /// schema whose only constraint was <c>required</c> on a non-nullable value type gets no
     /// attributes at all, so no validator is generated for it - and that outcome is reachable only
     /// by asking <see cref="ConstraintAttributes"/> the same question the emitter asks.
-    ///
+    /// </para>
+    /// <para>
+    /// A member this schema descends into counts too. It gets <c>[ValidateNested]</c>, and the
+    /// validation generator emits a validator for any type with such a member, so a schema whose
+    /// constraints are all in the models it holds has one.
+    /// </para>
+    /// <para>
     /// Declared members only. An inherited property is the base's to check, and the validation
     /// generator sees it that way too - counting them here named a validator it had already
     /// declined to generate.
+    /// </para>
     /// </remarks>
     public static bool HasGeneratedValidator(
         SchemaModel schema,
         IReadOnlyList<SchemaModel>? allSchemas,
         PatternRegistry patterns
+    ) => HasGeneratedValidator(schema, allSchemas, patterns, new HashSet<string>());
+
+    /// <param name="walked">
+    /// The schemas this walk has already reached. One reached again answers false: it is either
+    /// finished, and answered false, or still being answered further up.
+    /// </param>
+    private static bool HasGeneratedValidator(
+        SchemaModel schema,
+        IReadOnlyList<SchemaModel>? allSchemas,
+        PatternRegistry patterns,
+        HashSet<string> walked
     ) =>
-        SchemaShape
+        walked.Add(NamingHelper.ToPascalCase(schema.Name))
+        && SchemaShape
             .Declared(schema, allSchemas)
             .Any(property =>
-                property.Constrained && Attributes(property, allSchemas, patterns).Count > 0
+                (property.Constrained && Attributes(property, allSchemas, patterns).Count > 0)
+                || Descends(property, allSchemas, patterns, walked)
             );
 
     /// <summary>

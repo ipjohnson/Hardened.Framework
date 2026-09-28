@@ -35,6 +35,9 @@
     },
     {
       "name": "PetHistory"
+    },
+    {
+      "name": "Receipt"
     }
   ],
   "paths": {
@@ -814,6 +817,72 @@
         }
       }
     },
+    "/receipts/filings": {
+      "post": {
+        "tags": [
+          "Receipt"
+        ],
+        "operationId": "fileReceipt",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReceiptFiling"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Filed"
+          },
+          "400": {
+            "description": "The request failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/receipts/sync": {
+      "post": {
+        "tags": [
+          "Receipt"
+        ],
+        "operationId": "syncReceipt",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReceiptSync"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Synced"
+          },
+          "400": {
+            "description": "The request failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/secured/either": {
       "get": {
         "tags": [
@@ -1211,6 +1280,49 @@
               "string",
               "null"
             ]
+          }
+        }
+      },
+      "Receipt": {
+        "type": "object",
+        "properties": {
+          "payload": {
+            "type": "string",
+            "maxLength": 16
+          }
+        },
+        "required": [
+          "payload"
+        ]
+      },
+      "ReceiptFiling": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 8
+          },
+          "folder": {
+            "$ref": "#/components/schemas/ReceiptFolder"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "ReceiptFolder": {
+        "type": "object",
+        "properties": {
+          "receipt": {
+            "$ref": "#/components/schemas/Receipt"
+          }
+        }
+      },
+      "ReceiptSync": {
+        "type": "object",
+        "properties": {
+          "receipt": {
+            "$ref": "#/components/schemas/Receipt"
           }
         }
       },

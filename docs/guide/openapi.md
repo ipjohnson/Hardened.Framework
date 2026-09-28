@@ -528,7 +528,7 @@ covers the attributes and the 400.
 | `pattern` on a string | `[Pattern(typeof(<File>Patterns), nameof(...))]` |
 | `minItems`, `maxItems` on an array, `minProperties`, `maxProperties` on a map | `[ItemCount(Min = , Max = )]` |
 | `enum` on an inline string | `[AllowedValues(...)]` |
-| A property whose schema has constraints of its own | `[ValidateNested]` |
+| A property whose schema has constraints, or holds a model that has them at any depth | `[ValidateNested]` |
 
 `required` adds no `[Required]` to a value type such as `int`, or to a path parameter. The build
 drops a keyword that the member's type cannot carry, such as a `minimum` on a string.
@@ -544,12 +544,15 @@ as `GET /vans/{vin}` and `GET /vans/{fleetCode}`. Their patterns are part of the
 patterns are what send a value to one operation or the other. A value that matches neither answers
 404 with no body.
 
-An operation with a constraint gets `I<Method>Parameters`, with a property for each parameter and
-`body` for the request body. The generated handler checks it.
+An operation with a constraint on a parameter or anywhere in its body gets `I<Method>Parameters`,
+with a property for each parameter and `body` for the request body. The generated handler checks
+it.
 
 A failure inside the body is named from `body`, such as `body.title` or `body.lines2[0].qty`. A
-parameter's failure is named as the request names it, such as `q` or `X-Region`. The template's
-`POST /todos` answers an empty title with 400:
+member two or more models below the body is named from `body` and the model that holds it, with
+`...` in place of the models between: `payload` in `body.folder.receipt` is
+`body...receipt.payload`. A parameter's failure is named as the request names it, such as `q` or
+`X-Region`. The template's `POST /todos` answers an empty title with 400:
 
 ```http
 POST /todos
