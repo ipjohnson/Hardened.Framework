@@ -1,0 +1,71 @@
+# Constraints reachable only through a nested model, the two shapes #494 found unchecked. A model
+# whose only constrained member was another model counted as having nothing to validate: a body of
+# that shape reached the handler unvalidated, and a member of that shape was never descended into.
+#
+# No declared error response, for the reason events.yaml gives.
+openapi: "3.1.0"
+info:
+  title: Receipts
+  version: "1.0.0"
+paths:
+  /receipts/sync:
+    post:
+      tags:
+        - Receipt
+      operationId: syncReceipt
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReceiptSync'
+      responses:
+        '204':
+          description: Synced
+  /receipts/filings:
+    post:
+      tags:
+        - Receipt
+      operationId: fileReceipt
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReceiptFiling'
+      responses:
+        '204':
+          description: Filed
+components:
+  schemas:
+    # A body whose only constraints are one model down.
+    ReceiptSync:
+      type: object
+      properties:
+        receipt:
+          $ref: '#/components/schemas/Receipt'
+    Receipt:
+      type: object
+      required:
+        - payload
+      properties:
+        payload:
+          type: string
+          maxLength: 16
+    # A body with a constraint of its own, and a member whose model's only constraints are one
+    # model further down.
+    ReceiptFiling:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          maxLength: 8
+        folder:
+          $ref: '#/components/schemas/ReceiptFolder'
+    ReceiptFolder:
+      type: object
+      properties:
+        receipt:
+          $ref: '#/components/schemas/Receipt'

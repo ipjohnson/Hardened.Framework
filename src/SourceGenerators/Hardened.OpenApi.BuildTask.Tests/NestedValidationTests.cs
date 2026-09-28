@@ -78,6 +78,39 @@ public class NestedValidationTests
             IsRequired = true,
         };
 
+    /// <summary>A model with a constraint of its own: a required, bounded string.</summary>
+    private static SchemaModel Receipt() =>
+        new()
+        {
+            Name = "Receipt",
+            Kind = SchemaKind.Object,
+            Required = new List<string> { "payload" },
+            Properties = new List<PropertyModel>
+            {
+                new()
+                {
+                    Name = "payload",
+                    Type = "string",
+                    IsRequired = true,
+                    MaxLength = 16,
+                },
+            },
+        };
+
+    /// <summary>
+    /// A model with no constraint of its own: one optional member referring to another model.
+    /// </summary>
+    private static SchemaModel Holding(string name, string member, string target) =>
+        new()
+        {
+            Name = name,
+            Kind = SchemaKind.Object,
+            Properties = new List<PropertyModel>
+            {
+                new() { Name = member, Ref = "#/components/schemas/" + target },
+            },
+        };
+
     /// <summary>
     /// An array whose items carry constraints is descended into. The exact D2 repro.
     /// </summary>
@@ -204,13 +237,9 @@ public class NestedValidationTests
     }
 
     /// <summary>
-    /// Descent composes without this emitter walking anything: a nested model's own nested members
-    /// are marked when that schema is emitted, by the same rule.
+    /// A nested model's own nested members are marked when that schema is emitted, by the same
+    /// rule.
     /// </summary>
-    /// <remarks>
-    /// Which is also why a schema that refers to itself needs no cycle guard - there is no walk
-    /// here to cycle.
-    /// </remarks>
     [Fact]
     public void DescentComposesOneLevelAtATime()
     {
@@ -240,10 +269,92 @@ public class NestedValidationTests
     }
 
     /// <summary>
-    /// A self-referencing schema is marked and does not hang the build.
+    /// A member whose model has no constraint of its own, only a nested model that does, is
+    /// descended into. The #494 repro: <c>Outer.middle</c> went unmarked, so <c>OuterValidator</c>
+    /// never reached <c>Middle.receipt.payload</c>.
     /// </summary>
     [Fact]
-    public void ASelfReferencingSchemaIsMarkedWithoutRecursing()
+    public void AMemberWhoseModelOnlyNestsConstraintsIsDescendedInto()
+    {
+        var receipt = Receipt();
+        var middle = Holding("Middle", "receipt", "Receipt");
+        var outer = Holding("Outer", "middle", "Middle");
+
+        List<SchemaModel> all = [outer, middle, receipt];
+
+        Assert.Contains("ValidateNested", EmitterHarness.Schema(outer, all));
+        Assert.Contains("ValidateNested", EmitterHarness.Schema(middle, all));
+    }
+
+    /// <summary>
+    /// The walk stops at the model with nothing to check, however deep it is.
+    /// </summary>
+    [Fact]
+    public void AMemberWhoseModelsNestNothingToCheckIsNotDescendedInto()
+    {
+        var middle = Holding("Middle", "line", "OrderLine");
+        var outer = Holding("Outer", "middle", "Middle");
+
+        Assert.DoesNotContain(
+            "ValidateNested",
+            EmitterHarness.Schema(outer, [outer, middle, UnconstrainedLine()])
+        );
+    }
+
+    /// <summary>
+    /// Two schemas that refer to each other are marked when a constraint is reachable, and the walk
+    /// ends. Each side's answer depends on the other's, so a walk without a guard never returns.
+    /// </summary>
+    [Fact]
+    public void SchemasReferringToEachOtherAreMarkedWhenAConstraintIsReachable()
+    {
+        var a = Holding("A", "b", "B");
+        var b = Holding("B", "a", "A");
+
+        b.Properties.Add(
+            new PropertyModel
+            {
+                Name = "code",
+                Type = "string",
+                MaxLength = 3,
+            }
+        );
+
+        List<SchemaModel> all = [a, b];
+
+        Assert.Contains("ValidateNested", EmitterHarness.Schema(a, all));
+        Assert.Contains("ValidateNested", EmitterHarness.Schema(b, all));
+    }
+
+    /// <summary>
+    /// A cycle with nothing to check anywhere on it is not marked. Neither side gets a validator.
+    /// </summary>
+    [Fact]
+    public void SchemasReferringToEachOtherWithNothingToCheckAreNotMarked()
+    {
+        var a = Holding("A", "b", "B");
+        var b = Holding("B", "a", "A");
+
+        List<SchemaModel> all = [a, b];
+
+        Assert.DoesNotContain("ValidateNested", EmitterHarness.Schema(a, all));
+        Assert.DoesNotContain("ValidateNested", EmitterHarness.Schema(b, all));
+    }
+
+    [Fact]
+    public void ASelfReferencingSchemaWithNothingToCheckIsNotMarked()
+    {
+        var node = Holding("Node", "next", "Node");
+
+        Assert.DoesNotContain("ValidateNested", EmitterHarness.Schema(node, [node]));
+    }
+
+    /// <summary>
+    /// A self-referencing schema with a constraint of its own is marked, and the build does not
+    /// hang.
+    /// </summary>
+    [Fact]
+    public void ASelfReferencingSchemaIsMarked()
     {
         var node = new SchemaModel
         {
