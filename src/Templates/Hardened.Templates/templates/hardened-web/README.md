@@ -155,11 +155,7 @@ from a terminal browse to the page yourself.
 | | |
 |---|---|
 | `src/Hardened1` | Everything the application does — routes, services, models. Knows nothing about where it runs. |
-#if (lambda)
-| `src/Hardened1.Host` | Which runtime hosts it. `Main` is generated, so there is no `Program.cs`. The only host-specific project. |
-#else
 | `src/Hardened1.Host` | Which runtime hosts it, and `Program.cs`. The only host-specific project. |
-#endif
 #if (kiotaClient)
 | `src/Hardened1.Client` | The generated client. No hand-written code; Kiota writes it from the document the library's build wrote. |
 #endif

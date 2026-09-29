@@ -54,7 +54,10 @@ the module's name with `Attribute` appended. `TodosLibrary` gets `TodosLibraryAt
 `[TodosLibrary]`.
 
 `dotnet new hardened-library` writes a project whose module holds services and no host.
-[Project templates](/guide/project-templates) covers it.
+[Project templates](/guide/project-templates) covers it. An application needs a reference to a
+module's project or package before it can use the module's attribute.
+[Referencing the library](/guide/project-templates#referencing-the-library) shows a
+`ProjectReference` between two scaffolds.
 
 ## Import a module
 

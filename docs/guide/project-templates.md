@@ -174,6 +174,44 @@ namespace Todos.Host;
 public partial class Application;
 ```
 
+### Referencing the library
+
+The application needs a reference to the library before it can use the attribute. A
+`ProjectReference` works when the two are scaffolded side by side:
+
+```bash
+dotnet new hardened-web -n Todos
+dotnet new hardened-library -n Acme.Greeting
+```
+
+Reference the library from the application's library project, `Todos/src/Todos/Todos.csproj`:
+
+```xml
+<ItemGroup>
+  <ProjectReference Include="../../../Acme.Greeting/src/Acme.Greeting/Acme.Greeting.csproj" />
+</ItemGroup>
+```
+
+The attribute can go on the host's `Application`, as above, or on `TodosLibrary` in
+`src/Todos/TodosLibrary.cs`. On `TodosLibrary`, the host gets the library through
+`[TodosLibrary]`, because imports are transitive, and the tests in `tests/Todos.Tests` get it too,
+because they boot `TodosLibrary`. A `ProjectReference` from `src/Todos` reaches the host project
+through the host's own reference to `src/Todos`.
+
+Build and test from the `Todos` directory. `dotnet` reads `global.json` from the directory it runs
+in, so the application's pin chooses the SDK. A solution in the directory above both scaffolds finds
+neither `global.json`, and the SDK is whichever is newest. To see the library in the application's
+solution, add it from the `Todos` directory with
+`dotnet sln Todos.sln add ../Acme.Greeting/src/Acme.Greeting/Acme.Greeting.csproj`.
+
+Each project reads the `Directory.Build.props` and `Directory.Packages.props` of its own scaffold.
+Scaffold both from the same template version, so both pin the same Hardened version.
+
+To share the library as a package instead, run `dotnet pack src/Acme.Greeting` and put the package on
+a feed that the application's `nuget.config` lists. The application then needs a `PackageVersion`
+for `Acme.Greeting` in its `Directory.Packages.props`, and a `PackageReference` in place of the
+`ProjectReference`.
+
 To serve HTTP routes from the library, add `[HardenedWebModule]` to the module class. The attribute
 is in the `Hardened.Web.Runtime.DependencyInjection` namespace:
 

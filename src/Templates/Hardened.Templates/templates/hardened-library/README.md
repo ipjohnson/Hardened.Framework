@@ -27,6 +27,44 @@ That is the whole integration. There is no `AddHardened1()` to call, no options 
 through, and nothing to keep in step by hand — the attribute is generated from the module, so it
 cannot describe a service the library does not have.
 
+## Referencing the library
+
+The application needs a reference to this library before it can use the attribute. A
+`ProjectReference` works when the two are scaffolded side by side:
+
+```
+Todos/          dotnet new hardened-web -n Todos
+Hardened1/      dotnet new hardened-library -n Hardened1
+```
+
+Reference the library from `src/Todos/Todos.csproj`:
+
+```xml
+<ItemGroup>
+  <ProjectReference Include="../../../Hardened1/src/Hardened1/Hardened1.csproj" />
+</ItemGroup>
+```
+
+Put `[TemplateModuleNameLibrary]` on `TodosLibrary` in `src/Todos/TodosLibrary.cs`. The host's
+`Application` already imports `[TodosLibrary]`, and imports are transitive, so the host gets this
+library's services. The application's tests boot `TodosLibrary`, so they get them as well.
+
+Build and test from the application's directory. `dotnet` reads `global.json` from the directory it
+runs in, so the application's pin chooses the SDK. A solution in the directory above both scaffolds
+finds neither `global.json`. To see the library in the application's solution, add it there:
+
+```bash
+dotnet sln Todos.sln add ../Hardened1/src/Hardened1/Hardened1.csproj
+```
+
+Each project still reads the `Directory.Build.props` and `Directory.Packages.props` of its own
+scaffold. Scaffold both from the same template version so both pin the same Hardened version.
+
+To share the library as a package instead, `dotnet pack src/Hardened1` and put the package on a feed
+the application's `nuget.config` lists. The application then needs a `PackageVersion` for
+`Hardened1` in its `Directory.Packages.props` and a `PackageReference` in place of the
+`ProjectReference`.
+
 ## The two projects
 
 | | |
