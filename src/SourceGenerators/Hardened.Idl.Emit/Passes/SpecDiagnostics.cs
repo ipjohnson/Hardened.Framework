@@ -24,7 +24,7 @@ namespace Hardened.Idl;
 /// left with it.
 /// </para>
 /// <para>
-/// Codes are the front end's prefix plus 020-024, 027 and 032-034, one number per finder. 032 rather
+/// Codes are the front end's prefix plus 020-024, 026, 027 and 032-035, one number per finder. 032 rather
 /// than the retired 025, because a project still carrying a NoWarn for what 025 used to be would
 /// silence a diagnostic about something else; 028-031 belong to the document export. The prefix
 /// is a
@@ -441,11 +441,44 @@ internal static class SpecDiagnostics
         }
     }
 
+    /// <summary>
+    /// A paging trait naming a member the operation does not have, or one of the wrong shape.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Fatal, and for the reason <c>027</c> is: the members generate as ordinary members either
+    /// way, so the build would succeed and the operation would not page the way its contract says.
+    /// </para>
+    /// <para>
+    /// Smithy-only today. The Smithy CLI refuses the same models, so a model built from
+    /// <c>.smithy</c> sources never reaches this and a committed AST can.
+    /// </para>
+    /// </remarks>
+    private static void FindPaginationMismatches(
+        ServiceSpecModel model,
+        string prefix,
+        List<Problem> problems
+    )
+    {
+        foreach (var mismatch in model.PaginationMismatches)
+        {
+            problems.Add(
+                new Problem(
+                    prefix + "035",
+                    $"Operation '{mismatch.Operation}' is @paginated, and {mismatch.Detail}. The "
+                        + "members generate as ordinary members, so the operation would build and not "
+                        + "page the way the model says."
+                )
+            );
+        }
+    }
+
     public static IReadOnlyList<Problem> Find(ServiceSpecModel model, string diagnosticPrefix)
     {
         var problems = new List<Problem>();
 
         FindDanglingReferences(model, diagnosticPrefix, problems);
+        FindPaginationMismatches(model, diagnosticPrefix, problems);
         FindDuplicateSchemaNames(model, diagnosticPrefix, problems);
         FindUnresolvableChoices(model, diagnosticPrefix, problems);
         FindMixedEnums(model, diagnosticPrefix, problems);

@@ -657,6 +657,7 @@ the other.
 | `032` | Warning. `nullable` declared under a banner that removed the keyword. Part of the model-diagnostics pass; see below. |
 | `033` | A member the keyed MessagePack serializer has no index for, or two members sharing one. Part of the model-diagnostics pass; see below. |
 | `034` | Warning. A `oneOf` under a MessagePack serializer, which does not carry one. Part of the model-diagnostics pass; see below. |
+| `035` | `HSMT` only. A committed AST's `@paginated` names a member the operation does not have, or one of the wrong type. Part of the model-diagnostics pass; see below. |
 
 ### The Smithy CLI task (HSMT010–HSMT014)
 
@@ -766,7 +767,7 @@ The `hardened-web` template's project files carry three checks of their own, in 
 | `HTPL003` | The Kiota tool and `Microsoft.Kiota.Bundle` disagree. The tool version in `.config/dotnet-tools.json` and `KiotaBundleVersion` in `Directory.Packages.props` move together; the message names both versions and both files. |
 | `HTPL004` | The Refitter tool could not be restored, so the client cannot be generated (`--client refit`). The pin is in `.config/dotnet-tools.json`; a fresh machine needs network for the first restore, and two builds restoring at once on one machine can fail it. There is no counterpart to `HTPL003` for the Refit pair, because Refitter does not report the Refit version it writes for. |
 
-### The model-diagnostics pass (020–027, 032)
+### The model-diagnostics pass (020–027, 032–035)
 
 Problems any description can state that would generate C# which does not compile, found before
 anything is emitted so they are reported against the document rather than as compiler errors in a
@@ -782,9 +783,12 @@ generated file.
 | `026` | Warning. A path template names a token the operation declares no path parameter for. The route matches and the value is discarded. |
 | `027` | A reference to something the description does not declare. |
 | `032` | Warning. `nullable` written under a 3.1 or later banner, which removed the keyword. The reader does not read it, so the member generates non-null and a null the service sends fails to deserialize. Write `type: [<type>, "null"]`. |
+| `033` | A member the keyed MessagePack serializer has no index for, or two members sharing one. |
+| `034` | Warning. A `oneOf` under a MessagePack serializer, which does not carry one. |
+| `035` | A `@paginated` setting names a member the operation does not have, or one whose target the trait does not allow. The rules are the ones the Smithy CLI reports as errors, and the CLI refuses the same models, so only a committed AST reaches this. |
 
 `028`–`031` were taken by the document export before this pass needed another number, which is
-why the newest finder is `032`.
+why its finders after `027` start at `032`.
 
 `025` is retired. It rejected two error responses at one status on one operation, and a valid
 Smithy model says that routinely — two `@error("client")` shapes both default to 400. The reason it

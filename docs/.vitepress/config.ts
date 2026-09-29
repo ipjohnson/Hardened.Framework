@@ -88,6 +88,7 @@ const guide = [
       { text: 'Parameter binding', link: '/guide/parameter-binding' },
       { text: 'Forms and files', link: '/guide/forms' },
       { text: 'Declared responses', link: '/guide/responses' },
+      { text: 'Paging', link: '/guide/paging' },
       { text: 'Validation', link: '/guide/validation' },
     ],
   },

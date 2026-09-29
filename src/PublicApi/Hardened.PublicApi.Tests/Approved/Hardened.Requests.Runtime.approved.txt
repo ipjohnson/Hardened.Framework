@@ -729,6 +729,20 @@ namespace Hardened.Requests.Runtime.Middleware
         public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
     }
 }
+namespace Hardened.Requests.Runtime.Paging
+{
+    public interface IPageTokenConfiguration
+    {
+        string? Key { get; }
+    }
+    public class PageTokenConfiguration : Hardened.Requests.Runtime.Paging.IPageTokenConfiguration
+    {
+        public const string EnvironmentVariable = "HARDENED_PAGE_TOKEN_KEY";
+        public PageTokenConfiguration() { }
+        public string? Key { get; set; }
+        public static void FromEnvironment(Hardened.Shared.Runtime.Application.IHardenedEnvironment environment, Hardened.Requests.Runtime.Paging.PageTokenConfiguration configuration) { }
+    }
+}
 namespace Hardened.Requests.Runtime.QueryString
 {
     public class EmptyQueryStringCollection : Hardened.Requests.Abstract.QueryString.IQueryStringCollection

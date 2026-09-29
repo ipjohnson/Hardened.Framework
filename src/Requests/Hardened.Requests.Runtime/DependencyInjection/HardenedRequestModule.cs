@@ -3,6 +3,7 @@ using System.Text.Json;
 using DependencyModules.Runtime.Attributes;
 using DependencyModules.Runtime.Interfaces;
 using Hardened.Requests.Abstract.Authorization;
+using Hardened.Requests.Abstract.Paging;
 using Hardened.Requests.Abstract.RequestFilter;
 using Hardened.Requests.Abstract.Serializer;
 using Hardened.Requests.Abstract.Timeouts;
@@ -10,6 +11,7 @@ using Hardened.Requests.Runtime.Authorization;
 using Hardened.Requests.Runtime.Configuration;
 using Hardened.Requests.Runtime.Filters;
 using Hardened.Requests.Runtime.Forms;
+using Hardened.Requests.Runtime.Paging;
 using Hardened.Requests.Runtime.Serializer;
 using Hardened.Requests.Runtime.Streaming;
 using Hardened.Shared.Runtime.Application;
@@ -66,6 +68,10 @@ public partial class HardenedRequestModule : IServiceCollectionConfiguration
                         StreamingConfiguration
                     >(null),
                     new NewConfigurationValueProvider<IFormConfiguration, FormConfiguration>(null),
+                    new NewConfigurationValueProvider<
+                        IPageTokenConfiguration,
+                        PageTokenConfiguration
+                    >(PageTokenConfiguration.FromEnvironment),
                 }
             )
         );
@@ -102,6 +108,17 @@ public partial class HardenedRequestModule : IServiceCollectionConfiguration
                 s.GetRequiredService<IConfigurationManager>().GetConfiguration<IFormConfiguration>()
             )
         );
+
+        services.AddSingleton(s =>
+            Options.Create(
+                s.GetRequiredService<IConfigurationManager>()
+                    .GetConfiguration<IPageTokenConfiguration>()
+            )
+        );
+
+        // A singleton for the reason IRequestDeadline is one: a handler implementing a generated
+        // interface takes it through its constructor, and may itself be a singleton.
+        services.TryAddSingleton<IPageTokens, PageTokens>();
 
         // One per request, so a form is read once however many readers ask for it. See
         // RequestFormCache.

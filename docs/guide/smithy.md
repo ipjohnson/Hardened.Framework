@@ -730,11 +730,71 @@ The checks run before the handler, as for an OpenAPI document.
 [Generating from OpenAPI](/guide/openapi) covers the parameter interfaces and the 422.
 [Validation](/guide/validation) covers the 400 body.
 
+## Paging
+
+`@paginated` names the members that carry a page: the input's token, the output's token, the
+input's page size and the output's items. They generate as ordinary members. Here the interface
+method takes the token and the page size as query parameters, and the output carries the next
+token:
+
+```smithy
+@http(method: "GET", uri: "/todos/paged", code: 200)
+@readonly
+@paginated(inputToken: "pageToken", outputToken: "nextPageToken", pageSize: "pageSize", items: "todos")
+operation ListTodosPaged {
+    input := {
+        @httpQuery("pageToken")
+        pageToken: String
+
+        @httpQuery("pageSize")
+        @range(min: 1, max: 100)
+        pageSize: Integer
+    }
+    output := {
+        @required
+        todos: TodoList
+
+        nextPageToken: String
+    }
+}
+```
+
+```csharp
+Task<ListTodosPagedOutput> ListTodosPaged(string? pageToken, int? pageSize);
+```
+
+The handler writes the paging. It takes `IPageTokens` through its constructor and builds the page
+with `Page.From`, as [Paging](/guide/paging) shows for a code-first handler. A token that does not
+decode answers 400 naming the parameter, here `pageToken`.
+
+A `@paginated` on the service supplies each setting that an operation's own trait leaves out. An
+operation with no `@paginated` of its own is not paged.
+
+The build checks the members that the trait names:
+
+| Setting | Names | Which targets |
+|---|---|---|
+| `inputToken` | A member of the input that is not `@required` | A `string` or a `map` |
+| `outputToken` | A member of the output, or a path through nested structures such as `page.next` | A `string` or a `map` |
+| `pageSize` | A member of the input | A `byte`, `short`, `integer` or `long` |
+| `items` | A member of the output, or a path as for `outputToken` | A `list` or a `map` |
+
+`inputToken` and `outputToken` are required, on the operation or on the service. These are the
+rules that the Smithy CLI reports as errors. The CLI refuses a model that breaks one with `HSMT012`,
+so a model built from `.smithy` files never reaches the build's own check. A committed AST does,
+and each broken rule is error `HSMT035`:
+
+```text
+src/Todos/contracts/todos.json : error HSMT035: Operation 'ListTodosPaged' is @paginated, and its inputToken 'cursor' names no member of its input. The members generate as ordinary members, so the operation would build and not page the way the model says.
+```
+
+`IPageTokens` writes a string. A `map` token builds, and the handler fills it.
+
 ## Traits the build does not model
 
 | Traits | Result |
 |---|---|
-| `@httpResponseCode`, `@httpPrefixHeaders`, `@httpQueryParams` and `@paginated` | Warning `HSMT006`: "has no equivalent in the generated code". The member they mark is an ordinary member |
+| `@httpResponseCode`, `@httpPrefixHeaders` and `@httpQueryParams` | Warning `HSMT006`: "has no equivalent in the generated code". The member they mark is an ordinary member |
 | A trait from the `smithy.api` prelude that the build neither reads nor ignores | Warning `HSMT006`: "which this generator does not model; it was ignored" |
 | A trait that changes nothing a server does: documentation and metadata such as `@examples` and `@since`, client concerns such as `@idempotencyToken` and `@endpoint`, and `@cors`, `@sensitive` and the `xml` traits | Ignored without a warning |
 
@@ -783,6 +843,7 @@ A `HardenedSmithyServiceShapeId` that the model does not declare stops the build
 | `HSMT014` | Error | The CLI succeeds and writes no AST |
 | `HSMT015` | Error | `HardenedSmithyModel` items disagree on `PublishUrl` or `UiUrl` |
 | `HSMT031` | Warning | The served document puts two operations at one path and method |
+| `HSMT035` | Error | A committed AST's `@paginated` names a member the operation does not have, or one of the wrong type. See [Paging](#paging) |
 
 The build task's codes that Smithy and OpenAPI projects share, from 020 up, take the `HSMT` prefix
 in a Smithy project, where an OpenAPI project reports `HOAT`. [Generating from OpenAPI](/guide/openapi)

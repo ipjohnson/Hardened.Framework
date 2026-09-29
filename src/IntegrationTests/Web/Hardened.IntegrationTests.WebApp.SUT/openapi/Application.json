@@ -60,6 +60,9 @@
       "name": "MessagePack"
     },
     {
+      "name": "Paging"
+    },
+    {
       "name": "RawBody"
     },
     {
@@ -5268,6 +5271,69 @@
         "x-hardened-timeout": 300000
       }
     },
+    "/paging/staff": {
+      "get": {
+        "tags": [
+          "Paging"
+        ],
+        "operationId": "listStaff",
+        "summary": "Lists staff newest first, a page at a time.",
+        "parameters": [
+          {
+            "name": "pageToken",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageOfStaffMember"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          }
+        },
+        "x-hardened-timeout": 300000
+      }
+    },
     "/raw-body/bytes": {
       "put": {
         "tags": [
@@ -8420,6 +8486,26 @@
           }
         }
       },
+      "PageOfStaffMember": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StaffMember"
+            }
+          },
+          "nextPageToken": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
       "Priority": {
         "type": "string",
         "enum": [
@@ -8676,6 +8762,28 @@
           "next-day",
           "two-day"
         ]
+      },
+      "StaffMember": {
+        "type": "object",
+        "description": "One member of staff, listed newest first.",
+        "required": [
+          "id",
+          "name",
+          "createdAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
       },
       "Ticket": {
         "type": "object",

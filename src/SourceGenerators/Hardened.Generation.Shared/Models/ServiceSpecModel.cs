@@ -185,6 +185,16 @@ internal class ServiceSpecModel : IEquatable<ServiceSpecModel>
     /// </remarks>
     public List<DanglingReferenceModel> DanglingReferences { get; set; } = new();
 
+    /// <summary>
+    /// Paging traits whose members the operation cannot carry, in the order they were met.
+    /// </summary>
+    /// <remarks>
+    /// Filled by the Smithy parser and read by <c>SpecDiagnostics</c>, on the same terms as
+    /// <see cref="DanglingReferences"/>. Not serialized and absent from
+    /// <see cref="Equals(ServiceSpecModel?)"/>.
+    /// </remarks>
+    public List<PaginationMismatchModel> PaginationMismatches { get; set; } = new();
+
     public bool Equals(ServiceSpecModel? other)
     {
         if (other is not null && ContentNegotiation != other.ContentNegotiation)
