@@ -52,8 +52,9 @@ With no origin allowed, the filter is still installed. It refuses every cross-or
 [Allowing origins in code](#allowing-origins-in-code) shows a configuration registered in
 `ConfigureServices`.
 
-A logging filter at `Warning` for the category hides the notice. This excerpt of
-`src/Todos.Host/Program.cs` replaces the template's `services.AddLogging(...)` line:
+A logging filter at `Warning` for the category hides the notice. The filter goes where
+`src/Todos.Host/Program.cs` configures logging, and that differs by host. Under the Kestrel and
+Cloud Run hosts, this excerpt replaces the template's `services.AddLogging(...)` line:
 
 ```csharp
 using Microsoft.Extensions.Logging;
@@ -61,6 +62,18 @@ using Microsoft.Extensions.Logging;
 services.AddLogging(logging => logging
     .AddSimpleConsole(options => options.SingleLine = true)
     .AddFilter("Hardened.Web.Runtime.Cors.CorsStartupService", LogLevel.Warning));
+```
+
+The Lambda host's `services.AddLogging(...)` line keeps its `AddLambdaLogger` call and takes the
+same `AddFilter` after it.
+
+The ASP.NET Core host's `Program.cs` has no `services.AddLogging(...)` line. The filter goes on
+`builder.Logging`, after the template's `WebApplication.CreateBuilder(args)` line:
+
+```csharp
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Logging.AddFilter("Hardened.Web.Runtime.Cors.CorsStartupService", LogLevel.Warning);
 ```
 
 ## Allowing origins with `CORS_ALLOWED_ORIGINS`
@@ -198,7 +211,8 @@ The configuration has these members:
 |---|---|
 | With an `Origin` header from an allowed origin | `Access-Control-Allow-Origin` and `Access-Control-Expose-Headers`. The handler runs |
 | From a refused origin | No CORS headers. The handler still runs |
-| Without an `Origin` header | No CORS headers and no `Vary: Origin` |
+| Without an `Origin` header, once an origin is allowed | No CORS headers. `Vary: Origin` |
+| Without an `Origin` header, with no origin allowed | No CORS headers and no `Vary: Origin` |
 
 With `CORS_ALLOWED_ORIGINS=https://app.example.com`, a request from another origin still adds a
 todo:
