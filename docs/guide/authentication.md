@@ -141,18 +141,23 @@ where the build does not read an authorization attribute.
 ## JWT bearer tokens
 
 `Hardened.Requests.Jwt` authenticates a bearer token as a JWT. `[JwtBearerAuthentication<TScheme>]`
-on the application module turns it on for a scheme:
+on a module turns it on for a scheme. In a project from the `hardened-web` template, it goes on the
+library module:
 
 ```csharp
 using Hardened.Requests.Jwt;
 using Hardened.Shared.Runtime.Attributes;
 
-namespace Todos.Host;
+namespace Todos;
 
 [HardenedModule]
 [JwtBearerAuthentication<BearerAuth>]
-public partial class Application;
+public partial class TodosLibrary;
 ```
+
+The host's `Application` imports the library module with `[TodosLibrary]`, so the running host
+authenticates tokens too. On `Application`, the attribute would authenticate the running host and
+not the tests. [Testing with tokens](#testing-with-tokens) says why.
 
 The package is the only one that brings `Microsoft.IdentityModel.JsonWebTokens` and its
 dependencies, so an application that does not reference it does not get them.
@@ -208,6 +213,7 @@ token.
 |---|---|
 | Has expired | `The token expired at <time>.` |
 | Is not valid yet | `The token is not valid until <time>.` |
+| Has an `nbf` after its `exp` | `The token is invalid.` |
 | Has no `exp` | `The token has no expiry.` |
 | Is for another audience | `The token is not for this audience.` |
 | Is from another issuer | `The token's issuer is not accepted.` |
@@ -225,12 +231,63 @@ A fetch that fails at startup logs a warning, and the application starts. Until 
 request that carries a token fails with 500, and the keys are fetched again at most once a minute. A
 request with no token does not need the keys.
 
+### A contract-first project
+
+In a contract-first project, the contract declares the scheme and each operation's `security`. The
+build reads the requirement from the contract, so the handlers carry no `[Authorize<TScheme>]`.
+[Security](/guide/openapi#security) covers what each declaration requires. A contract that
+requires a bearer token on every operation declares:
+
+```yaml
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+security:
+  - bearerAuth: []
+```
+
+`[JwtBearerAuthentication<TScheme>]` still needs a scheme class to name:
+
+```csharp
+using Hardened.Requests.Abstract.Authorization;
+using Hardened.Requests.Jwt;
+using Hardened.Shared.Runtime.Attributes;
+
+namespace Todos;
+
+public sealed class BearerAuth : IAuthenticationScheme;
+
+[HardenedModule]
+[JwtBearerAuthentication<BearerAuth>]
+public partial class TodosLibrary;
+```
+
+Nothing ties `BearerAuth` to the contract's `bearerAuth`. An operation checks only that the caller
+is authenticated, not which scheme authenticated it, so the JWT source serves every operation whose
+`security` names `bearerAuth`. The class needs no `[HttpAuthenticationScheme]`, because the served
+document is the contract.
+
+An operation whose `security` lists scopes under an `oauth2` or `openIdConnect` scheme requires
+those scopes as grants. The JWT source reads a caller's grants from the `JWT_GRANT_CLAIM` claim,
+which is `scope` unless configured otherwise.
+
 ### Testing with tokens
 
 `Hardened.Requests.Jwt.Testing` signs tokens for a test. `[JwtTestIssuer]` makes the application
 under test trust the test's key in place of its JWKS, so a test runs the real validator. Where the
 application sets no `JWT_ISSUER` or `JWT_AUDIENCE`, the attribute sets `https://issuer.hardened.test`
 and `hardened-test`. No JWKS is fetched.
+
+`[JwtTestIssuer]` replaces the key source that `[JwtBearerAuthentication<TScheme>]` registers. It
+does not register the principal source, so the application under test needs the attribute on a
+module it loads. A test application is built from the module that
+`[assembly: HardenedTestEntryPoint]` names, and the template's tests name the library module.
+There, the tests see the attribute. On the host's `Application`, the tests authenticate no token,
+and every handler that requires a caller answers 401.
 
 A test takes `TestJwtIssuer` as a parameter. `Token` signs a token the application accepts, and its
 optional argument changes what the test is testing:

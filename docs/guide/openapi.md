@@ -695,6 +695,8 @@ requirement from the scopes. The scheme decides only whether an entry carries sc
 
 The operation does not check which scheme established the caller. The application's authentication
 supplies the caller, as [Authentication](/guide/authentication) describes.
+[A contract-first project](/guide/authentication#a-contract-first-project) covers a contract that
+takes JWT bearer tokens.
 
 | Declaration | Requirement |
 |---|---|

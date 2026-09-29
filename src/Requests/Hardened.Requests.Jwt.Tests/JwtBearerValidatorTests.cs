@@ -147,6 +147,23 @@ public class JwtBearerValidatorTests
     }
 
     [Fact]
+    public async Task ATokenValidFromAfterItExpiresIsInvalid()
+    {
+        var (validator, issuer) = Build();
+
+        var rejected = await Rejected(
+            validator,
+            issuer.Token(jwt =>
+            {
+                jwt.Expires = DateTime.UtcNow.AddHours(1);
+                jwt.NotBefore = DateTime.UtcNow.AddHours(2);
+            })
+        );
+
+        Assert.Equal("The token is invalid.", rejected.RejectionDescription);
+    }
+
+    [Fact]
     public async Task AnotherIssuersTokenIsRefused()
     {
         var (validator, issuer) = Build();
