@@ -319,7 +319,10 @@ Content-Type: application/problem+json
 {"resource":"todo","detail":"No todo has id 99.","type":"urn:hardened:problem:not-found","title":"Not Found","status":404}
 ```
 
-The OpenAPI document publishes a stream's refusals as `application/json`.
+The OpenAPI document publishes a stream's refusals under the JSON media types rather than the
+stream's. The 404 above is published as `application/problem+json`, because `NotFound` is a problem
+type. A refusal whose body is not a problem type is published as `application/json`.
+[The OpenAPI document](/guide/openapi-document) gives the rule.
 
 After the first item, an exception ends the stream. The items already sent stay with the client. The
 response ends as a finished stream does, with its 200. The exception is logged as a failed request.
