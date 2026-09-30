@@ -175,8 +175,8 @@ the configuration model, so an application can amend each value in code:
 | `JWT_CLOCK_SKEW_SECONDS` | `60` | How far a token's `exp` and `nbf` may be off |
 
 An application without `JWT_ISSUER`, `JWT_AUDIENCE`, or one of `JWT_AUTHORITY` and `JWT_JWKS_URL`
-stops at startup, with a message that names what is missing. So does one whose `JWT_AUTHORITY` or
-`JWT_JWKS_URL` is not `https`. A loopback address may use `http`.
+stops at startup, with one message that names everything missing. So does one whose
+`JWT_AUTHORITY` or `JWT_JWKS_URL` is not `https`. A loopback address may use `http`.
 
 A token is accepted when all of these hold:
 

@@ -28,8 +28,39 @@ internal sealed class JwtBearerStartupService : IStartupService
             .Value;
         var keys = rootProvider.GetRequiredService<IJwtSigningKeySource>();
 
-        Require("JWT_ISSUER", configuration.Issuer);
-        Require("JWT_AUDIENCE", configuration.Audience);
+        var missing = new List<string>();
+
+        if (string.IsNullOrWhiteSpace(configuration.Issuer))
+        {
+            missing.Add("JWT_ISSUER is not set.");
+        }
+
+        if (string.IsNullOrWhiteSpace(configuration.Audience))
+        {
+            missing.Add("JWT_AUDIENCE is not set.");
+        }
+
+        if (
+            keys is JwksSigningKeySource
+            && string.IsNullOrEmpty(configuration.Authority)
+            && string.IsNullOrEmpty(configuration.JwksUrl)
+        )
+        {
+            missing.Add(
+                "Neither JWT_AUTHORITY nor JWT_JWKS_URL is set, so there is nowhere to read the "
+                    + "JWT signing keys from. Set JWT_AUTHORITY to the issuer's URL, or "
+                    + "JWT_JWKS_URL to its JWKS."
+            );
+        }
+
+        if (missing.Count > 0)
+        {
+            throw new InvalidOperationException(
+                string.Join(" ", missing)
+                    + " The JWT bearer source accepts no token until "
+                    + (missing.Count == 1 ? "it is set." : "they are set.")
+            );
+        }
 
         if (keys is JwksSigningKeySource)
         {
@@ -37,17 +68,9 @@ internal sealed class JwtBearerStartupService : IStartupService
             {
                 JwksSigningKeySource.Checked("JWT_AUTHORITY", configuration.Authority);
             }
-            else if (!string.IsNullOrEmpty(configuration.JwksUrl))
-            {
-                JwksSigningKeySource.Checked("JWT_JWKS_URL", configuration.JwksUrl);
-            }
             else
             {
-                throw new InvalidOperationException(
-                    "Neither JWT_AUTHORITY nor JWT_JWKS_URL is set, so there is nowhere to read the "
-                        + "JWT signing keys from. Set JWT_AUTHORITY to the issuer's URL, or "
-                        + "JWT_JWKS_URL to its JWKS."
-                );
+                JwksSigningKeySource.Checked("JWT_JWKS_URL", configuration.JwksUrl);
             }
         }
 
@@ -69,15 +92,5 @@ internal sealed class JwtBearerStartupService : IStartupService
         }
 
         return true;
-    }
-
-    private static void Require(string variable, string value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            throw new InvalidOperationException(
-                $"{variable} is not set. The JWT bearer source accepts no token without it."
-            );
-        }
     }
 }

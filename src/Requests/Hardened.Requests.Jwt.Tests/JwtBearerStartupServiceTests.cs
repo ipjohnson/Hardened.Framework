@@ -90,6 +90,19 @@ public class JwtBearerStartupServiceTests
     }
 
     [Fact]
+    public async Task EveryMissingSettingIsReportedInOneFailure()
+    {
+        var failure = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            new JwtBearerStartupService().Startup(Provider(new JwtBearerConfiguration()))
+        );
+
+        Assert.Contains("JWT_ISSUER", failure.Message);
+        Assert.Contains("JWT_AUDIENCE", failure.Message);
+        Assert.Contains("JWT_AUTHORITY", failure.Message);
+        Assert.Contains("JWT_JWKS_URL", failure.Message);
+    }
+
+    [Fact]
     public async Task NowhereToReadTheKeysFromStopsTheApplication()
     {
         var failure = await Assert.ThrowsAsync<InvalidOperationException>(() =>
