@@ -43,7 +43,7 @@ Functions:
 
 Executing 'Functions.Queue_orders' (Reason='(null)', Id=125ede44-9b38-43bd-aa69-ff8b6d50f9fe)
 QUEUE /orders started
-QUEUE /orders  finished status code '(null)'  duration 00:00:00.0213990
+QUEUE /orders finished status code '200' duration 21.399 ms
 Executed 'Functions.Queue_orders' (Succeeded, Id=125ede44-9b38-43bd-aa69-ff8b6d50f9fe, Duration=144ms)
 ```
 

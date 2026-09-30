@@ -276,7 +276,7 @@ This is the host's log for that invocation:
 ```text
 Executing 'Functions.Queue_orders' (Reason='This function was programmatically called via the host APIs.', Id=c7c11363-d487-47ce-bd7e-dcb96746f88e)
 QUEUE /orders started
-QUEUE /orders  finished status code '(null)'  duration 00:00:00.0217282
+QUEUE /orders finished status code '200' duration 21.7282 ms
 Executed 'Functions.Queue_orders' (Succeeded, Id=c7c11363-d487-47ce-bd7e-dcb96746f88e, Duration=171ms)
 ```
 

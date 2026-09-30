@@ -41,7 +41,7 @@ Functions:
 
 Executing 'Functions.Topic_orders' (Reason='(null)', Id=d7bc9ab3-3d2b-44d0-89db-3592045c940e)
 TOPIC /orders started
-TOPIC /orders  finished status code '(null)'  duration 00:00:00.0198150
+TOPIC /orders finished status code '200' duration 19.815 ms
 Executed 'Functions.Topic_orders' (Succeeded, Id=d7bc9ab3-3d2b-44d0-89db-3592045c940e, Duration=132ms)
 ```
 

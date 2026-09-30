@@ -233,7 +233,7 @@ exception's message:
 ```text
 info: Hardened.Requests.Runtime.Logging.RequestLogger[78000] POST / started
 fail: Hardened.Requests.Runtime.Logging.RequestLogger[0] QUEUE /orders request failed System.InvalidOperationException: refused queue
-info: Hardened.Requests.Runtime.Logging.RequestLogger[78002] POST /  finished status code '500'  duration 00:00:00.0093195
+info: Hardened.Requests.Runtime.Logging.RequestLogger[78002] POST / finished status code '500' duration 9.3195 ms
 ```
 
 The template's tests deliver to the handlers with no Google Cloud project and no running service.

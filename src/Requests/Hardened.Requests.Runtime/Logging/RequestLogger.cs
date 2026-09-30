@@ -311,13 +311,6 @@ public partial class RequestLogger : IRequestLogger
 
     public void RequestEnd(IExecutionContext context)
     {
-        LogRequestFinished(
-            context.Request.Method,
-            context.Request.Path,
-            context.Response.Status,
-            context.StartTime.GetElapsedTime()
-        );
-
         // Null means "handled, no opinion": nothing assigns a status on an ordinary success path,
         // and every transport renders that as 200 when it writes the response. Leaving the tag off
         // instead would strip a required attribute from every successful span, which is what an
@@ -328,6 +321,13 @@ public partial class RequestLogger : IRequestLogger
         // already the real code, including one that ASP.NET's own pipeline produced after Hardened
         // declined the request.
         var status = context.Response.Status ?? 200;
+
+        LogRequestFinished(
+            context.Request.Method,
+            context.Request.Path,
+            status,
+            context.StartTime.GetElapsedTime().TotalMilliseconds
+        );
 
         // Tagged whether or not anything is tracing. Buffered by the Meter provider until the logger
         // is disposed, which is what lets a dimension be attached after the measurement it describes -
@@ -505,13 +505,13 @@ public partial class RequestLogger : IRequestLogger
     [LoggerMessage(
         EventId = 78002,
         Level = LogLevel.Information,
-        Message = "{httpMethod} {path}  finished status code '{statusCode}'  duration {durationMs}"
+        Message = "{httpMethod} {path} finished status code '{statusCode}' duration {durationMs} ms"
     )]
     protected partial void LogRequestFinished(
         string httpMethod,
         string path,
-        int? statusCode,
-        TimeSpan durationMs
+        int statusCode,
+        double durationMs
     );
 
     [Microsoft.Extensions.Logging.LoggerMessage(
