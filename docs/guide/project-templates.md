@@ -277,6 +277,7 @@ All three templates write these files:
 | `nuget.config` | Clears the package sources and adds nuget.org |
 | `Directory.Build.props` | The target framework `net8.0` (`net11.0` with `--response-model union`), nullable reference types, implicit usings and `EmitCompilerGeneratedFiles` |
 | `Directory.Packages.props` | Every package version. The Hardened packages use `$(HardenedVersion)` |
+| `.gitignore` | The standard .NET file that `dotnet new gitignore` writes. It ignores `bin/` and `obj/`, so the generated client under `obj/` is never committed |
 | `README.md` | How the solution builds, runs and tests, written for the options chosen |
 | `AGENTS.md` | Rules and traps for anyone who edits the code, written for the options chosen |
 

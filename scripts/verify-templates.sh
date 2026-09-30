@@ -196,6 +196,12 @@ for line in wrong:
 sys.exit(1 if wrong else 0)
 PY
 
+    # A first `git add -A` without one commits bin/, obj/ and the generated client.
+    if [ ! -f "$out/.gitignore" ]; then
+        echo "   FAILED: $out has no .gitignore"
+        FAILED=1
+    fi
+
     # Every template's README ends with the same section and closing line, so a truncated one is
     # detectable without knowing which options were on.
     if [ -f "$out/README.md" ]; then
