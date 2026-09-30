@@ -227,11 +227,11 @@ mode, an application that has any of them logs a warning that names them. For a 
 `/todos/events` in the template, the local run prints:
 
 ```json
-{"timestamp":"2026-09-28T00:25:41.303Z","level":"Warning","message":"[Hardened.Aws.Lambda.Runtime.Streaming.ServerSentEventsResponseModeStartupService] HARDENED_LAMBDA_RESPONSE_MODE is buffered and 1 handler(s) answer text/event-stream: GET /events. Their events are delivered when the invocation ends, or never if it times out first. Deploy behind a function URL in RESPONSE_STREAM invoke mode with HARDENED_LAMBDA_RESPONSE_MODE=stream, or behind a front door that takes a streamed or a buffered answer from each invocation with HARDENED_LAMBDA_RESPONSE_MODE=mixed, or stop answering them as event streams: remove [ServerSentEvents] from a handler written in C#, or the event stream from the operation in its contract.","Variable":"HARDENED_LAMBDA_RESPONSE_MODE","Count":1,"Handlers":"GET /events","Variable":"HARDENED_LAMBDA_RESPONSE_MODE","Variable":"HARDENED_LAMBDA_RESPONSE_MODE"}
+{"timestamp":"2026-09-28T00:25:41.303Z","level":"Warning","message":"[Hardened.Aws.Lambda.Runtime.Streaming.ServerSentEventsResponseModeStartupService] HARDENED_LAMBDA_RESPONSE_MODE is buffered and 1 handler(s) answer text/event-stream: GET /todos/events. Their events are delivered when the invocation ends, or never if it times out first. Deploy behind a function URL in RESPONSE_STREAM invoke mode with HARDENED_LAMBDA_RESPONSE_MODE=stream, or behind a front door that takes a streamed or a buffered answer from each invocation with HARDENED_LAMBDA_RESPONSE_MODE=mixed, or stop answering them as event streams: remove [ServerSentEvents] from a handler written in C#, or the event stream from the operation in its contract.","Variable":"HARDENED_LAMBDA_RESPONSE_MODE","Count":1,"Handlers":"GET /todos/events"}
 ```
 
-The warning names each handler by its verb and its path without the module's base path. A handler
-that streams NDJSON gets no warning.
+The warning names each handler by its verb and the path a request uses, which starts with the
+module's `[BasePath]`. A handler that streams NDJSON gets no warning.
 
 ## Running it locally
 

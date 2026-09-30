@@ -31,6 +31,21 @@ public class ServerSentEventsResponseModeStartupServiceTests
     }
 
     /// <summary>
+    /// Each placeholder once. The JSON log writer emits one property per pair in the state, so a
+    /// repeated placeholder is a repeated name in one record.
+    /// </summary>
+    [Fact]
+    public async Task EachStructuredValueIsNamedOnce()
+    {
+        var log = await Run(LambdaResponseMode.Buffered, "GET /orders/live");
+
+        var keys = Assert.Single(log.WarningKeys);
+
+        Assert.Equal(keys.Distinct().Count(), keys.Count);
+        Assert.Single(keys, key => key == "Variable");
+    }
+
+    /// <summary>
     /// The combination the warning exists to catch is the only one it fires on. Both streaming
     /// modes send an event stream as it is written.
     /// </summary>
@@ -160,10 +175,12 @@ public class ServerSentEventsResponseModeStartupServiceTests
         public IReadOnlyList<string> Handlers { get; } = handlers;
     }
 
-    /// <summary>Keeps the rendered text of every warning, which is what the assertions read.</summary>
+    /// <summary>Keeps the rendered text and the structured keys of every warning.</summary>
     private sealed class RecordingLoggerProvider : ILoggerProvider
     {
         public List<string> Warnings { get; } = [];
+
+        public List<List<string>> WarningKeys { get; } = [];
 
         public ILogger CreateLogger(string categoryName) => new Recording(this);
 
@@ -187,6 +204,11 @@ public class ServerSentEventsResponseModeStartupServiceTests
                 if (logLevel == LogLevel.Warning)
                 {
                     provider.Warnings.Add(formatter(state, exception));
+                    provider.WarningKeys.Add(
+                        state is IEnumerable<KeyValuePair<string, object?>> pairs
+                            ? pairs.Select(pair => pair.Key).ToList()
+                            : []
+                    );
                 }
             }
         }
