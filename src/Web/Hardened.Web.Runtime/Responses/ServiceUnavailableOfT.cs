@@ -51,8 +51,18 @@ public sealed record ServiceUnavailable<T>(T Body, TimeSpan? After = null)
         }
     }
 
+    /// <summary>
+    /// Every header the response carried, where <see cref="FromResponse"/> built this from a call.
+    /// Empty where a handler built it, and never sent.
+    /// </summary>
+    public IReadOnlyDictionary<string, string> Headers => ResponseExpectation.HeadersOf(this);
+
     public static ServiceUnavailable<T> FromResponse(
         object? body,
         IReadOnlyDictionary<string, string> headers
-    ) => new(ResponseExpectation.Body<T>(body), ResponseExpectation.OptionalRetryAfter(headers));
+    ) =>
+        ResponseExpectation.Received<ServiceUnavailable<T>>(
+            new(ResponseExpectation.Body<T>(body), ResponseExpectation.OptionalRetryAfter(headers)),
+            headers
+        );
 }

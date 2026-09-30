@@ -11,14 +11,22 @@ using Xunit.Sdk;
 namespace Hardened.Web.Testing.Tests.Transport;
 
 /// <summary>What a fake client's method throws for a refusal.</summary>
-public sealed class Refusal(int status, object? body, string? caveat = null) : Exception("refused")
+public sealed class Refusal(int status, object? body, string? caveat = null, string? content = null)
+    : Exception("refused")
 {
     public int Status { get; } = status;
 
     public object? Body { get; } = body;
 
     public string? Caveat { get; } = caveat;
+
+    public string? Content { get; } = content;
 }
+
+/// <summary>A validation refusal the way a Kiota client throws one: the field errors as a model.</summary>
+public sealed record ValidationModel(IReadOnlyList<FieldModel> Errors);
+
+public sealed record FieldModel(string Field, string Code);
 
 /// <summary>What a fake client's method returns for a success.</summary>
 public sealed record Reply(int Status, object? Body, IReadOnlyDictionary<string, string> Headers);
@@ -61,7 +69,8 @@ public sealed class ReadingRoute : ITestClientRoute, ITestClientReader
                     refusal.Status,
                     refusal.Body,
                     Headers(),
-                    refusal.Caveat
+                    refusal.Caveat,
+                    refusal.Content
                 ),
                 null when result is Reply reply => new ClientAnswer(
                     reply.Status,
@@ -144,6 +153,60 @@ public class ClientAssertionsTests
 
         await Task.FromException<string>(new Refusal(404, null, "Nothing was deserialised."))
             .ReturnsStatus<NotFound>();
+    }
+
+    /// <summary>
+    /// A validation refusal where a success was expected names each field that failed, read from the
+    /// text where the route kept it, because a Refit route reads that text as the expectation's type.
+    /// </summary>
+    [Fact]
+    public async Task AFailureNamesTheFieldErrorsTheTextCarried()
+    {
+        const string content = """
+            {"type":"ValidationError","errors":[{"field":"id","code":"range"},{"field":"title","code":"required"}]}
+            """;
+
+        var failure = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            Task.FromException<string>(new Refusal(400, "unread", content: content))
+                .Returns<Ok<string>>()
+        );
+
+        Assert.EndsWith("Its errors: id (range), title (required).", failure.Message);
+
+        var statusFailure = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            Task.FromException<string>(new Refusal(400, "unread", content: content))
+                .ReturnsStatus<NoContent>()
+        );
+
+        Assert.EndsWith("Its errors: id (range), title (required).", statusFailure.Message);
+    }
+
+    /// <summary>Where there is no text, the field errors are read off the model the client produced.</summary>
+    [Fact]
+    public async Task AFailureNamesTheFieldErrorsTheModelCarried()
+    {
+        var model = new ValidationModel([new FieldModel("quantity", "range")]);
+
+        var failure = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            Task.FromException<string>(new Refusal(400, model, "A caveat.")).Returns<Ok<string>>()
+        );
+
+        Assert.EndsWith(
+            "carrying a ValidationModel. Its errors: quantity (range). A caveat.",
+            failure.Message
+        );
+    }
+
+    /// <summary>Text that is not a validation body adds nothing.</summary>
+    [Fact]
+    public async Task TextWithNoFieldErrorsAddsNothing()
+    {
+        var failure = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            Task.FromException<string>(new Refusal(409, "taken", content: "not json"))
+                .Returns<Ok<string>>()
+        );
+
+        Assert.EndsWith("answered 409 carrying a String.", failure.Message);
     }
 
     /// <summary>A failure no route recognises is not a refusal, and reaches the test as it was.</summary>

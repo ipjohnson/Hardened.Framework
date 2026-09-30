@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.Responses;
 
@@ -14,6 +15,32 @@ namespace Hardened.Web.Runtime.Responses;
 /// </remarks>
 public static class ResponseExpectation
 {
+    private static readonly IReadOnlyDictionary<string, string> NoHeaders =
+        new Dictionary<string, string>();
+
+    // Beside the record rather than in a field of it, because a field would take part in record
+    // equality, and a result read back from a call would stop equalling the one a handler built.
+    private static readonly ConditionalWeakTable<
+        object,
+        IReadOnlyDictionary<string, string>
+    > ReceivedHeaders = new();
+
+    /// <summary>The expectation, remembered as having arrived with these headers.</summary>
+    internal static TExpected Received<TExpected>(
+        TExpected expectation,
+        IReadOnlyDictionary<string, string> headers
+    )
+        where TExpected : class
+    {
+        ReceivedHeaders.AddOrUpdate(expectation, headers);
+
+        return expectation;
+    }
+
+    /// <summary>The headers an expectation arrived with, or none where a handler built it.</summary>
+    internal static IReadOnlyDictionary<string, string> HeadersOf(object expectation) =>
+        ReceivedHeaders.TryGetValue(expectation, out var headers) ? headers : NoHeaders;
+
     /// <summary>
     /// The response type a call was expected to answer with, from what the client reported.
     /// </summary>

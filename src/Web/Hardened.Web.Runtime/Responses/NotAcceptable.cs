@@ -28,8 +28,14 @@ public sealed record NotAcceptable : IHttpStatusResponse, IResponseExpectation<N
 
     public bool HasBody => false;
 
+    /// <summary>
+    /// Every header the response carried, where <see cref="FromResponse"/> built this from a call.
+    /// Empty where a handler built it, and never sent.
+    /// </summary>
+    public IReadOnlyDictionary<string, string> Headers => ResponseExpectation.HeadersOf(this);
+
     public static NotAcceptable FromResponse(
         object? body,
         IReadOnlyDictionary<string, string> headers
-    ) => new();
+    ) => ResponseExpectation.Received<NotAcceptable>(new(), headers);
 }

@@ -27,8 +27,14 @@ public sealed record NoContent : IHttpStatusResponse, IResponseExpectation<NoCon
 
     public bool HasBody => false;
 
+    /// <summary>
+    /// Every header the response carried, where <see cref="FromResponse"/> built this from a call.
+    /// Empty where a handler built it, and never sent.
+    /// </summary>
+    public IReadOnlyDictionary<string, string> Headers => ResponseExpectation.HeadersOf(this);
+
     public static NoContent FromResponse(
         object? body,
         IReadOnlyDictionary<string, string> headers
-    ) => new();
+    ) => ResponseExpectation.Received<NoContent>(new(), headers);
 }

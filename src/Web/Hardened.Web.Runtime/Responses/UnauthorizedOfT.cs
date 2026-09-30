@@ -49,15 +49,24 @@ public sealed record Unauthorized<T>(T Body, AuthorizationChallenge? Challenge =
         headers[AuthorizationChallenge.HeaderName] = challenge.HeaderValue;
     }
 
+    /// <summary>
+    /// Every header the response carried, where <see cref="FromResponse"/> built this from a call.
+    /// Empty where a handler built it, and never sent.
+    /// </summary>
+    public IReadOnlyDictionary<string, string> Headers => ResponseExpectation.HeadersOf(this);
+
     public static Unauthorized<T> FromResponse(
         object? body,
         IReadOnlyDictionary<string, string> headers
     ) =>
-        new(
-            ResponseExpectation.Body<T>(body),
-            ResponseExpectation.OptionalHeader(headers, AuthorizationChallenge.HeaderName)
-                is { } challenge
-                ? AuthorizationChallenge.Parse(challenge)
-                : null
+        ResponseExpectation.Received<Unauthorized<T>>(
+            new(
+                ResponseExpectation.Body<T>(body),
+                ResponseExpectation.OptionalHeader(headers, AuthorizationChallenge.HeaderName)
+                    is { } challenge
+                    ? AuthorizationChallenge.Parse(challenge)
+                    : null
+            ),
+            headers
         );
 }

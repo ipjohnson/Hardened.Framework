@@ -45,10 +45,20 @@ public sealed record Status<TCode, TBody>(TBody Body)
 
     object? ICarriesResponseBody.Body => Body;
 
+    /// <summary>
+    /// Every header the response carried, where <see cref="FromResponse"/> built this from a call.
+    /// Empty where a handler built it, and never sent.
+    /// </summary>
+    public IReadOnlyDictionary<string, string> Headers => ResponseExpectation.HeadersOf(this);
+
     public static Status<TCode, TBody> FromResponse(
         object? body,
         IReadOnlyDictionary<string, string> headers
-    ) => new(ResponseExpectation.Body<TBody>(body));
+    ) =>
+        ResponseExpectation.Received<Status<TCode, TBody>>(
+            new(ResponseExpectation.Body<TBody>(body)),
+            headers
+        );
 }
 
 /// <summary>
@@ -74,8 +84,14 @@ public sealed record Status<TCode> : IHttpStatusResponse, IResponseExpectation<S
 
     public bool HasBody => false;
 
+    /// <summary>
+    /// Every header the response carried, where <see cref="FromResponse"/> built this from a call.
+    /// Empty where a handler built it, and never sent.
+    /// </summary>
+    public IReadOnlyDictionary<string, string> Headers => ResponseExpectation.HeadersOf(this);
+
     public static Status<TCode> FromResponse(
         object? body,
         IReadOnlyDictionary<string, string> headers
-    ) => new();
+    ) => ResponseExpectation.Received<Status<TCode>>(new(), headers);
 }

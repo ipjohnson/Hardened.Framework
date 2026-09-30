@@ -111,6 +111,27 @@ public class ResponseExpectationTests
             .Invoke(null, [body, headers]);
 
         Assert.Equal(response.Status, ((IHttpStatusResponse)rebuilt!).Status);
+        Assert.Same(headers, type.GetProperty("Headers")!.GetValue(rebuilt));
+    }
+
+    /// <summary>
+    /// Every header the call carried is on the result, not only the ones the type reads, and a
+    /// result read back still equals the one a handler built.
+    /// </summary>
+    [Fact]
+    public void AnExpectationCarriesEveryHeaderItArrivedWith()
+    {
+        var headers = new Dictionary<string, string>
+        {
+            [KnownHeaders.Location] = "/todos/1",
+            [KnownHeaders.ETag] = "\"1\"",
+        };
+
+        var created = Created<string>.FromResponse("body", headers);
+
+        Assert.Equal("\"1\"", created.Headers[KnownHeaders.ETag]);
+        Assert.Equal(new Created<string>("body", "/todos/1"), created);
+        Assert.Empty(new Created<string>("body", "/todos/1").Headers);
     }
 
     /// <summary>

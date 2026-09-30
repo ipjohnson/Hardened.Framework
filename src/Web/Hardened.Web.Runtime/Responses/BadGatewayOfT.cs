@@ -39,8 +39,18 @@ public sealed record BadGateway<T>(T Body)
 
     object? ICarriesResponseBody.Body => Body;
 
+    /// <summary>
+    /// Every header the response carried, where <see cref="FromResponse"/> built this from a call.
+    /// Empty where a handler built it, and never sent.
+    /// </summary>
+    public IReadOnlyDictionary<string, string> Headers => ResponseExpectation.HeadersOf(this);
+
     public static BadGateway<T> FromResponse(
         object? body,
         IReadOnlyDictionary<string, string> headers
-    ) => new(ResponseExpectation.Body<T>(body));
+    ) =>
+        ResponseExpectation.Received<BadGateway<T>>(
+            new(ResponseExpectation.Body<T>(body)),
+            headers
+        );
 }

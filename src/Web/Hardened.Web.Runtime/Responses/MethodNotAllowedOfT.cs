@@ -42,12 +42,21 @@ public sealed record MethodNotAllowed<T>(T Body, string Allow)
         headers[KnownHeaders.Allow] = Allow;
     }
 
+    /// <summary>
+    /// Every header the response carried, where <see cref="FromResponse"/> built this from a call.
+    /// Empty where a handler built it, and never sent.
+    /// </summary>
+    public IReadOnlyDictionary<string, string> Headers => ResponseExpectation.HeadersOf(this);
+
     public static MethodNotAllowed<T> FromResponse(
         object? body,
         IReadOnlyDictionary<string, string> headers
     ) =>
-        new(
-            ResponseExpectation.Body<T>(body),
-            ResponseExpectation.RequiredHeader(headers, KnownHeaders.Allow)
+        ResponseExpectation.Received<MethodNotAllowed<T>>(
+            new(
+                ResponseExpectation.Body<T>(body),
+                ResponseExpectation.RequiredHeader(headers, KnownHeaders.Allow)
+            ),
+            headers
         );
 }

@@ -85,6 +85,7 @@ public class KestrelHostTests
 
         Assert.Equal(3, created.Value.Values!.Count);
         Assert.Equal("/verbs/item/3", created.Location);
+        Assert.Equal("/verbs/item/3", created.Headers["Location"]);
     }
 
     [ModuleTest]
@@ -94,6 +95,7 @@ public class KestrelHostTests
             .Returns<Created<MathAddModel>>();
 
         Assert.Equal("/verbs/item/3", created.Location);
+        Assert.Equal("/verbs/item/3", created.Headers["Location"]);
     }
 
     [ModuleTest]

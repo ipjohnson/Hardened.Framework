@@ -44,12 +44,21 @@ public sealed record Created<T>(T Value, string Location)
         headers[KnownHeaders.Location] = Location;
     }
 
+    /// <summary>
+    /// Every header the response carried, where <see cref="FromResponse"/> built this from a call.
+    /// Empty where a handler built it, and never sent.
+    /// </summary>
+    public IReadOnlyDictionary<string, string> Headers => ResponseExpectation.HeadersOf(this);
+
     public static Created<T> FromResponse(
         object? body,
         IReadOnlyDictionary<string, string> headers
     ) =>
-        new(
-            ResponseExpectation.Body<T>(body),
-            ResponseExpectation.RequiredHeader(headers, KnownHeaders.Location)
+        ResponseExpectation.Received<Created<T>>(
+            new(
+                ResponseExpectation.Body<T>(body),
+                ResponseExpectation.RequiredHeader(headers, KnownHeaders.Location)
+            ),
+            headers
         );
 }

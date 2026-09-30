@@ -537,12 +537,20 @@ Assert.Equal($"/todos/{created.Value.Id}", created.Location);
 Assert.That(created.Location, Is.EqualTo($"/todos/{created.Value.Id}"));
 #endif
 
+#if (smithy)
+await client.Todos[9999].GetAsync().Returns<NotFound<ClientModels.TodoNotFound>>();
+#else
+#if (codeFirst)
+var missing = await client.Todos[9999].GetAsync().Returns<NotFound<ClientModels.NotFound>>();
+#else
 var missing = await client.Todos[9999].GetAsync().Returns<NotFound<ClientModels.Problem>>();
+#endif
 
 #if (xunit)
 Assert.Contains("9999", missing.Body.Detail);
 #else
 Assert.That(missing.Body.Detail, Does.Contain("9999"));
+#endif
 #endif
 ```
 
@@ -573,6 +581,9 @@ Assert.Equal($"/todos/{created.Value.Id}", created.Location);
 Assert.That(created.Location, Is.EqualTo($"/todos/{created.Value.Id}"));
 #endif
 
+#if (smithy)
+await client.GetTodo(9999).Returns<NotFound<ClientModels.TodoNotFound>>();
+#else
 #if (codeFirst)
 var missing = await client.GetTodo(9999).Returns<NotFound<ClientModels.NotFound>>();
 #else
@@ -584,11 +595,14 @@ Assert.Contains("9999", missing.Body.Detail);
 #else
 Assert.That(missing.Body.Detail, Does.Contain("9999"));
 #endif
+#endif
 ```
 
 That is the status, the body type and the headers the status carries in one word, and nothing
 throws: Refit hands the whole answer back on the envelope, and a refusal's body is read as the
-type the expectation names through the client's own serializer. A Kiota client is asserted the
+type the expectation names through the client's own serializer. Nothing compares that type with
+the document, so regenerate the client when the contract changes: a model it left behind reads
+the body with default values. A Kiota client is asserted the
 same way through `Hardened.Kiota.Testing` and `[assembly: KiotaTesting]`.
 #endif
 
