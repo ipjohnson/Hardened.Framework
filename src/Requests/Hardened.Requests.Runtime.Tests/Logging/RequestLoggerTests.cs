@@ -24,6 +24,8 @@ public class RequestLoggerTests
         public LogLevel Level { get; init; }
         public string Message { get; init; } = "";
         public Exception? Exception { get; init; }
+        public IReadOnlyDictionary<string, object?> Fields { get; init; } =
+            new Dictionary<string, object?>();
     }
 
     private sealed class Capturing : ILogger<RequestLogger>
@@ -48,6 +50,9 @@ public class RequestLoggerTests
                     Level = logLevel,
                     Message = formatter(state, exception),
                     Exception = exception,
+                    Fields = state is IEnumerable<KeyValuePair<string, object?>> fields
+                        ? fields.ToDictionary(f => f.Key, f => f.Value)
+                        : new Dictionary<string, object?>(),
                 }
             );
     }
@@ -225,5 +230,40 @@ public class RequestLoggerTests
         logger.RequestParameterBindFailed(Pipeline.Context(), new FormatException("bad"));
 
         Assert.Equal(LogLevel.Debug, Assert.Single(log.Lines).Level);
+    }
+
+    /// <summary>
+    /// Nothing assigns a status on an ordinary success path, and the transport answers 200. The
+    /// finished line used to leave <c>{statusCode}</c> unfilled for it, and carried the duration
+    /// as a <see cref="TimeSpan"/> under a field named <c>durationMs</c>.
+    /// </summary>
+    [Fact]
+    public void AFinishedRequestWithNoStatusLogs200AndMilliseconds()
+    {
+        var (logger, log) = Logger();
+
+        logger.RequestEnd(Pipeline.Context(path: "/reports/1"));
+
+        var line = Assert.Single(log.Lines);
+
+        Assert.Equal(LogLevel.Information, line.Level);
+        Assert.StartsWith("GET /reports/1 finished status code '200' duration ", line.Message);
+        Assert.EndsWith(" ms", line.Message);
+        Assert.DoesNotContain("  ", line.Message);
+        Assert.Equal(200, line.Fields["statusCode"]);
+        Assert.IsType<double>(line.Fields["durationMs"]);
+    }
+
+    [Fact]
+    public void AFinishedRequestLogsTheStatusItWasGiven()
+    {
+        var (logger, log) = Logger();
+        var context = Pipeline.Context();
+
+        context.Response.Status = 404;
+
+        logger.RequestEnd(context);
+
+        Assert.Equal(404, Assert.Single(log.Lines).Fields["statusCode"]);
     }
 }
