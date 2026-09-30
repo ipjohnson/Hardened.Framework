@@ -64,19 +64,21 @@ internal class ServerSentEventsResponseModeStartupService : IStartupService
             .GetService<ILoggerFactory>()
             ?.CreateLogger(typeof(ServerSentEventsResponseModeStartupService).FullName!);
 
+        // A placeholder repeated in the template is a key repeated in the structured record, because
+        // placeholders bind by position. The later two mentions are written into the template.
         logger?.LogWarning(
             "{Variable} is buffered and {Count} handler(s) answer text/event-stream: {Handlers}. "
                 + "Their events are delivered when the invocation ends, or never if it times out first. "
-                + "Deploy behind a function URL in RESPONSE_STREAM invoke mode with {Variable}=stream, or "
-                + "behind a front door that takes a streamed or a buffered answer from each invocation "
-                + "with {Variable}=mixed, or stop answering them as event streams: remove "
-                + "[ServerSentEvents] from a handler written in C#, or the event stream from the operation "
-                + "in its contract.",
+                + "Deploy behind a function URL in RESPONSE_STREAM invoke mode with "
+                + LambdaResponseModeConfiguration.EnvironmentVariable
+                + "=stream, or behind a front door that takes a streamed or a buffered answer from each "
+                + "invocation with "
+                + LambdaResponseModeConfiguration.EnvironmentVariable
+                + "=mixed, or stop answering them as event streams: remove [ServerSentEvents] from a "
+                + "handler written in C#, or the event stream from the operation in its contract.",
             LambdaResponseModeConfiguration.EnvironmentVariable,
             handlers.Length,
-            string.Join(", ", handlers),
-            LambdaResponseModeConfiguration.EnvironmentVariable,
-            LambdaResponseModeConfiguration.EnvironmentVariable
+            string.Join(", ", handlers)
         );
 
         return Task.FromResult(true);
