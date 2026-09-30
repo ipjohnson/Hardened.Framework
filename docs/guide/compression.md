@@ -365,10 +365,10 @@ Content-Type: application/json
 Content-Encoding: deflate
 
 HTTP/1.1 415 Unsupported Media Type
-Content-Type: application/json
+Content-Type: application/problem+json
 Accept-Encoding: gzip, br
 
-{"type":"BadContentEncodingException","message":"deflate is not a supported Content-Encoding","details":""}
+{"detail":"deflate is not a supported Content-Encoding","type":"urn:hardened:problem:unsupported-media-type","title":"Unsupported Media Type","status":415}
 ```
 
 The decoded body is capped at 30,000,000 bytes. The application answers 413 when it reads past the
@@ -380,9 +380,9 @@ Content-Type: application/json
 Content-Encoding: gzip
 
 HTTP/1.1 413 Payload Too Large
-Content-Type: application/json
+Content-Type: application/problem+json
 
-{"type":"DecompressedBodyTooLargeException","message":"The request body decodes to more than 30000000 bytes.","details":""}
+{"detail":"The request body decodes to more than 30000000 bytes.","type":"urn:hardened:problem:content-too-large","title":"Content Too Large","status":413}
 ```
 
 The request body is 30,178 bytes of gzip that decode to a 31,000,012-byte JSON object.

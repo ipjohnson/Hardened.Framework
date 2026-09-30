@@ -26,7 +26,10 @@ public class TimeoutTests
         var response = await testWebApp.Get("/timeout/slow");
 
         Assert.Equal(504, response.StatusCode);
-        Assert.Equal("GatewayTimeout", response.Deserialize<ErrorModel>().Type);
+        Assert.Equal(
+            "urn:hardened:problem:gateway-timeout",
+            response.Deserialize<ErrorModel>().Type
+        );
     }
 
     /// <summary>
@@ -39,7 +42,10 @@ public class TimeoutTests
         var response = await testWebApp.Get("/timeout/stream-late");
 
         Assert.Equal(504, response.StatusCode);
-        Assert.Equal("GatewayTimeout", response.Deserialize<ErrorModel>().Type);
+        Assert.Equal(
+            "urn:hardened:problem:gateway-timeout",
+            response.Deserialize<ErrorModel>().Type
+        );
     }
 
     /// <summary>
@@ -66,7 +72,10 @@ public class TimeoutTests
         var response = await testWebApp.Get("/timeout/shed");
 
         Assert.Equal(503, response.StatusCode);
-        Assert.Equal("ServiceUnavailable", response.Deserialize<ErrorModel>().Type);
+        Assert.Equal(
+            "urn:hardened:problem:service-unavailable",
+            response.Deserialize<ErrorModel>().Type
+        );
         Assert.Equal("30", response.Headers[KnownHeaders.RetryAfter].ToString());
     }
 

@@ -134,9 +134,9 @@ constructor, every request to the controller answers 500:
 GET /todos
 
 HTTP/1.1 500 Internal Server Error
-Content-Type: application/json
+Content-Type: application/problem+json
 
-{"type":"ServerError","message":"The server could not complete this request.","details":""}
+{"detail":"The server could not complete this request.","type":"urn:hardened:problem:internal-server-error","title":"Internal Server Error","status":500}
 ```
 
 The log shows a `HandlerCreationException` around the `FormatException`. The exception

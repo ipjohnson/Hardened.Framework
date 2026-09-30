@@ -62,7 +62,7 @@ public class ValidationTests
         var error = response.Deserialize<RequestValidationError>();
 
         Assert.NotNull(error);
-        Assert.Equal("ValidationError", error.Type);
+        Assert.Equal("urn:hardened:problem:validation-failed", error.Type);
         Assert.Contains(error.Errors, e => e.Field == "body.name");
     }
 
@@ -181,7 +181,7 @@ public class ValidationTests
 
         var error = response.Deserialize<RequestValidationError>();
 
-        Assert.Equal("ValidationError", error!.Type);
+        Assert.Equal("urn:hardened:problem:validation-failed", error!.Type);
         Assert.Contains(error.Errors, e => e.Field == "limit" && e.Code == "invalid");
     }
 

@@ -952,7 +952,8 @@ print(",".join(str(e.get("field","")) + ":" + str(e.get("code","")) for e in doc
 
         # What a refusal answers when the caller asked for MessagePack. Every probe above sends and
         # accepts JSON, so the negotiated path was exercised by nothing here - and the template
-        # carries [JsonErrorBodies], which says successes stay negotiated while failures answer JSON.
+        # carries [JsonErrorBodies], which says successes stay negotiated while failures answer JSON,
+        # labelled application/problem+json because every refusal is a problem document.
         # Both halves, because a service that answered JSON to everything would satisfy the second.
         NEGOTIATED_OK=""
         NEGOTIATED_REFUSAL=""
@@ -1077,9 +1078,9 @@ print(",".join(str(e.get("field","")) + ":" + str(e.get("code","")) for e in doc
             esac
 
             case "$NEGOTIATED_REFUSAL" in
-                "400 application/json"*) ;;
+                "400 application/problem+json"*) ;;
                 *)
-                    echo "   FAILED: [JsonErrorBodies] should answer a refusal 400 application/json, got '$NEGOTIATED_REFUSAL'"
+                    echo "   FAILED: [JsonErrorBodies] should answer a refusal 400 application/problem+json, got '$NEGOTIATED_REFUSAL'"
                     FAILED=1
                     ;;
             esac

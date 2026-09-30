@@ -128,7 +128,7 @@ public class KiotaReturnsTests
             .Authorization.Pets.GetAsync(cancellationToken: Token)
             .Returns<Forbidden<ClientModels.ErrorModel>>();
 
-        Assert.Equal("This request is not permitted.", forbidden.Body.Message);
+        Assert.Equal("This request is not permitted.", forbidden.Body.Detail);
     }
 
     /// <summary>An undeclared refusal has no body type to be, so only its status can be named.</summary>

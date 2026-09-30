@@ -49,7 +49,7 @@ public class PlainTextErrorResponseTests
 
     /// <summary>
     /// The framework's own refusal takes the same route as a declared error: a query value that
-    /// does not parse answers the standard 400 envelope, in JSON, on an operation that produces
+    /// does not parse answers the standard 400 problem document on an operation that produces
     /// text.
     /// </summary>
     [ModuleTest]
@@ -59,15 +59,15 @@ public class PlainTextErrorResponseTests
 
         response.Assert.BadRequest();
 
-        Assert.Equal("application/json", response.Headers["Content-Type"]);
+        Assert.Equal("application/problem+json", response.Headers["Content-Type"]);
 
         var error = response.Deserialize<ValidationShape>();
 
-        Assert.Equal("ValidationError", error!.Type);
+        Assert.Equal("urn:hardened:problem:validation-failed", error!.Type);
         Assert.Equal("copies", Assert.Single(error.Errors).Field);
     }
 
-    private record ValidationShape(string Type, string Message, List<FieldShape> Errors);
+    private record ValidationShape(string Type, string? Detail, List<FieldShape> Errors);
 
     private record FieldShape(string Field, string Code, string Message);
 

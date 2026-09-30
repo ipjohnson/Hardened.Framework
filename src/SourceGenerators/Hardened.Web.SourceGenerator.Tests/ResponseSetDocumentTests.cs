@@ -511,7 +511,7 @@ public class ResponseSetDocumentTests
             responses
                 .GetProperty("400")
                 .GetProperty("content")
-                .GetProperty("application/json")
+                .GetProperty("application/problem+json")
                 .GetProperty("schema")
                 .GetProperty("$ref")
                 .GetString()

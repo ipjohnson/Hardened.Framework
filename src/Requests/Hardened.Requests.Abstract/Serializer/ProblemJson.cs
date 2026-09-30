@@ -42,9 +42,10 @@ public static class ProblemJson
     /// <para>
     /// <c>application/problem+json</c> for a failure that negotiation already committed to it, which
     /// is a contract declaring its failures that way, and for a failure whose body is an
-    /// <see cref="IProblemDetails"/>, which is every problem record Hardened ships.
-    /// <c>application/json</c> for everything else, including the framework's own
-    /// <c>ErrorModel</c>, which is not in RFC 9457's shape.
+    /// <see cref="IProblemDetails"/>. That is every problem record Hardened ships and both of the
+    /// framework's own envelopes, <c>ErrorModel</c> and <c>RequestValidationError</c>, so every
+    /// refusal the framework raises goes out under this label. <c>application/json</c> for
+    /// everything else.
     /// </para>
     /// <para>
     /// Read before the first byte is written. The headers go out with it, so a label chosen after

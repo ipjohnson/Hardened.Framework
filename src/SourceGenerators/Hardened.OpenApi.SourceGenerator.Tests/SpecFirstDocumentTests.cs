@@ -380,7 +380,7 @@ public class SpecFirstDocumentTests
             "#/components/schemas/RequestValidationError",
             badRequest
                 .GetProperty("content")
-                .GetProperty("application/json")
+                .GetProperty("application/problem+json")
                 .GetProperty("schema")
                 .GetProperty("$ref")
                 .GetString()
@@ -392,6 +392,14 @@ public class SpecFirstDocumentTests
             .GetProperty("RequestValidationError");
 
         Assert.Equal("object", schema.GetProperty("type").GetString());
+
+        // A problem document, with the field list as an extension member.
+        var properties = schema.GetProperty("properties");
+
+        Assert.True(properties.TryGetProperty("errors", out _));
+        Assert.True(properties.TryGetProperty("title", out _));
+        Assert.True(properties.TryGetProperty("status", out _));
+        Assert.False(properties.TryGetProperty("message", out _));
     }
 
     #endregion
@@ -543,7 +551,7 @@ public class SpecFirstDocumentTests
             "#/components/schemas/ErrorModel",
             refusal
                 .GetProperty("content")
-                .GetProperty("application/json")
+                .GetProperty("application/problem+json")
                 .GetProperty("schema")
                 .GetProperty("$ref")
                 .GetString()
@@ -576,7 +584,7 @@ public class SpecFirstDocumentTests
             responses
                 .GetProperty("504")
                 .GetProperty("content")
-                .GetProperty("application/json")
+                .GetProperty("application/problem+json")
                 .GetProperty("schema")
                 .GetProperty("$ref")
                 .GetString()

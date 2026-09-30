@@ -163,9 +163,9 @@ GET /todos
 Accept: application/xml
 
 HTTP/1.1 406 Not Acceptable
-Content-Type: application/json
+Content-Type: application/problem+json
 
-{"type":"NotAcceptable","message":"This operation produces application/json, text/csv.","details":"application/json, text/csv"}
+{"detail":"This operation produces application/json, text/csv.","type":"urn:hardened:problem:not-acceptable","title":"Not Acceptable","status":406}
 ```
 
 The OpenAPI document lists no 406. The response to an operation that negotiates carries no
@@ -404,7 +404,8 @@ In the OpenAPI document, the error responses of an operation list these media ty
 
 The document lists media types this way for the error statuses that the handler declares and for
 the ones that the pipeline adds, such as the validation 400. Where the body at a status is a problem
-type, `application/problem+json` takes the place of `application/json`. Without `[JsonErrorBodies]`,
+type, `ErrorModel` or `RequestValidationError`, `application/problem+json` takes the place of
+`application/json`. Without `[JsonErrorBodies]`,
 the document lists the 404 of `GET /todos/{id}` like this:
 
 ```json
@@ -585,9 +586,9 @@ Content-Type: text/plain
 
 HTTP/1.1 415 Unsupported Media Type
 Accept: application/json
-Content-Type: application/json
+Content-Type: application/problem+json
 
-{"type":"UnsupportedContentTypeException","message":"This route does not read text/plain. It reads application/json.","details":""}
+{"detail":"This route does not read text/plain. It reads application/json.","type":"urn:hardened:problem:unsupported-media-type","title":"Unsupported Media Type","status":415}
 ```
 
 A browser sends a `text/plain` POST to another origin without a CORS preflight, so the 415 also

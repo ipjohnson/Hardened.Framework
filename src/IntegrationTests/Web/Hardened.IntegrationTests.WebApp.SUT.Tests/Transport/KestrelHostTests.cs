@@ -203,6 +203,9 @@ public class KestrelHostTests
         var response = await app.Get("/timeout/stream-late");
 
         Assert.Equal(504, response.StatusCode);
-        Assert.Equal("GatewayTimeout", response.Deserialize<ErrorModel>().Type);
+        Assert.Equal(
+            "urn:hardened:problem:gateway-timeout",
+            response.Deserialize<ErrorModel>().Type
+        );
     }
 }

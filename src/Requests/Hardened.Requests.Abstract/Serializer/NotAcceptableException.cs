@@ -22,12 +22,7 @@ public class NotAcceptableException : StatusCodeException
     public NotAcceptableException(IReadOnlyList<string> produced)
         : base(
             406,
-            new ErrorModel
-            {
-                Type = "NotAcceptable",
-                Message = Describe(produced),
-                Details = string.Join(", ", produced),
-            },
+            ErrorModel.For(406, Describe(produced)),
             // The same sentence as the body, because this reaches a log as well as a client and an
             // operator reading "The request produced status 406." learns nothing from it.
             Describe(produced)

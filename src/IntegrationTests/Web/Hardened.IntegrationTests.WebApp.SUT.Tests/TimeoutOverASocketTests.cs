@@ -37,7 +37,7 @@ public class TimeoutOverASocketTests
 
         Assert.Equal(HttpStatusCode.GatewayTimeout, response.StatusCode);
         Assert.Contains(
-            "GatewayTimeout",
+            "urn:hardened:problem:gateway-timeout",
             await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken)
         );
     }

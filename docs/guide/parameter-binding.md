@@ -53,9 +53,9 @@ default:
 GET /todos/search/ada?title=read
 
 HTTP/1.1 400 Bad Request
-Content-Type: application/json
+Content-Type: application/problem+json
 
-{"type":"ValidationError","message":"One or more validation errors occurred.","errors":[{"field":"X-Tenant","code":"required","message":"X-Tenant is required."}]}
+{"errors":[{"field":"X-Tenant","code":"required","message":"X-Tenant is required."}],"detail":"One or more validation errors occurred.","type":"urn:hardened:problem:validation-failed","title":"Request Validation Failed","status":400}
 ```
 
 A value that does not convert to the parameter's type answers 400 with code `invalid`:
@@ -65,9 +65,9 @@ GET /todos/search/ada?page=two
 X-Tenant: acme
 
 HTTP/1.1 400 Bad Request
-Content-Type: application/json
+Content-Type: application/problem+json
 
-{"type":"ValidationError","message":"One or more validation errors occurred.","errors":[{"field":"page","code":"invalid","message":"page is not a valid Int32."}]}
+{"errors":[{"field":"page","code":"invalid","message":"page is not a valid Int32."}],"detail":"One or more validation errors occurred.","type":"urn:hardened:problem:validation-failed","title":"Request Validation Failed","status":400}
 ```
 
 ## Binding attributes
@@ -287,9 +287,9 @@ A converter that throws answers 400 `invalid`:
 GET /todos/due?range=soon
 
 HTTP/1.1 400 Bad Request
-Content-Type: application/json
+Content-Type: application/problem+json
 
-{"type":"ValidationError","message":"One or more validation errors occurred.","errors":[{"field":"range","code":"invalid","message":"range is not a valid DateRange."}]}
+{"errors":[{"field":"range","code":"invalid","message":"range is not a valid DateRange."}],"detail":"One or more validation errors occurred.","type":"urn:hardened:problem:validation-failed","title":"Request Validation Failed","status":400}
 ```
 
 ## Models from the query string
@@ -417,9 +417,9 @@ On the Kestrel and ASP.NET Core hosts, a request body over Kestrel's limit answe
 
 ```http
 HTTP/1.1 413 Payload Too Large
-Content-Type: application/json
+Content-Type: application/problem+json
 
-{"type":"BadHttpRequestException","message":"Request body too large. The max request body size is 30000000 bytes.","details":""}
+{"detail":"Request body too large. The max request body size is 30000000 bytes.","type":"urn:hardened:problem:content-too-large","title":"Content Too Large","status":413}
 ```
 
 The limit is 30,000,000 bytes by default. On the Kestrel host, `Limits.MaxRequestBodySize` in the callback that
@@ -486,9 +486,9 @@ PUT /todos/attachments/notes.txt
 Content-Type: text/plain
 
 HTTP/1.1 400 Bad Request
-Content-Type: application/json
+Content-Type: application/problem+json
 
-{"type":"ValidationError","message":"One or more validation errors occurred.","errors":[{"field":"content","code":"required","message":"content is required."}]}
+{"errors":[{"field":"content","code":"required","message":"content is required."}],"detail":"One or more validation errors occurred.","type":"urn:hardened:problem:validation-failed","title":"Request Validation Failed","status":400}
 ```
 
 ## Custom binding attributes

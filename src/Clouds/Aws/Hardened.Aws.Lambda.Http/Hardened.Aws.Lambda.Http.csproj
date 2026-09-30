@@ -2,9 +2,9 @@
 
     <PropertyGroup>
         <TargetFramework>$(HardenedTargetFramework)</TargetFramework>
-        <Description>Serves HTTP routes on AWS Lambda: the payload format 2.0 adapter for [Get], [Post] and the rest, behind an API Gateway HTTP API or a function URL.</Description>
+        <Description>Serves HTTP routes on AWS Lambda: the adapter for [Get], [Post] and the rest, behind an API Gateway HTTP API or REST API, a function URL, or an Application Load Balancer.</Description>
         <IsPackable>true</IsPackable>
-        <PackageTags>Hardened;Hardened.Framework;aws;lambda;serverless;http;apigateway;functionurl</PackageTags>
+        <PackageTags>Hardened;Hardened.Framework;aws;lambda;serverless;http;apigateway;functionurl;alb</PackageTags>
 
         <!--
           One adapter family, so a function that is not triggered this way never has these
@@ -49,6 +49,7 @@
 
     <ItemGroup>
         <PackageReference Include="Amazon.Lambda.APIGatewayEvents" />
+        <PackageReference Include="Amazon.Lambda.ApplicationLoadBalancerEvents" />
         <PackageReference Include="Amazon.Lambda.Core" />
         <PackageReference Include="DependencyModules.Runtime" />
         <PackageReference Include="DependencyModules.SourceGenerator" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all" />

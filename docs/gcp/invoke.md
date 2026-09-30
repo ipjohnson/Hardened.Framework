@@ -186,9 +186,9 @@ An invocation answers with these statuses and bodies:
 |---|---|---|
 | The handler returns a value | 200 | The value, as JSON |
 | The handler is `void` or `Task`, or returns null | 200 | Empty |
-| The handler throws | 500 | `{"type":"ServerError","message":"The server could not complete this request.","details":""}` |
-| The body does not bind | 400 | A `ValidationError` naming the field |
-| A constraint fails | 400 | A `ValidationError` naming the field and the constraint |
+| The handler throws | 500 | `{"detail":"The server could not complete this request.","type":"urn:hardened:problem:internal-server-error","title":"Internal Server Error","status":500}` |
+| The body does not bind | 400 | A `RequestValidationError` naming the field |
+| A constraint fails | 400 | A `RequestValidationError` naming the field and the constraint |
 | No handler has the name | 500 | Empty |
 
 A response with a value has `Content-Type: application/json`. A handler that returns `Task<T>`
@@ -212,9 +212,9 @@ Content-Type: application/json
 {"id":"A-1","quantity":"two"}
 
 HTTP/1.1 400 Bad Request
-Content-Type: application/json
+Content-Type: application/problem+json
 
-{"type":"ValidationError","message":"One or more validation errors occurred.","errors":[{"field":"order.quantity","code":"invalid","message":"The value is not an integer this field can hold."}]}
+{"errors":[{"field":"order.quantity","code":"invalid","message":"The value is not an integer this field can hold."}],"detail":"One or more validation errors occurred.","type":"urn:hardened:problem:validation-failed","title":"Request Validation Failed","status":400}
 ```
 
 When the project references `ValidationModules.SourceGenerator`, a body that fails a constraint

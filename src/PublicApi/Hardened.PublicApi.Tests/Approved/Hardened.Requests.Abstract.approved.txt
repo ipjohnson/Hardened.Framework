@@ -309,12 +309,16 @@ namespace Hardened.Requests.Abstract.Diagnostics
 }
 namespace Hardened.Requests.Abstract.Errors
 {
-    public class ErrorModel
+    public class ErrorModel : Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProblemDetails
     {
+        public const string TypePrefix = "urn:hardened:problem:";
         public ErrorModel() { }
-        public string Details { get; set; }
-        public string Message { get; set; }
+        public string? Detail { get; set; }
+        public int Status { get; set; }
+        public string Title { get; set; }
         public string Type { get; set; }
+        public static Hardened.Requests.Abstract.Errors.ErrorModel For(int status, string? detail = null) { }
+        public static string TypeFor(int status) { }
     }
     public interface IExceptionStatusReader
     {
@@ -852,6 +856,10 @@ namespace Hardened.Requests.Abstract.Responses
         public bool NotWhenStreaming { get; set; }
         public int Status { get; }
         public string? StatusFrom { get; set; }
+    }
+    public static class HttpStatusText
+    {
+        public static string? ReasonPhrase(int status) { }
     }
     public interface ICarriesResponseBody
     {

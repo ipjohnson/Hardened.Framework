@@ -89,7 +89,7 @@ public class RefitReturnsTests
     {
         var forbidden = await api.Pets().Returns<Forbidden<ErrorModel>>();
 
-        Assert.Equal("This request is not permitted.", forbidden.Body.Message);
+        Assert.Equal("This request is not permitted.", forbidden.Body.Detail);
     }
 
     [ModuleTest]

@@ -50,10 +50,10 @@ Content-Type: application/json
 {"title":"Write the docs"}
 
 HTTP/1.1 401 Unauthorized
-Content-Type: application/json
+Content-Type: application/problem+json
 WWW-Authenticate: Bearer
 
-{"type":"AuthorizationException","message":"This request requires authentication.","details":""}
+{"detail":"This request requires authentication.","type":"urn:hardened:problem:unauthorized","title":"Unauthorized","status":401}
 ```
 
 An anonymous request to a handler that requires a caller gets 401 with `WWW-Authenticate: Bearer`.
@@ -200,10 +200,10 @@ Content-Type: application/json
 {"title":"Write the docs"}
 
 HTTP/1.1 401 Unauthorized
-Content-Type: application/json
+Content-Type: application/problem+json
 WWW-Authenticate: Bearer error="invalid_token", error_description="The token expired at 2026-09-28T14:52:00.0000000Z."
 
-{"type":"AuthorizationException","message":"This request requires authentication.","details":""}
+{"detail":"This request requires authentication.","type":"urn:hardened:problem:unauthorized","title":"Unauthorized","status":401}
 ```
 
 A handler that requires nothing runs with an anonymous caller, as it does for a request with no
@@ -465,10 +465,10 @@ Content-Type: application/json
 {"title":"Write the docs"}
 
 HTTP/1.1 401 Unauthorized
-Content-Type: application/json
+Content-Type: application/problem+json
 WWW-Authenticate: Bearer error="invalid_token", error_description="The token is not valid."
 
-{"type":"AuthorizationException","message":"This request requires authentication.","details":""}
+{"detail":"This request requires authentication.","type":"urn:hardened:problem:unauthorized","title":"Unauthorized","status":401}
 ```
 
 A handler that requires nothing runs with an anonymous caller. The rejection is an answer, so no
@@ -594,7 +594,7 @@ request with no credential and a malformed body gets 401, not 400. A requirement
 parameters is decided after the body is read. [Authorization](/guide/authorization) covers such
 requirements.
 
-The body of the 401 is an `ErrorModel` whose message is "This request requires authentication." The
+The body of the 401 is an `ErrorModel` whose `detail` is "This request requires authentication." The
 request in the first example is logged at `Warning` in the category
 `Hardened.Requests.Runtime.Logging.RequestLogger`, with event id 78004 and this message:
 

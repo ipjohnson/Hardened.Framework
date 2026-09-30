@@ -96,9 +96,9 @@ Content-Type: application/json
 GET /todos/0
 
 HTTP/1.1 400 Bad Request
-Content-Type: application/json
+Content-Type: application/problem+json
 
-{"type":"ValidationError","message":"One or more validation errors occurred.","errors":[{"field":"id","code":"range","message":"id must be at least 1."}]}
+{"errors":[{"field":"id","code":"range","message":"id must be at least 1."}],"detail":"One or more validation errors occurred.","type":"urn:hardened:problem:validation-failed","title":"Request Validation Failed","status":400}
 ```
 
 A route attribute on a method makes the method a handler. `TodoController` has no base type and no

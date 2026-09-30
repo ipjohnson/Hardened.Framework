@@ -186,8 +186,8 @@ answers with the status in this table:
 | What happened | The request answers | Cloud Scheduler records |
 |---|---|---|
 | The handler returned | 200, no body | A successful run |
-| The handler threw | 500, `{"type":"ServerError","message":"The server could not complete this request.","details":""}` | A failed run |
-| The job's body did not bind to the handler's parameter | 400, a `ValidationError` body naming the parameter | A failed run |
+| The handler threw | 500, `{"detail":"The server could not complete this request.","type":"urn:hardened:problem:internal-server-error","title":"Internal Server Error","status":500}` | A failed run |
+| The job's body did not bind to the handler's parameter | 400, a `RequestValidationError` body naming the parameter | A failed run |
 | The job's name is not the timer's name | 500, no body | A failed run |
 | No handler names the timer | 500, no body | A failed run |
 

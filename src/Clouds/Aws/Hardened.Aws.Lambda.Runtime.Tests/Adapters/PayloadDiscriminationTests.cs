@@ -50,6 +50,8 @@ public class PayloadDiscriminationTests
             { "eventbridge", Infrastructure.Payloads.EventBridgeJson },
             { "eventbridge", Infrastructure.Payloads.ScheduledJson },
             { "http", Infrastructure.Payloads.HttpJson },
+            { "http", Infrastructure.Payloads.RestJson },
+            { "http", Infrastructure.Payloads.AlbJson },
         };
 
     [Theory]

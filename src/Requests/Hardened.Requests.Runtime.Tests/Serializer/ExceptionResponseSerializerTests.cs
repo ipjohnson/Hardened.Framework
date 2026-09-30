@@ -69,7 +69,7 @@ public class ExceptionResponseSerializerTests
     {
         var fixture = new Fixture();
         var context = Pipeline.Context();
-        var model = new ErrorModel { Type = "InvalidOperationException", Message = "failed" };
+        var model = ErrorModel.For(500, "failed");
 
         context.Response.ResponseValue = "half an answer";
 

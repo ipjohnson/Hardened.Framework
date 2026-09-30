@@ -5,6 +5,7 @@ using Hardened.Aws.Lambda.Http;
 using Hardened.Aws.Lambda.Runtime.Adapters;
 using Hardened.Aws.Lambda.Runtime.Execution;
 using Hardened.Aws.Lambda.Runtime.Tests.Infrastructure;
+using Hardened.Requests.Abstract.Execution;
 using Xunit;
 
 namespace Hardened.Aws.Lambda.Runtime.Tests.Adapters;
@@ -38,22 +39,25 @@ public class LambdaHttpAdapterTests
         );
     }
 
+    [Fact]
+    public void RecognisesPayloadFormatOne()
+    {
+        Assert.True(Handles(Payloads.RestJson));
+    }
+
+    [Fact]
+    public void RecognisesALoadBalancer()
+    {
+        Assert.True(Handles(Payloads.AlbJson));
+    }
+
     /// <summary>
-    /// The distinction the diagnostic exists for. Format 1.0 puts the method on the root and its
-    /// requestContext has no http object, so the adapter that names the v2 type must not claim it -
-    /// which is what happened before, and the function failed on a null RequestContext.Http.
+    /// A caller's own payload that happens to name a method, with no front door's context around it.
     /// </summary>
     [Fact]
-    public void DeclinesPayloadFormatOne()
+    public void DeclinesAnHttpMethodWithoutARequestContext()
     {
-        Assert.False(
-            Handles(
-                """
-                {"resource":"/orders","httpMethod":"GET","path":"/orders",
-                 "requestContext":{"httpMethod":"GET","path":"/orders","stage":"prod"}}
-                """
-            )
-        );
+        Assert.False(Handles("""{"httpMethod":"GET","path":"/orders"}"""));
     }
 
     [Theory]
@@ -142,6 +146,182 @@ public class LambdaHttpAdapterTests
         Assert.Equal(0, request.Body.Length);
     }
 
+    // ------------------------------------------------------------------ payload format 1.0
+
+    [Fact]
+    public void AGatewayEventReadsItsMethodPathAndHeaders()
+    {
+        var request = _adapter.CreateRequest(
+            Payloads.Payload(Payloads.RestJson),
+            TestLambdaContext.Instance
+        );
+
+        Assert.IsType<LambdaProxyRequest>(request);
+        Assert.Equal("GET", request.Method);
+        Assert.Equal("/orders/42", request.Path);
+        Assert.Equal("application/json", request.Accept);
+    }
+
+    /// <summary>
+    /// API Gateway decodes the query string for 1.0 as it does for 2.0, so a "+" in a timestamp
+    /// arrives as itself.
+    /// </summary>
+    [Fact]
+    public void AGatewayEventsQueryStringIsNotDecodedTwice()
+    {
+        var request = _adapter.CreateRequest(
+            Payloads.Payload(Payloads.RestJson),
+            TestLambdaContext.Instance
+        );
+
+        Assert.Equal("2026-01-01T00:00:00+01:00", request.QueryString.Get("at").ToString());
+    }
+
+    [Fact]
+    public void AGatewayEventsCookiesComeFromTheCookieHeader()
+    {
+        var request = _adapter.CreateRequest(
+            Payloads.Payload(Payloads.RestJson),
+            TestLambdaContext.Instance
+        );
+
+        Assert.Equal(["session=abc123", "theme=dark"], request.Cookies);
+    }
+
+    [Fact]
+    public void AGatewayEventsCallerIsTheSourceIp()
+    {
+        var request = _adapter.CreateRequest(
+            Payloads.Payload(Payloads.RestJson),
+            TestLambdaContext.Instance
+        );
+
+        Assert.Equal("203.0.113.7", request.Transport.Get(KnownTransportKeys.ClientAddress));
+        Assert.Equal("api.example.test", request.Transport.Get(KnownTransportKeys.ServerAddress));
+        Assert.Equal("1.1", request.Transport.Get(KnownTransportKeys.NetworkProtocolVersion));
+    }
+
+    /// <summary>
+    /// A REST API's path excludes the stage, so a resource named like the stage is left alone.
+    /// </summary>
+    [Fact]
+    public void ARestApiPathKeepsASegmentNamedLikeTheStage()
+    {
+        var request = _adapter.CreateRequest(
+            Payloads.Payload(
+                """
+                {"httpMethod":"GET","path":"/prod/reports",
+                 "requestContext":{"stage":"prod","path":"/prod/prod/reports"}}
+                """
+            ),
+            TestLambdaContext.Instance
+        );
+
+        Assert.Equal("/prod/reports", request.Path);
+    }
+
+    /// <summary>
+    /// An HTTP API integration set to 1.0 states the version, and its path starts with the stage.
+    /// </summary>
+    [Fact]
+    public void AnHttpApiFormatOnePathLosesItsStage()
+    {
+        var request = _adapter.CreateRequest(
+            Payloads.Payload(
+                """
+                {"version":"1.0","httpMethod":"GET","path":"/prod/orders/42",
+                 "requestContext":{"stage":"prod","path":"/prod/orders/42"}}
+                """
+            ),
+            TestLambdaContext.Instance
+        );
+
+        Assert.Equal("/orders/42", request.Path);
+    }
+
+    /// <summary>
+    /// A load balancer passes the query string on encoded, so it is decoded here, once.
+    /// </summary>
+    [Fact]
+    public void ALoadBalancersQueryStringIsDecoded()
+    {
+        var request = _adapter.CreateRequest(
+            Payloads.Payload(Payloads.AlbJson),
+            TestLambdaContext.Instance
+        );
+
+        Assert.Equal("2026-01-01T00:00:00+01:00", request.QueryString.Get("at").ToString());
+    }
+
+    /// <summary>
+    /// The last X-Forwarded-For entry is the one the load balancer appended. The first is whatever
+    /// the caller sent.
+    /// </summary>
+    [Fact]
+    public void ALoadBalancersCallerIsTheAddressItAppended()
+    {
+        var request = _adapter.CreateRequest(
+            Payloads.Payload(Payloads.AlbJson),
+            TestLambdaContext.Instance
+        );
+
+        Assert.Equal("203.0.113.9", request.Transport.Get(KnownTransportKeys.ClientAddress));
+        Assert.Equal(
+            "orders.example.test",
+            request.Transport.Get(KnownTransportKeys.ServerAddress)
+        );
+        Assert.Equal("http", request.Transport.Get(KnownTransportKeys.UrlScheme));
+    }
+
+    [Fact]
+    public void ABase64FormatOneBodyIsDecoded()
+    {
+        var request = _adapter.CreateRequest(
+            Payloads.Payload(
+                """
+                {"httpMethod":"POST","path":"/orders","requestContext":{"stage":"prod"},
+                 "body":"eyJpZCI6MX0=","isBase64Encoded":true}
+                """
+            ),
+            TestLambdaContext.Instance
+        );
+
+        using var reader = new StreamReader(request.Body);
+
+        Assert.Equal("""{"id":1}""", reader.ReadToEnd());
+    }
+
+    [Fact]
+    public void AnEventFromNoFrontDoorSaysWhichItServes()
+    {
+        var failure = Assert.Throws<InvalidOperationException>(() =>
+            _adapter.CreateRequest(
+                Payloads.Payload("""{"orderId":"abc"}"""),
+                TestLambdaContext.Instance
+            )
+        );
+
+        Assert.Contains("REST API", failure.Message);
+        Assert.Contains("Application Load", failure.Message);
+    }
+
+    // ------------------------------------------------------------------ the stage prefix
+
+    /// <summary>
+    /// The stage is removed only as a whole segment. The stage "todo" once routed "/todos/1" as
+    /// "s/1".
+    /// </summary>
+    [Theory]
+    [InlineData("/todo/todos/1", "todo", "/todos/1")]
+    [InlineData("/todos/1", "todo", "/todos/1")]
+    [InlineData("/todo", "todo", "/")]
+    [InlineData("/orders", "$default", "/orders")]
+    [InlineData("/orders", null, "/orders")]
+    public void TheStageIsRemovedOnlyAsAWholeSegment(string path, string? stage, string expected)
+    {
+        Assert.Equal(expected, LambdaHttpRequest.StripStagePath(path, stage));
+    }
+
     // ------------------------------------------------------------------ the response
 
     [Fact]
@@ -228,7 +408,94 @@ public class LambdaHttpAdapterTests
         Assert.Equal("""{"ok":true}""", proxy.Body);
     }
 
+    // ------------------------------------------------------------------ the 1.0 response
+
+    /// <summary>
+    /// Payload format 1.0 has no cookies array, so each Set-Cookie is its own value in
+    /// multiValueHeaders.
+    /// </summary>
+    [Fact]
+    public async Task AGatewayAnswerCarriesEachCookieAsItsOwnHeaderValue()
+    {
+        var answer = await AnswerFormatOne(
+            Payloads.RestJson,
+            r =>
+            {
+                r.Status = 201;
+                r.Headers.Set("X-Trace", "abc");
+                r.Cookies.Append("session", "abc123");
+                r.Cookies.Append("theme", "dark");
+            }
+        );
+
+        Assert.Equal(201, answer.GetProperty("statusCode").GetInt32());
+        Assert.False(answer.TryGetProperty("cookies", out _));
+        Assert.False(answer.TryGetProperty("statusDescription", out _));
+
+        var headers = answer.GetProperty("multiValueHeaders");
+
+        Assert.Equal("abc", headers.GetProperty("X-Trace")[0].GetString());
+        Assert.Equal(2, headers.GetProperty("Set-Cookie").GetArrayLength());
+        Assert.StartsWith("session=abc123", headers.GetProperty("Set-Cookie")[0].GetString());
+    }
+
+    /// <summary>
+    /// A load balancer needs a statusDescription, and reads single-valued headers when the event
+    /// came with them.
+    /// </summary>
+    [Fact]
+    public async Task ALoadBalancerAnswerHasAStatusDescriptionAndSingleValuedHeaders()
+    {
+        var answer = await AnswerFormatOne(
+            Payloads.AlbJson,
+            r =>
+            {
+                r.Status = 404;
+                r.Headers.Set("X-Trace", "abc");
+                r.Cookies.Append("session", "abc123");
+            }
+        );
+
+        Assert.Equal("404 Not Found", answer.GetProperty("statusDescription").GetString());
+        Assert.False(answer.TryGetProperty("multiValueHeaders", out _));
+        Assert.Equal("abc", answer.GetProperty("headers").GetProperty("X-Trace").GetString());
+        Assert.StartsWith(
+            "session=abc123",
+            answer.GetProperty("headers").GetProperty("Set-Cookie").GetString()
+        );
+    }
+
+    [Fact]
+    public async Task ALoadBalancerWithMultiValueHeadersIsAnsweredWithThem()
+    {
+        var answer = await AnswerFormatOne(
+            """
+            {"requestContext":{"elb":{"targetGroupArn":"arn"}},"httpMethod":"GET","path":"/orders",
+             "multiValueHeaders":{"accept":["application/json"]},"body":"","isBase64Encoded":false}
+            """,
+            r => r.Status = 200
+        );
+
+        Assert.Equal("200 OK", answer.GetProperty("statusDescription").GetString());
+        Assert.True(answer.TryGetProperty("multiValueHeaders", out _));
+        Assert.False(answer.TryGetProperty("headers", out _));
+    }
+
     // ------------------------------------------------------------------ helpers
+
+    private async Task<JsonElement> AnswerFormatOne(string json, Action<LambdaHttpResponse> write)
+    {
+        var request = _adapter.CreateRequest(Payloads.Payload(json), TestLambdaContext.Instance);
+        var response = (LambdaHttpResponse)_adapter.CreateResponse(new MemoryStream());
+
+        write(response);
+
+        var output = new MemoryStream();
+
+        await _adapter.WriteResponse(new ResponseOnlyContext(response, request), output);
+
+        return JsonDocument.Parse(output.ToArray()).RootElement;
+    }
 
     private static LambdaPayload Event(string? body = null, bool base64 = false)
     {
@@ -265,7 +532,10 @@ public class LambdaHttpAdapterTests
 
         var output = new MemoryStream();
 
-        await _adapter.WriteResponse(new ResponseOnlyContext(response), output);
+        // The request says which front door is waiting, and so which format to answer in.
+        var request = _adapter.CreateRequest(Event(), TestLambdaContext.Instance);
+
+        await _adapter.WriteResponse(new ResponseOnlyContext(response, request), output);
 
         output.Position = 0;
 

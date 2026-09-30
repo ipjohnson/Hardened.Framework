@@ -151,9 +151,9 @@ A constraint is part of the match. A value that fails it answers 404, and the ha
 GET /todos/abc
 
 HTTP/1.1 400 Bad Request
-Content-Type: application/json
+Content-Type: application/problem+json
 
-{"type":"ValidationError","message":"One or more validation errors occurred.","errors":[{"field":"id","code":"invalid","message":"id is not a valid Int32."}]}
+{"errors":[{"field":"id","code":"invalid","message":"id is not a valid Int32."}],"detail":"One or more validation errors occurred.","type":"urn:hardened:problem:validation-failed","title":"Request Validation Failed","status":400}
 ```
 
 These are the built-in constraints:
@@ -420,17 +420,30 @@ Content-Type: application/json
 
 A HEAD request answers with the GET's status and headers. [Limits](#limits) has the exception, a GET handler that returns null.
 
-A request whose path matches a route under another method answers 405, with `Allow` and no body. `Allow` lists the methods declared at that path in alphabetical order, with HEAD wherever GET is declared:
+A request whose path matches a route under another method answers 405, with `Allow` and a problem details body. `Allow` lists the methods declared at that path in alphabetical order, with HEAD wherever GET is declared:
 
 ```http
 PUT /todos/labels/7
 
 HTTP/1.1 405 Method Not Allowed
-Content-Length: 0
+Content-Type: application/problem+json
 Allow: GET, HEAD
+
+{"detail":"This resource does not answer PUT. It answers GET, HEAD.","type":"urn:hardened:problem:method-not-allowed","title":"Method Not Allowed","status":405}
 ```
 
-An `OPTIONS` request with no CORS headers answers 405 in the same way. A request for a path that no route matches answers 404 with no body.
+An `OPTIONS` request with no CORS headers answers 405 in the same way. A request for a path that no route matches answers 404:
+
+```http
+GET /nowhere
+
+HTTP/1.1 404 Not Found
+Content-Type: application/problem+json
+
+{"detail":"No route matches this path.","type":"urn:hardened:problem:not-found","title":"Not Found","status":404}
+```
+
+A HEAD request gets the 405 or the 404 with no body. Under the ASP.NET Core host, a path that no route matches is left to ASP.NET Core, which answers its own 404. [Declared responses](/guide/responses#what-a-thrown-exception-answers) covers the body's members.
 
 ## Status codes
 

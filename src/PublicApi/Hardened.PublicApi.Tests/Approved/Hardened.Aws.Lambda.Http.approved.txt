@@ -71,4 +71,34 @@ namespace Hardened.Aws.Lambda.Http
         public System.Collections.Generic.IReadOnlyList<string> Keys { get; }
         public string? Get(string key) { }
     }
+    public sealed class LambdaProxyRequest : Hardened.Requests.Abstract.Execution.IExecutionRequest
+    {
+        public string? Accept { get; }
+        public System.IO.Stream Body { get; set; }
+        public string? ContentType { get; }
+        public System.Collections.Generic.IReadOnlyList<string> Cookies { get; }
+        public Hardened.Requests.Abstract.Headers.IHeaderCollection Headers { get; }
+        public string Method { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequestParameters? Parameters { get; set; }
+        public string Path { get; }
+        public Hardened.Requests.Abstract.PathTokens.PathTokenCollection PathTokens { get; set; }
+        public Hardened.Requests.Abstract.QueryString.IQueryStringCollection QueryString { get; }
+        public Hardened.Aws.Lambda.Http.LambdaProxySource Source { get; }
+        public Hardened.Requests.Abstract.Execution.ITransportInfo Transport { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequest Clone(string? method = null, string? path = null, System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues>? headers = null, Hardened.Requests.Abstract.QueryString.IQueryStringCollection? queryString = null, System.Collections.Generic.IReadOnlyList<string>? cookies = null) { }
+        public static Hardened.Aws.Lambda.Http.LambdaProxyRequest FromApiGateway(Amazon.Lambda.APIGatewayEvents.APIGatewayProxyRequest request, System.IO.Stream body, bool httpApi = false, string? protocol = null) { }
+        public static Hardened.Aws.Lambda.Http.LambdaProxyRequest FromLoadBalancer(Amazon.Lambda.ApplicationLoadBalancerEvents.ApplicationLoadBalancerRequest request, System.IO.Stream body) { }
+    }
+    public enum LambdaProxySource
+    {
+        ApiGateway = 0,
+        LoadBalancer = 1,
+        LoadBalancerMultiValue = 2,
+    }
+    public sealed class LambdaProxyTransportInfo : Hardened.Requests.Abstract.Execution.ITransportInfo
+    {
+        public LambdaProxyTransportInfo(string? clientAddress, string? serverAddress, string? protocol, string? scheme = null) { }
+        public System.Collections.Generic.IReadOnlyList<string> Keys { get; }
+        public string? Get(string key) { }
+    }
 }

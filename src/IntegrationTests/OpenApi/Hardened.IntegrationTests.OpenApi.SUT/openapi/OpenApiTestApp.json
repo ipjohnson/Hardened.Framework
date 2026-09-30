@@ -71,7 +71,7 @@
           "400": {
             "description": "The request failed validation.",
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/RequestValidationError"
                 }
@@ -109,7 +109,7 @@
               }
             },
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorModel"
                 }
@@ -160,7 +160,7 @@
           "400": {
             "description": "The request failed validation.",
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/RequestValidationError"
                 }
@@ -217,7 +217,7 @@
           "400": {
             "description": "The request failed validation.",
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/RequestValidationError"
                 }
@@ -283,7 +283,7 @@
           "400": {
             "description": "The request failed validation.",
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/RequestValidationError"
                 }
@@ -420,7 +420,7 @@
           "400": {
             "description": "The request failed validation.",
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/RequestValidationError"
                 }
@@ -483,7 +483,7 @@
           "400": {
             "description": "The request failed validation.",
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/RequestValidationError"
                 }
@@ -551,7 +551,7 @@
           "400": {
             "description": "The request failed validation.",
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/RequestValidationError"
                 }
@@ -599,7 +599,7 @@
           "400": {
             "description": "The request failed validation.",
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/RequestValidationError"
                 }
@@ -756,7 +756,7 @@
           "400": {
             "description": "The request failed validation.",
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/RequestValidationError"
                 }
@@ -840,7 +840,7 @@
           "400": {
             "description": "The request failed validation.",
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/RequestValidationError"
                 }
@@ -873,7 +873,7 @@
           "400": {
             "description": "The request failed validation.",
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/RequestValidationError"
                 }
@@ -968,7 +968,7 @@
               }
             },
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorModel"
                 }
@@ -978,7 +978,7 @@
           "403": {
             "description": "The caller is not the owner.",
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorModel"
                 }
@@ -1023,7 +1023,7 @@
               }
             },
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorModel"
                 }
@@ -1041,7 +1041,7 @@
               }
             },
             "content": {
-              "application/json": {
+              "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorModel"
                 }
@@ -1117,21 +1117,28 @@
       },
       "ErrorModel": {
         "type": "object",
-        "description": "How a refused or failed request is answered when the contract declared no body for it.",
+        "description": "How a refused or failed request is answered when the contract declared no body for it: a problem details document.",
         "required": [
           "type",
-          "message",
-          "details"
+          "title",
+          "status"
         ],
         "properties": {
+          "detail": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "type": {
             "type": "string"
           },
-          "message": {
+          "title": {
             "type": "string"
           },
-          "details": {
-            "type": "string"
+          "status": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },
@@ -1328,19 +1335,14 @@
       },
       "RequestValidationError": {
         "type": "object",
-        "description": "How a request that failed validation is answered.",
+        "description": "How a request that failed validation is answered: a problem details document whose errors member names each field that failed.",
         "required": [
+          "errors",
           "type",
-          "message",
-          "errors"
+          "title",
+          "status"
         ],
         "properties": {
-          "type": {
-            "type": "string"
-          },
-          "message": {
-            "type": "string"
-          },
           "errors": {
             "type": "array",
             "items": {
@@ -1362,6 +1364,22 @@
                 }
               }
             }
+          },
+          "detail": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "type": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },

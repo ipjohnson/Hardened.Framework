@@ -43,13 +43,13 @@ The fourth request within the minute gets 429:
 GET /todos
 
 HTTP/1.1 429 Too Many Requests
-Content-Type: application/json
+Content-Type: application/problem+json
 Retry-After: 60
 RateLimit-Limit: 3
 RateLimit-Remaining: 0
 RateLimit-Reset: 60
 
-{"type":"RateLimitExceededException","message":"Rate limit exceeded.","details":""}
+{"detail":"Rate limit exceeded.","type":"urn:hardened:problem:rate-limited","title":"Too Many Requests","status":429}
 ```
 
 `[RateLimit]` is in the namespace `Hardened.Requests.Runtime.RateLimiting`. Nothing has to be
@@ -212,9 +212,9 @@ permit returns. With the in-process store, `Retry-After` is always `WindowSecond
 permit returns.
 
 The 429's body is
-`{"type":"RateLimitExceededException","message":"Rate limit exceeded.","details":""}`. A refused
-request's body is not read. A request over the limit with a malformed JSON body gets the 429, not a
-400.
+`{"detail":"Rate limit exceeded.","type":"urn:hardened:problem:rate-limited","title":"Too Many Requests","status":429}`,
+sent as `application/problem+json`. A refused request's body is not read. A request over the limit
+with a malformed JSON body gets the 429, not a 400.
 
 An operation whose contract declares an error for 429 answers with that error instead, because the
 document publishes it there. The build fills the error's message or title with the status's reason
@@ -315,13 +315,13 @@ Content-Type: application/json
 {"title":"Todo 6"}
 
 HTTP/1.1 429 Too Many Requests
-Content-Type: application/json
+Content-Type: application/problem+json
 Retry-After: 1
 RateLimit-Limit: 5
 RateLimit-Remaining: 0
 RateLimit-Reset: 1
 
-{"type":"RateLimitExceededException","message":"Rate limit exceeded.","details":""}
+{"detail":"Rate limit exceeded.","type":"urn:hardened:problem:rate-limited","title":"Too Many Requests","status":429}
 ```
 
 ## Partitions
@@ -380,13 +380,13 @@ GET /todos
 X-Api-Key: build-server
 
 HTTP/1.1 429 Too Many Requests
-Content-Type: application/json
+Content-Type: application/problem+json
 Retry-After: 60
 RateLimit-Limit: 3
 RateLimit-Remaining: 0
 RateLimit-Reset: 60
 
-{"type":"RateLimitExceededException","message":"Rate limit exceeded.","details":""}
+{"detail":"Rate limit exceeded.","type":"urn:hardened:problem:rate-limited","title":"Too Many Requests","status":429}
 ```
 
 The next request, with another key, is allowed:
@@ -538,13 +538,13 @@ request, sent to the second instance, is refused:
 GET /todos
 
 HTTP/1.1 429 Too Many Requests
-Content-Type: application/json
+Content-Type: application/problem+json
 Retry-After: 60
 RateLimit-Limit: 3
 RateLimit-Remaining: 0
 RateLimit-Reset: 60
 
-{"type":"RateLimitExceededException","message":"Rate limit exceeded.","details":""}
+{"detail":"Rate limit exceeded.","type":"urn:hardened:problem:rate-limited","title":"Too Many Requests","status":429}
 ```
 
 ### How many counts the in-process store keeps

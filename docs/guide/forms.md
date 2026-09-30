@@ -78,9 +78,9 @@ Content-Type: application/json
 
 HTTP/1.1 415 Unsupported Media Type
 Accept: application/x-www-form-urlencoded, multipart/form-data
-Content-Type: application/json
+Content-Type: application/problem+json
 
-{"type":"UnsupportedContentTypeException","message":"This route does not read application/json. It reads application/x-www-form-urlencoded, multipart/form-data.","details":""}
+{"detail":"This route does not read application/json. It reads application/x-www-form-urlencoded, multipart/form-data.","type":"urn:hardened:problem:unsupported-media-type","title":"Unsupported Media Type","status":415}
 ```
 
 ## Files
@@ -175,9 +175,9 @@ Nothing here
 ------todos--
 
 HTTP/1.1 400 Bad Request
-Content-Type: application/json
+Content-Type: application/problem+json
 
-{"type":"ValidationError","message":"One or more validation errors occurred.","errors":[{"field":"file","code":"required","message":"file is required."}]}
+{"errors":[{"field":"file","code":"required","message":"file is required."}],"detail":"One or more validation errors occurred.","type":"urn:hardened:problem:validation-failed","title":"Request Validation Failed","status":400}
 ```
 
 ::: warning
@@ -310,9 +310,9 @@ cap above, a 5,000,001-byte multipart body sent to `POST /todos/form/import` get
 
 ```http
 HTTP/1.1 413 Payload Too Large
-Content-Type: application/json
+Content-Type: application/problem+json
 
-{"type":"FormBodyTooLargeException","message":"The form body is longer than 5000000 bytes.","details":""}
+{"detail":"The form body is longer than 5000000 bytes.","type":"urn:hardened:problem:content-too-large","title":"Content Too Large","status":413}
 ```
 
 The host's own request body limit applies first. On the Kestrel and ASP.NET Core hosts it is
@@ -328,9 +328,9 @@ A form body that cannot be read answers 400. The error has the code `invalid` an
 
 ```http
 HTTP/1.1 400 Bad Request
-Content-Type: application/json
+Content-Type: application/problem+json
 
-{"type":"ValidationError","message":"One or more validation errors occurred.","errors":[{"field":"body","code":"invalid","message":"The multipart body\u0027s content type has no usable boundary."}]}
+{"errors":[{"field":"body","code":"invalid","message":"The multipart body\u0027s content type has no usable boundary."}],"detail":"One or more validation errors occurred.","type":"urn:hardened:problem:validation-failed","title":"Request Validation Failed","status":400}
 ```
 
 These bodies cannot be read:

@@ -165,9 +165,9 @@ Content-Type: application/json
 {"text":"Call the plumber","priority":"InProgress","dueOn":"2026-10-01"}
 
 HTTP/1.1 400 Bad Request
-Content-Type: application/json
+Content-Type: application/problem+json
 
-{"type":"ValidationError","message":"One or more validation errors occurred.","errors":[{"field":"reminder.priority","code":"invalid","message":"\u0027InProgress\u0027 is not a value Priority declares."}]}
+{"errors":[{"field":"reminder.priority","code":"invalid","message":"\u0027InProgress\u0027 is not a value Priority declares."}],"detail":"One or more validation errors occurred.","type":"urn:hardened:problem:validation-failed","title":"Request Validation Failed","status":400}
 ```
 
 When two members share a value, the build's converter writes the first one declared. The OpenAPI
@@ -242,9 +242,9 @@ Content-Type: application/json
 {}
 
 HTTP/1.1 400 Bad Request
-Content-Type: application/json
+Content-Type: application/problem+json
 
-{"type":"ValidationError","message":"One or more validation errors occurred.","errors":[{"field":"request.title","code":"required","message":"title is required."}]}
+{"errors":[{"field":"request.title","code":"required","message":"title is required."}],"detail":"One or more validation errors occurred.","type":"urn:hardened:problem:validation-failed","title":"Request Validation Failed","status":400}
 ```
 
 A member that is not required and is not sent reads as its default, such as `null` for a reference
@@ -497,7 +497,7 @@ Without the framework's bodies in the context, the template's 404, 409 and 400 e
 an empty body.
 
 A response value whose type no resolver describes answers 500 with an empty body. A request body
-whose type no resolver describes answers 500 with the `ServerError` body. Both log a
+whose type no resolver describes answers 500 with an `ErrorModel` body. Both log a
 `NotSupportedException` that names the type.
 
 The build's enum converters and views work in a Native AOT binary. [Views](/guide/views) covers

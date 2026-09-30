@@ -104,8 +104,8 @@ public class ExceptionToModelConverterTests
 
         var error = Assert.IsType<ErrorModel>(model);
 
-        Assert.Equal("TooLarge", error.Type);
-        Assert.Equal("Request body too large.", error.Message);
+        Assert.Equal("urn:hardened:problem:content-too-large", error.Type);
+        Assert.Equal("Request body too large.", error.Detail);
     }
 
     [Fact]
@@ -153,7 +153,9 @@ public class ExceptionToModelConverterTests
         Assert.Equal(400, status);
 
         var validationError = Assert.IsType<RequestValidationError>(model);
-        Assert.Equal("ValidationError", validationError.Type);
+        Assert.Equal(RequestValidationError.ProblemType, validationError.Type);
+        Assert.Equal("Request Validation Failed", validationError.Title);
+        Assert.Equal(400, validationError.Status);
         Assert.Equal(2, validationError.Errors.Count);
 
         Assert.Equal("email", validationError.Errors[0].Field);
@@ -195,7 +197,7 @@ public class ExceptionToModelConverterTests
         Assert.Equal(400, status);
 
         var validationError = Assert.IsType<RequestValidationError>(model);
-        Assert.Equal("ValidationError", validationError.Type);
+        Assert.Equal(RequestValidationError.ProblemType, validationError.Type);
 
         var fieldError = Assert.Single(validationError.Errors);
         Assert.Equal("sku", fieldError.Field);
@@ -220,8 +222,8 @@ public class ExceptionToModelConverterTests
 
         Assert.Equal(500, status);
         var error = Assert.IsType<ErrorModel>(model);
-        Assert.Equal("ServerError", error.Type);
-        Assert.DoesNotContain("internal-7", error.Message);
+        Assert.Equal("urn:hardened:problem:internal-server-error", error.Type);
+        Assert.DoesNotContain("internal-7", error.Detail);
     }
 
     /// <summary>What the binding filters make of a <c>FormatException</c> keeps its message.</summary>
@@ -235,8 +237,8 @@ public class ExceptionToModelConverterTests
 
         Assert.Equal(400, status);
         var error = Assert.IsType<ErrorModel>(model);
-        Assert.Equal(nameof(BadRequestException), error.Type);
-        Assert.Equal("not a number", error.Message);
+        Assert.Equal("urn:hardened:problem:bad-request", error.Type);
+        Assert.Equal("not a number", error.Detail);
     }
 
     [Fact]
@@ -260,8 +262,8 @@ public class ExceptionToModelConverterTests
 
         Assert.Equal(500, status);
         var error = Assert.IsType<ErrorModel>(model);
-        Assert.Equal("ServerError", error.Type);
-        Assert.DoesNotContain("something went wrong", error.Message);
+        Assert.Equal("urn:hardened:problem:internal-server-error", error.Type);
+        Assert.DoesNotContain("something went wrong", error.Detail);
     }
 
     private class CustomValidationProblemException : Exception
@@ -325,7 +327,7 @@ public class ExceptionToModelConverterTests
         );
 
         Assert.Equal(400, status);
-        Assert.Equal(nameof(TenantMismatchException), Assert.IsType<ErrorModel>(model).Type);
+        Assert.Equal("urn:hardened:problem:bad-request", Assert.IsType<ErrorModel>(model).Type);
     }
 
     /// <summary>
@@ -369,9 +371,9 @@ public class ExceptionToModelConverterTests
         var error = Assert.IsType<ErrorModel>(model);
 
         Assert.Equal(500, status);
-        Assert.DoesNotContain("hunter2", error.Message);
-        Assert.DoesNotContain("Server=db", error.Message);
-        Assert.Equal("ServerError", error.Type);
+        Assert.DoesNotContain("hunter2", error.Detail);
+        Assert.DoesNotContain("Server=db", error.Detail);
+        Assert.Equal("urn:hardened:problem:internal-server-error", error.Type);
     }
 
     /// <summary>
@@ -396,7 +398,7 @@ public class ExceptionToModelConverterTests
         var validationError = Assert.IsType<RequestValidationError>(model);
         var field = Assert.Single(validationError.Errors);
 
-        Assert.Equal("ValidationError", validationError.Type);
+        Assert.Equal(RequestValidationError.ProblemType, validationError.Type);
         Assert.Equal("body", field.Field);
         Assert.Equal("invalid", field.Code);
         Assert.Equal("'cooking' is not a value Genre declares.", field.Message);
@@ -525,7 +527,7 @@ public class ExceptionToModelConverterTests
         );
 
         Assert.Equal(409, status);
-        Assert.Equal("already exists", Assert.IsType<ErrorModel>(model).Message);
+        Assert.Equal("already exists", Assert.IsType<ErrorModel>(model).Detail);
     }
 
     /// <summary>
@@ -568,7 +570,7 @@ public class ExceptionToModelConverterTests
         );
 
         Assert.Equal(403, status);
-        Assert.Equal("forbidden", Assert.IsType<ErrorModel>(model).Message);
+        Assert.Equal("forbidden", Assert.IsType<ErrorModel>(model).Detail);
     }
 
     /// <summary>
@@ -664,7 +666,7 @@ public class ExceptionToModelConverterTests
         );
 
         Assert.Equal(401, status);
-        Assert.Equal("authentication required", Assert.IsType<ErrorModel>(model).Message);
+        Assert.Equal("authentication required", Assert.IsType<ErrorModel>(model).Detail);
     }
 
     /// <summary>An implementation of the interface that overrides none of its default members.</summary>
@@ -696,7 +698,7 @@ public class ExceptionToModelConverterTests
         );
 
         Assert.Equal(401, status);
-        Assert.Equal(nameof(ChallengeException), Assert.IsType<ErrorModel>(model).Type);
+        Assert.Equal("urn:hardened:problem:unauthorized", Assert.IsType<ErrorModel>(model).Type);
     }
 
     [Fact]
@@ -947,7 +949,7 @@ public class ExceptionToModelConverterTests
         );
 
         Assert.Equal(504, status);
-        Assert.Equal("GatewayTimeout", Assert.IsType<ErrorModel>(model).Type);
+        Assert.Equal("urn:hardened:problem:gateway-timeout", Assert.IsType<ErrorModel>(model).Type);
     }
 
     /// <summary>
@@ -965,7 +967,10 @@ public class ExceptionToModelConverterTests
         );
 
         Assert.Equal(500, status);
-        Assert.Equal("ServerError", Assert.IsType<ErrorModel>(model).Type);
+        Assert.Equal(
+            "urn:hardened:problem:internal-server-error",
+            Assert.IsType<ErrorModel>(model).Type
+        );
     }
 
     /// <summary>
@@ -1018,7 +1023,10 @@ public class ExceptionToModelConverterTests
         );
 
         Assert.Equal(503, status);
-        Assert.Equal("ServiceUnavailable", Assert.IsType<ErrorModel>(model).Type);
+        Assert.Equal(
+            "urn:hardened:problem:service-unavailable",
+            Assert.IsType<ErrorModel>(model).Type
+        );
         Assert.Equal("30", context.Response.Headers[KnownHeaders.RetryAfter]);
     }
 
@@ -1066,7 +1074,7 @@ public class ExceptionToModelConverterTests
             new OperationCanceledException("upstream rates.example.com never answered")
         );
 
-        Assert.DoesNotContain("rates.example.com", Assert.IsType<ErrorModel>(model).Message);
+        Assert.DoesNotContain("rates.example.com", Assert.IsType<ErrorModel>(model).Detail);
     }
 
     #endregion
@@ -1238,6 +1246,9 @@ public class ExceptionToModelConverterTests
         );
 
         Assert.Equal(406, status);
-        Assert.Equal("application/json", Assert.IsType<ErrorModel>(model).Details);
+        Assert.Equal(
+            "This operation produces application/json.",
+            Assert.IsType<ErrorModel>(model).Detail
+        );
     }
 }

@@ -106,7 +106,7 @@ public class DescribedSecurityTests
         using var document = await JsonDocument.ParseAsync(response.Body);
 
         Assert.Equal(
-            "AuthorizationException",
+            "urn:hardened:problem:unauthorized",
             document.RootElement.GetProperty("type").GetString()
         );
     }

@@ -225,7 +225,7 @@ public class RegistrationValidationTests
         var error = response.Deserialize<RequestValidationError>();
 
         Assert.NotNull(error);
-        Assert.Equal("ValidationError", error.Type);
+        Assert.Equal("urn:hardened:problem:validation-failed", error.Type);
         Assert.Contains(error.Errors, e => e.Field == "model.name");
     }
 
@@ -371,7 +371,10 @@ public class RegistrationValidationTests
         );
 
         response.Assert.BadRequest();
-        Assert.Equal("ValidationError", response.Deserialize<RequestValidationError>().Type);
+        Assert.Equal(
+            "urn:hardened:problem:validation-failed",
+            response.Deserialize<RequestValidationError>().Type
+        );
     }
 
     #endregion
@@ -429,7 +432,10 @@ public class RegistrationValidationTests
         );
 
         Assert.Equal(422, response.StatusCode);
-        Assert.Equal("ValidationError", response.Deserialize<RequestValidationError>().Type);
+        Assert.Equal(
+            "urn:hardened:problem:validation-failed",
+            response.Deserialize<RequestValidationError>().Type
+        );
     }
 
     /// <summary>

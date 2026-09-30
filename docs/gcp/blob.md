@@ -310,8 +310,8 @@ The service answers each delivery with the status for its case:
 | Case | Status |
 |---|---|
 | The handler returns | 200, empty |
-| The handler throws | 500, `{"type":"ServerError","message":"The server could not complete this request.","details":""}` |
-| The body does not bind, or fails a constraint | 400, a `ValidationError` naming the field |
+| The handler throws | 500, `{"detail":"The server could not complete this request.","type":"urn:hardened:problem:internal-server-error","title":"Internal Server Error","status":500}` |
+| The body does not bind, or fails a constraint | 400, a `RequestValidationError` naming the field |
 | No handler names the bucket | 500, empty |
 
 Eventarc delivers each event at least once. A handler can receive the same change more than once.

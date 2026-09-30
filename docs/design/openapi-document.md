@@ -46,9 +46,11 @@ serving the source verbatim where that is wanted.
   Schema 2020-12 spelling (the bound is the number), which is what 3.1 and 3.2 documents require.
 - **Responses** - every declared status, each with its description, its `headers` block where the
   contract declares headers, and its `content` under the declared media type. Error statuses stay
-  `application/json`, because the exception path serializes JSON whatever the success was. An
-  operation with a generated validator declares the `400` that validator answers, with the
-  `RequestValidationError` schema.
+  JSON, because the exception path serializes JSON whatever the success was. A body that is a
+  problem document, `ErrorModel`, `RequestValidationError` or a problem record, is published
+  under `application/problem+json` and any other under `application/json`. An operation with a
+  generated validator declares the `400` that validator answers, with the `RequestValidationError`
+  schema.
 - **Statuses in throws mode** - `[Throws<T>(status)]` puts a thrown status into the document
   with its schema; `SuccessStatus` on the verb attribute names the success. Neither is checked
   against what the handler actually throws - the declared response models are where the compiler

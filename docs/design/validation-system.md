@@ -41,9 +41,9 @@ The `ValidationFilter` runs at `FilterOrder.Validation`, one stage behind `Seria
   1. Validates top-level parameters (path/query/header) via `IExecutionRequestParameters.TryGetParameter()`.
   2. Validates request body properties via generated typed accessors (no reflection).
   3. Resolves and invokes `ICustomRequestValidator<T>` instances from DI.
-  4. On failure: sets 400 status + `ValidationErrorModel` response, skips `chain.Next()`.
+  4. On failure: sets 400 status + `RequestValidationError` response, skips `chain.Next()`.
   5. On success: calls `chain.Next()`.
-- **`ValidationErrorModel`** — Structured 400 response with per-field errors.
+- **`RequestValidationError`** — A problem details 400 response with the per-field errors in `errors`.
 - **`ValidationException`** — Extends `BadRequestException` with a `ValidationResult` property.
 
 #### Source Generator (`Hardened.OpenApi.SourceGenerator`)
@@ -58,8 +58,6 @@ The `ValidationFilter` runs at `FilterOrder.Validation`, one stage behind `Seria
 
 ```json
 {
-  "type": "ValidationError",
-  "message": "One or more validation errors occurred.",
   "errors": [
     {
       "field": "name",
@@ -71,7 +69,11 @@ The `ValidationFilter` runs at `FilterOrder.Validation`, one stage behind `Seria
       "code": "range",
       "message": "age must be between 0 and 150."
     }
-  ]
+  ],
+  "detail": "One or more validation errors occurred.",
+  "type": "urn:hardened:problem:validation-failed",
+  "title": "Request Validation Failed",
+  "status": 400
 }
 ```
 

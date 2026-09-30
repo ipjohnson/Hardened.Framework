@@ -27,7 +27,7 @@ public class HttpClientTransportTests
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Assert.Contains(
-            "ValidationError",
+            "urn:hardened:problem:validation-failed",
             await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken)
         );
     }
@@ -42,7 +42,10 @@ public class HttpClientTransportTests
         );
 
         response.Assert.BadRequest();
-        Assert.Equal("ValidationError", response.Deserialize<RequestValidationError>().Type);
+        Assert.Equal(
+            "urn:hardened:problem:validation-failed",
+            response.Deserialize<RequestValidationError>().Type
+        );
     }
 
     [ModuleTest]

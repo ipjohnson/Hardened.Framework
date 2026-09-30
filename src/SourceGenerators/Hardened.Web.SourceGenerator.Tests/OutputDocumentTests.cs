@@ -223,7 +223,7 @@ public class OutputDocumentTests
     }
 
     /// <summary>
-    /// A refusal keeps JSON and keeps its own body, because a refusal never reaches the output: a
+    /// A refusal keeps its own problem document, because a refusal never reaches the output: a
     /// handler that threw has no model to render, so <c>ContextSerializationService</c> sends it to
     /// the exception serializer first and its body is whatever the error-body policy writes.
     /// </summary>
@@ -241,7 +241,7 @@ public class OutputDocumentTests
         );
 
         Assert.Equal(["text/html; charset=utf-8"], MediaTypes(Response(document, "200")));
-        Assert.Equal(["application/json"], MediaTypes(Response(document, "403")));
+        Assert.Equal(["application/problem+json"], MediaTypes(Response(document, "403")));
 
         Assert.Equal(
             "string",

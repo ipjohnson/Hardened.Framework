@@ -304,10 +304,10 @@ X-Test-Grants: todos:read
 X-Test-Subject: pia
 
 HTTP/1.1 401 Unauthorized
-Content-Type: application/json
+Content-Type: application/problem+json
 WWW-Authenticate: Bearer
 
-{"type":"AuthorizationException","message":"This request requires authentication.","details":""}
+{"detail":"This request requires authentication.","type":"urn:hardened:problem:unauthorized","title":"Unauthorized","status":401}
 ```
 
 ## Setting the caller in the test
@@ -436,7 +436,7 @@ public class TodoFailureTests
 | The handler returns a status, such as `NotFound` or `Conflict` | The returned status | Null |
 | No route matches the path | 404 | Null |
 
-For a thrown exception, the 500's body is `{"type":"ServerError","message":"The server could not complete this request.","details":""}`. `Failure` is null on a socket host, where only the response crosses the wire.
+For a thrown exception, the 500's body is `{"detail":"The server could not complete this request.","type":"urn:hardened:problem:internal-server-error","title":"Internal Server Error","status":500}`. `Failure` is null on a socket host, where only the response crosses the wire.
 
 ## The pipeline host
 

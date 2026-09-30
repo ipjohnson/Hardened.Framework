@@ -26,9 +26,9 @@ namespace Hardened.Requests.Serializers.MessagePack.Impl.Formatters;
 /// the runtime agreeing with it.
 /// </para>
 /// <para>
-/// Map style, with the keys the JSON representation uses. The two representations describe one
-/// document, and a caller switching on <c>type</c> reads the same envelope either way - which is
-/// the whole reason the envelopes have a documented shape.
+/// Map style, with the keys and the member order the JSON representation uses. The two
+/// representations describe one problem document, and a caller switching on <c>type</c> reads the
+/// same members either way.
 /// </para>
 /// </remarks>
 internal sealed class ErrorModelFormatter : IMessagePackFormatter<ErrorModel?>
@@ -48,13 +48,10 @@ internal sealed class ErrorModelFormatter : IMessagePackFormatter<ErrorModel?>
             return;
         }
 
-        writer.WriteMapHeader(3);
-        writer.Write("type");
-        writer.Write(value.Type);
-        writer.Write("message");
-        writer.Write(value.Message);
-        writer.Write("details");
-        writer.Write(value.Details);
+        writer.WriteMapHeader(4);
+        writer.Write("detail");
+        writer.Write(value.Detail);
+        Problem.WriteTail(ref writer, value.Type, value.Title, value.Status);
     }
 
     public ErrorModel? Deserialize(
@@ -69,16 +66,20 @@ internal sealed class ErrorModelFormatter : IMessagePackFormatter<ErrorModel?>
         {
             switch (reader.ReadString())
             {
+                case "detail":
+                    model.Detail = reader.ReadString();
+
+                    break;
                 case "type":
                     model.Type = reader.ReadString() ?? "";
 
                     break;
-                case "message":
-                    model.Message = reader.ReadString() ?? "";
+                case "title":
+                    model.Title = reader.ReadString() ?? "";
 
                     break;
-                case "details":
-                    model.Details = reader.ReadString() ?? "";
+                case "status":
+                    model.Status = reader.ReadInt32();
 
                     break;
                 default:
@@ -112,11 +113,7 @@ internal sealed class RequestValidationErrorFormatter
             return;
         }
 
-        writer.WriteMapHeader(3);
-        writer.Write("type");
-        writer.Write(value.Type);
-        writer.Write("message");
-        writer.Write(value.Message);
+        writer.WriteMapHeader(5);
         writer.Write("errors");
         writer.WriteArrayHeader(value.Errors.Count);
 
@@ -124,6 +121,10 @@ internal sealed class RequestValidationErrorFormatter
         {
             RequestValidationFieldErrorFormatter.Instance.Serialize(ref writer, error, options);
         }
+
+        writer.Write("detail");
+        writer.Write(value.Detail);
+        Problem.WriteTail(ref writer, value.Type, value.Title, value.Status);
     }
 
     public RequestValidationError? Deserialize(
@@ -138,12 +139,20 @@ internal sealed class RequestValidationErrorFormatter
         {
             switch (reader.ReadString())
             {
+                case "detail":
+                    model.Detail = reader.ReadString();
+
+                    break;
                 case "type":
                     model.Type = reader.ReadString() ?? "";
 
                     break;
-                case "message":
-                    model.Message = reader.ReadString() ?? "";
+                case "title":
+                    model.Title = reader.ReadString() ?? "";
+
+                    break;
+                case "status":
+                    model.Status = reader.ReadInt32();
 
                     break;
                 case "errors":

@@ -166,7 +166,7 @@ response's `IsBinary`.
 | Request | Answer |
 |---|---|
 | The handler throws | 500 with the error body. The host logs the invocation as succeeded |
-| No route matches the path | 404 with no body |
+| No route matches the path | 404 with the error body |
 | A validation constraint fails | 400 with the error body |
 | The path is outside the route prefix | 404 with no body, from the host |
 
@@ -201,10 +201,10 @@ public partial class Application;
 GET /todos
 
 HTTP/1.1 401 Unauthorized
-Content-Type: application/json
+Content-Type: application/problem+json
 WWW-Authenticate: Bearer
 
-{"type":"AuthorizationException","message":"This request requires authentication.","details":""}
+{"detail":"This request requires authentication.","type":"urn:hardened:problem:unauthorized","title":"Unauthorized","status":401}
 ```
 
 The Azure [Overview](/azure/) covers the worker. [Authentication](/guide/authentication),

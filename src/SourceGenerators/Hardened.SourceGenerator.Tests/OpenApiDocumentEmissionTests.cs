@@ -965,7 +965,7 @@ public class OpenApiDocumentEmissionTests
             "#/components/schemas/ErrorModel",
             unauthorized
                 .GetProperty("content")
-                .GetProperty("application/json")
+                .GetProperty("application/problem+json")
                 .GetProperty("schema")
                 .GetProperty("$ref")
                 .GetString()

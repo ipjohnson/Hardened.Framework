@@ -362,7 +362,7 @@ public class StreamingTests
         Assert.Equal(406, response.StatusCode);
         Assert.Equal(
             "This operation produces text/event-stream.",
-            response.Deserialize<ErrorModel>().Message
+            response.Deserialize<ErrorModel>().Detail
         );
     }
 
@@ -411,7 +411,7 @@ public class StreamingTests
         response.Assert.Unauthorized();
 
         Assert.StartsWith(
-            KnownContentType.Json,
+            KnownContentType.ProblemJson,
             response.Headers[KnownHeaders.ContentType].ToString()
         );
 
@@ -431,7 +431,7 @@ public class StreamingTests
         response.Assert.Unauthorized();
 
         Assert.StartsWith(
-            KnownContentType.Json,
+            KnownContentType.ProblemJson,
             response.Headers[KnownHeaders.ContentType].ToString()
         );
 
@@ -455,7 +455,7 @@ public class StreamingTests
 
         Assert.Equal(500, response.StatusCode);
         Assert.StartsWith(
-            KnownContentType.Json,
+            KnownContentType.ProblemJson,
             response.Headers[KnownHeaders.ContentType].ToString()
         );
 

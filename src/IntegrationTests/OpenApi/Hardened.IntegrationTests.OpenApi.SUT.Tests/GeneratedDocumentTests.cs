@@ -305,7 +305,7 @@ public class GeneratedDocumentTests
             "#/components/schemas/RequestValidationError",
             badRequest
                 .GetProperty("content")
-                .GetProperty("application/json")
+                .GetProperty("application/problem+json")
                 .GetProperty("schema")
                 .GetProperty("$ref")
                 .GetString()

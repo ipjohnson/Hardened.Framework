@@ -1,8 +1,10 @@
 # Web applications
 
-`[LambdaHttpModule]` serves an application's routes from AWS Lambda, behind an API Gateway HTTP API
-or a function URL. Each request reaches the function as an invocation that carries an API Gateway
-payload format 2.0 event.
+`[LambdaHttpModule]` serves an application's routes from AWS Lambda. It can sit behind an API Gateway
+HTTP API or REST API, a function URL, or an Application Load Balancer. Each request reaches the
+function as an invocation that carries an event. An HTTP API and a function URL send API Gateway
+payload format 2.0. A REST API and a load balancer send payload format 1.0. The function reads
+either format and answers in the format the event came in.
 
 `dotnet new hardened-web -n Todos --host aws-lambda` writes a library with the routes and a host
 project for Lambda. The application class in `src/Todos.Host/Application.cs` declares the attribute:
@@ -83,12 +85,12 @@ A handler's `CancellationToken` is not cancelled when the client disconnects. Th
 
 ## What the function answers
 
-| The response's | Goes into the answer's |
-|---|---|
-| Status | `statusCode`, 200 when the handler set none |
-| Headers | `headers`. A header with several values goes as one, its values joined with commas |
-| Cookies | `cookies`, one `Set-Cookie` string for each cookie |
-| Body | `body`: text, or base64 with `isBase64Encoded` set to `true` when the response is marked binary |
+| The response's | Payload format 2.0 | Payload format 1.0 |
+|---|---|---|
+| Status | `statusCode`, 200 when the handler set none | `statusCode`, and for a load balancer also `statusDescription`, such as `404 Not Found` |
+| Headers | `headers`. A header with several values goes as one, its values joined with commas | `multiValueHeaders`, one array for each header. A load balancer whose target group has multi-value headers off gets `headers` instead |
+| Cookies | `cookies`, one `Set-Cookie` string for each cookie | `Set-Cookie` in `multiValueHeaders`, one value for each cookie |
+| Body | `body`: text, or base64 with `isBase64Encoded` set to `true` when the response is marked binary | The same |
 
 ## Binary responses
 
@@ -148,7 +150,7 @@ replacement character. An image or a PDF arrives corrupted, with no error. Set
 |---|---|
 | The handler throws | 500 with the application's error body |
 | A refusal, such as a failed validation | Its status and error body, 400 for a failed validation |
-| No route matches the path | 404 with no body |
+| No route matches the path | 404 with the error body |
 
 The invocation succeeds in each case. It fails only when the adapter cannot read the event.
 [Limits](#limits) has the case.
@@ -156,13 +158,13 @@ The invocation succeeds in each case. It fails only when the adapter cannot read
 ## Response mode
 
 `HARDENED_LAMBDA_RESPONSE_MODE` sets how a response leaves the function. The value has to match the
-HTTP API or function URL in front of the function:
+front door in front of the function:
 
 | `HARDENED_LAMBDA_RESPONSE_MODE` | The response leaves the function | In front of the function |
 |---|---|---|
-| `buffered`, the default | As one payload format 2.0 answer when the handler finishes | An HTTP API, or a function URL in `BUFFERED` invoke mode |
+| `buffered`, the default | As one answer when the handler finishes | An HTTP API, a REST API, a load balancer, or a function URL in `BUFFERED` invoke mode |
 | `stream` | As a Lambda response stream that opens at the first byte of the body | A function URL in `RESPONSE_STREAM` invoke mode |
-| `mixed` | As a Lambda response stream when the body is an event stream or NDJSON, and otherwise as one payload format 2.0 answer when the handler finishes | A front door that takes a streamed or a buffered answer from each invocation |
+| `mixed` | As a Lambda response stream when the body is an event stream or NDJSON, and otherwise as one answer when the handler finishes | A front door that takes a streamed or a buffered answer from each invocation |
 
 Under `mixed`, each invocation decides at the first byte of the body. A body whose `Content-Type` is
 `text/event-stream` or `application/x-ndjson` opens a Lambda response stream. Any other body goes
@@ -258,27 +260,30 @@ Without `apiGateway: true`, the tool starts without the emulator. The applicatio
 
 ## Deploying
 
-The function serves an API Gateway HTTP API whose Lambda integration uses payload format version
-2.0, or a function URL. Each of them reads only its own response format. Set
-`HARDENED_LAMBDA_RESPONSE_MODE` to the value that [Response mode](#response-mode) lists for it. The AWS [Overview](/aws/) covers the
-rest of a deployment.
+The function serves any of these front doors:
+
+- an API Gateway HTTP API, with its Lambda integration on payload format version 2.0 or 1.0;
+- an API Gateway REST API, with a Lambda proxy integration;
+- a function URL;
+- an Application Load Balancer, with the function as a target group's target.
+
+Each reads only its own response format. The function answers in the format of the event it was
+sent. Set `HARDENED_LAMBDA_RESPONSE_MODE` to the value that [Response mode](#response-mode) lists
+for it. The AWS [Overview](/aws/) covers the rest of a deployment.
 
 ## Limits
 
-An event in payload format 1.0, which a REST API and an Application Load Balancer send, fails the
-invocation with `NullReferenceException`.
+A load balancer whose target group has multi-value headers off takes one `Set-Cookie` header. When
+the response sets several cookies, only the last one reaches the client. Turning on multi-value
+headers for the target group sends all of them.
 
-The adapter splits every request header value at its commas. A `string` parameter bound to such a
-header reads the parts joined by a comma with no space. `X-Date: Tue, 01 Sep 2026 12:00:00 GMT`
-binds `Tue,01 Sep 2026 12:00:00 GMT`.
+For an event in payload format 2.0, the adapter splits every request header value at its commas. A
+`string` parameter bound to such a header reads the parts joined by a comma with no space.
+`X-Date: Tue, 01 Sep 2026 12:00:00 GMT` binds `Tue,01 Sep 2026 12:00:00 GMT`.
 
-`If-Modified-Since` never matches, for the same reason. `[ConditionalGet]` answers 200 to a request
+For the same reason, `If-Modified-Since` in a payload format 2.0 event never matches. `[ConditionalGet]` answers 200 to a request
 that sends only `If-Modified-Since`. A request with `If-None-Match` gets a 304, as on other hosts.
 [Conditional requests](/guide/conditional-requests) covers both headers.
-
-The adapter compares the start of `rawPath` with `/` and the stage's name as text, not as a path
-segment. An event with the stage `todo` and the `rawPath` `/todos/1` is routed as `s/1`. It answers
-404.
 
 ## Next
 

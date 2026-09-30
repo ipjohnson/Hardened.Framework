@@ -316,9 +316,9 @@ GET /todos/search?q=a
 X-Page-Size: 99
 
 HTTP/1.1 400 Bad Request
-Content-Type: application/json
+Content-Type: application/problem+json
 
-{"type":"ValidationError","message":"One or more validation errors occurred.","errors":[{"field":"q","code":"string_length","message":"q must be at least 2 characters."},{"field":"X-Page-Size","code":"range","message":"X-Page-Size must be between 1 and 50."}]}
+{"errors":[{"field":"q","code":"string_length","message":"q must be at least 2 characters."},{"field":"X-Page-Size","code":"range","message":"X-Page-Size must be between 1 and 50."}],"detail":"One or more validation errors occurred.","type":"urn:hardened:problem:validation-failed","title":"Request Validation Failed","status":400}
 ```
 
 ## A body that is not a structure
@@ -635,10 +635,10 @@ operation GetTodo {
 GET /todos/search?q=the
 
 HTTP/1.1 401 Unauthorized
-Content-Type: application/json
+Content-Type: application/problem+json
 WWW-Authenticate: Bearer
 
-{"type":"AuthorizationException","message":"This request requires authentication.","details":""}
+{"detail":"This request requires authentication.","type":"urn:hardened:problem:unauthorized","title":"Unauthorized","status":401}
 ```
 
 ```http

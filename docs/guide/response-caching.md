@@ -128,9 +128,9 @@ The application starts normally. Every request to a cached handler answers 500 w
 GET /todos/1
 
 HTTP/1.1 500 Internal Server Error
-Content-Type: application/json
+Content-Type: application/problem+json
 
-{"type":"ServerError","message":"The server could not complete this request.","details":""}
+{"detail":"The server could not complete this request.","type":"urn:hardened:problem:internal-server-error","title":"Internal Server Error","status":500}
 ```
 
 A request that the handler would answer 404 gets the same 500. The log names the handler by its route template:
