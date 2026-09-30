@@ -25,6 +25,7 @@ public class RefitReturnsTests
 
         Assert.Equal([1, 2, 3], created.Value.Values);
         Assert.Equal("/verbs/item/3", created.Location);
+        Assert.Equal("/verbs/item/3", created.Headers["Location"]);
     }
 
     [ModuleTest]
@@ -64,6 +65,22 @@ public class RefitReturnsTests
             refused.Body.Errors,
             error => error.Field.EndsWith("age", StringComparison.OrdinalIgnoreCase)
         );
+    }
+
+    /// <summary>
+    /// A validation refusal where a success was expected names the field that failed, although the
+    /// body was read as the expectation's type and that type has no errors member.
+    /// </summary>
+    [ModuleTest]
+    public async Task AnUnexpectedRefusalNamesTheFieldThatFailed(IWebAppApi api)
+    {
+        var failure = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            api.RegisterDeclaring422(new RegistrationModel { Name = "too young", Age = 5 })
+                .Returns<Ok<RegistrationModel>>()
+        );
+
+        Assert.Contains("Its errors: ", failure.Message);
+        Assert.Contains("age (", failure.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [ModuleTest]

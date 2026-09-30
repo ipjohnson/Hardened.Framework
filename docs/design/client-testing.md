@@ -137,6 +137,32 @@ that are its own. For the Refit package one convention applies on top: a type th
 declares one type argument for it, because that argument is what the error text is read as.
 `Status<TCode, TBody>` follows it; a marker implementing `IStatusCode` is never taken for the body.
 
+## What `Returns` does not check
+
+`Returns` checks the status, the body's type as the client produced it, and the headers the type
+reads. It does not compare the type argument with the document. A Kiota client types a refusal
+through its error mapping, so a stale model there is a stale client. A Refit client reads the error
+text as whatever type the test names, so a model left behind by a contract change reads the body
+with default values and the assertion passes. Keeping the client generated from the current
+document is the application's job, and a check here would mean reading the document and matching
+paths in the harness to catch it.
+
+## Headers on every expectation
+
+Every shipped expectation has `Headers`, every header the response carried, which is how a test
+reads a header the type does not name, such as the `ETag` on a 201. It is held beside the record in
+a `ConditionalWeakTable` rather than in a field, because a field would take part in record equality
+and a result read back from a call would stop equalling the one a handler built. A copy made with
+`with` has no headers.
+
+## Field errors in a failure
+
+A failure about an answer whose body carried field errors names each one, as
+`Its errors: quantity (range).`. Refit reads an error body as the expectation's type, which drops
+`errors` when that type has none, so `ClientAnswer.Content` carries the text and the errors are
+read from it. Otherwise they are read from the `Errors` member of the model the client produced,
+which is what a Kiota client throws.
+
 ## Over a socket
 
 A client is the same parameter on a socket host. The attribute an application names its host

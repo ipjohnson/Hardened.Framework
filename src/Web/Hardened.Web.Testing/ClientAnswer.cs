@@ -17,9 +17,15 @@ namespace Hardened.Web.Testing;
 /// otherwise not say - that a client threw its base exception because the document declared no
 /// body for the status, so there was nothing to deserialise into.
 /// </param>
+/// <param name="Content">
+/// The body as the text it arrived as, where the route has it. A Refit route reads an error body as
+/// the expectation's type, which drops the members that type does not declare, so a failure reads
+/// what the call said from here.
+/// </param>
 public sealed record ClientAnswer(
     int Status,
     object? Body,
     IReadOnlyDictionary<string, string> Headers,
-    string? Caveat = null
+    string? Caveat = null,
+    string? Content = null
 );

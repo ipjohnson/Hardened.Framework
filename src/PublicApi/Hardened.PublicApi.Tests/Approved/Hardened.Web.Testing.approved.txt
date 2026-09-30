@@ -15,9 +15,10 @@ namespace Hardened.Web.Testing
     }
     public sealed class ClientAnswer : System.IEquatable<Hardened.Web.Testing.ClientAnswer>
     {
-        public ClientAnswer(int Status, object? Body, System.Collections.Generic.IReadOnlyDictionary<string, string> Headers, string? Caveat = null) { }
+        public ClientAnswer(int Status, object? Body, System.Collections.Generic.IReadOnlyDictionary<string, string> Headers, string? Caveat = null, string? Content = null) { }
         public object? Body { get; init; }
         public string? Caveat { get; init; }
+        public string? Content { get; init; }
         public System.Collections.Generic.IReadOnlyDictionary<string, string> Headers { get; init; }
         public int Status { get; init; }
     }

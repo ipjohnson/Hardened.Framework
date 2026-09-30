@@ -45,7 +45,8 @@ internal static class RefitAnswers
             return new ClientAnswer(
                 (int)refusal.StatusCode,
                 await ErrorBody(refusal, bodyType),
-                Flatten(refusal.Headers, refusal.ContentHeaders)
+                Flatten(refusal.Headers, refusal.ContentHeaders),
+                Content: refusal.Content
             );
         }
 
@@ -72,7 +73,8 @@ internal static class RefitAnswers
             return new ClientAnswer(
                 (int)status,
                 body,
-                Flatten(response.Headers!, response.ContentHeaders)
+                Flatten(response.Headers!, response.ContentHeaders),
+                Content: (response.Error as ApiException)?.Content
             );
         }
 

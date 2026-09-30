@@ -49,8 +49,18 @@ public sealed record RateLimited<T>(TimeSpan RetryAfter, T Body)
             Hardened.Requests.Runtime.RateLimiting.RetryAfter.HeaderValue(RetryAfter);
     }
 
+    /// <summary>
+    /// Every header the response carried, where <see cref="FromResponse"/> built this from a call.
+    /// Empty where a handler built it, and never sent.
+    /// </summary>
+    public IReadOnlyDictionary<string, string> Headers => ResponseExpectation.HeadersOf(this);
+
     public static RateLimited<T> FromResponse(
         object? body,
         IReadOnlyDictionary<string, string> headers
-    ) => new(ResponseExpectation.RequiredRetryAfter(headers), ResponseExpectation.Body<T>(body));
+    ) =>
+        ResponseExpectation.Received<RateLimited<T>>(
+            new(ResponseExpectation.RequiredRetryAfter(headers), ResponseExpectation.Body<T>(body)),
+            headers
+        );
 }

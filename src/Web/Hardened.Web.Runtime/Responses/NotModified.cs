@@ -42,8 +42,18 @@ public sealed record NotModified(string? ETag = null)
         }
     }
 
+    /// <summary>
+    /// Every header the response carried, where <see cref="FromResponse"/> built this from a call.
+    /// Empty where a handler built it, and never sent.
+    /// </summary>
+    public IReadOnlyDictionary<string, string> Headers => ResponseExpectation.HeadersOf(this);
+
     public static NotModified FromResponse(
         object? body,
         IReadOnlyDictionary<string, string> headers
-    ) => new(ResponseExpectation.OptionalHeader(headers, KnownHeaders.ETag));
+    ) =>
+        ResponseExpectation.Received<NotModified>(
+            new(ResponseExpectation.OptionalHeader(headers, KnownHeaders.ETag)),
+            headers
+        );
 }

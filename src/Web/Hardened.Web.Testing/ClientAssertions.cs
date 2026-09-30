@@ -52,7 +52,8 @@ public static class ClientAssertions
     /// </typeparam>
     /// <exception cref="InvalidOperationException">
     /// Another status was answered, the body was not the declared type, a header the status
-    /// carries was absent, or no route the assembly named could read the call.
+    /// carries was absent, or no route the assembly named could read the call. Where the body
+    /// carried field errors, the message names each field and its code.
     /// </exception>
     public static async Task<TExpected> Returns<TExpected>(this Task call)
         where TExpected : IResponseExpectation<TExpected>
@@ -66,9 +67,9 @@ public static class ClientAssertions
         {
             return ResponseExpectation.Match<TExpected>(answer.Status, answer.Body, answer.Headers);
         }
-        catch (InvalidOperationException failure) when (answer.Caveat != null)
+        catch (InvalidOperationException failure) when (Notes(answer) is { } notes)
         {
-            throw new InvalidOperationException(failure.Message + " " + answer.Caveat, failure);
+            throw new InvalidOperationException(failure.Message + " " + notes, failure);
         }
     }
 
@@ -90,7 +91,28 @@ public static class ClientAssertions
         var expectation = "ReturnsStatus<" + ResponseExpectation.Name(typeof(TStatus)) + ">()";
         var answer = await Answer(call, expectation, bodyType: null);
 
-        ResponseExpectation.MatchStatus<TStatus>(answer.Status, answer.Body);
+        try
+        {
+            ResponseExpectation.MatchStatus<TStatus>(answer.Status, answer.Body);
+        }
+        catch (InvalidOperationException failure) when (Notes(answer) is { } notes)
+        {
+            throw new InvalidOperationException(failure.Message + " " + notes, failure);
+        }
+    }
+
+    /// <summary>
+    /// What a failure about this answer adds to its own message: the field errors the body carried,
+    /// then the route's caveat. Null where there is neither.
+    /// </summary>
+    private static string? Notes(ClientAnswer answer)
+    {
+        var notes = string.Join(
+            " ",
+            new[] { FieldErrors.Describe(answer), answer.Caveat }.Where(note => note != null)
+        );
+
+        return notes.Length == 0 ? null : notes;
     }
 
     /// <summary>

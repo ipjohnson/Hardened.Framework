@@ -166,6 +166,9 @@ client received. `Returns<T>()` reads the status and the headers of a success fr
 | `Status<TCode, TBody>` | The status `TCode` names | `Body` |
 | `Status<TCode>` | The status `TCode` names | Nothing |
 
+Every type also has `Headers`, which holds every header the response carried. On a record that a
+handler built, `Headers` is empty. The header is not sent.
+
 `Returns<T>()` reads `Retry-After` as a whole number of seconds. An HTTP date there fails the
 assertion. `TCode` is a status marker such as `Http.Locked`. [Declared responses](/guide/responses)
 lists the markers.
@@ -188,6 +191,10 @@ answered with:
 The status in the first message is `T`'s, with `T` written as in source. That message names the body
 that the call carried, or ends `with no body`. When Kiota throws a bare `ApiException`, the message
 adds `The client threw a bare ApiException rather than a model, which is what it does for a status the document declares no body for - so there was nothing for it to deserialise into, whatever the response carried.`
+
+When the body carried field errors, as a validation refusal does, the message names each field and
+its code before anything else it adds, as in
+`Expected 202 (Accepted<Order>), the call was answered 400 carrying a RequestValidationError. Its errors: quantity (range).`
 
 ## Asserting the status alone
 
@@ -370,7 +377,11 @@ with
 Refit hands over an error body as text. `Returns<T>()` reads it as `T`'s body type through the
 client's own `RefitSettings`. When the body cannot be read as that type, the assertion fails with
 `The 404 body could not be read as String through the client's serializer: ` and the serializer's
-message. A client that needs its own `RefitSettings`, such as another serializer, is built with a
+message.
+
+Nothing compares `T` with the document. A Refit model that no longer matches the contract, such as a
+`Problem` left in place after the 400 changed to `RequestValidationError`, reads the body with
+default values, and the assertion passes. Regenerate the client when the contract changes. A client that needs its own `RefitSettings`, such as another serializer, is built with a
 factory, as in [Client factories](#client-factories).
 
 ## Requests a client cannot send
