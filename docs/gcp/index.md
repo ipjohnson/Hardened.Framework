@@ -243,7 +243,7 @@ The template's tests deliver to the handlers with no Google Cloud project and no
 ## When a handler throws
 
 On every trigger, a handler that throws answers the request with 500 and the body
-`{"type":"ServerError","message":"The server could not complete this request.","details":""}`. A web route
+`{"detail":"The server could not complete this request.","type":"urn:hardened:problem:internal-server-error","title":"Internal Server Error","status":500}`. A web route
 does the same. A handler that returns answers 200. A trigger's 200 has no body, and a
 `[HardenedFunction]`'s 200 carries the handler's return value.
 

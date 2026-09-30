@@ -34,9 +34,9 @@ five seconds of work. The request is answered after 2 seconds:
 GET /todos/export
 
 HTTP/1.1 504 Gateway Timeout
-Content-Type: application/json
+Content-Type: application/problem+json
 
-{"type":"GatewayTimeout","message":"The server did not finish this request in time.","details":""}
+{"detail":"The server did not finish this request in time.","type":"urn:hardened:problem:gateway-timeout","title":"Gateway Timeout","status":504}
 ```
 
 `[Timeout]` is in the namespace `Hardened.Requests.Runtime.Filters`, in the package
@@ -227,17 +227,17 @@ included.
 
 ## What the caller receives
 
-When the handler stops at the deadline, the caller gets the status that `Status` names, with a JSON
-body. `Status` decides the status line and the body's `type`:
+When the handler stops at the deadline, the caller gets the status that `Status` names, with a
+problem details body sent as `application/problem+json`. `Status` decides the status line and the
+body's `type`, `title` and `status`:
 
 | `Status` | Status line | Body `type` |
 |---|---|---|
-| 504, the default | `504 Gateway Timeout` | `GatewayTimeout` |
-| 503 | `503 Service Unavailable` | `ServiceUnavailable` |
-| Any other, such as 429 | That status | `GatewayTimeout` |
+| 504, the default | `504 Gateway Timeout` | `urn:hardened:problem:gateway-timeout` |
+| 503 | `503 Service Unavailable` | `urn:hardened:problem:service-unavailable` |
+| Any other, such as 429 | That status | The type for that status, such as `urn:hardened:problem:rate-limited` |
 
-The body's `message` is always "The server did not finish this request in time." Its `details` is
-empty. `RetryAfterSeconds` adds a `Retry-After` header with that many seconds, whatever the status.
+The body's `detail` is always "The server did not finish this request in time." `RetryAfterSeconds` adds a `Retry-After` header with that many seconds, whatever the status.
 
 An operation that declares a body for that status answers with the declared body instead. That is a
 `GatewayTimeout` in the handler's response set, or a `Problem` a contract declares for its 504.
@@ -262,10 +262,10 @@ public async Task<IReadOnlyList<Todo>> Export(
 GET /todos/export
 
 HTTP/1.1 503 Service Unavailable
-Content-Type: application/json
+Content-Type: application/problem+json
 Retry-After: 30
 
-{"type":"ServiceUnavailable","message":"The server did not finish this request in time.","details":""}
+{"detail":"The server did not finish this request in time.","type":"urn:hardened:problem:service-unavailable","title":"Service Unavailable","status":503}
 ```
 
 A contract-first operation gets the same body, whatever error body its contract declares for other
@@ -483,9 +483,9 @@ project, with the model above, answers the same:
 GET /todos
 
 HTTP/1.1 504 Gateway Timeout
-Content-Type: application/json
+Content-Type: application/problem+json
 
-{"type":"GatewayTimeout","message":"The server did not finish this request in time.","details":""}
+{"detail":"The server did not finish this request in time.","type":"urn:hardened:problem:gateway-timeout","title":"Gateway Timeout","status":504}
 ```
 
 The handler receives the budget's token when a budget applies, and the request's own token

@@ -176,7 +176,7 @@ Over a socket, a failed message makes the call throw an `InvalidOperationExcepti
 and the response body, such as:
 
 ```text
-The source would not read the answer to BLOB /fail as an acknowledgement: the service answered 500. It said: {"type":"ServerError","message":"The server could not complete this request.","details":""}
+The source would not read the answer to BLOB /fail as an acknowledgement: the service answered 500. It said: {"detail":"The server could not complete this request.","type":"urn:hardened:problem:internal-server-error","title":"Internal Server Error","status":500}
 ```
 
 The handler's own exception does not reach the test.

@@ -374,7 +374,7 @@ public class ParameterBindingTests
             request => request.Headers[KnownHeaders.ContentType] = "text/plain"
         );
 
-        var message = response.Deserialize<ErrorModel>().Message;
+        var message = response.Deserialize<ErrorModel>().Detail;
 
         // This fixture registers MessagePack as well, so both types are listed.
         Assert.Equal(415, response.StatusCode);

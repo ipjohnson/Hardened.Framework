@@ -72,7 +72,7 @@ The document lists the operation under `/todos/{id}`:
     "400": {
       "description": "The request failed validation.",
       "content": {
-        "application/json": {
+        "application/problem+json": {
           "schema": {
             "$ref": "#/components/schemas/RequestValidationError"
           }
@@ -178,7 +178,10 @@ Another method answers 405 with `Allow: GET, HEAD`:
 POST /openapi.json
 
 HTTP/1.1 405 Method Not Allowed
+Content-Type: application/problem+json
 Allow: GET, HEAD
+
+{"detail":"This resource does not answer POST. It answers GET, HEAD.","type":"urn:hardened:problem:method-not-allowed","title":"Method Not Allowed","status":405}
 ```
 
 A request that sends `Accept-Encoding: gzip` gets the document compressed, with
@@ -633,7 +636,9 @@ The document publishes the body under each media type in `[Produces]`, in that o
 A status of 400 or above whose body is a problem type, such as `NotFound`, is published under
 `application/problem+json` in place of `application/json`, because that is how a JSON serializer
 sends it. A status with two bodies, one of them a problem type, lists both media types. The generic
-forms, such as `NotFound<T>`, send a body of your own type and stay `application/json`.
+forms, such as `NotFound<T>`, send a body of your own type and stay `application/json`. The
+framework's own refusals, `ErrorModel` and `RequestValidationError`, are published under
+`application/problem+json` too.
 [Declared responses](/guide/responses#built-in-response-types) covers the problem types.
 
 A handler that returns `IAsyncEnumerable<T>` publishes the stream's media type, with the items as
@@ -643,7 +648,8 @@ covers the framing.
 ## The 400 and 404 the build adds
 
 An operation that validates a parameter or its body lists a 400, described "The request failed
-validation.", with the `RequestValidationError` schema. [Validation](/guide/validation) covers it.
+validation.", with the `RequestValidationError` schema under `application/problem+json`.
+[Validation](/guide/validation) covers it.
 
 The build adds the same 400 to an operation that binds a value from the path, the query string, a
 header, a cookie or a form into a type other than `string`. An operation that declares a 400 itself
@@ -740,7 +746,9 @@ assembly.
 | `[Timeout]` | A 504, or the `Status` it sets, and `x-hardened-timeout` |
 | `[ConditionalGet]` | A 304 with an `ETag` header, an `ETag` header on the 200, and an optional `If-None-Match` header parameter. An optional `If-Modified-Since` header parameter as well where the 200 declares `Last-Modified` |
 
-The refusals use the `ErrorModel` schema: `type`, `message` and `details`, all strings.
+The refusals use the `ErrorModel` schema under `application/problem+json`. It requires `type`,
+`title` and `status`. `detail` is a string or null, `type` and `title` are strings, and `status` is
+an `int32` integer.
 
 `x-hardened-timeout` is the budget in milliseconds, such as `2000`. With a `Status` other than 504
 or a `RetryAfterSeconds`, it is an object:

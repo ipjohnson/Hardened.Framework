@@ -223,8 +223,8 @@ The service answers each event with a status:
 | Case | The answer |
 |---|---|
 | The handler returns | `200`, with no body |
-| The data does not bind to the handler's parameter | `400`, with a `ValidationError` body |
-| The handler throws | `500`, with a `ServerError` body |
+| The data does not bind to the handler's parameter | `400`, with a `RequestValidationError` body |
+| The handler throws | `500`, with an `ErrorModel` body |
 | No handler declares the event's source and type | `500`, with no body |
 | The event lacks a required attribute | `500`, with no body |
 
@@ -244,9 +244,9 @@ ce-time: 2026-09-23T12:45:07Z
 {"id":"A-1","quantity":"two"}
 
 HTTP/1.1 400 Bad Request
-Content-Type: application/json
+Content-Type: application/problem+json
 
-{"type":"ValidationError","message":"One or more validation errors occurred.","errors":[{"field":"order.quantity","code":"invalid","message":"The value is not an integer this field can hold."}]}
+{"errors":[{"field":"order.quantity","code":"invalid","message":"The value is not an integer this field can hold."}],"detail":"One or more validation errors occurred.","type":"urn:hardened:problem:validation-failed","title":"Request Validation Failed","status":400}
 ```
 
 ### Eventarc Standard triggers

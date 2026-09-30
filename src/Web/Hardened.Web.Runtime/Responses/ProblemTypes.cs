@@ -1,3 +1,5 @@
+using Hardened.Requests.Abstract.Errors;
+
 namespace Hardened.Web.Runtime.Responses;
 
 /// <summary>
@@ -15,15 +17,15 @@ namespace Hardened.Web.Runtime.Responses;
 /// <b>URNs rather than <c>https://</c> URLs.</b> RFC 9457 permits any URI and tells consumers not to
 /// dereference one, so the only real requirements are that it is stable and that it is ours. A URN
 /// satisfies both without depending on a domain the project does not own and without a link that
-/// can start answering 404 later. <see cref="Prefix"/> is the single place to change if the project
-/// ever adopts a documentation URL - and changing it is a wire-visible change to every client
+/// can start answering 404 later. <see cref="ErrorModel.TypePrefix"/> is the single place to change if the
+/// project ever adopts a documentation URL - and changing it is a wire-visible change to every client
 /// matching on <c>type</c>, so it is a decision rather than an edit.
 /// </para>
 /// </remarks>
 public static class ProblemTypes
 {
     /// <summary>The namespace every built-in problem type is qualified by.</summary>
-    public const string Prefix = "urn:hardened:problem:";
+    public const string Prefix = ErrorModel.TypePrefix;
 
     public const string BadRequest = Prefix + "bad-request";
 
@@ -34,6 +36,10 @@ public static class ProblemTypes
     public const string Forbidden = Prefix + "forbidden";
 
     public const string NotFound = Prefix + "not-found";
+
+    public const string MethodNotAllowed = Prefix + "method-not-allowed";
+
+    public const string NotAcceptable = Prefix + "not-acceptable";
 
     public const string RequestTimeout = Prefix + "request-timeout";
 
@@ -48,6 +54,11 @@ public static class ProblemTypes
     public const string UnsupportedMediaType = Prefix + "unsupported-media-type";
 
     public const string UnprocessableContent = Prefix + "unprocessable-content";
+
+    /// <summary>
+    /// A request that failed validation, at 400 or at the status its operation declares for that.
+    /// </summary>
+    public const string ValidationFailed = Prefix + "validation-failed";
 
     public const string PreconditionRequired = Prefix + "precondition-required";
 

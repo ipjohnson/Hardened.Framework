@@ -2015,18 +2015,27 @@ public static class OpenApiDocumentGenerator
     /// <summary>The schema of the framework's validation 400, written once into components.</summary>
     private const string ValidationErrorSchema =
         "{\"type\":\"object\","
-        + "\"description\":\"How a request that failed validation is answered.\","
-        + "\"required\":[\"type\",\"message\",\"errors\"],"
+        + "\"description\":\"How a request that failed validation is answered: a problem details document whose errors member names each field that failed.\","
+        + "\"required\":[\"errors\",\"type\",\"title\",\"status\"],"
         + "\"properties\":{"
-        + "\"type\":{\"type\":\"string\"},"
-        + "\"message\":{\"type\":\"string\"},"
         + "\"errors\":{\"type\":\"array\",\"items\":{"
         + "\"type\":\"object\","
         + "\"required\":[\"field\",\"code\",\"message\"],"
         + "\"properties\":{"
         + "\"field\":{\"type\":\"string\"},"
         + "\"code\":{\"type\":\"string\"},"
-        + "\"message\":{\"type\":\"string\"}}}}}}";
+        + "\"message\":{\"type\":\"string\"}}}},"
+        + ProblemMembers
+        + "}}";
+
+    /// <summary>
+    /// The members every problem document ends with, in the order the problem records write them.
+    /// </summary>
+    private const string ProblemMembers =
+        "\"detail\":{\"type\":[\"string\",\"null\"]},"
+        + "\"type\":{\"type\":\"string\"},"
+        + "\"title\":{\"type\":\"string\"},"
+        + "\"status\":{\"type\":\"integer\",\"format\":\"int32\"}";
 
     /// <summary>
     /// The 400 every operation with a generated validator can answer, declared rather than
@@ -2112,6 +2121,10 @@ public static class OpenApiDocumentGenerator
                     description,
                     new HandlerSchema(reference, new[] { new SchemaComponent(name, json) })
                 )
+                {
+                    // Both envelopes are problem documents.
+                    IsProblem = true,
+                }
             );
         }
 
@@ -2247,12 +2260,11 @@ public static class OpenApiDocumentGenerator
     /// <summary>The schema of the framework's undeclared error body, written once into components.</summary>
     private const string ErrorModelSchema =
         "{\"type\":\"object\","
-        + "\"description\":\"How a refused or failed request is answered when the contract declared no body for it.\","
-        + "\"required\":[\"type\",\"message\",\"details\"],"
+        + "\"description\":\"How a refused or failed request is answered when the contract declared no body for it: a problem details document.\","
+        + "\"required\":[\"type\",\"title\",\"status\"],"
         + "\"properties\":{"
-        + "\"type\":{\"type\":\"string\"},"
-        + "\"message\":{\"type\":\"string\"},"
-        + "\"details\":{\"type\":\"string\"}}}";
+        + ProblemMembers
+        + "}}";
 
     /// <summary>
     /// The 401 a guarded operation can answer, declared rather than implied.
@@ -2526,6 +2538,26 @@ public static class OpenApiDocumentGenerator
 
     private const string ProblemJson = "application/problem+json";
 
+    /// <summary>
+    /// <paramref name="contentTypes"/> with <c>application/json</c> as <c>application/problem+json</c>.
+    /// </summary>
+    private static IReadOnlyList<string> AsProblems(IReadOnlyList<string> contentTypes)
+    {
+        var types = new List<string>(contentTypes.Count);
+
+        foreach (var contentType in contentTypes)
+        {
+            var written = contentType == Json ? ProblemJson : contentType;
+
+            if (!types.Contains(written))
+            {
+                types.Add(written);
+            }
+        }
+
+        return types;
+    }
+
     private const string ErrorModelRef = "{\"$ref\":\"#/components/schemas/ErrorModel\"}";
 
     private const string ValidationErrorRef =
@@ -2556,7 +2588,9 @@ public static class OpenApiDocumentGenerator
             builder.Append(',').Append(headers);
         }
 
-        WriteContentMap(builder, ErrorContentTypes(handler), schema);
+        // The bodies these write are the framework's own envelopes, which are problem documents,
+        // so a JSON serializer labels them application/problem+json.
+        WriteContentMap(builder, AsProblems(ErrorContentTypes(handler)), schema);
 
         return builder.Append('}').ToString();
     }

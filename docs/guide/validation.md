@@ -51,9 +51,9 @@ Content-Type: application/json
 {"name":"ab","capacity":0}
 
 HTTP/1.1 400 Bad Request
-Content-Type: application/json
+Content-Type: application/problem+json
 
-{"type":"ValidationError","message":"One or more validation errors occurred.","errors":[{"field":"list.name","code":"string_length","message":"name must be between 3 and 40 characters."},{"field":"list.capacity","code":"range","message":"capacity must be between 1 and 50."}]}
+{"errors":[{"field":"list.name","code":"string_length","message":"name must be between 3 and 40 characters."},{"field":"list.capacity","code":"range","message":"capacity must be between 1 and 50."}],"detail":"One or more validation errors occurred.","type":"urn:hardened:problem:validation-failed","title":"Request Validation Failed","status":400}
 ```
 
 A body that passes reaches the handler:
@@ -240,9 +240,9 @@ GET /todos/search?q=a&limit=0
 X-Region: USA
 
 HTTP/1.1 400 Bad Request
-Content-Type: application/json
+Content-Type: application/problem+json
 
-{"type":"ValidationError","message":"One or more validation errors occurred.","errors":[{"field":"q","code":"string_length","message":"q must be at least 2 characters."},{"field":"limit","code":"range","message":"limit must be between 1 and 100."},{"field":"X-Region","code":"string_length","message":"X-Region must be between 2 and 2 characters."}]}
+{"errors":[{"field":"q","code":"string_length","message":"q must be at least 2 characters."},{"field":"limit","code":"range","message":"limit must be between 1 and 100."},{"field":"X-Region","code":"string_length","message":"X-Region must be between 2 and 2 characters."}],"detail":"One or more validation errors occurred.","type":"urn:hardened:problem:validation-failed","title":"Request Validation Failed","status":400}
 ```
 
 A value that does not convert to the parameter's type answers 400 with code `invalid`:
@@ -251,9 +251,9 @@ A value that does not convert to the parameter's type answers 400 with code `inv
 GET /todos/search?q=read&limit=abc
 
 HTTP/1.1 400 Bad Request
-Content-Type: application/json
+Content-Type: application/problem+json
 
-{"type":"ValidationError","message":"One or more validation errors occurred.","errors":[{"field":"limit","code":"invalid","message":"limit is not a valid Int32."}]}
+{"errors":[{"field":"limit","code":"invalid","message":"limit is not a valid Int32."}],"detail":"One or more validation errors occurred.","type":"urn:hardened:problem:validation-failed","title":"Request Validation Failed","status":400}
 ```
 
 A non-nullable query or header parameter that the request leaves out answers `required`. An
@@ -309,9 +309,9 @@ Content-Type: application/json
 {"name":"Groceries","capacity":5,"items":[{"title":"Milk"},{"title":""}]}
 
 HTTP/1.1 400 Bad Request
-Content-Type: application/json
+Content-Type: application/problem+json
 
-{"type":"ValidationError","message":"One or more validation errors occurred.","errors":[{"field":"list.items[1].title","code":"required","message":"title is required."}]}
+{"errors":[{"field":"list.items[1].title","code":"required","message":"title is required."}],"detail":"One or more validation errors occurred.","type":"urn:hardened:problem:validation-failed","title":"Request Validation Failed","status":400}
 ```
 
 Without `[ValidateNested]`, the member type's constraints are not checked. A member that is null is
@@ -323,16 +323,19 @@ only. `Polymorphism` is in `ValidationModules.Constraints`.
 
 ## The failure response
 
-The body of a validation refusal has three members:
+The body of a validation refusal is `RequestValidationError`, a problem details document sent as
+`application/problem+json`. It has five members, in this order:
 
 | Member | Value |
 |---|---|
-| `type` | `ValidationError` |
-| `message` | `One or more validation errors occurred.` |
 | `errors` | The failures. Each entry has `field`, `code` and `message` |
+| `detail` | `One or more validation errors occurred.` |
+| `type` | `urn:hardened:problem:validation-failed`, whatever the status |
+| `title` | `Request Validation Failed` |
+| `status` | 400, or the status the operation declares for validation, such as 422 |
 
 [Rules the attributes cannot state](#rules-the-attributes-cannot-state) describes the one exception
-to that `message`.
+to that `detail`.
 
 `errors` lists every failed constraint, not only the first. The constraints after a failed
 `[Required]` are the exception. A handler under
@@ -367,9 +370,9 @@ Content-Type: application/json
 {"title":
 
 HTTP/1.1 400 Bad Request
-Content-Type: application/json
+Content-Type: application/problem+json
 
-{"type":"ValidationError","message":"One or more validation errors occurred.","errors":[{"field":"request","code":"invalid","message":"Expected depth to be zero at the end of the JSON payload. There is an open JSON object or array that should be closed."}]}
+{"errors":[{"field":"request","code":"invalid","message":"Expected depth to be zero at the end of the JSON payload. There is an open JSON object or array that should be closed."}],"detail":"One or more validation errors occurred.","type":"urn:hardened:problem:validation-failed","title":"Request Validation Failed","status":400}
 ```
 
 The OpenAPI document lists a 400 with the `RequestValidationError` schema for an operation that
@@ -430,9 +433,9 @@ This request fails both constraints:
 GET /todos/filtered?limit=0&text=a
 
 HTTP/1.1 400 Bad Request
-Content-Type: application/json
+Content-Type: application/problem+json
 
-{"type":"ValidationError","message":"One or more validation errors occurred.","errors":[{"field":"filter.limit","code":"range","message":"limit must be between 1 and 100."},{"field":"filter.text","code":"string_length","message":"text must be at least 2 characters."}]}
+{"errors":[{"field":"filter.limit","code":"range","message":"limit must be between 1 and 100."},{"field":"filter.text","code":"string_length","message":"text must be at least 2 characters."}],"detail":"One or more validation errors occurred.","type":"urn:hardened:problem:validation-failed","title":"Request Validation Failed","status":400}
 ```
 
 A member of such a model that is missing or does not convert is refused while the model is bound,
@@ -442,9 +445,9 @@ before any constraint runs:
 GET /todos/filtered?text=ab
 
 HTTP/1.1 400 Bad Request
-Content-Type: application/json
+Content-Type: application/problem+json
 
-{"type":"ValidationError","message":"One or more validation errors occurred.","errors":[{"field":"limit","code":"required","message":"limit is required."}]}
+{"errors":[{"field":"limit","code":"required","message":"limit is required."}],"detail":"One or more validation errors occurred.","type":"urn:hardened:problem:validation-failed","title":"Request Validation Failed","status":400}
 ```
 
 Only the first missing member is reported.
@@ -488,9 +491,9 @@ Content-Type: application/json
 {"name":"ab","capacity":0}
 
 HTTP/1.1 400 Bad Request
-Content-Type: application/json
+Content-Type: application/problem+json
 
-{"type":"ValidationError","message":"One or more validation errors occurred.","errors":[{"field":"list.name","code":"string_length","message":"name must be between 3 and 40 characters."}]}
+{"errors":[{"field":"list.name","code":"string_length","message":"name must be between 3 and 40 characters."}],"detail":"One or more validation errors occurred.","type":"urn:hardened:problem:validation-failed","title":"Request Validation Failed","status":400}
 ```
 
 `CreateFull` answers the same body with both failures:
@@ -502,9 +505,9 @@ Content-Type: application/json
 {"name":"ab","capacity":0}
 
 HTTP/1.1 400 Bad Request
-Content-Type: application/json
+Content-Type: application/problem+json
 
-{"type":"ValidationError","message":"One or more validation errors occurred.","errors":[{"field":"list.name","code":"string_length","message":"name must be between 3 and 40 characters."},{"field":"list.capacity","code":"range","message":"capacity must be between 1 and 50."}]}
+{"errors":[{"field":"list.name","code":"string_length","message":"name must be between 3 and 40 characters."},{"field":"list.capacity","code":"range","message":"capacity must be between 1 and 50."}],"detail":"One or more validation errors occurred.","type":"urn:hardened:problem:validation-failed","title":"Request Validation Failed","status":400}
 ```
 
 `ValidationModeAttribute` is in `Hardened.Requests.Runtime.Validation`, in the
@@ -609,9 +612,9 @@ Content-Type: application/json
 {"title":""}
 
 HTTP/1.1 422 Unprocessable Entity
-Content-Type: application/json
+Content-Type: application/problem+json
 
-{"type":"ValidationError","message":"One or more validation errors occurred.","errors":[{"field":"request.title","code":"string_length","message":"title must be between 1 and 64 characters."}]}
+{"errors":[{"field":"request.title","code":"string_length","message":"title must be between 1 and 64 characters."}],"detail":"One or more validation errors occurred.","type":"urn:hardened:problem:validation-failed","title":"Request Validation Failed","status":422}
 ```
 
 The OpenAPI document then lists the 422 with the `RequestValidationError` schema, and no 400.
@@ -721,9 +724,9 @@ Content-Type: application/json
 {"name":"ab","capacity":0}
 
 HTTP/1.1 400 Bad Request
-Content-Type: application/json
+Content-Type: application/problem+json
 
-{"type":"ValidationError","message":"One or more validation errors occurred.","errors":[{"field":"list.name","code":"string_length","message":"name must be between 3 and 40 characters."},{"field":"list.capacity","code":"range","message":"capacity must be between 1 and 50."}]}
+{"errors":[{"field":"list.name","code":"string_length","message":"name must be between 3 and 40 characters."},{"field":"list.capacity","code":"range","message":"capacity must be between 1 and 50."}],"detail":"One or more validation errors occurred.","type":"urn:hardened:problem:validation-failed","title":"Request Validation Failed","status":400}
 ```
 
 A rules class can also compare two members, apply a rule only in some states of the object, and
@@ -779,13 +782,13 @@ Content-Type: application/json
 {"title":"Inbox"}
 
 HTTP/1.1 400 Bad Request
-Content-Type: application/json
+Content-Type: application/problem+json
 
-{"type":"ValidationError","message":"One or more validation errors occurred.","errors":[{"field":"request.title","code":"reserved","message":"inbox is a reserved title."}]}
+{"errors":[{"field":"request.title","code":"reserved","message":"inbox is a reserved title."}],"detail":"One or more validation errors occurred.","type":"urn:hardened:problem:validation-failed","title":"Request Validation Failed","status":400}
 ```
 
 `ValidationModules.ValidationException`, which `ValidateAndThrow` throws, answers the same way. The
-body's `message` is then the exception's own message, such as
+body's `detail` is then the exception's own message, such as
 `Validation failed: request.title reserved.`
 
 A class that implements `IValidatorFor<T>` for a body type, registered as a service, runs beside
@@ -834,9 +837,9 @@ Content-Type: application/json
 {"title":"URGENT"}
 
 HTTP/1.1 400 Bad Request
-Content-Type: application/json
+Content-Type: application/problem+json
 
-{"type":"ValidationError","message":"One or more validation errors occurred.","errors":[{"field":"request.title","code":"shouting","message":"title must not be all capitals."}]}
+{"errors":[{"field":"request.title","code":"shouting","message":"title must not be all capitals."}],"detail":"One or more validation errors occurred.","type":"urn:hardened:problem:validation-failed","title":"Request Validation Failed","status":400}
 ```
 
 `IValidatorFor<T>`, `ValidationContext`, `ValidationFlow` and `ValidationSeverity` are in
@@ -883,9 +886,9 @@ Content-Type: application/json
 {"text":"hi","author":"nobody"}
 
 HTTP/1.1 400 Bad Request
-Content-Type: application/json
+Content-Type: application/problem+json
 
-{"type":"ValidationError","message":"One or more validation errors occurred.","errors":[{"field":"note.text","code":"string_length","message":"text must be between 3 and 200 characters."},{"field":"note.author","code":"email","message":"author is not a valid email address."}]}
+{"errors":[{"field":"note.text","code":"string_length","message":"text must be between 3 and 200 characters."},{"field":"note.author","code":"email","message":"author is not a valid email address."}],"detail":"One or more validation errors occurred.","type":"urn:hardened:problem:validation-failed","title":"Request Validation Failed","status":400}
 ```
 
 The DataAnnotations attributes do not reach the OpenAPI document. `ValidationModules_DataAnnotations`

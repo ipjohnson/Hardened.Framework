@@ -1,4 +1,5 @@
 using DependencyModules.Runtime.Attributes;
+using Hardened.Requests.Abstract.Errors;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Web.Runtime.Responses;
@@ -21,6 +22,12 @@ public interface IMethodNotAllowedHandler
 }
 
 /// <inheritdoc />
+/// <remarks>
+/// The body is a problem document, like every other refusal. It is committed to
+/// <c>application/problem+json</c> rather than negotiated, because no operation matched and so
+/// nothing declared what else this answer could be. <c>ResponseFinalizerFilter</c> writes it on the
+/// way out of the middleware chain.
+/// </remarks>
 [SingletonService(Using = RegistrationType.Try)]
 public class MethodNotAllowedHandler : IMethodNotAllowedHandler
 {
@@ -29,10 +36,22 @@ public class MethodNotAllowedHandler : IMethodNotAllowedHandler
         context.Response.Status = 405;
         context.Response.Headers[KnownHeaders.Allow] = new StringValues(allow);
 
-        // Nothing to write, and nothing to serialize: the response is the status and the header.
-        // Left on, the locator would be asked for a serializer for a null value and answer with
-        // whatever the client's Accept happened to match.
-        context.Response.ShouldSerialize = false;
+        if (HeadRequest.IsHead(context))
+        {
+            context.Response.ShouldSerialize = false;
+
+            return Task.CompletedTask;
+        }
+
+        context.Response.ContentType = KnownContentType.ProblemJson;
+        context.Response.ResponseValue = ErrorModel.For(
+            405,
+            "This resource does not answer "
+                + context.Request.Method
+                + ". It answers "
+                + allow
+                + "."
+        );
 
         return Task.CompletedTask;
     }

@@ -107,7 +107,7 @@ public class SmithyTimeoutTraitTests
             responses
                 .GetProperty("504")
                 .GetProperty("content")
-                .GetProperty("application/json")
+                .GetProperty("application/problem+json")
                 .GetProperty("schema")
                 .GetProperty("$ref")
                 .GetString()

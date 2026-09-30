@@ -114,8 +114,6 @@ When validation fails, the filter returns HTTP 400 with a structured response:
 
 ```json
 {
-  "type": "ValidationError",
-  "message": "One or more validation errors occurred.",
   "errors": [
     {
       "field": "name",
@@ -127,7 +125,11 @@ When validation fails, the filter returns HTTP 400 with a structured response:
       "code": "range",
       "message": "age must be between 0 and 30."
     }
-  ]
+  ],
+  "detail": "One or more validation errors occurred.",
+  "type": "urn:hardened:problem:validation-failed",
+  "title": "Request Validation Failed",
+  "status": 400
 }
 ```
 

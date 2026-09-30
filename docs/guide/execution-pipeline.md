@@ -339,7 +339,7 @@ On a cache hit, the cache control filter does not run. The stored response carri
 
 A filter ordered ahead of `Serialization` refuses a request by setting `Response.ExceptionValue` and calling `Next()`. The filter at `Serialization` then writes the refusal without reading the body or running the handler. Validation and the other filters behind `Serialization` do not run for a refused request.
 
-`StatusCodeException` names the status. Its message becomes the body's `message`. It is in `Hardened.Requests.Abstract.Errors`.
+`StatusCodeException` names the status. Its message becomes the body's `detail`. It is in `Hardened.Requests.Abstract.Errors`.
 
 Requests that an earlier filter refused still reach a filter ordered ahead of `Serialization`. `Response.Refused` is true for them.
 
@@ -419,9 +419,9 @@ A request without the header gets the refusal:
 GET /todos
 
 HTTP/1.1 400 Bad Request
-Content-Type: application/json
+Content-Type: application/problem+json
 
-{"type":"StatusCodeException","message":"The X-Tenant header is required.","details":""}
+{"detail":"The X-Tenant header is required.","type":"urn:hardened:problem:bad-request","title":"Bad Request","status":400}
 ```
 
 A request with the header reaches the handler:

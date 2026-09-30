@@ -33,7 +33,7 @@ public class RequiredAndNestedValidationTests
         var error = response.Deserialize<RequestValidationError>();
 
         Assert.NotNull(error);
-        Assert.Equal("ValidationError", error.Type);
+        Assert.Equal("urn:hardened:problem:validation-failed", error.Type);
         Assert.NotNull(error.Errors);
 
         return error;

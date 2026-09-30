@@ -232,7 +232,7 @@ public class GeneratedClientTests
         );
 
         Assert.Equal(403, forbidden.ResponseStatusCode);
-        Assert.Equal("This request is not permitted.", forbidden.Message);
+        Assert.Equal("This request is not permitted.", forbidden.Detail);
     }
 
     /// <summary>

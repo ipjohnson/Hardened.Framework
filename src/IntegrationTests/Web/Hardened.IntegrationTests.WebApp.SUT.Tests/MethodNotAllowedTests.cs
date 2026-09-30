@@ -1,3 +1,4 @@
+using Hardened.Requests.Abstract.Errors;
 using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Tests;
@@ -76,14 +77,50 @@ public class MethodNotAllowedTests
     }
 
     /// <summary>
-    /// Nothing is written. A 405 is a status and a header; serializing a null response value would
-    /// answer with whatever the client's Accept happened to match.
+    /// A problem document, like every other refusal. It used to be an empty body, which was a fifth
+    /// error shape for a client to handle.
     /// </summary>
     [ModuleTest]
-    public async Task The405WritesNoBody(ITestWebApp testWebApp)
+    public async Task The405IsAProblemDocument(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Request("PUT", null, "/binding/path/42");
 
+        Assert.Equal("application/problem+json", response.Headers["Content-Type"].ToString());
+
+        var problem = response.Deserialize<ErrorModel>();
+
+        Assert.Equal(ProblemTypes.MethodNotAllowed, problem.Type);
+        Assert.Equal("Method Not Allowed", problem.Title);
+        Assert.Equal(405, problem.Status);
+        Assert.StartsWith("This resource does not answer PUT. It answers ", problem.Detail);
+    }
+
+    /// <summary>
+    /// A path nobody declared answers a problem document too, rather than an empty 404 with no
+    /// <c>Content-Type</c>.
+    /// </summary>
+    [ModuleTest]
+    public async Task AnUndeclaredPathIsAProblemDocument(ITestWebApp testWebApp)
+    {
+        var response = await testWebApp.Get("/nothing/here/at/all");
+
+        Assert.Equal("application/problem+json", response.Headers["Content-Type"].ToString());
+
+        var problem = response.Deserialize<ErrorModel>();
+
+        Assert.Equal(ProblemTypes.NotFound, problem.Type);
+        Assert.Equal(404, problem.Status);
+    }
+
+    /// <summary>
+    /// A HEAD gets the status and no body, however the refusal would have answered a GET.
+    /// </summary>
+    [ModuleTest]
+    public async Task AHeadToAnUndeclaredPathHasNoBody(ITestWebApp testWebApp)
+    {
+        var response = await testWebApp.Request("HEAD", null, "/nothing/here/at/all");
+
+        Assert.Equal(404, response.StatusCode);
         Assert.Equal(0, response.Body.Length);
     }
 }

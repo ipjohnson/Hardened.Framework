@@ -226,8 +226,8 @@ status as a negative acknowledgement. The function answers each case with the st
 | Case | Status | Pub/Sub |
 |---|---|---|
 | The handler returns | 200, empty | Acknowledges |
-| The handler throws | 500, `{"type":"ServerError","message":"The server could not complete this request.","details":""}` | Resends |
-| The data does not bind, or fails a constraint | 400, a `ValidationError` naming the field | Resends |
+| The handler throws | 500, `{"detail":"The server could not complete this request.","type":"urn:hardened:problem:internal-server-error","title":"Internal Server Error","status":500}` | Resends |
+| The data does not bind, or fails a constraint | 400, a `RequestValidationError` naming the field | Resends |
 | The data is not base64 | 500, empty | Resends |
 | No handler names the subscription | 500, empty | Resends |
 | An unwrapped push without metadata | 404, empty | Resends |

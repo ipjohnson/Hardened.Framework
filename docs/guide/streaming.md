@@ -98,9 +98,9 @@ GET /todos/feed
 Accept: application/json
 
 HTTP/1.1 406 Not Acceptable
-Content-Type: application/json
+Content-Type: application/problem+json
 
-{"type":"NotAcceptable","message":"This operation produces application/x-ndjson.","details":"application/x-ndjson"}
+{"detail":"This operation produces application/x-ndjson.","type":"urn:hardened:problem:not-acceptable","title":"Not Acceptable","status":406}
 ```
 
 A request with no `Accept`, with `*/*`, or naming the stream's media type gets the stream. A

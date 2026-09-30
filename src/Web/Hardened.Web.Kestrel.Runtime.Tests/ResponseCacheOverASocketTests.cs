@@ -242,7 +242,7 @@ public class ResponseCacheOverASocketTests
         var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(500, (int)response.StatusCode);
-        Assert.Contains("ServerError", body);
+        Assert.Contains("urn:hardened:problem:internal-server-error", body);
     }
 
     /// <summary>

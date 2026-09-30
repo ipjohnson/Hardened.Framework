@@ -561,9 +561,9 @@ Content-Type: application/json
 {"title":""}
 
 HTTP/1.1 400 Bad Request
-Content-Type: application/json
+Content-Type: application/problem+json
 
-{"type":"ValidationError","message":"One or more validation errors occurred.","errors":[{"field":"body.title","code":"required","message":"title is required."}]}
+{"errors":[{"field":"body.title","code":"required","message":"title is required."}],"detail":"One or more validation errors occurred.","type":"urn:hardened:problem:validation-failed","title":"Request Validation Failed","status":400}
 ```
 
 An operation that declares a 422 answers every validation failure with 422, a malformed body

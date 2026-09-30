@@ -120,7 +120,7 @@ public class ContentNegotiationTests
         var body = await Body(response);
 
         Assert.Contains("text/plain", body);
-        Assert.Equal("application/json", response.Headers["Content-Type"]);
+        Assert.Equal("application/problem+json", response.Headers["Content-Type"]);
     }
 
     /// <summary>

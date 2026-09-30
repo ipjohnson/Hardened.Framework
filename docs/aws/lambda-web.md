@@ -150,7 +150,7 @@ replacement character. An image or a PDF arrives corrupted, with no error. Set
 |---|---|
 | The handler throws | 500 with the application's error body |
 | A refusal, such as a failed validation | Its status and error body, 400 for a failed validation |
-| No route matches the path | 404 with no body |
+| No route matches the path | 404 with the error body |
 
 The invocation succeeds in each case. It fails only when the adapter cannot read the event.
 [Limits](#limits) has the case.

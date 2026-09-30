@@ -29,10 +29,14 @@ public class ExceptionToModelConverter : IExceptionToModelConverter
 
         if (validationResult != null)
         {
+            // The declared status, where the contract declared one. Arm C published a 422 and was
+            // answered 400; the declared status was wired to nothing.
+            var validationStatus = context.HandlerInfo?.ValidationErrorStatus ?? 400;
+
             var errorModel = new RequestValidationError
             {
-                Type = "ValidationError",
-                Message = exp.Message,
+                Status = validationStatus,
+                Detail = exp.Message,
                 Errors = validationResult
                     .Errors.Select(e => new RequestValidationFieldError
                     {
@@ -43,12 +47,7 @@ public class ExceptionToModelConverter : IExceptionToModelConverter
                     .ToList(),
             };
 
-            // The status the contract declared for validation failures, where it declared one.
-            // Arm C published a 422 and was answered 400; the declared status was wired to
-            // nothing.
-            var validationStatus = context.HandlerInfo?.ValidationErrorStatus ?? 400;
-
-            // And the body the operation declares at that status, where it declares one. The
+            // The body the operation declares at that status, where it declares one. The
             // document publishes that body there and not this envelope, so a generated client reads
             // the declared shape. The field errors are in the request log.
             return (validationStatus, Declared(context, validationStatus) ?? errorModel);
@@ -90,7 +89,7 @@ public class ExceptionToModelConverter : IExceptionToModelConverter
 
             return (
                 statusCodeException.StatusCode,
-                declaredValue ?? new ErrorModel { Type = exp.GetType().Name, Message = exp.Message }
+                declaredValue ?? ErrorModel.For(statusCodeException.StatusCode, exp.Message)
             );
         }
 
@@ -101,8 +100,7 @@ public class ExceptionToModelConverter : IExceptionToModelConverter
         {
             return (
                 hostStatus,
-                Declared(context, hostStatus)
-                    ?? new ErrorModel { Type = exp.GetType().Name, Message = exp.Message }
+                Declared(context, hostStatus) ?? ErrorModel.For(hostStatus, exp.Message)
             );
         }
 
@@ -125,7 +123,8 @@ public class ExceptionToModelConverter : IExceptionToModelConverter
 
             return (
                 bodyStatus,
-                Declared(context, bodyStatus) ?? BodyReadError(jsonException, BodyField(context))
+                Declared(context, bodyStatus)
+                    ?? BodyReadError(jsonException, BodyField(context), bodyStatus)
             );
         }
 
@@ -168,11 +167,10 @@ public class ExceptionToModelConverter : IExceptionToModelConverter
             return (
                 declared.Status,
                 Declared(context, declared.Status)
-                    ?? new ErrorModel
-                    {
-                        Type = declared.Status == 503 ? "ServiceUnavailable" : "GatewayTimeout",
-                        Message = "The server did not finish this request in time.",
-                    }
+                    ?? ErrorModel.For(
+                        declared.Status,
+                        "The server did not finish this request in time."
+                    )
             );
         }
 
@@ -193,11 +191,7 @@ public class ExceptionToModelConverter : IExceptionToModelConverter
         {
             // The message is kept here and dropped below, which is the whole distinction: these are
             // raised about the caller's own request, by code that chose the wording for them.
-            return (
-                400,
-                Declared(context, 400)
-                    ?? new ErrorModel { Type = exp.GetType().Name, Message = exp.Message }
-            );
+            return (400, Declared(context, 400) ?? ErrorModel.For(400, exp.Message));
         }
 
         // Nothing about the exception reaches the caller.
@@ -262,11 +256,10 @@ public class ExceptionToModelConverter : IExceptionToModelConverter
     /// Shared rather than constructed per request - it holds nothing about the request, which is
     /// the point of it.
     /// </remarks>
-    private static readonly ErrorModel ServerError = new()
-    {
-        Type = "ServerError",
-        Message = "The server could not complete this request.",
-    };
+    private static readonly ErrorModel ServerError = ErrorModel.For(
+        500,
+        "The server could not complete this request."
+    );
 
     /// <summary>
     /// A body that could not be read, as the same field-level shape a failed constraint produces.
@@ -277,11 +270,14 @@ public class ExceptionToModelConverter : IExceptionToModelConverter
     /// already does. Its trailing <c>Path: $.x | LineNumber: 0 | ...</c> is dropped, since the path
     /// is the field rather than prose.
     /// </remarks>
-    private static RequestValidationError BodyReadError(JsonException exception, string body) =>
+    private static RequestValidationError BodyReadError(
+        JsonException exception,
+        string body,
+        int status
+    ) =>
         new()
         {
-            Type = "ValidationError",
-            Message = "One or more validation errors occurred.",
+            Status = status,
             Errors =
                 MissingMembers(exception, body)
                 ??

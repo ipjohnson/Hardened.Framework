@@ -34,7 +34,7 @@ public class NestedOnlyConstraintTests
         var error = response.Deserialize<RequestValidationError>();
 
         Assert.NotNull(error);
-        Assert.Equal("ValidationError", error.Type);
+        Assert.Equal("urn:hardened:problem:validation-failed", error.Type);
 
         return Assert.Single(error.Errors!, e => e.Field == field);
     }

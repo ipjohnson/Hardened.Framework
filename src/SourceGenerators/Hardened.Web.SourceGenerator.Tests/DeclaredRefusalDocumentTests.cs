@@ -158,7 +158,7 @@ public class DeclaredRefusalDocumentTests
             "#/components/schemas/ErrorModel",
             forbidden
                 .GetProperty("content")
-                .GetProperty("application/json")
+                .GetProperty("application/problem+json")
                 .GetProperty("schema")
                 .GetProperty("$ref")
                 .GetString()

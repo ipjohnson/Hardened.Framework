@@ -193,9 +193,9 @@ A problem type's body is a problem details object as RFC 9457 defines it. `type`
 and `detail` are RFC 9457's members, and the rest, such as `resource`, are extension members. Sent as
 JSON, a problem type goes out as `application/problem+json`, the media type RFC 9457 registers for
 it. The OpenAPI document declares that media type for each status a problem type answers. The
-generic forms send a body of your own type, so they go out as `application/json`. So do the
-framework's own refusals, such as the 401 and the validation 400, whose bodies are not in RFC
-9457's shape.
+generic forms send a body of your own type, so they go out as `application/json`. The framework's
+own refusals, such as the 401 and the validation 400, are problem details too and go out as
+`application/problem+json`.
 
 Every problem type implements `IProblemDetails`, in `Hardened.Requests.Abstract.Responses`. A record
 of your own that implements it is sent as `application/problem+json` too, when it answers a status
@@ -597,9 +597,9 @@ A handler that throws a generic form declares the body type and the status. A ha
 |---|---|---|
 | A problem type or a generic form, through `AsException()` | Its status | Its body, with its headers |
 | `ValidationException` | 400 | The validation failure body, which [Validation](/guide/validation) covers |
-| `StatusCodeException` | Its status code | `{"type":"StatusCodeException","message":"The todo is locked.","details":""}` for `new StatusCodeException(409, message: "The todo is locked.")` |
-| `BadRequestException`, or a type derived from it | 400 | The exception's type name and its message: `{"type":"BadRequestException","message":"The filter is malformed.","details":""}` for `new BadRequestException("The filter is malformed.")` |
-| Any other exception | 500 | `{"type":"ServerError","message":"The server could not complete this request.","details":""}` |
+| `StatusCodeException` | Its status code | `{"detail":"The todo is locked.","type":"urn:hardened:problem:conflict","title":"Conflict","status":409}` for `new StatusCodeException(409, message: "The todo is locked.")` |
+| `BadRequestException`, or a type derived from it | 400 | The exception's message as `detail`: `{"detail":"The filter is malformed.","type":"urn:hardened:problem:bad-request","title":"Bad Request","status":400}` for `new BadRequestException("The filter is malformed.")` |
+| Any other exception | 500 | `{"detail":"The server could not complete this request.","type":"urn:hardened:problem:internal-server-error","title":"Internal Server Error","status":500}` |
 
 A handler generated from a contract answers a problem type without a type argument, such as
 `NotFound`, with the body the contract declares for its status, filled from the record.
@@ -610,15 +610,22 @@ A handler generated from a contract answers a problem type without a type argume
 
 The message of an exception that answers 500 is not sent.
 
-The bodies in the last three rows are `ErrorModel`, in `Hardened.Requests.Abstract.Errors`. The
-framework sends the same shape for the refusals it raises itself, such as a 401, a rate limit's
-429 and a timeout's 504. It has three members:
+The bodies in the last three rows are `ErrorModel`, in `Hardened.Requests.Abstract.Errors`. Every
+refusal the framework raises is a problem details document, sent as `application/problem+json`.
+That covers a 401, a rate limit's 429, a timeout's 504, a 405 and an unmatched path's 404.
+`ErrorModel` has four members:
 
 | Member | Value |
 |---|---|
-| `type` | What refused: the exception's type name, or a name such as `GatewayTimeout` |
-| `message` | A sentence for the caller. A 500's message never comes from the exception |
-| `details` | More about the refusal, such as the media types a 406 names. Empty where there is nothing more |
+| `type` | `urn:hardened:problem:` followed by the status's reason phrase in lower case with hyphens, such as `urn:hardened:problem:gateway-timeout`. A 429 is `urn:hardened:problem:rate-limited`. A status with no reason phrase is `about:blank` |
+| `title` | The status's reason phrase, such as `Gateway Timeout` |
+| `status` | The status code |
+| `detail` | A sentence for the caller. A 500's detail never comes from the exception |
+
+These are the `type` and `title` a problem type sends at the same status, so a refusal and a
+returned `NotFound` read the same. `ErrorModel.For(status, detail)` builds one. A validation failure
+is `RequestValidationError`, which adds the `errors` member.
+[Validation](/guide/validation) covers it.
 
 A refusal at a status the operation declares a body for sends that body instead of `ErrorModel` or
 the validation body. The OpenAPI document publishes the declared body at that status, so this
@@ -631,11 +638,10 @@ refusal at their status keeps the framework's shape, and the document lists both
 
 A `FormatException` from `int.Parse("ten")` in a handler answers 500, like any other exception. A
 `FormatException` thrown while the request is bound answers 400. A custom binding attribute or a
-JSON converter of your own can throw one. The response names `BadRequestException` and keeps the
-message:
+JSON converter of your own can throw one. The response keeps the message as `detail`:
 
 ```json
-{"type":"BadRequestException","message":"The input string \u0027ten\u0027 was not in a correct format.","details":""}
+{"detail":"The input string \u0027ten\u0027 was not in a correct format.","type":"urn:hardened:problem:bad-request","title":"Bad Request","status":400}
 ```
 
 An exception that answers a 4xx status is logged at `Warning` as a refusal:

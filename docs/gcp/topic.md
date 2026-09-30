@@ -189,8 +189,8 @@ when no handler names its topic. The request answers with the status in this tab
 | What happened | The request answers | Pub/Sub reads it as |
 |---|---|---|
 | The handler returned | 200, no body | An acknowledgement |
-| The handler threw | 500, `{"type":"ServerError","message":"The server could not complete this request.","details":""}` | A negative acknowledgement |
-| The message's data did not bind to the parameter | 400, a `ValidationError` body naming the parameter | A negative acknowledgement |
+| The handler threw | 500, `{"detail":"The server could not complete this request.","type":"urn:hardened:problem:internal-server-error","title":"Internal Server Error","status":500}` | A negative acknowledgement |
+| The message's data did not bind to the parameter | 400, a `RequestValidationError` body naming the parameter | A negative acknowledgement |
 | No handler names the topic | 500, no body | A negative acknowledgement |
 
 Pub/Sub carries Eventarc's delivery. It reads 102, 200, 201, 202 and 204 as an acknowledgement. It

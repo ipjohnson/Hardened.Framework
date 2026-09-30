@@ -110,7 +110,13 @@ public class NotAcceptableResponseTests
 
         using var body = JsonDocument.Parse(Body(context));
 
-        Assert.Equal("NotAcceptable", body.RootElement.GetProperty("type").GetString());
-        Assert.Equal("application/json", body.RootElement.GetProperty("details").GetString());
+        Assert.Equal(
+            "urn:hardened:problem:not-acceptable",
+            body.RootElement.GetProperty("type").GetString()
+        );
+        Assert.Equal(
+            "This operation produces application/json.",
+            body.RootElement.GetProperty("detail").GetString()
+        );
     }
 }

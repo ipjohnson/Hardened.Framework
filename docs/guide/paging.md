@@ -95,9 +95,9 @@ A token that does not decode answers 400 with the code `invalid`:
 GET /todos/paged?pageToken=abc!
 
 HTTP/1.1 400 Bad Request
-Content-Type: application/json
+Content-Type: application/problem+json
 
-{"type":"ValidationError","message":"One or more validation errors occurred.","errors":[{"field":"pageToken","code":"invalid","message":"pageToken is not a valid page token."}]}
+{"errors":[{"field":"pageToken","code":"invalid","message":"pageToken is not a valid page token."}],"detail":"One or more validation errors occurred.","type":"urn:hardened:problem:validation-failed","title":"Request Validation Failed","status":400}
 ```
 
 `Decode` throws `ValidationException`, so the handler stops there. The field is the argument as the

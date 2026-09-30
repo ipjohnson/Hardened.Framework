@@ -295,8 +295,8 @@ was delivered.
 | Case | The answer |
 |---|---|
 | The handler returns | `200`, with no body |
-| The document does not bind to the handler's parameter | `400`, with a `ValidationError` body |
-| The handler throws | `500`, with a `ServerError` body |
+| The document does not bind to the handler's parameter | `400`, with a `RequestValidationError` body |
+| The handler throws | `500`, with an `ErrorModel` body |
 | No handler names the collection | `500`, with no body |
 | The event's data is not protobuf | `500`, with no body |
 

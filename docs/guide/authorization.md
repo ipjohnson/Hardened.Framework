@@ -62,10 +62,10 @@ GET /todos/1
 Authorization: Bearer nobody
 
 HTTP/1.1 403 Forbidden
-Content-Type: application/json
+Content-Type: application/problem+json
 WWW-Authenticate: Bearer error="insufficient_scope", scope="todos:read"
 
-{"type":"AuthorizationException","message":"This request is not permitted.","details":""}
+{"detail":"This request is not permitted.","type":"urn:hardened:problem:forbidden","title":"Forbidden","status":403}
 ```
 
 A caller that holds every required grant reaches the handler. An authenticated caller that lacks a
@@ -152,10 +152,10 @@ DELETE /todos/2
 Authorization: Bearer reader
 
 HTTP/1.1 403 Forbidden
-Content-Type: application/json
+Content-Type: application/problem+json
 WWW-Authenticate: Bearer error="insufficient_scope", scope="todos:write todos:read"
 
-{"type":"AuthorizationException","message":"This request is not permitted.","details":""}
+{"detail":"This request is not permitted.","type":"urn:hardened:problem:forbidden","title":"Forbidden","status":403}
 ```
 
 ```http
@@ -328,10 +328,10 @@ DELETE /todos/2
 Authorization: Bearer reader
 
 HTTP/1.1 403 Forbidden
-Content-Type: application/json
+Content-Type: application/problem+json
 WWW-Authenticate: Bearer error="insufficient_scope", scope="todos:read todos:write todos:admin"
 
-{"type":"AuthorizationException","message":"This request is not permitted.","details":""}
+{"detail":"This request is not permitted.","type":"urn:hardened:problem:forbidden","title":"Forbidden","status":403}
 ```
 
 The `scope` in the 403 names every grant the requirement names, across every alternative and
@@ -416,10 +416,10 @@ GET /todos/tenants/globex
 Authorization: Bearer acme
 
 HTTP/1.1 403 Forbidden
-Content-Type: application/json
+Content-Type: application/problem+json
 WWW-Authenticate: Bearer error="insufficient_scope"
 
-{"type":"AuthorizationException","message":"This request is not permitted.","details":""}
+{"detail":"This request is not permitted.","type":"urn:hardened:problem:forbidden","title":"Forbidden","status":403}
 ```
 
 A requirement that names no grant, such as a predicate, refuses an authenticated caller with 403 and
@@ -467,10 +467,10 @@ Content-Type: application/json
 {"title":"Write the docs"}
 
 HTTP/1.1 403 Forbidden
-Content-Type: application/json
+Content-Type: application/problem+json
 WWW-Authenticate: Bearer error="insufficient_scope", scope="todos:write"
 
-{"type":"AuthorizationException","message":"This request is not permitted.","details":""}
+{"detail":"This request is not permitted.","type":"urn:hardened:problem:forbidden","title":"Forbidden","status":403}
 ```
 
 `Apply` receives the handler's `IExecutionRequestHandlerInfo`: its `Path`, `Method`, `HandlerType`,
@@ -568,10 +568,10 @@ public partial class Application;
 GET /todos
 
 HTTP/1.1 401 Unauthorized
-Content-Type: application/json
+Content-Type: application/problem+json
 WWW-Authenticate: Bearer
 
-{"type":"AuthorizationException","message":"This request requires authentication.","details":""}
+{"detail":"This request requires authentication.","type":"urn:hardened:problem:unauthorized","title":"Unauthorized","status":401}
 ```
 
 ```http
@@ -706,11 +706,12 @@ parameters. [Parameter binding](/guide/parameter-binding) covers the context. Th
 
 ## Refusal responses
 
-A refused request gets a JSON body that holds `type`, `message` and `details`. `type` is
-`AuthorizationException`. `WWW-Authenticate` names the `Bearer` scheme on every refusal, whatever
-scheme the application declares.
+A refused request gets a problem details body, sent as `application/problem+json`, that holds
+`detail`, `type`, `title` and `status`. `type` is `urn:hardened:problem:unauthorized` on a 401 and
+`urn:hardened:problem:forbidden` on a 403. `WWW-Authenticate` names the `Bearer` scheme on every
+refusal, whatever scheme the application declares.
 
-| The request | Status | `WWW-Authenticate` | `message` |
+| The request | Status | `WWW-Authenticate` | `detail` |
 |---|---|---|---|
 | Has no authenticated caller | 401 | `Bearer` | `This request requires authentication.` |
 | Has a caller the requirement refuses | 403 | `Bearer error="insufficient_scope", scope="..."`, naming every grant the requirement names | `This request is not permitted.` |
@@ -723,10 +724,10 @@ A request with no credentials gets this 401:
 GET /todos/1
 
 HTTP/1.1 401 Unauthorized
-Content-Type: application/json
+Content-Type: application/problem+json
 WWW-Authenticate: Bearer
 
-{"type":"AuthorizationException","message":"This request requires authentication.","details":""}
+{"detail":"This request requires authentication.","type":"urn:hardened:problem:unauthorized","title":"Unauthorized","status":401}
 ```
 
 A request whose credential no principal source accepts has no authenticated caller. It gets the same

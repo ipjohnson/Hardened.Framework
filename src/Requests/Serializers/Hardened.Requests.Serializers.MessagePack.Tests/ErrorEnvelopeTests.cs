@@ -53,19 +53,13 @@ public class ErrorEnvelopeTests
     [Fact]
     public async Task AnErrorModelRoundTrips()
     {
-        var read = await RoundTrip(
-            new ErrorModel
-            {
-                Type = "about:blank",
-                Message = "Nope.",
-                Details = "No detail.",
-            }
-        );
+        var read = await RoundTrip(ErrorModel.For(409, "Nope."));
 
         Assert.NotNull(read);
-        Assert.Equal("about:blank", read.Type);
-        Assert.Equal("Nope.", read.Message);
-        Assert.Equal("No detail.", read.Details);
+        Assert.Equal("urn:hardened:problem:conflict", read.Type);
+        Assert.Equal("Conflict", read.Title);
+        Assert.Equal(409, read.Status);
+        Assert.Equal("Nope.", read.Detail);
     }
 
     [Fact]
@@ -74,8 +68,7 @@ public class ErrorEnvelopeTests
         var read = await RoundTrip(
             new RequestValidationError
             {
-                Type = "validation",
-                Message = "The request is not valid.",
+                Status = 422,
                 Errors =
                 {
                     new RequestValidationFieldError
@@ -95,7 +88,9 @@ public class ErrorEnvelopeTests
         );
 
         Assert.NotNull(read);
-        Assert.Equal("validation", read.Type);
+        Assert.Equal(RequestValidationError.ProblemType, read.Type);
+        Assert.Equal(422, read.Status);
+        Assert.Equal("One or more validation errors occurred.", read.Detail);
         Assert.Equal(2, read.Errors.Count);
         Assert.Equal("id", read.Errors[0].Field);
         Assert.Equal("length", read.Errors[1].Code);
@@ -108,9 +103,7 @@ public class ErrorEnvelopeTests
     [Fact]
     public async Task AValidationErrorWithNoFieldsRoundTrips()
     {
-        var read = await RoundTrip(
-            new RequestValidationError { Type = "validation", Message = "No." }
-        );
+        var read = await RoundTrip(new RequestValidationError { Detail = "No." });
 
         Assert.NotNull(read);
         Assert.Empty(read.Errors);
@@ -118,19 +111,14 @@ public class ErrorEnvelopeTests
 
     /// <summary>
     /// Map style with the keys the JSON representation uses, so a caller switching on
-    /// <c>type</c> reads the same envelope either way.
+    /// <c>type</c> reads the same problem document either way.
     /// </summary>
     [Fact]
     public void TheKeysAreTheJsonPropertyNames()
     {
         var json = MessagePackSerializer.ConvertToJson(
             MessagePackSerializer.Serialize(
-                new ErrorModel
-                {
-                    Type = "about:blank",
-                    Message = "Nope.",
-                    Details = "d",
-                },
+                ErrorModel.For(409, "Nope."),
                 ClientOptions,
                 TestContext.Current.CancellationToken
             ),
@@ -138,9 +126,10 @@ public class ErrorEnvelopeTests
             TestContext.Current.CancellationToken
         );
 
-        Assert.Contains("\"type\"", json);
-        Assert.Contains("\"message\"", json);
-        Assert.Contains("\"details\"", json);
+        Assert.Equal(
+            "{\"detail\":\"Nope.\",\"type\":\"urn:hardened:problem:conflict\",\"title\":\"Conflict\",\"status\":409}",
+            json
+        );
     }
 
     /// <summary>
@@ -151,7 +140,7 @@ public class ErrorEnvelopeTests
     public void AnUnknownMemberIsSkipped()
     {
         var bytes = MessagePackSerializer.ConvertFromJson(
-            "{\"type\":\"about:blank\",\"message\":\"Nope.\",\"details\":\"d\",\"instance\":\"/x\"}",
+            "{\"type\":\"about:blank\",\"detail\":\"d\",\"instance\":\"/x\"}",
             ClientOptions,
             TestContext.Current.CancellationToken
         );
@@ -164,7 +153,7 @@ public class ErrorEnvelopeTests
 
         Assert.NotNull(read);
         Assert.Equal("about:blank", read.Type);
-        Assert.Equal("d", read.Details);
+        Assert.Equal("d", read.Detail);
     }
 
     /// <summary>
@@ -185,6 +174,6 @@ public class ErrorEnvelopeTests
         );
 
         Assert.NotNull(read);
-        Assert.Equal("", read.Type);
+        Assert.Equal("about:blank", read.Type);
     }
 }

@@ -1006,11 +1006,14 @@ namespace Hardened.Requests.Runtime.Validation
     {
         public static T Required<T>(T? value, string field) { }
     }
-    public class RequestValidationError
+    public class RequestValidationError : Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProblemDetails
     {
+        public const string ProblemType = "urn:hardened:problem:validation-failed";
         public RequestValidationError() { }
+        public string? Detail { get; set; }
         public System.Collections.Generic.List<Hardened.Requests.Runtime.Validation.RequestValidationFieldError> Errors { get; set; }
-        public string Message { get; set; }
+        public int Status { get; set; }
+        public string Title { get; set; }
         public string Type { get; set; }
     }
     public class RequestValidationFieldError

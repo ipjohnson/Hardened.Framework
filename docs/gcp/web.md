@@ -184,7 +184,7 @@ Cloud Run and Cloud Functions answer a failed request with these statuses:
 | Request | Cloud Run | Cloud Functions |
 |---|---|---|
 | The handler throws | 500 with the error body | 500 with the error body |
-| No route matches the path | 404 with no body | 404 with no body |
+| No route matches the path | 404 with the error body | 404 with the error body |
 | A validation constraint fails | 400 with the error body | 400 with the error body |
 
 On Cloud Functions, `CloudFunctionHost` answers a handler's exception itself. The Functions

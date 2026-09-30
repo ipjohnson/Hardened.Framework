@@ -139,9 +139,9 @@ GET /todos/1
 Accept: application/msgpack
 
 HTTP/1.1 406 Not Acceptable
-Content-Type: application/json
+Content-Type: application/problem+json
 
-{"type":"NotAcceptable","message":"This operation produces application/json, application/x-msgpack.","details":"application/json, application/x-msgpack"}
+{"detail":"This operation produces application/json, application/x-msgpack.","type":"urn:hardened:problem:not-acceptable","title":"Not Acceptable","status":406}
 ```
 
 The package tells the build that it writes `application/x-msgpack`, so the build does not warn `HRDR012` when an operation declares it. [Content negotiation](/guide/content-negotiation) covers `[Produces]`, how `Accept` is matched and the 406.
@@ -488,9 +488,9 @@ A request body that cannot be read gets one of these responses:
 
 | Request body | Response |
 |---|---|
-| MessagePack that does not decode | 500, with a `ServerError` body |
-| An empty MessagePack body | 500, with a `ServerError` body |
-| A MessagePack map, where the model is keyed by index | 500, with a `ServerError` body |
+| MessagePack that does not decode | 500, with an `ErrorModel` body |
+| An empty MessagePack body | 500, with an `ErrorModel` body |
+| A MessagePack map, where the model is keyed by index | 500, with an `ErrorModel` body |
 | JSON that does not parse | 400 |
 
 This request sends the one-byte body `c1`:
@@ -500,9 +500,9 @@ POST /todos
 Content-Type: application/x-msgpack
 
 HTTP/1.1 500 Internal Server Error
-Content-Type: application/json
+Content-Type: application/problem+json
 
-{"type":"ServerError","message":"The server could not complete this request.","details":""}
+{"detail":"The server could not complete this request.","type":"urn:hardened:problem:internal-server-error","title":"Internal Server Error","status":500}
 ```
 
 The OpenAPI document lists a request body under `application/json` alone, including when a contract lists `application/x-msgpack` for it.

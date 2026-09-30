@@ -43,8 +43,8 @@ public class ErrorHandlingTests
 
         var error = response.Deserialize<ErrorModel>();
 
-        Assert.Equal("ServerError", error.Type);
-        Assert.DoesNotContain("abc", error.Message);
+        Assert.Equal("urn:hardened:problem:internal-server-error", error.Type);
+        Assert.DoesNotContain("abc", error.Detail);
     }
 
     /// <summary>
@@ -63,8 +63,8 @@ public class ErrorHandlingTests
 
         var error = response.Deserialize<ErrorModel>();
 
-        Assert.Equal("BadRequestException", error.Type);
-        Assert.Contains("'ten'", error.Message);
+        Assert.Equal("urn:hardened:problem:bad-request", error.Type);
+        Assert.Contains("'ten'", error.Detail);
     }
 
     [ModuleTest]
@@ -130,7 +130,7 @@ public class ErrorHandlingTests
 
         var error = response.Deserialize<ErrorModel>();
 
-        Assert.Equal("ServerError", error.Type);
+        Assert.Equal("urn:hardened:problem:internal-server-error", error.Type);
     }
 
     /// <summary>
@@ -143,8 +143,8 @@ public class ErrorHandlingTests
 
         var error = response.Deserialize<ErrorModel>();
 
-        Assert.Equal("ServerError", error.Type);
-        Assert.NotEqual("", error.Message);
+        Assert.Equal("urn:hardened:problem:internal-server-error", error.Type);
+        Assert.False(string.IsNullOrEmpty(error.Detail));
     }
 
     /// <summary>
@@ -162,7 +162,7 @@ public class ErrorHandlingTests
 
         var error = response.Deserialize<ErrorModel>();
 
-        Assert.DoesNotContain("the widget was not ready", error.Message);
+        Assert.DoesNotContain("the widget was not ready", error.Detail);
         Assert.DoesNotContain(nameof(InvalidOperationException), error.Type);
     }
 
@@ -205,12 +205,12 @@ public class ErrorHandlingTests
 
         var error = response.Deserialize<ValidationShape>();
 
-        Assert.Equal("ValidationError", error!.Type);
+        Assert.Equal("urn:hardened:problem:validation-failed", error!.Type);
         Assert.NotEmpty(error.Errors);
         Assert.StartsWith("model", error.Errors[0].Field);
     }
 
-    private record ValidationShape(string Type, string Message, List<FieldShape> Errors);
+    private record ValidationShape(string Type, string? Detail, List<FieldShape> Errors);
 
     private record FieldShape(string Field, string Code, string Message);
 
@@ -265,18 +265,20 @@ public class ErrorHandlingTests
         Assert.Equal("locked", body!.Code);
     }
 
-    /// <summary>The same rescue for an unclassified fault: a 500 with a body, in JSON.</summary>
+    /// <summary>
+    /// The same rescue for an unclassified fault: a 500 with a problem document, in JSON.
+    /// </summary>
     [ModuleTest]
     public async Task ARawResponseHandlerThatFaultsAnswersAJsonServerError(ITestWebApp testWebApp)
     {
         var response = await testWebApp.Get("/errors/raw-server-error");
 
         Assert.Equal(500, response.StatusCode);
-        Assert.Equal("application/json", response.Headers["Content-Type"]);
+        Assert.Equal("application/problem+json", response.Headers["Content-Type"]);
 
         var error = response.Deserialize<ErrorModel>();
 
-        Assert.Equal("ServerError", error.Type);
+        Assert.Equal("urn:hardened:problem:internal-server-error", error.Type);
     }
 
     /// <summary>

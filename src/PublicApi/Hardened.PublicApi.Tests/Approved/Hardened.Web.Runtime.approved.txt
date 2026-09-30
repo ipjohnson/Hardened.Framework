@@ -1234,6 +1234,8 @@ namespace Hardened.Web.Runtime.Responses
         public const string GatewayTimeout = "urn:hardened:problem:gateway-timeout";
         public const string Gone = "urn:hardened:problem:gone";
         public const string InternalServerError = "urn:hardened:problem:internal-server-error";
+        public const string MethodNotAllowed = "urn:hardened:problem:method-not-allowed";
+        public const string NotAcceptable = "urn:hardened:problem:not-acceptable";
         public const string NotFound = "urn:hardened:problem:not-found";
         public const string NotImplemented = "urn:hardened:problem:not-implemented";
         public const string PaymentRequired = "urn:hardened:problem:payment-required";
@@ -1246,6 +1248,7 @@ namespace Hardened.Web.Runtime.Responses
         public const string Unauthorized = "urn:hardened:problem:unauthorized";
         public const string UnprocessableContent = "urn:hardened:problem:unprocessable-content";
         public const string UnsupportedMediaType = "urn:hardened:problem:unsupported-media-type";
+        public const string ValidationFailed = "urn:hardened:problem:validation-failed";
     }
     [Hardened.Web.Runtime.Responses.HttpStatus(429)]
     public sealed class RateLimited : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, Hardened.Requests.Abstract.Responses.IProblemDetails, Hardened.Requests.Abstract.Responses.IProvidesResponseHeaders, System.IEquatable<Hardened.Web.Runtime.Responses.RateLimited>
