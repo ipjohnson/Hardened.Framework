@@ -454,8 +454,8 @@ Content-Type: text/plain; charset=utf-8
 A failed invocation answers 200, with a JSON body that has `errorType`, `errorMessage` and
 `stackTrace`. The emulator sends no `X-Amz-Function-Error` header.
 
-A web function takes an API Gateway payload format 2.0 event. It answers with its payload format
-2.0 response as JSON.
+A web function takes an API Gateway event in payload format 2.0 or 1.0, or a load balancer's event.
+It answers in the event's format, as JSON.
 
 The emulator names the function `test_function`. A `[HardenedFunction]` with a name answers only
 when `AWS_LAMBDA_FUNCTION_NAME` names it. Set the variable with `-e AWS_LAMBDA_FUNCTION_NAME=<name>`

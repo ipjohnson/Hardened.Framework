@@ -208,6 +208,35 @@ public class LambdaInvocationHandlerTests
         Assert.Contains("\"statusCode\":201", new StreamReader(output).ReadToEnd());
     }
 
+    /// <summary>
+    /// A REST API's event on a function whose one adapter is the web one, so nothing asks
+    /// <c>Handles</c> first. It failed with a NullReferenceException on every invocation, because the
+    /// adapter bound it as payload format 2.0.
+    /// </summary>
+    [Fact]
+    public async Task APayloadFormatOneEventIsAnsweredInItsOwnFormat()
+    {
+        var (handler, executor) = Build(new LambdaHttpAdapter());
+
+        executor.Body = context =>
+        {
+            context.Response.Status = 404;
+
+            return Task.CompletedTask;
+        };
+
+        var output = await handler.Invoke(Input(Payloads.RestJson), Context());
+
+        Assert.Equal("GET", executor.Context!.Request.Method);
+        Assert.Equal("/orders/42", executor.Context.Request.Path);
+
+        var answer = new StreamReader(output).ReadToEnd();
+
+        Assert.Contains("\"statusCode\":404", answer);
+        Assert.Contains("\"multiValueHeaders\"", answer);
+        Assert.DoesNotContain("\"cookies\"", answer);
+    }
+
     [Fact]
     public async Task ASourceThatReadsNoResponseWritesNothing()
     {

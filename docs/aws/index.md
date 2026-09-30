@@ -70,7 +70,7 @@ AWS has an adapter for every trigger.
 | Package | Serves | Module attribute | Build property |
 |---|---|---|---|
 | `Hardened.Aws.Lambda.Runtime` | The invocation loop, `HardenedLambdaBootstrap` and `LambdaEmulator`. Every Lambda project references it | None. Each adapter's module includes the runtime | None |
-| `Hardened.Aws.Lambda.Http` | `[Get]`, `[Post]`, `[Put]`, `[Patch]` and `[Delete]`, behind an API Gateway HTTP API or a function URL | `[LambdaHttpModule]` | `HardenedHttpModule` |
+| `Hardened.Aws.Lambda.Http` | `[Get]`, `[Post]`, `[Put]`, `[Patch]` and `[Delete]`, behind an API Gateway HTTP API or REST API, a function URL or an Application Load Balancer | `[LambdaHttpModule]` | `HardenedHttpModule` |
 | `Hardened.Aws.Lambda.Invoke` | `[HardenedFunction]`, invoked directly | `[InvokeModule]` | `HardenedInvokeModule` |
 | `Hardened.Aws.Lambda.Sqs` | `[Queue]`, from Amazon SQS | `[SqsModule]` | `HardenedQueueModule` |
 | `Hardened.Aws.Lambda.Sns` | `[Topic]`, from Amazon SNS | `[SnsModule]` | `HardenedTopicModule` |

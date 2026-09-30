@@ -853,6 +853,10 @@ namespace Hardened.Requests.Abstract.Responses
         public int Status { get; }
         public string? StatusFrom { get; set; }
     }
+    public static class HttpStatusText
+    {
+        public static string? ReasonPhrase(int status) { }
+    }
     public interface ICarriesResponseBody
     {
         object? Body { get; }

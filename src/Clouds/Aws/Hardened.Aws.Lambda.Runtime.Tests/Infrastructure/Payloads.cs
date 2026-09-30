@@ -175,6 +175,31 @@ public static class Payloads
         {"version":"2.0","rawPath":"/orders","requestContext":{"http":{"method":"GET"}}}
         """;
 
+    /// <summary>A REST API's payload format 1.0 event, as API Gateway documents it.</summary>
+    public const string RestJson = """
+        {"resource":"/orders/{id}","path":"/orders/42","httpMethod":"GET",
+         "headers":{"Accept":"application/json","Cookie":"session=abc123; theme=dark"},
+         "multiValueHeaders":{"Accept":["application/json"],"Cookie":["session=abc123; theme=dark"]},
+         "queryStringParameters":{"at":"2026-01-01T00:00:00+01:00"},
+         "multiValueQueryStringParameters":{"at":["2026-01-01T00:00:00+01:00"]},
+         "pathParameters":{"id":"42"},"stageVariables":null,
+         "requestContext":{"resourcePath":"/orders/{id}","httpMethod":"GET","path":"/prod/orders/42",
+           "stage":"prod","protocol":"HTTP/1.1","domainName":"api.example.test",
+           "identity":{"sourceIp":"203.0.113.7","userAgent":"curl/8.0"},
+           "authorizer":{"principalId":"user-1","integrationLatency":3,"claims":{"sub":"user-1"}}},
+         "body":null,"isBase64Encoded":false}
+        """;
+
+    /// <summary>An Application Load Balancer event, with multi-value headers off.</summary>
+    public const string AlbJson = """
+        {"requestContext":{"elb":{"targetGroupArn":"arn:aws:elasticloadbalancing:us-east-1:123:targetgroup/orders/abc"}},
+         "httpMethod":"GET","path":"/orders/42",
+         "queryStringParameters":{"at":"2026-01-01T00%3A00%3A00%2B01%3A00"},
+         "headers":{"accept":"application/json","host":"orders.example.test",
+           "x-forwarded-for":"198.51.100.1, 203.0.113.9","x-forwarded-proto":"http"},
+         "body":"","isBase64Encoded":false}
+        """;
+
     public static LambdaPayload Payload(string json) => new(Encoding.UTF8.GetBytes(json));
 
     /// <summary>An SQS batch built from the DTO, for a test that needs to vary a record.</summary>

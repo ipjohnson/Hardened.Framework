@@ -14,7 +14,7 @@ namespace Hardened.Aws.Lambda.Http;
 /// </summary>
 /// <remarks>
 /// A function URL delivers the same shape, so both front doors bind this. Payload format 1.0 is a
-/// different shape and gets its own adapter when one is written; it is not this class with a branch
+/// different shape and binds <see cref="LambdaProxyRequest"/>; it is not this class with a branch
 /// in it, which is what the design means by a payload format being a value rather than a fork.
 /// </remarks>
 public class LambdaHttpRequest : IExecutionRequest
@@ -54,14 +54,31 @@ public class LambdaHttpRequest : IExecutionRequest
     /// The stage prefix a REST-style deployment puts on <c>rawPath</c>, removed so a route matches
     /// the same template whatever stage it is deployed to.
     /// </summary>
-    private static string StripStagePath(string rawPath, string? stage)
+    /// <remarks>
+    /// Removed only as a whole segment. The stage <c>todo</c> is not a prefix of <c>/todos/1</c>,
+    /// which a text comparison once routed as <c>s/1</c>.
+    /// </remarks>
+    internal static string StripStagePath(string? rawPath, string? stage)
     {
-        if (!string.IsNullOrEmpty(stage) && rawPath.StartsWith("/" + stage))
+        rawPath ??= "/";
+
+        if (
+            string.IsNullOrEmpty(stage)
+            || stage == "$default"
+            || rawPath.Length < stage!.Length + 1
+            || rawPath[0] != '/'
+            || string.CompareOrdinal(rawPath, 1, stage, 0, stage.Length) != 0
+        )
         {
-            return rawPath.Substring(stage!.Length + 1);
+            return rawPath;
         }
 
-        return rawPath;
+        if (rawPath.Length == stage.Length + 1)
+        {
+            return "/";
+        }
+
+        return rawPath[stage.Length + 1] == '/' ? rawPath.Substring(stage.Length + 1) : rawPath;
     }
 
     public string Method => _method;
