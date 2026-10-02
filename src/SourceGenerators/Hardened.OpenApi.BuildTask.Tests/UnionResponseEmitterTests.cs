@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using Hardened.Generation.Models;
 using Hardened.Idl.Emitters;
 using Xunit;
@@ -308,6 +309,30 @@ public class UnionResponseEmitterTests
                 )
             )
         );
+    }
+
+    /// <summary>
+    /// A case type's description is one <c>&lt;summary&gt;</c> element, whether the case carries a
+    /// body or ends at its semicolon. The 0.42 trial reported a second <c>&lt;/summary&gt;</c> on a
+    /// <c>components/responses</c> case (#570); neither shape writes one.
+    /// </summary>
+    [Theory]
+    [InlineData("#/components/schemas/ApiError")]
+    [InlineData(null)]
+    public void ACaseTypeDescriptionIsOneSummaryElement(string? schemaRef)
+    {
+        var error = NamedError(400, schemaRef, "BadRequest", "BadRequest");
+
+        error.Description = "The request failed validation.";
+
+        var emitted = EmitCases(error);
+
+        Assert.Contains(
+            "/// <summary>\n    /// The request failed validation.\n    /// </summary>\n",
+            emitted.Replace("\r\n", "\n")
+        );
+        Assert.Single(Regex.Matches(emitted, "<summary>"));
+        Assert.Single(Regex.Matches(emitted, "</summary>"));
     }
 
     #endregion
