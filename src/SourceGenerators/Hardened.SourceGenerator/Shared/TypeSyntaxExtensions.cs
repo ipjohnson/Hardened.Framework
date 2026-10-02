@@ -12,7 +12,10 @@ public static class TypeSyntaxExtensions
     {
         var symbolInfo = generatorSyntaxContext.SemanticModel.GetSymbolInfo(typeSyntax);
 
-        var type = GetTypeDefinitionFromSymbolInfo(symbolInfo);
+        var type = GetTypeDefinitionFromSymbolInfo(
+            symbolInfo,
+            new ReferenceSite(generatorSyntaxContext.SemanticModel, typeSyntax.SpanStart)
+        );
 
         if (typeSyntax.ToString().EndsWith("?"))
         {
@@ -76,31 +79,44 @@ public static class TypeSyntaxExtensions
         return typeSymbol.Name;
     }
 
-    public static ITypeDefinition? GetTypeDefinitionFromSymbolInfo(SymbolInfo symbolInfo)
+    public static ITypeDefinition? GetTypeDefinitionFromSymbolInfo(
+        SymbolInfo symbolInfo,
+        ReferenceSite? site = null
+    )
     {
         if (symbolInfo.Symbol is INamedTypeSymbol namedTypeSymbol)
         {
-            return GetTypeDefinitionFromNamedSymbol(namedTypeSymbol);
+            return GetTypeDefinitionFromNamedSymbol(namedTypeSymbol, site);
         }
 
         if (symbolInfo.Symbol is IArrayTypeSymbol arrayTypeSymbol)
         {
-            return GetTypeDefinitionFromType(arrayTypeSymbol.ElementType).MakeArray();
+            return GetTypeDefinitionFromType(arrayTypeSymbol.ElementType, site).MakeArray();
         }
 
         return null;
     }
 
     private static ITypeDefinition? GetTypeDefinitionFromNamedSymbol(
-        INamedTypeSymbol namedTypeSymbol
+        INamedTypeSymbol namedTypeSymbol,
+        ReferenceSite? site
     )
     {
+        if (
+            site != null
+            && namedTypeSymbol.TypeKind == TypeKind.Error
+            && ConfigurationModelInterface(namedTypeSymbol, site) is { } modelInterface
+        )
+        {
+            return modelInterface;
+        }
+
         if (namedTypeSymbol.IsGenericType)
         {
             if (namedTypeSymbol.Name == "Nullable")
             {
                 var baseType = namedTypeSymbol.TypeArguments.First();
-                return GetTypeDefinitionFromType(baseType).MakeNullable();
+                return GetTypeDefinitionFromType(baseType, site).MakeNullable();
             }
 
             var closingTypeSymbols = namedTypeSymbol.TypeArguments;
@@ -109,7 +125,7 @@ public static class TypeSyntaxExtensions
 
             foreach (var typeSymbol in closingTypeSymbols)
             {
-                var finalType = GetTypeDefinitionFromType(typeSymbol);
+                var finalType = GetTypeDefinitionFromType(typeSymbol, site);
 
                 closingTypes.Add(finalType);
             }
@@ -155,7 +171,10 @@ public static class TypeSyntaxExtensions
     /// return types are only symbols. <see cref="GetTypeDefinition(ITypeSymbol)"/> is the older
     /// entry point and answers the bare name, which turns <c>Task&lt;Order&gt;</c> into <c>Task</c>.
     /// </remarks>
-    public static ITypeDefinition GetTypeDefinitionFromType(ITypeSymbol typeSymbol)
+    public static ITypeDefinition GetTypeDefinitionFromType(
+        ITypeSymbol typeSymbol,
+        ReferenceSite? site = null
+    )
     {
         switch (typeSymbol.SpecialType)
         {
@@ -190,15 +209,86 @@ public static class TypeSyntaxExtensions
 
         if (typeSymbol is IArrayTypeSymbol arrayTypeSymbol)
         {
-            return GetTypeDefinitionFromType(arrayTypeSymbol.ElementType).MakeArray();
+            return GetTypeDefinitionFromType(arrayTypeSymbol.ElementType, site).MakeArray();
         }
 
         if (typeSymbol is INamedTypeSymbol namedTypeSymbol)
         {
-            return GetTypeDefinitionFromNamedSymbol(namedTypeSymbol)!;
+            return GetTypeDefinitionFromNamedSymbol(namedTypeSymbol, site)!;
         }
 
         return TypeDefinition.Get(typeSymbol.ContainingNamespace.GetFullName(), typeSymbol.Name);
+    }
+
+    /// <summary>
+    /// The interface the configuration generator writes for a <c>[ConfigurationModel]</c> class.
+    /// </summary>
+    /// <remarks>
+    /// One generator cannot see another's output, so <c>ITodoListOptions</c> written beside its
+    /// class <c>TodoListOptions</c> is an error type here, and an error type's namespace is the
+    /// global one. The generated interface shares the class's namespace, so the class's name is
+    /// looked up where the reference was written, under the same usings.
+    /// </remarks>
+    private static ITypeDefinition? ConfigurationModelInterface(
+        INamedTypeSymbol errorType,
+        ReferenceSite site
+    )
+    {
+        var name = errorType.Name;
+
+        if (
+            name.Length < 2
+            || name[0] != 'I'
+            || errorType.Arity != 0
+            || errorType.ContainingNamespace is not { IsGlobalNamespace: true }
+        )
+        {
+            return null;
+        }
+
+        var model = site
+            .SemanticModel.LookupNamespacesAndTypes(site.Position, name: name.Substring(1))
+            .OfType<INamedTypeSymbol>()
+            .FirstOrDefault(candidate =>
+                candidate.ContainingType == null
+                && candidate
+                    .GetAttributes()
+                    .Any(attribute =>
+                        attribute.AttributeClass?.Name
+                            == KnownTypes.Configuration.ConfigurationModelAttribute.Name
+                        && attribute.AttributeClass.ContainingNamespace.GetFullName()
+                            == KnownTypes.Configuration.ConfigurationModelAttribute.Namespace
+                    )
+            );
+
+        if (model == null)
+        {
+            return null;
+        }
+
+        var typeDef = TypeDefinition.Get(
+            TypeDefinitionEnum.InterfaceDefinition,
+            model.ContainingNamespace.GetFullName(),
+            name
+        );
+
+        return errorType.NullableAnnotation == NullableAnnotation.Annotated
+            ? typeDef.MakeNullable()
+            : typeDef;
+    }
+
+    /// <summary>Where a type was written, so a name the compilation cannot bind yet can be looked up.</summary>
+    public sealed class ReferenceSite
+    {
+        public ReferenceSite(SemanticModel semanticModel, int position)
+        {
+            SemanticModel = semanticModel;
+            Position = position;
+        }
+
+        public SemanticModel SemanticModel { get; }
+
+        public int Position { get; }
     }
 
     private static bool IsKnownType(string name)

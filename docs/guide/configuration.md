@@ -151,7 +151,8 @@ A model that fails to build is not stored. Each request builds it again and fail
 ## Read a model
 
 Take `IOptions<ITodoListOptions>` in a constructor, as `TodoController` does. The container builds
-the controller for each request.
+the controller for each request. A handler can also take `IOptions<ITodoListOptions>` as a method
+parameter.
 
 `GetConfiguration<ITodoListOptions>()` on `IConfigurationManager` also returns the model. The
 configuration manager is in `Hardened.Shared.Runtime.Configuration`. A handler can take it as a
@@ -188,7 +189,6 @@ interface. Other ways of asking for the model fail:
 | `ITodoListOptions` in a constructor | Fails the request with "Unable to resolve service for type 'Todos.ITodoListOptions' while attempting to activate 'Todos.TodoController'." |
 | `GetConfiguration<TodoListOptions>()`, with the class | Throws `Exception` with the message "TodoListOptions is not a registered configuration type" |
 | `IOptionsMonitor<ITodoListOptions>` | Resolves. Reading its `CurrentValue` throws `MissingMethodException`: "Cannot dynamically create an instance of type 'Todos.ITodoListOptions'. Reason: Cannot create an instance of an interface." |
-| A handler method parameter that names `ITodoListOptions` | Fails the build. [Limits](#limits) has the error |
 
 ## Models in other projects
 
@@ -333,16 +333,6 @@ For each interface, the last registered package that provides it wins. An applic
 Amendments still run on a supplied model.
 
 ## Limits
-
-A handler method parameter that names the interface of a model in the same project fails the build
-with `CS0400`. The generated handler names the interface without its namespace. Take the model in
-the constructor, as `TodoController` does, or use the configuration manager. With
-`All(ITodoStore store, IOptions<ITodoListOptions> options)` in `src/Todos/TodoController.cs`, the
-build reports:
-
-```text
-src/Todos/obj/Debug/net8.0/generated/Hardened.Web.SourceGenerator/Hardened.Web.SourceGenerator.WebLibrarySourceGenerator/TodoController_All_1585.cs(67,74): error CS0400: The type or namespace name 'ITodoListOptions' could not be found in the global namespace (are you missing an assembly reference?)
-```
 
 Models read environment variables and the environment's own values. They do not read
 `appsettings.json` or `IConfiguration`.
