@@ -294,7 +294,8 @@ await HardenedLambdaBootstrap.Run(services.BuildServiceProvider());
 
 `[LambdaHttpModule]` registers the HTTP adapter. It also brings the Lambda invocation loop and the
 request pipeline. The adapter reads API Gateway payload format 2.0, which an HTTP API and a
-function URL send.
+function URL send. It also reads payload format 1.0, which a REST API and an Application Load
+Balancer send. [Web applications](/aws/lambda-web) covers both formats.
 
 `HardenedLambdaBootstrap.Run` runs the startup services. It then takes invocations from the Lambda
 Runtime API until the sandbox shuts down. The deployed function has no server and no port.
@@ -482,6 +483,10 @@ public class StoreHealthCheck(ITodoStore store) : IHealthCheck
 }
 ```
 
+A check is a singleton, so it must not take a scoped service, such as an EF Core `DbContext`. A
+check over one takes `IServiceScopeFactory` and creates a scope in `Check`.
+[Data access](/guide/data-access#lifetimes) shows one.
+
 The worst result decides the status of `/health/ready`:
 
 | Worst result | Status |
@@ -573,8 +578,7 @@ route that the application declares at either path answers in place of the built
 
 ## Limits
 
-A Lambda invocation in API Gateway payload format 1.0 fails. A REST API and an Application Load
-Balancer send that format. The `hardened-web` template has no `--host` value for Cloud Functions.
+The `hardened-web` template has no `--host` value for Cloud Functions.
 
 ## Next
 

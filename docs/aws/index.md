@@ -223,6 +223,82 @@ exception's type. The body is JSON with `errorType`, `errorMessage` and `stackTr
 The tests invoke the function through its adapters with no tool running.
 [Testing functions](/guide/testing-functions) and [Testing](/aws/testing) cover them.
 
+## Running under SAM
+
+`sam local invoke` and `sam local start-api`, from the AWS SAM CLI, run the function in Lambda's
+runtime image. That image sets `AWS_LAMBDA_RUNTIME_API`, so the run differs from `dotnet run` in
+two ways:
+
+- `LambdaEmulator.StartIfLocal` starts nothing.
+- The environment's name is `production` unless `HARDENED_ENVIRONMENT` is set.
+  [Environments](/guide/environments) covers how the name is chosen.
+
+A class registered with `[IfNotEnvironment("development", "test")]` is therefore the one that
+serves. When that class is the real AWS store, the local run calls AWS with whatever credentials
+the shell has. [Registering services](/guide/services#registering-by-environment) covers the
+attributes.
+
+`template.yaml` declares the variable from a parameter, so a local run can name the environment:
+
+```yaml
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+
+Parameters:
+  HardenedEnvironment:
+    Type: String
+    Default: production
+
+Resources:
+  Orders:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/Orders
+      Handler: Orders
+      Runtime: dotnet8
+      MemorySize: 1024
+      Timeout: 30
+      LoggingConfig:
+        LogFormat: JSON
+      Environment:
+        Variables:
+          HARDENED_ENVIRONMENT: !Ref HardenedEnvironment
+```
+
+`--parameter-overrides` names the environment for one run:
+
+```bash
+sam build
+sam local invoke Orders --event event.json --parameter-overrides HardenedEnvironment=development
+```
+
+`--env-vars` sets it from a file instead. A file with `{"Orders": {"HARDENED_ENVIRONMENT": "development"}}`
+works only because the template declares `HARDENED_ENVIRONMENT`. `--env-vars` overrides only
+variables that the template declares, and ignores the rest.
+
+`sam local start-api` serves a function that has an API event. For the Lambda host of
+`dotnet new hardened-web --host aws-lambda`, the function's properties add one:
+
+```yaml
+      Events:
+        Api:
+          Type: HttpApi
+```
+
+`sam build` fails on an unmodified `hardened-function` project or Lambda host with
+"Missing required parameter: --framework"
+([#560](https://github.com/ipjohnson/Hardened.Framework/issues/560)). The templates set the target
+framework in `Directory.Build.props` and write no `aws-lambda-tools-defaults.json`. An
+`aws-lambda-tools-defaults.json` in the project directory works around it:
+
+```json
+{
+  "configuration": "Release",
+  "framework": "net8.0",
+  "function-architecture": "x86_64"
+}
+```
+
 ## Failures and redelivery
 
 On every trigger, a handler that throws fails the invocation. A web route answers 500 when its
@@ -317,6 +393,105 @@ On Lambda, `AWS_LAMBDA_RUNTIME_API` is set, so `LambdaEmulator.StartIfLocal` sta
 sources to a function. Queues also covers the permissions the execution role needs for a queue.
 Topics covers the permission that lets SNS invoke the function. [Environments](/guide/environments)
 covers naming the environment in a deployed function.
+
+## Cold start
+
+A new execution environment loads the runtime, JIT-compiles the code that `Program.cs` and the
+startup services run, and then takes its first invocation. The templates set none of the settings
+below. Hardened has no measurements of them, so this section gives each setting and what it costs,
+and no figures. Measure a change with the `Init Duration` that Lambda reports for each cold start.
+
+| Setting | Does | Costs |
+|---|---|---|
+| `PublishReadyToRun` | Compiles the application's assemblies to native code at publish, so less is JIT-compiled at startup and on each route's first request | Assemblies two to three times larger. The publish needs a `RuntimeIdentifier`. Tiered compilation later replaces the hot methods with JIT code |
+| `TieredPGO` | Recompiles hot methods using the profile collected while they run | Nothing to turn on. It is on by default on .NET 8. A short-lived environment may end before it pays off |
+| `InvariantGlobalization` | Starts without loading ICU, the globalization library | Every culture behaves as the invariant culture. Creating a named culture, such as `fr-FR`, throws `CultureNotFoundException` |
+| SnapStart | Restores each new environment from a snapshot taken after initialization | Charges for caching and for each restore. Published versions and aliases only. State created during initialization is shared by every restored environment |
+| Native AOT on `provided.al2023` | Runs a native binary with no JIT at all | A Linux build for each architecture, no SnapStart, and every JSON type declared in a context |
+
+### ReadyToRun
+
+The host project sets the properties. The runtime identifier names the function's architecture,
+`linux-x64` for `x86_64` and `linux-arm64` for `arm64`:
+
+```xml
+<PropertyGroup>
+  <PublishReadyToRun>true</PublishReadyToRun>
+  <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
+  <SelfContained>false</SelfContained>
+</PropertyGroup>
+```
+
+The function still runs on `dotnet8`, and [Deploying](#deploying) is otherwise unchanged. The .NET
+SDK on Windows, macOS and Linux can compile ReadyToRun code for either Linux architecture. The .NET
+runtime's own assemblies are already ReadyToRun, so the gain comes only from the application's
+assemblies and its packages.
+
+### Invariant globalization
+
+```xml
+<PropertyGroup>
+  <InvariantGlobalization>true</InvariantGlobalization>
+</PropertyGroup>
+```
+
+Hardened reads route, query, header and environment values with the invariant culture, so binding
+does not change. Code of the application's own that formats or compares text for a culture does.
+
+### SnapStart
+
+SnapStart runs on the `dotnet8` runtime. It is set on the function with `SnapStart` and
+`ApplyOn: PublishedVersions`. Lambda runs the initialization phase when a version is published and
+takes the snapshot afterwards. `HardenedLambdaBootstrap.Run` runs the startup services in that
+phase, so whatever they create is in the snapshot:
+
+- A random value or an ID generated at startup is the same in every restored environment.
+- A connection a startup service opened may be broken after a restore. AWS says that the
+  connections an AWS SDK client opens usually resume.
+- Credentials or timestamps read at startup are as old as the snapshot.
+
+`SnapshotRestore` in `Amazon.Lambda.Core` registers code to run before the snapshot and after each
+restore. Register it in `Program.cs`, before `HardenedLambdaBootstrap.Run`:
+
+```csharp
+using Amazon.Lambda.Core;
+
+SnapshotRestore.RegisterAfterRestore(() =>
+{
+    // Reopen what a startup service opened.
+    return ValueTask.CompletedTask;
+});
+```
+
+The snapshot hooks are handled by `Amazon.Lambda.RuntimeSupport`, which runs Hardened's invocation
+loop. A Hardened function has not yet been run under SnapStart.
+
+SnapStart does not work with provisioned concurrency, Amazon EFS, ephemeral storage above 512 MB,
+or an OS-only runtime such as `provided.al2023`.
+
+### Native AOT on provided.al2023
+
+A Native AOT function is a native executable named `bootstrap`, run on the OS-only runtime
+`provided.al2023`. The host project sets:
+
+```xml
+<PropertyGroup>
+  <PublishAot>true</PublishAot>
+  <AssemblyName>bootstrap</AssemblyName>
+  <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
+  <InvariantGlobalization>true</InvariantGlobalization>
+</PropertyGroup>
+```
+
+The application module also needs `[AotSerializerModule]`, and the JSON context has to declare every
+type the application reads or writes. [JSON serialization](/guide/json#native-aot) covers both. A
+publish without them succeeds and then answers 500.
+
+Native AOT does not compile across operating systems. Publish on Linux for the function's
+architecture, such as in an `amazonlinux:2023` container, so that the binary links against the same
+`glibc` as the runtime. Create the function with `--runtime provided.al2023`. Lambda runs
+`bootstrap` and ignores the handler, so any value serves. A package that reads types by reflection
+can fail at run time in a native binary even when the publish gives no warning.
 
 ## Next
 

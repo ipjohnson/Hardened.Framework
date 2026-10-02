@@ -249,6 +249,10 @@ Not every host builds a container per request.
 A test can take `ITestHost` as a parameter and read its `ContainerPolicy`.
 [Test hosts](/guide/testing-hosts) covers choosing a host.
 
+A database outlives the container. What one request writes to it is still there for the next, and
+the application's startup services run against it once for each request.
+[Data access](/guide/data-access#a-database-for-each-test) covers a database file for each test.
+
 ## What every request shares
 
 Every test parameter is one object for the whole test. Each container the test builds is given the
@@ -492,3 +496,4 @@ The retry methods have no limit on attempts. `CancellationRequest` is never canc
 | [Substituting services](/guide/testing-mocks) | `[Mock]`, fake classes and the test attribute interfaces |
 | [Test hosts](/guide/testing-hosts) | Running a test on Kestrel, ASP.NET Core or a cloud host |
 | [Testing functions](/guide/testing-functions) | Testing function handlers and their triggers |
+| [Data access](/guide/data-access) | A database for each test, and schema set-up that runs once for each request |

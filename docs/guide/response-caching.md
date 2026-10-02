@@ -871,6 +871,29 @@ The first request that misses runs the handler. A request that misses the same k
 
 Requests wait only for another request in the same process. On Lambda, each execution environment coalesces its own requests.
 
+## Idempotency keys
+
+Hardened has no support for the `Idempotency-Key` header. A handler that declares the header with
+`[FromHeader("Idempotency-Key")]` receives its value, and nothing else reads it. The response cache
+is not a substitute. It stores only a 200, it does not refuse a repeat whose body changed, and it
+runs the handler again for a repeat that arrives while the first request is still running. Smithy's `@idempotencyToken` is ignored too.
+[#463](https://github.com/ipjohnson/Hardened.Framework/issues/463) tracks the feature.
+
+An application that writes its own has to do four things that a store keyed on the header alone
+does not:
+
+- Scope each key to the caller, and to the operation. Two callers who send the same key are two
+  requests.
+- Store a fingerprint of the first request's body with its response. A repeat with the same key and
+  a different body answers 422 rather than the stored response.
+- Store nothing for a first attempt that threw or answered 5xx, so that a retry runs the handler
+  again.
+- Mark the key as in flight when the first request starts. A repeat that arrives before the first
+  one finishes answers 409, rather than running the handler a second time.
+
+A store in the process keeps its keys for one instance. On Lambda, each execution environment
+keeps its own, so the keys have to live in a store that every instance shares.
+
 ## Limits
 
 Two requests that miss at the same time both run the handler, unless the declaration sets `CoalesceMisses`. The one that finishes last leaves its response in the store.
