@@ -21,7 +21,7 @@ namespace Hardened.Requests.Abstract.Responses;
 /// <para>
 /// <b>It goes on the attribute's type, or on an interface the type implements.</b> The interface is
 /// what makes it reach declarations this framework never sees:
-/// <c>IAuthorizeAttribute</c> carries the 401 and the 403, so an application's own authorization
+/// <c>IAuthorizeAttribute</c> carries the 403, so an application's own authorization
 /// attribute publishes them without doing anything, and the same would be true of a filter
 /// vocabulary a package invented.
 /// </para>

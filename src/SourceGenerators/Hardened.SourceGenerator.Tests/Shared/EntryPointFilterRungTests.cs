@@ -194,6 +194,9 @@ public class EntryPointFilterRungTests
     private const string AuthorizeBearer =
         "[Hardened.Requests.Runtime.Authorization.Authorize<BearerAuth>]";
 
+    private const string AuthorizeAdmin =
+        "[Hardened.Requests.Runtime.Authorization.AuthorizeGrants(\"admin\")]";
+
     private const string Schemes = """
         [Hardened.Requests.Abstract.Authorization.HttpAuthenticationScheme("bearer")]
         public sealed class BearerAuth : Hardened.Requests.Abstract.Authorization.IAuthenticationScheme;
@@ -236,7 +239,7 @@ public class EntryPointFilterRungTests
     [Fact]
     public void ARequirementCarriesItsSchemeAndThe403ApartFromTheFilters()
     {
-        var model = Secured(AuthorizeBearer + "\n" + ConditionalGet);
+        var model = Secured(AuthorizeBearer + "\n" + AuthorizeAdmin + "\n" + ConditionalGet);
 
         var security = Security(model);
 
@@ -246,9 +249,22 @@ public class EntryPointFilterRungTests
 
         Assert.DoesNotContain(Facts(model).Refusals, r => r.Response.Status == 403);
         Assert.Equal(
-            ["AuthorizeAttribute", "ConditionalGetAttribute"],
+            ["AuthorizeAttribute", "AuthorizeGrantsAttribute", "ConditionalGetAttribute"],
             model.FilterDeclarations.Select(declaration => declaration.TypeDefinition.Name)
         );
+    }
+
+    /// <summary>
+    /// <c>[Authorize&lt;TScheme&gt;]</c> alone requires only an authenticated caller, which a
+    /// caller who fails it is not, so it answers the 401 and never the 403.
+    /// </summary>
+    [Fact]
+    public void ASchemeAloneCarriesNo403()
+    {
+        var security = Security(Secured(AuthorizeBearer));
+
+        Assert.Equal("BearerAuth", Assert.Single(security.Schemes).Name);
+        Assert.Empty(security.Refusals.Refusals);
     }
 
     [Fact]

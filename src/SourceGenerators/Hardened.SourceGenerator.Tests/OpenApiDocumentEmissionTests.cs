@@ -980,6 +980,30 @@ public class OpenApiDocumentEmissionTests
     }
 
     /// <summary>
+    /// <c>[Authorize&lt;TScheme&gt;]</c> alone requires only an authenticated caller, and a caller
+    /// who fails that gets the 401. A grant beside it is what makes a 403 possible.
+    /// </summary>
+    [Fact]
+    public void ASchemeAlonePublishesNoFourOhThree()
+    {
+        var paths = SecuredDocument().GetProperty("paths");
+
+        var get = paths.GetProperty("/pets/{id}").GetProperty("get").GetProperty("responses");
+
+        Assert.True(get.TryGetProperty("401", out _));
+        Assert.False(get.TryGetProperty("403", out _));
+
+        var remove = paths.GetProperty("/pets/{id}").GetProperty("delete").GetProperty("responses");
+
+        Assert.True(
+            remove
+                .GetProperty("403")
+                .GetProperty("headers")
+                .TryGetProperty("WWW-Authenticate", out _)
+        );
+    }
+
+    /// <summary>
     /// Grants naming no scheme, in an application declaring two: the service answers a caller who
     /// presented nothing with a 401, so the operation publishes it, and no <c>security</c>, because
     /// nothing says which scheme the requirement means.

@@ -26,7 +26,9 @@ namespace Hardened.Requests.Abstract.Authorization;
 /// </remarks>
 // The 403 only. The document generator publishes the 401 for every operation carrying one of
 // these, and for every operation a module-level requirement reaches, with its WWW-Authenticate
-// challenge beside it. The 403 carries a challenge too, naming the scope the caller lacks.
+// challenge beside it. The 403 carries a challenge too, naming the scope the caller lacks. The
+// generator skips both for [Authorize<TScheme>], which requires only an authenticated caller and
+// so can only answer the 401.
 [AnswersStatus(
     403,
     typeof(Errors.ErrorModel),

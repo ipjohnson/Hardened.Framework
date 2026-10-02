@@ -143,7 +143,12 @@ public static class FilterResponseSelector
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            if (declaration.Type == null)
+            // [Authorize<TScheme>] can only answer the 401, which the document publishes on its own
+            // path. A grants attribute or a policy beside it still brings the 403 on its own type.
+            if (
+                declaration.Type == null
+                || SecurityDeclarationSelector.IsSchemeOnly(declaration.Type)
+            )
             {
                 continue;
             }
