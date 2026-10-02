@@ -285,11 +285,10 @@ variables that the template declares, and ignores the rest.
           Type: HttpApi
 ```
 
-`sam build` fails on an unmodified `hardened-function` project or Lambda host with
-"Missing required parameter: --framework"
-([#560](https://github.com/ipjohnson/Hardened.Framework/issues/560)). The templates set the target
-framework in `Directory.Build.props` and write no `aws-lambda-tools-defaults.json`. An
-`aws-lambda-tools-defaults.json` in the project directory works around it:
+`sam build` packages the function with Amazon.Lambda.Tools, which reads the target framework from
+the project file or from `aws-lambda-tools-defaults.json` beside it. The templates set the framework
+in `Directory.Build.props`, so they write that file into the `hardened-function` project and the
+Lambda host:
 
 ```json
 {
@@ -298,6 +297,9 @@ framework in `Directory.Build.props` and write no `aws-lambda-tools-defaults.jso
   "function-architecture": "x86_64"
 }
 ```
+
+Without it, `sam build` fails with "Missing required parameter: --framework". A project made from an
+earlier template has no such file, and adding this one fixes it.
 
 ## Failures and redelivery
 

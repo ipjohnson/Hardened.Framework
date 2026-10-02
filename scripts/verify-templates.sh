@@ -1234,6 +1234,42 @@ probe_azure_function() {
     fi
 }
 
+# The AWS rows are packaged the way `sam build` packages them, which is Amazon.Lambda.Tools reading
+# the project. The templates set the framework in Directory.Build.props, where the tools do not
+# look, so the project's aws-lambda-tools-defaults.json is what names it; without that file the
+# build stops at "Missing required parameter: --framework". The template.yaml is the smallest one
+# that has a function, written beside the generated solution. Without `sam` on PATH the run is
+# skipped with a note.
+probe_sam_build() {
+    local out="$1" project="$2" flags="$3"
+
+    if ! command -v sam >/dev/null 2>&1; then
+        echo "   note: skipping sam build of $flags - it needs the AWS SAM CLI (sam) on PATH"
+        return 0
+    fi
+
+    cat >"$out/template.yaml" <<EOF
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  Function:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/$project
+      Handler: $project
+      Runtime: dotnet8
+EOF
+
+    if ( cd "$out" && sam build --build-dir "$out/.aws-sam/build" >"$out/sam-build.log" 2>&1 ) \
+        && [ -f "$out/.aws-sam/build/Function/$project.dll" ]; then
+        echo "   $flags: sam build packages $project"
+    else
+        echo "   FAILED: $flags: sam build did not package $project"
+        tail -20 "$out/sam-build.log"
+        FAILED=1
+    fi
+}
+
 for AMZ in "hardened-function --trigger invoke|default|default" \
            "hardened-function --trigger queue|default|default" \
            "hardened-function --trigger topic|default|default" \
@@ -1408,6 +1444,13 @@ for AMZ in "hardened-function --trigger invoke|default|default" \
             FAILED=1
         fi
         fi
+        fi
+        if [[ "$*" != *"--host gcp"* && "$*" != *"--host azure"* ]]; then
+            if [ "$AMZ_TEMPLATE" = hardened-web ]; then
+                probe_sam_build "$AMZ_OUT" Sample.Host "$AMZ_TEMPLATE $*"
+            else
+                probe_sam_build "$AMZ_OUT" Sample "$AMZ_TEMPLATE $*"
+            fi
         fi
         # Worth printing: it is what says these resolved to this run's packages rather than to
         # something left in the global cache.
