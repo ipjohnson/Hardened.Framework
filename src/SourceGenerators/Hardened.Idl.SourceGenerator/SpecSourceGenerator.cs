@@ -348,6 +348,7 @@ public class SpecSourceGenerator : IIncrementalGenerator
                     string? title = null;
                     string? version = null;
                     string? description = null;
+                    DocumentInfo? info = null;
                     var schemes = new List<(string Name, string Json)>();
                     var schemeNames = new HashSet<string>(StringComparer.Ordinal);
                     var servers = new List<(string Url, string? Description)>();
@@ -363,6 +364,30 @@ public class SpecSourceGenerator : IIncrementalGenerator
                         title ??= spec.Title;
                         version ??= spec.Version;
                         description ??= spec.InfoDescription;
+
+                        // Whole rather than member by member, so one document's license name is
+                        // never published beside another's URL.
+                        if (
+                            info == null
+                            && (
+                                spec.InfoSummary
+                                ?? spec.TermsOfService
+                                ?? spec.ContactJson
+                                ?? spec.LicenseName
+                                ?? spec.InfoExtensionsJson
+                            ) != null
+                        )
+                        {
+                            info = new DocumentInfo(
+                                spec.InfoSummary,
+                                spec.TermsOfService,
+                                spec.ContactJson,
+                                spec.LicenseName,
+                                spec.LicenseIdentifier,
+                                spec.LicenseUrl,
+                                spec.InfoExtensionsJson
+                            );
+                        }
 
                         foreach (var scheme in spec.SecuritySchemes)
                         {
@@ -386,7 +411,14 @@ public class SpecSourceGenerator : IIncrementalGenerator
                     // Deliberately not sorted, unlike the schemes. A scheme is addressed by name and its
                     // order is nothing; servers are a list whose first entry is the default a client takes,
                     // so the author's order is the answer.
-                    return new DocumentIdentity(title, version, description, schemes, servers);
+                    return new DocumentIdentity(
+                        title,
+                        version,
+                        description,
+                        schemes,
+                        servers,
+                        info
+                    );
                 }
             );
 

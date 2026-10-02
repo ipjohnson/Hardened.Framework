@@ -167,6 +167,7 @@ public static class OpenApiDocumentGenerator
             .Append('"');
 
         WriteText(builder, "description", description);
+        WriteInfo(builder, identity?.Info, version);
 
         builder.Append('}');
 
@@ -1136,6 +1137,57 @@ public static class OpenApiDocumentGenerator
         if (!first)
         {
             builder.Append(']');
+        }
+    }
+
+    /// <summary>
+    /// The rest of the contract's <c>info</c>, after its title, version and description.
+    /// </summary>
+    /// <remarks>
+    /// <c>summary</c> and <c>license.identifier</c> are left out of a 3.0 document, which has no
+    /// such members.
+    /// </remarks>
+    private static void WriteInfo(StringBuilder builder, DocumentInfo? info, OpenApiVersion version)
+    {
+        if (info == null)
+        {
+            return;
+        }
+
+        var v31 = version != OpenApiVersion.V3_0;
+
+        if (v31)
+        {
+            WriteText(builder, "summary", info.Summary);
+        }
+
+        WriteText(builder, "termsOfService", info.TermsOfService);
+
+        if (info.ContactJson != null)
+        {
+            builder.Append(",\"contact\":").Append(info.ContactJson);
+        }
+
+        if (!string.IsNullOrEmpty(info.LicenseName))
+        {
+            builder
+                .Append(",\"license\":{\"name\":\"")
+                .Append(JsonSchemaWriter.Escape(info.LicenseName!))
+                .Append('"');
+
+            if (v31)
+            {
+                WriteText(builder, "identifier", info.LicenseIdentifier);
+            }
+
+            WriteText(builder, "url", info.LicenseUrl);
+
+            builder.Append('}');
+        }
+
+        if (!string.IsNullOrEmpty(info.ExtensionsJson))
+        {
+            builder.Append(',').Append(info.ExtensionsJson);
         }
     }
 

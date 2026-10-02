@@ -26,7 +26,8 @@ public sealed class DocumentIdentity : System.IEquatable<DocumentIdentity>
         string? version,
         string? description,
         IReadOnlyList<(string Name, string Json)> securitySchemes,
-        IReadOnlyList<(string Url, string? Description)>? servers = null
+        IReadOnlyList<(string Url, string? Description)>? servers = null,
+        DocumentInfo? info = null
     )
     {
         Title = title;
@@ -34,7 +35,11 @@ public sealed class DocumentIdentity : System.IEquatable<DocumentIdentity>
         Description = description;
         SecuritySchemes = securitySchemes;
         Servers = servers ?? System.Array.Empty<(string Url, string? Description)>();
+        Info = info;
     }
+
+    /// <summary>The rest of the contract's <c>info</c>, or null when it declared none of it.</summary>
+    public DocumentInfo? Info { get; }
 
     public string? Title { get; }
 
@@ -66,6 +71,7 @@ public sealed class DocumentIdentity : System.IEquatable<DocumentIdentity>
             Title != other.Title
             || Version != other.Version
             || Description != other.Description
+            || !Equals(Info, other.Info)
             || SecuritySchemes.Count != other.SecuritySchemes.Count
             || Servers.Count != other.Servers.Count
         )

@@ -154,6 +154,8 @@ internal static class OpenApiSpecParser
         model.Version = document.Info?.Version;
         model.InfoDescription = document.Info?.Description;
 
+        ReadInfo(document.Info, model);
+
         if (document.Components?.SecuritySchemes != null)
         {
             foreach (var pair in document.Components.SecuritySchemes)
@@ -710,11 +712,20 @@ internal static class OpenApiSpecParser
                 continue;
             }
 
+            var relative = url.StartsWith("/", StringComparison.Ordinal);
+
             url = url.TrimEnd('/');
 
             if (basePath.Length > 0 && url.EndsWith(basePath, StringComparison.Ordinal))
             {
                 url = url.Substring(0, url.Length - basePath.Length);
+            }
+
+            // A relative URL trimmed to nothing named the document's own origin, which OpenAPI
+            // allows and which is still a server. Dropping it published no servers at all.
+            if (url.Length == 0 && relative)
+            {
+                url = "/";
             }
 
             if (url.Length == 0)
@@ -726,6 +737,83 @@ internal static class OpenApiSpecParser
                 new ServerModel { Url = url, Description = FirstNonEmpty(server.Description) }
             );
         }
+    }
+
+    /// <summary>
+    /// The members of <c>info</c> beyond its title, version and description, for the published
+    /// document to repeat.
+    /// </summary>
+    /// <remarks>
+    /// Read as fields rather than one JSON object, because <c>summary</c> and
+    /// <c>license.identifier</c> are 3.1 only and the writer decides which version it publishes.
+    /// </remarks>
+    private static void ReadInfo(OpenApiInfo? info, ServiceSpecModel model)
+    {
+        if (info == null)
+        {
+            return;
+        }
+
+        model.InfoSummary = FirstNonEmpty(info.Summary);
+        model.TermsOfService = info.TermsOfService?.OriginalString;
+
+        if (info.Contact is { } contact)
+        {
+            var builder = new System.Text.StringBuilder("{");
+
+            AppendMember(builder, "name", contact.Name);
+            AppendMember(builder, "url", contact.Url?.OriginalString);
+            AppendMember(builder, "email", contact.Email);
+
+            if (builder.Length > 1)
+            {
+                model.ContactJson = builder.Append('}').ToString();
+            }
+        }
+
+        if (info.License is { } license && !string.IsNullOrEmpty(license.Name))
+        {
+            model.LicenseName = license.Name;
+            model.LicenseIdentifier = FirstNonEmpty(license.Identifier);
+            model.LicenseUrl = license.Url?.OriginalString;
+        }
+
+        if (info.Extensions != null)
+        {
+            var builder = new System.Text.StringBuilder();
+
+            foreach (var pair in info.Extensions.OrderBy(p => p.Key, StringComparer.Ordinal))
+            {
+                if (pair.Value is JsonNodeExtension { Node: { } node })
+                {
+                    builder
+                        .Append(builder.Length == 0 ? "" : ",")
+                        .Append(JsonText(pair.Key))
+                        .Append(':')
+                        .Append(node.ToJsonString());
+                }
+            }
+
+            if (builder.Length > 0)
+            {
+                model.InfoExtensionsJson = builder.ToString();
+            }
+        }
+    }
+
+    private static void AppendMember(System.Text.StringBuilder builder, string name, string? value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return;
+        }
+
+        builder
+            .Append(builder.Length > 1 ? "," : "")
+            .Append('"')
+            .Append(name)
+            .Append("\":")
+            .Append(JsonText(value!));
     }
 
     /// <summary>

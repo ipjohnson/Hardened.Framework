@@ -29,6 +29,13 @@ public class ServiceSpecModelEqualityTests
             Title = "Pets",
             Version = "1.0.0",
             InfoDescription = "the pet store",
+            InfoSummary = "pets",
+            TermsOfService = "https://example.test/terms",
+            ContactJson = "{\"name\":\"pets\"}",
+            LicenseName = "MIT",
+            LicenseIdentifier = "MIT",
+            LicenseUrl = "https://example.test/license",
+            InfoExtensionsJson = "\"x-a\":1",
             ContentNegotiation = "Strict",
             ErrorBodies = "Json",
             ResponseModel = SpecResponseModel.Response,
@@ -62,6 +69,13 @@ public class ServiceSpecModelEqualityTests
             "Title",
             "Version",
             "InfoDescription",
+            "InfoSummary",
+            "TermsOfService",
+            "ContactJson",
+            "LicenseName",
+            "LicenseIdentifier",
+            "LicenseUrl",
+            "InfoExtensionsJson",
         };
 
     private static void Change(ServiceSpecModel model, string member)
@@ -109,6 +123,27 @@ public class ServiceSpecModelEqualityTests
                 break;
             case "InfoDescription":
                 model.InfoDescription = "other";
+                break;
+            case "InfoSummary":
+                model.InfoSummary = "other";
+                break;
+            case "TermsOfService":
+                model.TermsOfService = "https://example.test/other";
+                break;
+            case "ContactJson":
+                model.ContactJson = "{\"name\":\"other\"}";
+                break;
+            case "LicenseName":
+                model.LicenseName = "Apache-2.0";
+                break;
+            case "LicenseIdentifier":
+                model.LicenseIdentifier = "Apache-2.0";
+                break;
+            case "LicenseUrl":
+                model.LicenseUrl = "https://example.test/other";
+                break;
+            case "InfoExtensionsJson":
+                model.InfoExtensionsJson = "\"x-a\":2";
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(member), member, "no case");

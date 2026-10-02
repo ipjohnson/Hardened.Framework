@@ -5,6 +5,9 @@ openapi: "3.0.0"
 info:
   title: Petstore API
   version: "1.0.0"
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
 # Where the service is served, which the published document used to drop: this block was read for
 # its path component and nothing else, so a client generated from the document had every path and
 # no host to send one to. No path here on purpose - these routes are served at the root, and a

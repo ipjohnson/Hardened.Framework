@@ -71,7 +71,12 @@ internal static class SpecModelSerializer
     /// a 7 reader handed an 8 file finds no format and maps the body to the type alone, which puts
     /// <c>string</c> where <c>byte[]</c> belongs - the silent half of the defect the field closes.
     /// </remarks>
-    private const string Header = "#hardened-openapi-model 8";
+    /// <remarks>
+    /// 9 adds the rest of <c>info</c> - <c>InfoSummary</c>, <c>TermsOfService</c>,
+    /// <c>ContactJson</c>, the <c>License</c> fields and <c>InfoExtensionsJson</c> - on the spec
+    /// record. Bumped for the reason 6 was: an 8 reader handed a 9 file would publish no license.
+    /// </remarks>
+    private const string Header = "#hardened-openapi-model 9";
 
     private const char FieldSeparator = '\t';
 
@@ -95,6 +100,13 @@ internal static class SpecModelSerializer
         spec.Add("Title", model.Title);
         spec.Add("Version", model.Version);
         spec.Add("InfoDescription", model.InfoDescription);
+        spec.Add("InfoSummary", model.InfoSummary);
+        spec.Add("TermsOfService", model.TermsOfService);
+        spec.Add("ContactJson", model.ContactJson);
+        spec.Add("LicenseName", model.LicenseName);
+        spec.Add("LicenseIdentifier", model.LicenseIdentifier);
+        spec.Add("LicenseUrl", model.LicenseUrl);
+        spec.Add("InfoExtensionsJson", model.InfoExtensionsJson);
         spec.WriteTo(builder);
 
         foreach (var scheme in model.SecuritySchemes)
@@ -200,6 +212,13 @@ internal static class SpecModelSerializer
                     model.Title = record.String("Title");
                     model.Version = record.String("Version");
                     model.InfoDescription = record.String("InfoDescription");
+                    model.InfoSummary = record.String("InfoSummary");
+                    model.TermsOfService = record.String("TermsOfService");
+                    model.ContactJson = record.String("ContactJson");
+                    model.LicenseName = record.String("LicenseName");
+                    model.LicenseIdentifier = record.String("LicenseIdentifier");
+                    model.LicenseUrl = record.String("LicenseUrl");
+                    model.InfoExtensionsJson = record.String("InfoExtensionsJson");
                     break;
 
                 case "secscheme":
