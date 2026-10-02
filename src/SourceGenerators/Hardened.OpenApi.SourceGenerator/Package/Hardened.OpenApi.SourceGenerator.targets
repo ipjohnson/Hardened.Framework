@@ -305,6 +305,44 @@
     </Target>
 
     <!--
+        The outputs of a spec that is no longer declared.
+
+        Deriving the items from the specs keeps a deleted or renamed spec's output out of the
+        compilation, but leaves the files in obj/, where a reader of the generated code still finds
+        them. Each build records the files it declared in outputs.txt, and deletes what the previous
+        build recorded and this one does not declare.
+
+        A record rather than a glob of the directories, because HardenedOpenApiGeneratedDir can name
+        a folder another front end also writes to. Not conditioned on any spec being declared: the
+        build after the last spec is removed is the one with the most to delete.
+    -->
+    <Target Name="HardenedOpenApiPruneOutputs"
+            DependsOnTargets="HardenedOpenApiResolveModelDir"
+            BeforeTargets="CoreCompile">
+
+        <ReadLinesFromFile File="$(HardenedOpenApiModelDir)outputs.txt"
+                           Condition="Exists('$(HardenedOpenApiModelDir)outputs.txt')">
+            <Output TaskParameter="Lines" ItemName="_HardenedOpenApiPreviousOutput"/>
+        </ReadLinesFromFile>
+
+        <ItemGroup>
+            <_HardenedOpenApiOutput Include="@(_HardenedOpenApiModel->'%(FullPath)');@(_HardenedOpenApiSource->'%(FullPath)')"/>
+            <_HardenedOpenApiStaleOutput Include="@(_HardenedOpenApiPreviousOutput)"/>
+            <_HardenedOpenApiStaleOutput Remove="@(_HardenedOpenApiOutput)"/>
+        </ItemGroup>
+
+        <Delete Files="@(_HardenedOpenApiStaleOutput)"/>
+
+        <MakeDir Directories="$(HardenedOpenApiModelDir)" Condition="'@(_HardenedOpenApiOutput)' != ''"/>
+        <WriteLinesToFile File="$(HardenedOpenApiModelDir)outputs.txt"
+                          Condition="'@(_HardenedOpenApiOutput)' != ''"
+                          Lines="@(_HardenedOpenApiOutput)"
+                          Overwrite="true"
+                          WriteOnlyWhenDifferent="true"/>
+        <Delete Files="$(HardenedOpenApiModelDir)outputs.txt" Condition="'@(_HardenedOpenApiOutput)' == ''"/>
+    </Target>
+
+    <!--
         Specs used to be declared as AdditionalFiles and parsed inside the generator. That silently
         generates nothing now, so say so rather than leaving the author to find an empty obj folder.
     -->
