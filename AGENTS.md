@@ -205,11 +205,14 @@ parse-option feature, which is what lets the generator suites compile what they 
 **Generated sources under `obj/**/generated/` outlive a rename unless a compile prunes them.** The
 compiler rewrites every generated file each time it runs and deletes none, so a renamed handler or
 generator leaves its old files behind, and Rider compiles both. `HardenedPruneGeneratedFiles`, in
-`Hardened.OpenApiDocument.targets`, deletes a file under a `Hardened.*` generator's folder that a
-compile which ran did not rewrite. It reaches a project that imports a generator package's targets,
-and a generator outside Hardened is not pruned. Debug and Release have separate directories, so an
-IDE reading one while you build the other reports errors `dotnet build` does not. Delete `obj/` when
-the IDE and the CLI disagree.
+`Hardened.OpenApiDocument.targets`, deletes a file under a `Hardened.*` or `ValidationModules.*`
+generator's folder that a compile which ran did not rewrite. It reaches a project that imports a
+generator package's targets, and any other generator is not pruned. The OpenAPI and Smithy build
+tasks write outside that folder, under `obj/**/openapi/` and `obj/**/smithy/`, so
+`HardenedOpenApiPruneOutputs` and `HardenedSmithyPruneOutputs` record what each build declared in
+`outputs.txt` and delete what the previous build declared and this one does not. Debug and Release
+have separate directories, so an IDE reading one while you build the other reports errors
+`dotnet build` does not. Delete `obj/` when the IDE and the CLI disagree.
 
 ## One executor
 

@@ -87,7 +87,8 @@
         runs, and deletes none. A handler that was renamed, or a contract that was replaced, leaves
         its old files beside the new ones, and those are what a reader is told to read. After a
         compile that ran, a file under a Hardened generator's folder that is older than the compile
-        is one no generator produces any more.
+        is one no generator produces any more. ValidationModules' generator is pruned as well,
+        because a Hardened project wires it in and a removed model leaves its validator behind.
 
         Whether the compile ran is read off the assembly it writes, against the moment before it
         started. A compile skipped as up to date writes nothing, and nothing is deleted.
@@ -117,6 +118,7 @@
 
         <ItemGroup Condition="'$(_HardenedCompileRan)' == 'true'">
             <_HardenedGeneratedFile Include="$(CompilerGeneratedFilesOutputPath)/Hardened.*/**/*.cs"/>
+            <_HardenedGeneratedFile Include="$(CompilerGeneratedFilesOutputPath)/ValidationModules.*/**/*.cs"/>
             <_HardenedStaleFile Include="@(_HardenedGeneratedFile)"
                                 Condition="$([System.IO.File]::GetLastWriteTime('%(FullPath)').ToUniversalTime().Ticks) &lt; $(_HardenedStaleBeforeTicks)"/>
         </ItemGroup>

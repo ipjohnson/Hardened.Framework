@@ -425,6 +425,43 @@
     </Target>
 
     <!--
+        The outputs of a model that is no longer declared, deleted for the reason
+        HardenedOpenApiPruneOutputs gives: deriving the items keeps them out of the compilation but
+        not out of obj/. Each build records the files it declared in outputs.txt, and deletes what
+        the previous build recorded and this one does not declare.
+
+        The AST the CLI writes is recorded only when the build generates one. A committed
+        @(HardenedSmithyAst) is the author's file and is never recorded, so never deleted.
+    -->
+    <Target Name="HardenedSmithyPruneOutputs"
+            DependsOnTargets="HardenedSmithyResolveModelDir"
+            BeforeTargets="CoreCompile">
+
+        <ReadLinesFromFile File="$(HardenedSmithyModelDir)outputs.txt"
+                           Condition="Exists('$(HardenedSmithyModelDir)outputs.txt')">
+            <Output TaskParameter="Lines" ItemName="_HardenedSmithyPreviousOutput"/>
+        </ReadLinesFromFile>
+
+        <ItemGroup>
+            <_HardenedSmithyOutput Include="@(_HardenedSmithyModel->'%(FullPath)');@(_HardenedSmithySource->'%(FullPath)')"/>
+            <_HardenedSmithyOutput Condition="'@(HardenedSmithyModel)' != ''"
+                                   Include="$(IntermediateOutputPath)smithy/ast/$(HardenedSmithyModelName).json;$(IntermediateOutputPath)smithy/ast/$(HardenedSmithyModelName).stamp;$(IntermediateOutputPath)smithy/ast/$(HardenedSmithyModelName).warnings.txt"/>
+            <_HardenedSmithyStaleOutput Include="@(_HardenedSmithyPreviousOutput)"/>
+            <_HardenedSmithyStaleOutput Remove="@(_HardenedSmithyOutput->'%(FullPath)')"/>
+        </ItemGroup>
+
+        <Delete Files="@(_HardenedSmithyStaleOutput)"/>
+
+        <MakeDir Directories="$(HardenedSmithyModelDir)" Condition="'@(_HardenedSmithyOutput)' != ''"/>
+        <WriteLinesToFile File="$(HardenedSmithyModelDir)outputs.txt"
+                          Condition="'@(_HardenedSmithyOutput)' != ''"
+                          Lines="@(_HardenedSmithyOutput->'%(FullPath)')"
+                          Overwrite="true"
+                          WriteOnlyWhenDifferent="true"/>
+        <Delete Files="$(HardenedSmithyModelDir)outputs.txt" Condition="'@(_HardenedSmithyOutput)' == ''"/>
+    </Target>
+
+    <!--
         A .smithy file is not what this reads. Said out loud rather than left as an empty obj folder,
         because the mistake is an easy one and the symptom is silence.
     -->
