@@ -241,6 +241,7 @@ public class GeneratedDocumentTests
 
         Assert.Equal("Petstore API", info.GetProperty("title").GetString());
         Assert.Equal("1.0.0", info.GetProperty("version").GetString());
+        Assert.Equal("MIT", info.GetProperty("license").GetProperty("name").GetString());
     }
 
     /// <summary>

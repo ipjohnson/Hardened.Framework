@@ -546,6 +546,13 @@ public class SpecModelSerializerTests
             Title = "Petstore API",
             Version = "2.1.0",
             InfoDescription = "Everything about the pets in the store.",
+            InfoSummary = "Pets.",
+            TermsOfService = "https://example.com/terms",
+            ContactJson = "{\"name\":\"Pets team\",\"email\":\"pets@example.com\"}",
+            LicenseName = "MIT",
+            LicenseIdentifier = "MIT",
+            LicenseUrl = "https://opensource.org/licenses/MIT",
+            InfoExtensionsJson = "\"x-audience\":\"public\"",
             SecuritySchemes =
             {
                 new SecuritySchemeModel

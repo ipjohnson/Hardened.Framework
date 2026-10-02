@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Threading;
 using Hardened.Generation.Models;
 using Hardened.OpenApi.SourceGenerator;
@@ -139,21 +140,48 @@ servers:
         Assert.Equal("https://staging.example.com/v2", model.Servers[1].Url);
     }
 
-    /// <summary>A server that is nothing but the applied base path has nothing left to publish.</summary>
+    /// <summary>
+    /// A relative server that is nothing but the applied base path is the document's own origin.
+    /// </summary>
     [Fact]
-    public void AServerThatIsOnlyTheBasePathIsDropped()
+    public void AServerThatIsOnlyTheBasePathBecomesTheRoot()
     {
-        Assert.Empty(
-            Parse(
-                Spec(
-                    @"
+        Assert.Equal(
+            "/",
+            Assert
+                .Single(
+                    Parse(
+                        Spec(
+                            @"
 servers:
   - url: /v1
 "
-                ),
-                applyServerBasePath: true
-            ).Servers
+                        ),
+                        applyServerBasePath: true
+                    ).Servers
+                )
+                .Url
         );
+    }
+
+    /// <summary>
+    /// OpenAPI allows a relative server URL, and <c>/</c> is one. Trimming its slash left nothing,
+    /// and the contract's only server was dropped.
+    /// </summary>
+    [Fact]
+    public void ARelativeRootServerIsKept()
+    {
+        var model = Parse(
+            Spec(
+                @"
+servers:
+  - url: /
+  - url: http://localhost:5182
+"
+            )
+        );
+
+        Assert.Equal(["/", "http://localhost:5182"], model.Servers.Select(s => s.Url));
     }
 
     /// <summary>

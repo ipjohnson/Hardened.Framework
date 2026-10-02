@@ -359,6 +359,61 @@ public class DocumentWriterTests
         );
     }
 
+    [Fact]
+    public void ARelativeServerIsPublished()
+    {
+        var document = Write(
+            Handler(),
+            identity: new DocumentIdentity(null, null, null, [], [("/", null)])
+        );
+
+        Assert.Equal([("/", null)], Servers(document));
+    }
+
+    /// <summary>
+    /// The rest of the contract's <c>info</c>, which used to stop at its description.
+    /// </summary>
+    [Fact]
+    public void TheContractsWholeInfoIsPublished()
+    {
+        var document = Write(Handler(), identity: Identity(LicensedInfo()));
+
+        var info = document.GetProperty("info");
+
+        Assert.Equal("Tickets.", info.GetProperty("summary").GetString());
+        Assert.Equal("https://example.com/terms", info.GetProperty("termsOfService").GetString());
+        Assert.Equal("Helpdesk", info.GetProperty("contact").GetProperty("name").GetString());
+        Assert.Equal("MIT", info.GetProperty("license").GetProperty("name").GetString());
+        Assert.Equal("MIT", info.GetProperty("license").GetProperty("identifier").GetString());
+        Assert.Equal("public", info.GetProperty("x-audience").GetString());
+    }
+
+    /// <summary>OpenAPI 3.0 has no <c>summary</c> and no <c>license.identifier</c>.</summary>
+    [Fact]
+    public void ADocumentWrittenAs30LeavesOutWhatOnly31Has()
+    {
+        var info = Write(Handler(), OpenApiVersion.V3_0, Identity(LicensedInfo()))
+            .GetProperty("info");
+
+        Assert.False(info.TryGetProperty("summary", out _));
+        Assert.Equal("MIT", info.GetProperty("license").GetProperty("name").GetString());
+        Assert.False(info.GetProperty("license").TryGetProperty("identifier", out _));
+    }
+
+    private static DocumentInfo LicensedInfo() =>
+        new(
+            "Tickets.",
+            "https://example.com/terms",
+            "{\"name\":\"Helpdesk\"}",
+            "MIT",
+            "MIT",
+            null,
+            "\"x-audience\":\"public\""
+        );
+
+    private static DocumentIdentity Identity(DocumentInfo info) =>
+        new("Helpdesk", "1.0.0", null, [], null, info);
+
     /// <summary>The attribute still answers for an application whose contract says nothing.</summary>
     [Fact]
     public void AServerAttributeIsPublishedWhenNoContractDeclaresOne()

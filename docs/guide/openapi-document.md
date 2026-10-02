@@ -415,7 +415,9 @@ the document and the page. No attribute is involved. `--contract openapi` writes
 | `EmbedDocument` | `false` leaves the contract file out of the assembly |
 
 `PublishUrl` serves the generated document as `application/json` whatever the contract file's
-format. The generated document keeps the contract's `info`, `servers` and descriptions. It adds
+format. The generated document keeps the contract's whole `info` object, including `license` and
+`contact`. It keeps the contract's `servers`, including a relative URL such as `/`, and its
+descriptions. It adds
 what a code-first document adds, such as the [validation 400](#the-400-and-404-the-build-adds). It
 is OpenAPI 3.2.0 whatever version the contract declares.
 

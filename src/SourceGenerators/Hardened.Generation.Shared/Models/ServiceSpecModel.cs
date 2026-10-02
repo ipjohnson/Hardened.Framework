@@ -68,6 +68,29 @@ internal class ServiceSpecModel : IEquatable<ServiceSpecModel>
     /// <summary>The contract's <c>info.description</c>, or null.</summary>
     public string? InfoDescription { get; set; }
 
+    /// <summary>The contract's <c>info.summary</c>, or null. OpenAPI 3.1 only.</summary>
+    public string? InfoSummary { get; set; }
+
+    /// <summary>The contract's <c>info.termsOfService</c>, or null.</summary>
+    public string? TermsOfService { get; set; }
+
+    /// <summary>The contract's <c>info.contact</c> as a JSON object, or null.</summary>
+    public string? ContactJson { get; set; }
+
+    /// <summary>The contract's <c>info.license.name</c>, or null when it declares no license.</summary>
+    public string? LicenseName { get; set; }
+
+    /// <summary>The contract's <c>info.license.identifier</c>, or null. OpenAPI 3.1 only.</summary>
+    public string? LicenseIdentifier { get; set; }
+
+    /// <summary>The contract's <c>info.license.url</c>, or null.</summary>
+    public string? LicenseUrl { get; set; }
+
+    /// <summary>
+    /// The contract's <c>x-</c> members of <c>info</c>, as comma-separated JSON members, or null.
+    /// </summary>
+    public string? InfoExtensionsJson { get; set; }
+
     /// <summary>The schemes the contract declares, for the published document.</summary>
     public List<SecuritySchemeModel> SecuritySchemes { get; set; } = new();
 
@@ -234,6 +257,20 @@ internal class ServiceSpecModel : IEquatable<ServiceSpecModel>
         if (Version != other.Version)
             return false;
         if (InfoDescription != other.InfoDescription)
+            return false;
+        if (InfoSummary != other.InfoSummary)
+            return false;
+        if (TermsOfService != other.TermsOfService)
+            return false;
+        if (ContactJson != other.ContactJson)
+            return false;
+        if (LicenseName != other.LicenseName)
+            return false;
+        if (LicenseIdentifier != other.LicenseIdentifier)
+            return false;
+        if (LicenseUrl != other.LicenseUrl)
+            return false;
+        if (InfoExtensionsJson != other.InfoExtensionsJson)
             return false;
         if (SecuritySchemes.Count != other.SecuritySchemes.Count)
             return false;
