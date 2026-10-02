@@ -22,7 +22,7 @@ Origin: https://app.example.com
 HTTP/1.1 200 OK
 Content-Type: application/json
 Access-Control-Allow-Origin: https://app.example.com
-Access-Control-Expose-Headers: X-Correlation-Id
+Access-Control-Expose-Headers: X-Correlation-Id, WWW-Authenticate
 Vary: Origin
 
 {"id":1,"title":"Read the generated code","done":true}
@@ -100,7 +100,7 @@ Origin: https://anything.test
 HTTP/1.1 200 OK
 Content-Type: application/json
 Access-Control-Allow-Origin: *
-Access-Control-Expose-Headers: X-Correlation-Id
+Access-Control-Expose-Headers: X-Correlation-Id, WWW-Authenticate
 Vary: Origin
 
 {"id":1,"title":"Read the generated code","done":true}
@@ -178,7 +178,7 @@ HTTP/1.1 201 Created
 Content-Type: application/json
 Access-Control-Allow-Credentials: true
 Access-Control-Allow-Origin: https://shop.example.org
-Access-Control-Expose-Headers: X-Correlation-Id, Location
+Access-Control-Expose-Headers: X-Correlation-Id, WWW-Authenticate, Location
 Location: /todos/3
 Vary: Origin
 
@@ -195,7 +195,7 @@ The configuration has these members:
 | `AllowCredentials` | `false` | Sends `Access-Control-Allow-Credentials: true` |
 | `AllowHeader(header)` | | Adds a request header a preflight may name |
 | `ExposeHeader(header)` | | Adds a response header a script may read |
-| `ClearExposedHeaders()` | | Removes every exposed header, `X-Correlation-Id` included |
+| `ClearExposedHeaders()` | | Removes every exposed header, `X-Correlation-Id` and `WWW-Authenticate` included |
 | `MaxAgeSec` | `86400` | How long a browser may keep a preflight's answer, in seconds. Sent as `Access-Control-Max-Age` |
 | `FallbackMethods` | `GET, POST, PUT, DELETE, OPTIONS` | The methods a preflight for a path with no route is told, in an application that declares no `[Cors]` |
 | `EnvironmentVariable` | `CORS_ALLOWED_ORIGINS` | The variable `LoadFromEnvironment()` reads origins from |
@@ -298,8 +298,9 @@ Vary: Origin
 
 ## Exposed headers
 
-`Access-Control-Expose-Headers` lists `X-Correlation-Id` by default. Every response carries an
-`X-Correlation-Id` header. `ExposeHeader` adds a header to the list. `ClearExposedHeaders` empties
+`Access-Control-Expose-Headers` lists `X-Correlation-Id` and `WWW-Authenticate` by default. Every
+response carries an `X-Correlation-Id` header. A 401 carries a `WWW-Authenticate` challenge, and a
+script reads its `error_description` to tell an expired token from a missing one. `ExposeHeader` adds a header to the list. `ClearExposedHeaders` empties
 the list. `Access-Control-Expose-Headers` is then not sent. The list goes on responses to actual
 requests. A preflight does not carry it.
 
@@ -452,7 +453,7 @@ application's. `TPolicy` can be any type. It only names the policy.
 `AddCorsPolicy<TPolicy>(configure)` is in the same namespace. It is an extension method on
 `IServiceCollection`. It passes a new configuration to `configure` and registers it. A new
 configuration allows no origin. It allows the five request headers of [Preflights](#preflights). It
-exposes `X-Correlation-Id`. Its `MaxAgeSec` is 86400. A named policy does not read
+exposes `X-Correlation-Id` and `WWW-Authenticate`. Its `MaxAgeSec` is 86400. A named policy does not read
 `CORS_ALLOWED_ORIGINS`.
 
 In this example, `src/Todos/Partners.cs` declares the type that names the policy:
@@ -525,7 +526,7 @@ Content-Type: application/json
 HTTP/1.1 201 Created
 Content-Type: application/json
 Access-Control-Allow-Origin: https://partner.example.com
-Access-Control-Expose-Headers: X-Correlation-Id
+Access-Control-Expose-Headers: X-Correlation-Id, WWW-Authenticate
 Location: /todos/3
 Vary: Origin
 

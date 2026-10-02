@@ -305,6 +305,23 @@ public class CorsFilterTests
         );
     }
 
+    /// <summary>
+    /// The challenge on a 401 is exposed out of the box, so a single-page app can read
+    /// <c>error_description</c> and tell an expired token from a missing one.
+    /// </summary>
+    [Fact]
+    public async Task Execute_ExposesTheChallengeHeaderByDefault()
+    {
+        var context = Context("GET", Allowed);
+
+        await Run(new CorsFilter(ConfigAllowing(Allowed)), context);
+
+        Assert.Equal(
+            $"{CorrelationHeaderFilter.HeaderName}, WWW-Authenticate",
+            context.Response.Headers[KnownHeaders.Cors.AccessControlExposeHeaders].ToString()
+        );
+    }
+
     /// <summary>An application that wants none of it can say so.</summary>
     [Fact]
     public async Task Execute_ExposesNothingOnceTheListIsCleared()
