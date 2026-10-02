@@ -208,9 +208,11 @@
           ]
         },
         {
+          "comment": "The defaults file is what Amazon.Lambda.Tools, and sam build through it, read for the framework and configuration. The framework is set in Directory.Build.props rather than the project file, where the tools do not look, so without it sam build stops at 'Missing required parameter: --framework'.",
           "condition": "(gcp || azure)",
           "exclude": [
-            ".config/**"
+            ".config/**",
+            "src/Hardened1/aws-lambda-tools-defaults.json"
           ]
         },
         {
