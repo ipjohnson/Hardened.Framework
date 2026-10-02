@@ -24,15 +24,22 @@ public class CorsConfiguration
     };
 
     /// <summary>
-    /// Seeded with the correlation header, which the pipeline puts on every response.
+    /// Seeded with the correlation header, which the pipeline puts on every response, and the
+    /// challenge on a 401.
     /// </summary>
     /// <remarks>
-    /// Without this a cross-origin script cannot read it - the CORS-safelisted response headers are
-    /// a short list and this is not on it - so the id would come back on every response and be
-    /// invisible to exactly the browser client most likely to want to report it. Remove it with
-    /// <see cref="ClearExposedHeaders"/> if that is not wanted.
+    /// Without this a cross-origin script cannot read either - the CORS-safelisted response headers
+    /// are a short list and neither is on it. The correlation id would come back on every response
+    /// and be invisible to exactly the browser client most likely to want to report it, and a
+    /// single-page app could not read the challenge's <c>error_description</c> to tell an expired
+    /// token from a missing one. Remove them with <see cref="ClearExposedHeaders"/> if that is not
+    /// wanted.
     /// </remarks>
-    private readonly List<string> _exposedHeaders = new() { CorrelationHeaderFilter.HeaderName };
+    private readonly List<string> _exposedHeaders = new()
+    {
+        CorrelationHeaderFilter.HeaderName,
+        "WWW-Authenticate",
+    };
 
     public string EnvironmentVariable { get; set; } = DefaultEnvironmentVariable;
 
@@ -100,7 +107,7 @@ public class CorsConfiguration
     }
 
     /// <summary>
-    /// Stop exposing anything, including the correlation header this starts with.
+    /// Stop exposing anything, including the correlation and challenge headers this starts with.
     /// </summary>
     public void ClearExposedHeaders()
     {
