@@ -385,6 +385,9 @@ attribute to derive from. It points the application's `IDynamoDbClientProvider` 
 in a container. A derived class overrides `DdbSetup` to create tables. The AWS
 [DynamoDB client](/aws/dynamodb) page covers it.
 
+[Data access](/guide/data-access#a-database-for-each-test) shows an environment attribute that
+gives each test a database file of its own.
+
 ## Next
 
 | Page | Covers |
@@ -393,3 +396,4 @@ in a container. A derived class overrides `DdbSetup` to create tables. The AWS
 | [Sending requests](/guide/testing-web) | Requests through `ITestWebApp` |
 | [Configuration](/guide/configuration) | Configuration models and `Amend` |
 | [DynamoDB client](/aws/dynamodb) | DynamoDB Local in a test |
+| [Data access](/guide/data-access) | A database for each test |

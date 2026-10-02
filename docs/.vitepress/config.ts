@@ -76,6 +76,7 @@ const guide = [
       { text: 'Registering services', link: '/guide/services' },
       { text: 'Configuration', link: '/guide/configuration' },
       { text: 'Environments', link: '/guide/environments' },
+      { text: 'Data access', link: '/guide/data-access' },
     ],
   },
   {
