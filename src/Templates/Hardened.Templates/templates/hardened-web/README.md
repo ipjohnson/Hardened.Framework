@@ -448,6 +448,13 @@ public async Task GetTodo_UnknownId_IsNotFound(ITestWebApp app) {
 ```
 #endif
 
+#if (lambda)
+`tests/Hardened1.Tests/TodoLambdaTests.cs` sends its requests one step further out.
+`[LambdaWebTesting]` builds each one as an API Gateway payload format 2.0 event and sends it through
+the function's invocation handler, so the Lambda HTTP adapter runs too, still with no Lambda
+runtime. `[LambdaHttpModule]` beside it loads the adapter, which the library module does not import.
+#endif
+
 #if (moq)
 Take a `Mock<T>` parameter and that service is substituted for the whole graph, including behind a
 route; `tests/Hardened1.Tests/TodoStoreMockTests.cs` does. The mock is Moq's, through

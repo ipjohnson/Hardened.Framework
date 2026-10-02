@@ -267,6 +267,13 @@ routes answer at the paths the library declares.
 process. Delete that line and the same tests run on the pipeline alone; there is no socket test,
 because the socket is the host's.
 #endif
+#if (lambda)
+
+**`[LambdaHttpModule]` on `tests/Hardened1.Tests/TodoLambdaTests.cs` is load-bearing.** The test
+project's entry point is the library module, which does not import the Lambda HTTP adapter. Remove
+the attribute and every request in that class fails with `No service for type
+'Hardened.Aws.Lambda.Runtime.Hosting.LambdaInvocationHandler' has been registered.`
+#endif
 
 #if (xunit)
 **Tests are xUnit v3, version 4.** `DependencyModules.xUnit4` builds on

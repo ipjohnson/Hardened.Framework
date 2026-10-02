@@ -227,9 +227,9 @@ answer back as the test's response. `LambdaWebTestingAttribute` is in the namesp
 `Hardened.Aws.Lambda.Testing`, in the same package as `[LambdaTesting]`. It goes on a method, a
 class or the assembly.
 
-`dotnet new hardened-web --host aws-lambda` does not reference `Hardened.Aws.Lambda.Testing` in its
-test project. It writes no Lambda test host. [Test hosts](/guide/testing-hosts) shows the two lines
-to add and a test class. The testing package references every AWS adapter package,
+`dotnet new hardened-web --host aws-lambda` references `Hardened.Aws.Lambda.Testing` in its test
+project and writes one Lambda test class, `TodoLambdaTests`. [Test hosts](/guide/testing-hosts)
+shows the class. The testing package references every AWS adapter package,
 `Hardened.Aws.Lambda.Http` among them.
 
 The template's test project names the library module, `TodosLibrary`, as its entry point, so

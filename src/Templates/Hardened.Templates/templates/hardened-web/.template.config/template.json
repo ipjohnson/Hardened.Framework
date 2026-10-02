@@ -339,11 +339,12 @@
           ]
         },
         {
-          "comment": "The Host's own tool manifest pins the AWS Lambda Test Tool, which the generated Main starts when the application is run locally. Nothing else starts a tool, so the other hosts do not carry it. The defaults file is what Amazon.Lambda.Tools, and sam build through it, read for the framework and configuration: the framework is set in Directory.Build.props, where the tools do not look, so without it sam build stops at 'Missing required parameter: --framework'.",
+          "comment": "The Host's own tool manifest pins the AWS Lambda Test Tool, which the generated Main starts when the application is run locally. Nothing else starts a tool, so the other hosts do not carry it. The defaults file is what Amazon.Lambda.Tools, and sam build through it, read for the framework and configuration: the framework is set in Directory.Build.props, where the tools do not look, so without it sam build stops at 'Missing required parameter: --framework'. TodoLambdaTests drives requests through the API Gateway envelope, which only a Lambda application has.",
           "condition": "(!lambda)",
           "exclude": [
             "src/Hardened1.Host/.config/**",
-            "src/Hardened1.Host/aws-lambda-tools-defaults.json"
+            "src/Hardened1.Host/aws-lambda-tools-defaults.json",
+            "tests/Hardened1.Tests/TodoLambdaTests.cs"
           ]
         },
         {

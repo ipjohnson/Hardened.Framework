@@ -266,18 +266,9 @@ loads it too, with the test project referencing the host project. [Writing a tes
 covers the entry point. Without the module, every request fails with
 `No service for type 'Hardened.Aws.Lambda.Runtime.Hosting.LambdaInvocationHandler' has been registered.`
 
-In the `--host aws-lambda` project, these lines add `Hardened.Aws.Lambda.Testing` to
-`Directory.Packages.props` and to `tests/Todos.Tests/Todos.Tests.csproj`:
-
-```xml
-<PackageVersion Include="Hardened.Aws.Lambda.Testing" Version="$(HardenedVersion)" />
-```
-
-```xml
-<PackageReference Include="Hardened.Aws.Lambda.Testing" />
-```
-
-`tests/Todos.Tests/TodoLambdaTests.cs` then puts both attributes on its class:
+The `--host aws-lambda` project references `Hardened.Aws.Lambda.Testing` in
+`tests/Todos.Tests/Todos.Tests.csproj` and writes `tests/Todos.Tests/TodoLambdaTests.cs`, which puts
+both attributes on its class:
 
 ```csharp
 using DependencyModules.xUnit.Attributes;
