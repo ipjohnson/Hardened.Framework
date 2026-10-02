@@ -4,6 +4,7 @@ using DependencyModules.Testing.Attributes.Interfaces;
 using DependencyModules.Testing.Impl;
 using Hardened.Shared.Runtime.Application;
 using Hardened.Shared.Runtime.Configuration;
+using Hardened.Shared.Runtime.DependencyInjection;
 using Hardened.Shared.Testing.Impl;
 using Hardened.Shared.Testing.Logging;
 using Hardened.Shared.Testing.Utilties;
@@ -60,9 +61,19 @@ public class HardenedTestEntryPointAttribute
             typeof(ITestContext),
         ];
 
+    /// <summary>
+    /// The entry point, with <see cref="HardenedCoreModule"/> loaded beside it.
+    /// </summary>
+    /// <remarks>
+    /// An application's entry point reaches <see cref="HardenedCoreModule"/> through its host's
+    /// module, and a library's does not, because a library names no host. Without it nothing
+    /// registers <see cref="IConfigurationManager"/>, so a library test that took the library's own
+    /// <c>IOptions</c> of a configuration model failed to resolve it. Module equality is by type, so
+    /// for an application the second instance collapses into the one its host already imported.
+    /// </remarks>
     public IDependencyModule GetModule()
     {
-        return (IDependencyModule)Activator.CreateInstance(EntryPoint)!;
+        return new EntryPointModule((IDependencyModule)Activator.CreateInstance(EntryPoint)!);
     }
 
     /// <summary>
@@ -233,5 +244,18 @@ public class HardenedTestEntryPointAttribute
         }
 
         return new TestEnvironment(environmentName, environmentDictionary);
+    }
+
+    /// <summary>
+    /// Loads the entry point and then <see cref="HardenedCoreModule"/>. The entry point comes first
+    /// so that an application's own graph is walked before the core module is asked for, and its
+    /// modules apply in the order they had without this wrapper.
+    /// </summary>
+    private sealed class EntryPointModule(IDependencyModule entryPoint) : IDependencyModule
+    {
+        public void PopulateServiceCollection(IServiceCollection serviceCollection) { }
+
+        public IEnumerable<IDependencyModule> GetModules() =>
+            [entryPoint, new HardenedCoreModule()];
     }
 }

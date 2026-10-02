@@ -6,6 +6,9 @@
 
     <ItemGroup>
         <ProjectReference Include="..\Hardened.Shared.Testing\Hardened.Shared.Testing.csproj"/>
+        <!-- OrdersLibrary is a generated library module with a configuration model, as a consumer's is. -->
+        <ProjectReference Include="..\..\SourceGenerators\Hardened.Library.SourceGenerator\Hardened.Library.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\SourceGenerators\Hardened.DependencyModules.SourceGenerator\Hardened.DependencyModules.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
           <!-- [ModuleTest] and the running-test seam, for xunit.v3 4.x. -->
       <ProjectReference Include="$(DependencyModulesRoot)\src\DependencyModules.xUnit4\DependencyModules.xUnit4.csproj"
                         Condition="'$(UseLocalDependencyModules)' == 'true'"/>

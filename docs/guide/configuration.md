@@ -181,6 +181,11 @@ public class TodoController
 
 Both ways return one instance for the whole application.
 
+A `[ModuleTest]` can take `IOptions<ITodoListOptions>` or `IConfigurationManager` as a parameter.
+This holds in a `hardened-library` project too, whose module names no host.
+`[HardenedTestEntryPoint]` loads `HardenedCoreModule` beside the entry point, and that module
+registers the configuration manager.
+
 The container holds the model only as `IOptions<ITodoListOptions>`. `GetConfiguration<T>` takes the
 interface. Other ways of asking for the model fail:
 
