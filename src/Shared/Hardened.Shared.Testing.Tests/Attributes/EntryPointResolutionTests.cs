@@ -1,3 +1,4 @@
+using Hardened.Shared.Runtime.DependencyInjection;
 using Hardened.Shared.Testing.Attributes;
 using Hardened.Shared.Testing.Impl;
 using Hardened.Shared.Testing.Tests.Infrastructure;
@@ -122,18 +123,27 @@ public class EntryPointResolutionTests
     }
 
     [Fact]
-    public void GetModuleBuildsAnInstanceOfTheDeclaredEntryPoint()
+    public void GetModuleLoadsTheDeclaredEntryPointFirstAndThenTheCoreModule()
     {
         var attribute = new HardenedTestEntryPointAttribute(typeof(AssemblyEntryPointModule));
 
-        Assert.IsType<AssemblyEntryPointModule>(attribute.GetModule());
+        var modules = attribute.GetModule().GetModules().ToArray();
+
+        Assert.Collection(
+            modules,
+            module => Assert.IsType<AssemblyEntryPointModule>(module),
+            module => Assert.IsType<HardenedCoreModule>(module)
+        );
     }
 
     [Fact]
-    public void GetModuleBuildsANewInstanceEachTimeItIsAsked()
+    public void GetModuleBuildsANewEntryPointEachTimeItIsAsked()
     {
         var attribute = new HardenedTestEntryPointAttribute(typeof(AssemblyEntryPointModule));
 
-        Assert.NotSame(attribute.GetModule(), attribute.GetModule());
+        Assert.NotSame(
+            attribute.GetModule().GetModules().First(),
+            attribute.GetModule().GetModules().First()
+        );
     }
 }
