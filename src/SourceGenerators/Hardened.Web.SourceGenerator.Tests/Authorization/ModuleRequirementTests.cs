@@ -124,11 +124,30 @@ public class ModuleRequirementTests
     [Theory]
     [InlineData("/requests", "get")]
     [InlineData("/requests", "post")]
-    public void EveryOperationPublishesTheSchemeThe401AndThe403(string path, string method)
+    public void EveryOperationPublishesTheSchemeAndThe401(string path, string method)
     {
         var operation = Operation(Document(Generate("[Authorize<BearerAuth>]")), path, method);
 
         Assert.Equal(["{\"BearerAuth\":[]}"], Security(operation));
+        Assert.Contains("401", Statuses(operation));
+        Assert.DoesNotContain("403", Statuses(operation));
+    }
+
+    /// <summary>
+    /// A grant beside the scheme is what lets an authenticated caller be refused, so it brings
+    /// the 403.
+    /// </summary>
+    [Theory]
+    [InlineData("/requests", "get")]
+    [InlineData("/requests", "post")]
+    public void AGrantBesideTheSchemePublishesThe403(string path, string method)
+    {
+        var operation = Operation(
+            Document(Generate("[Authorize<BearerAuth>]\n[AuthorizeGrants(\"admin\")]")),
+            path,
+            method
+        );
+
         Assert.Contains("401", Statuses(operation));
         Assert.Contains("403", Statuses(operation));
     }

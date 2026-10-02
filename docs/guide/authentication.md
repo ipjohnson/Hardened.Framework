@@ -113,10 +113,11 @@ A handler with no authorization attribute stays public. `[RequireAuthorization]`
 requires a caller on every handler. [Authorization](/guide/authorization) covers
 `[RequireAuthorization]`, `[AuthorizeGrants]`, policies and the 403.
 [The OpenAPI document](/guide/openapi-document) covers what `[Authorize<TScheme>]` publishes: the
-operation's `security`, a 401 and a 403.
+operation's `security` and a 401. It publishes no 403, because a caller who fails the attribute is
+not authenticated and gets 401. `[AuthorizeGrants]` or a policy on the same operation adds the 403.
 
 On a module class, the attribute acts as though every controller class compiled with the module
-carried it. Each operation lists the scheme under `security`, with the 401 and the 403. A handler
+carried it. Each operation lists the scheme under `security`, with the 401. A handler
 with `[AllowAnonymous]` on its method or its class stays public, and its operation lists none of
 them. `[AuthorizeGrants]` and `[Authorize<TScheme, TPolicy>]` on a module class work the same way.
 

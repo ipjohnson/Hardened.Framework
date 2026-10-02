@@ -286,6 +286,18 @@ internal static class SecurityDeclarationSelector
         return false;
     }
 
+    /// <summary>
+    /// Whether this attribute type is the one-argument <c>[Authorize&lt;TScheme&gt;]</c>.
+    /// </summary>
+    /// <remarks>
+    /// It requires an authenticated caller and nothing else. A caller who fails that is not
+    /// authenticated, and the authorization filter answers an unauthenticated caller with a 401,
+    /// so the 403 <c>IAuthorizeAttribute</c> declares is not a status it can answer.
+    /// </remarks>
+    internal static bool IsSchemeOnly(INamedTypeSymbol? type) =>
+        type is { Name: "AuthorizeAttribute", Arity: 1 }
+        && type.ContainingNamespace?.ToDisplayString() + "." + type.Name == AuthorizeAttributeName;
+
     /// <summary>Whether any of these attributes imposes a requirement.</summary>
     private static bool Guarded(
         GeneratorSyntaxContext context,
