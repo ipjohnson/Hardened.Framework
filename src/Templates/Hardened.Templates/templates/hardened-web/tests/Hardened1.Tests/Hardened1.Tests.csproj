@@ -38,6 +38,11 @@
     <!-- The host Hardened1SocketTests runs the application on: a package, not the host project. -->
     <PackageReference Include="Hardened.Web.AspNetCore.Testing" />
 <!--#endif -->
+<!--#if (lambda) -->
+    <!-- The host TodoLambdaTests runs on: an API Gateway event through the Lambda invocation
+         handler, with no Lambda runtime. A package, not the host project. -->
+    <PackageReference Include="Hardened.Aws.Lambda.Testing" />
+<!--#endif -->
 <!--#if (azureFunctions) -->
     <!-- The host every test runs on: the worker's own request and response types through the
          real invocation handler, with no Functions host process. A package, not the host project. -->
