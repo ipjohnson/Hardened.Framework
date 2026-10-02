@@ -44,6 +44,7 @@ Change the thing it was generated from.
 | `HRDR007` on a handler parameter | A concrete class as a handler parameter is bound from the request body - its constructor takes services, or it carries `[SingletonService]`. Type it as an interface, or mark it `[FromServices]`. |
 | `HRDR009` | Two handler parameters both fell to the request body. One of them is a service or a value: `[FromServices]`, an interface, or `[FromQueryString]`. |
 | `HRDR010` on a `GET` | A parameter typed as a plain class, so it is read from a body a `GET` does not carry. Same fixes, or `NoWarn` if the body is deliberate. |
+| `VM1301` warning | `[Pattern("...")]` has an inline expression, which fails a Native AOT publish. Declare a `[GeneratedRegex]` method and write `[Pattern(typeof(T), nameof(T.Member))]`. `ValidationModules_PatternPolicy` in `src/Hardened1/Hardened1.csproj` sets the severity. |
 #if (specFirst)
 | `HOAT001` naming a contract that exists | The path in the csproj does not match the file |
 #endif

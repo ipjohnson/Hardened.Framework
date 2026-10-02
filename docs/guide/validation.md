@@ -920,6 +920,10 @@ path, query and header values, do not change.
 
 `[Pattern(typeof(T), nameof(T.Member))]` is not reported under any policy.
 
+The `hardened-web` template sets `Warn` in `src/<Name>/<Name>.csproj` when neither `PublishAot` nor
+`IsAotCompatible` is `true`. An inline expression then warns on every build, and a Native AOT
+publish still fails with the error.
+
 ## Diagnostics
 
 The build reports these diagnostics:

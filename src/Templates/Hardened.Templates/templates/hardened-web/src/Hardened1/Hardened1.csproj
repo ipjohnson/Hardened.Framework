@@ -89,6 +89,17 @@
   </PropertyGroup>
 <!--#endif -->
 
+  <!--
+    An inline [Pattern("...")] is VM1301. By default ValidationModules makes it an error when
+    PublishAot or IsAotCompatible is true and reports nothing otherwise, so a build is clean and
+    `dotnet publish -p:PublishAot=true` is the first thing to fail. Warn reports it on every build.
+    The conditions keep the error under AOT, and a value set elsewhere wins.
+    [Pattern(typeof(T), nameof(T.Member))] names a [GeneratedRegex] and is never reported.
+  -->
+  <PropertyGroup Condition="'$(ValidationModules_PatternPolicy)' == '' and '$(PublishAot)' != 'true' and '$(IsAotCompatible)' != 'true'">
+    <ValidationModules_PatternPolicy>Warn</ValidationModules_PatternPolicy>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Hardened.Shared.Runtime" />
     <PackageReference Include="Hardened.Web.Runtime" />
