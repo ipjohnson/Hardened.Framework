@@ -52,6 +52,25 @@ public class ProblemJsonTests
         );
     }
 
+    /// <summary>
+    /// The 0.42 trial's B-19: the 406 named application/problem+json as something the GET
+    /// produces.
+    /// </summary>
+    [ModuleTest]
+    public async Task The406NamesTheSuccessAlone(ITestWebApp app)
+    {
+        var response = await app.Get("/pets/1/checkup", Accepting("application/xml"));
+
+        Assert.Equal(406, response.StatusCode);
+
+        using var body = JsonDocument.Parse(await response.ReadTextAsync());
+
+        Assert.Equal(
+            "This operation produces application/json.",
+            body.RootElement.GetProperty("detail").GetString()
+        );
+    }
+
     [ModuleTest]
     public async Task AFailureDeclaredOnlyAsAProblemIsOne(ITestWebApp app)
     {

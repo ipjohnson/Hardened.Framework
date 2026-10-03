@@ -32,7 +32,7 @@ public class AotResponseSerializer : IResponseSerializer
         // serves both hosts from one class, so it keeps a reflection tail that the trimmer removes.
         _serializerOptions =
             configuration.Value.SerializeOptions
-            ?? new JsonSerializerOptions(JsonSerializerDefaults.Web);
+            ?? JsonSerializerConfiguration.DefaultSerializeOptions();
 
         foreach (var resolver in resolvers)
         {

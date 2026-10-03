@@ -61,7 +61,7 @@ public class SystemTextJsonResponseSerializer : IResponseSerializer
     {
         _serializerOptions = Hardened.Shared.Runtime.Json.JsonTypeInfoLookup.WithResolvers(
             configuration.Value.SerializeOptions
-                ?? new JsonSerializerOptions(JsonSerializerDefaults.Web),
+                ?? JsonSerializerConfiguration.DefaultSerializeOptions(),
             resolvers
         );
     }

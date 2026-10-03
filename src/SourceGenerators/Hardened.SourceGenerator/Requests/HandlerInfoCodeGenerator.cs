@@ -182,6 +182,19 @@ public static class HandlerInfoCodeGenerator
             declaredArgs += $", errorContentTypes: new string[] {{ {string.Join(", ", quoted)} }}";
         }
 
+        // And the successes' own, which is what a 406 names. The produced set carries the failures'
+        // media types as well, so naming it told a client its success came as a problem document.
+        if (
+            SuccessContentTypes(handlerModel.ResponseInformation) is { } successContentTypes
+            && successContentTypes.Length > 0
+        )
+        {
+            declaredArgs +=
+                ", successContentTypes: new string[] { "
+                + string.Join(", ", successContentTypes.Select(Quote))
+                + " }";
+        }
+
         // The body parameter's identifier, so a deserialization failure names its fields with the
         // prefix the generated validators use rather than a hardcoded "body".
         foreach (var parameter in handlerModel.RequestParameterInformationList)
@@ -334,6 +347,32 @@ public static class HandlerInfoCodeGenerator
         var produced = Split(response.ProducedContentTypes!);
 
         return failures.SequenceEqual(produced, StringComparer.OrdinalIgnoreCase) ? null : failures;
+    }
+
+    /// <summary>
+    /// The media types a description declared its successes with, or null where they are the
+    /// whole produced set.
+    /// </summary>
+    /// <remarks>
+    /// Null in that case for the reason <see cref="ErrorContentTypes"/> gives: the 406 says the same
+    /// thing from either list, and emitting it would change every such operation for nothing.
+    /// </remarks>
+    internal static string[]? SuccessContentTypes(ResponseInformationModel response)
+    {
+        if (
+            string.IsNullOrEmpty(response.SuccessContentTypes)
+            || string.IsNullOrEmpty(response.ProducedContentTypes)
+        )
+        {
+            return null;
+        }
+
+        var successes = Split(response.SuccessContentTypes!);
+        var produced = Split(response.ProducedContentTypes!);
+
+        return successes.SequenceEqual(produced, StringComparer.OrdinalIgnoreCase)
+            ? null
+            : successes;
     }
 
     private static string[] Split(string joined) =>

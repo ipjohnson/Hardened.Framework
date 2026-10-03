@@ -59,18 +59,20 @@ public class NotAcceptableResponseTests
         );
     }
 
-    private static IExecutionContext Context()
+    private static IExecutionContext Context(IExecutionRequestHandlerInfo? handlerInfo = null)
     {
         var context = Pipeline.Context(accept: "application/xml");
 
         context.Response.ResponseValue = new Product("1");
-        context.HandlerInfo = new ExecutionRequestHandlerInfo(
-            "/products/{sku}",
-            "GET",
-            typeof(NotAcceptableResponseTests),
-            "Get",
-            producedContentTypes: [KnownContentType.Json]
-        );
+        context.HandlerInfo =
+            handlerInfo
+            ?? new ExecutionRequestHandlerInfo(
+                "/products/{sku}",
+                "GET",
+                typeof(NotAcceptableResponseTests),
+                "Get",
+                producedContentTypes: [KnownContentType.Json]
+            );
 
         return context;
     }
@@ -114,6 +116,40 @@ public class NotAcceptableResponseTests
             "urn:hardened:problem:not-acceptable",
             body.RootElement.GetProperty("type").GetString()
         );
+        Assert.Equal(
+            "This operation produces application/json.",
+            body.RootElement.GetProperty("detail").GetString()
+        );
+    }
+
+    /// <summary>
+    /// A contract whose failures are problem documents does not offer one as its success.
+    /// </summary>
+    /// <remarks>
+    /// The 0.42 trial's B-19: the 406 said "This operation produces application/json,
+    /// application/problem+json.", because the negotiated set carries the failures' media type.
+    /// </remarks>
+    [Fact]
+    public async Task TheStockConverterLeavesFailureMediaTypesOut()
+    {
+        var context = Context(
+            new ExecutionRequestHandlerInfo(
+                "/tickets/{id}",
+                "GET",
+                typeof(NotAcceptableResponseTests),
+                "Get",
+                producedContentTypes: [KnownContentType.Json, KnownContentType.ProblemJson],
+                errorContentTypes: [KnownContentType.ProblemJson],
+                successContentTypes: [KnownContentType.Json]
+            )
+        );
+
+        await Service(new ExceptionToModelConverter()).SerializeResponse(context);
+
+        Assert.Equal(406, context.Response.Status);
+
+        using var body = JsonDocument.Parse(Body(context));
+
         Assert.Equal(
             "This operation produces application/json.",
             body.RootElement.GetProperty("detail").GetString()

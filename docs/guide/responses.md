@@ -641,7 +641,7 @@ A `FormatException` from `int.Parse("ten")` in a handler answers 500, like any o
 JSON converter of your own can throw one. The response keeps the message as `detail`:
 
 ```json
-{"detail":"The input string \u0027ten\u0027 was not in a correct format.","type":"urn:hardened:problem:bad-request","title":"Bad Request","status":400}
+{"detail":"The input string 'ten' was not in a correct format.","type":"urn:hardened:problem:bad-request","title":"Bad Request","status":400}
 ```
 
 An exception that answers a 4xx status is logged at `Warning` as a refusal:
