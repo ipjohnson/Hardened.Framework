@@ -126,8 +126,8 @@ public class TodoStore : ITodoStore
 {
     private readonly Dictionary<int, Todo> _todos = new()
     {
-        [1] = new Todo(1, "Read the generated code", true),
-        [2] = new Todo(2, "Add an endpoint", false),
+        [1] = new Todo(Id: 1, Title: "Read the generated code", Done: true),
+        [2] = new Todo(Id: 2, Title: "Add an endpoint", Done: false),
     };
 
     private int _nextId = 3;
@@ -148,7 +148,7 @@ public class TodoStore : ITodoStore
 
     public Task<Todo> Add(string title)
     {
-        var todo = new Todo(_nextId++, title, false);
+        var todo = new Todo(Id: _nextId++, Title: title, Done: false);
 
         _todos[todo.Id] = todo;
 

@@ -53,7 +53,7 @@ public class TodoStoreMockTests
     public async Task GetTodo_ReadsTheMockedStore(ITestWebApp app, Mock<ITodoStore> store)
     {
 #endif
-        store.Setup(s => s.Find(1)).ReturnsAsync(new Todo(1, "from the mock", false));
+        store.Setup(s => s.Find(1)).ReturnsAsync(new Todo(Id: 1, Title: "from the mock", Done: false));
 #else
 #if (kiotaClient)
     public async Task GetTodo_ReadsTheMockedStore(TemplateModuleNameClient client, [Mock] ITodoStore store)
@@ -68,10 +68,10 @@ public class TodoStoreMockTests
     {
 #endif
 #if (nsubstitute)
-        store.Find(1).Returns(new Todo(1, "from the mock", false));
+        store.Find(1).Returns(new Todo(Id: 1, Title: "from the mock", Done: false));
 #endif
 #if (fakeiteasy)
-        A.CallTo(() => store.Find(1)).Returns(new Todo(1, "from the mock", false));
+        A.CallTo(() => store.Find(1)).Returns(new Todo(Id: 1, Title: "from the mock", Done: false));
 #endif
 #endif
 

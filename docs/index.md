@@ -167,7 +167,7 @@ public class TodoStoreMockTests
     [ModuleTest]
     public async Task GetTodo_ReadsTheMockedStore(TodosClient client, [Mock] ITodoStore store)
     {
-        store.Find(1).Returns(new Todo(1, "from the mock", false));
+        store.Find(1).Returns(new Todo(Id: 1, Title: "from the mock", Done: false));
 
         var todo = await client.Todos[1].GetAsync().Returns<Ok<ClientModels.Todo>>();
 

@@ -18,7 +18,7 @@ public class TodoMockTests
     [ModuleTest]
     public async Task GetTodo_ReadsTheMock(ITestWebApp app, [Mock] ITodoStore store)
     {
-        store.Find(1).Returns(new Todo(1, "from the mock", false));
+        store.Find(1).Returns(new Todo(Id: 1, Title: "from the mock", Done: false));
 
         var response = await app.Get("/todos/1");
 
@@ -82,7 +82,7 @@ public class TodoMoqTests
     [ModuleTest]
     public async Task GetTodo_ReadsTheMock(ITestWebApp app, Mock<ITodoStore> store)
     {
-        store.Setup(s => s.Find(1)).ReturnsAsync(new Todo(1, "from the mock", false));
+        store.Setup(s => s.Find(1)).ReturnsAsync(new Todo(Id: 1, Title: "from the mock", Done: false));
 
         var response = await app.Get("/todos/1");
 
@@ -108,7 +108,7 @@ A second method of `TodoMockTests` sends two requests to one mock:
     [ModuleTest]
     public async Task EveryRequestReachesTheSameMock(ITestWebApp app, [Mock] ITodoStore store)
     {
-        store.Find(1).Returns(new Todo(1, "from the mock", false));
+        store.Find(1).Returns(new Todo(Id: 1, Title: "from the mock", Done: false));
 
         await app.Get("/todos/1");
         await app.Get("/todos/1");

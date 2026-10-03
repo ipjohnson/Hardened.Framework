@@ -29,7 +29,7 @@ public class TodoSocketTests
     [ModuleTest]
     public async Task GetTodo_ReadsTheMockedStore(ITestWebApp app, [Mock] ITodoStore store)
     {
-        store.Find(1).Returns(new Todo(1, "from the mock", false));
+        store.Find(1).Returns(new Todo(Id: 1, Title: "from the mock", Done: false));
 
         var todo = (await app.Get("/todos/1")).Deserialize<Todo>();
 

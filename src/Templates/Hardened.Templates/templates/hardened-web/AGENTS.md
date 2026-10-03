@@ -93,6 +93,11 @@ To add or change an endpoint, edit the contract. The interface changes with it, 
 implementation stops compiling until it matches — that is the design, not a break.
 
 Generated types land in `Hardened1.Models`, `Hardened1.Services` and `Hardened1.Validation`.
+
+**Build a generated model with named arguments**: `new Todo(Id: 1, Title: "...", Done: false)`.
+The constructor takes the members with no default first and the rest after them, in contract order,
+so a member added to the contract moves every parameter after it. A positional call then fails with
+`CS7036` naming an unrelated parameter, or compiles with two members of the same type swapped.
 #if (smithy)
 The build wants the Smithy CLI on `PATH` at the pinned version, because different CLI versions
 can produce different ASTs. A mismatch warns locally with `HSMT011` naming both versions, and
