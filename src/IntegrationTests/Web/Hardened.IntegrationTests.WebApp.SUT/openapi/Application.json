@@ -2992,7 +2992,8 @@
             "required": true,
             "schema": {
               "type": "string",
-              "pattern": "^[a-z]+$"
+              "pattern": "^[a-z]+$",
+              "minLength": 1
             }
           }
         ],
@@ -8233,7 +8234,8 @@
         ],
         "properties": {
           "city": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1
           },
           "country": {
             "type": [
@@ -8280,7 +8282,8 @@
         ],
         "properties": {
           "reference": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1
           },
           "shipment": {
             "anyOf": [

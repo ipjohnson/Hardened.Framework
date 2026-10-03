@@ -74,7 +74,55 @@ internal static class SchemaConstraintWriter
             Facets(attribute, facets ??= new List<string>());
         }
 
+        if (
+            RefusesEmptyString(member)
+            && (
+                facets == null
+                || !facets.Any(facet =>
+                    facet.StartsWith("\"minLength\"", System.StringComparison.Ordinal)
+                )
+            )
+        )
+        {
+            (facets ??= new List<string>()).Add("\"minLength\":1");
+        }
+
         return facets is { Count: > 0 } ? string.Join(",", facets) : null;
+    }
+
+    /// <summary>
+    /// Whether <paramref name="member"/> is a string that <c>[Required]</c> refuses when empty.
+    /// </summary>
+    /// <remarks>
+    /// <c>[Required]</c> refuses <c>""</c> and a whitespace-only string unless
+    /// <c>AllowEmptyStrings</c> is set. <c>required</c> in the document only says the member is
+    /// present, so without <c>minLength</c> a client that validates from the document sends
+    /// <c>""</c> and is refused. The whitespace case has no facet short of a pattern, and a
+    /// pattern here could contradict one the member declares.
+    /// </remarks>
+    private static bool RefusesEmptyString(ISymbol member)
+    {
+        var type = member switch
+        {
+            IPropertySymbol property => property.Type,
+            IParameterSymbol parameter => parameter.Type,
+            IFieldSymbol field => field.Type,
+            _ => null,
+        };
+
+        if (type?.SpecialType != SpecialType.System_String)
+        {
+            return false;
+        }
+
+        return member
+            .GetAttributes()
+            .Any(attribute =>
+                attribute.AttributeClass?.Name == "RequiredAttribute"
+                && attribute.AttributeClass.ContainingNamespace?.ToDisplayString()
+                    == ConstraintsNamespace
+                && !Named(attribute, "AllowEmptyStrings")
+            );
     }
 
     /// <summary>
