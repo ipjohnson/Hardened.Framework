@@ -542,6 +542,98 @@ public class DocumentWriterTests
 
     #endregion
 
+    #region what reading a body can refuse
+
+    private static RequestParameterInformation BodyParameter(
+        ParameterBindType binding = ParameterBindType.Body,
+        string type = "Todo"
+    ) => new(Type(type), "body", true, null, binding, "body", 0);
+
+    private static string[] ResponseHeaders(JsonElement response) =>
+        response.TryGetProperty("headers", out var headers)
+            ? headers.EnumerateObject().Select(header => header.Name).ToArray()
+            : [];
+
+    [Fact]
+    public void AHandlerReadingABodyDeclaresTheFourFifteen()
+    {
+        var handler = Handler(BodyParameter());
+
+        handler.RequestSchema = Schema("Todo");
+
+        var unsupported = Responses(handler).GetProperty("415");
+
+        Assert.Equal(["Accept", "Accept-Encoding"], ResponseHeaders(unsupported));
+        Assert.Equal(
+            "#/components/schemas/ErrorModel",
+            unsupported
+                .GetProperty("content")
+                .GetProperty("application/problem+json")
+                .GetProperty("schema")
+                .GetProperty("$ref")
+                .GetString()
+        );
+    }
+
+    [Fact]
+    public void AHandlerReadingNoBodyDeclaresNoFourFifteen()
+    {
+        Assert.False(Responses(Handler()).TryGetProperty("415", out _));
+    }
+
+    /// <summary>
+    /// A raw body skips the deserializers, so no <c>Content-Type</c> is refused and only the
+    /// coding's 415 is left.
+    /// </summary>
+    [Fact]
+    public void ARawBodyDeclaresTheFourFifteenWithoutAccept()
+    {
+        var parameter = BodyParameter(type: "Byte[]");
+
+        parameter.IsRawBody = true;
+
+        var handler = Handler(parameter);
+
+        handler.RequestSchema = new HandlerSchema(
+            "{\"type\":\"string\",\"format\":\"binary\"}",
+            []
+        );
+
+        Assert.Equal(["Accept-Encoding"], ResponseHeaders(Responses(handler).GetProperty("415")));
+    }
+
+    [Fact]
+    public void AFormBoundHandlerDeclaresTheFourFifteen()
+    {
+        var handler = Handler(BodyParameter(ParameterBindType.Form, "String"));
+
+        Assert.True(Responses(handler).TryGetProperty("415", out _));
+    }
+
+    [Fact]
+    public void ADeclaredFourFifteenWins()
+    {
+        var handler = Handler(
+            BodyParameter(),
+            responses:
+            [
+                new ResponseSchemaModel(415, "Send JSON.", Schema("Problem"))
+                {
+                    DeclaredInstance = "global::TestApp.Problem.Default",
+                },
+            ]
+        );
+
+        handler.RequestSchema = Schema("Todo");
+
+        Assert.Equal(
+            "Send JSON.",
+            Responses(handler).GetProperty("415").GetProperty("description").GetString()
+        );
+    }
+
+    #endregion
+
     #region what the router already refused
 
     private static RequestParameterInformation PathToken(string type = "Int32") =>

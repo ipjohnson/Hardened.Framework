@@ -1643,6 +1643,7 @@ public static class OpenApiDocumentGenerator
         }
 
         WriteValidationResponse(responses, handler, components);
+        WriteUnsupportedMediaTypeResponse(responses, handler, components);
         WriteAuthenticationResponse(responses, handler, components);
         WriteAuthorizationResponse(responses, handler, components);
         WriteTimeoutResponse(responses, handler, components);
@@ -2148,6 +2149,79 @@ public static class OpenApiDocumentGenerator
         responses[400] = Envelope(handler, "The request failed validation.", ValidationErrorRef);
     }
 
+    /// <summary>The description the 415 of an operation that reads a body is published with.</summary>
+    private const string UnsupportedMediaTypeDescription =
+        "The request body is in a media type or content coding this operation does not read.";
+
+    /// <summary>
+    /// The 415 every operation that reads a body can answer, declared rather than implied.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Two refusals reach it before the handler runs. A <c>Content-Type</c> no deserializer reads,
+    /// or one that is not a form on an operation that binds a form, is
+    /// <c>UnsupportedContentTypeException</c> with an <c>Accept</c> header. A
+    /// <c>Content-Encoding</c> other than gzip or br is <c>BadContentEncodingException</c> with an
+    /// <c>Accept-Encoding</c> header. A raw body is read as it arrives, so only the second can
+    /// refuse one, and its 415 publishes no <c>Accept</c>.
+    /// </para>
+    /// <para>
+    /// The decompression filter is on every handler, so an operation with no body answers the
+    /// second refusal too. That is published only where there is a body, because a coding names how
+    /// a body is compressed and an operation that reads none has nothing to say about it.
+    /// </para>
+    /// </remarks>
+    private static void WriteUnsupportedMediaTypeResponse(
+        SortedDictionary<int, string> responses,
+        RequestHandlerModel handler,
+        SortedDictionary<string, string> components
+    )
+    {
+        if (!ReadsBody(handler) || DeclaresStatus(handler, 415))
+        {
+            return;
+        }
+
+        components["ErrorModel"] = ErrorModelSchema;
+
+        var headers = new StringBuilder("\"headers\":{");
+
+        if (!ReadsRawBody(handler))
+        {
+            headers.Append(
+                "\"Accept\":{"
+                    + "\"description\":\"The media types this operation reads, when the Content-Type was refused.\","
+                    + "\"schema\":{\"type\":\"string\"}},"
+            );
+        }
+
+        headers.Append(
+            "\"Accept-Encoding\":{"
+                + "\"description\":\"The content codings this operation decodes, when the Content-Encoding was refused.\","
+                + "\"schema\":{\"type\":\"string\"}}}"
+        );
+
+        responses[415] = Envelope(
+            handler,
+            UnsupportedMediaTypeDescription,
+            ErrorModelRef,
+            headers.ToString()
+        );
+    }
+
+    /// <summary>Whether the operation reads a request body, as a document or as a form.</summary>
+    private static bool ReadsBody(RequestHandlerModel handler) =>
+        handler.RequestSchema != null
+        || handler.RequestParameterInformationList.Any(parameter =>
+            parameter.BindingType == ParameterBindType.Form
+        );
+
+    /// <summary>Whether the body is bound as its bytes rather than through a deserializer.</summary>
+    private static bool ReadsRawBody(RequestHandlerModel handler) =>
+        handler.RequestParameterInformationList.Any(parameter =>
+            parameter.BindingType == ParameterBindType.Body && parameter.IsRawBody
+        );
+
     /// <summary>
     /// The handler, with the framework's own body beside each declared status whose declared body
     /// the framework cannot send for its refusals.
@@ -2208,6 +2282,17 @@ public static class OpenApiDocumentGenerator
                 ValidationErrorRef,
                 "RequestValidationError",
                 ValidationErrorSchema
+            );
+        }
+
+        if (ReadsBody(handler))
+        {
+            Beside(
+                415,
+                UnsupportedMediaTypeDescription,
+                ErrorModelRef,
+                "ErrorModel",
+                ErrorModelSchema
             );
         }
 

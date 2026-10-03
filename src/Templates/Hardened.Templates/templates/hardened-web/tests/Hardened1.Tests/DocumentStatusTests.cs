@@ -61,6 +61,16 @@ public class DocumentStatusTests
             app => app.Post(new NewTodoRequest(new string('x', 100)), "/todos")
         ),
         new("POST /todos", 409, app => app.Post(new NewTodoRequest("Add an endpoint"), "/todos")),
+        new(
+            "POST /todos",
+            415,
+            app =>
+                app.Post(
+                    new NewTodoRequest("Write a test"),
+                    "/todos",
+                    request => request.RawBody("{\"title\":\"Write a test\"}", "text/plain")
+                )
+        ),
 #if (codeFirst && throwsMode)
         new("DELETE /todos/{id}", 200, app => app.Delete("/todos/1")),
 #else
