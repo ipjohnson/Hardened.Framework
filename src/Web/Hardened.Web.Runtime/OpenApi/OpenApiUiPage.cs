@@ -85,7 +85,19 @@ public sealed class OpenApiUiPage : IHardenedResponseOutput<OpenApiUiModel>
             builder
                 .Append("<script id=\"api-reference\" data-url=\"")
                 .Append(Encode(model.DocumentPath))
-                .Append("\"></script>\n");
+                .Append('"');
+
+            // The standalone bundle reads its configuration as JSON from this attribute, and
+            // spreads it beneath the document URL.
+            if (model.ServerUrl != null)
+            {
+                builder
+                    .Append(" data-configuration=\"")
+                    .Append(Encode(Configuration(model.ServerUrl)))
+                    .Append('"');
+            }
+
+            builder.Append("></script>\n");
         }
 
         builder.Append("<script src=\"").Append(Encode(model.ScriptUrl)).Append('"');
@@ -110,7 +122,7 @@ public sealed class OpenApiUiPage : IHardenedResponseOutput<OpenApiUiModel>
                 .Append("<script src=\"")
                 .Append(Encode(model.MessagePackScriptUrl))
                 .Append("\"></script>\n")
-                .Append(Initialiser(model.DocumentPath));
+                .Append(Initialiser(model.DocumentPath, model.ServerUrl));
         }
 
         return builder.Append("</body>\n</html>\n").ToString();
@@ -140,11 +152,11 @@ public sealed class OpenApiUiPage : IHardenedResponseOutput<OpenApiUiModel>
     /// because the script tag above has already loaded it by the time this runs.
     /// </para>
     /// </remarks>
-    private static string Initialiser(string documentPath) =>
+    private static string Initialiser(string documentPath, string? serverUrl) =>
         $$"""
             <script>
             Scalar.createApiReference('#app', {
-              url: "{{JsonEncodedText.Encode(documentPath)}}",
+              url: "{{JsonEncodedText.Encode(documentPath)}}",{{Servers(serverUrl)}}
               plugins: [
                 () => {
                   // What the operation declares for the body about to be decoded, recorded as the
@@ -259,6 +271,20 @@ public sealed class OpenApiUiPage : IHardenedResponseOutput<OpenApiUiModel>
             </script>
 
             """;
+
+    /// <summary>
+    /// Scalar's <c>servers</c> option replaces the document's list rather than adding to it.
+    /// </summary>
+    private static string Configuration(string serverUrl) =>
+        $$"""{"servers":[{"url":"{{JsonEncodedText.Encode(serverUrl)}}"}]}""";
+
+    private static string Servers(string? serverUrl) =>
+        serverUrl == null
+            ? ""
+            : $$"""
+
+                  servers: [{ url: "{{JsonEncodedText.Encode(serverUrl)}}" }],
+                """;
 
     private static string Encode(string value) => WebUtility.HtmlEncode(value);
 }

@@ -195,8 +195,37 @@ public partial class HardenedOpenApiUi : IEnvironmentServiceCollectionConfigurat
             return;
         }
 
-        ConfigureServices(services);
+        Register(
+            services,
+            string.Equals(
+                environment.EnvironmentName,
+                DevelopmentEnvironment,
+                StringComparison.OrdinalIgnoreCase
+            )
+                ? ServedOrigin
+                : null
+        );
     }
+
+    private const string DevelopmentEnvironment = "development";
+
+    /// <summary>
+    /// The server the request panel sends to in development: the origin the page was served from.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The document's <c>servers</c> come from <c>[Server]</c> or the contract, and name a fixed
+    /// address. A developer who starts the host on another port with <c>PORT</c> gets a panel that
+    /// sends to a port nothing listens on. In development the page is served by the application it
+    /// describes, so its own origin is the right answer.
+    /// </para>
+    /// <para>
+    /// Relative rather than an origin read from the request, so no <c>Host</c> header is trusted.
+    /// Scalar resolves a server URL that starts with a slash against the page's
+    /// <c>window.location.origin</c>. Any path a document server carries is dropped with it.
+    /// </para>
+    /// </remarks>
+    public const string ServedOrigin = "/";
 
     /// <summary>Whether <see cref="Environments"/> admits the one the application is running in.</summary>
     private bool ServedIn(IModuleEnvironment environment)
@@ -230,7 +259,9 @@ public partial class HardenedOpenApiUi : IEnvironmentServiceCollectionConfigurat
 
     private static readonly char[] EnvironmentSeparators = [',', ';'];
 
-    public void ConfigureServices(IServiceCollection services)
+    public void ConfigureServices(IServiceCollection services) => Register(services, null);
+
+    private void Register(IServiceCollection services, string? serverUrl)
     {
         // Stateless, and resolved once per request by the instance filter - so a singleton, and
         // Try because every installed page shares the one type.
@@ -242,7 +273,8 @@ public partial class HardenedOpenApiUi : IEnvironmentServiceCollectionConfigurat
             DocumentPath ?? DefaultDocumentPath,
             ScriptUrl ?? DefaultScriptUrl,
             ScriptIntegrity,
-            DecodeMessagePack ? MessagePackScriptUrl ?? DefaultMessagePackScriptUrl : null
+            DecodeMessagePack ? MessagePackScriptUrl ?? DefaultMessagePackScriptUrl : null,
+            serverUrl
         );
 
         services.AddSingleton<IWebExecutionRequestHandlerProvider>(

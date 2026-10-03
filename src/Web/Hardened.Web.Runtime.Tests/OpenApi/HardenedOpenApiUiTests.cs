@@ -295,6 +295,32 @@ public class HardenedOpenApiUiTests
         );
     }
 
+    /// <summary>
+    /// In development the panel sends to the origin that served the page, because the document's
+    /// <c>servers</c> name a fixed port and <c>PORT</c> moves the host off it. Elsewhere the panel
+    /// follows the document.
+    /// </summary>
+    [Theory]
+    [InlineData("development", HardenedOpenApiUi.ServedOrigin)]
+    [InlineData("Development", HardenedOpenApiUi.ServedOrigin)]
+    [InlineData("test", null)]
+    [InlineData("production", null)]
+    public void InDevelopmentThePanelSendsToTheServedOrigin(string running, string? expected)
+    {
+        var services = new ServiceCollection();
+
+        new HardenedOpenApiUi().ConfigureServices(services, new StubEnvironment(running));
+
+        var configuration = services
+            .BuildServiceProvider()
+            .GetServices<IWebExecutionRequestHandlerProvider>()
+            .OfType<OpenApiUiProvider>()
+            .Single()
+            .Configuration;
+
+        Assert.Equal(expected, configuration.ServerUrl);
+    }
+
     private sealed class StubEnvironment
         : global::DependencyModules.Runtime.Interfaces.IModuleEnvironment
     {
