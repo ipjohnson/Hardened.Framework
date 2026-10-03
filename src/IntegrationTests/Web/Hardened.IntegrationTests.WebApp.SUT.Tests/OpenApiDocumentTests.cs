@@ -195,6 +195,28 @@ public class OpenApiDocumentTests
     }
 
     /// <summary>
+    /// A problem document's <c>type</c> is a URI reference (RFC 9457 §3.1.1), whether the schema
+    /// was walked from a shipped record or is one of the framework's own envelopes.
+    /// </summary>
+    [ModuleTest]
+    public async Task AProblemTypeIsAUriReference(ITestWebApp testWebApp)
+    {
+        using var document = await Fetch(testWebApp);
+
+        var schemas = document.RootElement.GetProperty("components").GetProperty("schemas");
+
+        foreach (
+            var name in new[] { "BadRequest", "NotFound", "ErrorModel", "RequestValidationError" }
+        )
+        {
+            var type = schemas.GetProperty(name).GetProperty("properties").GetProperty("type");
+
+            Assert.Equal("string", type.GetProperty("type").GetString());
+            Assert.Equal("uri-reference", type.GetProperty("format").GetString());
+        }
+    }
+
+    /// <summary>
     /// <c>Accepted&lt;T&gt;</c> returned on its own publishes the 202, its body and the
     /// <c>Location</c> it may carry, as <c>Created&lt;T&gt;</c> does the 201.
     /// </summary>
