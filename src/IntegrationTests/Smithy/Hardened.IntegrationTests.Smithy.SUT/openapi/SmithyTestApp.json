@@ -49,6 +49,30 @@
                 }
               }
             }
+          },
+          "415": {
+            "description": "The request body is in a media type or content coding this operation does not read.",
+            "headers": {
+              "Accept": {
+                "description": "The media types this operation reads, when the Content-Type was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Accept-Encoding": {
+                "description": "The content codings this operation decodes, when the Content-Encoding was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/x-amz-json-1.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
         }
       },
@@ -84,6 +108,30 @@
               "application/x-amz-json-1.0": {
                 "schema": {
                   "$ref": "#/components/schemas/AccountNotFound"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "The request body is in a media type or content coding this operation does not read.",
+            "headers": {
+              "Accept": {
+                "description": "The media types this operation reads, when the Content-Type was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Accept-Encoding": {
+                "description": "The content codings this operation decodes, when the Content-Encoding was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/x-amz-json-1.0": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
                 }
               }
             }
@@ -204,6 +252,30 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PetNotFound"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "The request body is in a media type or content coding this operation does not read.",
+            "headers": {
+              "Accept": {
+                "description": "The media types this operation reads, when the Content-Type was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Accept-Encoding": {
+                "description": "The content codings this operation decodes, when the Content-Encoding was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
                 }
               }
             }
@@ -423,6 +495,24 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PutPetPhotoOutput"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "The request body is in a media type or content coding this operation does not read.",
+            "headers": {
+              "Accept-Encoding": {
+                "description": "The content codings this operation decodes, when the Content-Encoding was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
                 }
               }
             }

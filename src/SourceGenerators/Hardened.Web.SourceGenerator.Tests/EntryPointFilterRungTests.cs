@@ -175,8 +175,8 @@ public class EntryPointFilterRungTests
     }
 
     /// <summary>
-    /// A-04 itself: every read publishes the 304 the filter answers, and the write publishes
-    /// nothing, because the declaration says it reaches GET and HEAD.
+    /// A-04 itself: every read publishes the 304 the filter answers, and the write publishes no
+    /// 304, because the declaration says it reaches GET and HEAD. The write's 415 is its body's.
     /// </summary>
     [Fact]
     public void EveryReadPublishesTheStatusTheDeclarationAnswers()
@@ -185,7 +185,7 @@ public class EntryPointFilterRungTests
 
         Assert.Equal(["200", "304"], Statuses(document, "/books"));
         Assert.Equal(["200", "304"], Statuses(document, "/books/{id}"));
-        Assert.Equal(["200"], Statuses(document, "/books", "post"));
+        Assert.Equal(["200", "415"], Statuses(document, "/books", "post"));
     }
 
     /// <summary>

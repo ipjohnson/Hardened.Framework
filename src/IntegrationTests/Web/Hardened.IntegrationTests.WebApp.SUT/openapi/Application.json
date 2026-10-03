@@ -754,6 +754,30 @@
               }
             }
           },
+          "415": {
+            "description": "The request body is in a media type or content coding this operation does not read.",
+            "headers": {
+              "Accept": {
+                "description": "The media types this operation reads, when the Content-Type was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Accept-Encoding": {
+                "description": "The content codings this operation decodes, when the Content-Encoding was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
           "504": {
             "description": "The operation did not finish inside its budget.",
             "content": {
@@ -1914,6 +1938,30 @@
               }
             }
           },
+          "415": {
+            "description": "The request body is in a media type or content coding this operation does not read.",
+            "headers": {
+              "Accept": {
+                "description": "The media types this operation reads, when the Content-Type was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Accept-Encoding": {
+                "description": "The content codings this operation decodes, when the Content-Encoding was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
           "504": {
             "description": "The operation did not finish inside its budget.",
             "content": {
@@ -2488,6 +2536,30 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Sample"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "The request body is in a media type or content coding this operation does not read.",
+            "headers": {
+              "Accept": {
+                "description": "The media types this operation reads, when the Content-Type was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Accept-Encoding": {
+                "description": "The content codings this operation decodes, when the Content-Encoding was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
                 }
               }
             }
@@ -3162,6 +3234,30 @@
               }
             }
           },
+          "415": {
+            "description": "The request body is in a media type or content coding this operation does not read.",
+            "headers": {
+              "Accept": {
+                "description": "The media types this operation reads, when the Content-Type was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Accept-Encoding": {
+                "description": "The content codings this operation decodes, when the Content-Encoding was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
           "504": {
             "description": "The operation did not finish inside its budget.",
             "content": {
@@ -3444,6 +3540,30 @@
               }
             }
           },
+          "415": {
+            "description": "The request body is in a media type or content coding this operation does not read.",
+            "headers": {
+              "Accept": {
+                "description": "The media types this operation reads, when the Content-Type was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Accept-Encoding": {
+                "description": "The content codings this operation decodes, when the Content-Encoding was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
           "504": {
             "description": "The operation did not finish inside its budget.",
             "content": {
@@ -3592,6 +3712,30 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Priority"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "The request body is in a media type or content coding this operation does not read.",
+            "headers": {
+              "Accept": {
+                "description": "The media types this operation reads, when the Content-Type was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Accept-Encoding": {
+                "description": "The content codings this operation decodes, when the Content-Encoding was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
                 }
               }
             }
@@ -4099,6 +4243,30 @@
               }
             }
           },
+          "415": {
+            "description": "The request body is in a media type or content coding this operation does not read.",
+            "headers": {
+              "Accept": {
+                "description": "The media types this operation reads, when the Content-Type was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Accept-Encoding": {
+                "description": "The content codings this operation decodes, when the Content-Encoding was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
           "504": {
             "description": "The operation did not finish inside its budget.",
             "content": {
@@ -4153,6 +4321,30 @@
               }
             }
           },
+          "415": {
+            "description": "The request body is in a media type or content coding this operation does not read.",
+            "headers": {
+              "Accept": {
+                "description": "The media types this operation reads, when the Content-Type was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Accept-Encoding": {
+                "description": "The content codings this operation decodes, when the Content-Encoding was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
           "504": {
             "description": "The operation did not finish inside its budget.",
             "content": {
@@ -4201,6 +4393,30 @@
               "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "The request body is in a media type or content coding this operation does not read.",
+            "headers": {
+              "Accept": {
+                "description": "The media types this operation reads, when the Content-Type was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Accept-Encoding": {
+                "description": "The content codings this operation decodes, when the Content-Encoding was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
                 }
               }
             }
@@ -4267,6 +4483,30 @@
               }
             }
           },
+          "415": {
+            "description": "The request body is in a media type or content coding this operation does not read.",
+            "headers": {
+              "Accept": {
+                "description": "The media types this operation reads, when the Content-Type was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Accept-Encoding": {
+                "description": "The content codings this operation decodes, when the Content-Encoding was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
           "504": {
             "description": "The operation did not finish inside its budget.",
             "content": {
@@ -4313,6 +4553,30 @@
               "application/json": {
                 "schema": {
                   "type": "string"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "The request body is in a media type or content coding this operation does not read.",
+            "headers": {
+              "Accept": {
+                "description": "The media types this operation reads, when the Content-Type was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Accept-Encoding": {
+                "description": "The content codings this operation decodes, when the Content-Encoding was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
                 }
               }
             }
@@ -4369,6 +4633,30 @@
               }
             }
           },
+          "415": {
+            "description": "The request body is in a media type or content coding this operation does not read.",
+            "headers": {
+              "Accept": {
+                "description": "The media types this operation reads, when the Content-Type was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Accept-Encoding": {
+                "description": "The content codings this operation decodes, when the Content-Encoding was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
           "504": {
             "description": "The operation did not finish inside its budget.",
             "content": {
@@ -4419,6 +4707,30 @@
               "application/json": {
                 "schema": {
                   "type": "string"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "The request body is in a media type or content coding this operation does not read.",
+            "headers": {
+              "Accept": {
+                "description": "The media types this operation reads, when the Content-Type was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Accept-Encoding": {
+                "description": "The content codings this operation decodes, when the Content-Encoding was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
                 }
               }
             }
@@ -4492,6 +4804,30 @@
               }
             }
           },
+          "415": {
+            "description": "The request body is in a media type or content coding this operation does not read.",
+            "headers": {
+              "Accept": {
+                "description": "The media types this operation reads, when the Content-Type was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Accept-Encoding": {
+                "description": "The content codings this operation decodes, when the Content-Encoding was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
           "504": {
             "description": "The operation did not finish inside its budget.",
             "content": {
@@ -4550,6 +4886,30 @@
               "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "The request body is in a media type or content coding this operation does not read.",
+            "headers": {
+              "Accept": {
+                "description": "The media types this operation reads, when the Content-Type was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Accept-Encoding": {
+                "description": "The content codings this operation decodes, when the Content-Encoding was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
                 }
               }
             }
@@ -4622,6 +4982,30 @@
               }
             }
           },
+          "415": {
+            "description": "The request body is in a media type or content coding this operation does not read.",
+            "headers": {
+              "Accept": {
+                "description": "The media types this operation reads, when the Content-Type was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Accept-Encoding": {
+                "description": "The content codings this operation decodes, when the Content-Encoding was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
           "504": {
             "description": "The operation did not finish inside its budget.",
             "content": {
@@ -4670,6 +5054,30 @@
               "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "The request body is in a media type or content coding this operation does not read.",
+            "headers": {
+              "Accept": {
+                "description": "The media types this operation reads, when the Content-Type was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Accept-Encoding": {
+                "description": "The content codings this operation decodes, when the Content-Encoding was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
                 }
               }
             }
@@ -4740,6 +5148,30 @@
               }
             }
           },
+          "415": {
+            "description": "The request body is in a media type or content coding this operation does not read.",
+            "headers": {
+              "Accept": {
+                "description": "The media types this operation reads, when the Content-Type was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Accept-Encoding": {
+                "description": "The content codings this operation decodes, when the Content-Encoding was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
           "504": {
             "description": "The operation did not finish inside its budget.",
             "content": {
@@ -4778,6 +5210,30 @@
                 "schema": {
                   "type": "integer",
                   "format": "int32"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "The request body is in a media type or content coding this operation does not read.",
+            "headers": {
+              "Accept": {
+                "description": "The media types this operation reads, when the Content-Type was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Accept-Encoding": {
+                "description": "The content codings this operation decodes, when the Content-Encoding was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
                 }
               }
             }
@@ -4824,6 +5280,30 @@
               }
             }
           },
+          "415": {
+            "description": "The request body is in a media type or content coding this operation does not read.",
+            "headers": {
+              "Accept": {
+                "description": "The media types this operation reads, when the Content-Type was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Accept-Encoding": {
+                "description": "The content codings this operation decodes, when the Content-Encoding was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
           "504": {
             "description": "The operation did not finish inside its budget.",
             "content": {
@@ -4862,6 +5342,30 @@
                 "schema": {
                   "type": "integer",
                   "format": "int32"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "The request body is in a media type or content coding this operation does not read.",
+            "headers": {
+              "Accept": {
+                "description": "The media types this operation reads, when the Content-Type was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Accept-Encoding": {
+                "description": "The content codings this operation decodes, when the Content-Encoding was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
                 }
               }
             }
@@ -4908,6 +5412,30 @@
               }
             }
           },
+          "415": {
+            "description": "The request body is in a media type or content coding this operation does not read.",
+            "headers": {
+              "Accept": {
+                "description": "The media types this operation reads, when the Content-Type was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Accept-Encoding": {
+                "description": "The content codings this operation decodes, when the Content-Encoding was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
           "504": {
             "description": "The operation did not finish inside its budget.",
             "content": {
@@ -4946,6 +5474,30 @@
                 "schema": {
                   "type": "integer",
                   "format": "int32"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "The request body is in a media type or content coding this operation does not read.",
+            "headers": {
+              "Accept": {
+                "description": "The media types this operation reads, when the Content-Type was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Accept-Encoding": {
+                "description": "The content codings this operation decodes, when the Content-Encoding was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
                 }
               }
             }
@@ -5253,6 +5805,35 @@
               }
             }
           },
+          "415": {
+            "description": "The request body is in a media type or content coding this operation does not read.",
+            "headers": {
+              "Accept": {
+                "description": "The media types this operation reads, when the Content-Type was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Accept-Encoding": {
+                "description": "The content codings this operation decodes, when the Content-Encoding was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              },
+              "application/x-msgpack": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
           "504": {
             "description": "The operation did not finish inside its budget.",
             "content": {
@@ -5363,6 +5944,24 @@
               }
             }
           },
+          "415": {
+            "description": "The request body is in a media type or content coding this operation does not read.",
+            "headers": {
+              "Accept-Encoding": {
+                "description": "The content codings this operation decodes, when the Content-Encoding was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
           "504": {
             "description": "The operation did not finish inside its budget.",
             "content": {
@@ -5406,6 +6005,24 @@
               }
             }
           },
+          "415": {
+            "description": "The request body is in a media type or content coding this operation does not read.",
+            "headers": {
+              "Accept-Encoding": {
+                "description": "The content codings this operation decodes, when the Content-Encoding was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
           "504": {
             "description": "The operation did not finish inside its budget.",
             "content": {
@@ -5445,6 +6062,24 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Received"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "The request body is in a media type or content coding this operation does not read.",
+            "headers": {
+              "Accept-Encoding": {
+                "description": "The content codings this operation decodes, when the Content-Encoding was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
                 }
               }
             }
@@ -5500,6 +6135,30 @@
               }
             }
           },
+          "415": {
+            "description": "The request body is in a media type or content coding this operation does not read.",
+            "headers": {
+              "Accept": {
+                "description": "The media types this operation reads, when the Content-Type was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Accept-Encoding": {
+                "description": "The content codings this operation decodes, when the Content-Encoding was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
           "504": {
             "description": "The operation did not finish inside its budget.",
             "content": {
@@ -5537,6 +6196,30 @@
               "application/json": {
                 "schema": {
                   "type": "string"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "The request body is in a media type or content coding this operation does not read.",
+            "headers": {
+              "Accept": {
+                "description": "The media types this operation reads, when the Content-Type was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Accept-Encoding": {
+                "description": "The content codings this operation decodes, when the Content-Encoding was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
                 }
               }
             }
@@ -5593,6 +6276,30 @@
               }
             }
           },
+          "415": {
+            "description": "The request body is in a media type or content coding this operation does not read.",
+            "headers": {
+              "Accept": {
+                "description": "The media types this operation reads, when the Content-Type was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Accept-Encoding": {
+                "description": "The content codings this operation decodes, when the Content-Encoding was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
           "504": {
             "description": "The operation did not finish inside its budget.",
             "content": {
@@ -5632,6 +6339,30 @@
               "application/json": {
                 "schema": {
                   "type": "string"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "The request body is in a media type or content coding this operation does not read.",
+            "headers": {
+              "Accept": {
+                "description": "The media types this operation reads, when the Content-Type was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Accept-Encoding": {
+                "description": "The content codings this operation decodes, when the Content-Encoding was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
                 }
               }
             }
@@ -5740,6 +6471,30 @@
               }
             }
           },
+          "415": {
+            "description": "The request body is in a media type or content coding this operation does not read.",
+            "headers": {
+              "Accept": {
+                "description": "The media types this operation reads, when the Content-Type was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Accept-Encoding": {
+                "description": "The content codings this operation decodes, when the Content-Encoding was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
           "504": {
             "description": "The operation did not finish inside its budget.",
             "content": {
@@ -5803,6 +6558,30 @@
               }
             }
           },
+          "415": {
+            "description": "The request body is in a media type or content coding this operation does not read.",
+            "headers": {
+              "Accept": {
+                "description": "The media types this operation reads, when the Content-Type was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Accept-Encoding": {
+                "description": "The content codings this operation decodes, when the Content-Encoding was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
           "504": {
             "description": "The operation did not finish inside its budget.",
             "content": {
@@ -5842,6 +6621,30 @@
               "application/json": {
                 "schema": {
                   "type": "string"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "The request body is in a media type or content coding this operation does not read.",
+            "headers": {
+              "Accept": {
+                "description": "The media types this operation reads, when the Content-Type was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Accept-Encoding": {
+                "description": "The content codings this operation decodes, when the Content-Encoding was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
                 }
               }
             }
@@ -5950,6 +6753,30 @@
               }
             }
           },
+          "415": {
+            "description": "The request body is in a media type or content coding this operation does not read.",
+            "headers": {
+              "Accept": {
+                "description": "The media types this operation reads, when the Content-Type was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Accept-Encoding": {
+                "description": "The content codings this operation decodes, when the Content-Encoding was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
           "504": {
             "description": "The operation did not finish inside its budget.",
             "content": {
@@ -5992,6 +6819,30 @@
               }
             }
           },
+          "415": {
+            "description": "The request body is in a media type or content coding this operation does not read.",
+            "headers": {
+              "Accept": {
+                "description": "The media types this operation reads, when the Content-Type was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Accept-Encoding": {
+                "description": "The content codings this operation decodes, when the Content-Encoding was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
           "504": {
             "description": "The operation did not finish inside its budget.",
             "content": {
@@ -6030,6 +6881,30 @@
               "application/json": {
                 "schema": {
                   "type": "string"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "The request body is in a media type or content coding this operation does not read.",
+            "headers": {
+              "Accept": {
+                "description": "The media types this operation reads, when the Content-Type was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Accept-Encoding": {
+                "description": "The content codings this operation decodes, when the Content-Encoding was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
                 }
               }
             }
@@ -6703,6 +7578,30 @@
                 "schema": {
                   "type": "integer",
                   "format": "int32"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "The request body is in a media type or content coding this operation does not read.",
+            "headers": {
+              "Accept": {
+                "description": "The media types this operation reads, when the Content-Type was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Accept-Encoding": {
+                "description": "The content codings this operation decodes, when the Content-Encoding was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
                 }
               }
             }
@@ -8108,6 +9007,30 @@
               }
             }
           },
+          "415": {
+            "description": "The request body is in a media type or content coding this operation does not read.",
+            "headers": {
+              "Accept": {
+                "description": "The media types this operation reads, when the Content-Type was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Accept-Encoding": {
+                "description": "The content codings this operation decodes, when the Content-Encoding was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
           "504": {
             "description": "The operation did not finish inside its budget.",
             "content": {
@@ -8164,6 +9087,30 @@
               "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "The request body is in a media type or content coding this operation does not read.",
+            "headers": {
+              "Accept": {
+                "description": "The media types this operation reads, when the Content-Type was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Accept-Encoding": {
+                "description": "The content codings this operation decodes, when the Content-Encoding was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
                 }
               }
             }
