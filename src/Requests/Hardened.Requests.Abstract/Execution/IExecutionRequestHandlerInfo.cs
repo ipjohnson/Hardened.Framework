@@ -101,6 +101,23 @@ public interface IExecutionRequestHandlerInfo
     IReadOnlyList<string> ErrorContentTypes => Array.Empty<string>();
 
     /// <summary>
+    /// The media types this operation's successes are declared with, where a description declared
+    /// them apart from its failures.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// What a 406 names. It said "This operation produces application/json,
+    /// application/problem+json." when <see cref="ProducedContentTypes"/> carried a failure's media
+    /// type beside the success's, and a client cannot ask for a success as a problem document.
+    /// </para>
+    /// <para>
+    /// Empty means nothing declared them apart, and the 406 names
+    /// <see cref="ProducedContentTypes"/>.
+    /// </para>
+    /// </remarks>
+    IReadOnlyList<string> SuccessContentTypes => Array.Empty<string>();
+
+    /// <summary>
     /// The identifier of the parameter bound from the request body, or null when the handler
     /// takes none.
     /// </summary>

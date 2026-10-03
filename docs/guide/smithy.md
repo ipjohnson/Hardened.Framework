@@ -544,7 +544,7 @@ Content-Type: application/json
 HTTP/1.1 409 Conflict
 Content-Type: application/json
 
-{"message":"A todo titled \u0027Read the generated code\u0027 already exists."}
+{"message":"A todo titled 'Read the generated code' already exists."}
 ```
 
 ```http

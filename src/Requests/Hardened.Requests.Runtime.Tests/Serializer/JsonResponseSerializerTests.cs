@@ -210,6 +210,44 @@ public class JsonResponseSerializerTests
         Assert.True(serializer.CanProduce("application/problem+json", failure));
         Assert.False(serializer.CanProduce("application/problem+json", success));
     }
+
+    /// <summary>
+    /// With no options configured, a message reaches the client as it was written.
+    /// </summary>
+    /// <remarks>
+    /// The 0.42 trial's B-19: the default encoder sent
+    /// <c>'InProgress' is not a value Priority declares.</c>
+    /// </remarks>
+    [Theory]
+    [MemberData(nameof(SerializerNames))]
+    public async Task TheDefaultOptionsLeaveAnApostropheAlone(string serializerName)
+    {
+        var unconfigured = Options.Create<IJsonSerializerConfiguration>(
+            new JsonSerializerConfiguration()
+        );
+        IResponseSerializer serializer =
+            serializerName == nameof(SystemTextJsonResponseSerializer)
+                ? new SystemTextJsonResponseSerializer(
+                    unconfigured,
+                    Array.Empty<IJsonTypeInfoResolver>()
+                )
+                : new AotResponseSerializer(
+                    unconfigured,
+                    new IJsonTypeInfoResolver[] { PayloadContext.Default }
+                );
+        var (context, body) = Context(
+            new PayloadProblem("'InProgress' is not a value Priority declares.")
+        );
+
+        context.Response.Status.Returns(400);
+
+        await serializer.SerializeResponse(context);
+
+        Assert.Contains(
+            "\"detail\":\"'InProgress' is not a value Priority declares.\"",
+            Encoding.UTF8.GetString(body.ToArray())
+        );
+    }
 }
 
 internal record Payload(string Name, int Value);

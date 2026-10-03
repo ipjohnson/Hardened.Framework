@@ -155,8 +155,9 @@ matched. For an operation with `[Produces("application/json", "text/plain")]`:
 | `image/png` | 406 |
 
 A request that names nothing the operation produces gets `406 Not Acceptable`. Its body names the
-media types that the operation produces. The body is JSON. The `listTodos` operation from the
-opening example answers `Accept: application/xml` like this:
+media types that the operation produces. A media type that only the contract's error responses
+declare, such as `application/problem+json`, is left out. The body is JSON. The `listTodos`
+operation from the opening example answers `Accept: application/xml` like this:
 
 ```http
 GET /todos

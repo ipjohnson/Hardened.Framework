@@ -342,7 +342,8 @@ namespace Hardened.Requests.Runtime.Execution
                     System.Collections.Generic.IReadOnlyList<string>? errorContentTypes = null,
                     System.Collections.Generic.IReadOnlyDictionary<int, System.Func<object, object?>>? declaredErrorConversions = null,
                     System.Collections.Generic.IReadOnlyList<string>? requestHeaders = null,
-                    System.Collections.Generic.IReadOnlyList<string>? queryParameters = null) { }
+                    System.Collections.Generic.IReadOnlyList<string>? queryParameters = null,
+                    System.Collections.Generic.IReadOnlyList<string>? successContentTypes = null) { }
         public string? BodyParameterName { get; }
         public System.Collections.Generic.IReadOnlyDictionary<int, object> DeclaredErrorBodies { get; }
         public System.Collections.Generic.IReadOnlyDictionary<int, System.Func<object, object?>> DeclaredErrorConversions { get; }
@@ -359,6 +360,7 @@ namespace Hardened.Requests.Runtime.Execution
         public System.Collections.Generic.IReadOnlyList<string> RequestHeaders { get; }
         public Hardened.Requests.Abstract.Authorization.Requirement? Requirement { get; }
         public bool StreamsResponse { get; }
+        public System.Collections.Generic.IReadOnlyList<string> SuccessContentTypes { get; }
         public int? SuccessStatus { get; }
         public Hardened.Requests.Abstract.Timeouts.TimeoutPolicy? Timeout { get; }
         public int? ValidationErrorStatus { get; }

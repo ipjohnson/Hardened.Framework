@@ -450,6 +450,7 @@ namespace Hardened.Requests.Abstract.Execution
         System.Collections.Generic.IReadOnlyList<string> RequestHeaders { get; }
         Hardened.Requests.Abstract.Authorization.Requirement? Requirement { get; }
         bool StreamsResponse { get; }
+        System.Collections.Generic.IReadOnlyList<string> SuccessContentTypes { get; }
         int? SuccessStatus { get; }
         Hardened.Requests.Abstract.Timeouts.TimeoutPolicy? Timeout { get; }
         int? ValidationErrorStatus { get; }

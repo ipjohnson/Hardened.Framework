@@ -369,6 +369,16 @@ public class SerializationLocatorService : ISerializationLocatorService
             }
         }
 
+        // A success names what a success can be. The declared set carries the failures' media types
+        // too, so a contract with problem+json errors told the client its 200 came as one.
+        if (
+            context.Response.Status is null or < 400
+            && context.HandlerInfo?.SuccessContentTypes is { Count: > 0 } successes
+        )
+        {
+            throw new NotAcceptableException(successes);
+        }
+
         throw new NotAcceptableException(declared);
     }
 

@@ -330,7 +330,7 @@ A form body that cannot be read answers 400. The error has the code `invalid` an
 HTTP/1.1 400 Bad Request
 Content-Type: application/problem+json
 
-{"errors":[{"field":"body","code":"invalid","message":"The multipart body\u0027s content type has no usable boundary."}],"detail":"One or more validation errors occurred.","type":"urn:hardened:problem:validation-failed","title":"Request Validation Failed","status":400}
+{"errors":[{"field":"body","code":"invalid","message":"The multipart body's content type has no usable boundary."}],"detail":"One or more validation errors occurred.","type":"urn:hardened:problem:validation-failed","title":"Request Validation Failed","status":400}
 ```
 
 These bodies cannot be read:

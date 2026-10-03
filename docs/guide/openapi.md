@@ -510,7 +510,7 @@ Content-Type: application/json
 HTTP/1.1 409 Conflict
 Content-Type: application/json
 
-{"type":"urn:hardened:problem:conflict","title":"Conflict","status":409,"detail":"A todo titled \u0027Buy milk\u0027 already exists."}
+{"type":"urn:hardened:problem:conflict","title":"Conflict","status":409,"detail":"A todo titled 'Buy milk' already exists."}
 ```
 
 ## Constraints

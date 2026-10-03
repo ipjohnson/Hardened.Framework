@@ -167,7 +167,7 @@ Content-Type: application/json
 HTTP/1.1 400 Bad Request
 Content-Type: application/problem+json
 
-{"errors":[{"field":"reminder.priority","code":"invalid","message":"\u0027InProgress\u0027 is not a value Priority declares."}],"detail":"One or more validation errors occurred.","type":"urn:hardened:problem:validation-failed","title":"Request Validation Failed","status":400}
+{"errors":[{"field":"reminder.priority","code":"invalid","message":"'InProgress' is not a value Priority declares."}],"detail":"One or more validation errors occurred.","type":"urn:hardened:problem:validation-failed","title":"Request Validation Failed","status":400}
 ```
 
 When two members share a value, the build's converter writes the first one declared. The OpenAPI

@@ -56,7 +56,7 @@ public class StreamingJsonResponseSerializer : IResponseSerializer
         // not agree with the same enum in a buffered response.
         _serializerOptions = Hardened.Shared.Runtime.Json.JsonTypeInfoLookup.WithResolvers(
             configuration.Value.SerializeOptions
-                ?? new JsonSerializerOptions(JsonSerializerDefaults.Web),
+                ?? JsonSerializerConfiguration.DefaultSerializeOptions(),
             resolvers
         );
 
