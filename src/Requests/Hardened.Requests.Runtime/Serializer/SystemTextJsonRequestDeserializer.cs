@@ -75,9 +75,28 @@ public class SystemTextJsonRequestDeserializer : IRequestDeserializer
     /// Reads the body as it is. A compressed body was decoded by <c>RequestDecompressionFilter</c>
     /// before the bind, which is why this no longer looks at <c>Content-Encoding</c>.
     /// </summary>
-    public ValueTask<T?> DeserializeRequestBody<T>(IExecutionContext context) =>
-        System.Text.Json.JsonSerializer.DeserializeAsync<T>(
-            context.Request.Body,
-            _serializerOptions
-        );
+    public async ValueTask<T?> DeserializeRequestBody<T>(IExecutionContext context)
+    {
+        try
+        {
+            return await System.Text.Json.JsonSerializer.DeserializeAsync<T>(
+                context.Request.Body,
+                _serializerOptions
+            );
+        }
+        catch (JsonException exception)
+        {
+            var rewritten = MemberTypeMessage.Rewrite(
+                exception,
+                _serializerOptions.GetTypeInfo(typeof(T))
+            );
+
+            if (ReferenceEquals(rewritten, exception))
+            {
+                throw;
+            }
+
+            throw rewritten;
+        }
+    }
 }

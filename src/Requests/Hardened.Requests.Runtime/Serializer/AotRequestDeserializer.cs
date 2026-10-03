@@ -109,9 +109,25 @@ public class AotRequestDeserializer : IRequestDeserializer
     /// </summary>
     public async ValueTask<T?> DeserializeRequestBody<T>(IExecutionContext context)
     {
-        return await System.Text.Json.JsonSerializer.DeserializeAsync(
-            context.Request.Body,
-            Hardened.Shared.Runtime.Json.JsonTypeInfoLookup.For<T>(_serializerOptions)
-        );
+        var typeInfo = Hardened.Shared.Runtime.Json.JsonTypeInfoLookup.For<T>(_serializerOptions);
+
+        try
+        {
+            return await System.Text.Json.JsonSerializer.DeserializeAsync(
+                context.Request.Body,
+                typeInfo
+            );
+        }
+        catch (System.Text.Json.JsonException exception)
+        {
+            var rewritten = MemberTypeMessage.Rewrite(exception, typeInfo);
+
+            if (ReferenceEquals(rewritten, exception))
+            {
+                throw;
+            }
+
+            throw rewritten;
+        }
     }
 }

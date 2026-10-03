@@ -350,7 +350,7 @@ The same body answers each of these refusals:
 | Has a path or query value that does not convert, or a member of a query-string or form model that does not | The parameter's or the field's name | `invalid` | `limit is not a valid Int32.` |
 | Leaves out a non-nullable query or header value, or a required member of a query-string or form model | The parameter's or the field's name | `required` | `q is required.` |
 | Has a body that is not JSON | The body parameter's name | `invalid` | The parser's message, such as `Expected depth to be zero at the end of the JSON payload. There is an open JSON object or array that should be closed.` |
-| Has a body member of the wrong JSON type | The member's field | `invalid` | The kind of value that goes there, such as `The value is not an integer this field can hold.` A member bound through a record's constructor reads `The value is not of the type this field takes.` |
+| Has a body member of the wrong JSON type | The member's field | `invalid` | The kind of value that goes there, such as `The value is not an integer this field can hold.` or `The value is not a date in the form YYYY-MM-DD.` A member bound through a record's constructor reads the same as a property. |
 | Has a body member of type `DateTimeOffset` whose value states no offset, such as `2030-01-01T00:00:00` | The member's field | `invalid` | `The value is not an RFC 3339 date-time: it states no offset, such as Z or -05:00.` |
 | Has an empty body, or the body `null` | The body parameter's name | `required` | `request is required.` |
 
