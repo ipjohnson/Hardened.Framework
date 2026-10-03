@@ -416,6 +416,11 @@ A member without `@required` is nullable in C#. Its constructor parameter defaul
 member is written as `null` when it has no value. A member with `@default` is left out instead.
 `@clientOptional` on a `@required` member makes it nullable, with no default.
 
+The constructor takes the parameters with no default first and the rest after them, each group in
+the order the shape declares them. Build a generated record with named arguments, such as
+`new Ticket(Id: 7, Requester: "pia")`. A positional call breaks when a member is added before the
+end of the shape, and two members of the same type swap with no error.
+
 An `enum`'s C# members are its Smithy members in Pascal case. The JSON reads and writes the
 `@enumValue`s. `DARK_BLUE = "dark-blue"` is `DarkBlue`, sent as `"dark-blue"`.
 `@jsonName("display_name")` sets the member's name in the JSON.

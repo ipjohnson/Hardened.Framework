@@ -254,8 +254,17 @@ header: `X-Region` gives `xRegion`. A parameter that is not `required` is nullab
 
 The models are `partial` records, one for each schema that an operation reaches. A record is
 `sealed` unless another schema derives from it. Each property is a positional parameter that carries
-`[JsonPropertyName]` with the document's name. The build does not generate a schema that no
-operation reaches. `HardenedOpenApiEmitUnreferencedSchemas` set to `true` generates it.
+`[JsonPropertyName]` with the document's name. The parameters with no default come first and the
+rest after them, each group in the order the schema declares them. A property that is `required`
+and not `readOnly` has no default.
+
+Build a generated model with named arguments, such as `new Ticket(Id: 7, Requester: "pia")`. A
+positional call depends on that order, so adding a property before the end of the schema breaks it.
+It fails with `CS7036` naming an unrelated parameter, or it swaps two properties of the same type
+with no error.
+
+The build does not generate a schema that no operation reaches.
+`HardenedOpenApiEmitUnreferencedSchemas` set to `true` generates it.
 
 The build writes a handler class for each operation in `<Root>.Generated`, named
 `<Tag>Controller_<Method>`. It also generates `Routes` and `Links` for the module.
