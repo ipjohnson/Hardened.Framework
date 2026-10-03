@@ -53,14 +53,30 @@ namespace TestApp.Generated
         private static global::System.Threading.Tasks.Task<global::Hardened.Requests.Abstract.Execution.IExecutionRequestParameters> BindRequestParameters(global::Hardened.Requests.Abstract.Execution.IExecutionContext context)
         {
             var parameters = new global::TestApp.Generated.SessionController_Read_1893.Parameters();
-            parameters.sessionId = context.KnownServices.StringConverterService.ParseRequired<global::System.String>(
-                context.Request.Cookies.Get("sid")!,
-                "sid"
-            );
-            parameters.traceId = context.KnownServices.StringConverterService.ParseOptional<global::System.String?>(
-                context.Request.Headers.Get("X-Trace-Id")!,
-                "X-Trace-Id"
-            );
+            var bindingFailures = new global::Hardened.Requests.Runtime.Validation.ParameterBindingFailures();
+            try
+            {
+                parameters.sessionId = context.KnownServices.StringConverterService.ParseRequired<global::System.String>(
+                    context.Request.Cookies.Get("sid")!,
+                    "sid"
+                );
+            }
+            catch (global::Hardened.Requests.Runtime.Validation.ValidationException failure)
+            {
+                bindingFailures.Add(failure);
+            }
+            try
+            {
+                parameters.traceId = context.KnownServices.StringConverterService.ParseOptional<global::System.String?>(
+                    context.Request.Headers.Get("X-Trace-Id")!,
+                    "X-Trace-Id"
+                );
+            }
+            catch (global::Hardened.Requests.Runtime.Validation.ValidationException failure)
+            {
+                bindingFailures.Add(failure);
+            }
+            bindingFailures.ThrowIfAny(parameters);
             return global::System.Threading.Tasks.Task.FromResult<global::Hardened.Requests.Abstract.Execution.IExecutionRequestParameters>(parameters);
         }
 

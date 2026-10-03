@@ -160,7 +160,12 @@ never falls back to the default.
 
 A nullable reference type is optional. `string? title` is `null` when `title` is absent.
 
-The binder stops at the first parameter that fails. The 400 names only that parameter's field.
+The binder does not stop at the first parameter that fails. The 400 names every parameter that did
+not bind, in declaration order, followed by the constraint failures of the parameters that did. A
+constraint on a parameter that did not bind is not reported. A handler under
+`[ValidationMode(ValidationStopMode.StopOnFirstError)]` reports the binding failures alone. A query
+string or form model is one parameter, so its first member that fails is the only one reported for
+it. A body that cannot be read is reported alone.
 
 Headers, cookies and form fields follow the same rules. [Validation](/guide/validation) covers the
 400 body, constraints on parameters and changing the status.

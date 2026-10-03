@@ -282,6 +282,18 @@ public static class KnownTypes
             "RequestBody"
         );
 
+        /// <summary>What a parameter that will not convert throws.</summary>
+        public static readonly ITypeDefinition ValidationException = TypeDefinition.Get(
+            Namespace.Hardened.Requests.Runtime.Validation,
+            "ValidationException"
+        );
+
+        /// <summary>The binder's record of every parameter that would not convert.</summary>
+        public static readonly ITypeDefinition ParameterBindingFailures = TypeDefinition.Get(
+            Namespace.Hardened.Requests.Runtime.Validation,
+            "ParameterBindingFailures"
+        );
+
         /// <summary>The binder's reader for a byte[] or Stream body - see <c>RawBody</c>.</summary>
         public static readonly ITypeDefinition RawBody = TypeDefinition.Get(
             Namespace.Hardened.Requests.Runtime.Serializer,

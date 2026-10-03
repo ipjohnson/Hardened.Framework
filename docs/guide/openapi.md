@@ -535,7 +535,7 @@ covers the attributes and the 400.
 
 | Keyword | Attribute |
 |---|---|
-| `required` | `[Required]` |
+| `required` | `[Required]`, with `AllowEmptyStrings = true` on a string |
 | `minLength`, `maxLength` on a string | `[StringLength(Min = , Max = )]` |
 | `minimum`, `maximum` on a number | `[Range(Min = , Max = )]` |
 | `exclusiveMinimum`, `exclusiveMaximum` | `[Range]` with `ExclusiveMin = true` or `ExclusiveMax = true` |
@@ -544,8 +544,9 @@ covers the attributes and the 400.
 | `enum` on an inline string | `[AllowedValues(...)]` |
 | A property whose schema has constraints, or holds a model that has them at any depth | `[ValidateNested]` |
 
-`required` adds no `[Required]` to a value type such as `int`, or to a path parameter. The build
-drops a keyword that the member's type cannot carry, such as a `minimum` on a string.
+`required` adds no `[Required]` to a value type such as `int`, or to a path parameter. A required
+string refuses null and accepts `""`, because `required` says only that the member is present. A
+`minLength` refuses `""` with the code `string_length`. The build drops a keyword that the member's type cannot carry, such as a `minimum` on a string.
 
 A `pattern` becomes a `[GeneratedRegex]` member of `<File>Patterns`. Each member has a match
 timeout of 2,000 milliseconds. [Validation](/guide/validation#a-timeout-on-a-pattern) covers the

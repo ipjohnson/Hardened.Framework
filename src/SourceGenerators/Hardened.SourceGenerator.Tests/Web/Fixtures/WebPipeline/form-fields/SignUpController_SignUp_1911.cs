@@ -52,14 +52,30 @@ namespace TestApp.Generated
         {
             var parameters = new global::TestApp.Generated.SignUpController_SignUp_1911.Parameters();
             var form = await global::Hardened.Requests.Runtime.Forms.FormBinding.Read(context);
-            parameters.email = context.KnownServices.StringConverterService.ParseRequired<global::System.String>(
-                form.Get("email")!,
-                "email"
-            );
-            parameters.displayName = context.KnownServices.StringConverterService.ParseRequired<global::System.String>(
-                form.Get("display_name")!,
-                "display_name"
-            );
+            var bindingFailures = new global::Hardened.Requests.Runtime.Validation.ParameterBindingFailures();
+            try
+            {
+                parameters.email = context.KnownServices.StringConverterService.ParseRequired<global::System.String>(
+                    form.Get("email")!,
+                    "email"
+                );
+            }
+            catch (global::Hardened.Requests.Runtime.Validation.ValidationException failure)
+            {
+                bindingFailures.Add(failure);
+            }
+            try
+            {
+                parameters.displayName = context.KnownServices.StringConverterService.ParseRequired<global::System.String>(
+                    form.Get("display_name")!,
+                    "display_name"
+                );
+            }
+            catch (global::Hardened.Requests.Runtime.Validation.ValidationException failure)
+            {
+                bindingFailures.Add(failure);
+            }
+            bindingFailures.ThrowIfAny(parameters);
             return parameters;
         }
 

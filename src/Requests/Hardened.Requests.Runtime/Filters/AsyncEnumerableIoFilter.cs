@@ -10,7 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Hardened.Requests.Runtime.Filters;
 
-public class AsyncEnumerableIoFilter<TItem> : IExecutionFilter
+public class AsyncEnumerableIoFilter<TItem> : IExecutionFilter, IBindingFilter
 {
     private readonly Func<IExecutionContext, Task<IExecutionRequestParameters>> _deserializeRequest;
     private readonly Func<IExecutionContext, Task> _serializeResponse;
@@ -55,6 +55,15 @@ public class AsyncEnumerableIoFilter<TItem> : IExecutionFilter
         _streamPool = streamPool ?? new MemoryStreamPool();
     }
 
+    IReadOnlyList<Func<IExecutionContext, IExecutionFilter>> IBindingFilter.ConstraintFilters
+    {
+        get => _constraintFilters;
+        set => _constraintFilters = value;
+    }
+
+    private IReadOnlyList<Func<IExecutionContext, IExecutionFilter>> _constraintFilters =
+        Array.Empty<Func<IExecutionContext, IExecutionFilter>>();
+
     public async Task Execute(IExecutionChain chain)
     {
         var context = chain.Context;
@@ -88,7 +97,11 @@ public class AsyncEnumerableIoFilter<TItem> : IExecutionFilter
                     .Context.RequestServices.GetRequiredService<IRequestLogger>()
                     .RequestParameterBindFailed(chain.Context, exp);
 
-                chain.Context.Response.ExceptionValue = BindFailure.For(exp);
+                chain.Context.Response.ExceptionValue = BindFailure.For(
+                    exp,
+                    chain.Context,
+                    _constraintFilters
+                );
             }
             finally
             {

@@ -83,11 +83,25 @@ public class ConstraintAttributesTests
         Assert.DoesNotContain("RequiredAttribute", Names(For(Property(), "string")));
     }
 
+    /// <summary>
+    /// A description's <c>required</c> says the member is present, and <c>""</c> is present. Left
+    /// to ValidationModules' default, <c>"subject": ""</c> against <c>minLength: 1</c> reported
+    /// <c>required</c> rather than <c>string_length</c>.
+    /// </summary>
     [Fact]
-    public void RequiredTakesNoArguments()
+    public void ARequiredStringAllowsAnEmptyOne()
+    {
+        Assert.Equal(
+            new[] { "AllowEmptyStrings = true" },
+            Single(For(Property(), "string", required: true), "RequiredAttribute").Arguments
+        );
+    }
+
+    [Fact]
+    public void RequiredOnAnythingButAStringTakesNoArguments()
     {
         Assert.Empty(
-            Single(For(Property(), "string", required: true), "RequiredAttribute").Arguments
+            Single(For(Property(), "List<string>", required: true), "RequiredAttribute").Arguments
         );
     }
 

@@ -104,6 +104,19 @@ public static class BindRequestParametersMethodGenerator
                 .ToVar("form");
         }
 
+        // Each string-valued parameter is bound inside its own try, so one that will not convert
+        // is recorded and the next is still bound. The caller hears about every field it got
+        // wrong at once, and the constraints on the ones that did bind are checked beside them -
+        // see ParameterBindingException.
+        InstanceDefinition? failuresVar = null;
+
+        if (requestHandlerModel.RequestParameterInformationList.Any(BindsFromAString))
+        {
+            failuresVar = invokeMethod
+                .Assign(New(KnownTypes.Requests.ParameterBindingFailures))
+                .ToVar("bindingFailures");
+        }
+
         foreach (var parameterInformation in requestHandlerModel.RequestParameterInformationList)
         {
             switch (parameterInformation.BindingType)
@@ -118,7 +131,7 @@ public static class BindRequestParametersMethodGenerator
                 case ParameterBindType.Cookie:
                     BindRequestValueToParameter(
                         parameterInformation,
-                        invokeMethod,
+                        Attempt(invokeMethod, failuresVar!),
                         context,
                         parametersVar
                     );
@@ -127,7 +140,7 @@ public static class BindRequestParametersMethodGenerator
                 case ParameterBindType.Form:
                     BindFormValueToParameter(
                         parameterInformation,
-                        invokeMethod,
+                        Attempt(invokeMethod, failuresVar!),
                         context,
                         parametersVar,
                         formVar!
@@ -181,6 +194,11 @@ public static class BindRequestParametersMethodGenerator
             }
         }
 
+        if (failuresVar != null)
+        {
+            invokeMethod.AddIndentedStatement(failuresVar.Invoke("ThrowIfAny", parametersVar));
+        }
+
         if (needsAsync)
         {
             invokeMethod.Return(parametersVar);
@@ -196,6 +214,33 @@ public static class BindRequestParametersMethodGenerator
                 )
             );
         }
+    }
+
+    private static bool BindsFromAString(RequestParameterInformation parameter) =>
+        parameter.BindingType
+            is ParameterBindType.Header
+                or ParameterBindType.QueryString
+                or ParameterBindType.Path
+                or ParameterBindType.Cookie
+                or ParameterBindType.Form;
+
+    /// <summary>
+    /// A try whose catch records the parameter's failure in <paramref name="failuresVar"/>.
+    /// </summary>
+    private static BaseBlockDefinition Attempt(
+        MethodDefinition invokeMethod,
+        InstanceDefinition failuresVar
+    )
+    {
+        var attempt = invokeMethod.Try();
+
+        attempt
+            .Catch(KnownTypes.Requests.ValidationException, "failure")
+            .AddIndentedStatement(
+                failuresVar.Invoke("Add", new CodeOutputComponent("failure") { Indented = false })
+            );
+
+        return attempt;
     }
 
     private static void BindFromCustomAttribute(
@@ -301,7 +346,7 @@ public static class BindRequestParametersMethodGenerator
 
     private static void BindRequestValueToParameter(
         RequestParameterInformation parameterInformation,
-        MethodDefinition invokeMethod,
+        BaseBlockDefinition invokeMethod,
         ParameterDefinition context,
         InstanceDefinition parametersVar
     )
@@ -392,7 +437,7 @@ public static class BindRequestParametersMethodGenerator
     /// </remarks>
     private static void BindFormValueToParameter(
         RequestParameterInformation parameterInformation,
-        MethodDefinition invokeMethod,
+        BaseBlockDefinition invokeMethod,
         ParameterDefinition context,
         InstanceDefinition parametersVar,
         InstanceDefinition formVar
@@ -637,7 +682,7 @@ public static class BindRequestParametersMethodGenerator
     private static void BindModel(
         RequestParameterInformation parameterInformation,
         BoundModel model,
-        MethodDefinition invokeMethod,
+        BaseBlockDefinition invokeMethod,
         ParameterDefinition context,
         InstanceDefinition parametersVar,
         Func<string, IOutputComponent> field,

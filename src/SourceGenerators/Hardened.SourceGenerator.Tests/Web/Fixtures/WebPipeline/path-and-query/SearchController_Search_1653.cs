@@ -51,14 +51,30 @@ namespace TestApp.Generated
         private static global::System.Threading.Tasks.Task<global::Hardened.Requests.Abstract.Execution.IExecutionRequestParameters> BindRequestParameters(global::Hardened.Requests.Abstract.Execution.IExecutionContext context)
         {
             var parameters = new global::TestApp.Generated.SearchController_Search_1653.Parameters();
-            parameters.category = context.KnownServices.StringConverterService.ParseRequired<global::System.String>(
-                context.Request.PathTokens.Get("category")!,
-                "category"
-            );
-            parameters.limit = context.KnownServices.StringConverterService.ParseOptional<int?>(
-                context.Request.QueryString.Get("limit")!,
-                "limit"
-            );
+            var bindingFailures = new global::Hardened.Requests.Runtime.Validation.ParameterBindingFailures();
+            try
+            {
+                parameters.category = context.KnownServices.StringConverterService.ParseRequired<global::System.String>(
+                    context.Request.PathTokens.Get("category")!,
+                    "category"
+                );
+            }
+            catch (global::Hardened.Requests.Runtime.Validation.ValidationException failure)
+            {
+                bindingFailures.Add(failure);
+            }
+            try
+            {
+                parameters.limit = context.KnownServices.StringConverterService.ParseOptional<int?>(
+                    context.Request.QueryString.Get("limit")!,
+                    "limit"
+                );
+            }
+            catch (global::Hardened.Requests.Runtime.Validation.ValidationException failure)
+            {
+                bindingFailures.Add(failure);
+            }
+            bindingFailures.ThrowIfAny(parameters);
             return global::System.Threading.Tasks.Task.FromResult<global::Hardened.Requests.Abstract.Execution.IExecutionRequestParameters>(parameters);
         }
 

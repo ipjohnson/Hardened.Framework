@@ -223,7 +223,10 @@ public class GeneratedCodeCompilesTests
 
         // property:, or the attribute lands on a positional record's parameter and the generator
         // reading properties never sees it.
-        Assert.Contains("[property: global::ValidationModules.Constraints.Required]", emitted);
+        Assert.Contains(
+            "[property: global::ValidationModules.Constraints.Required(AllowEmptyStrings = true)]",
+            emitted
+        );
         Assert.Contains("[property: global::ValidationModules.Constraints.StringLength(", emitted);
         Assert.Contains("[property: global::ValidationModules.Constraints.Range(", emitted);
 

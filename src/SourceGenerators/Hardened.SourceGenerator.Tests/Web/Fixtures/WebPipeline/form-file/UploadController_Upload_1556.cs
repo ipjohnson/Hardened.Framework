@@ -52,18 +52,34 @@ namespace TestApp.Generated
         {
             var parameters = new global::TestApp.Generated.UploadController_Upload_1556.Parameters();
             var form = await global::Hardened.Requests.Runtime.Forms.FormBinding.Read(context);
-            var uploadModel = new global::TestApp.Upload(
-                context.KnownServices.StringConverterService.ParseRequired<string>(
-                    form.Get("tenant")!,
-                    "tenant"
-                ),
-                global::Hardened.Requests.Runtime.Forms.FormFileBinding.Required(
-                    form.GetFile("file"),
-                    "file"
-                )
-            );
-            parameters.upload = uploadModel;
-            parameters.extras = global::Hardened.Requests.Runtime.Forms.FormFileBinding.OptionalMany(form.GetFiles("extras"));
+            var bindingFailures = new global::Hardened.Requests.Runtime.Validation.ParameterBindingFailures();
+            try
+            {
+                var uploadModel = new global::TestApp.Upload(
+                    context.KnownServices.StringConverterService.ParseRequired<string>(
+                        form.Get("tenant")!,
+                        "tenant"
+                    ),
+                    global::Hardened.Requests.Runtime.Forms.FormFileBinding.Required(
+                        form.GetFile("file"),
+                        "file"
+                    )
+                );
+                parameters.upload = uploadModel;
+            }
+            catch (global::Hardened.Requests.Runtime.Validation.ValidationException failure)
+            {
+                bindingFailures.Add(failure);
+            }
+            try
+            {
+                parameters.extras = global::Hardened.Requests.Runtime.Forms.FormFileBinding.OptionalMany(form.GetFiles("extras"));
+            }
+            catch (global::Hardened.Requests.Runtime.Validation.ValidationException failure)
+            {
+                bindingFailures.Add(failure);
+            }
+            bindingFailures.ThrowIfAny(parameters);
             return parameters;
         }
 

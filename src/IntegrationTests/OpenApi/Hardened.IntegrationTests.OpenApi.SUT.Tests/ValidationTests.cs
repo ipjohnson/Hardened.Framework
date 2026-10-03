@@ -208,6 +208,45 @@ public class ValidationTests
     }
 
     /// <summary>
+    /// Values that will not convert and a constraint that fails are reported in one response.
+    /// Binding used to stop at <c>species</c>, so the caller heard nothing of <c>size</c> or
+    /// <c>q</c> until it had fixed the first.
+    /// </summary>
+    [ModuleTest]
+    public async Task SearchPets_BindingAndConstraintFailures_ReportsAllOfThem(
+        ITestWebApp testWebApp
+    )
+    {
+        var response = await testWebApp.Get("/pets/search?q=a&species=ferret&size=7");
+
+        response.Assert.BadRequest();
+
+        var error = response.Deserialize<RequestValidationError>();
+
+        Assert.Equal(
+            new[] { ("species", "invalid"), ("size", "invalid"), ("q", "string_length") },
+            error!.Errors.Select(e => (e.Field, e.Code))
+        );
+    }
+
+    /// <summary>
+    /// An empty string is present, so <c>minLength</c> answers for it rather than <c>required</c>.
+    /// </summary>
+    [ModuleTest]
+    public async Task CreatePet_EmptyName_ReportsTheLength(ITestWebApp testWebApp)
+    {
+        var response = await testWebApp.Post(new CreatePetRequest("", null), "/pets");
+
+        response.Assert.BadRequest();
+
+        var error = response.Deserialize<RequestValidationError>();
+
+        var field = Assert.Single(error!.Errors);
+        Assert.Equal("body.name", field.Field);
+        Assert.Equal("string_length", field.Code);
+    }
+
+    /// <summary>
     /// Every failing constraint is reported, not just the first. A caller fixing one field at a time
     /// because the server only ever names one is the thing this avoids.
     /// </summary>

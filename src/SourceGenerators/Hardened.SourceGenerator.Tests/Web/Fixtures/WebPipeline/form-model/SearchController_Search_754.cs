@@ -44,22 +44,31 @@ namespace TestApp.Generated
         {
             var parameters = new global::TestApp.Generated.SearchController_Search_754.Parameters();
             var form = await global::Hardened.Requests.Runtime.Forms.FormBinding.Read(context);
-            var searchModel = new global::TestApp.Search(
-                context.KnownServices.StringConverterService.ParseRequired<int>(
-                    form.Get("page")!,
-                    "page"
-                ),
-                context.KnownServices.StringConverterService.ParseRequired<string>(
-                    form.Get("q")!,
-                    "q"
-                ),
-                context.KnownServices.StringConverterService.ParseWithDefault<int>(
-                    form.Get("size")!,
-                    "size",
-                    20
-                )
-            );
-            parameters.search = searchModel;
+            var bindingFailures = new global::Hardened.Requests.Runtime.Validation.ParameterBindingFailures();
+            try
+            {
+                var searchModel = new global::TestApp.Search(
+                    context.KnownServices.StringConverterService.ParseRequired<int>(
+                        form.Get("page")!,
+                        "page"
+                    ),
+                    context.KnownServices.StringConverterService.ParseRequired<string>(
+                        form.Get("q")!,
+                        "q"
+                    ),
+                    context.KnownServices.StringConverterService.ParseWithDefault<int>(
+                        form.Get("size")!,
+                        "size",
+                        20
+                    )
+                );
+                parameters.search = searchModel;
+            }
+            catch (global::Hardened.Requests.Runtime.Validation.ValidationException failure)
+            {
+                bindingFailures.Add(failure);
+            }
+            bindingFailures.ThrowIfAny(parameters);
             return parameters;
         }
 

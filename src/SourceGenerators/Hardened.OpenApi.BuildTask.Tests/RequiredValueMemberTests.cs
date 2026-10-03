@@ -160,7 +160,7 @@ public class RequiredValueMemberTests
     public void ARequiredStringStillCarriesTheValidatorsConstraint()
     {
         Assert.Contains(
-            "[property: Required]",
+            "[property: Required(AllowEmptyStrings = true)]",
             EmitterHarness.Schema(
                 new SchemaModel
                 {
@@ -323,7 +323,7 @@ public class RequiredValueMemberTests
             }
         );
 
-        Assert.Contains("[property: Required]", result);
+        Assert.Contains("[property: Required(AllowEmptyStrings = true)]", result);
         Assert.Contains("[property: JsonRequired]", result);
     }
 
