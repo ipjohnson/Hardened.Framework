@@ -111,6 +111,44 @@ public class ParameterBindingFailuresTests
         Assert.Equal("status", Assert.Single(result.ValidationResult.Errors).Field);
     }
 
+    [Fact]
+    public void ABodyFailureHandsBackWhatWasRead()
+    {
+        var body = new Payload();
+        var failures = new ParameterBindingFailures();
+
+        Assert.Same(
+            body,
+            failures.AddBody<Payload>(BodyFailure("body.color", body: body, field: "body"))
+        );
+        Assert.Null(failures.AddBody<Payload>(Failure("body", "required")));
+    }
+
+    /// <summary>
+    /// A body that could not be read to the end is all defaults, so no constraint under it
+    /// describes what was sent.
+    /// </summary>
+    [Fact]
+    public void AConstraintUnderABodyThatWasNotReadIsDropped()
+    {
+        var filter = new ValidationFilter<Payload>(new[] { NestedValidator.Instance });
+
+        var result = Merge(filter, BodyFailure("filter.color", body: null, field: "filter"));
+
+        Assert.Equal(
+            new[] { "filter.color", "filterless" },
+            result.ValidationResult.Errors.Select(error => error.Field)
+        );
+    }
+
+    private static BodyBindingException BodyFailure(string error, object? body, string field) =>
+        new(
+            ValidationResult.FromErrors(new[] { new ValidationError(error, "invalid", error) }),
+            field,
+            body,
+            new InvalidOperationException()
+        );
+
     private static ValidationException Merge(IExecutionFilter filter, ValidationException failure)
     {
         var failures = new ParameterBindingFailures();

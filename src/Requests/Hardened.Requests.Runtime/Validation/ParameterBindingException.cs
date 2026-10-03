@@ -50,6 +50,14 @@ public sealed class ParameterBindingException : ValidationException
             StringComparer.Ordinal
         );
 
+        foreach (var failure in failures)
+        {
+            if (failure is BodyBindingException { Body: null } unread)
+            {
+                fields.Add(unread.Field);
+            }
+        }
+
         // The first conversion failure's cause, for the log. A missing value has none.
         var inner = failures
             .Select(failure => failure.InnerException)

@@ -1179,6 +1179,19 @@ namespace Hardened.Requests.Abstract.Serializer
         public string? Id { get; init; }
         public int? Retry { get; init; }
     }
+    public static class UndeclaredValue
+    {
+        public static T Refuse<T>(string message) { }
+        public static Hardened.Requests.Abstract.Serializer.UndeclaredValue.Scope Tolerate(int count) { }
+        public readonly struct Scope : System.IDisposable
+        {
+            public void Dispose() { }
+        }
+    }
+    public sealed class UndeclaredValueException : System.Text.Json.JsonException
+    {
+        public UndeclaredValueException(string message) { }
+    }
 }
 namespace Hardened.Requests.Abstract.Templates
 {

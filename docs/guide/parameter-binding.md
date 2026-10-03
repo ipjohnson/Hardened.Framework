@@ -165,7 +165,14 @@ not bind, in declaration order, followed by the constraint failures of the param
 constraint on a parameter that did not bind is not reported. A handler under
 `[ValidationMode(ValidationStopMode.StopOnFirstError)]` reports the binding failures alone. A query
 string or form model is one parameter, so its first member that fails is the only one reported for
-it. A body that cannot be read is reported alone.
+it.
+
+A JSON body holding a value its enum does not declare is read past that value. Each undeclared
+value is reported at its path, such as `body.priority`, and the constraints on the rest of the body
+are reported beside it. One body reports at most 16 undeclared values. A value of the wrong type
+after an undeclared value ends the read and is reported with it, but no constraint on the body is
+checked. A body that is not JSON, or whose first failure is a value of the wrong type, is reported
+alone. A missing `required` body is reported beside the other parameters' failures.
 
 Headers, cookies and form fields follow the same rules. [Validation](/guide/validation) covers the
 400 body, constraints on parameters and changing the status.

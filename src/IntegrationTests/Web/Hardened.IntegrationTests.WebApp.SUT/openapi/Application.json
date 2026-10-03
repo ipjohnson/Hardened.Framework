@@ -3755,6 +3755,93 @@
         "x-hardened-timeout": 300000
       }
     },
+    "/enum-vocabulary/ticket/{id}": {
+      "put": {
+        "tags": [
+          "EnumVocabulary"
+        ],
+        "operationId": "replaceTicket",
+        "summary": "A path value and a body, so a failure in each is reported in one response.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Ticket"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Priority"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request failed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "The request body is in a media type or content coding this operation does not read.",
+            "headers": {
+              "Accept": {
+                "description": "The media types this operation reads, when the Content-Type was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Accept-Encoding": {
+                "description": "The content codings this operation decodes, when the Content-Encoding was refused.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          }
+        },
+        "x-hardened-timeout": 300000
+      }
+    },
     "/errors/bad-encoding": {
       "get": {
         "tags": [

@@ -22,6 +22,20 @@ public struct ParameterBindingFailures
     public void Add(ValidationException failure) => (_failures ??= new()).Add(failure);
 
     /// <summary>
+    /// Records a body parameter's failure.
+    /// </summary>
+    /// <returns>
+    /// The body as far as it was read, where the failure carries one, so the binder can still put
+    /// it on the parameters. See <see cref="BodyBindingException"/>.
+    /// </returns>
+    public T? AddBody<T>(ValidationException failure)
+    {
+        Add(failure);
+
+        return failure is BodyBindingException { Body: T body } ? body : default;
+    }
+
+    /// <summary>
     /// Throws <see cref="ParameterBindingException"/> when anything failed.
     /// </summary>
     /// <param name="parameters">
