@@ -578,6 +578,7 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator
                                 // its symbol before this description was written and carried through
                                 // it, since the builder below rebuilds every parameter from here.
                                 SchemaFacets = p.SchemaFacets,
+                                SchemaDefault = p.SchemaDefault,
                                 RequiredByConstraint = p.RequiredByConstraint,
                             })
                             .ToList(),

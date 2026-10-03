@@ -4135,7 +4135,8 @@
                     "type": "string"
                   },
                   "missing": {
-                    "type": "string"
+                    "type": "string",
+                    "default": "fallback"
                   }
                 }
               }
@@ -5296,7 +5297,8 @@
               "type": "integer",
               "format": "int32",
               "minimum": 1,
-              "maximum": 100
+              "maximum": 100,
+              "default": 2
             }
           }
         ],

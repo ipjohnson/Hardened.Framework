@@ -679,6 +679,12 @@ public abstract class BaseRequestModelGenerator
             if (PublishesFacets(parameterInformation.BindingType) && symbol != null)
             {
                 parameterInformation.SchemaFacets = SchemaConstraintWriter.FacetsOf(symbol);
+                parameterInformation.SchemaDefault = symbol.HasExplicitDefaultValue
+                    ? JsonSchemaWriter.DefaultLiteral(
+                        symbol,
+                        generatorSyntaxContext.SemanticModel.Compilation.Assembly
+                    )
+                    : null;
                 parameterInformation.RequiredByConstraint = SchemaConstraintWriter.IsRequired(
                     symbol
                 );

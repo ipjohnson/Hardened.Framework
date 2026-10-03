@@ -467,6 +467,7 @@ internal static class SpecHandlerModelBuilder
                     // carried through here from the compilation because it has no typed slot on the
                     // way in: the writer splices it beside the schema it derives from the C# type.
                     SchemaFacets = param.SchemaFacets,
+                    SchemaDefault = param.SchemaDefault,
                     RequiredByConstraint = param.RequiredByConstraint,
                     Model =
                         symbols?.ParameterModels != null

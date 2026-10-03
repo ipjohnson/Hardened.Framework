@@ -50,6 +50,7 @@ public class ParameterModelEqualityTests
             MinItems = 1,
             MaxItems = 4,
             SchemaFacets = "{}",
+            SchemaDefault = "20",
             RequiredByConstraint = false,
             EnumValues = ["a", "b"],
         };
@@ -82,6 +83,7 @@ public class ParameterModelEqualityTests
             "MinItems",
             "MaxItems",
             "SchemaFacets",
+            "SchemaDefault",
             "RequiredByConstraint",
             "EnumValues",
         };
@@ -164,6 +166,9 @@ public class ParameterModelEqualityTests
                 break;
             case "SchemaFacets":
                 model.SchemaFacets = "{\"x\":1}";
+                break;
+            case "SchemaDefault":
+                model.SchemaDefault = "21";
                 break;
             case "RequiredByConstraint":
                 model.RequiredByConstraint = true;
