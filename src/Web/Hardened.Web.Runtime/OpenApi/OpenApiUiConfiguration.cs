@@ -32,6 +32,12 @@ public interface IOpenApiUiConfiguration
     /// Where the MessagePack decoder is loaded from, or null where the page installs no plugin.
     /// </summary>
     string? MessagePackScriptUrl { get; }
+
+    /// <summary>
+    /// The one server the request panel sends to in place of the document's <c>servers</c>, or
+    /// null where the panel follows the document.
+    /// </summary>
+    string? ServerUrl { get; }
 }
 
 /// <inheritdoc />
@@ -43,7 +49,8 @@ public sealed class OpenApiUiConfiguration : IOpenApiUiConfiguration
         string documentPath,
         string scriptUrl,
         string? scriptIntegrity,
-        string? messagePackScriptUrl = null
+        string? messagePackScriptUrl = null,
+        string? serverUrl = null
     )
     {
         Path = path;
@@ -52,6 +59,7 @@ public sealed class OpenApiUiConfiguration : IOpenApiUiConfiguration
         ScriptUrl = scriptUrl;
         ScriptIntegrity = scriptIntegrity;
         MessagePackScriptUrl = messagePackScriptUrl;
+        ServerUrl = serverUrl;
     }
 
     public string Path { get; }
@@ -65,4 +73,6 @@ public sealed class OpenApiUiConfiguration : IOpenApiUiConfiguration
     public string? ScriptIntegrity { get; }
 
     public string? MessagePackScriptUrl { get; }
+
+    public string? ServerUrl { get; }
 }

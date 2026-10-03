@@ -24,6 +24,7 @@ public class OpenApiUiController
             configuration.DocumentPath,
             configuration.ScriptUrl,
             configuration.ScriptIntegrity,
-            configuration.MessagePackScriptUrl
+            configuration.MessagePackScriptUrl,
+            configuration.ServerUrl
         );
 }

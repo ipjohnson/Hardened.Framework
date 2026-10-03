@@ -531,6 +531,7 @@ namespace Hardened.Web.Runtime.OpenApi
         public const string DefaultScriptUrl = "https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.65.1/dist/browser/standalone" +
             ".js";
         public const string DefaultTitle = "API Reference";
+        public const string ServedOrigin = "/";
         public HardenedOpenApiUi() { }
         public bool DecodeMessagePack { get; set; }
         public string? DocumentPath { get; set; }
@@ -577,6 +578,7 @@ namespace Hardened.Web.Runtime.OpenApi
         string Path { get; }
         string? ScriptIntegrity { get; }
         string ScriptUrl { get; }
+        string? ServerUrl { get; }
         string Title { get; }
     }
     public sealed class OpenApiDocumentConfiguration
@@ -610,12 +612,13 @@ namespace Hardened.Web.Runtime.OpenApi
     }
     public sealed class OpenApiUiConfiguration : Hardened.Web.Runtime.OpenApi.IOpenApiUiConfiguration
     {
-        public OpenApiUiConfiguration(string path, string title, string documentPath, string scriptUrl, string? scriptIntegrity, string? messagePackScriptUrl = null) { }
+        public OpenApiUiConfiguration(string path, string title, string documentPath, string scriptUrl, string? scriptIntegrity, string? messagePackScriptUrl = null, string? serverUrl = null) { }
         public string DocumentPath { get; }
         public string? MessagePackScriptUrl { get; }
         public string Path { get; }
         public string? ScriptIntegrity { get; }
         public string ScriptUrl { get; }
+        public string? ServerUrl { get; }
         public string Title { get; }
     }
     public class OpenApiUiController
@@ -625,11 +628,12 @@ namespace Hardened.Web.Runtime.OpenApi
     }
     public sealed class OpenApiUiModel : System.IEquatable<Hardened.Web.Runtime.OpenApi.OpenApiUiModel>
     {
-        public OpenApiUiModel(string Title, string DocumentPath, string ScriptUrl, string? ScriptIntegrity, string? MessagePackScriptUrl = null) { }
+        public OpenApiUiModel(string Title, string DocumentPath, string ScriptUrl, string? ScriptIntegrity, string? MessagePackScriptUrl = null, string? ServerUrl = null) { }
         public string DocumentPath { get; init; }
         public string? MessagePackScriptUrl { get; init; }
         public string? ScriptIntegrity { get; init; }
         public string ScriptUrl { get; init; }
+        public string? ServerUrl { get; init; }
         public string Title { get; init; }
     }
     public sealed class OpenApiUiPage : Hardened.Requests.Abstract.Outputs.IHardenedResponseOutput, Hardened.Requests.Abstract.Outputs.IHardenedResponseOutput<Hardened.Web.Runtime.OpenApi.OpenApiUiModel>

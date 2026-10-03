@@ -8,6 +8,10 @@
 /// nullable field rather than a flag beside a URL. The two could not usefully disagree, and a page
 /// that is on with nowhere to load the decoder from is not a state worth being able to express.
 /// </param>
+/// <param name="ServerUrl">
+/// The one server the request panel sends to in place of the document's <c>servers</c>, or null
+/// where the panel follows the document.
+/// </param>
 /// <remarks>
 /// A model rather than the page reading configuration itself: an output is constructed by the
 /// pipeline through <c>new()</c> and has nowhere to take a dependency, and keeping the resolution in
@@ -19,5 +23,6 @@ public sealed record OpenApiUiModel(
     string DocumentPath,
     string ScriptUrl,
     string? ScriptIntegrity,
-    string? MessagePackScriptUrl = null
+    string? MessagePackScriptUrl = null,
+    string? ServerUrl = null
 );

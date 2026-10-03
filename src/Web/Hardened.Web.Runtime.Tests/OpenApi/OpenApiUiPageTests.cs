@@ -294,4 +294,49 @@ public class OpenApiUiPageTests
     }
 
     #endregion
+
+    #region the served origin
+
+    /// <summary>
+    /// The standalone bundle reads <c>data-configuration</c> as JSON, so the attribute is decoded
+    /// the way a browser would and parsed back.
+    /// </summary>
+    [Fact]
+    public async Task WriteOutput_ConfiguresTheServerInTheAttributeForm()
+    {
+        var (page, _) = await Render(Model with { ServerUrl = "/" });
+
+        const string attribute = "data-configuration=\"";
+        var start = page.IndexOf(attribute, StringComparison.Ordinal) + attribute.Length;
+        var value = System.Net.WebUtility.HtmlDecode(page[start..page.IndexOf('"', start)]);
+
+        using var configuration = JsonDocument.Parse(value);
+
+        Assert.Equal(
+            "/",
+            configuration.RootElement.GetProperty("servers")[0].GetProperty("url").GetString()
+        );
+        Assert.DoesNotContain("createApiReference", page);
+    }
+
+    [Fact]
+    public async Task WriteOutput_ConfiguresTheServerInThePluginForm()
+    {
+        var (page, _) = await Render(WithPlugin with { ServerUrl = "/" });
+
+        Assert.Contains("servers: [{ url: \"/\" }],", page);
+    }
+
+    /// <summary>Without one the panel follows the document's <c>servers</c>.</summary>
+    [Fact]
+    public async Task WriteOutput_WithoutAServerTheDocumentDecides()
+    {
+        var (attributeForm, _) = await Render(Model);
+        var (pluginForm, _) = await Render(WithPlugin);
+
+        Assert.DoesNotContain("data-configuration", attributeForm);
+        Assert.DoesNotContain("servers", pluginForm);
+    }
+
+    #endregion
 }

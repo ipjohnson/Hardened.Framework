@@ -307,6 +307,11 @@ page where one of them matches the application's environment name, ignoring case
 `Environments`, it serves the page in every environment. The [Environments](/guide/environments)
 page covers the environment name.
 
+In the `development` environment, the page's request panel sends to the origin the page was served
+from. It ignores the document's `servers`. A host started with `PORT=5181` serves `/openapi.json`
+listing `http://localhost:5080`, and the panel still sends to port 5181. The served document is
+unchanged. In any other environment, the panel sends to the document's `servers`.
+
 A module can carry the attribute more than once, for one page per `Path`. Two with the same `Path`
 serve the first. A `Path` written without a leading slash gets one.
 
@@ -541,7 +546,9 @@ change nothing. `[assembly: Server(...)]` compiles and changes nothing. A contra
 `servers` win over both attributes.
 
 The template's `[Server("http://localhost:5080", "Local")]` is the default address of the client
-the template generates. [Generated clients](/guide/clients) covers the client.
+the template generates. [Generated clients](/guide/clients) covers the client. `PORT` does not
+change it. In `development`, the [reference page](#the-reference-page) sends to the port it was
+served from regardless.
 
 ## Operations
 
