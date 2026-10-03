@@ -119,6 +119,117 @@ public class RateLimitStoreTests
         Assert.True(first.Remaining < first.Limit);
     }
 
+    // ------------------------------------------------------------- the clock
+
+    private sealed class Clock : TimeProvider
+    {
+        public DateTimeOffset Now { get; set; } = new(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+
+        public override DateTimeOffset GetUtcNow() => Now;
+    }
+
+    /// <summary>Eight segments of ten seconds, so every figure below is a whole number.</summary>
+    private static readonly RateLimitPolicy Eighty = new(
+        PermitLimit: 3,
+        Window: TimeSpan.FromSeconds(80)
+    );
+
+    /// <summary>
+    /// The reset is how long until the oldest spent permit returns, which shortens as the window
+    /// slides past it. It was the window's length on every response.
+    /// </summary>
+    [Fact]
+    public async Task Acquire_ReportsWhenTheOldestSpentPermitReturns()
+    {
+        var clock = new Clock();
+        var store = new InProcessRateLimitStore(new RateLimitConfiguration(), clock);
+
+        var first = await store.Acquire("caller", Eighty, CancellationToken.None);
+
+        Assert.Equal(2, first.Remaining);
+        Assert.Equal(TimeSpan.FromSeconds(80), first.Reset);
+
+        clock.Now += TimeSpan.FromSeconds(25);
+
+        var second = await store.Acquire("caller", Eighty, CancellationToken.None);
+
+        Assert.Equal(1, second.Remaining);
+        Assert.Equal(TimeSpan.FromSeconds(55), second.Reset);
+    }
+
+    /// <summary>
+    /// A refusal says how long until a permit returns, not the whole window. With the BCL limiter
+    /// the store had no answer and sent the window every time.
+    /// </summary>
+    [Fact]
+    public async Task Acquire_RefusesWithTheTimeUntilAPermitReturns()
+    {
+        var clock = new Clock();
+        var store = new InProcessRateLimitStore(new RateLimitConfiguration(), clock);
+
+        await store.Acquire("caller", Eighty, CancellationToken.None);
+
+        clock.Now += TimeSpan.FromSeconds(25);
+
+        await store.Acquire("caller", Eighty, CancellationToken.None);
+        await store.Acquire("caller", Eighty, CancellationToken.None);
+
+        clock.Now += TimeSpan.FromSeconds(30);
+
+        var refused = await store.Acquire("caller", Eighty, CancellationToken.None);
+
+        Assert.False(refused.Allowed);
+        Assert.Equal(TimeSpan.FromSeconds(25), refused.RetryAfter);
+        Assert.Equal(TimeSpan.FromSeconds(25), refused.Reset);
+    }
+
+    /// <summary>
+    /// A permit returns when the window has slid past the segment it was spent in, and the reset
+    /// then points at the next oldest.
+    /// </summary>
+    [Fact]
+    public async Task Acquire_ReturnsAPermitOnceTheWindowSlidesPastIt()
+    {
+        var clock = new Clock();
+        var store = new InProcessRateLimitStore(new RateLimitConfiguration(), clock);
+
+        await store.Acquire("caller", Eighty, CancellationToken.None);
+
+        clock.Now += TimeSpan.FromSeconds(25);
+
+        await store.Acquire("caller", Eighty, CancellationToken.None);
+        await store.Acquire("caller", Eighty, CancellationToken.None);
+
+        clock.Now += TimeSpan.FromSeconds(55);
+
+        var returned = await store.Acquire("caller", Eighty, CancellationToken.None);
+
+        Assert.True(returned.Allowed);
+        Assert.Equal(0, returned.Remaining);
+        Assert.Equal(TimeSpan.FromSeconds(20), returned.Reset);
+    }
+
+    /// <summary>A caller idle for longer than the window starts again with the whole allowance.</summary>
+    [Fact]
+    public async Task Acquire_ForgetsEverythingAfterAnIdleWindow()
+    {
+        var clock = new Clock();
+        var store = new InProcessRateLimitStore(new RateLimitConfiguration(), clock);
+
+        for (var i = 0; i < 3; i++)
+        {
+            await store.Acquire("caller", Eighty, CancellationToken.None);
+        }
+
+        clock.Now += TimeSpan.FromHours(5);
+
+        var after = await store.Acquire("caller", Eighty, CancellationToken.None);
+
+        Assert.True(after.Allowed);
+        Assert.Equal(2, after.Remaining);
+        Assert.Equal(TimeSpan.FromSeconds(80), after.Reset);
+    }
+
     // ------------------------------------------------------------ the seam
 
     /// <summary>

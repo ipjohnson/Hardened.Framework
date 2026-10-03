@@ -791,9 +791,14 @@ namespace Hardened.Requests.Runtime.RateLimiting
         public System.Threading.Tasks.ValueTask<Hardened.Requests.Runtime.RateLimiting.RateLimitDecision> Acquire(string partition, Hardened.Requests.Runtime.RateLimiting.RateLimitPolicy policy, System.Threading.CancellationToken cancellationToken) { }
         public void Dispose() { }
     }
+    [Hardened.Requests.Abstract.Responses.AnswersHeader("RateLimit", Description="Each limit as a structured field list item: its name, r for the requests left and" +
+        " t for the seconds until a spent request returns.")]
     [Hardened.Requests.Abstract.Responses.AnswersHeader("RateLimit-Limit", Description="Requests allowed in each window.")]
+    [Hardened.Requests.Abstract.Responses.AnswersHeader("RateLimit-Policy", Description="Each limit as a structured field list item: its name, q for the requests allowed " +
+        "and w for the window in seconds.")]
     [Hardened.Requests.Abstract.Responses.AnswersHeader("RateLimit-Remaining", Description="Requests left in the current window. 0 on a refusal.")]
-    [Hardened.Requests.Abstract.Responses.AnswersHeader("RateLimit-Reset", Description="The window\'s length in seconds, or on a refusal the seconds Retry-After gives.")]
+    [Hardened.Requests.Abstract.Responses.AnswersHeader("RateLimit-Reset", Description="Seconds until a spent request returns to the allowance. On a refusal, the seconds" +
+        " Retry-After gives.")]
     [Hardened.Requests.Abstract.Responses.AnswersHeader(429, "Retry-After", Description="How long to wait before the allowance returns, in seconds.")]
     [Hardened.Requests.Abstract.Responses.AnswersStatus(429, typeof(Hardened.Requests.Abstract.Errors.ErrorModel), Description="The caller has spent this operation\'s allowance. Retry-After says when it returns" +
         ".")]
@@ -822,13 +827,15 @@ namespace Hardened.Requests.Runtime.RateLimiting
         public bool Allowed { get; init; }
         public int Limit { get; init; }
         public int Remaining { get; init; }
+        public System.TimeSpan Reset { get; init; }
         public System.TimeSpan RetryAfter { get; init; }
         public static Hardened.Requests.Runtime.RateLimiting.RateLimitDecision Allow(int limit, int remaining) { }
+        public static Hardened.Requests.Runtime.RateLimiting.RateLimitDecision Allow(int limit, int remaining, System.TimeSpan reset) { }
         public static Hardened.Requests.Runtime.RateLimiting.RateLimitDecision Refuse(int limit, System.TimeSpan retryAfter) { }
     }
     public class RateLimitExceededException : Hardened.Requests.Abstract.Errors.StatusCodeException
     {
-        public RateLimitExceededException(Hardened.Requests.Runtime.RateLimiting.RateLimitDecision decision) { }
+        public RateLimitExceededException(Hardened.Requests.Runtime.RateLimiting.RateLimitDecision decision, Hardened.Requests.Runtime.RateLimiting.RateLimitPolicy policy) { }
         public override void ApplyHeaders(System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers) { }
     }
     public class RateLimitFilter : Hardened.Requests.Abstract.Execution.IExecutionFilter
