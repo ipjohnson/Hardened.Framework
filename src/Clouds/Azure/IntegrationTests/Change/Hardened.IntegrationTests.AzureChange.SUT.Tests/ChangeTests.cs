@@ -1,6 +1,7 @@
 using DependencyModules.Testing.Attributes;
 using DependencyModules.xUnit.Attributes;
 using Hardened.IntegrationTests.AzureChange.SUT;
+using Hardened.Requests.Abstract.Execution;
 using NSubstitute;
 using Xunit;
 
@@ -46,6 +47,28 @@ public class ChangeTests
                     order.Id == "a-1" && order.Quantity == 2 && order.Total == 42.5m
                 )
             );
+    }
+
+    /// <summary>
+    /// The feed carries a document as it is now, so a transition reaches the handler as the
+    /// document after.
+    /// </summary>
+    [ModuleTest]
+    public async Task ATransitionReachesTheHandlerAsTheDocumentAfter(
+        AzureChangeTestApp.Changes changes,
+        [Mock] IOrderProjection projection
+    )
+    {
+        await changes.Orders(
+            Transition.Modify(
+                new Order { Id = "t-1", Quantity = 1 },
+                new Order { Id = "t-1", Quantity = 5 }
+            )
+        );
+
+        projection
+            .Received()
+            .Apply(Arg.Is<Order>(order => order.Id == "t-1" && order.Quantity == 5));
     }
 
     /// <summary>

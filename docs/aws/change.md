@@ -409,13 +409,53 @@ public class OrderHandlerTests
 }
 ```
 
-The template's test project declares `[assembly: LambdaTesting]`. The attribute delivers each façade call as one DynamoDB Streams event, with a record for each message. Each record is a `MODIFY` whose new and old images are both the message, written with DynamoDB's type tags. An array in the message becomes a list, `L`, and never a set. The records carry these values:
+The template's test project declares `[assembly: LambdaTesting]`. The attribute delivers each façade call as one DynamoDB Streams event, with a record for each message. A plain message becomes a `MODIFY` whose new and old images are both the message, written with DynamoDB's type tags. An array in the message becomes a list, `L`, and never a set. The records carry these values:
 
 | Field | Value |
 |---|---|
 | Sequence number | `4421584500000000017450439000`, `4421584500000000017450439001` and on |
 | Stream ARN | `arn:aws:dynamodb:us-east-1:123456789012:table/orders/stream/2026-01-01T00:00:00.000` |
 | View type | `NEW_AND_OLD_IMAGES` |
+
+### Sending the item before and after
+
+Each façade method has a second overload that takes a `Transition` of the handler's type. `Transition` is in namespace `Hardened.Requests.Abstract.Execution`. A test builds one with `Transition.Insert(after)`, `Transition.Modify(before, after)` or `Transition.Remove(before)`. Under `[LambdaTesting]` each transition becomes one record with these fields:
+
+| Built with | `eventName` | `NewImage` | `OldImage` | The handler's parameter |
+|---|---|---|---|---|
+| `Transition.Insert(after)` | `INSERT` | `after` | Absent | `after` |
+| `Transition.Modify(before, after)` | `MODIFY` | `after` | `before` | `after` |
+| `Transition.Remove(before)` | `REMOVE` | Absent | `before` | `before` |
+
+This test drives the handler from [The item before and after the change](#the-item-before-and-after-the-change):
+
+```csharp
+using DependencyModules.xUnit.Attributes;
+using Hardened.Requests.Abstract.Execution;
+using Xunit;
+
+namespace Orders.Tests;
+
+public class OrderHandlerTests
+{
+    [ModuleTest]
+    public async Task AQuantityChangeIsSeen(Application.Changes changes, OrderLog log)
+    {
+        await changes.Orders(
+            Transition.Modify(
+                new Order { Id = "A-1", Quantity = 2 },
+                new Order { Id = "A-1", Quantity = 5 }
+            )
+        );
+
+        Assert.Equal(5, Assert.Single(log.Orders).Quantity);
+    }
+}
+```
+
+The handler logs `Order A-1 quantity changed from 2 to 5`.
+
+The overload takes `params`, so one call can send several transitions as one batch. A call cannot mix plain messages with transitions.
 
 Under `[FunctionTesting]` alone the request has no headers. A handler that binds `[NewImage]` or `[OldImage]` fails there with the `InvalidOperationException` from [The item before and after the change](#the-item-before-and-after-the-change). The handlers in [Headers and the stream record](#headers-and-the-stream-record) pass their tests under `[LambdaTesting]` and under `[FunctionTesting]` alone. The handler that compares the two images passes under `[LambdaTesting]` only.
 

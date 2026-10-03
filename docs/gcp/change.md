@@ -411,10 +411,31 @@ The template's test project declares `[assembly: CloudRunTesting]` and `[assembl
 They post each message of a façade call to the test's host as one Firestore event, so the change
 goes through the Firestore adapter.
 
-Each test event is an `updated` event with `application/protobuf` data. The document after the
-change and the document before it are both the message. The document's ID is the message's `id`
-property. A message without one gets `document-` followed by its index. The collection is the one
-that the façade method is named for.
+Each test event has `application/protobuf` data. A plain message becomes an `updated` event whose
+document after the change and document before it are both the message. The document's ID is the
+message's `id` property. A message without one gets `document-` followed by its index. The
+collection is the one that the façade method is named for.
+
+Each façade method has a second overload that takes a `Transition` of the handler's type, for a test
+that needs the document before to differ from the document after. `Transition` is in namespace
+`Hardened.Requests.Abstract.Execution`. Each transition becomes one event:
+
+| Built with | Event type | `value` | `oldValue` |
+|---|---|---|---|
+| `Transition.Insert(after)` | `created` | `after` | Absent |
+| `Transition.Modify(before, after)` | `updated` | `after` | `before` |
+| `Transition.Remove(before)` | `deleted` | Absent | `before` |
+
+```csharp
+await changes.Orders(
+    Transition.Modify(
+        new Order { Id = "A-1", Quantity = 2 },
+        new Order { Id = "A-1", Quantity = 5 }
+    )
+);
+```
+
+The document's ID is taken from `after`, or from `before` for a `Transition.Remove`.
 
 The message's values become these Firestore values:
 

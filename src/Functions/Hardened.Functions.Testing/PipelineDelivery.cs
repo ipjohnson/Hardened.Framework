@@ -78,8 +78,15 @@ public sealed class PipelineDelivery : ITriggerDelivery
     {
         var provider = await ContainerForDeliveryAsync();
 
+        // A transition is reduced to the row a change adapter binds. The row before and the kind
+        // are carried only by a provider's envelope, so they need that provider's delivery.
         var bodies = messages
-            .Select(message => JsonSerializer.SerializeToUtf8Bytes(message, Wire))
+            .Select(message =>
+                JsonSerializer.SerializeToUtf8Bytes(
+                    message is Transition transition ? transition.Row : message,
+                    Wire
+                )
+            )
             .ToArray();
 
         using var scope = provider.CreateScope();
