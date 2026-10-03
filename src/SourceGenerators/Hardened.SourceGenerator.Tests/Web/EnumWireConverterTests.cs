@@ -99,6 +99,17 @@ public class EnumWireConverterTests
     }
 
     [Fact]
+    public void AnEnumOnTheWireGetsAToWireForMessages()
+    {
+        var routing = RequestGeneratorHarness
+            .Generate(Application(PriorityController))
+            .AssertNoErrors()
+            .SourceContaining("Application.Routing");
+
+        Assert.Contains("public static string ToWire(global::TestApp.Priority value)", routing);
+    }
+
+    [Fact]
     public void TheResolverAndTheStringConvertersAreRegistered()
     {
         var routing = RequestGeneratorHarness

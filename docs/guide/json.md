@@ -156,6 +156,15 @@ The OpenAPI document lists the same values in the enum's schema. A path, query o
 binds the same values. [Parameter binding](/guide/parameter-binding) covers it. An enum used as a
 dictionary key is written with the same values.
 
+To put a value in a message, call `ToWire` on the enum's converter. The converter is generated
+inside the `[HardenedModule]` class, under `JsonEnums`. `ToWire` returns the declared value, where
+interpolating the enum writes the C# member name. `TryParseWire` goes the other way:
+
+```csharp
+var detail = $"Priority {Application.JsonEnums.PriorityWireConverter.ToWire(priority)} is closed.";
+// "Priority inProgress is closed."
+```
+
 A body value that the enum does not declare answers 400 with the code `invalid`:
 
 ```http

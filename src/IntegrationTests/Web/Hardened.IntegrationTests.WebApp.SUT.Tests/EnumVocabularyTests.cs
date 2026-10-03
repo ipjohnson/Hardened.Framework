@@ -183,6 +183,25 @@ public class EnumVocabularyTests
     }
 
     /// <summary>
+    /// A handler writing its own message names the declared value rather than the member.
+    /// </summary>
+    [Fact]
+    public void ToWireAnswersTheDeclaredValue()
+    {
+        Assert.Equal(
+            "inProgress",
+            Application.JsonEnums.PriorityWireConverter.ToWire(Priority.InProgress)
+        );
+        Assert.Equal(
+            "next-day",
+            Application.JsonEnums.ShippingWireConverter.ToWire(Shipping.NextDay)
+        );
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            Application.JsonEnums.PriorityWireConverter.ToWire((Priority)9)
+        );
+    }
+
+    /// <summary>
     /// Through the reference: an enum is one component, and the member refers to it, so a client
     /// generator produces one type per server enum rather than one per property.
     /// </summary>

@@ -317,6 +317,11 @@ A generated `enum` has a member for each value. The member names are the values 
 names from `x-enum-varnames` or `x-enumNames`. Without them the members are `Value1`, `Value2` and so
 on. An `enum` that mixes strings and numbers stops the build with `HOAT023`.
 
+Each generated `enum` has a converter beside it, named for the schema with `Converter` appended.
+`TicketStatusConverter.ToWire(TicketStatus.InProgress)` returns `in_progress`, the declared value,
+for a message such as a problem detail. Interpolating the enum writes the C# member name instead.
+An integer `enum` returns its number as text. `TryParseWire` parses the text back to the member.
+
 The struct for a `oneOf` has a constructor and an implicit conversion for each branch, and
 `object? Value`. A `oneOf` with a `discriminator` reads the payload by the discriminator's value. A
 value that no mapping names answers 400. The branches' shapes decide a `oneOf` without a
