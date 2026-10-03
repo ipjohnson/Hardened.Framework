@@ -43,10 +43,19 @@ namespace TestApp.Generated
         private static global::System.Threading.Tasks.Task<global::Hardened.Requests.Abstract.Execution.IExecutionRequestParameters> BindRequestParameters(global::Hardened.Requests.Abstract.Execution.IExecutionContext context)
         {
             var parameters = new global::TestApp.Generated.TenantController_Get_329.Parameters();
-            parameters.id = context.KnownServices.StringConverterService.ParseRequired<global::System.Int32>(
-                context.Request.PathTokens.Get("id")!,
-                "id"
-            );
+            var bindingFailures = new global::Hardened.Requests.Runtime.Validation.ParameterBindingFailures();
+            try
+            {
+                parameters.id = context.KnownServices.StringConverterService.ParseRequired<global::System.Int32>(
+                    context.Request.PathTokens.Get("id")!,
+                    "id"
+                );
+            }
+            catch (global::Hardened.Requests.Runtime.Validation.ValidationException failure)
+            {
+                bindingFailures.Add(failure);
+            }
+            bindingFailures.ThrowIfAny(parameters);
             return global::System.Threading.Tasks.Task.FromResult<global::Hardened.Requests.Abstract.Execution.IExecutionRequestParameters>(parameters);
         }
 

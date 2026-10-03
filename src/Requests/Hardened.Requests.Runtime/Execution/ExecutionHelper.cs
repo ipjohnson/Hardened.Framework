@@ -400,10 +400,32 @@ public static partial class ExecutionHelper
 
         LogFilterChain(serviceProvider, handlerInfo, chain);
 
+        SetConstraintFilters(ioFilter, chain);
+
         return new ExecutionHandlerSetup(
             handlerInfo,
             Array.ConvertAll(chain, filter => filter.FilterFunc)
         );
+    }
+
+    /// <summary>
+    /// Hands the binding filter the validation filters it cannot reach when binding fails.
+    /// </summary>
+    /// <remarks>
+    /// Only the two binding filters this package builds. One an application put in place through
+    /// <c>IIOFilterProvider</c> reports a binding failure without the constraint errors beside it.
+    /// </remarks>
+    private static void SetConstraintFilters(IExecutionFilter ioFilter, RequestFilterInfo[] chain)
+    {
+        var constraintFilters = chain
+            .Where(filter => filter.Order == FilterOrder.Validation)
+            .Select(filter => filter.FilterFunc)
+            .ToArray();
+
+        if (constraintFilters.Length > 0 && ioFilter is IBindingFilter bindingFilter)
+        {
+            bindingFilter.ConstraintFilters = constraintFilters;
+        }
     }
 
     /// <summary>

@@ -1047,19 +1047,12 @@ print(",".join(str(e.get("field","")) + ":" + str(e.get("code","")) for e in doc
 
         check_title_refusal "a 65-character title" "$TOO_LONG" string_length
 
-        # An empty title is refused by every direction and named differently by them. Code-first
-        # reads it as the length bound it failed. Both specification-first front ends map the
-        # contract's required: [title] onto a Required constraint, which does not admit an empty
-        # string, and that constraint answers first.
-        #
-        # Pinned per direction rather than accepting either, because the code is the wire contract a
-        # client switches on: one contract written three ways refusing the same value with two codes
-        # is worth noticing if it changes, in either direction.
-        if [ "$CONTRACT" = "code" ]; then
-            check_title_refusal "an empty title" "$TOO_SHORT" string_length
-        else
-            check_title_refusal "an empty title" "$TOO_SHORT" required
-        fi
+        # An empty title is the length bound it failed, in every direction. The specification-first
+        # front ends used to answer `required`, because their Required constraint refused an empty
+        # string before the bound was checked. A contract's `required` says only that the member is
+        # present, so they now emit Required(AllowEmptyStrings = true). The code is the wire
+        # contract a client switches on, so one contract written three ways answers with one code.
+        check_title_refusal "an empty title" "$TOO_SHORT" string_length
 
         if [ "$AT_THE_BOUND" != "$EXPECT_CREATED" ]; then
             echo "   FAILED: a 64-character title is inside the bound and should create at $EXPECT_CREATED, got $AT_THE_BOUND"

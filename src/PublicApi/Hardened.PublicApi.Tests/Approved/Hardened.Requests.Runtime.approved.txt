@@ -1011,6 +1011,15 @@ namespace Hardened.Requests.Runtime.Streaming
 }
 namespace Hardened.Requests.Runtime.Validation
 {
+    public sealed class ParameterBindingException : Hardened.Requests.Runtime.Validation.ValidationException
+    {
+        public Hardened.Requests.Abstract.Execution.IExecutionRequestParameters Parameters { get; }
+    }
+    public struct ParameterBindingFailures
+    {
+        public void Add(Hardened.Requests.Runtime.Validation.ValidationException failure) { }
+        public void ThrowIfAny(Hardened.Requests.Abstract.Execution.IExecutionRequestParameters parameters) { }
+    }
     public static class RequestBody
     {
         public static T Required<T>(T? value, string field) { }

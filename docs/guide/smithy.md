@@ -715,7 +715,7 @@ The constraint traits map to these attributes:
 
 | Trait | Attribute |
 |---|---|
-| `@required` | `[Required]`, except on a value type such as `Integer` |
+| `@required` | `[Required]`, except on a value type such as `Integer`. On a string, `[Required(AllowEmptyStrings = true)]`, so `""` is refused by `@length` alone |
 | `@length` on a string | `[StringLength(Min = , Max = )]` |
 | `@length` on a list or a map | `[ItemCount(Min = , Max = )]` |
 | `@range` | `[Range(Min = , Max = )]` |

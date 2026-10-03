@@ -43,22 +43,31 @@ namespace TestApp.Generated
         private static global::System.Threading.Tasks.Task<global::Hardened.Requests.Abstract.Execution.IExecutionRequestParameters> BindRequestParameters(global::Hardened.Requests.Abstract.Execution.IExecutionContext context)
         {
             var parameters = new global::TestApp.Generated.SearchController_List_754.Parameters();
-            var pagingModel = new global::TestApp.Paging { Sort = context.KnownServices.StringConverterService.ParseRequired<string>(
-                context.Request.QueryString.Get("sort")!,
-                "sort"
-            ) };
-            pagingModel.Page = context.KnownServices.StringConverterService.ParseRequired<int>(
-                context.Request.QueryString.Get("page")!,
-                "page"
-            );
-            if (!global::Microsoft.Extensions.Primitives.StringValues.IsNullOrEmpty(context.Request.QueryString.Get("size")))
+            var bindingFailures = new global::Hardened.Requests.Runtime.Validation.ParameterBindingFailures();
+            try
             {
-                pagingModel.Size = context.KnownServices.StringConverterService.ParseRequired<int>(
-                    context.Request.QueryString.Get("size")!,
-                    "size"
+                var pagingModel = new global::TestApp.Paging { Sort = context.KnownServices.StringConverterService.ParseRequired<string>(
+                    context.Request.QueryString.Get("sort")!,
+                    "sort"
+                ) };
+                pagingModel.Page = context.KnownServices.StringConverterService.ParseRequired<int>(
+                    context.Request.QueryString.Get("page")!,
+                    "page"
                 );
+                if (!global::Microsoft.Extensions.Primitives.StringValues.IsNullOrEmpty(context.Request.QueryString.Get("size")))
+                {
+                    pagingModel.Size = context.KnownServices.StringConverterService.ParseRequired<int>(
+                        context.Request.QueryString.Get("size")!,
+                        "size"
+                    );
+                }
+                parameters.paging = pagingModel;
             }
-            parameters.paging = pagingModel;
+            catch (global::Hardened.Requests.Runtime.Validation.ValidationException failure)
+            {
+                bindingFailures.Add(failure);
+            }
+            bindingFailures.ThrowIfAny(parameters);
             return global::System.Threading.Tasks.Task.FromResult<global::Hardened.Requests.Abstract.Execution.IExecutionRequestParameters>(parameters);
         }
 

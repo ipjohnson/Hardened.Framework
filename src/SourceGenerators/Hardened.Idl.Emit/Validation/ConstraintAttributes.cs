@@ -111,9 +111,18 @@ internal static class ConstraintAttributes
 
         var attributes = new List<Model>();
 
+        // A description's `required` says the member is present, and an empty string is present.
+        // ValidationModules counts a blank string as missing unless told otherwise, which answered
+        // `"subject": ""` against `minLength: 1` with `required` rather than `string_length`, and
+        // refused "" where the description set no length at all.
         if (required)
         {
-            attributes.Add(new Model(Attribute("RequiredAttribute"), System.Array.Empty<string>()));
+            attributes.Add(
+                new Model(
+                    Attribute("RequiredAttribute"),
+                    stringLike ? new[] { "AllowEmptyStrings = true" } : System.Array.Empty<string>()
+                )
+            );
         }
 
         // Named arguments, because a spec may set one bound and not the other while the positional

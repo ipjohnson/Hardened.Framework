@@ -10,6 +10,7 @@ using Hardened.Requests.Runtime.Errors;
 using Hardened.Requests.Runtime.Execution;
 using Hardened.Requests.Runtime.Filters;
 using Hardened.Requests.Runtime.Tests.Support;
+using Hardened.Requests.Runtime.Validation;
 using Hardened.Shared.Runtime.Collections;
 using Hardened.Shared.Runtime.Metrics;
 using Microsoft.Extensions.DependencyInjection;
@@ -286,6 +287,59 @@ public class AsyncEnumerableIoFilterTests
         Assert.False(handlerRan);
 
         logger.Received(1).RequestParameterBindFailed(context, failure);
+    }
+
+    /// <summary>
+    /// A parameter that would not bind is reported with the constraint failures of the ones that
+    /// did, as on a non-streaming route.
+    /// </summary>
+    [Fact]
+    public async Task ABindingFailureCarriesTheConstraintsOfWhatBound()
+    {
+        var context = Pipeline.Context(configureServices: services =>
+            services.AddSingleton(Substitute.For<IRequestLogger>())
+        );
+
+        var failures = new ParameterBindingFailures();
+
+        failures.Add(
+            new ValidationException(
+                ValidationModules.ValidationResult.FromErrors(
+                    new[] { new ValidationModules.ValidationError("status", "invalid", "status") }
+                )
+            )
+        );
+
+        var filter = new AsyncEnumerableIoFilter<string>(
+            _ =>
+            {
+                failures.ThrowIfAny(new ValidationFilterTests.Payload());
+
+                return Task.FromResult<IExecutionRequestParameters>(
+                    new ValidationFilterTests.Payload()
+                );
+            },
+            WriteValue,
+            null
+        );
+
+        var constraints = new ValidationFilter<ValidationFilterTests.Payload>(
+            new[] { ValidationFilterTests.SecondPayloadValidator.Instance }
+        );
+
+        ((IBindingFilter)filter).ConstraintFilters = new Func<IExecutionContext, IExecutionFilter>[]
+        {
+            _ => constraints,
+        };
+
+        await Pipeline.Chain(context, filter).Next();
+
+        var recorded = Assert.IsType<ParameterBindingException>(context.Response.ExceptionValue);
+
+        Assert.Equal(
+            new[] { "status", "second" },
+            recorded.ValidationResult.Errors.Select(error => error.Field)
+        );
     }
 
     /// <summary>
