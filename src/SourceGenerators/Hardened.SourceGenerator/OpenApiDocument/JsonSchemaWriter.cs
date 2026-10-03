@@ -446,7 +446,7 @@ public static class JsonSchemaWriter
             : Append(schema, "\"description\":\"" + Escape(description) + "\"");
 
     /// <summary>Adds a <c>default</c> to a schema that has been written already.</summary>
-    private static string WithDefault(string schema, string? literal) =>
+    internal static string WithDefault(string schema, string? literal) =>
         literal == null ? schema : Append(schema, "\"default\":" + literal);
 
     /// <summary>
@@ -484,7 +484,8 @@ public static class JsonSchemaWriter
         var suffix = "," + keyword + "}";
 
         return schema.StartsWith("{\"$ref\"", System.StringComparison.Ordinal)
-            ? "{\"allOf\":[" + schema + "]" + suffix
+                ? "{\"allOf\":[" + schema + "]" + suffix
+            : schema == "{}" ? "{" + keyword + "}"
             : schema.Substring(0, schema.Length - 1) + suffix;
     }
 
@@ -770,7 +771,15 @@ public static class JsonSchemaWriter
         return false;
     }
 
-    private static string? DefaultLiteral(
+    /// <summary>
+    /// A parameter's default as a JSON literal, or null when it has none or JSON cannot spell it.
+    /// </summary>
+    /// <remarks>
+    /// Also read for a bound parameter's <c>SchemaDefault</c>, so a handler's
+    /// <c>int pageSize = 20</c> and a body model's <c>int PageSize = 20</c> publish the same
+    /// <c>default</c>.
+    /// </remarks>
+    internal static string? DefaultLiteral(
         IParameterSymbol parameter,
         IAssemblySymbol? compilationAssembly
     )
@@ -798,6 +807,8 @@ public static class JsonSchemaWriter
             string text => "\"" + Escape(text) + "\"",
             char character => "\"" + Escape(character.ToString()) + "\"",
             bool flag => flag ? "true" : "false",
+            double number when double.IsNaN(number) || double.IsInfinity(number) => null,
+            float number when float.IsNaN(number) || float.IsInfinity(number) => null,
             IFormattable number => number.ToString(null, CultureInfo.InvariantCulture),
             _ => null,
         };

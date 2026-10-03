@@ -3027,9 +3027,14 @@ public static class OpenApiDocumentGenerator
             // A hand-written handler's constraints, read off the parameter where its symbol was
             // in hand and spliced in here, so a bound the validator enforces is a bound the
             // document states - the same statement written twice, as it is for a property.
-            return SchemaConstraintWriter.Merge(
-                CodeFirstSchema(parameter.ParameterType, enums),
-                parameter.SchemaFacets
+            // The default the binder answers an absent value with, so a client can tell what it
+            // gets by leaving the parameter out.
+            return JsonSchemaWriter.WithDefault(
+                SchemaConstraintWriter.Merge(
+                    CodeFirstSchema(parameter.ParameterType, enums),
+                    parameter.SchemaFacets
+                ),
+                parameter.SchemaDefault
             );
         }
 

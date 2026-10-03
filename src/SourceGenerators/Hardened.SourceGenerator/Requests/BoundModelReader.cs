@@ -65,7 +65,7 @@ public static class BoundModelReader
                 ? "it is nullable, and a model bound from fields is constructed whether or not any field was sent"
             : renamed
                 ? "a model takes its field names from its members, so the attribute cannot name a field for it"
-            : ReadMembers(named, binding, members);
+            : ReadMembers(named, binding, members, compilation.Assembly);
 
         if (problem != null)
         {
@@ -136,7 +136,8 @@ public static class BoundModelReader
     private static string? ReadMembers(
         INamedTypeSymbol type,
         ParameterBindType binding,
-        List<BoundMember> members
+        List<BoundMember> members,
+        IAssemblySymbol compilationAssembly
     )
     {
         var constructors = type
@@ -187,22 +188,27 @@ public static class BoundModelReader
                     ? new ISymbol[] { property, parameter }
                     : new ISymbol[] { parameter };
 
-            members.Add(
-                new BoundMember(
-                    Value(
-                        parameter.Type,
-                        parameter.Name,
-                        property != null
-                            ? JsonSchemaWriter.WireName(property)
-                            : JsonSchemaWriter.CamelCase(parameter.Name),
-                        !hasDefault && IsRequired(parameter.Type, declarations),
-                        hasDefault ? DefaultLiteral(parameter) : null,
-                        binding,
-                        declarations
-                    ),
-                    BoundMemberKind.ConstructorArgument
-                )
+            var value = Value(
+                parameter.Type,
+                parameter.Name,
+                property != null
+                    ? JsonSchemaWriter.WireName(property)
+                    : JsonSchemaWriter.CamelCase(parameter.Name),
+                !hasDefault && IsRequired(parameter.Type, declarations),
+                hasDefault ? DefaultLiteral(parameter) : null,
+                binding,
+                declarations
             );
+
+            if (hasDefault)
+            {
+                value.SchemaDefault = JsonSchemaWriter.DefaultLiteral(
+                    parameter,
+                    compilationAssembly
+                );
+            }
+
+            members.Add(new BoundMember(value, BoundMemberKind.ConstructorArgument));
         }
 
         foreach (var property in properties)

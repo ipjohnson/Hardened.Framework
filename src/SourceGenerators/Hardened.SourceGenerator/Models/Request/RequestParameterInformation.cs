@@ -107,6 +107,18 @@ public class RequestParameterInformation
     public string? SchemaFacets { get; set; }
 
     /// <summary>
+    /// The parameter's C# default as a JSON literal, for the schema's <c>default</c>, or null.
+    /// </summary>
+    /// <remarks>
+    /// Not <see cref="DefaultValue"/>, which is the C# the binder passes to <c>ParseWithDefault</c>
+    /// and is copied from syntax, so it can name a constant or an enum member. This is read off the
+    /// constant where the symbol is, and travels the way <see cref="SchemaFacets"/> does. Kept apart
+    /// from the facets because an enum parameter's schema is a <c>$ref</c>, which takes no facets
+    /// and takes a <c>default</c> only inside an <c>allOf</c>.
+    /// </remarks>
+    public string? SchemaDefault { get; set; }
+
+    /// <summary>
     /// Whether <c>[Required]</c> is written on the parameter, so a nullable parameter the caller
     /// must still send is published as required.
     /// </summary>
@@ -193,6 +205,7 @@ public class RequestParameterInformation
             Description = Description,
             SpecParameter = SpecParameter,
             SchemaFacets = SchemaFacets,
+            SchemaDefault = SchemaDefault,
             RequiredByConstraint = RequiredByConstraint,
             IsRawBody = IsRawBody,
             Model = Model,
@@ -258,6 +271,7 @@ public class RequestParameterInformation
 
         if (
             SchemaFacets != requestParameterInformation.SchemaFacets
+            || SchemaDefault != requestParameterInformation.SchemaDefault
             || RequiredByConstraint != requestParameterInformation.RequiredByConstraint
         )
         {

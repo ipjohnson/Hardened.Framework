@@ -105,6 +105,15 @@ internal class ParameterModel : IEquatable<ParameterModel>, IConstraintFacets
     public string? SchemaFacets { get; set; }
 
     /// <summary>
+    /// A hand-written handler parameter's C# default as a JSON literal, or null. A described
+    /// parameter states its default in <see cref="Default"/> and never sets this.
+    /// </summary>
+    /// <remarks>
+    /// A transport field, like <see cref="SchemaFacets"/>, and for the same reader.
+    /// </remarks>
+    public string? SchemaDefault { get; set; }
+
+    /// <summary>
     /// Whether <c>[Required]</c> is written on a hand-written handler's parameter. Kept apart from
     /// <see cref="IsRequired"/>, which the binder reads: the constraint is the validator's to
     /// enforce and the document's to state, not a reason for the binder to refuse the request.
@@ -178,6 +187,7 @@ internal class ParameterModel : IEquatable<ParameterModel>, IConstraintFacets
             && MinItems == other.MinItems
             && MaxItems == other.MaxItems
             && SchemaFacets == other.SchemaFacets
+            && SchemaDefault == other.SchemaDefault
             && RequiredByConstraint == other.RequiredByConstraint
             && SameEnumValues(other);
     }

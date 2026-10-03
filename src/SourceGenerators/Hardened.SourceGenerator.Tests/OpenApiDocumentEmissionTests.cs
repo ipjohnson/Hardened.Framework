@@ -352,6 +352,8 @@ public class OpenApiDocumentEmissionTests
 
         public record Page<T>(List<T> Items, int Total);
 
+        public record ShipmentFilter(int Page = 1, string Sku = "any", string? Note = null);
+
         public record Courier(string Name);
 
         public class ShipmentController {
@@ -362,6 +364,16 @@ public class OpenApiDocumentEmissionTests
 
             [Get("/shipments/urgent")]
             public Task<List<Shipment>> Urgent([FromQueryString] Priority priority) =>
+                Task.FromResult(new List<Shipment>());
+
+            [Get("/shipments/sorted")]
+            public Task<List<Shipment>> Sorted(
+                [FromQueryString] Priority priority = Priority.High,
+                [FromQueryString] double ratio = double.NaN) =>
+                Task.FromResult(new List<Shipment>());
+
+            [Get("/shipments/filtered")]
+            public Task<List<Shipment>> Filtered([FromQueryString] ShipmentFilter filter) =>
                 Task.FromResult(new List<Shipment>());
 
             [Get("/shipments/paged")]
@@ -438,6 +450,76 @@ public class OpenApiDocumentEmissionTests
     {
         Assert.False(
             ListParameter(FidelityDocument(), "limit").GetProperty("required").GetBoolean()
+        );
+    }
+
+    /// <summary>
+    /// The default the binder answers an absent value with is the schema's <c>default</c>, so a
+    /// client can tell which page size it gets. The binder used it and the document did not say.
+    /// </summary>
+    [Fact]
+    public void AParameterDefaultIsPublished()
+    {
+        var document = FidelityDocument();
+
+        Assert.Equal(
+            20,
+            ListParameter(document, "limit").GetProperty("schema").GetProperty("default").GetInt32()
+        );
+        Assert.False(
+            ListParameter(document, "carrier")
+                .GetProperty("schema")
+                .TryGetProperty("default", out _)
+        );
+    }
+
+    /// <summary>
+    /// An enum parameter's schema is a <c>$ref</c>, which takes no sibling in OpenAPI 3.0, so its
+    /// default is written beside the reference inside an <c>allOf</c>, in the wire's vocabulary.
+    /// A default JSON cannot spell is left out.
+    /// </summary>
+    [Fact]
+    public void AnEnumParameterDefaultIsPublishedBesideItsReference()
+    {
+        var document = FidelityDocument();
+        var schema = Parameter(document, "/shipments/sorted", "priority").GetProperty("schema");
+
+        Assert.Equal(
+            "#/components/schemas/Priority",
+            schema.GetProperty("allOf")[0].GetProperty("$ref").GetString()
+        );
+        Assert.Equal("high", schema.GetProperty("default").GetString());
+        Assert.False(
+            Parameter(document, "/shipments/sorted", "ratio")
+                .GetProperty("schema")
+                .TryGetProperty("default", out _)
+        );
+    }
+
+    /// <summary>A query string model's positional default is published on the member it binds.</summary>
+    [Fact]
+    public void AQueryStringModelMemberDefaultIsPublished()
+    {
+        var document = FidelityDocument();
+
+        Assert.Equal(
+            1,
+            Parameter(document, "/shipments/filtered", "page")
+                .GetProperty("schema")
+                .GetProperty("default")
+                .GetInt32()
+        );
+        Assert.Equal(
+            "any",
+            Parameter(document, "/shipments/filtered", "sku")
+                .GetProperty("schema")
+                .GetProperty("default")
+                .GetString()
+        );
+        Assert.False(
+            Parameter(document, "/shipments/filtered", "note")
+                .GetProperty("schema")
+                .TryGetProperty("default", out _)
         );
     }
 
