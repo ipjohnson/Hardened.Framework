@@ -544,10 +544,11 @@ public class ExceptionToModelConverter : IExceptionToModelConverter
             "System.Boolean" => "true or false",
             "System.String" => "a string",
             "System.Guid" => "a UUID",
-            "System.DateTime" or "System.DateTimeOffset" => "a date-time",
-            "System.DateOnly" => "a date",
-            "System.TimeOnly" => "a time",
-            "System.TimeSpan" => "a duration",
+            "System.DateTime" or "System.DateTimeOffset" =>
+                "an RFC 3339 date-time, such as 2030-01-01T00:00:00Z",
+            "System.DateOnly" => "a date in the form YYYY-MM-DD",
+            "System.TimeOnly" => "a time in the form HH:MM:SS",
+            "System.TimeSpan" => "a duration in the form HH:MM:SS",
             _ when type.EndsWith("[]", StringComparison.Ordinal)
                     || type.StartsWith("System.Collections.", StringComparison.Ordinal) =>
                 "an array",

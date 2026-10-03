@@ -84,7 +84,11 @@ public class BodyValueErrorTests
     [InlineData("System.Boolean", "The value is not true or false.")]
     [InlineData("System.Guid", "The value is not a UUID.")]
     [InlineData("System.Decimal", "The value is not a number this field can hold.")]
-    [InlineData("System.DateTimeOffset", "The value is not a date-time.")]
+    [InlineData(
+        "System.DateTimeOffset",
+        "The value is not an RFC 3339 date-time, such as 2030-01-01T00:00:00Z."
+    )]
+    [InlineData("System.DateOnly", "The value is not a date in the form YYYY-MM-DD.")]
     [InlineData("System.String[]", "The value is not an array.")]
     [InlineData("Todos.NewTodo", "The value is not of the type this field takes.")]
     public void TheConversionMessageNamesTheKindOfValue(string type, string expected)
@@ -160,7 +164,10 @@ public class BodyValueErrorTests
     {
         var error = Refused<Window>("""{"endsAt":42}""");
 
-        Assert.Equal("The value is not a date-time.", error.Message);
+        Assert.Equal(
+            "The value is not an RFC 3339 date-time, such as 2030-01-01T00:00:00Z.",
+            error.Message
+        );
     }
 
     /// <summary>A response is written as the serializer writes it, offset and all.</summary>
