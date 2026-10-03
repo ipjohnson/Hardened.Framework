@@ -51,9 +51,11 @@ public class ParameterConstraintDocumentTests
             public string Read(
                 [Range(Min = 1, Max = 100)] int count,
                 [FromQueryString] [Range(Min = 2, Max = 8)] int precision,
-                [FromHeader("X-Region")] [StringLength(2, Min = 2)] string region,
+                [FromHeader("X-Region")] [Required] [StringLength(2, Min = 2)] string region,
                 [FromHeader("X-Code")] [StringLength(8)] string code,
-                [FromQueryString] [Required] [Pattern("^[a-z]+$")] string? tag) => region;
+                [FromQueryString] [Required] [Pattern("^[a-z]+$")] string? tag,
+                [FromQueryString] [Required(AllowEmptyStrings = true)] string? label,
+                [FromQueryString] [Required] int? page) => region;
         }
         """;
 
@@ -174,5 +176,41 @@ public class ParameterConstraintDocumentTests
             "^[a-z]+$",
             parameter.GetProperty("schema").GetProperty("pattern").GetString()
         );
+    }
+
+    /// <summary>
+    /// <c>[Required]</c> refuses an empty string, and <c>required</c> only says the value is sent.
+    /// </summary>
+    [Fact]
+    public void ARequiredStringIsPublishedWithMinLengthOne()
+    {
+        var schema = Parameter(Document(), "tag").GetProperty("schema");
+
+        Assert.Equal(1, schema.GetProperty("minLength").GetInt32());
+    }
+
+    [Fact]
+    public void ARequiredStringThatAllowsEmptyIsPublishedWithoutMinLength()
+    {
+        var schema = Parameter(Document(), "label").GetProperty("schema");
+
+        Assert.False(schema.TryGetProperty("minLength", out _));
+    }
+
+    [Fact]
+    public void ARequiredStringKeepsTheMinLengthItsLengthDeclares()
+    {
+        var schema = Parameter(Document(), "X-Region").GetProperty("schema");
+
+        Assert.Equal(2, schema.GetProperty("minLength").GetInt32());
+        Assert.Single(Regex.Matches(schema.GetRawText(), "minLength"));
+    }
+
+    [Fact]
+    public void ARequiredNumberIsPublishedWithoutMinLength()
+    {
+        var schema = Parameter(Document(), "page").GetProperty("schema");
+
+        Assert.False(schema.TryGetProperty("minLength", out _));
     }
 }
