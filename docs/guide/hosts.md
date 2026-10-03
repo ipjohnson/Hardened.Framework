@@ -258,6 +258,14 @@ Content-Type: application/json
 The template's `Program.cs` listens on `localhost` only, through `app.Urls.Add`.
 `HARDENED_ENVIRONMENT` names the Hardened environment on this host, as on the others.
 `ASPNETCORE_ENVIRONMENT` sets only ASP.NET Core's hosting environment.
+ASP.NET Core logs that one at startup as `Hosting environment: Production` unless it is set.
+`app.UseHardened()` logs the Hardened environment beside it, in the `Hardened.Hosting.Lifetime`
+category:
+
+```
+info: Hardened.Hosting.Lifetime[0]
+      Hardened environment: development
+```
 
 On this host, ASP.NET Core writes its own hosting diagnostics and request log lines, in the
 `Microsoft.AspNetCore.Hosting.Diagnostics` category. The Kestrel and Cloud Run hosts do not write

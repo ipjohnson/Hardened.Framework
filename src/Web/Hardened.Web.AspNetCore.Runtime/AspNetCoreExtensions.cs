@@ -5,6 +5,7 @@ using Hardened.Web.Runtime.Handlers;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Hardened.Web.AspNetCore.Runtime;
 
@@ -12,6 +13,9 @@ public static class AspNetCoreExtensions
 {
     /// <summary>The seconds <see cref="UseHardened"/> gives startup services to finish.</summary>
     private const int StartupTimeoutInSeconds = 15;
+
+    /// <summary>Named after ASP.NET Core's <c>Microsoft.Hosting.Lifetime</c>.</summary>
+    private const string EnvironmentLogCategory = "Hardened.Hosting.Lifetime";
 
     /// <summary>
     /// Inserts the Hardened middleware into the ASP.NET pipeline, runs the registered startup
@@ -25,6 +29,8 @@ public static class AspNetCoreExtensions
     /// </summary>
     public static IApplicationBuilder UseHardened(this IApplicationBuilder builder)
     {
+        LogEnvironment(builder.ApplicationServices);
+
         builder.Use(HardenedMiddleware);
         var service = builder.ApplicationServices.GetRequiredService<IMiddlewareService>();
         var webFilter =
@@ -35,6 +41,26 @@ public static class AspNetCoreExtensions
         service.Use(context => webFilter);
 
         return builder;
+    }
+
+    /// <summary>
+    /// ASP.NET Core logs its own hosting environment, which <c>HARDENED_ENVIRONMENT</c> does not
+    /// set. Without this line an application running as <c>development</c> logs only
+    /// "Hosting environment: Production".
+    /// </summary>
+    private static void LogEnvironment(IServiceProvider services)
+    {
+        var environment = services.GetService<IHardenedEnvironment>();
+        var loggerFactory = services.GetService<ILoggerFactory>();
+
+        if (environment == null || loggerFactory == null)
+        {
+            return;
+        }
+
+        loggerFactory
+            .CreateLogger(EnvironmentLogCategory)
+            .LogInformation("Hardened environment: {EnvironmentName}", environment.Name);
     }
 
     public static Task HardenedMiddleware(HttpContext context, RequestDelegate next)
