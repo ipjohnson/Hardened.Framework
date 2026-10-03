@@ -81,6 +81,31 @@ public class EnumVocabularyTests
     }
 
     /// <summary>
+    /// A handler writing its own message names the declared value, and parsing it lands back on
+    /// the same member.
+    /// </summary>
+    [Fact]
+    public void ToWireAnswersTheDeclaredValue()
+    {
+        Assert.Equal("guinea-pig", PetSpeciesConverter.ToWire(PetSpecies.GuineaPig));
+        Assert.Equal("25", PetSizeConverter.ToWire(PetSize.Large));
+
+        Assert.True(
+            PetSpeciesConverter.TryParseWire(
+                PetSpeciesConverter.ToWire(PetSpecies.GuineaPig),
+                out var species
+            )
+        );
+        Assert.Equal(PetSpecies.GuineaPig, species);
+    }
+
+    [Fact]
+    public void ToWireRefusesAnUndeclaredValue()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => PetSizeConverter.ToWire((PetSize)7));
+    }
+
+    /// <summary>
     /// The response carries the document's value, not the C# member name.
     /// </summary>
     [ModuleTest]

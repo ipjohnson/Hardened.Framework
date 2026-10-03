@@ -72,8 +72,54 @@ internal static class EnumConverterEmitter
         EmitRead(converter, schema, enumType, qualified);
         EmitWrite(converter, schema, enumType, qualified);
         EmitTryParseWire(converter, schema, enumType, qualified);
+        EmitToWire(converter, schema, enumType, qualified);
 
         return converter;
+    }
+
+    /// <summary>
+    /// The way back from <c>TryParseWire</c>: a member as the text the description declares.
+    /// </summary>
+    /// <remarks>
+    /// For a message a handler writes itself, such as a problem detail. Interpolating the enum
+    /// writes the C# member name, so a 409 read "Ticket 1 is Closed and cannot move to InProgress"
+    /// where the contract says <c>closed</c> and <c>in_progress</c>. An integer enum answers its
+    /// number as text, which is what <c>TryParseWire</c> accepts.
+    /// </remarks>
+    private static void EmitToWire(
+        ClassDefinition converter,
+        SchemaModel schema,
+        ITypeDefinition enumType,
+        string qualified
+    )
+    {
+        var method = converter.AddMethod("ToWire");
+
+        method.Modifiers |= ComponentModifier.Public | ComponentModifier.Static;
+        method.SetReturnType(typeof(string));
+        method.AddParameter(enumType, "value");
+
+        method.Comment =
+            $"The value {NamingHelper.ToPascalCase(schema.Name)} declares for a member, "
+            + "as text a message can carry.";
+
+        var lines = new List<string> { "return value switch", "{" };
+
+        for (var index = 0; index < schema.EnumValues.Count; index++)
+        {
+            lines.Add(
+                $"    {qualified}.{Member(schema, index)} => \"{Escape(schema.EnumValues[index])}\","
+            );
+        }
+
+        lines.Add("    _ => throw new global::System.ArgumentOutOfRangeException(");
+        lines.Add("        nameof(value),");
+        lines.Add(
+            $"        \"The value is not one {NamingHelper.ToPascalCase(schema.Name)} declares.\")"
+        );
+        lines.Add("};");
+
+        Write(method, lines);
     }
 
     /// <summary>

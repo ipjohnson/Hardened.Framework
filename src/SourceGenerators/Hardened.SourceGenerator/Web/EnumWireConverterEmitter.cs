@@ -115,6 +115,7 @@ internal static class EnumWireConverterEmitter
             "writer.WritePropertyName(wire);"
         );
         EmitTryParseWire(converter, vocabulary, enumType);
+        EmitToWire(converter, vocabulary, enumType);
     }
 
     private static void EmitRead(
@@ -231,6 +232,45 @@ internal static class EnumWireConverterEmitter
         lines.Add($"        parsed = default({vocabulary.QualifiedName});");
         lines.Add("        return false;");
         lines.Add("}");
+
+        Write(method, lines);
+    }
+
+    /// <summary>
+    /// The way back from <c>TryParseWire</c>, for a message a handler writes itself.
+    /// </summary>
+    /// <remarks>
+    /// Interpolating the enum into a problem detail writes the C# member name, which is not the
+    /// value the document declares or the one the client sent.
+    /// </remarks>
+    private static void EmitToWire(
+        ClassDefinition converter,
+        EnumVocabulary vocabulary,
+        ITypeDefinition enumType
+    )
+    {
+        var method = converter.AddMethod("ToWire");
+
+        method.Modifiers |= ComponentModifier.Public | ComponentModifier.Static;
+        method.SetReturnType(typeof(string));
+        method.AddParameter(enumType, "value");
+
+        method.Comment =
+            $"The value {vocabulary.Name} declares for a member, as text a message can carry.";
+
+        var lines = new List<string> { "return value switch", "{" };
+
+        foreach (var value in vocabulary.Values)
+        {
+            lines.Add(
+                $"    {vocabulary.QualifiedName}.{value.Member} => \"{Escape(value.Wire)}\","
+            );
+        }
+
+        lines.Add("    _ => throw new global::System.ArgumentOutOfRangeException(");
+        lines.Add("        nameof(value),");
+        lines.Add($"        \"The value is not one {Escape(vocabulary.Name)} declares.\")");
+        lines.Add("};");
 
         Write(method, lines);
     }
