@@ -57,7 +57,6 @@ public class AsyncEnumerableIoFilter<TItem> : IExecutionFilter, IBindingFilter
 
     IReadOnlyList<Func<IExecutionContext, IExecutionFilter>> IBindingFilter.ConstraintFilters
     {
-        get => _constraintFilters;
         set => _constraintFilters = value;
     }
 

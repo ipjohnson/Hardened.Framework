@@ -14,5 +14,5 @@ internal interface IBindingFilter
     /// <remarks>
     /// Set once the chain is composed, which is after the binding filter is built.
     /// </remarks>
-    IReadOnlyList<Func<IExecutionContext, IExecutionFilter>> ConstraintFilters { get; set; }
+    IReadOnlyList<Func<IExecutionContext, IExecutionFilter>> ConstraintFilters { set; }
 }

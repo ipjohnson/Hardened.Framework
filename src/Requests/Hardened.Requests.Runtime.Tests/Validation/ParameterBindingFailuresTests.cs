@@ -63,6 +63,19 @@ public class ParameterBindingFailuresTests
     }
 
     [Fact]
+    public void ConstraintsOnlyOnFieldsThatFailedLeaveTheFailureAsItWas()
+    {
+        var filter = new ValidationFilter<Payload>(new[] { PayloadValidator.Instance });
+
+        var result = Merge(filter, Failure("name", "invalid"));
+
+        Assert.Equal(
+            new[] { ("name", "invalid") },
+            result.ValidationResult.Errors.Select(error => (error.Field, error.Code))
+        );
+    }
+
+    [Fact]
     public void AConstraintUnderAFieldThatFailedIsDropped()
     {
         var filter = new ValidationFilter<Payload>(new[] { NestedValidator.Instance });

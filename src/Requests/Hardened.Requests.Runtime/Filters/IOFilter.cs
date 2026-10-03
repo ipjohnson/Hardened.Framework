@@ -26,7 +26,6 @@ public class IoFilter : IExecutionFilter, IBindingFilter
 
     IReadOnlyList<Func<IExecutionContext, IExecutionFilter>> IBindingFilter.ConstraintFilters
     {
-        get => _constraintFilters;
         set => _constraintFilters = value;
     }
 
