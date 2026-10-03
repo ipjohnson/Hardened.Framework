@@ -17,7 +17,8 @@ namespace Hardened.SourceGenerator.Function;
 /// <c>Timers</c>, <c>Changes</c>, <c>Streams</c>, <c>Blobs</c> - with a method per source taking
 /// the payload type the handler binds. A test writes <c>queues.SendTo.OrdersNew(new Order(...))</c> and the compiler checks both halves: the
 /// queue exists because the method does, and the payload matches because overload resolution says
-/// so.
+/// so. A <c>Changes</c> method has a second overload taking <c>Transition</c>s, for a test that
+/// needs the row before to differ from the row after.
 /// </para>
 /// <para>
 /// <b>One class per kind rather than one per source, and that is what makes the collision safe.</b>
@@ -276,9 +277,24 @@ public static class TriggerFacadeGenerator
         // params, so one message and a batch are the same call. A batched source delivering one and
         // delivering ten reach the same handler the same way, and a separate single-message overload
         // would give a test two ways to say one thing.
-        return $@"
+        var method =
+            $@"
             public global::System.Threading.Tasks.Task {methodName}(params {type}[] messages) =>
                 _send(messages, {route});
+";
+
+        if (scheme != "CHANGE")
+        {
+            return method;
+        }
+
+        // A plain message arrives as a modify with the same row on both sides. A (before, after)
+        // pair of the payload type would win overload resolution over params for any two-message
+        // batch, so the row before travels inside a Transition instead.
+        return method
+            + $@"
+            public global::System.Threading.Tasks.Task {methodName}(params global::Hardened.Requests.Abstract.Execution.Transition<{type}>[] changes) =>
+                _send(changes, {route});
 ";
     }
 

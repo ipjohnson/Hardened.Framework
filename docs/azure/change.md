@@ -336,6 +336,13 @@ façade call to the function as one change feed batch. The batch is a JSON array
 each message. Each document has `_rid`, `_etag`, `_ts` and `_lsn` added. Each request carries the
 headers listed in [The document and its headers](#the-document-and-its-headers).
 
+Each façade method also takes a `Transition` of the handler's type, from namespace
+`Hardened.Requests.Abstract.Execution`. The change feed carries a document as it is now, so the
+batch holds the document after the change and the document before it is not sent.
+`Transition.Insert(after)` and `Transition.Modify(before, after)` both send `after`.
+`Transition.Remove(before)` throws `NotSupportedException`, because the change feed delivers no
+deleted document.
+
 Under `[FunctionTesting]` alone, the request has no headers, and the body has no system properties.
 The handler that reads the headers passes the template's test under both.
 

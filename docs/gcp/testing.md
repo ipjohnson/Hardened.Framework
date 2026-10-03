@@ -97,7 +97,8 @@ handler's request carries none of these headers. A blob's `Bucket` is then empty
 sets it.
 
 Under `[CloudRunTesting]`, `[OldValue]` binds the same document as the handler's parameter, because
-the request carries the message as both. Under `[FunctionTesting]` alone, a handler that binds
+the request carries the message as both. A test that sends a `Transition` sets the two apart, as
+Google Cloud [Changes](/gcp/change#testing) describes. Under `[FunctionTesting]` alone, a handler that binds
 `[OldValue]` fails with an `InvalidOperationException`:
 
 ```text

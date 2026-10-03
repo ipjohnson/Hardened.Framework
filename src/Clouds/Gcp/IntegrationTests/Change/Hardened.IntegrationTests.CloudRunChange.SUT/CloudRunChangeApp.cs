@@ -44,9 +44,9 @@ public class OrderChangeHandlers
     /// than a second handler on <c>orders</c>: one collection is one route.
     /// </summary>
     [Change("audit")]
-    public void OnAuditChanged(
-        Order order,
-        [OldValue] Order? previous,
-        IOrderProjection projection
-    ) => projection.Previous(previous);
+    public void OnAuditChanged(Order order, [OldValue] Order? previous, IOrderProjection projection)
+    {
+        projection.Apply(order);
+        projection.Previous(previous);
+    }
 }

@@ -4,6 +4,7 @@ using Amazon.Lambda.Core;
 using DependencyModules.Testing.Attributes.Interfaces;
 using Hardened.Aws.Lambda.Runtime.Hosting;
 using Hardened.Functions.Testing;
+using Hardened.Requests.Abstract.Execution;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Hardened.Aws.Lambda.Testing;
@@ -199,10 +200,10 @@ public sealed class LambdaEnvelopeDelivery : ITriggerDelivery
     /// difference between this delivery and the pipeline one.
     /// </para>
     /// <para>
-    /// MODIFY with the same item as both images, because a test that wanted an insert or a delete is
-    /// asserting on the event name, and this delivery exists to exercise the envelope rather than to
-    /// model a table's history. The sequence numbers ascend, which is what a shard guarantees and
-    /// what a checkpoint report is read against.
+    /// A plain message is a MODIFY with the same item as both images. A <see cref="Transition"/>
+    /// names its event and carries the image on each side it has, so an INSERT has no
+    /// <c>OldImage</c> and a REMOVE has no <c>NewImage</c>. The sequence numbers ascend, which is
+    /// what a shard guarantees and what a checkpoint report is read against.
     /// </para>
     /// </remarks>
     private string DynamoDb(string table, System.Collections.IEnumerable messages)
@@ -215,14 +216,41 @@ public sealed class LambdaEnvelopeDelivery : ITriggerDelivery
 
         foreach (var message in messages)
         {
-            var image = AttributeValueWire.Item(JsonSerializer.Serialize(message, Wire));
+            var transition = message as Transition;
+            var before = transition == null ? message : transition.Before;
+            var after = transition == null ? message : transition.After;
+
+            var eventName = transition?.Kind switch
+            {
+                ChangeKind.Insert => "INSERT",
+                ChangeKind.Remove => "REMOVE",
+                _ => "MODIFY",
+            };
+
+            var images = "";
+
+            if (after != null)
+            {
+                images +=
+                    "\"NewImage\":"
+                    + AttributeValueWire.Item(JsonSerializer.Serialize(after, Wire))
+                    + ",";
+            }
+
+            if (before != null)
+            {
+                images +=
+                    "\"OldImage\":"
+                    + AttributeValueWire.Item(JsonSerializer.Serialize(before, Wire))
+                    + ",";
+            }
 
             records.Add(
                 $$"""
-                {"eventID":"{{table}}-{{index}}","eventName":"MODIFY","eventVersion":"1.1",
+                {"eventID":"{{table}}-{{index}}","eventName":"{{eventName}}","eventVersion":"1.1",
                  "eventSource":"aws:dynamodb","awsRegion":"{{_region}}",
                  "dynamodb":{"ApproximateCreationDateTime":1767225600,
-                   "Keys":{},"NewImage":{{image}},"OldImage":{{image}},
+                   "Keys":{},{{images}}
                    "SequenceNumber":"{{Sequence(index)}}","SizeBytes":64,
                    "StreamViewType":"NEW_AND_OLD_IMAGES"},
                  "eventSourceARN":"{{arn}}"}

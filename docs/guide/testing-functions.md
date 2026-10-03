@@ -123,6 +123,14 @@ it. The second test in `OrderHandlerTests` sends three messages:
     }
 ```
 
+A `Changes` method has a second overload, `Orders(params Transition<Order>[] changes)`. A test
+builds each with `Transition.Insert(after)`, `Transition.Modify(before, after)` or
+`Transition.Remove(before)`, from namespace `Hardened.Requests.Abstract.Execution`, to send a row
+before that differs from the row after. Under `[FunctionTesting]` alone the handler binds `after`,
+or `before` for a remove, and the row before is not sent. A cloud's change page says what its
+attribute sends: AWS [Changes](/aws/change#sending-the-item-before-and-after), Google Cloud
+[Changes](/gcp/change#testing) and Azure [Changes](/azure/change#testing-the-handler).
+
 A handler that takes no payload gets a method with no parameters. For `--trigger timer`, the
 template's handler is `[Timer("nightly")] public void OnNightly() => log.Sweep();`. The template's
 test calls `timers.Nightly()`:

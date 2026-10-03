@@ -7,6 +7,7 @@ using Hardened.Azure.Functions.Runtime.Execution;
 using Hardened.Azure.Functions.Runtime.Hosting;
 using Hardened.Azure.Functions.ServiceBus;
 using Hardened.Functions.Testing;
+using Hardened.Requests.Abstract.Execution;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -320,6 +321,18 @@ public sealed class FunctionsTriggerDelivery : ITriggerDelivery
     /// </remarks>
     private static string ChangeFeed(IReadOnlyList<object> messages)
     {
+        // The feed carries a document as it is now, so a transition is sent as its row after.
+        static object Current(object message) =>
+            message switch
+            {
+                Transition { Kind: ChangeKind.Remove } => throw new NotSupportedException(
+                    "The Cosmos DB change feed does not deliver a deleted document, so a "
+                        + "Transition.Remove has nothing to send."
+                ),
+                Transition transition => transition.Row,
+                _ => message,
+            };
+
         var buffer = new MemoryStream();
 
         using (var writer = new Utf8JsonWriter(buffer))
@@ -329,7 +342,7 @@ public sealed class FunctionsTriggerDelivery : ITriggerDelivery
             for (var index = 0; index < messages.Count; index++)
             {
                 using var document = JsonDocument.Parse(
-                    JsonSerializer.SerializeToUtf8Bytes(messages[index], Wire)
+                    JsonSerializer.SerializeToUtf8Bytes(Current(messages[index]), Wire)
                 );
 
                 writer.WriteStartObject();

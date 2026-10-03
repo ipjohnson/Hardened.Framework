@@ -1,6 +1,8 @@
+using Amazon.Lambda.DynamoDBEvents;
 using DependencyModules.Testing.Attributes;
 using DependencyModules.xUnit.Attributes;
 using Hardened.IntegrationTests.DynamoDb.SUT;
+using Hardened.Requests.Abstract.Execution;
 using NSubstitute;
 using Xunit;
 
@@ -106,6 +108,105 @@ public class ChangeTests
                 Arg.Is<
                     IDictionary<string, Amazon.Lambda.DynamoDBEvents.DynamoDBEvent.AttributeValue>
                 >(image => image["id"].S == "a-9" && image["total"].N == "7")
+            );
+    }
+
+    /// <summary>
+    /// A transition sends a MODIFY whose images differ, so a handler comparing them can be tested
+    /// through the façade.
+    /// </summary>
+    [ModuleTest]
+    public async Task AModifyCarriesTheRowBeforeAndTheRowAfter(
+        ChangeTestApp.Changes changes,
+        [Mock] IOrderProjection projection
+    )
+    {
+        await changes.History(
+            Transition.Modify(
+                new Order { Id = "h-1", Quantity = 1 },
+                new Order { Id = "h-1", Quantity = 5 }
+            )
+        );
+
+        projection.Received().Apply(Arg.Is<Order>(order => order.Quantity == 5));
+        projection
+            .Received()
+            .Transition(
+                Arg.Is<string?>("MODIFY"),
+                Arg.Is<IDictionary<string, DynamoDBEvent.AttributeValue>>(image =>
+                    image["quantity"].N == "1"
+                ),
+                Arg.Is<IDictionary<string, DynamoDBEvent.AttributeValue>>(image =>
+                    image["quantity"].N == "5"
+                )
+            );
+    }
+
+    [ModuleTest]
+    public async Task AnInsertHasNoRowBefore(
+        ChangeTestApp.Changes changes,
+        [Mock] IOrderProjection projection
+    )
+    {
+        await changes.History(Transition.Insert(new Order { Id = "h-2", Quantity = 3 }));
+
+        projection
+            .Received()
+            .Transition(
+                Arg.Is<string?>("INSERT"),
+                Arg.Is<IDictionary<string, DynamoDBEvent.AttributeValue>?>(image => image == null),
+                Arg.Is<IDictionary<string, DynamoDBEvent.AttributeValue>>(image =>
+                    image["id"].S == "h-2"
+                )
+            );
+    }
+
+    /// <summary>
+    /// A REMOVE has no new image, so the handler binds the row as it was.
+    /// </summary>
+    [ModuleTest]
+    public async Task ARemoveBindsTheRowBefore(
+        ChangeTestApp.Changes changes,
+        [Mock] IOrderProjection projection
+    )
+    {
+        await changes.History(Transition.Remove(new Order { Id = "h-3", Quantity = 4 }));
+
+        projection
+            .Received()
+            .Apply(Arg.Is<Order>(order => order.Id == "h-3" && order.Quantity == 4));
+        projection
+            .Received()
+            .Transition(
+                Arg.Is<string?>("REMOVE"),
+                Arg.Is<IDictionary<string, DynamoDBEvent.AttributeValue>>(image =>
+                    image["id"].S == "h-3"
+                ),
+                Arg.Is<IDictionary<string, DynamoDBEvent.AttributeValue>?>(image => image == null)
+            );
+    }
+
+    /// <summary>
+    /// A plain message is still a MODIFY with the message on both sides.
+    /// </summary>
+    [ModuleTest]
+    public async Task APlainMessageIsAModifyOfTheSameRow(
+        ChangeTestApp.Changes changes,
+        [Mock] IOrderProjection projection
+    )
+    {
+        await changes.History(new Order { Id = "h-4", Quantity = 6 });
+
+        projection
+            .Received()
+            .Transition(
+                Arg.Is<string?>("MODIFY"),
+                Arg.Is<IDictionary<string, DynamoDBEvent.AttributeValue>>(image =>
+                    image["quantity"].N == "6"
+                ),
+                Arg.Is<IDictionary<string, DynamoDBEvent.AttributeValue>>(image =>
+                    image["quantity"].N == "6"
+                )
             );
     }
 

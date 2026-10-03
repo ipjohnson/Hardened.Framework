@@ -356,6 +356,12 @@ namespace Hardened.Requests.Abstract.Execution
     {
         public void Dispose() { }
     }
+    public enum ChangeKind
+    {
+        Insert = 0,
+        Modify = 1,
+        Remove = 2,
+    }
     public delegate System.Threading.Tasks.Task DefaultOutputFunc(Hardened.Requests.Abstract.Execution.IExecutionContext executionContext);
     public class EmptyTransportInfo : Hardened.Requests.Abstract.Execution.ITransportInfo
     {
@@ -525,6 +531,17 @@ namespace Hardened.Requests.Abstract.Execution
         public const string ServerPort = "server.port";
         public const string UrlScheme = "url.scheme";
     }
+    public abstract class Transition
+    {
+        public object? After { get; }
+        public object? Before { get; }
+        public Hardened.Requests.Abstract.Execution.ChangeKind Kind { get; }
+        public object Row { get; }
+        public static Hardened.Requests.Abstract.Execution.Transition<T> Insert<T>(T after) { }
+        public static Hardened.Requests.Abstract.Execution.Transition<T> Modify<T>(T before, T after) { }
+        public static Hardened.Requests.Abstract.Execution.Transition<T> Remove<T>(T before) { }
+    }
+    public sealed class Transition<T> : Hardened.Requests.Abstract.Execution.Transition { }
     public delegate System.Threading.Tasks.Task<object?> TriggerCall(object message, string scheme, string path, System.Type? responseType);
     public delegate System.Threading.Tasks.Task TriggerSend(object messages, string scheme, string path);
 }

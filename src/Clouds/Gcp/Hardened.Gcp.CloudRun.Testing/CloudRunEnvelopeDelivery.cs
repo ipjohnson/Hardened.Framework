@@ -9,6 +9,7 @@ using Hardened.Gcp.CloudRun.Invoke;
 using Hardened.Gcp.CloudRun.PubSub;
 using Hardened.Gcp.CloudRun.Scheduler;
 using Hardened.Gcp.CloudRun.Storage;
+using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Shared.Testing.Impl;
 using Hardened.Web.Testing;
@@ -247,20 +248,29 @@ public sealed class CloudRunEnvelopeDelivery : ITriggerDelivery
             case FirestoreEnvelope.ChangeScheme:
                 for (var index = 0; index < messages.Count; index++)
                 {
-                    var id = DocumentId(messages[index], index);
-                    var document = FirestoreDocument(name, id, messages[index]);
+                    // A plain message is an update with the same document as both values. A
+                    // transition names its event and carries the document on each side it has.
+                    var transition = messages[index] as Transition;
+                    var before = transition == null ? messages[index] : transition.Before;
+                    var after = transition == null ? messages[index] : transition.After;
 
-                    // The same document as both values, because a test that wanted a create or a
-                    // delete is asserting on the event type, and this delivery exists to exercise
-                    // the envelope rather than to model a collection's history.
+                    var id = DocumentId(transition?.Row ?? messages[index], index);
+
                     var data = new DocumentEventData
                     {
-                        Value = document,
-                        OldValue = document,
+                        Value = after == null ? null : FirestoreDocument(name, id, after),
+                        OldValue = before == null ? null : FirestoreDocument(name, id, before),
                     }.ToByteArray();
 
+                    var eventType = transition?.Kind switch
+                    {
+                        ChangeKind.Insert => "created",
+                        ChangeKind.Remove => "deleted",
+                        _ => "updated",
+                    };
+
                     var headers = CloudEvent(
-                        FirestoreEnvelope.DocumentTypePrefix + "updated",
+                        FirestoreEnvelope.DocumentTypePrefix + eventType,
                         DatabaseSource,
                         "documents/" + name + "/" + id,
                         name + "-" + index

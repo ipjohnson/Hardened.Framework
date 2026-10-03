@@ -2,6 +2,7 @@ using DependencyModules.Testing.Attributes;
 using DependencyModules.xUnit.Attributes;
 using Hardened.Functions.Testing;
 using Hardened.IntegrationTests.CloudRunChange.SUT;
+using Hardened.Requests.Abstract.Execution;
 using Hardened.Web.Kestrel.Runtime;
 using NSubstitute;
 using Xunit;
@@ -93,6 +94,52 @@ public class ChangeTests
     }
 
     [ModuleTest]
+    public async Task AModifyCarriesTheDocumentBeforeAndTheDocumentAfter(
+        CloudRunChangeApp.Changes changes,
+        [Mock] IOrderProjection projection
+    )
+    {
+        await changes.Audit(
+            Transition.Modify(
+                new Order { Id = "t-1", Quantity = 1 },
+                new Order { Id = "t-1", Quantity = 5 }
+            )
+        );
+
+        projection.Received().Apply(Arg.Is<Order>(order => order.Quantity == 5));
+        projection
+            .Received()
+            .Previous(Arg.Is<Order?>(previous => previous != null && previous.Quantity == 1));
+    }
+
+    [ModuleTest]
+    public async Task ACreateHasNoDocumentBefore(
+        CloudRunChangeApp.Changes changes,
+        [Mock] IOrderProjection projection
+    )
+    {
+        await changes.Audit(Transition.Insert(new Order { Id = "t-2", Quantity = 3 }));
+
+        projection.Received().Apply(Arg.Is<Order>(order => order.Id == "t-2"));
+        projection.Received().Previous(null);
+    }
+
+    /// <summary>A delete has no document after, so the handler binds the document as it was.</summary>
+    [ModuleTest]
+    public async Task ADeleteBindsTheDocumentBefore(
+        CloudRunChangeApp.Changes changes,
+        [Mock] IOrderProjection projection
+    )
+    {
+        await changes.Audit(Transition.Remove(new Order { Id = "t-3", Quantity = 4 }));
+
+        projection
+            .Received()
+            .Apply(Arg.Is<Order>(order => order.Id == "t-3" && order.Quantity == 4));
+        projection.Received().Previous(Arg.Is<Order?>(previous => previous != null));
+    }
+
+    [ModuleTest]
     public async Task AFailedChangeIsNotAcknowledged(
         CloudRunChangeApp.Changes changes,
         [Mock] IOrderProjection projection
@@ -165,5 +212,28 @@ public class PipelineChangeTests
         projection
             .Received()
             .Apply(Arg.Is<Order>(order => order.Id == "p-1" && order.Quantity == 2));
+    }
+
+    /// <summary>The pipeline carries no row before, so a transition reaches the handler as the row it binds.</summary>
+    [ModuleTest]
+    public async Task ATransitionReachesTheHandlerAsTheRowAfter(
+        CloudRunChangeApp.Changes changes,
+        [Mock] IOrderProjection projection
+    )
+    {
+        await changes.Orders(
+            Transition.Modify(
+                new Order { Id = "p-2", Quantity = 1 },
+                new Order { Id = "p-2", Quantity = 5 }
+            ),
+            Transition.Remove(new Order { Id = "p-3", Quantity = 4 })
+        );
+
+        projection
+            .Received()
+            .Apply(Arg.Is<Order>(order => order.Id == "p-2" && order.Quantity == 5));
+        projection
+            .Received()
+            .Apply(Arg.Is<Order>(order => order.Id == "p-3" && order.Quantity == 4));
     }
 }

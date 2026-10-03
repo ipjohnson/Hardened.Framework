@@ -1,6 +1,7 @@
 using Amazon.Lambda.DynamoDBEvents;
 using Hardened.Aws.Lambda.DynamoDb;
 using Hardened.Functions.Runtime.Attributes;
+using Hardened.Requests.Abstract.Execution;
 
 namespace Hardened.IntegrationTests.DynamoDb.SUT;
 
@@ -25,6 +26,12 @@ public interface IOrderProjection
     void Apply(Order order);
 
     void Raw(IDictionary<string, DynamoDBEvent.AttributeValue>? image);
+
+    void Transition(
+        string? eventName,
+        IDictionary<string, DynamoDBEvent.AttributeValue>? before,
+        IDictionary<string, DynamoDBEvent.AttributeValue>? after
+    );
 }
 
 public class OrderChangeHandlers
@@ -71,4 +78,23 @@ public class OrderChangeHandlers
         [NewImage] IDictionary<string, DynamoDBEvent.AttributeValue> image,
         IOrderProjection projection
     ) => projection.Raw(image);
+
+    /// <summary>
+    /// A handler that compares the row before with the row after, which a test reaches by sending a
+    /// <c>Transition</c>.
+    /// </summary>
+    [Change("history")]
+    public void OnHistoryChanged(
+        Order order,
+        [OldImage] IDictionary<string, DynamoDBEvent.AttributeValue>? before,
+        [NewImage] IDictionary<string, DynamoDBEvent.AttributeValue>? after,
+        IExecutionRequest request,
+        IOrderProjection projection
+    )
+    {
+        request.Headers.TryGetValue(DynamoDbRequest.EventNameHeader, out var eventName);
+
+        projection.Apply(order);
+        projection.Transition(eventName.ToString(), before, after);
+    }
 }
