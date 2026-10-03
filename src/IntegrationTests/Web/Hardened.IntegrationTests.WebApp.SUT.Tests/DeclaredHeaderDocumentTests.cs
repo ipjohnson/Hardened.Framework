@@ -76,15 +76,10 @@ public class DeclaredHeaderDocumentTests
                 .GetString()
         );
 
-        Assert.Equal(
-            "string",
-            created
-                .GetProperty("headers")
-                .GetProperty("Location")
-                .GetProperty("schema")
-                .GetProperty("type")
-                .GetString()
-        );
+        var schema = created.GetProperty("headers").GetProperty("Location").GetProperty("schema");
+
+        Assert.Equal("string", schema.GetProperty("type").GetString());
+        Assert.Equal("uri-reference", schema.GetProperty("format").GetString());
     }
 
     /// <summary>And the value reaches the wire, so the document is describing something real.</summary>

@@ -272,7 +272,8 @@
               "Location": {
                 "description": "Where the created pet can be read.",
                 "schema": {
-                  "type": "string"
+                  "type": "string",
+                  "format": "uri-reference"
                 }
               }
             },
@@ -1135,7 +1136,8 @@
             ]
           },
           "type": {
-            "type": "string"
+            "type": "string",
+            "format": "uri-reference"
           },
           "title": {
             "type": "string"
@@ -1376,7 +1378,8 @@
             ]
           },
           "type": {
-            "type": "string"
+            "type": "string",
+            "format": "uri-reference"
           },
           "title": {
             "type": "string"

@@ -175,7 +175,8 @@
               "Location": {
                 "description": "Where the created pet can be read. Bound to a header, so it leaves the body.",
                 "schema": {
-                  "type": "string"
+                  "type": "string",
+                  "format": "uri-reference"
                 }
               }
             },
@@ -525,7 +526,8 @@
             ]
           },
           "type": {
-            "type": "string"
+            "type": "string",
+            "format": "uri-reference"
           },
           "title": {
             "type": "string"
@@ -753,7 +755,8 @@
             ]
           },
           "type": {
-            "type": "string"
+            "type": "string",
+            "format": "uri-reference"
           },
           "title": {
             "type": "string"

@@ -260,6 +260,21 @@ public static class JsonSchemaWriter
     private const string BinaryPayload = "{\"type\":\"string\",\"format\":\"binary\"}";
 
     /// <summary>
+    /// A string holding a URI reference: a problem document's <c>type</c> (RFC 9457 §3.1.1) and a
+    /// <c>Location</c> header (RFC 9110 §10.2.2), both of which may be relative.
+    /// </summary>
+    internal const string UriReference = "{\"type\":\"string\",\"format\":\"uri-reference\"}";
+
+    /// <summary>
+    /// Whether the member is the <c>Type</c> a problem record implements <c>IProblemDetails</c>
+    /// with.
+    /// </summary>
+    private static bool IsProblemType(INamedTypeSymbol owner, IPropertySymbol property) =>
+        property.Name == "Type"
+        && property.Type.SpecialType == SpecialType.System_String
+        && Requests.ProblemBodies.Implement(owner);
+
+    /// <summary>
     /// Whether a type is a <c>System.IO.Stream</c>, base types walked.
     /// </summary>
     /// <remarks>
@@ -514,7 +529,9 @@ public static class JsonSchemaWriter
             var (hasDefault, defaultLiteral) = DefaultOf(named, property, compilationAssembly);
 
             var memberSchema = SchemaConstraintWriter.Apply(
-                SchemaFor(property.Type, components, inProgress, enums, compilationAssembly),
+                IsProblemType(named, property)
+                    ? UriReference
+                    : SchemaFor(property.Type, components, inProgress, enums, compilationAssembly),
                 property
             );
 

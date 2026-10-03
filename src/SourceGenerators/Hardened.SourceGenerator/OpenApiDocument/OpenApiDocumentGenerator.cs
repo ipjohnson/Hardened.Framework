@@ -2018,6 +2018,8 @@ public static class OpenApiDocumentGenerator
     /// The declaration only: the value is the handler's, exactly as the generated case type's
     /// constructor divides them. Schema stays <c>string</c> for the reason
     /// <c>ResponseHeaderModel</c> gives - a header is a string on the wire whatever it carries.
+    /// <c>Location</c> adds the <c>uri-reference</c> format, which narrows the string and changes
+    /// no client's type for it.
     /// </remarks>
     private static void WriteResponseHeaders(
         StringBuilder builder,
@@ -2052,7 +2054,19 @@ public static class OpenApiDocumentGenerator
                         .Append("\",");
                 }
 
-                builder.Append("\"schema\":{\"type\":\"string\"}}");
+                // RFC 9110 §10.2.2: a Location value is a URI reference, usually a relative path.
+                builder
+                    .Append("\"schema\":")
+                    .Append(
+                        string.Equals(
+                            header.Name,
+                            "Location",
+                            System.StringComparison.OrdinalIgnoreCase
+                        )
+                            ? JsonSchemaWriter.UriReference
+                            : "{\"type\":\"string\"}"
+                    )
+                    .Append('}');
 
                 first = false;
             }
@@ -2085,7 +2099,9 @@ public static class OpenApiDocumentGenerator
     /// </summary>
     private const string ProblemMembers =
         "\"detail\":{\"type\":[\"string\",\"null\"]},"
-        + "\"type\":{\"type\":\"string\"},"
+        + "\"type\":"
+        + JsonSchemaWriter.UriReference
+        + ","
         + "\"title\":{\"type\":\"string\"},"
         + "\"status\":{\"type\":\"integer\",\"format\":\"int32\"}";
 
