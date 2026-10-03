@@ -8,6 +8,7 @@ using Hardened.Web.Runtime.Responses;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Xunit;
 
@@ -233,6 +234,59 @@ public class AspNetCoreExtensionsTests
         await ApplicationLogic.Start(builder.ApplicationServices, null);
 
         Assert.Equal(1, startup.Runs);
+    }
+
+    #endregion
+
+    #region the environment line
+
+    private sealed class RecordingLoggerProvider : ILoggerProvider
+    {
+        public List<(string Category, LogLevel Level, string Message)> Entries { get; } = [];
+
+        public ILogger CreateLogger(string categoryName) => new Logger(this, categoryName);
+
+        public void Dispose() { }
+
+        private sealed class Logger(RecordingLoggerProvider provider, string category) : ILogger
+        {
+            public IDisposable? BeginScope<TState>(TState state)
+                where TState : notnull => null;
+
+            public bool IsEnabled(LogLevel logLevel) => true;
+
+            public void Log<TState>(
+                LogLevel logLevel,
+                EventId eventId,
+                TState state,
+                Exception? exception,
+                Func<TState, Exception?, string> formatter
+            ) => provider.Entries.Add((category, logLevel, formatter(state, exception)));
+        }
+    }
+
+    /// <summary>
+    /// ASP.NET Core logs its own hosting environment, which reads <c>ASPNETCORE_ENVIRONMENT</c>
+    /// and not <c>HARDENED_ENVIRONMENT</c>. The Hardened line is what tells a reader which
+    /// environment the application is actually running as.
+    /// </summary>
+    [Fact]
+    public void UseHardenedLogsTheHardenedEnvironmentName()
+    {
+        var provider = new RecordingLoggerProvider();
+        var services = new ServiceCollection();
+
+        services.AddSingleton(Substitute.For<IMiddlewareService>());
+        services.AddSingleton(Substitute.For<IWebExecutionHandlerService>());
+        services.AddHardenedEnvironment(new EnvironmentImpl("development"));
+        services.AddLogging(logging => logging.AddProvider(provider));
+
+        new ApplicationBuilder(services.BuildServiceProvider()).UseHardened();
+
+        var entry = Assert.Single(provider.Entries, e => e.Category == "Hardened.Hosting.Lifetime");
+
+        Assert.Equal(LogLevel.Information, entry.Level);
+        Assert.Equal("Hardened environment: development", entry.Message);
     }
 
     #endregion
