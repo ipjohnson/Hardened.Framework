@@ -65,10 +65,18 @@ public class RateLimitFilter : IExecutionFilter
         {
             // Told before being refused, so a client can slow down rather than discover the limit
             // by hitting it.
+            // A store that does not say when a permit returns gets the whole window, which is the
+            // latest it can be.
+            var reset =
+                decision.Reset > TimeSpan.Zero
+                    ? RetryAfter.Seconds(decision.Reset)
+                    : RetryAfter.Seconds(_policy.Window);
+
             RateLimitExceededException.ApplyRateLimitHeaders(
                 context.Response.Headers,
                 decision,
-                (int)_policy.Window.TotalSeconds
+                _policy,
+                reset
             );
 
             await chain.Next();
@@ -76,7 +84,7 @@ public class RateLimitFilter : IExecutionFilter
             return;
         }
 
-        context.Response.ExceptionValue = new RateLimitExceededException(decision);
+        context.Response.ExceptionValue = new RateLimitExceededException(decision, _policy);
 
         if (_beforeSerialization)
         {

@@ -61,7 +61,15 @@ public enum RateLimitScope
 )]
 [AnswersHeader(
     "RateLimit-Reset",
-    Description = "The window's length in seconds, or on a refusal the seconds Retry-After gives."
+    Description = "Seconds until a spent request returns to the allowance. On a refusal, the seconds Retry-After gives."
+)]
+[AnswersHeader(
+    "RateLimit-Policy",
+    Description = "Each limit as a structured field list item: its name, q for the requests allowed and w for the window in seconds."
+)]
+[AnswersHeader(
+    "RateLimit",
+    Description = "Each limit as a structured field list item: its name, r for the requests left and t for the seconds until a spent request returns."
 )]
 public class RateLimitAttribute : Attribute, IRequestFilterProvider
 {

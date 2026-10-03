@@ -32,11 +32,20 @@ public readonly record struct RateLimitDecision(
     TimeSpan RetryAfter
 )
 {
+    /// <summary>
+    /// How long until a spent permit returns, for the <c>RateLimit-Reset</c> header. Zero when the
+    /// store does not say, and the header then reports the policy's whole window.
+    /// </summary>
+    public TimeSpan Reset { get; init; }
+
     public static RateLimitDecision Allow(int limit, int remaining) =>
         new(true, limit, remaining, TimeSpan.Zero);
 
+    public static RateLimitDecision Allow(int limit, int remaining, TimeSpan reset) =>
+        new(true, limit, remaining, TimeSpan.Zero) { Reset = reset };
+
     public static RateLimitDecision Refuse(int limit, TimeSpan retryAfter) =>
-        new(false, limit, 0, retryAfter);
+        new(false, limit, 0, retryAfter) { Reset = retryAfter };
 }
 
 /// <summary>

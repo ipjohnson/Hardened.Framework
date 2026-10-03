@@ -22,8 +22,8 @@ public class TodoController
 }
 ```
 
-Every allowed response carries `RateLimit-Limit`, `RateLimit-Remaining` and `RateLimit-Reset`. The
-first request gets 200:
+Every allowed response carries `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset`,
+`RateLimit-Policy` and `RateLimit`. The first request gets 200:
 
 ```http
 GET /todos
@@ -33,21 +33,26 @@ Content-Type: application/json
 RateLimit-Limit: 3
 RateLimit-Remaining: 2
 RateLimit-Reset: 60
+RateLimit-Policy: "default";q=3;w=60
+RateLimit: "default";r=2;t=60
 
 [{"id":1,"title":"Read the generated code","done":true},{"id":2,"title":"Add an endpoint","done":false}]
 ```
 
-The fourth request within the minute gets 429:
+The fourth request, 18 seconds after the first, gets 429. The first request's permit returns in 42
+seconds:
 
 ```http
 GET /todos
 
 HTTP/1.1 429 Too Many Requests
 Content-Type: application/problem+json
-Retry-After: 60
+Retry-After: 42
 RateLimit-Limit: 3
 RateLimit-Remaining: 0
-RateLimit-Reset: 60
+RateLimit-Reset: 42
+RateLimit-Policy: "default";q=3;w=60
+RateLimit: "default";r=0;t=42
 
 {"detail":"Rate limit exceeded.","type":"urn:hardened:problem:rate-limited","title":"Too Many Requests","status":429}
 ```
@@ -148,16 +153,16 @@ public partial class TodosLibrary : IServiceCollectionConfiguration
 covers both.
 
 `[RateLimit]` on a method, a class or a module puts a 429 in the OpenAPI document for each handler
-it covers. It also lists `RateLimit-Limit`, `RateLimit-Remaining` and `RateLimit-Reset` on every
-response of those handlers. A response the limiter did not reach does not carry them, such as a 401
+it covers. It also lists `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset`,
+`RateLimit-Policy` and `RateLimit` on every response of those handlers. A response the limiter did not reach does not carry them, such as a 401
 when the limit's `Scope` is `Principal`. A limit added with `AddGlobalFilter` puts nothing there.
 [The OpenAPI document](/guide/openapi-document) page lists what `[RateLimit]` publishes.
 
 ## What a limit counts
 
-A limit counts each caller's requests over a sliding window of `WindowSeconds`. A permit that a
-request spends returns one window later. The window moves in steps of one eighth of
-`WindowSeconds`.
+A limit counts each caller's requests over a sliding window of `WindowSeconds`. The window moves in
+steps of one eighth of `WindowSeconds`. A permit that a request spends returns one window after the
+start of the step it was spent in.
 
 Requests spend permits as follows:
 
@@ -204,12 +209,23 @@ The rate limit headers take these values:
 |---|---|---|
 | `RateLimit-Limit` | The handler's `PermitLimit` | The handler's `PermitLimit` |
 | `RateLimit-Remaining` | Permits left in the count | `0` |
-| `RateLimit-Reset` | `WindowSeconds` | The same value as `Retry-After` |
-| `Retry-After` | Not sent | Seconds to wait, rounded up and at least 1 |
+| `RateLimit-Reset` | Seconds until the oldest spent permit returns | The same value as `Retry-After` |
+| `RateLimit-Policy` | `"<Name>";q=<PermitLimit>;w=<WindowSeconds>` | The same |
+| `RateLimit` | `"<Name>";r=<RateLimit-Remaining>;t=<RateLimit-Reset>` | The same, with `r=0` |
+| `Retry-After` | Not sent | Seconds until a permit returns |
 
-`RateLimit-Reset` on an allowed response is the length of the window. It is not the time until a
-permit returns. With the in-process store, `Retry-After` is always `WindowSeconds`, however soon a
-permit returns.
+Every value in seconds is rounded up and is at least 1. `RateLimit-Reset` counts down as the window
+slides. On an allowed response it is the time until the caller has one more permit than
+`RateLimit-Remaining` says.
+
+`RateLimit-Policy` and `RateLimit` are the fields of the current
+[draft-ietf-httpapi-ratelimit-headers](https://datatracker.ietf.org/doc/draft-ietf-httpapi-ratelimit-headers/).
+Each is a list with one item for each limit, named by the limit's `Name`.
+`RateLimit-Limit`, `RateLimit-Remaining` and `RateLimit-Reset` are the fields of the draft's earlier
+revisions, and each describes one limit.
+
+A store of the application's own that returns `RateLimitDecision.Allow(limit, remaining)` gives no
+reset. Its allowed responses report `WindowSeconds` in `RateLimit-Reset`. See [Stores](#stores).
 
 The 429's body is
 `{"detail":"Rate limit exceeded.","type":"urn:hardened:problem:rate-limited","title":"Too Many Requests","status":429}`,
@@ -286,8 +302,9 @@ public class TodoController
 ```
 
 A request that one limit refuses still spends a permit from the other. An allowed response's
-`RateLimit-*` headers describe one of the limits. With both on the method, it is the one written
-last. The first request gets 201:
+`RateLimit-Limit`, `RateLimit-Remaining` and `RateLimit-Reset` describe one of the limits. With both
+on the method, it is the one written last. `RateLimit-Policy` and `RateLimit` have an item for each.
+The first request gets 201:
 
 ```http
 POST /todos
@@ -301,12 +318,14 @@ Location: /todos/3
 RateLimit-Limit: 500
 RateLimit-Remaining: 499
 RateLimit-Reset: 3600
+RateLimit-Policy: "burst";q=5;w=1, "hourly";q=500;w=3600
+RateLimit: "burst";r=4;t=1, "hourly";r=499;t=3600
 
 {"id":3,"title":"Todo 1","done":false}
 ```
 
-A 429's headers describe the limit that refused. The sixth request within the same second gets 429
-from `burst`:
+A 429's `RateLimit-Limit`, `RateLimit-Remaining` and `RateLimit-Reset` describe the limit that
+refused. The sixth request within the same second gets 429 from `burst`:
 
 ```http
 POST /todos
@@ -320,6 +339,8 @@ Retry-After: 1
 RateLimit-Limit: 5
 RateLimit-Remaining: 0
 RateLimit-Reset: 1
+RateLimit-Policy: "hourly";q=500;w=3600, "burst";q=5;w=1
+RateLimit: "hourly";r=494;t=3600, "burst";r=0;t=1
 
 {"detail":"Rate limit exceeded.","type":"urn:hardened:problem:rate-limited","title":"Too Many Requests","status":429}
 ```
@@ -373,7 +394,8 @@ public partial class TodosLibrary : IServiceCollectionConfiguration
 
 The default partitioner uses the header's value as the request sends it. A request that sends a
 different value counts for a different partition. The header name is matched without regard to
-case. With the limit from the first example on `All`, the fourth request with one key is refused:
+case. With the limit from the first example on `All`, the fourth request with one key, 18 seconds
+after its first, is refused:
 
 ```http
 GET /todos
@@ -381,10 +403,12 @@ X-Api-Key: build-server
 
 HTTP/1.1 429 Too Many Requests
 Content-Type: application/problem+json
-Retry-After: 60
+Retry-After: 42
 RateLimit-Limit: 3
 RateLimit-Remaining: 0
-RateLimit-Reset: 60
+RateLimit-Reset: 42
+RateLimit-Policy: "default";q=3;w=60
+RateLimit: "default";r=0;t=42
 
 {"detail":"Rate limit exceeded.","type":"urn:hardened:problem:rate-limited","title":"Too Many Requests","status":429}
 ```
@@ -400,6 +424,8 @@ Content-Type: application/json
 RateLimit-Limit: 3
 RateLimit-Remaining: 2
 RateLimit-Reset: 60
+RateLimit-Policy: "default";q=3;w=60
+RateLimit: "default";r=2;t=60
 
 [{"id":1,"title":"Read the generated code","done":true},{"id":2,"title":"Add an endpoint","done":false}]
 ```
@@ -446,8 +472,9 @@ public class TenantPartitioner : IRateLimitPartitioner
 returns `ValueTask<RateLimitDecision>`. Each limit calls `Acquire` once for each request. The policy
 carries the limit's `PermitLimit`, `Window` and `Name`.
 
-`RateLimitDecision.Allow(limit, remaining)` lets the request through.
-`RateLimitDecision.Refuse(limit, retryAfter)` refuses it. The decision's values become the headers
+`RateLimitDecision.Allow(limit, remaining, reset)` lets the request through. `reset` is how long
+until a spent permit returns. `RateLimitDecision.Allow(limit, remaining)` gives no reset, and the
+response reports the window instead. `RateLimitDecision.Refuse(limit, retryAfter)` refuses it. The decision's values become the headers
 in [Headers and the 429 response](#headers-and-the-429-response).
 
 A store that carries `[SingletonService(Using = RegistrationType.Replace)]` replaces the in-process
@@ -487,14 +514,18 @@ public class RedisRateLimitStore(IConnectionMultiplexer redis) : IRateLimitStore
 
         await database.KeyExpireAsync(key, policy.Window, ExpireWhen.HasNoExpiry);
 
+        var reset = await database.KeyTimeToLiveAsync(key) ?? policy.Window;
+
         if (count <= policy.PermitLimit)
         {
-            return RateLimitDecision.Allow(policy.PermitLimit, policy.PermitLimit - (int)count);
+            return RateLimitDecision.Allow(
+                policy.PermitLimit,
+                policy.PermitLimit - (int)count,
+                reset
+            );
         }
 
-        var retryAfter = await database.KeyTimeToLiveAsync(key) ?? policy.Window;
-
-        return RateLimitDecision.Refuse(policy.PermitLimit, retryAfter);
+        return RateLimitDecision.Refuse(policy.PermitLimit, reset);
     }
 }
 ```
@@ -532,17 +563,20 @@ public partial class TodosLibrary : IServiceCollectionConfiguration
 ```
 
 With the limit from the first example on `All`, three requests go to two instances. A fourth
-request, sent to the second instance, is refused:
+request, sent to the second instance 18 seconds after the first, is refused. The count's key
+expires in 42 seconds:
 
 ```http
 GET /todos
 
 HTTP/1.1 429 Too Many Requests
 Content-Type: application/problem+json
-Retry-After: 60
+Retry-After: 42
 RateLimit-Limit: 3
 RateLimit-Remaining: 0
-RateLimit-Reset: 60
+RateLimit-Reset: 42
+RateLimit-Policy: "default";q=3;w=60
+RateLimit: "default";r=0;t=42
 
 {"detail":"Rate limit exceeded.","type":"urn:hardened:problem:rate-limited","title":"Too Many Requests","status":429}
 ```

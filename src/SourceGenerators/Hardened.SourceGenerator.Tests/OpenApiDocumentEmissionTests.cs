@@ -1565,7 +1565,14 @@ public class OpenApiDocumentEmissionTests
             .GetProperty("get")
             .GetProperty("responses");
 
-        string[] limits = ["RateLimit-Limit", "RateLimit-Remaining", "RateLimit-Reset"];
+        string[] limits =
+        [
+            "RateLimit-Limit",
+            "RateLimit-Remaining",
+            "RateLimit-Reset",
+            "RateLimit-Policy",
+            "RateLimit",
+        ];
 
         Assert.Equal(limits, HeaderNames(responses.GetProperty("200")));
         Assert.Equal(["Retry-After", .. limits], HeaderNames(responses.GetProperty("429")));

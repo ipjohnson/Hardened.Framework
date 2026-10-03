@@ -238,7 +238,8 @@ public class RateLimitFilterTests
     public void RateLimitExceededException_CarriesRetryAfterAndTheAllowance()
     {
         var exception = new RateLimitExceededException(
-            RateLimitDecision.Refuse(10, TimeSpan.FromSeconds(30))
+            RateLimitDecision.Refuse(10, TimeSpan.FromSeconds(30)),
+            Policy
         );
 
         var headers = new Dictionary<string, Microsoft.Extensions.Primitives.StringValues>();
@@ -249,6 +250,114 @@ public class RateLimitFilterTests
         Assert.Equal("30", headers[KnownHeaders.RetryAfter].ToString());
         Assert.Equal("10", headers["RateLimit-Limit"].ToString());
         Assert.Equal("0", headers["RateLimit-Remaining"].ToString());
+        Assert.Equal("30", headers["RateLimit-Reset"].ToString());
+        Assert.Equal("\"default\";q=10;w=60", headers["RateLimit-Policy"].ToString());
+        Assert.Equal("\"default\";r=0;t=30", headers["RateLimit"].ToString());
+    }
+
+    /// <summary>
+    /// <c>RateLimit-Reset</c> is the time until a permit returns, as the store reports it, not the
+    /// length of the window.
+    /// </summary>
+    [Fact]
+    public async Task Execute_ReportsWhenAPermitReturnsOnAnAllowedRequest()
+    {
+        var context = Context(
+            new FixedStore(RateLimitDecision.Allow(10, 7, TimeSpan.FromSeconds(12.5)))
+        );
+
+        await Pipeline
+            .Chain(
+                context,
+                new RateLimitFilter(Policy, beforeSerialization: false),
+                new Pipeline.Inline(_ => Task.CompletedTask)
+            )
+            .Next();
+
+        Assert.Equal("13", context.Response.Headers["RateLimit-Reset"].ToString());
+        Assert.Equal(
+            "\"default\";q=10;w=60",
+            context.Response.Headers["RateLimit-Policy"].ToString()
+        );
+        Assert.Equal("\"default\";r=7;t=13", context.Response.Headers["RateLimit"].ToString());
+    }
+
+    /// <summary>
+    /// A store written before the decision carried a reset still gets a header, and the whole window
+    /// is the latest a permit can return.
+    /// </summary>
+    [Fact]
+    public async Task Execute_ReportsTheWindowWhenTheStoreGivesNoReset()
+    {
+        var context = Context(new FixedStore(RateLimitDecision.Allow(10, 7)));
+
+        await Pipeline
+            .Chain(
+                context,
+                new RateLimitFilter(Policy, beforeSerialization: false),
+                new Pipeline.Inline(_ => Task.CompletedTask)
+            )
+            .Next();
+
+        Assert.Equal("60", context.Response.Headers["RateLimit-Reset"].ToString());
+    }
+
+    /// <summary>
+    /// The current draft's fields are lists keyed by the limit's name. A second limit adds an item,
+    /// and a refusal replaces the item its own limit wrote.
+    /// </summary>
+    [Fact]
+    public void ApplyRateLimitHeaders_KeepsOneItemPerLimitName()
+    {
+        var headers = new Dictionary<string, Microsoft.Extensions.Primitives.StringValues>();
+        var burst = new RateLimitPolicy(5, TimeSpan.FromSeconds(1), "burst");
+        var hourly = new RateLimitPolicy(500, TimeSpan.FromHours(1), "hourly");
+
+        RateLimitExceededException.ApplyRateLimitHeaders(
+            headers,
+            RateLimitDecision.Allow(500, 499, TimeSpan.FromSeconds(3600)),
+            hourly,
+            3600
+        );
+        RateLimitExceededException.ApplyRateLimitHeaders(
+            headers,
+            RateLimitDecision.Allow(5, 4, TimeSpan.FromSeconds(1)),
+            burst,
+            1
+        );
+        new RateLimitExceededException(
+            RateLimitDecision.Refuse(5, TimeSpan.FromSeconds(1)),
+            burst
+        ).ApplyHeaders(headers);
+
+        Assert.Equal(
+            "\"hourly\";q=500;w=3600, \"burst\";q=5;w=1",
+            headers["RateLimit-Policy"].ToString()
+        );
+        Assert.Equal("\"hourly\";r=499;t=3600, \"burst\";r=0;t=1", headers["RateLimit"].ToString());
+    }
+
+    /// <summary>A name is written as a structured field string, quotes and commas included.</summary>
+    [Fact]
+    public void ApplyRateLimitHeaders_QuotesTheName()
+    {
+        var headers = new Dictionary<string, Microsoft.Extensions.Primitives.StringValues>();
+        var odd = new RateLimitPolicy(5, TimeSpan.FromSeconds(1), "a \"b\", c");
+
+        RateLimitExceededException.ApplyRateLimitHeaders(
+            headers,
+            RateLimitDecision.Allow(5, 4),
+            odd,
+            1
+        );
+        RateLimitExceededException.ApplyRateLimitHeaders(
+            headers,
+            RateLimitDecision.Allow(5, 3),
+            odd,
+            1
+        );
+
+        Assert.Equal("\"a \\\"b\\\", c\";r=3;t=1", headers["RateLimit"].ToString());
     }
 
     /// <summary>
@@ -262,7 +371,8 @@ public class RateLimitFilterTests
     public void RateLimitExceededException_RoundsRetryAfterUp(double seconds, string expected)
     {
         var exception = new RateLimitExceededException(
-            RateLimitDecision.Refuse(10, TimeSpan.FromSeconds(seconds))
+            RateLimitDecision.Refuse(10, TimeSpan.FromSeconds(seconds)),
+            Policy
         );
 
         var headers = new Dictionary<string, Microsoft.Extensions.Primitives.StringValues>();
