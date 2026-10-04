@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Hardened.IntegrationTests.WebApp.SUT.Controllers;
+using Hardened.Requests.Runtime.Validation;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Tests;
 
@@ -111,6 +112,30 @@ public class EnumVocabularyTests
         );
 
         Assert.Equal(400, response.StatusCode);
+    }
+
+    /// <summary>
+    /// An undeclared body value is reported beside a path value that will not convert. The body
+    /// used to be bound outside the binder's tries, so its failure replaced the path's.
+    /// </summary>
+    [ModuleTest]
+    public async Task AnUndeclaredValueIsReportedBesideAPathFailure(ITestWebApp testWebApp)
+    {
+        var response = await testWebApp.Put(
+            "{\"title\":\"x\",\"priority\":\"urgent\"}",
+            "/enum-vocabulary/ticket/abc",
+            request => request.Headers["Content-Type"] = "application/json"
+        );
+
+        Assert.Equal(400, response.StatusCode);
+
+        var error = response.Deserialize<RequestValidationError>();
+
+        Assert.Equal(
+            new[] { ("id", "invalid"), ("ticket.priority", "invalid") },
+            error!.Errors.Select(e => (e.Field, e.Code))
+        );
+        Assert.Equal("'urgent' is not a value Priority declares.", error.Errors[1].Message);
     }
 
     /// <summary>

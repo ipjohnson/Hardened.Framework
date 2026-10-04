@@ -107,27 +107,9 @@ public class AotRequestDeserializer : IRequestDeserializer
     /// Reads the body as it is. A compressed body was decoded by <c>RequestDecompressionFilter</c>
     /// before the bind, which is why this no longer looks at <c>Content-Encoding</c>.
     /// </summary>
-    public async ValueTask<T?> DeserializeRequestBody<T>(IExecutionContext context)
-    {
-        var typeInfo = Hardened.Shared.Runtime.Json.JsonTypeInfoLookup.For<T>(_serializerOptions);
-
-        try
-        {
-            return await System.Text.Json.JsonSerializer.DeserializeAsync(
-                context.Request.Body,
-                typeInfo
-            );
-        }
-        catch (System.Text.Json.JsonException exception)
-        {
-            var rewritten = MemberTypeMessage.Rewrite(exception, typeInfo);
-
-            if (ReferenceEquals(rewritten, exception))
-            {
-                throw;
-            }
-
-            throw rewritten;
-        }
-    }
+    public ValueTask<T?> DeserializeRequestBody<T>(IExecutionContext context) =>
+        JsonRequestBody.Read(
+            context,
+            Hardened.Shared.Runtime.Json.JsonTypeInfoLookup.For<T>(_serializerOptions)
+        );
 }

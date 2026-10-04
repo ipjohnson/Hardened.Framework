@@ -1011,6 +1011,12 @@ namespace Hardened.Requests.Runtime.Streaming
 }
 namespace Hardened.Requests.Runtime.Validation
 {
+    public sealed class BodyBindingException : Hardened.Requests.Runtime.Validation.ValidationException
+    {
+        public BodyBindingException(ValidationModules.ValidationResult validationResult, string field, object? body, System.Exception inner) { }
+        public object? Body { get; }
+        public string Field { get; }
+    }
     public sealed class ParameterBindingException : Hardened.Requests.Runtime.Validation.ValidationException
     {
         public Hardened.Requests.Abstract.Execution.IExecutionRequestParameters Parameters { get; }
@@ -1018,6 +1024,7 @@ namespace Hardened.Requests.Runtime.Validation
     public struct ParameterBindingFailures
     {
         public void Add(Hardened.Requests.Runtime.Validation.ValidationException failure) { }
+        public T? AddBody<T>(Hardened.Requests.Runtime.Validation.ValidationException failure) { }
         public void ThrowIfAny(Hardened.Requests.Abstract.Execution.IExecutionRequestParameters parameters) { }
     }
     public static class RequestBody

@@ -104,13 +104,17 @@ public static class BindRequestParametersMethodGenerator
                 .ToVar("form");
         }
 
-        // Each string-valued parameter is bound inside its own try, so one that will not convert
-        // is recorded and the next is still bound. The caller hears about every field it got
-        // wrong at once, and the constraints on the ones that did bind are checked beside them -
-        // see ParameterBindingException.
+        // Each string-valued parameter and the body are bound inside their own try, so one that
+        // will not convert is recorded and the next is still bound. The caller hears about every
+        // field it got wrong at once, and the constraints on the ones that did bind are checked
+        // beside them - see ParameterBindingException.
         InstanceDefinition? failuresVar = null;
 
-        if (requestHandlerModel.RequestParameterInformationList.Any(BindsFromAString))
+        if (
+            requestHandlerModel.RequestParameterInformationList.Any(p =>
+                BindsFromAString(p) || p.BindingType == ParameterBindType.Body
+            )
+        )
         {
             failuresVar = invokeMethod
                 .Assign(New(KnownTypes.Requests.ParameterBindingFailures))
@@ -122,7 +126,17 @@ public static class BindRequestParametersMethodGenerator
             switch (parameterInformation.BindingType)
             {
                 case ParameterBindType.Body:
-                    BindBodyParameter(parameterInformation, invokeMethod, context, parametersVar);
+                    BindBodyParameter(
+                        parameterInformation,
+                        BodyAttempt(
+                            invokeMethod,
+                            failuresVar!,
+                            parametersVar,
+                            parameterInformation
+                        ),
+                        context,
+                        parametersVar
+                    );
                     break;
 
                 case ParameterBindType.Header:
@@ -239,6 +253,35 @@ public static class BindRequestParametersMethodGenerator
             .AddIndentedStatement(
                 failuresVar.Invoke("Add", new CodeOutputComponent("failure") { Indented = false })
             );
+
+        return attempt;
+    }
+
+    /// <summary>
+    /// A try whose catch records the body's failure and keeps what of the body was read, so the
+    /// constraints on its other members are still checked. See <c>BodyBindingException</c>.
+    /// </summary>
+    private static BaseBlockDefinition BodyAttempt(
+        MethodDefinition invokeMethod,
+        InstanceDefinition failuresVar,
+        InstanceDefinition parametersVar,
+        RequestParameterInformation parameterInformation
+    )
+    {
+        var attempt = invokeMethod.Try();
+
+        attempt
+            .Catch(KnownTypes.Requests.ValidationException, "failure")
+            .Assign(
+                Bang(
+                    failuresVar.InvokeGeneric(
+                        "AddBody",
+                        new[] { parameterInformation.ParameterType },
+                        new CodeOutputComponent("failure") { Indented = false }
+                    )
+                )
+            )
+            .To(parametersVar.Property(parameterInformation.MemberName));
 
         return attempt;
     }
@@ -793,7 +836,7 @@ public static class BindRequestParametersMethodGenerator
     /// </remarks>
     private static void BindRawBodyParameter(
         RequestParameterInformation parameterInformation,
-        MethodDefinition invokeMethod,
+        BaseBlockDefinition invokeMethod,
         ParameterDefinition context,
         InstanceDefinition parametersVar
     )
@@ -825,7 +868,7 @@ public static class BindRequestParametersMethodGenerator
 
     private static void BindBodyParameter(
         RequestParameterInformation parameterInformation,
-        MethodDefinition invokeMethod,
+        BaseBlockDefinition invokeMethod,
         ParameterDefinition context,
         InstanceDefinition parametersVar
     )

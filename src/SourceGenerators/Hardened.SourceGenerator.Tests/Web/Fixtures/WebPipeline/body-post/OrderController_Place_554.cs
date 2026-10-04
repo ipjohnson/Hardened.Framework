@@ -45,11 +45,20 @@ namespace TestApp.Generated
         private static async global::System.Threading.Tasks.Task<global::Hardened.Requests.Abstract.Execution.IExecutionRequestParameters> BindRequestParameters(global::Hardened.Requests.Abstract.Execution.IExecutionContext context)
         {
             var parameters = new global::TestApp.Generated.OrderController_Place_554.Parameters();
-            var contentSerializationService = context.KnownServices.ContextSerializationService;
-            parameters.body = global::Hardened.Requests.Runtime.Validation.RequestBody.Required(
-                await contentSerializationService.DeserializeRequestBody<global::TestApp.Order>(context),
-                "body"
-            );
+            var bindingFailures = new global::Hardened.Requests.Runtime.Validation.ParameterBindingFailures();
+            try
+            {
+                var contentSerializationService = context.KnownServices.ContextSerializationService;
+                parameters.body = global::Hardened.Requests.Runtime.Validation.RequestBody.Required(
+                    await contentSerializationService.DeserializeRequestBody<global::TestApp.Order>(context),
+                    "body"
+                );
+            }
+            catch (global::Hardened.Requests.Runtime.Validation.ValidationException failure)
+            {
+                parameters.body = bindingFailures.AddBody<global::TestApp.Order>(failure)!;
+            }
+            bindingFailures.ThrowIfAny(parameters);
             return parameters;
         }
 

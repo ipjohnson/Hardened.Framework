@@ -155,8 +155,16 @@ internal static class EnumWireConverterEmitter
 
         // A value the application does not declare is not guessed at. The JsonException lands as a
         // 400, which is the same answer a malformed body gets and the right one for a value that is
-        // not in the document.
-        lines.Add("    _ => throw new global::System.Text.Json.JsonException(");
+        // not in the document. A value is read through Refuse, which the request deserializer can
+        // tell to return default while it re-reads the body for the caller's other mistakes. A
+        // dictionary key always throws, because a tolerated key would collide with a declared one.
+        lines.Add(
+            name == "Read"
+                ? "    _ => global::Hardened.Requests.Abstract.Serializer.UndeclaredValue.Refuse<"
+                    + vocabulary.QualifiedName
+                    + ">("
+                : "    _ => throw new global::System.Text.Json.JsonException("
+        );
         lines.Add(
             $"        \"'\" + value + \"' is not a value {Escape(vocabulary.Name)} declares.\")"
         );

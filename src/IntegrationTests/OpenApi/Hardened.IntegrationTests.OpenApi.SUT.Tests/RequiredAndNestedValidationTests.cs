@@ -212,4 +212,38 @@ public class RequiredAndNestedValidationTests
         Assert.Contains(error.Errors!, e => e.Field == "body.weightGrams");
         Assert.Contains(error.Errors!, e => e.Field == "body.lines");
     }
+
+    /// <summary>
+    /// An undeclared enum value, the body's constraints and a header's constraint, in one response.
+    /// </summary>
+    /// <remarks>
+    /// The second half of B-09. The converter threw at <c>ferret</c>, the read stopped, and the
+    /// caller heard of the species alone. The body is now read past it, so the constraints on the
+    /// rest of it are checked.
+    /// </remarks>
+    [ModuleTest]
+    public async Task AnUndeclaredValueIsReportedBesideTheOtherFailures(ITestWebApp testWebApp)
+    {
+        var response = await testWebApp.Post(
+            """{"species":"ferret","weightGrams":3000,"lines":[{"sku":"","quantity":0}]}""",
+            "/orders",
+            request => request.Headers["Idempotency-Key"] = "not-hex"
+        );
+
+        response.Assert.BadRequest();
+
+        var error = response.Deserialize<RequestValidationError>();
+
+        Assert.Equal(
+            new[]
+            {
+                ("body.species", "invalid"),
+                ("Idempotency-Key", "pattern"),
+                ("body.lines[0].sku", "string_length"),
+                ("body.lines[0].quantity", "range"),
+            },
+            error!.Errors.Select(e => (e.Field, e.Code))
+        );
+        Assert.Equal("'ferret' is not a value PetSpecies declares.", error.Errors[0].Message);
+    }
 }

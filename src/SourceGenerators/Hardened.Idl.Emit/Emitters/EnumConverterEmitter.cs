@@ -236,8 +236,11 @@ internal static class EnumConverterEmitter
         }
 
         // A value the description does not declare is the server saying something the contract does
-        // not allow, and guessing at it would put an arbitrary member into the model.
-        lines.Add("    _ => throw new global::System.Text.Json.JsonException(");
+        // not allow, and guessing at it would put an arbitrary member into the model. Refuse throws,
+        // except while the request deserializer re-reads a body to find its other undeclared values.
+        lines.Add(
+            $"    _ => global::Hardened.Requests.Abstract.Serializer.UndeclaredValue.Refuse<{qualified}>("
+        );
         lines.Add(
             $"        \"'\" + value + \"' is not a value {NamingHelper.ToPascalCase(schema.Name)} declares.\")"
         );

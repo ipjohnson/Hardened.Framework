@@ -56,6 +56,12 @@ public class EnumVocabularyController
     [Post("/ticket")]
     public Priority ReadDefaultNaming(Ticket ticket) => ticket.Priority;
 
+    /// <summary>
+    /// A path value and a body, so a failure in each is reported in one response.
+    /// </summary>
+    [Put("/ticket/{id}")]
+    public Priority ReplaceTicket(int id, Ticket ticket) => ticket.Priority;
+
     [Get("/order")]
     public Order DeclaredNaming() => new(LegacyCode.AB12, Shipping.NextDay);
 

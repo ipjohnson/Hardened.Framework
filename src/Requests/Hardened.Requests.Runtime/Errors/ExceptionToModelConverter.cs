@@ -274,31 +274,36 @@ public class ExceptionToModelConverter : IExceptionToModelConverter
         JsonException exception,
         string body,
         int status
+    ) => new() { Status = status, Errors = BodyReadErrors(exception, body) };
+
+    /// <summary>
+    /// The field errors for a body that could not be read, under <paramref name="body"/>.
+    /// </summary>
+    /// <remarks>
+    /// Also how the request deserializer reports each undeclared enum value it reads past, so a
+    /// value reported beside other errors reads as it does alone.
+    /// </remarks>
+    internal static List<RequestValidationFieldError> BodyReadErrors(
+        JsonException exception,
+        string body
     ) =>
-        new()
-        {
-            Status = status,
-            Errors =
-                MissingMembers(exception, body)
-                ??
-                [
-                    EmptyBody(exception)
-                        ? new RequestValidationFieldError
-                        {
-                            Field = body,
-                            Code = "required",
-                            Message = body + " is required.",
-                        }
-                        : new RequestValidationFieldError
-                        {
-                            Field = NotWellFormed(exception)
-                                ? body
-                                : FieldFrom(exception.Path, body),
-                            Code = "invalid",
-                            Message = Readable(WithoutPositionSuffix(exception.Message)),
-                        },
-                ],
-        };
+        MissingMembers(exception, body)
+        ??
+        [
+            EmptyBody(exception)
+                ? new RequestValidationFieldError
+                {
+                    Field = body,
+                    Code = "required",
+                    Message = body + " is required.",
+                }
+                : new RequestValidationFieldError
+                {
+                    Field = NotWellFormed(exception) ? body : FieldFrom(exception.Path, body),
+                    Code = "invalid",
+                    Message = Readable(WithoutPositionSuffix(exception.Message)),
+                },
+        ];
 
     /// <summary>
     /// The status a registered <see cref="IExceptionStatusReader"/> puts on the exception, or null.
@@ -379,7 +384,7 @@ public class ExceptionToModelConverter : IExceptionToModelConverter
     /// The prefix a body field is reported under: the handler's own parameter identifier, which is
     /// what the generated validators use. "body" only where nothing says otherwise.
     /// </summary>
-    private static string BodyField(IExecutionContext context)
+    internal static string BodyField(IExecutionContext context)
     {
         var name = context.HandlerInfo?.BodyParameterName;
 
