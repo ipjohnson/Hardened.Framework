@@ -120,4 +120,24 @@ public class HostResolutionTests
             Resolve(new SomeTestingAttribute(), new PipelineHostAttribute())
         );
     }
+
+    /// <summary>
+    /// The policy travels with the declaration that won, so an assembly that declared a reused
+    /// pipeline reuses and a plain <c>[PipelineHost]</c> on the method rebuilds again.
+    /// </summary>
+    [Fact]
+    public void ThePipelinesContainerPolicyIsTheOneTheNarrowestDeclarationGives()
+    {
+        var reused = new PipelineHostAttribute { ContainerPolicy = TestContainerPolicy.Reused };
+
+        Assert.Equal(TestContainerPolicy.Reused, Resolve(reused).ContainerPolicy);
+        Assert.Equal(
+            TestContainerPolicy.PerInvocation,
+            Resolve(reused, new PipelineHostAttribute()).ContainerPolicy
+        );
+        Assert.Equal(
+            TestContainerPolicy.PerInvocation,
+            Resolve(new PipelineHostAttribute()).ContainerPolicy
+        );
+    }
 }

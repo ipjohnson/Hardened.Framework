@@ -107,6 +107,11 @@ runs on the pipeline host, because `[PipelineHost]` on the method is narrower th
 
 Each test on a socket host starts a server of its own. The server stops when the test ends.
 
+A test suite that wants one container for each test without the cost of a socket declares
+`[assembly: PipelineHost(ContainerPolicy = TestContainerPolicy.Reused)]` instead.
+[One container for every request of every test](/guide/testing#one-container-for-every-request-of-every-test)
+covers it.
+
 ## What differs on a socket
 
 The socket hosts serve plain HTTP on `127.0.0.1`. A test sees these differences between the hosts:

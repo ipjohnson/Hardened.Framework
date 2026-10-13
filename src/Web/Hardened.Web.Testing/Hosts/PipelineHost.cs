@@ -23,6 +23,25 @@ namespace Hardened.Web.Testing;
 )]
 public sealed class PipelineHostAttribute : TestHostAttribute
 {
+    /// <summary>
+    /// Whether each request runs against a container of its own.
+    /// <see cref="TestContainerPolicy.PerInvocation"/> unless set.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <see cref="TestContainerPolicy.Reused"/> stands for an application that runs as one
+    /// long-lived process, such as a daemon or the server behind a desktop app. Every request it
+    /// serves reaches the same container in production, so every request of a test reaches the
+    /// test's own container here, with no socket and no per-parameter <c>[Shared]</c>.
+    /// </para>
+    /// <para>
+    /// Declared on the assembly it holds for every test there. A plain <c>[PipelineHost]</c> on a
+    /// class or a method is narrower, so it puts that scope back on a container per request for a
+    /// test whose subject is the isolation itself.
+    /// </para>
+    /// </remarks>
+    public TestContainerPolicy ContainerPolicy { get; set; } = TestContainerPolicy.PerInvocation;
+
     /// <remarks>
     /// The handler is appended only when the entry point is a module rather than an application
     /// root, which is the branch <c>[WebTesting]</c> always took; an application root composes
@@ -34,7 +53,8 @@ public sealed class PipelineHostAttribute : TestHostAttribute
 
         return new PipelineHost(
             appendHandler: entryPoint != null
-                && !typeof(IApplicationRoot).IsAssignableFrom(entryPoint.EntryPoint)
+                && !typeof(IApplicationRoot).IsAssignableFrom(entryPoint.EntryPoint),
+            ContainerPolicy
         );
     }
 }
@@ -46,6 +66,7 @@ public sealed class PipelineHostAttribute : TestHostAttribute
 public sealed class PipelineHost : ITestHost
 {
     private readonly bool _appendHandler;
+    private readonly TestContainerPolicy _policy;
     private IServiceProvider? _provider;
     private ITestContainerSource? _source;
     private bool _started;
@@ -55,25 +76,31 @@ public sealed class PipelineHost : ITestHost
     {
         _provider = provider;
         _appendHandler = false;
+        _policy = TestContainerPolicy.PerInvocation;
     }
 
-    internal PipelineHost(bool appendHandler)
+    internal PipelineHost(bool appendHandler, TestContainerPolicy policy)
     {
         _appendHandler = appendHandler;
+        _policy = policy;
     }
 
     public bool IsTerminal => true;
 
     /// <summary>
-    /// A container per request, because nothing here holds a socket that a rebuild would close.
+    /// A container per request unless <see cref="PipelineHostAttribute.ContainerPolicy"/> says
+    /// <see cref="TestContainerPolicy.Reused"/>, because nothing here holds a socket that a rebuild
+    /// would close.
     /// </summary>
     /// <remarks>
-    /// The strict reading, and the default one: this host names no cloud, so it does not get to
-    /// assume the most forgiving deployment. It is also the host the overwhelming majority of tests
-    /// run under, which is what puts the check where it costs least - the two hosts that cannot
-    /// rebuild are the ones a suite has few of.
+    /// Per request is the strict reading, and the default one: this host names no cloud, so it does
+    /// not get to assume the most forgiving deployment. It is also the host the overwhelming majority
+    /// of tests run under, which is what puts the check where it costs least - the two hosts that
+    /// cannot rebuild are the ones a suite has few of. Reused is the declared reading for an
+    /// application that runs as one long-lived process, and it is a choice the test project makes
+    /// once, not a limit of the host.
     /// </remarks>
-    public TestContainerPolicy ContainerPolicy => TestContainerPolicy.PerInvocation;
+    public TestContainerPolicy ContainerPolicy => _policy;
 
     public Uri BaseAddress => TestClientBuilder.BaseAddress;
 
@@ -130,8 +157,9 @@ public sealed class PipelineHost : ITestHost
         // it is where every pinned parameter came from, and it is the one thing in the test a reader
         // can point at - so "one container for this client" and "the container the test is in" being
         // the same container is the reading that needs no explaining. Two clients that both ask
-        // therefore land together, which is what modelling one warm environment means.
-        if (reuse)
+        // therefore land together, which is what modelling one warm environment means. A host
+        // declared Reused models that environment for every client, so it never asks the source.
+        if (reuse || _policy == TestContainerPolicy.Reused)
         {
             return Provider;
         }
