@@ -242,6 +242,7 @@ Not every host builds a container per request.
 | Host | `ContainerPolicy` | A container per request |
 |---|---|---|
 | The pipeline: the default, and a test marked `[PipelineHost]` | `PerInvocation` | Yes |
+| The pipeline under `[PipelineHost(ContainerPolicy = TestContainerPolicy.Reused)]` | `Reused` | No |
 | `[LambdaWebTesting]` | `PerInvocation` | Yes |
 | `[KestrelRuntime]` under `[assembly: KestrelTesting]`, and `[AspNetCoreRuntime]` under `[assembly: AspNetCoreTesting]` | `Reused` | No |
 | `[AzureFunctionsWebTesting]` | `Reused` | No |
@@ -302,6 +303,43 @@ on a parameter only.
 
 [Typed clients](/guide/testing-clients) covers client factories.
 [Sending requests](/guide/testing-web) covers the credential attributes.
+
+## One container for every request of every test
+
+An application that runs as one long-lived process, such as a daemon or the server behind a desktop
+app, serves every request from the same container in production. Its tests can say so once, on the
+assembly, instead of marking each parameter `[Shared]`:
+
+```csharp
+using Hardened.Web.Testing;
+
+[assembly: PipelineHost(ContainerPolicy = TestContainerPolicy.Reused)]
+```
+
+Every test in the assembly then stays on the pipeline host, with no socket, and every request it
+sends through `ITestWebApp`, an `HttpClient` or a generated client runs in the test's own
+container. The host builds no other container, so the test pays for one container rather than one
+for each request. Each test still gets a container of its own.
+
+The declaration also goes on a class or a method, and the narrowest one wins. A plain
+`[PipelineHost]` on a class or a method puts that scope back on a container for each request, for a
+test whose subject is the isolation itself:
+
+```csharp
+[ModuleTest]
+[PipelineHost]
+public async Task ARequestKeepsNothingFromTheOneBefore(ITestWebApp app)
+{
+    await app.Post(new NewTodo("Write a test"), "/todos");
+
+    var todos = (await app.Get("/todos")).Deserialize<List<Todo>>();
+
+    Assert.Equal([1, 2], todos.Select(todo => todo.Id));
+}
+```
+
+A socket host already reuses its container, so a runtime attribute such as `[KestrelRuntime]` on a
+class is unaffected by the assembly's declaration.
 
 ## Setting the environment
 

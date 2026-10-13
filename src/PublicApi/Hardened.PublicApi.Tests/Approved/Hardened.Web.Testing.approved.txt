@@ -108,6 +108,7 @@ namespace Hardened.Web.Testing
     public sealed class PipelineHostAttribute : Hardened.Web.Testing.TestHostAttribute
     {
         public PipelineHostAttribute() { }
+        public Hardened.Web.Testing.TestContainerPolicy ContainerPolicy { get; set; }
         public override Hardened.Web.Testing.ITestHost CreateHost(DependencyModules.Testing.Attributes.Interfaces.ITestMethodContext testMethod, Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
     }
     public sealed class PipelineHttpMessageHandler : System.Net.Http.HttpMessageHandler
