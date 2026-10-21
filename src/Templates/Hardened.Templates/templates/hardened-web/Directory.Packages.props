@@ -75,7 +75,7 @@
       [MessagePackObject] on every generated contract, and the attribute has to resolve here. It
       follows MessagePack's release line, like Refit's own pin above.
     -->
-    <PackageVersion Include="MessagePack" Version="3.1.8" />
+    <PackageVersion Include="MessagePack" Version="3.1.9" />
 <!--#endif -->
     <!-- The test side of the client: builds it over the pipeline and asserts through it. A
          Hardened package, so it moves with the framework rather than with Refit. -->

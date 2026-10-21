@@ -156,6 +156,16 @@ public static class JsonSchemaWriter
             return BinaryPayload;
         }
 
+        // The System.Text.Json DOM holds whatever JSON arrived, so it is free-form on the wire.
+        // Reflected instead, JsonElement published its indexer as a property named this[] and
+        // JsonObject a required count, and Refitter refused the repeated this[] key.
+        var dom = JsonDom(type);
+
+        if (dom != null)
+        {
+            return dom;
+        }
+
         if (type is IArrayTypeSymbol array)
         {
             // byte[] is the payload itself, not a sequence of numbers. Every element type below
@@ -273,6 +283,36 @@ public static class JsonSchemaWriter
         property.Name == "Type"
         && property.Type.SpecialType == SpecialType.System_String
         && Requests.ProblemBodies.Implement(owner);
+
+    /// <summary>
+    /// The schema for a <c>System.Text.Json</c> DOM type, or null for anything else.
+    /// </summary>
+    /// <remarks>
+    /// Matched on the namespace as well as the name, so an application's own type named
+    /// <c>JsonNode</c> is still reflected.
+    /// </remarks>
+    private static string? JsonDom(ITypeSymbol type)
+    {
+        var space = type.ContainingNamespace?.ToDisplayString();
+
+        if (space == "System.Text.Json")
+        {
+            return type.Name == "JsonElement" ? "{}" : null;
+        }
+
+        if (space != "System.Text.Json.Nodes")
+        {
+            return null;
+        }
+
+        return type.Name switch
+        {
+            "JsonObject" => "{\"type\":\"object\"}",
+            "JsonArray" => "{\"type\":\"array\",\"items\":{}}",
+            "JsonNode" or "JsonValue" => "{}",
+            _ => null,
+        };
+    }
 
     /// <summary>
     /// Whether a type is a <c>System.IO.Stream</c>, base types walked.
@@ -515,6 +555,7 @@ public static class JsonSchemaWriter
             if (
                 property.DeclaredAccessibility != Accessibility.Public
                 || property.IsStatic
+                || property.IsIndexer
                 || property.GetMethod == null
             )
             {

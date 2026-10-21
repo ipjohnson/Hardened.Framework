@@ -140,5 +140,13 @@
                  Link="Routing/RouteConstraintFactsTests.cs"/>
         <Compile Include="../Hardened.SourceGenerator.Tests/Web/RouteTemplateTests.cs"
                  Link="Routing/RouteTemplateTests.cs"/>
+
+        <!--
+            The document format module the export task writes a file through, so a test can take
+            the document this generator emits to YAML and to each HardenedOpenApiOutputVersion.
+            The generator does not compile it in, so this is the only copy in scope.
+        -->
+        <Compile Include="../Hardened.Generation.Shared/Document/*.cs"
+                 Link="Document/%(Filename)%(Extension)"/>
     </ItemGroup>
 </Project>

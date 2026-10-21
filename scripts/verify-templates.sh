@@ -676,6 +676,29 @@ for COMBO in "${COMBOS[@]}"; do
 
     run_tests "$OUT" GetTodo_ReadsTheMockedStore
 
+    # The System.Text.Json DOM types, on the rows where Refitter reads a document the server's
+    # code wrote. Their schemas once carried a property named this[], which Refitter refused, and
+    # the template's own handlers reach none of them. After the tests, because DocumentStatusTests
+    # fails on an operation it sends no request to, and removed again so the probes below serve
+    # the application as scaffolded. Not on the MessagePack rows, whose Liquid templates key every
+    # generated member and have no formatter for a free-form one.
+    if [ "$CONTRACT" = code ] && [ "$CLIENT" = refit ] && \
+       { [ "$SERIALIZER" = default ] || [ "$SERIALIZER" = json ]; }; then
+        cp "$REPO/scripts/probes/JsonDomController.cs" "$OUT/src/Sample/JsonDomController.cs"
+
+        if ! ( cd "$OUT" && dotnet build src/Sample.Client -v q --nologo ) > "$OUT/dom-probe.log" 2>&1; then
+            echo "   FAILED: the Refit client does not compile over the System.Text.Json DOM types - see $OUT/dom-probe.log"
+            FAILED=1
+        elif ! grep -rq '/dom/element"' "$OUT/src/Sample.Client/obj" --include='*.cs'; then
+            echo "   FAILED: the System.Text.Json DOM probe did not reach the Refit client"
+            FAILED=1
+        else
+            echo "   the Refit client compiles over the System.Text.Json DOM types"
+        fi
+
+        rm "$OUT/src/Sample/JsonDomController.cs"
+    fi
+
     # The client rows: the document the library's build wrote is what the client generated from,
     # and it is the file a consumer commits - so it has to exist, and it has to be the served
     # document. The opt-out row: no property, no file, no client project.
