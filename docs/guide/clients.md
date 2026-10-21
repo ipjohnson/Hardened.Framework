@@ -177,7 +177,7 @@ setting.
 
 With `--serializer message-pack-named` or `message-pack-keyed` and `--client refit`, the client
 project also holds two Liquid templates in `templates/`, `MessagePackContentSerializer.cs`, and a
-reference to the `MessagePack` package, 3.1.8. `.refitter` then names the folder in
+reference to the `MessagePack` package, 3.1.9. `.refitter` then names the folder in
 `customTemplateDirectory`. It also sets `generateDefaultAdditionalProperties` to `false`.
 
 The templates put these attributes on the generated models:

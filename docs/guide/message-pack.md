@@ -113,7 +113,7 @@ Run this command in the solution directory:
 dotnet add src/Todos package Hardened.Requests.Serializers.MessagePack --version 0.0.0-HARDENED-VERSION
 ```
 
-The package depends on `MessagePack` 3.1.8, which brings MessagePack's source generator into the project.
+The package depends on `MessagePack` 3.1.9, which brings MessagePack's source generator into the project.
 
 The template's solution uses central package management. There, the command adds a `PackageReference` to `src/Todos/Todos.csproj` and a `PackageVersion` to `Directory.Packages.props`. The `PackageVersion` holds the version as a literal. The template's other Hardened packages use `$(HardenedVersion)`.
 
