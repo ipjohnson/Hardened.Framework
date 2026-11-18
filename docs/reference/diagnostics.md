@@ -158,6 +158,7 @@ ValidationModules lists the `VM` codes in its
 | `HOAG030` | Warning | No class carrying `[Handler]` implements a service the description declares. The service's routes exist and fail at request time | Generator | [Generating from OpenAPI](/guide/openapi) |
 | `HOAG031` | Warning | A class carrying `[Handler]` names no service the description declares in its base list | Generator | [Generating from OpenAPI](/guide/openapi) |
 | `HOAG032` | Warning | A `[Handler]` class, or one of its methods, carries `[RawResponse]`, `[Throws<T>]`, `[Tag]` or `[Server]`. None of them changes a described operation | Generator | [Generating from OpenAPI](/guide/openapi) |
+| `HOAG033` | Error | An operation's request lacks a member of an interface that `x-hardened-request-interfaces` names, gives it another type or nullability, or the name is not an interface the compilation declares | Generator | [Generating from OpenAPI](/guide/openapi#extension-keys) |
 
 ## HAUTH
 

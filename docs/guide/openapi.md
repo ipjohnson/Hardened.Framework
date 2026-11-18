@@ -753,8 +753,70 @@ The build reads these `x-` keys:
 | `x-hardened-content-negotiation` | The root | `strict` or `lenient`, the service's negotiation policy | [Content negotiation](/guide/content-negotiation) |
 | `x-hardened-error-bodies` | The root | `json` answers every failure as JSON, or `negotiated` | [Content negotiation](/guide/content-negotiation) |
 | `x-message-pack-index` | A property | The member's key under `HardenedSerializer` `MessagePackKeyed` | [MessagePack](/guide/message-pack) |
+| `x-hardened-request-interfaces` | The root, a path item or an operation | Interfaces that each operation's generated `Parameters` type implements | This page |
 
 With `x-hardened-raw-bytes: true` on its operation, `GetRaw()` returns `Task<byte[]>`.
+
+`x-hardened-request-interfaces` lists interfaces by their fully qualified names. The build adds each
+one to the base list of the `Parameters` type that it generates for an operation, after the
+validation interface. A filter typed on the interface then reads the request of every operation
+that the list reaches. This document gives every operation a tenant:
+
+```yaml
+x-hardened-request-interfaces:
+  - Shop.Api.ITenantRequest
+paths:
+  /tenants/{tenant}/orders:
+    get:
+      operationId: listOrders
+      parameters:
+        - name: tenant
+          in: path
+          required: true
+          schema:
+            type: string
+  /status:
+    get:
+      operationId: status
+      x-hardened-request-interfaces: []
+```
+
+You write the interface in the project or in a library that it references. A generated property
+implements a member that has its exact name, and the property has the parameter's name as the
+document writes it:
+
+```csharp
+namespace Shop.Api;
+
+public interface ITenantRequest
+{
+    string tenant { get; }
+}
+```
+
+A filter reads the value through the interface:
+
+```csharp
+if (chain.Context.Request.Parameters is ITenantRequest request)
+{
+    chain.Context.Response.Headers["X-Tenant"] = request.tenant;
+}
+```
+
+The root's list applies to every operation. A path item's list adds to it for the path's
+operations, and an operation's list adds to both. A name appears once. An empty list at a path item
+or an operation clears the names that it inherits, so `status` above implements nothing.
+
+An operation whose request does not fit a named interface stops the build with `HOAG033`. The
+message names the operation, the interface and the member:
+
+```text
+'status' names Shop.Api.ITenantRequest in x-hardened-request-interfaces, and its request does not supply the member 'tenant': no parameter of the operation has that name.
+```
+
+The member's type has to be the property's type. An optional parameter is a nullable property, so
+it does not implement a `string` getter. The served document repeats the list on each operation.
+A value that is not a list of names stops the build with `HOAT002`.
 
 An `x-hardened-timeout` of zero or less stops the build with `HOAT002`. The key reaches the handler
 as a `[Timeout]`. The served document repeats the key, with a 504 response.
@@ -896,7 +958,7 @@ The build and the generator report these codes:
 | Code | Severity | Reported when |
 |---|---|---|
 | `HOAT001` | Error | The item's file does not exist |
-| `HOAT002` | Error | The document cannot be read, an `x-hardened-timeout` is zero or less, or an `x-hardened-validation` is not `stop-on-first-error` or `collect-all` |
+| `HOAT002` | Error | The document cannot be read, an `x-hardened-timeout` is zero or less, an `x-hardened-validation` is not `stop-on-first-error` or `collect-all`, or an `x-hardened-request-interfaces` is not a list of names |
 | `HOAT003` | Error | A `.yaml` is declared as `AdditionalFiles` |
 | `HOAT004` | Error | A generated model or source file is missing. Delete `obj/.../openapi/` and rebuild |
 | `HOAT006` | Warning | The reader reports a problem in a document it could read, or `security` names scopes it cannot read |
@@ -915,6 +977,7 @@ The build and the generator report these codes:
 | `HOAG030` | Warning | No `[Handler]` class implements a declared interface |
 | `HOAG031` | Warning | A `[Handler]` class implements no declared interface |
 | `HOAG032` | Warning | An attribute on the implementation that the document states instead |
+| `HOAG033` | Error | An operation's request does not fit an interface that `x-hardened-request-interfaces` names |
 
 [Diagnostics](/reference/diagnostics) lists every code. `HOAT033` and `HOAT034` concern MessagePack
 keys. [MessagePack](/guide/message-pack) covers them.

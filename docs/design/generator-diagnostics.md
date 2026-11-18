@@ -86,6 +86,41 @@ of the defect the rule exists to catch.
 A warning, so a project that wants to keep the attribute for its own reasons can say
 `<NoWarn>$(NoWarn);HOAG032</NoWarn>`.
 
+### HOAG033 — an operation's request does not fit an interface the description names
+
+An `x-hardened-request-interfaces` list reaches an operation, and the operation's generated
+`Parameters` type cannot implement one of the interfaces. The message names the operation, the
+interface and the member.
+
+```
+'status' names Shop.Api.ITenantRequest in x-hardened-request-interfaces, and its request does not
+supply the member 'tenant': no parameter of the operation has that name.
+```
+
+`RequestInterfaceCheck` in `Hardened.Idl.SourceGenerator` makes the check, because the interface is
+hand-written and only the compilation can see its members. The build task passes the names without
+reading them. A generated property implements an interface property when three things hold:
+
+- The property has the member's exact name. That is the parameter's name as the description writes
+  it, so a member named `Tenant` does not match a parameter named `tenant`, and the message says so.
+- The property's type binds to the member's type. The generated type is written out and bound
+  through the compilation, so two spellings of one type compare equal. `int` and `int?` differ.
+- Nullability agrees for each accessor. A nullable property does not implement a getter that
+  declares a non-nullable reference type, and a non-nullable one does not implement a setter that
+  accepts null. The compiler reports both only as warnings, so the build would pass locally and
+  fail CI.
+
+A member with a default implementation needs nothing. A method, an event, an indexer, a static
+member and an `init` accessor cannot be supplied, and each is reported. A name that the compilation
+does not declare, or that names a type other than an interface, is reported too.
+
+An interface that does not fit is left off the base list. This diagnostic is then the build's only
+error for it, rather than appearing beside a `CS0535` that does not name the operation.
+
+An error, because a filter typed on the interface would skip the operation without a word. Fix the
+parameter or the interface, or clear the list on the operation with
+`x-hardened-request-interfaces: []`.
+
 ## Routing
 
 ### HRDR002 — unsupported route token syntax
