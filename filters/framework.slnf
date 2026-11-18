@@ -10,6 +10,7 @@
       "src\\Clients\\Hardened.Kiota.Testing\\Hardened.Kiota.Testing.csproj",
       "src\\Clients\\Hardened.Refit.Testing.Tests\\Hardened.Refit.Testing.Tests.csproj",
       "src\\Clients\\Hardened.Refit.Testing\\Hardened.Refit.Testing.csproj",
+      "src\\IntegrationTests\\Aot\\Hardened.IntegrationTests.Aot.OpenApi.SUT\\Hardened.IntegrationTests.Aot.OpenApi.SUT.csproj",
       "src\\IntegrationTests\\Aot\\Hardened.IntegrationTests.Aot.SUT\\Hardened.IntegrationTests.Aot.SUT.csproj",
       "src\\IntegrationTests\\Authorization\\Hardened.IntegrationTests.Authorization.SUT.Tests\\Hardened.IntegrationTests.Authorization.SUT.Tests.csproj",
       "src\\IntegrationTests\\Authorization\\Hardened.IntegrationTests.Authorization.SUT\\Hardened.IntegrationTests.Authorization.SUT.csproj",

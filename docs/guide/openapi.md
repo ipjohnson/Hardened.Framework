@@ -803,6 +803,9 @@ if (chain.Context.Request.Parameters is ITenantRequest request)
 }
 ```
 
+The cast is an ordinary type test, so it works the same way in a Native AOT publish. CI publishes
+this filter natively and checks the header.
+
 The root's list applies to every operation. A path item's list adds to it for the path's
 operations, and an operation's list adds to both. A name appears once. An empty list at a path item
 or an operation clears the names that it inherits, so `status` above implements nothing.
