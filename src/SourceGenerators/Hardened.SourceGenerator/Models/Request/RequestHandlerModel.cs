@@ -59,6 +59,8 @@ public class RequestHandlerModel
         )
         {
             ParametersInterface = ParametersInterface,
+            RequestInterfaceNames = RequestInterfaceNames,
+            RequestInterfaces = RequestInterfaces,
             ParametersValidator = ParametersValidator,
             ResponseSchema = ResponseSchema,
             ResponseSchemas = responseSchemas ?? ResponseSchemas,
@@ -158,6 +160,29 @@ public class RequestHandlerModel
     /// </para>
     /// </remarks>
     public ITypeDefinition? ParametersInterface { get; set; }
+
+    /// <summary>
+    /// The fully qualified names a description's <c>x-hardened-request-interfaces</c> gives this
+    /// operation's request, or empty.
+    /// </summary>
+    /// <remarks>
+    /// What the description said, for the published document to repeat. The <c>Parameters</c>
+    /// class implements <see cref="RequestInterfaces"/>, which holds only the names that resolved
+    /// to an interface the request satisfies.
+    /// </remarks>
+    public IReadOnlyList<string> RequestInterfaceNames { get; set; } = Array.Empty<string>();
+
+    /// <summary>
+    /// The interfaces from <see cref="RequestInterfaceNames"/> that the generated
+    /// <c>Parameters</c> class implements, after <see cref="ParametersInterface"/>.
+    /// </summary>
+    /// <remarks>
+    /// Empty until the generator has checked each name against the compilation, which happens
+    /// just before the class is emitted. A name that does not fit is reported as <c>HOAG033</c>
+    /// and left out, so that diagnostic is the build's only error for it.
+    /// </remarks>
+    public IReadOnlyList<ITypeDefinition> RequestInterfaces { get; set; } =
+        Array.Empty<ITypeDefinition>();
 
     /// <summary>
     /// The generated validator for this handler's <c>Parameters</c> class, or null when it declares
@@ -485,6 +510,16 @@ public class RequestHandlerModel
         }
 
         if (!Equals(ParametersInterface, requestHandlerModel.ParametersInterface))
+        {
+            return false;
+        }
+
+        if (!RequestInterfaceNames.SequenceEqual(requestHandlerModel.RequestInterfaceNames))
+        {
+            return false;
+        }
+
+        if (!RequestInterfaces.SequenceEqual(requestHandlerModel.RequestInterfaces))
         {
             return false;
         }

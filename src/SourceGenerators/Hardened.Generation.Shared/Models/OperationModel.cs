@@ -272,6 +272,17 @@ internal class OperationModel : IEquatable<OperationModel>
     /// </remarks>
     public string? ValidationMode { get; set; }
 
+    /// <summary>
+    /// The interfaces this operation's generated <c>Parameters</c> type implements, as the
+    /// fully qualified names <c>x-hardened-request-interfaces</c> gives.
+    /// </summary>
+    /// <remarks>
+    /// The list in effect for the operation: the document's, then the path item's, then the
+    /// operation's, each name once. An empty list at a level clears what that level inherits, so
+    /// this holds the result and not the three declarations.
+    /// </remarks>
+    public List<string> RequestInterfaces { get; set; } = new();
+
     // x-filters: typed filter attribute instances applied to this operation
     public List<FilterInstanceModel> FilterInstances { get; set; } = new();
 
@@ -381,7 +392,8 @@ internal class OperationModel : IEquatable<OperationModel>
             && RequestBodyProperties.SequenceEqual(other.RequestBodyProperties)
             && RequestBodyRequired.SequenceEqual(other.RequestBodyRequired)
             && Equals(Timeout, other.Timeout)
-            && ValidationMode == other.ValidationMode;
+            && ValidationMode == other.ValidationMode
+            && RequestInterfaces.SequenceEqual(other.RequestInterfaces);
     }
 
     public override bool Equals(object? obj) => Equals(obj as OperationModel);

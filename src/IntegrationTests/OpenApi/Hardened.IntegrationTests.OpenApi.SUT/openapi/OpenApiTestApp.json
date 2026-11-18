@@ -42,6 +42,9 @@
     },
     {
       "name": "Receipt"
+    },
+    {
+      "name": "Tenant"
     }
   ],
   "paths": {
@@ -1263,6 +1266,72 @@
             }
           }
         }
+      }
+    },
+    "/tenants/status": {
+      "get": {
+        "tags": [
+          "Tenant"
+        ],
+        "operationId": "tenantStatus",
+        "parameters": [
+          {
+            "name": "verbose",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Up",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request failed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tenants/{tenant}/orders": {
+      "get": {
+        "tags": [
+          "Tenant"
+        ],
+        "operationId": "listTenantOrders",
+        "parameters": [
+          {
+            "name": "tenant",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The tenant's orders"
+          }
+        },
+        "x-hardened-request-interfaces": [
+          "Hardened.IntegrationTests.OpenApi.SUT.ITenantRequest"
+        ]
       }
     }
   },

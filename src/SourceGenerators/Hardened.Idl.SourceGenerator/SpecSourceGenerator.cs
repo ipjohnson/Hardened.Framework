@@ -292,6 +292,18 @@ public class SpecSourceGenerator : IIncrementalGenerator
                         .ToImmutableArray()
             );
 
+        // Which of the interfaces each description names fit its operation's request. The only
+        // reader of the compilation on the handler path, reduced to strings so an edit that
+        // changes no interface leaves the handlers cached.
+        var requestInterfaces = allHandlerModels
+            .Combine(context.CompilationProvider)
+            .Select(
+                static (pair, cancellationToken) =>
+                    RequestInterfaceCheck.Read(pair.Left, pair.Right, cancellationToken)
+            );
+
+        context.RegisterSourceOutput(requestInterfaces, RequestInterfaceCheck.Report);
+
         // Combine enriched models with config for handler generation
         var excludeFromCoverageProvider = configProvider.Select(
             (cfg, _) => cfg.ExcludeFromCoverage
@@ -300,20 +312,23 @@ public class SpecSourceGenerator : IIncrementalGenerator
         // generator is what reports a route naming a constraint nothing declares.
         var enrichedModelsWithConfig = enrichedModels
             .Combine(excludeFromCoverageProvider)
-            .Combine(constraints);
+            .Combine(constraints)
+            .Combine(requestInterfaces);
 
         // Emit handler classes (one per operation) using enriched models
         context.RegisterSourceOutput(
             enrichedModelsWithConfig,
             (ctx, pair) =>
             {
-                var models = pair.Left.Left;
-                var excludeCoverage = pair.Left.Right;
-                var declaredConstraints = pair.Right;
+                var models = pair.Left.Left.Left;
+                var excludeCoverage = pair.Left.Left.Right;
+                var declaredConstraints = pair.Left.Right;
+                var verdicts = pair.Right;
                 var invokeGenerator = new WebExecutionHandlerCodeGenerator();
-                foreach (var model in models)
+                foreach (var described in models)
                 {
                     ctx.CancellationToken.ThrowIfCancellationRequested();
+                    var model = RequestInterfaceCheck.Apply(described, verdicts);
                     try
                     {
                         // The contract and the implementation compile in the same pass, so a document

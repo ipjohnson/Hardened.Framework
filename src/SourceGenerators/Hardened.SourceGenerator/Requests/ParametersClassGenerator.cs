@@ -32,6 +32,13 @@ public static class ParametersClassGenerator
             parametersClass.AddBaseType(handlerModel.ParametersInterface);
         }
 
+        // The description's x-hardened-request-interfaces, already checked against the
+        // compilation and with the validation interface above taken out of the list.
+        foreach (var requestInterface in handlerModel.RequestInterfaces)
+        {
+            parametersClass.AddBaseType(requestInterface);
+        }
+
         WriteProperties(handlerModel, parametersClass);
 
         WriteItemProperty(handlerModel, parametersClass);

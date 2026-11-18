@@ -1,0 +1,50 @@
+# x-hardened-request-interfaces, at the root. Every operation's generated Parameters type
+# implements ITenantRequest, and TenantHeaderAttribute's filter reads the tenant through it.
+# `status` clears the list, because it has no tenant to give.
+#
+# No declared error response, for the reason events.yaml gives.
+openapi: "3.1.0"
+info:
+  title: Tenants
+  version: "1.0.0"
+x-hardened-request-interfaces:
+  - Hardened.IntegrationTests.OpenApi.SUT.ITenantRequest
+paths:
+  /tenants/{tenant}/orders:
+    get:
+      tags:
+        - Tenant
+      operationId: listTenantOrders
+      parameters:
+        - name: tenant
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The tenant's orders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+  /tenants/status:
+    get:
+      tags:
+        - Tenant
+      operationId: tenantStatus
+      x-hardened-request-interfaces: []
+      parameters:
+        - name: verbose
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Up
+          content:
+            text/plain:
+              schema:
+                type: string
