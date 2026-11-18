@@ -142,6 +142,10 @@ The preview is named exactly rather than as `11.0.x`. Keep it that way — a flo
 the SDK underneath a session. `rollForward` is `disable` for the same reason. `latestPatch` accepts
 an installed 11.0.100 as a later patch of the preview, and the ubuntu-26.04 runner image has one.
 
+The preview bundles the 8.0.29 Native AOT packs, and GHSA-p3jp-9v83-76w9 covers that ILCompiler, so
+`src/Directory.Build.targets` moves a net8.0 `PublishAot` project to 8.0.34. Remove that override
+when the pin moves to an SDK that bundles 8.0.33 or later.
+
 ## Generators
 
 **Emitted C# is written with CSharpAuthor.** `StringBuilder` is for ordinary string work, not for

@@ -12,4 +12,25 @@
         <IncludeSymbols>false</IncludeSymbols>
     </PropertyGroup>
 
+    <!--
+      A net8.0 project with PublishAot restores Microsoft.DotNet.ILCompiler at the 8.0 patch the
+      SDK bundles, and a publish takes ILLink and the runtime packs at that patch too. The pinned
+      preview bundles 8.0.29. GHSA-p3jp-9v83-76w9 covers ILCompiler 8.0.28 to 8.0.32, so a restore
+      that treats warnings as errors stops with NU1903. Both groups below move to 8.0.34. Remove
+      them when global.json names an SDK that bundles 8.0.33 or later.
+
+      A build with no runtime identifier moves only ILCompiler, because RuntimeFrameworkVersion
+      would also raise the runtime that a framework-dependent runtimeconfig.json asks for. A build
+      with one sets RuntimeFrameworkVersion, which moves every pack to the same patch.
+    -->
+    <ItemGroup Condition="'$(PublishAot)' == 'true' and '$(TargetFramework)' == 'net8.0'">
+        <KnownILCompilerPack Update="Microsoft.DotNet.ILCompiler">
+            <ILCompilerPackVersion Condition="'%(TargetFramework)' == 'net8.0'">8.0.34</ILCompilerPackVersion>
+        </KnownILCompilerPack>
+    </ItemGroup>
+    <PropertyGroup
+        Condition="'$(PublishAot)' == 'true' and '$(TargetFramework)' == 'net8.0' and '$(RuntimeIdentifier)' != ''">
+        <RuntimeFrameworkVersion>8.0.34</RuntimeFrameworkVersion>
+    </PropertyGroup>
+
 </Project>
