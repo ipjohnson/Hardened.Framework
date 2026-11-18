@@ -1,6 +1,11 @@
 {
+  "//": [
+    "rollForward is disable because latestPatch accepts an installed 11.0.100 as a later patch of",
+    "this preview and builds with it instead. The ubuntu-26.04 runner image has 11.0.100, and a",
+    "build with it gives the coverage gate different branch counts from the same source."
+  ],
   "sdk": {
     "version": "11.0.100-preview.7.26381.103",
-    "rollForward": "latestPatch"
+    "rollForward": "disable"
   }
 }

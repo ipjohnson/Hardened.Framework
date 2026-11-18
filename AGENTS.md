@@ -139,7 +139,8 @@ version — so a machine with only the .NET 11 SDK compiles everything and then 
 at all. Install both.
 
 The preview is named exactly rather than as `11.0.x`. Keep it that way — a floating preview moves
-the SDK underneath a session.
+the SDK underneath a session. `rollForward` is `disable` for the same reason. `latestPatch` accepts
+an installed 11.0.100 as a later patch of the preview, and the ubuntu-26.04 runner image has one.
 
 ## Generators
 
