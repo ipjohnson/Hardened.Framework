@@ -4,8 +4,9 @@
 #   git tag v1.0.0 && git push origin v1.0.0
 #
 # The tag is the single source of truth for the published version. The push to nuget.org uses
-# trusted publishing: a nuget.org policy owned by ipjohnson123 trusts this repository and this
-# workflow file, and NuGet/login trades the job's OIDC token for an API key that lasts an hour.
+# trusted publishing: a nuget.org policy trusts this repository and this workflow file, and
+# NuGet/login trades the job's OIDC token for an API key that lasts an hour. The NUGET_USER
+# repository variable names the nuget.org account that owns the policy.
 # There is no long-lived key to store or renew. Renaming this file breaks the policy.
 #
 # This is separate from build-package.yaml, which keeps publishing {line}-preview{run} to
@@ -413,7 +414,7 @@ jobs:
         id: nuget-login
         uses: NuGet/login@v1
         with:
-          user: ipjohnson123
+          user: ${{ vars.NUGET_USER }}
 
       - name: Push to nuget.org
         run: |
