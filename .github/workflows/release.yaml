@@ -3,8 +3,10 @@
 # Cutting a release:
 #   git tag v1.0.0 && git push origin v1.0.0
 #
-# The tag is the single source of truth for the published version. Requires a NUGET_API_KEY
-# repository secret with push rights for the Hardened.* package IDs on nuget.org.
+# The tag is the single source of truth for the published version. The push to nuget.org uses
+# trusted publishing: a nuget.org policy owned by ipjohnson123 trusts this repository and this
+# workflow file, and NuGet/login trades the job's OIDC token for an API key that lasts an hour.
+# There is no long-lived key to store or renew. Renaming this file breaks the policy.
 #
 # This is separate from build-package.yaml, which keeps publishing {line}-preview{run} to
 # GitHub Packages on every merge to main. That remains the continuous feed; this is the
@@ -22,6 +24,7 @@ on:
 permissions:
   contents: write
   packages: write
+  id-token: write
 
 jobs:
   release:
@@ -405,10 +408,17 @@ jobs:
           name: packages
           path: ./artifacts/*
 
+      # Directly above the push, because the key it returns expires an hour after it is issued.
+      - name: Log in to nuget.org
+        id: nuget-login
+        uses: NuGet/login@v1
+        with:
+          user: ipjohnson123
+
       - name: Push to nuget.org
         run: |
           dotnet nuget push "./artifacts/*.nupkg" \
-            --api-key "${{ secrets.NUGET_API_KEY }}" \
+            --api-key "${{ steps.nuget-login.outputs.NUGET_API_KEY }}" \
             --source https://api.nuget.org/v3/index.json \
             --skip-duplicate
 
