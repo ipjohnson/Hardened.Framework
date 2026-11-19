@@ -278,6 +278,7 @@ internal static class SpecHandlerModelBuilder
         )
         {
             ParametersInterface = parametersInterface,
+            RequestInterfaceNames = operation.RequestInterfaces,
 
             // Republished, so a description that declared a deadline still declares one after a
             // round trip through this generator. Without it a model's budget survived into the

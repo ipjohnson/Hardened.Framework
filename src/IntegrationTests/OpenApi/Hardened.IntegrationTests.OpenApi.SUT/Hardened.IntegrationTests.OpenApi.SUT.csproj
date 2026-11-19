@@ -66,6 +66,8 @@
         <HardenedOpenApiSpec Include="Specs\events.yaml" />
         <!-- Constraints reachable only through a nested model; the file says why. -->
         <HardenedOpenApiSpec Include="Specs\receipts.yaml" />
+        <!-- x-hardened-request-interfaces at the document's root; the file says why. -->
+        <HardenedOpenApiSpec Include="Specs\tenants.yaml" />
     </ItemGroup>
 
     <!--

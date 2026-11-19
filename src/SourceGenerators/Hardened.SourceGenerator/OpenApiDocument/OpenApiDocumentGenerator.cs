@@ -995,6 +995,7 @@ public static class OpenApiDocumentGenerator
         WriteResponses(builder, handler, components, version);
         WriteTimeout(builder, handler);
         WriteValidationMode(builder, handler);
+        WriteRequestInterfaces(builder, handler);
 
         builder.Append('}');
     }
@@ -1847,6 +1848,39 @@ public static class OpenApiDocumentGenerator
             .Append(",\"x-hardened-validation\":\"")
             .Append(ValidationModeNames.ToWritten(mode))
             .Append('"');
+    }
+
+    /// <summary>
+    /// The <c>x-hardened-request-interfaces</c> in effect for the operation, on the operation.
+    /// </summary>
+    /// <remarks>
+    /// The document the build read may have declared the list at its root or on a path item. Only
+    /// the result reaches a handler, so the served document writes it on each operation, which a
+    /// reader resolves to the same list.
+    /// </remarks>
+    private static void WriteRequestInterfaces(StringBuilder builder, RequestHandlerModel handler)
+    {
+        if (handler.RequestInterfaceNames.Count == 0)
+        {
+            return;
+        }
+
+        builder.Append(",\"x-hardened-request-interfaces\":[");
+
+        for (var i = 0; i < handler.RequestInterfaceNames.Count; i++)
+        {
+            if (i > 0)
+            {
+                builder.Append(',');
+            }
+
+            builder
+                .Append('"')
+                .Append(JsonSchemaWriter.Escape(handler.RequestInterfaceNames[i]))
+                .Append('"');
+        }
+
+        builder.Append(']');
     }
 
     private static void WriteTimeout(StringBuilder builder, RequestHandlerModel handler)

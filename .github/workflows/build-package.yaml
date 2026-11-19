@@ -192,10 +192,11 @@ jobs:
 
           echo "using $CLANG ($("$CLANG" --version | head -1))"
 
-          # All three. A native binary that serves an HTTP request says nothing about the
-          # function path: a different adapter, a batch fan-out, and an answer written back to the
-          # Lambda Runtime API rather than to a socket.
-          for app in Hardened.IntegrationTests.Aot.SUT Hardened.IntegrationTests.Aot.Lambda.SUT Hardened.IntegrationTests.Aot.CloudRun.SUT; do
+          # A native binary that serves an HTTP request says nothing about the function path: a
+          # different adapter, a batch fan-out, and an answer written back to the Lambda Runtime
+          # API rather than to a socket. The OpenApi one is the specification-first route, which
+          # the code-first binary cannot also carry (HRDR008).
+          for app in Hardened.IntegrationTests.Aot.SUT Hardened.IntegrationTests.Aot.OpenApi.SUT Hardened.IntegrationTests.Aot.Lambda.SUT Hardened.IntegrationTests.Aot.CloudRun.SUT; do
             dotnet publish "src/IntegrationTests/Aot/$app/$app.csproj" \
               --configuration Release \
               --runtime linux-x64 \
@@ -318,6 +319,56 @@ jobs:
           case "$body" in
             *'"message":"hardened"'*'"length":8'*) echo "Native AOT binary served a bound, serialized response." ;;
             *) echo "::error::Unexpected response from the native binary: $body"; exit 1 ;;
+          esac
+
+      # The same question for a specification-first route. tenants.yaml names ITenantRequest at its
+      # root, so the generated Parameters type implements it, and the filter writes X-Tenant only
+      # when the cast to the interface succeeds. A trimmer that dropped the interface from the type
+      # would answer 200 without the header, which is why both routes are read.
+      - name: Serve a specification-first request from the native binary
+        run: |
+          set -o pipefail
+
+          binary=$(find src/IntegrationTests/Aot -type f -path '*/publish/*' \
+            -name 'Hardened.IntegrationTests.Aot.OpenApi.SUT' -perm -u+x | head -1)
+
+          if [ -z "$binary" ]; then
+            echo "::error::No native OpenApi binary was produced."
+            find src/IntegrationTests/Aot -name 'Hardened.IntegrationTests.Aot.OpenApi.SUT*' -type f || true
+            exit 1
+          fi
+
+          if [ -f "$(dirname "$binary")/Hardened.IntegrationTests.Aot.OpenApi.SUT.runtimeconfig.json" ]; then
+            echo "::error::Found the framework-dependent apphost rather than the native binary."
+            exit 1
+          fi
+
+          echo "native binary: $binary ($(du -h "$binary" | cut -f1))"
+
+          "$binary" 5196 &
+          pid=$!
+          trap 'kill $pid 2>/dev/null || true' EXIT
+
+          for _ in $(seq 1 40); do
+            if curl -fsS "http://localhost:5196/tenants/status" >/dev/null 2>&1; then break; fi
+            sleep 0.25
+          done
+
+          orders=$(curl -fsS -D - http://localhost:5196/tenants/acme/orders | tr -d '\r')
+          echo "$orders"
+
+          case "$orders" in
+            *'X-Tenant: acme'*'["order-1"]'*) echo "The filter read the tenant through ITenantRequest." ;;
+            *) echo "::error::/tenants/acme/orders did not carry X-Tenant: acme."; exit 1 ;;
+          esac
+
+          status=$(curl -fsS -D - http://localhost:5196/tenants/status | tr -d '\r')
+          echo "$status"
+
+          case "$status" in
+            *'X-Tenant'*) echo "::error::/tenants/status carried X-Tenant, though its list is cleared."; exit 1 ;;
+            *'up'*) echo "The cleared route answered without X-Tenant." ;;
+            *) echo "::error::Unexpected response from /tenants/status: $status"; exit 1 ;;
           esac
 
       # The same question for a function. The binary stubs the Lambda Runtime API in-process, serves

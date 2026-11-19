@@ -168,6 +168,7 @@
   </Folder>
   <Folder Name="/IntegrationTests/Aot/">
     <Project Path="src/IntegrationTests/Aot/Hardened.IntegrationTests.Aot.SUT/Hardened.IntegrationTests.Aot.SUT.csproj" />
+    <Project Path="src/IntegrationTests/Aot/Hardened.IntegrationTests.Aot.OpenApi.SUT/Hardened.IntegrationTests.Aot.OpenApi.SUT.csproj" />
     <Project Path="src/IntegrationTests/Aot/Hardened.IntegrationTests.Aot.Lambda.SUT/Hardened.IntegrationTests.Aot.Lambda.SUT.csproj" />
     <Project Path="src/IntegrationTests/Aot/Hardened.IntegrationTests.Aot.CloudRun.SUT/Hardened.IntegrationTests.Aot.CloudRun.SUT.csproj" />
     <Project Path="src/IntegrationTests/Aot/Hardened.IntegrationTests.Aot.AzureFunctions.SUT/Hardened.IntegrationTests.Aot.AzureFunctions.SUT.csproj" />

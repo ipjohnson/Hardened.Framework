@@ -238,6 +238,12 @@ internal static class OpenApiSpecParser
             }
         }
 
+        var documentInterfaces = WithRequestInterfaces(
+            new List<string>(),
+            document.Extensions,
+            "the document"
+        );
+
         var operationsByTag = new Dictionary<string, List<OperationModel>>();
 
         var basePath = applyServerBasePath ? ServerBasePath(document) : "";
@@ -256,6 +262,7 @@ internal static class OpenApiSpecParser
                     synthesized,
                     groupUntaggedByPath,
                     document,
+                    documentInterfaces,
                     diagnostics
                 );
             }
@@ -2712,6 +2719,7 @@ internal static class OpenApiSpecParser
         SchemaCollector collector,
         bool groupUntaggedByPath,
         OpenApiDocument document,
+        IReadOnlyList<string> documentInterfaces,
         ICollection<string>? diagnostics
     )
     {
@@ -2719,6 +2727,12 @@ internal static class OpenApiSpecParser
         {
             return;
         }
+
+        var pathInterfaces = WithRequestInterfaces(
+            documentInterfaces,
+            pathItem.Extensions,
+            $"the path item '{path}'"
+        );
 
         // Guarded rather than coalesced to an empty sequence: naming the element type would mean
         // naming System.Net.Http.HttpMethod, which .NET Framework does not have in scope here.
@@ -3039,6 +3053,12 @@ internal static class OpenApiSpecParser
                 opModel.ValidationMode = ParseValidationMode(validationNode, opModel.OperationId);
             }
 
+            opModel.RequestInterfaces = WithRequestInterfaces(
+                pathInterfaces,
+                operation.Extensions,
+                $"'{opModel.OperationId}'"
+            );
+
             if (!operationsByTag.TryGetValue(tag, out var list))
             {
                 list = new List<OperationModel>();
@@ -3047,6 +3067,76 @@ internal static class OpenApiSpecParser
 
             list.Add(opModel);
         }
+    }
+
+    /// <summary>
+    /// The <c>x-hardened-request-interfaces</c> in effect one level down: what the level above
+    /// passed, followed by what this level declares.
+    /// </summary>
+    /// <remarks>
+    /// An empty list clears the inherited names, which is how an operation opts out of an interface
+    /// its document gives every other operation. A name already inherited is not added twice.
+    /// Anything other than a list of names is refused, because a misspelt shape would otherwise
+    /// leave the request without an interface a filter casts to.
+    /// </remarks>
+    private static List<string> WithRequestInterfaces(
+        IReadOnlyList<string> inherited,
+        IDictionary<string, IOpenApiExtension>? extensions,
+        string declaredOn
+    )
+    {
+        if (
+            extensions == null
+            || !extensions.TryGetValue("x-hardened-request-interfaces", out var extension)
+            || extension is not JsonNodeExtension { Node: { } node }
+        )
+        {
+            return new List<string>(inherited);
+        }
+
+        if (node is not JsonArray names)
+        {
+            throw new InvalidOperationException(
+                $"{declaredOn} declares an x-hardened-request-interfaces of {node.ToJsonString()}. "
+                    + "It has to be a list of interface names."
+            );
+        }
+
+        if (names.Count == 0)
+        {
+            return new List<string>();
+        }
+
+        var result = new List<string>(inherited);
+
+        foreach (var entry in names)
+        {
+            var name =
+                entry is JsonValue value && value.GetValueKind() == JsonValueKind.String
+                    ? value.GetValue<string>().Trim()
+                    : "";
+
+            if (name.StartsWith("global::", StringComparison.Ordinal))
+            {
+                name = name.Substring("global::".Length);
+            }
+
+            if (name.Length == 0)
+            {
+                throw new InvalidOperationException(
+                    $"{declaredOn} declares an x-hardened-request-interfaces entry of "
+                        + $"{entry?.ToJsonString() ?? "null"}. Each entry has to be the fully "
+                        + "qualified name of an interface."
+                );
+            }
+
+            if (!result.Contains(name))
+            {
+                result.Add(name);
+            }
+        }
+
+        return result;
     }
 
     /// <summary>

@@ -1,0 +1,67 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!--
+      The specification-first half of the AOT proof, beside the code-first Kestrel binary. Its own
+      application rather than a spec in Hardened.IntegrationTests.Aot.SUT, because the IDL and the
+      attribute-route generators in one project is HRDR008.
+
+      What it publishes is tenants.yaml, whose root names ITenantRequest under
+      x-hardened-request-interfaces, and a filter that reads the tenant through that interface.
+      The CI probe asserts the header on a route that implements it and its absence on one that
+      clears the list.
+    -->
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>$(HardenedTargetFramework)</TargetFramework>
+        <DependencyModules_AutoGenerateModule>false</DependencyModules_AutoGenerateModule>
+
+        <!-- On for the ordinary build too, for the reason Hardened.IntegrationTests.Aot.SUT gives. -->
+        <PublishAot>true</PublishAot>
+        <InvariantGlobalization>true</InvariantGlobalization>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <CompilerVisibleProperty Include="DependencyModules_AutoGenerateModule"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\Web\Hardened.Web.Kestrel.Runtime\Hardened.Web.Kestrel.Runtime.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\SourceGenerators\Hardened.DependencyModules.SourceGenerator\Hardened.DependencyModules.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\..\SourceGenerators\Hardened.Library.SourceGenerator\Hardened.Library.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\..\SourceGenerators\Hardened.Idl.SourceGenerator\Hardened.Idl.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+    </ItemGroup>
+
+    <!--
+        The build task, wired in-repo as Hardened.IntegrationTests.OpenApi.SUT wires it. That
+        project's file says why the flavour follows $(MSBuildRuntimeType).
+
+        The runtime identifier is removed from the reference, because `dotnet publish -r` passes it
+        on and the task would then build under bin/.../net8.0/<rid>/, where
+        HardenedOpenApiTaskAssembly does not look.
+    -->
+    <PropertyGroup>
+        <_HardenedOpenApiTaskTfm Condition="'$(MSBuildRuntimeType)' == 'Core'">net8.0</_HardenedOpenApiTaskTfm>
+        <_HardenedOpenApiTaskTfm Condition="'$(MSBuildRuntimeType)' != 'Core'">net472</_HardenedOpenApiTaskTfm>
+        <HardenedOpenApiTaskAssembly>$(MSBuildThisFileDirectory)..\..\..\SourceGenerators\Hardened.OpenApi.BuildTask\bin\$(Configuration)\$(_HardenedOpenApiTaskTfm)\Hardened.OpenApi.BuildTask.dll</HardenedOpenApiTaskAssembly>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\SourceGenerators\Hardened.OpenApi.BuildTask\Hardened.OpenApi.BuildTask.csproj"
+                          ReferenceOutputAssembly="false"
+                          SetTargetFramework="TargetFramework=$(_HardenedOpenApiTaskTfm)"
+                          GlobalPropertiesToRemove="RuntimeIdentifier;SelfContained"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <HardenedOpenApiSpec Include="Specs\tenants.yaml" />
+    </ItemGroup>
+
+    <!-- After the specs, for the reason Hardened.IntegrationTests.OpenApi.SUT gives. -->
+    <Import Project="..\..\..\SourceGenerators\Hardened.OpenApi.SourceGenerator\Package\Hardened.OpenApi.SourceGenerator.targets"/>
+
+    <Import Project="..\..\..\SourceGenerators\ValidationModulesGenerator.props"/>
+
+</Project>

@@ -35,7 +35,7 @@ public class DefaultClientSettingsTests
         var (config, credentials) = Settings(new DynamoDbOptions());
 
         Assert.Null(credentials);
-        Assert.Null(config.RegionEndpoint);
+        Assert.Equal(TheSdksOwnRegion(), config.RegionEndpoint?.SystemName);
         Assert.Null(config.ServiceURL);
     }
 
@@ -58,7 +58,7 @@ public class DefaultClientSettingsTests
     {
         var (config, _) = Settings(new DynamoDbOptions { Region = region });
 
-        Assert.Null(config.RegionEndpoint);
+        Assert.Equal(TheSdksOwnRegion(), config.RegionEndpoint?.SystemName);
     }
 
     [Fact]
@@ -153,6 +153,14 @@ public class DefaultClientSettingsTests
         Amazon.DynamoDBv2.AmazonDynamoDBConfig Config,
         AWSCredentials? Credentials
     ) Settings(DynamoDbOptions options) => DynamoDbClientProvider.DefaultClientSettings(options);
+
+    /// <summary>
+    /// The region of a config nobody set one on. Reading <c>RegionEndpoint</c> makes the SDK look in
+    /// the environment, the shared config file and instance metadata, so this is <c>null</c> only on
+    /// a machine where none of them names a region. A CI runner image can name one.
+    /// </summary>
+    private static string? TheSdksOwnRegion() =>
+        new Amazon.DynamoDBv2.AmazonDynamoDBConfig().RegionEndpoint?.SystemName;
 
     private static string? EnvironmentVariableBehind(string fieldName) =>
         typeof(DynamoDbOptions)
