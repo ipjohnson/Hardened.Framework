@@ -69,7 +69,8 @@ internal static class OpenApiGenerator
         string source,
         IReadOnlyDictionary<string, string>? buildProperties = null,
         IReadOnlyList<Microsoft.CodeAnalysis.MetadataReference>? additionalReferences = null,
-        Action<ServiceSpecModel>? configure = null
+        Action<ServiceSpecModel>? configure = null,
+        IReadOnlyList<Microsoft.CodeAnalysis.IIncrementalGenerator>? additionalGenerators = null
     )
     {
         // Must resolve exactly as the generator does, and against the same defaults the harness
@@ -109,6 +110,8 @@ internal static class OpenApiGenerator
             _ => SpecResponseModel.Throws,
         };
 
+        var shared = new SharedSchemas();
+
         foreach (var spec in specs)
         {
             var model = ParseSpec(spec.Key, spec.Value);
@@ -116,6 +119,15 @@ internal static class OpenApiGenerator
             model.ResponseModel = responseModel;
 
             configure?.Invoke(model);
+
+            // The task reports a conflict as HOAT036 and skips the file; Hardened.OpenApi.BuildTask.Tests
+            // asserts that. Here it would only compile a project the build refuses.
+            var claim = shared.Claim(model, spec.Key);
+
+            if (claim.Conflicts.Count > 0)
+            {
+                throw new InvalidOperationException(string.Join("\n", claim.Conflicts));
+            }
 
             // Emit before serialising, in that order, because emitting records what it named -
             // the parameter interface and validator per operation - onto the model, and the
@@ -132,7 +144,8 @@ internal static class OpenApiGenerator
                     excludeFromCoverage,
                     model.SourceUrl.Length > 0 ? spec.Value : "",
                     spec.Key,
-                    responseModel
+                    responseModel,
+                    claim.EmittedElsewhere
                 )
             );
 
@@ -144,7 +157,7 @@ internal static class OpenApiGenerator
 
         var result = GeneratorTestHarness.Run(
             sources,
-            [new SpecSourceGenerator()],
+            [new SpecSourceGenerator(), .. additionalGenerators ?? []],
             Anchors,
             models,
             buildProperties,

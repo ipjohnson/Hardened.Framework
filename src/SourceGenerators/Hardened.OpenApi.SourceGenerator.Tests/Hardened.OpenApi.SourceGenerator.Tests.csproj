@@ -110,4 +110,32 @@
                  Link="OpenApiDocument/DocumentWriterTests.cs"/>
     </ItemGroup>
 
+    <!--
+        ValidationModules' generator, so a test can run it over what the task emitted the way a
+        real project does: the validators for a model come from it, not from the task. Its assembly
+        rather than its analyzer, so a GeneratorDriver can construct it, which is the arrangement
+        Hardened.Web.SourceGenerator.Tests uses. The package leg takes no assets, which keeps the
+        generator from running over this project.
+
+        Under an alias, because that assembly carries its own CSharpAuthor and so does
+        Hardened.Idl.SourceGenerator, and the emitters compiled in here would find every CSharpAuthor
+        type in both (CS0433).
+    -->
+    <PropertyGroup>
+        <ValidationModulesRoot Condition="'$(ValidationModulesRoot)' == ''">$(MSBuildThisFileDirectory)..\..\..\..\ValidationModules</ValidationModulesRoot>
+        <ValidationModulesGeneratorProject>$(ValidationModulesRoot)\src\ValidationModules.SourceGenerator\ValidationModules.SourceGenerator.csproj</ValidationModulesGeneratorProject>
+        <UseLocalValidationModules Condition="'$(UseLocalValidationModules)' == '' And Exists('$(ValidationModulesGeneratorProject)')">true</UseLocalValidationModules>
+    </PropertyGroup>
+
+    <ItemGroup Condition="'$(UseLocalValidationModules)' == 'true'">
+        <ProjectReference Include="$(ValidationModulesGeneratorProject)" Aliases="validationgenerator"/>
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(UseLocalValidationModules)' != 'true'">
+        <PackageReference Include="ValidationModules.SourceGenerator" GeneratePathProperty="true"
+                          IncludeAssets="none" PrivateAssets="all"/>
+        <Reference Include="$(PkgValidationModules_SourceGenerator)\analyzers\dotnet\cs\ValidationModules.SourceGenerator.dll"
+                   Aliases="validationgenerator"/>
+    </ItemGroup>
+
 </Project>

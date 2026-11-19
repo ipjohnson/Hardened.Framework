@@ -693,6 +693,7 @@ the other.
 | `033` | A member the keyed MessagePack serializer has no index for, or two members sharing one. Part of the model-diagnostics pass; see below. |
 | `034` | Warning. A `oneOf` under a MessagePack serializer, which does not carry one. Part of the model-diagnostics pass; see below. |
 | `035` | `HSMT` only. A committed AST's `@paginated` names a member the operation does not have, or one of the wrong type. Part of the model-diagnostics pass; see below. |
+| `036` | Two descriptions of one project declare a schema of one name, and the two declarations differ. The message names the schema and both files. Every description of a project generates into one models namespace, so the first file to declare a schema writes its type and a later file that declares it alike uses that type. Declare it alike in both, or rename it in one. A union that one file streams and the other does not counts as different, because a streamed union is generated with an event form. The later file is not generated. |
 
 ### The Smithy CLI task (HSMT010–HSMT014)
 
