@@ -212,6 +212,11 @@ A project can declare several documents, each in its own item. The file name of 
 Pascal case, prefixes the helper types that the build writes for it. `todos.yaml` gives
 `TodosProblems` and `TodosErrorBodies`.
 
+The documents of one project generate their models into one namespace. Each document can declare a
+schema that another also declares, such as a shared error body, so that each stays valid alone. The
+first document in item order generates the type, and the others use it. Two declarations of one
+name that differ stop the build with `HOAT036`, which names the schema and both files.
+
 The document can be YAML or JSON. The build decides by the first character that is not white space.
 A `{` means JSON.
 
@@ -976,6 +981,7 @@ The build and the generator report these codes:
 | `HOAT026` | Warning | A path names a parameter the operation does not declare |
 | `HOAT027` | Error | A `$ref` names a schema the document does not declare |
 | `HOAT032` | Warning | `nullable` in a 3.1 or later document |
+| `HOAT036` | Error | Two documents of the project declare one schema name differently |
 | `HOAG002` | Warning | A model file the generator cannot read |
 | `HOAG030` | Warning | No `[Handler]` class implements a declared interface |
 | `HOAG031` | Warning | A `[Handler]` class implements no declared interface |

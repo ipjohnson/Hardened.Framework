@@ -445,6 +445,19 @@ internal static class SpecModelSerializer
         return model;
     }
 
+    /// <summary>One schema in the form <see cref="Write(ServiceSpecModel)"/> gives it.</summary>
+    /// <remarks>
+    /// Every field the generator half reads, which makes it the comparison for "declared alike".
+    /// <see cref="SchemaModel.Equals(SchemaModel)"/> is narrower: it leaves out a union's branches,
+    /// enum member names and most of a property's shape.
+    /// </remarks>
+    public static string Write(SchemaModel schema)
+    {
+        var builder = new StringBuilder();
+        WriteSchema(builder, schema);
+        return builder.ToString();
+    }
+
     private static void WriteSchema(StringBuilder builder, SchemaModel schema)
     {
         var record = new Record("schema");

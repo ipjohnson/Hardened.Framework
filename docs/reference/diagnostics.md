@@ -399,6 +399,7 @@ interface that the `Response` model generates.
 | `016` | Error | `UiUrl` is set without `PublishUrl` | Build task | `HOAT016` and `HSMT016`: [The OpenAPI document](/guide/openapi-document) |
 | `017` | Error | `SourceUrl` is set and the description is not embedded | Build task | `HOAT017` and `HSMT017`: [The OpenAPI document](/guide/openapi-document) |
 | `026` | Warning | `HardenedResponseModel` is `Standard`. The build uses `Throws` | Build task | `HOAT026` and `HSMT026`: none |
+| `036` | Error | Two descriptions of one project declare one schema name, and the two declarations differ. The message names the schema and both files | Build task | `HOAT036`: [Generating from OpenAPI](/guide/openapi#declaring-the-document). `HSMT036`: none |
 
 ### The Smithy CLI and model items
 

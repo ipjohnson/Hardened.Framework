@@ -222,7 +222,7 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task
     /// <remarks>
     /// A number means the same thing under every prefix, and everything reporting under one prefix
     /// shares one numbering - which includes reporters that are not this class. This shell uses
-    /// 001-009, 016-017 and 026, the packaged targets use 003-005 and 015, the Smithy CLI task
+    /// 001-009, 016-017, 026 and 036, the packaged targets use 003-005 and 015, the Smithy CLI task
     /// uses 010-014, and <see cref="SpecDiagnostics"/> uses 020-025. The full table is
     /// docs/design/generator-diagnostics.md.
     /// </remarks>
@@ -501,6 +501,8 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task
         Directory.CreateDirectory(OutputDirectory);
         Directory.CreateDirectory(GeneratedSourceDirectory);
 
+        var shared = new SharedSchemas();
+
         foreach (var spec in Specs)
         {
             var path = spec.GetMetadata("FullPath");
@@ -670,10 +672,38 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task
                 continue;
             }
 
+            var claim = shared.Claim(model, path);
+
+            foreach (var conflict in claim.Conflicts)
+            {
+                Log.LogError(
+                    null,
+                    DiagnosticPrefix + "036",
+                    null,
+                    path,
+                    0,
+                    0,
+                    0,
+                    0,
+                    "{0}",
+                    conflict
+                );
+            }
+
+            if (claim.Conflicts.Count > 0)
+            {
+                continue;
+            }
+
             var sourcePath = Path.Combine(GeneratedSourceDirectory, fileName + SourceSuffix);
             WriteIfChanged(
                 sourcePath,
-                Emit(model, ServedDocument(spec, path, document, sliced), path)
+                Emit(
+                    model,
+                    ServedDocument(spec, path, document, sliced),
+                    path,
+                    claim.EmittedElsewhere
+                )
             );
             sources.Add(new TaskItem(sourcePath));
 
@@ -708,14 +738,20 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task
     /// its outputs are then derivable from the item list without reading a description, which one
     /// file per type is not.
     /// </remarks>
-    private string Emit(ServiceSpecModel model, string document, string specPath) =>
+    private string Emit(
+        ServiceSpecModel model,
+        string document,
+        string specPath,
+        ISet<string> emittedElsewhere
+    ) =>
         SpecFileEmitter.Emit(
             model,
             Namespace,
             ExcludeFromCoverage,
             document,
             specPath,
-            SelectedResponseModel()
+            SelectedResponseModel(),
+            emittedElsewhere
         );
 
     /// <summary>
