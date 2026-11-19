@@ -222,8 +222,8 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task
     /// <remarks>
     /// A number means the same thing under every prefix, and everything reporting under one prefix
     /// shares one numbering - which includes reporters that are not this class. This shell uses
-    /// 001-009, 016-017, 026 and 036, the packaged targets use 003-005 and 015, the Smithy CLI task
-    /// uses 010-014, and <see cref="SpecDiagnostics"/> uses 020-025. The full table is
+    /// 001-009, 016-017, 026, 036 and 038, the packaged targets use 003-005 and 015, the Smithy CLI
+    /// task uses 010-014, and <see cref="SpecDiagnostics"/> uses 020-025, 027 and 037. The full table is
     /// docs/design/generator-diagnostics.md.
     /// </remarks>
     protected abstract string DiagnosticPrefix { get; }
@@ -233,6 +233,15 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task
 
     /// <summary>The MSBuild property that turns unreferenced schema emit on, for one message.</summary>
     protected abstract string EmitUnreferencedSchemasProperty { get; }
+
+    /// <summary>
+    /// Whether a description with no operations generates every schema it declares.
+    /// </summary>
+    /// <remarks>
+    /// Such a file is a file of shared shapes, and its schemas are there for the project's other
+    /// descriptions. Off for Smithy, where a model's dependencies bring trait shapes nothing uses.
+    /// </remarks>
+    protected virtual bool OperationlessKeepsSchemas => false;
 
     /// <summary>A task-level default a spec item may override either way.</summary>
     private static bool Overridden(ITaskItem spec, string name, bool fallback)
@@ -263,12 +272,20 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task
             Tags = SplitMetadata(spec, "Tags"),
         };
 
-        if (filter.IsEmpty && EmitUnreferencedSchemas)
+        var keepUnreferenced =
+            EmitUnreferencedSchemas
+            || (
+                OperationlessKeepsSchemas
+                && filter.IsEmpty
+                && model.Services.All(service => service.Operations.Count == 0)
+            );
+
+        if (filter.IsEmpty && keepUnreferenced)
         {
             return false;
         }
 
-        var result = SpecSlicer.Apply(model, filter, EmitUnreferencedSchemas);
+        var result = SpecSlicer.Apply(model, filter, keepUnreferenced);
 
         if (result.MatchedNothing)
         {
@@ -358,7 +375,13 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task
     /// original would advertise operations that answer 404 and schemas no handler can produce. Asked
     /// for anyway, it is emitted and said out loud.
     /// </remarks>
-    private string ServedDocument(ITaskItem spec, string path, string document, bool sliced)
+    private string ServedDocument(
+        ITaskItem spec,
+        string path,
+        string document,
+        bool sliced,
+        ServiceSpecModel model
+    )
     {
         if (!Embedded(spec))
         {
@@ -373,6 +396,22 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task
                 "'{0}' is sliced but its document is embedded whole, so the application will serve "
                     + "a description of operations it does not implement.",
                 path
+            );
+        }
+
+        // The generated document at PublishUrl carries the components the references named. The
+        // embedded text is the file as written, and the files it names are not served beside it.
+        if (model.ReferencedFiles.Count > 0)
+        {
+            Warn(
+                DiagnosticPrefix + "038",
+                path,
+                "'{0}' is embedded as written, and it names {1} through $ref, so the served text "
+                    + "refers to a file the application does not serve. The document at PublishUrl "
+                    + "is complete; set EmbedDocument to false on this item if nothing serves the "
+                    + "source.",
+                path,
+                string.Join(", ", model.ReferencedFiles.Select(file => "'" + file + "'"))
             );
         }
 
@@ -700,7 +739,7 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task
                 sourcePath,
                 Emit(
                     model,
-                    ServedDocument(spec, path, document, sliced),
+                    ServedDocument(spec, path, document, sliced, model),
                     path,
                     claim.EmittedElsewhere
                 )

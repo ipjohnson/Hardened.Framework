@@ -694,6 +694,8 @@ the other.
 | `034` | Warning. A `oneOf` under a MessagePack serializer, which does not carry one. Part of the model-diagnostics pass; see below. |
 | `035` | `HSMT` only. A committed AST's `@paginated` names a member the operation does not have, or one of the wrong type. Part of the model-diagnostics pass; see below. |
 | `036` | Two descriptions of one project declare a schema of one name, and the two declarations differ. The message names the schema and both files. Every description of a project generates into one models namespace, so the first file to declare a schema writes its type and a later file that declares it alike uses that type. Declare it alike in both, or rename it in one. A union that one file streams and the other does not counts as different, because a streamed union is generated with an event form. The later file is not generated. |
+| `037` | `HOAT` only. A `$ref` to another file does not resolve. Part of the model-diagnostics pass; see below. |
+| `038` | Warning, `HOAT` only. The description names another file through `$ref` and is embedded, so `SourceUrl` serves text that refers to a file the application does not serve. The document at `PublishUrl` is generated from the model, which holds the components the reference named. Turn `EmbedDocument` off on the item. |
 
 ### The Smithy CLI task (HSMT010–HSMT014)
 
@@ -803,7 +805,7 @@ The `hardened-web` template's project files carry three checks of their own, in 
 | `HTPL003` | The Kiota tool and `Microsoft.Kiota.Bundle` disagree. The tool version in `.config/dotnet-tools.json` and `KiotaBundleVersion` in `Directory.Packages.props` move together; the message names both versions and both files. |
 | `HTPL004` | The Refitter tool could not be restored, so the client cannot be generated (`--client refit`). The pin is in `.config/dotnet-tools.json`; a fresh machine needs network for the first restore, and two builds restoring at once on one machine can fail it. There is no counterpart to `HTPL003` for the Refit pair, because Refitter does not report the Refit version it writes for. |
 
-### The model-diagnostics pass (020–027, 032–035)
+### The model-diagnostics pass (020–027, 032–035, 037)
 
 Problems any description can state that would generate C# which does not compile, found before
 anything is emitted so they are reported against the document rather than as compiler errors in a
@@ -822,6 +824,7 @@ generated file.
 | `033` | A member the keyed MessagePack serializer has no index for, or two members sharing one. |
 | `034` | Warning. A `oneOf` under a MessagePack serializer, which does not carry one. |
 | `035` | A `@paginated` setting names a member the operation does not have, or one whose target the trait does not allow. The rules are the ones the Smithy CLI reports as errors, and the CLI refuses the same models, so only a committed AST reaches this. |
+| `037` | A `$ref` to another file does not resolve. The file is not a `HardenedOpenApiSpec` of the project, the file does not declare the component, the component differs from one of that name the referencing description declares, or the component is a response. The message names the file and the component. A reference into another file that does resolve is copied into the referencing description before the parser reads it; see below. |
 
 `028`–`031` were taken by the document export before this pass needed another number, which is
 why its finders after `027` start at `032`.
@@ -882,6 +885,27 @@ parser sees it, and an unresolvable one is discarded there — the property arri
 no type and no shape, and becomes `JsonElement`. Nothing in the object model records that the
 reference was ever made, and the reader reports nothing either. Catching that needs the raw
 document rather than the object model.
+
+#### 037 — a reference into another file that does not resolve
+
+```
+'/src/Api/contracts/drafts.yaml' references 'shared.yaml#/components/schemas/Refusal', and
+'/src/Api/contracts/shared.yaml' declares no schema 'Refusal'.
+```
+
+`ProjectDocuments`, in the OpenAPI front end, reads the raw document before the parser does. Each
+component that a `$ref` names in another `HardenedOpenApiSpec` of the project is copied into the
+referencing document's own `components`, with what it references in turn, and the `$ref` becomes the
+local `#/components/<kind>/<name>`. The parser then reads an ordinary self-contained document. The
+copy is parsed from the same text as the file that declares it, so `036`'s comparison finds the two
+alike and the type is written once.
+
+Because this works on the raw document, it also catches the property reference that `027` cannot.
+A `$ref` to a file the project does not name is reported here rather than dropped by the reader.
+With `HardenedOpenApiLoadExternalRefs` on, such a reference is left for the reader to follow.
+
+A response is refused rather than copied. A named response generates an exception and a case type in
+each file that uses it, so two files using one shared response would write the type twice.
 
 ### Renumbered in 0.18
 

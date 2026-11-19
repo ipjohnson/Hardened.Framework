@@ -429,6 +429,13 @@ internal static class SpecDiagnostics
     {
         foreach (var dangling in model.DanglingReferences)
         {
+            // A reference into another file that did not resolve is already 037, which names the
+            // file and why.
+            if (model.UnresolvedFileReferences.Count > 0 && NamesAnotherFile(dangling.Reference))
+            {
+                continue;
+            }
+
             problems.Add(
                 new Problem(
                     prefix + "027",
@@ -438,6 +445,30 @@ internal static class SpecDiagnostics
                         + "reference at one that exists."
                 )
             );
+        }
+    }
+
+    private static bool NamesAnotherFile(string reference) =>
+        reference.Length > 0 && reference[0] != '#';
+
+    /// <summary>
+    /// A <c>$ref</c> to another file that names no description of the project, or a component
+    /// that file does not declare.
+    /// </summary>
+    /// <remarks>
+    /// Fatal, for the reason <c>027</c> is. The reader drops an unresolved reference on a schema
+    /// property without a word, so the member would become <c>JsonElement</c> and the build would
+    /// succeed.
+    /// </remarks>
+    private static void FindUnresolvedFileReferences(
+        ServiceSpecModel model,
+        string prefix,
+        List<Problem> problems
+    )
+    {
+        foreach (var message in model.UnresolvedFileReferences)
+        {
+            problems.Add(new Problem(prefix + "037", message));
         }
     }
 
@@ -477,6 +508,7 @@ internal static class SpecDiagnostics
     {
         var problems = new List<Problem>();
 
+        FindUnresolvedFileReferences(model, diagnosticPrefix, problems);
         FindDanglingReferences(model, diagnosticPrefix, problems);
         FindPaginationMismatches(model, diagnosticPrefix, problems);
         FindDuplicateSchemaNames(model, diagnosticPrefix, problems);

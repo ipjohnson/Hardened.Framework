@@ -66,6 +66,8 @@ public sealed class ExtractOpenApiSpec : ExtractSpecTask
     protected override string EmitUnreferencedSchemasProperty =>
         "HardenedOpenApiEmitUnreferencedSchemas";
 
+    protected override bool OperationlessKeepsSchemas => true;
+
     /// <summary>
     /// Turns one OpenAPI document into the neutral model everything downstream works on.
     /// </summary>
@@ -87,6 +89,27 @@ public sealed class ExtractOpenApiSpec : ExtractSpecTask
             ApplyServerBasePath,
             diagnostics,
             GroupUntaggedByPath,
-            LoadExternalRefs ? Path.GetDirectoryName(Path.GetFullPath(specPath)) : null
+            LoadExternalRefs ? Path.GetDirectoryName(Path.GetFullPath(specPath)) : null,
+            Project(),
+            specPath
+        );
+
+    private ProjectDocuments? _project;
+
+    /// <summary>
+    /// Every description this run reads, so a <c>$ref</c> in one resolves to a component another
+    /// declares. One instance for the run, so a file of shared shapes is read once.
+    /// </summary>
+    private ProjectDocuments Project() =>
+        _project ??= new ProjectDocuments(
+            Specs
+                .Select(spec => spec.GetMetadata("FullPath"))
+                .Where(File.Exists)
+                .Distinct(StringComparer.Ordinal)
+                .Select(path => new KeyValuePair<string, Func<string>>(
+                    path,
+                    () => File.ReadAllText(path)
+                )),
+            LoadExternalRefs
         );
 }
