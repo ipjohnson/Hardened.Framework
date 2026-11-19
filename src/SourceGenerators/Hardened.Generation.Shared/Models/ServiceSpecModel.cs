@@ -218,6 +218,27 @@ internal class ServiceSpecModel : IEquatable<ServiceSpecModel>
     /// </remarks>
     public List<PaginationMismatchModel> PaginationMismatches { get; set; } = new();
 
+    /// <summary>
+    /// <c>$ref</c>s to another file that do not resolve, one finished message each, in the order
+    /// they were met.
+    /// </summary>
+    /// <remarks>
+    /// Filled by the OpenAPI parser and read by <c>SpecDiagnostics</c>, on the same terms as
+    /// <see cref="DanglingReferences"/>. Not serialized and absent from
+    /// <see cref="Equals(ServiceSpecModel?)"/>.
+    /// </remarks>
+    public List<string> UnresolvedFileReferences { get; set; } = new();
+
+    /// <summary>
+    /// The other files this description names through a <c>$ref</c>, as full paths.
+    /// </summary>
+    /// <remarks>
+    /// Read by the task to warn that an embedded document refers to files it does not carry. Not
+    /// serialized and absent from <see cref="Equals(ServiceSpecModel?)"/>: the components they
+    /// named are already in the model.
+    /// </remarks>
+    public List<string> ReferencedFiles { get; set; } = new();
+
     public bool Equals(ServiceSpecModel? other)
     {
         if (other is not null && ContentNegotiation != other.ContentNegotiation)

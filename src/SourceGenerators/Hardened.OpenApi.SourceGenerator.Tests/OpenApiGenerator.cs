@@ -112,9 +112,27 @@ internal static class OpenApiGenerator
 
         var shared = new SharedSchemas();
 
+        // Every spec of the run, as ExtractOpenApiSpec gives them, so a $ref to another file
+        // resolves here as it does in a build. Keys are file names, resolved against one directory.
+        var project = new ProjectDocuments(
+            specs.Select(spec => new KeyValuePair<string, Func<string>>(
+                ProjectPathFor(spec.Key),
+                () => spec.Value
+            ))
+        );
+
         foreach (var spec in specs)
         {
-            var model = ParseSpec(spec.Key, spec.Value);
+            var model = ParseSpec(spec.Key, spec.Value, project);
+
+            // ExtractOpenApiSpec reports these as HOAT037 and generates nothing for the file;
+            // Hardened.OpenApi.BuildTask.Tests asserts that.
+            if (model.UnresolvedFileReferences.Count > 0)
+            {
+                throw new InvalidOperationException(
+                    string.Join("\n", model.UnresolvedFileReferences)
+                );
+            }
 
             model.ResponseModel = responseModel;
 
@@ -237,12 +255,22 @@ internal static class OpenApiGenerator
     /// model. A spec that will not parse is surfaced here rather than as an empty generator run,
     /// which is the same trade the task makes.
     /// </summary>
-    private static ServiceSpecModel ParseSpec(string specFileName, string yaml)
+    private static ServiceSpecModel ParseSpec(
+        string specFileName,
+        string yaml,
+        ProjectDocuments project
+    )
     {
         var fileName = Path.GetFileNameWithoutExtension(specFileName);
 
         var model =
-            OpenApiSpecParser.Parse(yaml, fileName, CancellationToken.None)
+            OpenApiSpecParser.Parse(
+                yaml,
+                fileName,
+                CancellationToken.None,
+                project: project,
+                specPath: ProjectPathFor(specFileName)
+            )
             ?? throw new InvalidOperationException(
                 $"'{specFileName}' did not parse; the generator would see nothing."
             );
@@ -254,6 +282,13 @@ internal static class OpenApiGenerator
 
         return model;
     }
+
+    /// <summary>
+    /// Where a spec of the run would sit. Nothing is read from it; the path only places the
+    /// spec relative to the others.
+    /// </summary>
+    internal static string ProjectPathFor(string specFileName) =>
+        Path.GetFullPath(Path.Combine(Path.GetTempPath(), "hardened-specs", specFileName));
 
     private static string ModelFileNameFor(string specFileName) =>
         Path.GetFileNameWithoutExtension(specFileName) + ".openapi-model.txt";

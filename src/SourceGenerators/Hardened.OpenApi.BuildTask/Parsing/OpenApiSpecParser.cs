@@ -52,7 +52,7 @@ internal static class OpenApiSpecParser
     /// YAML. Named explicitly rather than left to the reader to infer, so a document that opens with
     /// a comment or a byte order mark cannot be mistaken for the other format.
     /// </remarks>
-    private static string DetectFormat(string text)
+    internal static string DetectFormat(string text)
     {
         foreach (var character in text)
         {
@@ -85,6 +85,11 @@ internal static class OpenApiSpecParser
     /// reproducible nor safe to run against a description someone else controls. Passing a
     /// directory restricts resolution to files beside the specification.
     /// </param>
+    /// <param name="project">
+    /// The other descriptions of the project, whose components a <c>$ref</c> to their file
+    /// resolves to. Null leaves every reference to another file as written.
+    /// </param>
+    /// <param name="specPath">Where <paramref name="text"/> was read from, for <paramref name="project"/>.</param>
     public static ServiceSpecModel? Parse(
         string text,
         string fileName,
@@ -92,10 +97,17 @@ internal static class OpenApiSpecParser
         bool applyServerBasePath = false,
         ICollection<string>? diagnostics = null,
         bool groupUntaggedByPath = false,
-        string? externalRefRoot = null
+        string? externalRefRoot = null,
+        ProjectDocuments? project = null,
+        string? specPath = null
     )
     {
         cancellationToken.ThrowIfCancellationRequested();
+
+        var crossFile =
+            project != null && specPath != null ? project.Resolve(text, specPath) : null;
+
+        text = crossFile?.Text ?? text;
 
         OpenApiDocument? document;
         try
@@ -146,6 +158,12 @@ internal static class OpenApiSpecParser
         }
 
         var model = new ServiceSpecModel { FileName = fileName };
+
+        if (crossFile != null)
+        {
+            model.UnresolvedFileReferences.AddRange(crossFile.Problems);
+            model.ReferencedFiles.AddRange(crossFile.ReferencedFiles);
+        }
 
         // The document's identity, for the published document to repeat. It was consumed here and
         // regenerated downstream as the entry point's class name and "1.0.0", so the served

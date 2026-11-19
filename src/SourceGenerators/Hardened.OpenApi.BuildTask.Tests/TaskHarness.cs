@@ -43,16 +43,23 @@ internal sealed class TaskHarness : IDisposable
 
     public Result Run(params string[] specPaths) => RunWithResponseModel("", specPaths);
 
-    public Result RunWithResponseModel(string responseModel, params string[] specPaths)
+    public Result RunWithResponseModel(string responseModel, params string[] specPaths) =>
+        RunItems(
+            responseModel,
+            specPaths
+                .Select(path => (ITaskItem)new Microsoft.Build.Utilities.TaskItem(path))
+                .ToArray()
+        );
+
+    /// <summary>Runs over items as given, for a test that sets an item's metadata.</summary>
+    public Result RunItems(string responseModel, params ITaskItem[] specs)
     {
         var engine = new RecordingBuildEngine();
 
         var task = new ExtractOpenApiSpec
         {
             BuildEngine = engine,
-            Specs = specPaths
-                .Select(path => (ITaskItem)new Microsoft.Build.Utilities.TaskItem(path))
-                .ToArray(),
+            Specs = specs,
             OutputDirectory = OutputDirectory,
             GeneratedSourceDirectory = GeneratedSourceDirectory,
             Namespace = "Test.Api",

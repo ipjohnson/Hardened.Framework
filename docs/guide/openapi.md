@@ -217,6 +217,50 @@ schema that another also declares, such as a shared error body, so that each sta
 first document in item order generates the type, and the others use it. Two declarations of one
 name that differ stop the build with `HOAT036`, which names the schema and both files.
 
+### A schema in another file
+
+A document can name a schema that another document of the project declares. The `$ref` puts the
+file before the `#`:
+
+```yaml
+responses:
+  '404':
+    description: The draft does not exist
+    content:
+      application/json:
+        schema: { $ref: 'shared.yaml#/components/schemas/Refusal' }
+```
+
+The path before the `#` is relative to the file that holds the `$ref`. The named file has to be a
+`HardenedOpenApiSpec` item of the same project:
+
+```xml
+<ItemGroup>
+  <HardenedOpenApiSpec Include="contracts\drafts.yaml" />
+  <HardenedOpenApiSpec Include="contracts\shared.yaml" />
+</ItemGroup>
+```
+
+The build generates `Refusal` once, and the operations of every document use it. The schemas that
+`Refusal` references are generated once as well. A `$ref` to a parameter, a header or a request body
+in another file resolves the same way.
+
+A document with `components` and no `paths` is a file of shared shapes. The build generates every
+schema it declares, and no service interface and no route.
+
+These stop the build with `HOAT037`, which names the file and the component:
+
+- A `$ref` to a file that is not a `HardenedOpenApiSpec` item of the project.
+- A `$ref` to a component that the named file does not declare.
+- A `$ref` to a component that the referencing document also declares, where the two differ.
+- A `$ref` to a response in another file. Each document that used it would generate the response's
+  error type. Declare the response in each document, and reference the shared schema under its
+  `content`.
+
+An embedded document that names another file gets warning `HOAT038`. `SourceUrl` serves the file as
+written, and the file it names is not served. The document at `PublishUrl` already includes the
+schema. `EmbedDocument="false"` on the item removes the warning.
+
 The document can be YAML or JSON. The build decides by the first character that is not white space.
 A `{` means JSON.
 
@@ -982,6 +1026,8 @@ The build and the generator report these codes:
 | `HOAT027` | Error | A `$ref` names a schema the document does not declare |
 | `HOAT032` | Warning | `nullable` in a 3.1 or later document |
 | `HOAT036` | Error | Two documents of the project declare one schema name differently |
+| `HOAT037` | Error | A `$ref` to another file names a file the project does not declare, a component that file does not declare, or a response |
+| `HOAT038` | Warning | An embedded document names another file through `$ref` |
 | `HOAG002` | Warning | A model file the generator cannot read |
 | `HOAG030` | Warning | No `[Handler]` class implements a declared interface |
 | `HOAG031` | Warning | A `[Handler]` class implements no declared interface |
@@ -997,12 +1043,10 @@ keys. [MessagePack](/guide/message-pack) covers them.
   JSON. The served document still declares the form. See [Forms and files](/guide/forms).
 - A route attribute in a project that holds a document is not served. The build reports nothing.
   Code-first handlers go in another project.
-- Two documents in one project that declare a schema of the same name fail the build with `CS0579`
-  and `CS8863` in the generated files.
 - A schema's `default` is the record parameter's default. When a request leaves the member out, the
   member is null, not the default.
-- A `$ref` into another file stops the build with `HOAT027`, with or without
-  `HardenedOpenApiLoadExternalRefs`.
+- A `$ref` to a response in another file stops the build with `HOAT037`. See
+  [A schema in another file](#a-schema-in-another-file).
 - A `pattern` that .NET's regex engine cannot compile, such as `^[a-z\_]+$`, is not enforced. The
   build reports nothing.
 - A `readOnly` or `writeOnly` direction is not enforced, as [Types](#types) describes.
