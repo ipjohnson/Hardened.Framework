@@ -163,7 +163,7 @@ internal static class OpenApiGenerator
                     model.SourceUrl.Length > 0 ? spec.Value : "",
                     spec.Key,
                     responseModel,
-                    claim.EmittedElsewhere
+                    claim
                 )
             );
 

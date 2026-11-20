@@ -162,12 +162,62 @@ public class CrossFileReferenceTaskTests
         Assert.False(result.HasError("HOAT027"), result.ErrorText);
     }
 
-    [Fact]
-    public void AResponseOfAnotherFileIsAnErrorThatSaysItIsNotSupported()
+    /// <summary>
+    /// Two files answer with one response of a third. Each file's operation carries the named
+    /// error, and its exception is written once.
+    /// </summary>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AResponseOfAnotherFileIsWrittenOnce(bool sharedFirst)
     {
         using var harness = new TaskHarness();
         var drafts = harness.WriteSpec("drafts.yaml", Drafts("shared.yaml", sharedResponse: true));
+        var runs = harness.WriteSpec(
+            "runs.yaml",
+            Drafts("shared.yaml", sharedResponse: true)
+                .Replace("drafts", "runs")
+                .Replace("Draft", "Run")
+        );
         var shared = harness.WriteSpec("shared.yaml", Shared);
+
+        var result = sharedFirst
+            ? harness.Run(shared, drafts, runs)
+            : harness.Run(drafts, runs, shared);
+
+        Assert.True(result.Succeeded, result.ErrorText);
+
+        foreach (var file in new[] { "drafts.yaml", "runs.yaml" })
+        {
+            var error = Model(harness, file)
+                .Services.SelectMany(service => service.Operations)
+                .Single()
+                .ErrorResponses.Single();
+
+            Assert.Equal("NotFound", error.Name);
+            Assert.Equal("#/components/schemas/Refusal", error.Ref);
+            Assert.Equal("NotFoundException", error.ExceptionTypeName);
+        }
+
+        var emitted =
+            File.ReadAllText(harness.SourcePathFor("drafts.yaml"))
+            + File.ReadAllText(harness.SourcePathFor("runs.yaml"))
+            + File.ReadAllText(harness.SourcePathFor("shared.yaml"));
+
+        Assert.Single(Regex.Matches(emitted, @"class NotFoundException\b"));
+        Assert.Single(Regex.Matches(emitted, @"NotFoundException AsException\("));
+        Assert.Single(Regex.Matches(emitted, @"record Refusal\("));
+    }
+
+    [Fact]
+    public void AResponseTheNamedFileLacksIsAnErrorNamingTheFileAndTheResponse()
+    {
+        using var harness = new TaskHarness();
+        var drafts = harness.WriteSpec("drafts.yaml", Drafts("shared.yaml", sharedResponse: true));
+        var shared = harness.WriteSpec(
+            "shared.yaml",
+            Shared.Replace("    NotFound:", "    Missing:")
+        );
 
         var result = harness.Run(drafts, shared);
 
@@ -175,8 +225,91 @@ public class CrossFileReferenceTaskTests
 
         var error = Assert.Single(result.Errors, error => error.Code == "HOAT037");
 
-        Assert.Contains("shared.yaml#/components/responses/NotFound", error.Message);
-        Assert.Contains("not supported", error.Message);
+        Assert.Equal(drafts, error.File);
+        Assert.Contains($"'{shared}' declares no response 'NotFound'", error.Message);
+        Assert.False(File.Exists(harness.SourcePathFor("drafts.yaml")));
+    }
+
+    /// <summary>
+    /// Two files that generate one error type from different declarations would write two classes
+    /// under one name. The second file is refused, as a schema declared two ways is.
+    /// </summary>
+    [Fact]
+    public void AResponseDeclaredDifferentlyInTwoFilesIsAnError()
+    {
+        using var harness = new TaskHarness();
+        var drafts = harness.WriteSpec("drafts.yaml", Drafts("shared.yaml", sharedResponse: true));
+        var runs = harness.WriteSpec(
+            "runs.yaml",
+            Drafts("shared.yaml", sharedResponse: true)
+                .Replace("drafts", "runs")
+                .Replace("Draft", "Run")
+                .Replace(
+                    "'404': { $ref: 'shared.yaml#/components/responses/NotFound' }",
+                    "'404': { $ref: '#/components/responses/NotFound' }"
+                )
+                + """
+
+                  responses:
+                    NotFound:
+                      description: no such run
+                      content:
+                        application/json:
+                          schema: { $ref: 'shared.yaml#/components/schemas/RefusalDetail' }
+                """
+        );
+        var shared = harness.WriteSpec("shared.yaml", Shared);
+
+        var result = harness.Run(shared, drafts, runs);
+
+        Assert.False(result.Succeeded);
+
+        var error = Assert.Single(result.Errors, error => error.Code == "HOAT036");
+
+        Assert.Equal(runs, error.File);
+        Assert.Contains("'NotFound'", error.Message);
+        Assert.Contains("'NotFoundException'", error.Message);
+        Assert.Contains(drafts, error.Message);
+        Assert.Contains(runs, error.Message);
+        Assert.True(File.Exists(harness.SourcePathFor("drafts.yaml")));
+    }
+
+    /// <summary>
+    /// A header of a response, named in another file. The header is copied with the response
+    /// that carries it.
+    /// </summary>
+    [Fact]
+    public void AHeaderOfAnotherFileIsDeclaredOnTheError()
+    {
+        using var harness = new TaskHarness();
+        var drafts = harness.WriteSpec("drafts.yaml", Drafts("shared.yaml", sharedResponse: true));
+        var shared = harness.WriteSpec(
+            "shared.yaml",
+            Shared.Replace(
+                "      description: missing\n",
+                "      description: missing\n"
+                    + "      headers:\n"
+                    + "        X-Trace: { $ref: '#/components/headers/Trace' }\n"
+            )
+                + """
+
+                  headers:
+                    Trace:
+                      required: true
+                      schema: { type: string }
+                """
+        );
+
+        var result = harness.Run(drafts, shared);
+
+        Assert.True(result.Succeeded, result.ErrorText);
+
+        var error = Model(harness, "drafts.yaml")
+            .Services.SelectMany(service => service.Operations)
+            .Single()
+            .ErrorResponses.Single();
+
+        Assert.Equal("X-Trace", Assert.Single(error.Headers).Name);
     }
 
     /// <summary>

@@ -458,6 +458,21 @@ internal static class SpecModelSerializer
         return builder.ToString();
     }
 
+    /// <summary>
+    /// One error in the form <see cref="Write(ServiceSpecModel)"/> gives it, without the names
+    /// <c>NameAllocator</c> gave its types.
+    /// </summary>
+    /// <remarks>
+    /// The comparison for "declared alike" between two files. The allocated names are left out
+    /// because each file allocates its own, and the caller compares one generated type at a time.
+    /// </remarks>
+    public static string WriteDeclaration(ErrorResponseModel error)
+    {
+        var builder = new StringBuilder();
+        WriteErrorResponse(builder, error, withTypeNames: false);
+        return builder.ToString();
+    }
+
     private static void WriteSchema(StringBuilder builder, SchemaModel schema)
     {
         var record = new Record("schema");
@@ -795,24 +810,7 @@ internal static class SpecModelSerializer
 
         foreach (var errorResponse in operation.ErrorResponses)
         {
-            var record2 = new Record("errorresponse");
-            record2.AddAlways(
-                "StatusCode",
-                errorResponse.StatusCode.ToString(CultureInfo.InvariantCulture)
-            );
-            record2.Add("Ref", errorResponse.Ref);
-            record2.Add("Description", errorResponse.Description);
-            record2.Add("Name", errorResponse.Name);
-
-            // The allocated names, not re-derived on the other side. The generator writes the
-            // switch over these types and never sees the file the task wrote them into, so a
-            // second derivation is a switch arm naming a type nothing emitted.
-            record2.Add("TypeName", errorResponse.TypeName);
-            record2.Add("ExceptionTypeName", errorResponse.ExceptionTypeName);
-            record2.Add("HeadersOnPayload", errorResponse.HeadersOnPayload);
-            record2.WriteTo(builder);
-
-            WriteResponseHeaders(builder, errorResponse.Headers);
+            WriteErrorResponse(builder, errorResponse, withTypeNames: true);
         }
 
         foreach (var parameter in operation.Parameters)
@@ -904,6 +902,36 @@ internal static class SpecModelSerializer
             ValidationMode = record.String("ValidationMode"),
             RequestInterfaces = record.Strings("RequestInterfaces") ?? new List<string>(),
         };
+
+    private static void WriteErrorResponse(
+        StringBuilder builder,
+        ErrorResponseModel errorResponse,
+        bool withTypeNames
+    )
+    {
+        var record = new Record("errorresponse");
+        record.AddAlways(
+            "StatusCode",
+            errorResponse.StatusCode.ToString(CultureInfo.InvariantCulture)
+        );
+        record.Add("Ref", errorResponse.Ref);
+        record.Add("Description", errorResponse.Description);
+        record.Add("Name", errorResponse.Name);
+
+        if (withTypeNames)
+        {
+            // The allocated names, not re-derived on the other side. The generator writes the
+            // switch over these types and never sees the file the task wrote them into, so a
+            // second derivation is a switch arm naming a type nothing emitted.
+            record.Add("TypeName", errorResponse.TypeName);
+            record.Add("ExceptionTypeName", errorResponse.ExceptionTypeName);
+        }
+
+        record.Add("HeadersOnPayload", errorResponse.HeadersOnPayload);
+        record.WriteTo(builder);
+
+        WriteResponseHeaders(builder, errorResponse.Headers);
+    }
 
     private static void WriteParameter(StringBuilder builder, ParameterModel parameter)
     {

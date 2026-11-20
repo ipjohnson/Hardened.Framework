@@ -49,11 +49,40 @@ internal static class ErrorFactoryEmitter
     /// input. An error that binds to a shipped record already has <c>AsException()</c> through the
     /// generic extension, and one with no declared body is already thrown by naming its type once.
     /// </param>
+    /// <param name="emittedElsewhere">
+    /// The payloads whose factory an earlier file of the project wrote for the same exception. A
+    /// second <c>AsException()</c> over one payload is CS0121 at every call.
+    /// </param>
     public static ClassDefinition? Emit(
         IConstructContainer container,
         IReadOnlyList<ErrorResponseModel> errors,
         string modelsNamespace,
-        string specFileName
+        string specFileName,
+        ISet<string>? emittedElsewhere = null
+    )
+    {
+        ClassDefinition? holder = null;
+
+        foreach (var factory in Factories(errors))
+        {
+            if (emittedElsewhere != null && emittedElsewhere.Contains(factory.Key))
+            {
+                continue;
+            }
+
+            holder ??= CreateHolder(container, specFileName);
+
+            EmitFactory(holder, factory.Value, factory.Key, modelsNamespace);
+        }
+
+        return holder;
+    }
+
+    /// <summary>
+    /// Each payload that gets a factory, with the error it throws, ordered by the payload type.
+    /// </summary>
+    public static List<KeyValuePair<string, ErrorResponseModel>> Factories(
+        IReadOnlyList<ErrorResponseModel> errors
     )
     {
         var byPayload = new Dictionary<string, ErrorResponseModel?>(System.StringComparer.Ordinal);
@@ -72,29 +101,23 @@ internal static class ErrorFactoryEmitter
             byPayload[payload] = byPayload.ContainsKey(payload) ? null : error;
         }
 
-        ClassDefinition? holder = null;
-
         // Ordered by the payload type, so the emitted file is byte-stable between builds whatever
         // order the operations were walked in.
         var payloads = new List<string>(byPayload.Keys);
 
         payloads.Sort(System.StringComparer.Ordinal);
 
+        var factories = new List<KeyValuePair<string, ErrorResponseModel>>();
+
         foreach (var payload in payloads)
         {
-            var error = byPayload[payload];
-
-            if (error == null)
+            if (byPayload[payload] is { } error)
             {
-                continue;
+                factories.Add(new KeyValuePair<string, ErrorResponseModel>(payload, error));
             }
-
-            holder ??= CreateHolder(container, specFileName);
-
-            EmitFactory(holder, error, payload, modelsNamespace);
         }
 
-        return holder;
+        return factories;
     }
 
     private static ClassDefinition CreateHolder(IConstructContainer container, string specFileName)

@@ -737,12 +737,7 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task
             var sourcePath = Path.Combine(GeneratedSourceDirectory, fileName + SourceSuffix);
             WriteIfChanged(
                 sourcePath,
-                Emit(
-                    model,
-                    ServedDocument(spec, path, document, sliced, model),
-                    path,
-                    claim.EmittedElsewhere
-                )
+                Emit(model, ServedDocument(spec, path, document, sliced, model), path, claim)
             );
             sources.Add(new TaskItem(sourcePath));
 
@@ -781,7 +776,7 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task
         ServiceSpecModel model,
         string document,
         string specPath,
-        ISet<string> emittedElsewhere
+        SchemaClaim claim
     ) =>
         SpecFileEmitter.Emit(
             model,
@@ -790,7 +785,7 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task
             document,
             specPath,
             SelectedResponseModel(),
-            emittedElsewhere
+            claim
         );
 
     /// <summary>

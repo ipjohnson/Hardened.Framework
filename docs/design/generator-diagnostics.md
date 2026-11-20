@@ -693,7 +693,7 @@ the other.
 | `033` | A member the keyed MessagePack serializer has no index for, or two members sharing one. Part of the model-diagnostics pass; see below. |
 | `034` | Warning. A `oneOf` under a MessagePack serializer, which does not carry one. Part of the model-diagnostics pass; see below. |
 | `035` | `HSMT` only. A committed AST's `@paginated` names a member the operation does not have, or one of the wrong type. Part of the model-diagnostics pass; see below. |
-| `036` | Two descriptions of one project declare a schema of one name, and the two declarations differ. The message names the schema and both files. Every description of a project generates into one models namespace, so the first file to declare a schema writes its type and a later file that declares it alike uses that type. Declare it alike in both, or rename it in one. A union that one file streams and the other does not counts as different, because a streamed union is generated with an event form. The later file is not generated. |
+| `036` | Two descriptions of one project declare a schema of one name, and the two declarations differ. The message names the schema and both files. Every description of a project generates into one models namespace, so the first file to declare a schema writes its type and a later file that declares it alike uses that type. Declare it alike in both, or rename it in one. A union that one file streams and the other does not counts as different, because a streamed union is generated with an event form. A named response is held to the same rule: two descriptions that generate one exception or case type name from different declarations are `036`, and the message names the response, the type and both files. The later file is not generated. |
 | `037` | `HOAT` only. A `$ref` to another file does not resolve. Part of the model-diagnostics pass; see below. |
 | `038` | Warning, `HOAT` only. The description names another file through `$ref` and is embedded, so `SourceUrl` serves text that refers to a file the application does not serve. The document at `PublishUrl` is generated from the model, which holds the components the reference named. Turn `EmbedDocument` off on the item. |
 
@@ -824,7 +824,7 @@ generated file.
 | `033` | A member the keyed MessagePack serializer has no index for, or two members sharing one. |
 | `034` | Warning. A `oneOf` under a MessagePack serializer, which does not carry one. |
 | `035` | A `@paginated` setting names a member the operation does not have, or one whose target the trait does not allow. The rules are the ones the Smithy CLI reports as errors, and the CLI refuses the same models, so only a committed AST reaches this. |
-| `037` | A `$ref` to another file does not resolve. The file is not a `HardenedOpenApiSpec` of the project, the file does not declare the component, the component differs from one of that name the referencing description declares, or the component is a response. The message names the file and the component. A reference into another file that does resolve is copied into the referencing description before the parser reads it; see below. |
+| `037` | A `$ref` to another file does not resolve. The file is not a `HardenedOpenApiSpec` of the project, the file does not declare the component, or the component differs from one of that name the referencing description declares. The message names the file and the component. A reference into another file that does resolve is copied into the referencing description before the parser reads it; see below. |
 
 `028`–`031` were taken by the document export before this pass needed another number, which is
 why its finders after `027` start at `032`.
@@ -904,8 +904,11 @@ Because this works on the raw document, it also catches the property reference t
 A `$ref` to a file the project does not name is reported here rather than dropped by the reader.
 With `HardenedOpenApiLoadExternalRefs` on, such a reference is left for the reader to follow.
 
-A response is refused rather than copied. A named response generates an exception and a case type in
-each file that uses it, so two files using one shared response would write the type twice.
+A response is copied the same way. A named response generates an exception, a case type and an
+`AsException()` factory in each file that uses it. `SharedSchemas` claims those by type name, so
+the first file writes them and a later file that declares the response alike uses them. This holds
+whether the later file copied the response in or declares it itself. A later file that generates a
+type of the same name from a different declaration is `036`.
 
 ### Renumbered in 0.18
 

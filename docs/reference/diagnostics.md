@@ -399,7 +399,7 @@ interface that the `Response` model generates.
 | `016` | Error | `UiUrl` is set without `PublishUrl` | Build task | `HOAT016` and `HSMT016`: [The OpenAPI document](/guide/openapi-document) |
 | `017` | Error | `SourceUrl` is set and the description is not embedded | Build task | `HOAT017` and `HSMT017`: [The OpenAPI document](/guide/openapi-document) |
 | `026` | Warning | `HardenedResponseModel` is `Standard`. The build uses `Throws` | Build task | `HOAT026` and `HSMT026`: none |
-| `036` | Error | Two descriptions of one project declare one schema name, and the two declarations differ. The message names the schema and both files | Build task | `HOAT036`: [Generating from OpenAPI](/guide/openapi#declaring-the-document). `HSMT036`: none |
+| `036` | Error | Two descriptions of one project declare one schema name, or generate one error type name from a response, and the two declarations differ. The message names the schema or the response, and both files | Build task | `HOAT036`: [Generating from OpenAPI](/guide/openapi#declaring-the-document). `HSMT036`: none |
 | `038` | Warning | An embedded description names another file through `$ref`, so `SourceUrl` serves text that refers to a file the application does not serve | Build task | `HOAT038`: [Generating from OpenAPI](/guide/openapi#a-schema-in-another-file). `HSMT038`: none |
 
 ### The Smithy CLI and model items
@@ -430,7 +430,7 @@ interface that the `Response` model generates.
 | `033` | Error | Under `HardenedSerializer` `MessagePackKeyed`, a property has no `x-message-pack-index`, or two properties share one | Build task | `HOAT033`: [MessagePack](/guide/message-pack). `HSMT033`: none |
 | `034` | Warning | A `oneOf` schema under a MessagePack serializer | Build task | `HOAT034`: [MessagePack](/guide/message-pack). `HSMT034`: none |
 | `035` | Error | A committed AST's `@paginated` names a member the operation does not have, or one of the wrong type | Build task | `HSMT035`: [Generating from Smithy](/guide/smithy#paging). `HOAT035`: none |
-| `037` | Error | A `$ref` to another file does not resolve: the file is not a description of the project, the file does not declare the component, the component differs from one the referencing description declares, or the component is a response. The message names the file and the component | Build task | `HOAT037`: [Generating from OpenAPI](/guide/openapi#a-schema-in-another-file). `HSMT037`: none |
+| `037` | Error | A `$ref` to another file does not resolve: the file is not a description of the project, the file does not declare the component, or the component differs from one the referencing description declares. The message names the file and the component | Build task | `HOAT037`: [Generating from OpenAPI](/guide/openapi#a-schema-in-another-file). `HSMT037`: none |
 
 No build reports `HSMT032`, because only the OpenAPI reader records `nullable`. No build reports
 `HOAT035`, because only the Smithy reader records `@paginated`.

@@ -27,8 +27,8 @@ namespace Hardened.OpenApi.SourceGenerator;
 /// is left for the reader, which is what that property is for.
 /// </para>
 /// <para>
-/// A response is the one component that is refused. Each file generates the error type of a named
-/// response it uses, so two files using one shared response would write that type twice.
+/// A copied response generates its error types in each file that uses it, and
+/// <c>SharedSchemas</c> writes each of them once, as it does a copied schema.
 /// </para>
 /// </remarks>
 internal sealed class ProjectDocuments
@@ -286,21 +286,6 @@ internal sealed class ProjectDocuments
 
             var (kind, name) = component.Value;
             var isOtherFile = !string.Equals(file, _specPath, StringComparison.Ordinal);
-
-            if (isOtherFile && kind == "responses")
-            {
-                Report(
-                    "'{0}' references '{1}', a response in another file, which is not supported. "
-                        + "Each file that used it would generate the response's error type, and the "
-                        + "two would collide. Declare the response in '{0}', and give it the schema "
-                        + "'{2}' declares through a $ref under its content.",
-                    holder,
-                    reference,
-                    file
-                );
-
-                return;
-            }
 
             // Checked before the reference is rewritten, because a rewritten reference that names
             // nothing reads as the description's own mistake.
