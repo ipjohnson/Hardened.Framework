@@ -107,6 +107,122 @@ public class CrossFileReferenceTests
         Assert.DoesNotContain("interface I", shared);
     }
 
+    /// <summary>
+    /// Each resource file answers its 404 with the response <c>shared.yaml</c> declares. Every
+    /// file copies the response in, and the error types it generates are written once.
+    /// </summary>
+    [Theory]
+    [InlineData("Throws", true)]
+    [InlineData("Throws", false)]
+    [InlineData("Response", true)]
+    [InlineData("Response", false)]
+    public void FilesNamingAResponseOfAnotherFileCompile(string responseModel, bool sharedFirst)
+    {
+        var files = sharedFirst
+            ? new Dictionary<string, string>
+            {
+                ["shared.yaml"] = Shared + SharedResponses,
+                ["drafts.yaml"] = WithSharedResponse(Resource("drafts")),
+                ["runs.yaml"] = WithSharedResponse(Resource("runs")),
+            }
+            : new Dictionary<string, string>
+            {
+                ["drafts.yaml"] = WithSharedResponse(Resource("drafts")),
+                ["runs.yaml"] = WithSharedResponse(Resource("runs")),
+                ["shared.yaml"] = Shared + SharedResponses,
+            };
+
+        var result = OpenApiGenerator
+            .Run(
+                files,
+                OpenApiGenerator.MinimalEntryPoint,
+                new Dictionary<string, string> { ["HardenedResponseModel"] = responseModel }
+            )
+            .AssertNoErrors();
+
+        var emitted = string.Concat(result.GeneratedSources.Values);
+
+        Assert.Single(Regex.Matches(emitted, @"record Refusal\("));
+
+        if (responseModel == "Throws")
+        {
+            Assert.Single(Regex.Matches(emitted, @"class NotFoundException\b"));
+            Assert.Single(Regex.Matches(emitted, @"NotFoundException AsException\("));
+        }
+        else
+        {
+            Assert.Single(Regex.Matches(emitted, @"record NotFound\b"));
+        }
+    }
+
+    /// <summary>
+    /// Two files that each declare the response themselves, alike, are the same case without a
+    /// reference between them.
+    /// </summary>
+    [Theory]
+    [InlineData("Throws")]
+    [InlineData("Response")]
+    public void FilesDeclaringOneResponseAlikeCompile(string responseModel)
+    {
+        var result = OpenApiGenerator
+            .Run(
+                new Dictionary<string, string>
+                {
+                    ["drafts.yaml"] = LocalResponse(Resource("drafts")),
+                    ["runs.yaml"] = LocalResponse(Resource("runs")),
+                    ["shared.yaml"] = Shared,
+                },
+                OpenApiGenerator.MinimalEntryPoint,
+                new Dictionary<string, string> { ["HardenedResponseModel"] = responseModel }
+            )
+            .AssertNoErrors();
+
+        var emitted = string.Concat(result.GeneratedSources.Values);
+
+        Assert.Single(
+            Regex.Matches(
+                emitted,
+                responseModel == "Throws" ? @"class NotFoundException\b" : @"record NotFound\b"
+            )
+        );
+    }
+
+    private const string Inline404 = """
+                '404':
+                  description: missing
+                  content:
+                    application/json:
+                      schema: { $ref: 'shared.yaml#/components/schemas/Refusal' }
+        """;
+
+    private const string NotFoundResponse = """
+
+          responses:
+            NotFound:
+              description: missing
+              content:
+                application/json:
+                  schema: { $ref: '{0}#/components/schemas/Refusal' }
+        """;
+
+    private static readonly string SharedResponses = NotFoundResponse.Replace("{0}", "");
+
+    private static string WithSharedResponse(string resource) =>
+        Replace404(resource, "shared.yaml");
+
+    private static string LocalResponse(string resource) =>
+        Replace404(resource, "") + NotFoundResponse.Replace("{0}", "shared.yaml");
+
+    private static string Replace404(string resource, string file)
+    {
+        Assert.Contains(Inline404, resource);
+
+        return resource.Replace(
+            Inline404,
+            $"        '404': {{ $ref: '{file}#/components/responses/NotFound' }}"
+        );
+    }
+
     private static string ServiceOf(string emitted)
     {
         var start = emitted.IndexOf("interface I", StringComparison.Ordinal);

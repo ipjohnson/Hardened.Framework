@@ -245,6 +245,18 @@ The build generates `Refusal` once, and the operations of every document use it.
 `Refusal` references are generated once as well. A `$ref` to a parameter, a header or a request body
 in another file resolves the same way.
 
+A `$ref` to a response in another file resolves the same way too:
+
+```yaml
+responses:
+  '404': { $ref: 'shared.yaml#/components/responses/NotFound' }
+```
+
+A named response generates an exception, a response-set case and an `AsException()` factory. The
+build writes each once, however many documents use the response. Two documents that each declare
+`NotFound` themselves get the same result when the two declarations are alike. When they differ,
+the build stops with `HOAT036`, which names the response, the type and both files.
+
 A document with `components` and no `paths` is a file of shared shapes. The build generates every
 schema it declares, and no service interface and no route.
 
@@ -253,9 +265,6 @@ These stop the build with `HOAT037`, which names the file and the component:
 - A `$ref` to a file that is not a `HardenedOpenApiSpec` item of the project.
 - A `$ref` to a component that the named file does not declare.
 - A `$ref` to a component that the referencing document also declares, where the two differ.
-- A `$ref` to a response in another file. Each document that used it would generate the response's
-  error type. Declare the response in each document, and reference the shared schema under its
-  `content`.
 
 An embedded document that names another file gets warning `HOAT038`. `SourceUrl` serves the file as
 written, and the file it names is not served. The document at `PublishUrl` already includes the
@@ -1025,8 +1034,8 @@ The build and the generator report these codes:
 | `HOAT026` | Warning | A path names a parameter the operation does not declare |
 | `HOAT027` | Error | A `$ref` names a schema the document does not declare |
 | `HOAT032` | Warning | `nullable` in a 3.1 or later document |
-| `HOAT036` | Error | Two documents of the project declare one schema name differently |
-| `HOAT037` | Error | A `$ref` to another file names a file the project does not declare, a component that file does not declare, or a response |
+| `HOAT036` | Error | Two documents of the project declare one schema or one named response differently |
+| `HOAT037` | Error | A `$ref` to another file names a file the project does not declare, or a component that file does not declare |
 | `HOAT038` | Warning | An embedded document names another file through `$ref` |
 | `HOAG002` | Warning | A model file the generator cannot read |
 | `HOAG030` | Warning | No `[Handler]` class implements a declared interface |
@@ -1045,8 +1054,6 @@ keys. [MessagePack](/guide/message-pack) covers them.
   Code-first handlers go in another project.
 - A schema's `default` is the record parameter's default. When a request leaves the member out, the
   member is null, not the default.
-- A `$ref` to a response in another file stops the build with `HOAT037`. See
-  [A schema in another file](#a-schema-in-another-file).
 - A `pattern` that .NET's regex engine cannot compile, such as `^[a-z\_]+$`, is not enforced. The
   build reports nothing.
 - A `readOnly` or `writeOnly` direction is not enforced, as [Types](#types) describes.

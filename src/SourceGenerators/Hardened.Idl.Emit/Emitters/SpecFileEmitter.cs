@@ -41,9 +41,12 @@ internal static class SpecFileEmitter
         string document = "",
         string specPath = "",
         SpecResponseModel responseModel = SpecResponseModel.Throws,
-        ISet<string>? emittedElsewhere = null
+        SchemaClaim? claim = null
     )
     {
+        var emittedElsewhere = claim?.EmittedElsewhere;
+        var errorTypesElsewhere = claim?.ErrorTypesEmittedElsewhere;
+
         // An unnamed namespace writes no wrapper of its own, so this is the file rather than a
         // namespace in it. Filter types declare their own namespace in the spec and may sit outside
         // the root entirely, which is why the file needs to hold more than one top-level block.
@@ -143,7 +146,19 @@ internal static class SpecFileEmitter
             // a case type, and an error declared by some of each needs both.
             var thrown = GeneratedErrors(model, responseModel, inResponseSet: false);
 
-            responses.AddRange(ErrorResponseEmitter.Emit(models, thrown, modelsNamespace));
+            // An exception or case an earlier file of the project wrote alike is skipped, as a
+            // schema is. See SharedSchemas.
+            responses.AddRange(
+                ErrorResponseEmitter.Emit(
+                    models,
+                    NotEmittedElsewhere(
+                        thrown,
+                        errorTypesElsewhere,
+                        error => error.ExceptionTypeName
+                    ),
+                    modelsNamespace
+                )
+            );
 
             // Throwing shorthand for those, so the exception is inferred from the body rather than
             // named beside it. Only for the ones this file wrote a type for: an error that binds to
@@ -152,7 +167,8 @@ internal static class SpecFileEmitter
                 models,
                 thrown,
                 modelsNamespace,
-                model.FileName
+                model.FileName,
+                claim?.FactoriesEmittedElsewhere
             );
 
             if (factories != null)
@@ -163,7 +179,11 @@ internal static class SpecFileEmitter
             responses.AddRange(
                 UnionResponseEmitter.EmitErrorCaseTypes(
                     models,
-                    GeneratedErrors(model, responseModel, inResponseSet: true),
+                    NotEmittedElsewhere(
+                        GeneratedErrors(model, responseModel, inResponseSet: true),
+                        errorTypesElsewhere,
+                        error => error.TypeName
+                    ),
                     modelsNamespace
                 )
             );
@@ -305,7 +325,7 @@ internal static class SpecFileEmitter
     /// ones that throw. An error declared by both kinds appears in both, and gets a case type and
     /// an exception - separately named, so neither collides with the other.
     /// </param>
-    private static IReadOnlyList<ErrorResponseModel> GeneratedErrors(
+    internal static IReadOnlyList<ErrorResponseModel> GeneratedErrors(
         ServiceSpecModel model,
         SpecResponseModel responseModel,
         bool inResponseSet
@@ -340,6 +360,15 @@ internal static class SpecFileEmitter
 
         return collected;
     }
+
+    private static IReadOnlyList<ErrorResponseModel> NotEmittedElsewhere(
+        IReadOnlyList<ErrorResponseModel> errors,
+        ISet<string>? emittedElsewhere,
+        System.Func<ErrorResponseModel, string?> typeName
+    ) =>
+        emittedElsewhere == null || emittedElsewhere.Count == 0
+            ? errors
+            : errors.Where(error => !emittedElsewhere.Contains(typeName(error)!)).ToList();
 
     /// <summary>
     /// Every (schema, status) an operation's null return could answer with.
